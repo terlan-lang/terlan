@@ -508,8 +508,18 @@ fn resolve_expr(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => resolve_expr(base, module, imports, aliases),
+        | CoreExpr::UnaryOp { operand: base, .. } => resolve_expr(base, module, imports, aliases),
+        CoreExpr::Lam {
+            parameter_types,
+            body,
+            ..
+        } => {
+            parameter_types
+                .iter_mut()
+                .flatten()
+                .for_each(&mut resolve_type);
+            resolve_expr(body, module, imports, aliases);
+        }
         CoreExpr::Case { scrutinee, clauses } => {
             resolve_expr(scrutinee, module, imports, aliases);
             for clause in clauses {

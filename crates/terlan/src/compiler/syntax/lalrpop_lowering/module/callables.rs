@@ -111,6 +111,7 @@ pub(super) fn lower_function(
             .collect::<LalrpopLoweringResult<Vec<_>>>()?;
         vec![FunctionClause {
             patterns,
+            parameter_types: Vec::new(),
             body,
             span: callable_span(context, node, &name),
             guard: None,
@@ -234,6 +235,7 @@ fn lower_clause(
         .and_then(|body| context.expression(body))?;
     Ok(FunctionClause {
         patterns,
+        parameter_types: Vec::new(),
         body,
         span: node.span,
         guard,
@@ -305,6 +307,7 @@ pub(super) fn lower_method(
         clauses: metadata_bool(node, "body")
             .then(|| {
                 Ok(FunctionClause {
+                    parameter_types: Vec::new(),
                     patterns: children[params_start..constraints_start]
                         .iter()
                         .zip(&params)

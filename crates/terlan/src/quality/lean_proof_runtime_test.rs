@@ -10,7 +10,7 @@ use super::*;
 /// - Temporary `lean-proof-runner.toml` with all required groups and budgets.
 ///
 /// Output:
-/// - Summary with four groups and a generated resource-accounting report.
+/// - Summary with four groups and a generated configuration report.
 ///
 /// Transformation:
 /// - Keeps proof runtime policy executable even when no Lean tree is present.
@@ -18,13 +18,40 @@ use super::*;
 fn lean_proof_runtime_accepts_complete_runner_config() {
     let root = temp_repo("lean_proof_runtime_accepts");
     write_runner_config(&root, complete_config());
+    let gate = root.join("target/quality/proof-artifacts/lean-proof-gate.json");
+    fs::create_dir_all(gate.parent().unwrap()).unwrap();
+    let verdict = b"{\"families\":[{\"family\":\"retained\",\"verdict\":\"pass\"}]}\n";
+    fs::write(&gate, verdict).unwrap();
 
     let summary = run_lean_proof_runtime(&root).expect("complete config should pass");
 
     assert_eq!(summary.group_count, 4);
-    let report = fs::read_to_string(summary.report_path).expect("read report");
-    assert!(report.contains("\"shared_lean_path_allowed\": false"));
-    assert!(report.contains("\"name\": \"foundational\""));
+    assert_eq!(summary.report_path, root.join(REPORT_PATH));
+    let report: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(summary.report_path).expect("read report"))
+            .unwrap();
+    assert_eq!(report["schema"], "terlan.lean-proof-runtime-policy.v1");
+    assert_eq!(
+        report["configured_policy"]["runner"]["forbidden_env"][0],
+        "LEAN_PATH"
+    );
+    assert_eq!(
+        report["configured_policy"]["groups"][0]["name"],
+        "foundational"
+    );
+    assert_eq!(report["configured_policy"]["groups"][0]["memory_mb"], 512);
+    assert_eq!(fs::read(&gate).unwrap(), verdict);
+    let published = fs::read(root.join(REPORT_PATH)).unwrap();
+    let staged = root.join("target/quality/preparation/policy.work/report.json");
+    run_to(&root, &staged).unwrap();
+    assert_eq!(fs::read(&staged).unwrap(), published);
+    write_runner_config(
+        &root,
+        complete_config().replace("clean_env = true", "clean_env = false"),
+    );
+    assert!(run_to(&root, &staged).is_err());
+    assert_eq!(fs::read(root.join(REPORT_PATH)).unwrap(), published);
+    assert_eq!(fs::read(&staged).unwrap(), published);
     fs::remove_dir_all(root).expect("remove fixture");
 }
 

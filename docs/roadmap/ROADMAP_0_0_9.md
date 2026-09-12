@@ -1,236 +1,394 @@
-# Terlan 0.0.9 Roadmap
+# Terlan 0.0.9 Release Optimization Roadmap
 
-Most of this roadmap begins after the 0.0.7 candidate is sealed. The validation
-throughput foundation in V8-1 was pulled forward into 0.0.7 Slice 70 because a
-monolithic same-run closeout proved operationally unreasonable; 0.0.9 retains
-the broader tiering, cleanup, measurement, and ratcheting follow-through. Work
-is selected in document order. Accelerator-specific work remains owned by
-`ROADMAP_0_0_9_CUDA.md`; this file owns cross-cutting compiler, VM, tooling,
-and release work.
+Updated: 2026-09-12. Baseline: 0.0.8 is published.
 
-## Validation Throughput And Evidence Reuse
+## Scope
 
-- [ ] V8-1: make exhaustive validation fast without weakening release evidence.
-  - Pulled-forward foundation: 0.0.7 now enters the canonical Rust suite once,
-    reuses one union feature profile for quality/editor/benchmark test harnesses,
-    executes freshness-checked prebuilt workspace tools instead of repeated
-    `cargo run`, owns ignored evidence producers in that suite, measures clean
-    artifacts before it, verifies sealed validator fingerprints afterward, and
-    statically rejects Cargo-test replay in the release plan. Locked Tree-sitter
-    dependencies and Node caches are now repository-owned and self-bootstrapping.
-    The remaining requirements below own cross-tier orchestration, complete AOT
-    and native-link reuse, lifecycle cleanup, and measured ratcheting.
-  - Pulled-forward build optimization: the canonical Rust orchestrator now
-    closes child stdin, bounds every Cargo phase, assigns every phase one
-    deterministic tier, writes an atomic per-phase timing/outcome report, and
-    fails when that report cannot be sealed. The
-    shared typed-validator cache now has single-writer handoff, input and output
-    content seals, mutation detection, stale-writer recovery, and failed-build
-    cleanup. Validator children are bounded by a configurable thirty-minute
-    deadline, and timeout or signal termination removes their partial state.
-    Artifact-budget evidence is reused only when compilation inputs,
-    policy, toolchain, profiles, and required prebuilt binaries still match;
-    otherwise the clean six-lane measurement runs. Make no longer gives the
-    Rust-suite owner a duplicate compiler-bootstrap prerequisite, and simple
-    aggregate targets use dependency edges instead of recursive Make calls.
-    Every ignored Rust evidence producer is now assigned to the checked-in
-    six-tier inventory, with an explicit execution owner and isolation policy.
-    Direct AOT unit and whole-image cache keys include the locked dependency
-    graph, Cargo profile/features, target, codegen policy, and exact linker
-    executable content; validation can turn an unexpected warm-cache miss into
-    a loud error. Release evidence reuses the canonical Rust/build boundary,
-    editor/docs parity builds one AOT image, and benchmark gates execute one
-    prebuilt release binary. The release dry plan is machine-reported and
-    ratcheted to zero `cargo run`, zero duplicate equivalent builds, at most six
-    Cargo invocations, and at most seventeen typed-validator requests. Focused
-    multicore gates now share the compiler bootstrap rather than repeating
-    identical VM/compiler `cargo check` invocations, and the repository
-    contract prevents direct Cargo recipes from bypassing that ownership. The
-    typed test runner accepts multiple explicit source roots while preserving
-    a dependency lifecycle per root; the standard capability lane now starts
-    one compiler process for six roots instead of six processes. Its
-    thirty-two-process release-plan ratchet prevents per-file startup
-    duplication from returning. Purity metadata and Lean lane checks share the
-    same mechanism, while focused binary, standard table, and property suites
-    collapse 43 compiler startups into five explicit batches. The multi-root
-    argument parser is isolated from execution ownership (171
-    and 745 lines respectively), keeping both modules below the Rust headroom
-    threshold instead of inventorying new structural debt. Cargo retention
-    now caps regenerable debug incremental state at
-    16 GiB, warns when the full debug tree exceeds 32 GiB, and preserves compiled
-    dependencies and prebuilt tools during explicit incremental maintenance.
-    The exhaustive entry point also rejects typed-validator partial state both
-    before and after its reusable gate graph. The dry-plan report also seals the
-    command-graph digest and ratchets its sixteen unique Terlan AOT builds;
-    inherited warm-cycle flags cannot shrink the canonical plan it records.
-    Typed-validator AOT recipes now default to verified incremental mode, and
-    standalone source builds own the same checked-IR cache root as project
-    builds. Checked cache identities include the exact frontend source closure
-    and Cargo build policy. Receiver dispatch infers a fluent-chain receiver
-    once and shares its type across primitive, local, and trait candidates;
-    this reduced the 1,000-line repository validator's cold check from 7m14s
-    to 1.63s. Embedded std interfaces are admitted from explicit imports,
-    selected submodules, fully-qualified remote references, and the compiler
-    prelude, with parsed summaries reused across every module in one build. The
-    editor now applies the same import-closure rule to diagnostics, hover,
-    completion, navigation, signatures, and inlay hints instead of parsing all
-    1,636 packaged std summaries for each request. The focused hover/editor
-    slice fell from 67.63s to 0.10s while retaining local, imported, and
-    dependency-closure coverage. Auto-import discovery now text-filters the
-    metadata-sealed catalog for one complete identifier and parses only the
-    matching summaries; a cold lookup unique to one checked-in interface takes
-    0.11s instead of about 25s, while mutations invalidate cached symbol
-    results and local project summaries remain fresh. The Rust suite now
-    compiles one union-feature
-    library test harness and executes
-    disjoint fast-unit and integration partitions from that binary, removing
-    the second feature-profile build and cross-tier test replay. Cargo's JSON
-    artifact identity now seals that exact harness after one bounded no-run
-    build; nine Terlan partitions execute it directly, leaving only the separate
-    workspace-support Cargo phase and reducing orchestrator Cargo launches from
-    five to two. The measured
-    libtest selection domains cover all 7,193 discovered test names (6,097
-    library and 1,096 integration) with zero overlap; this removes the
-    separate default-profile harness rebuild that took 2m26s after the same
-    compiler source change. The remaining monolithic union harness is roughly
-    421 MB; changing one adjacent test module still forced 55–124 seconds of
-    recompilation and about 7 GB peak rustc memory in the 0.0.7 closeout tree.
-    Split compiler implementation, reusable test support, and independently
-    linked test tiers along stable crate boundaries so test-only edits do not
-    recompile or relink all 7,101 library tests. Preserve direct sealed-harness
-    execution, exact inventory ownership, and actionable Terlan line tables;
-    an ambient host linker or globally disabled debug information is not an
-    acceptable substitute. Cargo retention now also bounds hashed workspace
-    test/tool executables to two settled generations per canonical stem with a
-    five-minute writer grace period. Its first application reclaimed 29.88 GB
-    of superseded executables, dep-info, and over-budget incremental state,
-    reducing the repository target tree from 55 GB to 28 GB without deleting
-    compiled dependencies or prebuilt tools. Compiler CI now performs workflow
-    syntax validation in the canonical release-candidate job; the former
-    standalone contract job rebuilt the compiler and repository validator only
-    to repeat the same checked contract later in the canonical gate. Stable CI
-    lanes now install only their exercised Rustfmt and Clippy components;
-    developer coverage tools and the independently pinned nightly sanitizer
-    source component no longer inflate every six-platform setup. `terlc test`
-    now accepts repeated exact-name selectors and emits one native application
-    for their union; the String capability gate consequently executes twelve
-    exact contracts in one process without admitting unsupported whole-file
-    tests. Pages caches the lockfile-bound Playwright Chromium payload across
-    matching hosted runners while still installing and checking host browser
-    dependencies on every deployment. Compiler and website implementation
-    pushes no longer launch a second Docs CI compiler/site build after merge;
-    pull requests and documentation-content pushes retain their focused docs
-    validation. Cargo dev artifacts now use the same line-table-only debug
-    policy as tests, retaining actionable backtraces while reducing compiler
-    rlib, binary, and linker payloads. In the first clean profile rebuild,
-    `target/debug/terlc` fell from 625,966,688 bytes to 277,986,168 bytes
-    (55.6%) while preserving line attribution. Cold typed-validator misses now
-    use two bounded build lanes after shared Rust tools are sealed; every lane
-    retains its independent content seal, lock, timeout, and cleanup contract.
-    The omnibus Rust-quality dispatcher still seals an approximately 205 MB
-    AOT image: changing only its module-structure scanner required more than
-    three minutes of cold regeneration. Split that dispatcher into stable,
-    independently sealed validator families and reuse shared compiled support
-    without increasing the seventeen-request or sixteen-AOT-build release-plan
-    budgets. A split must preserve exact command ownership and must not replace
-    cold work with duplicate compilation. The module-structure scan itself now
-    rejects filenames globally but enters its comment/string-aware lexical
-    pass only for files containing `include!`; its settled full Make gate is
-    18.85 seconds and its direct repository scan is 15.97 seconds.
-    Global Make serialization declarations are rejected because GNU Make 4.3
-    applies them process-wide; the two genuinely ordered aggregates now use
-    explicit local one-job submakes instead. CI workflow linting now pins Go
-    1.25.0 and caches actionlint's module/build inputs, removing dependence on
-    the hosted runner's ambient Go version. The accelerator CPU boundary scan
-    now consumes the canonical repository validator and union-feature Rust
-    suite; its standalone CI runner and duplicate full-crate Cargo check were
-    removed without dropping the boundary or semantic tests. All non-lint CI
-    jobs now opt out of Rustfmt and Clippy installation explicitly, including
-    all six platform jobs, both sanitizer lanes, Docs, Pages, security audit,
-    and controlled multicore evidence jobs; only the two exhaustive lint owners
-    install those components. Registry protocol, archive, and CLI validation
-    now consume the shared prebuilt compiler and canonical Rust harness instead
-    of launching private Cargo builds or filtered test processes. Repository
-    validation scans every shell check and rejects direct `cargo run`,
-    `cargo test`, `cargo build`, or `cargo check` outside the two canonical
-    freshness/exact-test wrappers. Cloud-bundle and Registry integration
-    workspaces are unique per process and are removed on success or failure;
-    converting those checks reclaimed about 5.3 GB of abandoned reproducible
-    bundle and Registry output and prevents parallel validation lanes from
-    sharing or retaining their work trees. Shared setup-action pushes also have
-    one post-merge website compiler owner instead of launching both Docs and
-    Pages builds. Release validation builds the compiler and VM before artifact
-    measurement. Because that measurement intentionally runs `cargo clean`, it
-    builds the quality tools and Rust boundary auditor once afterward; nested
-    quality phases then verify those executables instead of rebuilding them.
-    This keeps the honest six-invocation Cargo budget and prevents a clean
-    release from depending on stale quality binaries. An absent prebuilt tool
-    reports its exact binary instead of an opaque shell status. Artifact retention now runs only
-    after the validation-owned builds whose state it measures, removing the
-    overwritten pre-validation replay and lowering the Terlan process budget
-    from 43 to 42, then multi-root capability, purity, and Lean execution
-    lowered it to 34; shared Rust-backed standard-library and comprehension
-    batches lowered it again to 32.
-    Fixed-path standard-library and documentation fixtures clean
-    themselves in their owning tests; release lifecycle boundaries reject and
-    clean any residue left by an interrupted process.
-    Publication is now a read-only consumer of candidate-bound evidence: an
-    explicit refresh owns deterministic multicore, AOT, and release closeout
-    once, while retries verify the sealed source identity and file digests
-    without Cargo or test replay. The exhaustive hosted Compiler check is
-    resolved back to the canonical workflow run before local evidence may reuse
-    its Rust results. Five formerly external ignored capability/EPMD cases now
-    execute directly from the union-feature harness. Performance measurements
-    remain manual diagnostics; no evidence refresh or publication gate depends
-    on CPU quietness, affinity, governor state, host load, or a wall-clock
-    threshold. The deterministic multicore contract executes after the
-    canonical typed-validator bootstrap inside `release-candidate-check`;
-    removing its preliminary CI step eliminates a compiler and platform-
-    validator build that the clean artifact measurement immediately discarded.
-    Compiler and release matrices now share one target-native dependency action;
-    Windows obtains both `libpq` and `pkgconf` from its exact vcpkg triplet and
-    treats every native installer status as authoritative instead of allowing a
-    later PowerShell command to mask a failed package download.
-  - Split Rust validation into explicitly inventoried fast unit, integration,
-    AOT/native-link, concurrency/timeout, and diagnostic-performance tiers.
-    Every correctness test belongs to exactly one release tier; host-sensitive
-    performance measurements remain outside the release aggregate.
-  - Run EOF-dependent CLI, REPL, and debugger tests with closed plain pipes.
-    No automated gate may inherit a live terminal accidentally. Add an
-    adversarial test that fails quickly when a child waits for undeclared
-    interactive input.
-  - Build each required compiler/profile/feature artifact once per validation
-    cycle. Later gates consume the sealed artifact; invoking an equivalent
-    Cargo, Terlan AOT, native-link, or self-host build twice in one cycle is an
-    error.
-  - Add a generation-safe, content-addressed within-cycle cache for identical
-    Terlan AOT and native-link inputs. Its key includes compiler and runtime ABI
-    identities, normalized typed input, target, profile, features, dependency
-    lock, and relevant environment policy. Stale, incomplete, cross-target, or
-    post-seal-mutated entries fail closed.
-  - Register every temporary checkout, target directory, native-link workspace,
-    package cache, and test artifact with the validation-cycle owner. Remove it
-    on success, assertion failure, panic, timeout, cancellation, and signal
-    termination. Before each tier or measurement lane, reject and attribute
-    orphaned partial builds from the preceding step instead of accumulating or
-    silently reusing them.
-  - Keep reusable sealed caches separate from disposable test workspaces. Apply
-    explicit byte/entry/age budgets and generation-safe garbage collection;
-    cleanup may never delete source, the active sealed candidate, or evidence
-    required by a later gate.
-  - Keep concurrency and performance evidence isolated from parallel work that
-    could distort results. Parallelize independent deterministic tiers only
-    where their contracts permit it; preserve stable reporting order.
-  - Emit one machine-readable validation timing/duplication report with tier,
-    test count, compile count, cache hits/misses, wall time, CPU time, peak
-    memory, artifact bytes, and the slowest tests/builds. Record the 0.0.7
-    closeout as the initial baseline.
-  - Add ratcheted budgets for duplicate builds, per-tier wall time, total
-    preflight time, and cache correctness. A speedup may not remove tests,
-    loosen assertions, reuse evidence across incompatible inputs, or conceal
-    skips and timeouts.
-  - Acceptance: a clean exhaustive preflight and a no-op warm preflight produce
-    equivalent release decisions; the warm run performs no duplicate
-    equivalent build, EOF-dependent tests terminate deterministically, all
-    required tests remain inventoried, no disposable workspace survives its
-    owning lane, and the report identifies every remaining dominant cost.
+By explicit user decision, 0.0.9 is limited to build and release optimization,
+reliable validation, and verified publication. The self-hosted frontend slice,
+new native compatibility policy, runtime inspector, durable checkpoint/restore,
+HTTP/3, and accelerator follow-ups move to the
+[0.0.10 roadmap](ROADMAP_0_0_10.md). They are postponed, not completed.
+
+Preserve existing compiler/runtime correctness and supported installed artifacts.
+Do not use this scope change to drop correctness tests, weaken evidence, or
+claim new features. CPU quietness is not a publication prerequisite.
+
+Prepare the focused 0.0.9 release, but obtain explicit user authorization before
+tagging or publicly publishing it. The exact candidate and its artifacts must
+pass verification first. This scope does not cover publishing 0.0.10.
+
+## Current Status
+
+An authorized detached local candidate now exists, with no changes to existing
+branches or public releases. Its cold-checkout plan check exposed and now fixes
+an unbuilt-orchestrator dependency; actual execution retains live coverage
+admission. The refreshed parallel proof graph, retry/lease tests, three plan
+tests, native-owner rehearsal and strict Clippy pass. Full hosted acceptance is
+not implied: no exact-commit hosted artifacts exist for this local candidate,
+active versions remain 0.0.8, and V9-1/V9-2/V9-3 stay open.
+
+The enclosing preparation lease now works with nested producers: real tests
+reproduce and fix the previous self-conflict, preserve the outer lock, serialize
+sibling owners, and reject invalid inherited descriptors. Publication/proof Make
+tests, actual resource admission, and strict Clippy pass. The rebuilt repository
+build/release contract also passes after its bootstrap matcher was brought up to
+date; it distinguishes command-hash text from planned Cargo work and retains the
+reviewed budgets. Clean-candidate acceptance and V9-2/V9-3 remain open; these are
+verified blocker fixes, not a release-ready declaration.
+
+V9-1 remains open. Scoped cache/checkpoint recovery, nested Rust subprocess
+observation and typed checkpoint integration have passing component evidence.
+Shared continuation metadata removes repeated whole-image copies: identical
+observation logs validate 4.5–5.7 times faster in focused before/after runs.
+Further validator cost and preparation-wide producer coverage remain open.
+Abandoned Rust cache retention passes real interrupted-writer recovery. Linux
+compiler bootstrap now checks cache budgets and disk headroom before launch;
+standalone admission remains point-in-time, while canonical `publish-prepare`
+holds its lease across the selected preparation branch.
+Superseded Rust build configurations now have a 72-hour retirement policy under
+rustc leases; tested cleanup reclaimed stale incremental generations while
+preserving compiler/runtime binaries and evidence, restoring build headroom.
+Typed-validator builds now use the shared process owner; scoped cancellation,
+cache invalidation and zero-producer warm reuse have passing evidence.
+Git fetching, browser bundling and Windows linker discovery now share bounded
+tool execution; scoped Linux package/process tests pass. Full platform and
+preparation-wide acceptance are not implied by those component results.
+Optional Node smoke is bounded too, preserving absence versus execution failure;
+the repaired fault-injection fixture leaves enclosing observations complete.
+Native-boundary proof inputs cover the extracted value definitions; affected
+proof/runtime checks and proof-evidence closeout pass. Standalone oracle checks
+now use one Cargo invocation instead of four, preserving exact test coverage.
+The root compiler build now uses the bounded process owner, with real Make
+failure/timeout and production-bootstrap evidence; Linux shares the owner and
+cache-tool support build without an extra Cargo invocation. Root-build reusable
+receipts now cover clean-candidate support and compiler outputs; complete
+preparation-wide containment and production-candidate acceptance remain open.
+Cold/warm publication preparation now shares one Make bootstrap graph and one
+locked resource-admission node per branch. Fault-injection tests and production
+plans verify one compiler producer per branch; cross-invocation zero-build reuse
+is still not established.
+The canonical `publish-prepare` entry point now holds a bounded preparation lease
+across its selected branch and final preflight, while nested admission reuses
+that lease instead of reopening a competing lock.
+Clean candidates now also persist atomic, output-hash-checked receipts for the
+support-owner and root compiler bootstrap. Matching toolchain, dependency,
+command and revision inputs reuse all four bootstrap binaries without a Cargo
+launch; dirty worktrees deliberately retain the owned Cargo fallback.
+The cache-admission producer itself passes 30 unit tests and three real Make
+admission tests, including insufficient-space and unsafe-cache fail-closed paths.
+Prepared-output recovery now rebuilds changed inputs in the same invocation;
+fault-injection tests verify failed replacements preserve all recovered outputs
+and interrupted graph recovery retains duplicate-native-work detection.
+Proof track production and final lane sealing now own separate reports, removing
+read/modify/write reuse of stale fields. Rust proof tests, cold/warm replica reuse,
+smoke/lane consumers and proof closeout pass; upstream graph ownership is still open.
+Proof-track execution now has fresh content-bound tool admission, complete
+private three-output staging and an ordered preparation owner in Make. All 140
+Rust proof tests pass; actual cold execution completes 26 replicas and warm
+execution verifies reuse of all 26 without modifying final evidence. Owner tests
+cover changed inputs/tools, failed replacement and missing-parent recovery
+without producer replay. Runtime policy, ownership and regression reports now
+also have independent preparation owners: 142 Rust proof tests, parallel Make
+failure tests, actual cold/warm report reuse and interrupted-midnight recovery
+pass. Warm policy reuse preserves report/ledger/native-log bytes and launches no
+policy producer. The three policies now share one source/tool preflight, with
+passing graph fault-injection and actual reuse evidence. Verified warm owners
+now avoid unnecessary journal transitions: actual policy reuse drops from 20
+to 11 subprocesses while preserving every report and owner receipt. Linux typed
+builds also use inherited kernel writer leases after real container PID reuse
+exposed a false stale-lock wait; contention and interrupted-publication tests
+pass. The focused admission test also passes corruption/residue rejection,
+changed-input execution and post-producer mutation checks; the corrected test
+fixture is now included in the refreshed sealed promotion image.
+Broader upstream preflight ownership still needs integration. The proof-kernel
+owner graph is integrated and its canonical
+promotion image, selective-reuse/parent-recovery self-tests, and full proof
+preparation rehearsal pass. The proof baseline proposal was accepted after all
+14 slice traces remained unchanged; only candidate identity and its derived
+digest changed. Repository contract, fresh Rust boundary AST, structure,
+headroom, Rust-quality/docs, focused lint, formatting, and whitespace gates
+also pass. This is still not preparation-wide acceptance: upstream
+native-boundary ownership and full-candidate orchestration remain open.
+Automatic cache cleanup is now wired into both preparation branches under the
+publication lock. Nested process containment is exercised by the combined
+candidate fixture; full cold/warm/interrupted candidate acceptance and the
+upstream report-owner integration remain open.
+The hosted proof-smoke producer is now represented by a typed `proof-smoke`
+owner with private smoke, blocker, and attempt outputs. Its declaration
+self-test is part of the explicit owner-graph closeout and passes in the
+refreshed promotion image (`target/v9-proof-smoke-owner-self-test-20260912.log`).
+The prior isolated-candidate smoke result is withdrawn as acceptance evidence:
+its command removed the native and process observation variables. Observation
+has been restored, and empty blocker tables now use an explicit output policy
+without weakening the nonempty proof-baseline contract.
+The corrected isolated candidate `0c382f2091f00c6ad07e02b024f9a60497592342`
+now passes cold and unchanged warm smoke preparation with observation enabled
+(`target/v9-proof-smoke-observed-cold-user-scratch.log` and
+`target/v9-proof-smoke-observed-warm.log`). Cold execution records 11 completed
+native work units, two native links and 17 reaped subprocess launches with no
+pending work; all three semantic families, eight lanes and seven script tests
+pass. Warm execution reports `completed=0 reused=1`; all three report hashes,
+the native/process log and owner receipt remain byte-for-byte unchanged.
+The owner/table contract and observation-inheriting smoke rehearsal also pass.
+An earlier attempt failed before compilation on root-owned disposable build
+storage; the successful rehearsal uses separate user-owned scratch without
+deleting that failed attempt.
+Root and nested smoke commands now request verified incremental native reuse.
+The rebuilt image and command-contract test pass. Candidate
+`06cd4617c086cd6a5042be6845a294024b6ab669` was terminated after sealing its native
+image and resumed without clearing its interrupted ledger or cache
+(`target/v9-proof-smoke-interruption-trigger.log`,
+`target/v9-proof-smoke-interrupted.log`, `target/v9-proof-smoke-resumed.log`).
+Resume preserves nine completed native-work records and performs zero native
+compilations/links; all eight script tests, three semantic families and eight
+lanes pass. A subsequent warm run reports `completed=0 reused=1` and preserves
+all report, log and owner-receipt hashes
+(`target/v9-proof-smoke-resumed-warm.log`). This verifies the post-seal interruption boundary, not every
+interruption point or preparation-wide release acceptance. Focused script lint
+still reports readability and complexity warnings and is not counted as passing.
+The lane producer now owns both lane and gate reports, with a hash-bound,
+candidate-local snapshot of the previous lane report as its comparison input.
+This avoids feeding newly published output back into its own reuse key. Source,
+upstream reports, compiler bytes and reported native toolchain identity are
+bound; the producer uses private output paths and verified incremental AOT reuse.
+The real recovery fixture passes partial-output failure preservation, unchanged
+warm reuse, changed-input execution, output repair and corrupt-history rejection
+(`target/v9-proof-lanes-owner-self-test.log`). Candidate
+`6ecec52a32bd0ddedfe7b4e155b2b5ba3bb05758` passes all 15 script tests and eight
+lane-policy checks in `target/v9-proof-lanes-cold.log`. Its warm invocation
+reports `completed=0 reused=1` (`target/v9-proof-lanes-warm.log`); report,
+history, execution-log and owner-receipt hashes are unchanged. Both focused
+Make contract tests, strict Clippy, full promotion source check and formatting
+pass. This closes this producer's integration, not V9-1's full-candidate boundary.
+Directory-generation recovery now has a passing foundation: owners bind exact
+JSON members, schemas and content hashes, retain the old directory until commit,
+and recover interrupted publication without producer replay. Directory-member
+consumers require explicit producer edges. The corrected promotion image seals
+successfully (`target/v9-directory-owner-build-row-fix.log`); the owner, graph
+and candidate suites pass in `target/v9-directory-{owner,graph,candidate}-self-test.log`.
+This includes 15 directory fault/recovery scenarios and warm dependent reuse.
+The initial AOT build exposed a grouped-let lowering limitation; the helper
+separates JSON construction from its fallible read, without claiming a general
+compiler fix. The native-boundary producer is now wired to the directory owner:
+its compiled recovery fixture, three focused AOT tests, four exact Rust oracles,
+and real Lean cold/cached checks pass. Hosted execution preserves coverage and
+observation, requires completed proofs, and publishes only a complete private
+generation. Parallel Make failure tests verify that proof failure blocks
+distribution staging. Clean-candidate execution of the complete native producer
+and full-candidate acceptance remain open; this component evidence does not
+close V9-1. See the native-boundary generation-owner section in the release
+preparation notes for logs and limits.
+The platform-contract owner now emits revision-scoped receipts outside the
+private preparation subtree, and its validator matches the declarative Make
+publish prerequisite graph. The complete preparation target set passes in one
+run (`target/v9-preparation-targets-green.log`), covering recovery, multicore,
+local reports, AOT, release reports, staged distribution, readiness, and
+platform contracts. Readiness uses the immutable VM by absolute path instead
+of copying the large VM binary; its production-shaped owner rehearsal passes
+(`target/v9-readiness-final8.log`). These close concrete owner and Make wiring
+gaps, including shared resource admission for both publication branches, but do
+not close the remaining nested-containment or end-to-end candidate-acceptance
+requirements. Automatic cache cleanup is now wired into both preparation
+branches under the publication lock and covered by the bounded recipe contract.
+The refreshed consolidated owner graph, including the proof-smoke owner,
+passes in `target/v9-owner-graph-smoke-owner-20260912.log`.
+The latest host rerun reaches staged-distribution verification but the retained
+0.0.8 archive requires glibc 2.39 while the host provides 2.35. The Ubuntu 24
+validation container provides 2.39; the earlier claim that this container was
+incompatible was incorrect. The staged-distribution rehearsal passes there:
+real installation, warm reuse, checksum-failure preservation, recovery, changed
+readiness inputs and scratch cleanup. This is retained-artifact rehearsal
+evidence, not validation of a new 0.0.9 release archive.
+The AOT closeout graph no longer honors the legacy
+`TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN` environment bypass: every local AOT
+correctness gate is admitted on each closeout invocation, while Make's graph
+deduplicates shared nodes within that invocation. The refreshed matrix contract
+self-test and publication-preparation graph tests pass, so a caller cannot turn
+a stale multicore receipt into a correctness skip.
+The legacy suite/check bypass removal is covered by focused orchestrator and
+release-graph tests plus the refreshed promotion contract image; canonical
+Terlan formatting and Rust diff checks remain green.
+The refreshed closeout image passes its local self-test and the preparation
+contract rehearsal (`target/v9-preparation-contract-final.log`) records the
+same four cold launches, selective repair, interruption recovery, and candidate
+isolation without a warm-build replay.
+The shared Rust fixture now also runs unchanged cold then warm preparation in
+one candidate root and asserts zero additional producer launches
+(`target/v9-same-candidate-warm.log`). The same fixture now resumes an
+interrupted final owner and verifies that only that owner launches again
+(`target/v9-release-preparation-resume-final.log`).
+An interrupted-upload fixture now retries the `publish` target and records only
+read-only verification plus promotion operations on the second attempt; no
+preparation producer, Cargo invocation, download, or evidence refresh is
+allowed (`target/v9-release-acceptance-final.log`).
+That acceptance log now contains five passing publication-preflight tests and
+twelve passing preparation-graph tests, including static assertions that the
+retry recipe cannot select preparation, Cargo, or evidence-refresh targets.
+The unchanged-warm case also compares every successful owner output byte-for-
+byte, not just launch counts, so an apparently reused candidate cannot hide a
+changed decision payload.
+The same acceptance run verifies outer 900-second deadlines for the staged
+release-report owner, artifact-matrix verification, and publication upload;
+the preparation lock therefore has a finite failure window.
+The preparation graph test `preparation_branches_share_one_resource_admission`
+also verifies that cold and warm publication branches converge on the same
+locked resource-admission owner, with a bounded wait and no duplicate admission
+recipe.
+The admission command now waits on the shared lock under its 120-second outer
+deadline instead of failing immediately on transient contention.
+The combined candidate rehearsal additionally executes cold preparation,
+unchanged warm reuse, interrupted-owner resume, and a two-attempt upload retry
+in one fixture, proving that publication retry does not relaunch preparation.
+The `terlan-process-owner` containment suite also passes all 44 tests, including
+real nested-owner membership, timeout/cancellation termination of grandchildren,
+reaping, and inherited-scope inventory. This is component evidence; the
+full-candidate rehearsal still needs to exercise that containment boundary.
+The recovery preparation gate now runs that suite before the candidate fixture,
+so nested-owner regressions fail the recovery path instead of being reported
+only by an unrelated workspace test.
+It also runs the combined candidate acceptance fixture as a prerequisite,
+covering cold/warm/resume and publication retry in one recovery gate.
+The combined candidate fixture now also starts a deliberately hanging
+descendant during preparation and verifies that the enclosing owner times out,
+reaps the descendant, and leaves no live process residue. This joins the
+containment assertion to the candidate cold path instead of relying only on the
+standalone process-owner suite; the refreshed gate log is
+`target/v9-owner-final-candidate-rehearsal-20260912.log`. Hosted clean-candidate
+acceptance remains open.
+The complete `terlan-test-orchestrator` crate also exits successfully in
+`target/v9-orchestrator-full-final.log`; embedded `FAILED` lines are expected
+fault-injection child processes, while every outer Cargo test result passes.
+The live publication-plan contracts pass in
+`target/v9-publish-plan-final.log`: verification schedules zero build/test
+replays, and refresh plans five Cargo invocations, one isolated selector, and
+zero duplicate builds.
+The real Cargo-backed candidate-owner cold/warm/invalidation/kill/resume
+rehearsal also passes (`target/v9-candidate-owner-final.log`).
+The named Make recovery gate passes against the refreshed image as well
+(`target/v9-candidate-owner-make-final.log`), running process containment and
+the combined candidate acceptance fixture before the Terlan rehearsal.
+Publication preparation now admits the pinned Rust channel and executable
+paths before downloading hosted inputs or entering build/test owners; the same
+fixture covers this preflight with a pinned `1.96.0` toolchain.
+The hosted-input download and verified compiler probe also have explicit outer
+deadlines, with their contract covered by the focused preparation tests. The
+hosted coverage refresh is bounded to 1,800 seconds as well. Focused publication
+retry validation and the combined fixture pass; full production cold/warm/
+interrupted-candidate acceptance still remains required. Component timing gains
+do not establish end-to-end release time.
+Local `publish-prepare` source preflight is now network- and GitHub-CLI-free;
+authentication, branch, ancestry and remote-tag checks are isolated in
+`publish-remote-preflight`, which is required only by promotion. This keeps
+offline preparation deterministic while retaining the complete remote policy
+before publication.
+The native-boundary proof input split was re-proved with four exact Rust
+oracles and Lean, then its accepted Slice 14 baseline was updated after the
+trace change was reviewed. Readiness self-tests now bind the candidate root
+explicitly; mounted-worktree rehearsals must expose Git metadata and mark the
+checkout safe so inventory cannot resolve an external worktree path.
+
+Implementation evidence and limitations live in
+[release preparation notes](../quality/RELEASE_PREPARATION.md) and the
+[process-observation checkpoint](../quality/RELEASE_PROCESS_OBSERVATION.md) and
+[cache-retention evidence](../quality/RELEASE_CACHE_RETENTION.md).
+The [pre-scope-change snapshot](archive/ROADMAP_0_0_9_PRE_RELEASE_SCOPE_2026_09_10.md)
+preserves the previous requirements and detailed status. Follow unchecked items
+in order; close them only with passing implementation evidence.
+
+## Active Checklist
+
+- [ ] V9-1: Make release preparation resumable and publication retry-safe.
+  - Separate immutable source, candidate-specific evidence, reusable caches,
+    and disposable workspaces. Generated proof metadata must not dirty tracked
+    source or change the candidate identity during preparation.
+  - Give every build and evidence producer one owner. Persist an atomic resume
+    ledger containing its input fingerprint, tool/profile/target identity,
+    dependencies, output hashes, and outcome. Reuse only successful matching
+    entries; invalidate affected dependents when inputs change.
+    The shared support, compiler, quality-tool, release-benchmark, HTTP
+    benchmark, and serve-runtime Cargo bootstraps now use this receipt owner;
+    each batch remains a single producer with all emitted outputs bound.
+    Typed-AOT images retain their existing process-owner and atomic cache
+    contract, and the default-feature AOT release check now records its Cargo
+    launch through the shared process owner. Remaining report/proof producers
+    and full-candidate acceptance must adopt/verify the same contract before
+    this item can close.
+  - Record actual subprocess launches, not only Make dry-run text. Equivalent
+    Cargo, Terlan AOT, native-link, and self-host builds must not run twice in a
+    cycle. Assign every correctness test to exactly one execution tier.
+  - Keep `make publish-prepare` as the preparation entry point and `make publish`
+    as promotion of an already prepared candidate. Publication must never
+    compile, test, download distributions, or refresh evidence on a retry.
+  - Reuse hosted downloads only after checking producer identity and cached
+    bytes. Preserve checkpoints across local failures; reject corrupt, stale,
+    cross-target, or changed-attempt inputs. Reuse matching uploads and leave
+    incomplete releases as drafts. Network failure must not imply absence.
+  - Check required tool versions and executable compatibility before expensive
+    work. Isolate container build caches from incompatible host daemons.
+  - Bound subprocesses, close undeclared interactive stdin, and attribute hangs.
+    Register temporary outputs with their owner and clean them on success,
+    failure, panic, timeout, cancellation, and signals. Interrupted residue
+    must be identified before reuse. Never delete active evidence or source.
+  - Apply byte/entry/age budgets and generation-safe cleanup to reusable caches;
+    retain dependencies without accumulating obsolete candidate payloads.
+  - Acceptance: cold preparation, unchanged warm preparation, and interrupted
+    preparation followed by resume produce equivalent decisions. A verified
+    completed owner is not replayed; changed inputs rerun only affected owners.
+    Interrupted upload retries do no preparation work. Exercise these paths
+    with deterministic fault injection before an end-to-end candidate rehearsal.
+
+- [ ] V9-2: Reduce compiler, test, and validator turnaround costs.
+  - Split the monolithic Rust test harness along stable implementation,
+    reusable-support, and independently linked test-tier boundaries. Preserve
+    exact test inventory, direct sealed-harness execution, and useful line tables.
+  - Split the large Rust-quality AOT dispatcher into independently sealed
+    validator families sharing compiled support. Do not replace one large
+    build with repeated equivalent compilation or extra compiler startups.
+  - Complete content-addressed AOT/native-link reuse. Keys cover normalized
+    typed inputs, compiler/frontend/runtime ABI, target, dependency lock,
+    profile/features, linker identity, and relevant environment policy.
+  - Parallelize independent deterministic tiers with bounded workers and stable
+    reports. Preserve isolation for concurrency tests; performance comparisons
+    remain separate diagnostics, not CPU-quietness release prerequisites.
+  - Emit one report with actual compile/test counts, cache hits and misses,
+    wall/CPU time, peak memory, artifact bytes, and dominant costs. Record a
+    reproducible cold, warm, and localized-edit baseline with machine identity.
+  - Preserve reviewed count budgets (eight Cargo invocations, seventeen validator
+    requests, sixteen validator AOT builds, thirty-two Terlan test processes)
+    until measurements justify an explicit reviewed change. Lower costs without
+    dropping tests, hiding skips, loosening assertions, or disabling debug data.
+    The native/doctest isolation split accounts for the one added Cargo
+    coordination call; its differential evidence preserves compiler-unit and
+    test-body counts. A second added call builds the small resource-admission
+    tool before the compiler; its warm bootstrap plus admission measured 0.44 s.
+    See the release preparation and cache-retention notes for these reviews.
+  - Acceptance: compare baseline and revised runs, including a test-only edit
+    and a validator-only edit. Show reduced affected rebuild/link scope and no
+    duplicate work. Timing regressions require investigation; noisy-host timing
+    alone must not block publication. Subprocess timeouts remain enforced.
+
+- [ ] V9-3: Verify and publish the focused 0.0.9 release.
+  - Review V9-1 and V9-2 against their acceptance evidence. Deferred 0.0.10
+    features are not release prerequisites or supported-feature claims.
+  - Update active compiler, package, editor, and release metadata consistently
+    to 0.0.9; preserve historical version references.
+  - Run the canonical release validation once for the selected commit and reuse
+    its sealed results for preparation and promotion. Verify installed packages,
+    exact artifact identity, checksums, provenance, and failure/retry behavior.
+  - Verify that baseline compiler/runtime behavior and CPU-only independence are
+    preserved. Do not claim additional ABI, self-hosting, or accelerator support.
+  - Record measured cold, warm, and interrupted/resumed validation results.
+    Distinguish focused measurements from full-cycle results; investigate
+    regressions without requiring an idle host.
+  - Release notes describe user-visible benefits, compatibility/security impact,
+    and upgrade actions—not internal checkpoints, gate counts, hashes, or work logs.
+  - Acceptance: the exact candidate has passing required evidence, installed
+    artifacts and notes are accurate, and publication promotes those verified
+    bytes without rebuilding them. Confirm the public release and assets.
+
+## Gate Discipline
+
+Use the existing build/release contract, promotion self-tests and canonical
+Rust/Terlan tiers. Assign every test to one execution owner. Do not add checks
+that merely verify roadmap prose or the deletion/renaming of files.

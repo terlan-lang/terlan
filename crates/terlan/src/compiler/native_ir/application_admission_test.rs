@@ -45,6 +45,122 @@ fn native_module(name: &str) -> NativeModule {
     }
 }
 
+/// Typed receiver normalization preserves public canonical identities without widening local lookup.
+#[test]
+fn canonical_public_receiver_targets_do_not_require_a_second_source_import() {
+    let provider = core("module app.Provider. pub value(): Int -> 7. hidden(): Int -> 8.");
+    for (name, accepted) in [
+        ("app.Provider.value", true),
+        ("value", false),
+        ("app.Provider.hidden", false),
+        ("other.Provider.value", false),
+    ] {
+        let mut caller = core("module app.Caller. pub main(): Int -> 1.");
+        *body_mut(&mut caller, "main") = CoreExpr::Call {
+            function: name.into(),
+            args: vec![],
+        };
+        let layouts = std::collections::HashMap::from([
+            (caller.module.clone(), Default::default()),
+            (provider.module.clone(), Default::default()),
+        ]);
+        let result = super::application_admission::validate_core_application(
+            &[caller, provider.clone()],
+            &layouts,
+        );
+        assert_eq!(result.is_ok(), accepted, "{name}: {result:?}");
+    }
+}
+
+/// Compound syntax must not hide unresolved calls from closed-image admission.
+#[test]
+fn nested_calls_and_references_share_exhaustive_admission() {
+    use crate::terlan_typeck::{CoreCaseClause, CorePattern, CoreType};
+    let missing = CoreExpr::Call {
+        function: "missing".into(),
+        args: vec![],
+    };
+    let clause = |guard, body| CoreCaseClause {
+        pattern: CorePattern::Wildcard,
+        guard,
+        body,
+    };
+    let expressions = [
+        CoreExpr::Cast {
+            expr: Box::new(missing.clone()),
+            target_type: CoreType::Int,
+        },
+        CoreExpr::Tuple(vec![missing.clone()]),
+        CoreExpr::List(vec![missing.clone()]),
+        CoreExpr::FixedArray(vec![missing.clone()]),
+        CoreExpr::ListCons {
+            head: Box::new(missing.clone()),
+            tail: Box::new(CoreExpr::List(vec![])),
+        },
+        CoreExpr::Index {
+            base: Box::new(CoreExpr::Var("values".into())),
+            index: Box::new(missing.clone()),
+        },
+        CoreExpr::Case {
+            scrutinee: Box::new(CoreExpr::Int(0)),
+            clauses: vec![clause(Some(missing.clone()), CoreExpr::Int(1))],
+        },
+        CoreExpr::Case {
+            scrutinee: Box::new(CoreExpr::Int(0)),
+            clauses: vec![clause(None, missing.clone())],
+        },
+        CoreExpr::Try {
+            body: Box::new(CoreExpr::Int(0)),
+            of_clauses: vec![],
+            catch_clauses: vec![clause(None, missing)],
+            after_clause: None,
+        },
+        CoreExpr::Tuple(vec![CoreExpr::RemoteFunRef {
+            module: "absent.Module".into(),
+            function: "missing".into(),
+            arity: 0,
+        }]),
+    ];
+    for expression in expressions {
+        let mut caller = core("module app.Hidden. pub main(): Int -> 1.");
+        *body_mut(&mut caller, "main") = expression.clone();
+        let layouts =
+            std::collections::HashMap::from([(caller.module.clone(), Default::default())]);
+        let error = super::application_admission::validate_core_application(&[caller], &layouts)
+            .expect_err("nested call must be admitted, not skipped");
+        assert!(
+            error.contains("native_ir.unresolved_call") && error.contains("missing"),
+            "{expression:?}: {error}"
+        );
+    }
+}
+
+/// Sharing traversal preserves call occurrence order and does not visit twice.
+#[test]
+fn exhaustive_call_walk_preserves_each_guard_and_body_occurrence() {
+    use crate::terlan_typeck::{CoreCaseClause, CorePattern, CoreType};
+    let call = |name: &str| CoreExpr::Call {
+        function: name.into(),
+        args: vec![],
+    };
+    let expression = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Case {
+            scrutinee: Box::new(call("subject")),
+            clauses: vec![CoreCaseClause {
+                pattern: CorePattern::Wildcard,
+                guard: Some(call("guard")),
+                body: CoreExpr::Tuple(vec![call("first"), call("second")]),
+            }],
+        }),
+        target_type: CoreType::Int,
+    };
+    let mut names = Vec::new();
+    super::application::dynamic_targets::walk_calls(&expression, &mut |name, _| {
+        names.push(name.to_owned())
+    });
+    assert_eq!(names, ["subject", "guard", "first", "second"]);
+}
+
 /// Creates one scalar continuation fixture.
 fn continuation(id: u64) -> NativeContinuation {
     NativeContinuation {

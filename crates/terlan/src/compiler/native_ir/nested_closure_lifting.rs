@@ -82,7 +82,7 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
             for clause in &mut core.functions[cursor].clauses {
                 if let Some(body) = clause.body.core_expr.as_mut() {
                     if let (
-                        CoreExpr::Lam { params, body },
+                        CoreExpr::Lam { params, body, .. },
                         Some(CoreType::Arrow {
                             params: parameter_types,
                             ..
@@ -142,6 +142,14 @@ fn rewrite(
         module,
         owner,
     } = environment;
+    if let CoreExpr::Call { function, args } = expr {
+        if matches!(variables.get(function), Some(CoreType::Arrow { .. })) {
+            *expr = CoreExpr::FunctionCall {
+                callee: Box::new(CoreExpr::Var(function.clone())),
+                args: std::mem::take(args),
+            };
+        }
+    }
     if matches!(expr, CoreExpr::Lam { .. }) && matches!(expected, Some(CoreType::Arrow { .. })) {
         let lambda = expr.clone();
         let mut captures = super::free_variables(&lambda)
@@ -208,23 +216,34 @@ fn rewrite(
         CoreExpr::Let { bindings, body } => {
             let mut variables = variables.clone();
             for binding in bindings {
+                let binding_type = infer(&binding.value, &variables, signatures, module);
+                // A syntactically known lambda remains eligible for static
+                // beta reduction (or the existing terminal escape path).
+                // Only a selected/computed value needs an owned factory here.
+                let expected_binding = if matches!(binding.value, CoreExpr::Lam { .. }) {
+                    None
+                } else {
+                    binding_type.as_ref()
+                };
                 rewrite(
                     &mut binding.value,
-                    None,
+                    expected_binding,
                     &variables,
                     environment,
                     generated,
                     ordinal,
                 )?;
                 if let CorePattern::Var(name) = &binding.pattern {
-                    if let Some(ty) = infer(&binding.value, &variables, signatures, module) {
+                    if let Some(ty) = binding_type
+                        .or_else(|| infer(&binding.value, &variables, signatures, module))
+                    {
                         variables.insert(name.clone(), ty);
                     }
                 }
             }
             rewrite(body, expected, &variables, environment, generated, ordinal)?;
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             let mut variables = variables.clone();
             if let Some(CoreType::Arrow {
                 params: parameter_types,
@@ -536,6 +555,48 @@ fn infer(
             signature(signatures, module, function, args.len()).map(|signature| signature.1.clone())
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            if params.len() != parameter_types.len() {
+                return None;
+            }
+            let parameter_types = parameter_types
+                .iter()
+                .cloned()
+                .collect::<Option<Vec<_>>>()?;
+            let mut variables = variables.clone();
+            for (pattern, ty) in params.iter().zip(&parameter_types) {
+                bind_pattern_variables(pattern, ty, &mut variables);
+            }
+            Some(CoreType::Arrow {
+                params: parameter_types,
+                return_type: Box::new(infer(body, &variables, signatures, module)?),
+            })
+        }
+        CoreExpr::If { clauses } => {
+            let mut types = clauses
+                .iter()
+                .map(|clause| infer(&clause.body, variables, signatures, module));
+            let first = types.next()??;
+            types.all(|ty| ty.as_ref() == Some(&first)).then_some(first)
+        }
+        CoreExpr::FunctionCall { callee, .. } => {
+            match infer(callee, variables, signatures, module)? {
+                CoreType::Arrow { return_type, .. } => Some(*return_type),
+                _ => None,
+            }
+        }
+        CoreExpr::Let { bindings, body } => {
+            let mut variables = variables.clone();
+            for binding in bindings {
+                let ty = infer(&binding.value, &variables, signatures, module)?;
+                bind_pattern_variables(&binding.pattern, &ty, &mut variables);
+            }
+            infer(body, &variables, signatures, module)
+        }
         CoreExpr::List(items) if !items.is_empty() => {
             infer(&items[0], variables, signatures, module).map(|ty| CoreType::List(Box::new(ty)))
         }

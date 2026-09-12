@@ -164,7 +164,7 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
                 .iter()
                 .map(core_if_clause_substitution_freshness_evidence),
         ),
-        CoreExpr::Lam { params, body } => combine_expr_freshness(
+        CoreExpr::Lam { params, body, .. } => combine_expr_freshness(
             params
                 .iter()
                 .map(core_pattern_substitution_freshness_evidence),
@@ -377,7 +377,7 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
         CoreExpr::If { clauses } => clauses
             .iter()
             .all(core_if_clause_has_checked_preservation_evidence),
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             params
                 .iter()
                 .all(core_pattern_has_checked_preservation_evidence)

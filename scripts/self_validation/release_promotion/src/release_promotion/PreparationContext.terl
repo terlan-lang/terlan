@@ -1,0 +1,72 @@
+/**
+ * One clean source and runtime-tool preflight shared by a preparation graph.
+ */
+module release_promotion.PreparationContext.
+
+import release_promotion.{OwnerTools, PreparationEnvironment}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{contains, split, starts_with}.
+import std.system.Platform.{current}.
+
+import type std.core.Result.
+import type std.system.Process.EnvironmentEntry.
+
+/**
+ * Immutable source and runtime-tool evidence shared within one graph invocation.
+ */
+pub struct Context {
+    revision: String,
+    sources: List[String],
+    environment: List[EnvironmentEntry],
+    runtime_tools: String,
+}.
+
+/**
+ * Constructs a context for deterministic owner-contract self-tests.
+ */
+pub from_parts(
+    revision: String,
+    sources: List[String],
+    environment: List[EnvironmentEntry],
+    runtime_tools: String,
+): Context ->
+    Context(
+        revision = revision,
+        sources = sources,
+        environment = environment,
+        runtime_tools = runtime_tools,
+    ).
+
+/**
+ * Repository-relative generated tool paths cannot escape their target root.
+ */
+pub tool_path(path: String): Bool ->
+    starts_with(path, "target/") and not contains(path, "..") and not contains(path, "\\").
+
+/**
+ * Requires clean Linux source and fingerprints the explicitly selected tools.
+ */
+pub capture(root: String, keys: List[String]): Result[Context, String] ->
+    let host = current();
+    let true <- host.operating_system == "linux" and host.architecture == "x86_64" else {
+        _ -> Err("publication preparation requires Linux x86_64")
+    };
+    (let env = PreparationEnvironment.selected(keys);
+(let {
+    Ok(revision) <- OwnerTools.run(root, "git", ["rev-parse", "HEAD"], env);
+    Ok(changes) <- OwnerTools.run(root, "git", ["status", "--porcelain", "--untracked-files=normal"], env);
+    true <- changes == "";
+    Ok(source_list) <- OwnerTools.run(root, "git", ["ls-files"], env);
+    Ok(tools) <- OwnerTools.report_identity(root, env)
+} else {
+    Err(reason) -> Err(reason);
+    _ -> Err("publication preparation requires clean committed source")
+};
+Ok(
+    Context(
+        revision = revision,
+        sources = split(source_list, "\n"),
+        environment = env,
+        runtime_tools = tools,
+    ),
+))).

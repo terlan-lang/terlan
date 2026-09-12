@@ -13,9 +13,24 @@ use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken
 
 use super::{DispatchError, NativeBoundaryValue};
 
+mod command_capture;
 mod framed;
 mod framed_execution;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use command_capture::capture_optional_tool_command;
+pub(crate) use command_capture::{capture_tool_command, capture_tool_command_with_launch};
+mod pipe_scope;
+mod response;
 use framed::FrameSignal;
+use pipe_scope::PipeScope;
+use response::{framed_process_output, process_batch_output, process_error, process_output};
+use terlan_process_owner::OwnedChild;
+
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+mod owned_child_test;
+
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+mod pipe_scope_test;
 
 const MAX_TIMEOUT_MS: u64 = 3_600_000;
 const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
@@ -262,42 +277,124 @@ fn execute(
     request: ProcessRequest,
     cancellation: Option<&NativeBoundaryCancellationToken>,
 ) -> Result<NativeBoundaryValue, DispatchError> {
-    let mut command = Command::new(&request.program);
-    command
-        .args(&request.arguments)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    if let Some(directory) = &request.working_directory {
-        command.current_dir(directory);
-    }
-    for key in &request.removed_environment {
-        command.env_remove(key);
-    }
-    for (key, value) in &request.environment {
-        command.env(key, value);
-    }
-    let mut child = match command.spawn() {
-        Ok(child) => child,
-        Err(error) => {
-            return Ok(process_error(
-                "spawn_failed",
-                format!("cannot spawn child: {error}"),
-                request.program,
-            ))
+    let program = request.program.clone();
+    match capture(request, cancellation) {
+        Ok(output) => Ok(process_output(
+            output.status.code().map(i64::from).unwrap_or(-1),
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )),
+        Err(CaptureFailure::Process(code, message)) => Ok(process_error(code, message, program)),
+        Err(CaptureFailure::MissingProgram(message)) => {
+            Ok(process_error("spawn_failed", message, program))
         }
-    };
+        Err(CaptureFailure::Pipe(error)) => Err(error),
+    }
+}
 
-    let input = child.stdin.take();
+/// Byte-exact bounded capture for internal Git source fingerprints.
+pub(super) fn capture_git(
+    root: &str,
+    arguments: &[&str],
+    cancellation: Option<&NativeBoundaryCancellationToken>,
+) -> Result<std::process::Output, DispatchError> {
+    let request = ProcessRequest {
+        program: "git".to_string(),
+        arguments: arguments
+            .iter()
+            .map(|argument| (*argument).to_string())
+            .collect(),
+        working_directory: Some(root.to_string()),
+        environment: vec![("GIT_TERMINAL_PROMPT".to_string(), "0".to_string())],
+        removed_environment: vec![],
+        stdin: vec![],
+        timeout: Duration::from_secs(30),
+        output_limit: 64 * 1024 * 1024,
+    };
+    capture(request, cancellation).map_err(|failure| match failure {
+        CaptureFailure::Process(code, message) => DispatchError::new(
+            "source_tree_identity_failed",
+            format!("Git {code}: {message}"),
+            0,
+        ),
+        CaptureFailure::Pipe(error) => DispatchError::new(
+            "source_tree_identity_failed",
+            format!("Git {}: {}", error.code(), error.message()),
+            0,
+        ),
+        CaptureFailure::MissingProgram(message) => DispatchError::new(
+            "source_tree_identity_failed",
+            format!("Git spawn_failed: {message}"),
+            0,
+        ),
+    })
+}
+
+#[derive(Debug)]
+enum CaptureFailure {
+    Process(&'static str, String),
+    MissingProgram(String),
+    Pipe(DispatchError),
+}
+
+impl From<DispatchError> for CaptureFailure {
+    fn from(error: DispatchError) -> Self {
+        Self::Pipe(error)
+    }
+}
+
+fn capture(
+    request: ProcessRequest,
+    cancellation: Option<&NativeBoundaryCancellationToken>,
+) -> Result<std::process::Output, CaptureFailure> {
+    capture_command(
+        &mut configured_command(&request),
+        request.stdin,
+        request.timeout,
+        request.output_limit,
+        cancellation,
+        |_| Ok(()),
+    )
+}
+
+fn capture_command(
+    command: &mut Command,
+    input_bytes: Vec<u8>,
+    timeout: Duration,
+    output_limit: usize,
+    cancellation: Option<&NativeBoundaryCancellationToken>,
+    launched: impl FnOnce(u32) -> Result<(), String>,
+) -> Result<std::process::Output, CaptureFailure> {
+    let started = Instant::now();
+    let pipes = PipeScope::new(started, timeout, cancellation);
+    if let Some((code, message)) = pipes.failure() {
+        return Err(CaptureFailure::Process(code, message));
+    }
+    let mut child = OwnedChild::spawn_optional_command(command)
+        .map_err(|error| {
+            CaptureFailure::Process("spawn_failed", format!("cannot spawn child: {error}"))
+        })?
+        .ok_or_else(|| {
+            CaptureFailure::MissingProgram(format!(
+                "cannot spawn child: program `{}` was not found",
+                command.get_program().to_string_lossy()
+            ))
+        })?;
+    launched(child.id())
+        .map_err(|message| CaptureFailure::Process("launch_observation_failed", message))?;
+    let input = child
+        .take_stdin()
+        .map(|pipe| pipes.wrap(pipe))
+        .transpose()
+        .map_err(pipe_setup_error)?;
     let stdout = child
-        .stdout
-        .take()
+        .take_stdout()
         .ok_or_else(|| DispatchError::new("process.pipe", "child stdout pipe is unavailable", 0))?;
     let stderr = child
-        .stderr
-        .take()
+        .take_stderr()
         .ok_or_else(|| DispatchError::new("process.pipe", "child stderr pipe is unavailable", 0))?;
-    let input_bytes = request.stdin;
+    let stdout = pipes.wrap(stdout).map_err(pipe_setup_error)?;
+    let stderr = pipes.wrap(stderr).map_err(pipe_setup_error)?;
     let input_thread = std::thread::spawn(move || {
         if let Some(mut input) = input {
             let _ = input.write_all(&input_bytes);
@@ -305,75 +402,57 @@ fn execute(
     });
     let total = Arc::new(AtomicUsize::new(0));
     let overflow = Arc::new(AtomicBool::new(false));
-    let stdout_thread = read_bounded(stdout, request.output_limit, &total, &overflow);
-    let stderr_thread = read_bounded(stderr, request.output_limit, &total, &overflow);
-    let started = Instant::now();
-    let completion = loop {
-        if cancellation.is_some_and(NativeBoundaryCancellationToken::is_cancelled) {
-            break ProcessCompletion::Failure(
-                "cancelled",
-                "child process was cancelled".to_string(),
-            );
-        }
-        if overflow.load(Ordering::Acquire) {
-            break ProcessCompletion::Failure(
-                "output_limit_exceeded",
-                "child output exceeded its byte limit".to_string(),
-            );
-        }
-        if started.elapsed() >= request.timeout {
-            break ProcessCompletion::Failure(
-                "timed_out",
-                "child process exceeded its wall-clock timeout".to_string(),
-            );
-        }
-        match child.try_wait() {
-            Ok(Some(status)) => break ProcessCompletion::Status(status),
-            Ok(None) => std::thread::sleep(Duration::from_millis(2)),
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                join_input(input_thread);
-                let _ = join_output(stdout_thread);
-                let _ = join_output(stderr_thread);
-                return Ok(process_error(
-                    "spawn_failed",
-                    format!("cannot wait for child: {error}"),
-                    request.program,
-                ));
-            }
-        }
-    };
-
+    let stdout_thread = read_bounded(stdout, output_limit, &total, &overflow);
+    let stderr_thread = read_bounded(stderr, output_limit, &total, &overflow);
+    let completion = wait_for_child(&mut child, started, timeout, &overflow, cancellation);
     let status = match completion {
         ProcessCompletion::Failure(code, message) => {
-            let _ = child.kill();
-            let _ = child.wait();
+            pipes.stop();
+            child.finish().map_err(|error| {
+                DispatchError::new(
+                    "process.cleanup",
+                    format!("cannot terminate child: {error}"),
+                    0,
+                )
+            })?;
             join_input(input_thread);
             let _ = join_output(stdout_thread);
             let _ = join_output(stderr_thread);
-            return Ok(process_error(code, message, request.program));
+            return Err(CaptureFailure::Process(code, message));
         }
         ProcessCompletion::Status(status) => status,
     };
+    let drain_failure = pipes.drain(&overflow, || {
+        input_thread.is_finished() && stdout_thread.is_finished() && stderr_thread.is_finished()
+    });
     join_input(input_thread);
-    let stdout = join_output(stdout_thread)?;
-    let stderr = join_output(stderr_thread)?;
-    // A short-lived child can exit between the reader observing excess output
-    // and the wait loop loading the overflow flag. Joining both readers closes
-    // that race; enforce their final accounting before returning success.
+    let stdout = join_output(stdout_thread);
+    let stderr = join_output(stderr_thread);
+    if let Some((code, message)) = drain_failure.or_else(|| pipes.failure()) {
+        return Err(CaptureFailure::Process(code, message));
+    }
+    let stdout = stdout?;
+    let stderr = stderr?;
+    // A short-lived child can exit before the owner observes reader overflow.
     if overflow.load(Ordering::Acquire) {
-        return Ok(process_error(
+        return Err(CaptureFailure::Process(
             "output_limit_exceeded",
-            "child output exceeded its byte limit",
-            request.program,
+            "child output exceeded its byte limit".to_string(),
         ));
     }
-    Ok(process_output(
-        status.code().map(i64::from).unwrap_or(-1),
-        String::from_utf8_lossy(&stdout).into_owned(),
-        String::from_utf8_lossy(&stderr).into_owned(),
-    ))
+    Ok(std::process::Output {
+        status,
+        stdout,
+        stderr,
+    })
+}
+
+fn pipe_setup_error(error: std::io::Error) -> DispatchError {
+    DispatchError::new(
+        "process.pipe",
+        format!("cannot configure child pipe: {error}"),
+        0,
+    )
 }
 
 fn configured_command(request: &ProcessRequest) -> Command {
@@ -451,7 +530,7 @@ fn await_frame(
 }
 
 fn wait_for_child(
-    child: &mut std::process::Child,
+    child: &mut OwnedChild,
     started: Instant,
     timeout: Duration,
     overflow: &AtomicBool,
@@ -753,124 +832,4 @@ fn positive_usize_field(
             )
         })?;
     Ok(value)
-}
-
-fn process_output(status: i64, stdout: String, stderr: String) -> NativeBoundaryValue {
-    result_record(
-        "Ok",
-        "value",
-        NativeBoundaryValue::Record {
-            name: "Output".to_string(),
-            fields: vec![
-                ("status".to_string(), NativeBoundaryValue::Int(status)),
-                ("stdout".to_string(), NativeBoundaryValue::Text(stdout)),
-                ("stderr".to_string(), NativeBoundaryValue::Text(stderr)),
-            ],
-        },
-    )
-}
-
-fn framed_process_output(status: i64, frames: Vec<String>, stderr: String) -> NativeBoundaryValue {
-    result_record(
-        "Ok",
-        "value",
-        NativeBoundaryValue::Record {
-            name: "FramedOutput".to_string(),
-            fields: vec![
-                ("status".to_string(), NativeBoundaryValue::Int(status)),
-                (
-                    "frames".to_string(),
-                    NativeBoundaryValue::List(
-                        frames.into_iter().map(NativeBoundaryValue::Text).collect(),
-                    ),
-                ),
-                ("stderr".to_string(), NativeBoundaryValue::Text(stderr)),
-            ],
-        },
-    )
-}
-
-fn process_error(
-    code: &str,
-    message: impl Into<String>,
-    program: impl Into<String>,
-) -> NativeBoundaryValue {
-    result_record(
-        "Err",
-        "reason",
-        NativeBoundaryValue::Record {
-            name: "ProcessError".to_string(),
-            fields: vec![
-                (
-                    "code".to_string(),
-                    NativeBoundaryValue::Atom(code.to_string()),
-                ),
-                (
-                    "message".to_string(),
-                    NativeBoundaryValue::Text(message.into()),
-                ),
-                (
-                    "program".to_string(),
-                    NativeBoundaryValue::Text(program.into()),
-                ),
-            ],
-        },
-    )
-}
-
-fn process_batch_output(values: Vec<NativeBoundaryValue>) -> NativeBoundaryValue {
-    let completions = values.into_iter().map(batch_completion).collect::<Vec<_>>();
-    result_record(
-        "Ok",
-        "value",
-        NativeBoundaryValue::Record {
-            name: "BatchOutput".to_string(),
-            fields: vec![(
-                "completions".to_string(),
-                NativeBoundaryValue::List(completions),
-            )],
-        },
-    )
-}
-
-fn batch_completion(value: NativeBoundaryValue) -> NativeBoundaryValue {
-    let (output, error) = match value {
-        NativeBoundaryValue::Record { name, mut fields } if name == "Ok" => {
-            let value = fields
-                .pop()
-                .map(|(_, value)| value)
-                .unwrap_or(NativeBoundaryValue::Unit);
-            (some_record(value), none_record())
-        }
-        NativeBoundaryValue::Record { name, mut fields } if name == "Err" => {
-            let value = fields
-                .pop()
-                .map(|(_, value)| value)
-                .unwrap_or(NativeBoundaryValue::Unit);
-            (none_record(), some_record(value))
-        }
-        _ => (none_record(), none_record()),
-    };
-    NativeBoundaryValue::Record {
-        name: "BatchCompletion".to_string(),
-        fields: vec![("output".to_string(), output), ("error".to_string(), error)],
-    }
-}
-
-fn some_record(value: NativeBoundaryValue) -> NativeBoundaryValue {
-    result_record("Some", "value", value)
-}
-
-fn none_record() -> NativeBoundaryValue {
-    NativeBoundaryValue::Record {
-        name: "None".to_string(),
-        fields: Vec::new(),
-    }
-}
-
-fn result_record(name: &str, field: &str, value: NativeBoundaryValue) -> NativeBoundaryValue {
-    NativeBoundaryValue::Record {
-        name: name.to_string(),
-        fields: vec![(field.to_string(), value)],
-    }
 }

@@ -15,6 +15,49 @@ fn lower(source: &str) -> Vec<NativeModule> {
 }
 
 #[test]
+fn inferred_record_list_operands_admit_their_collection_schema() {
+    let modules = lower(
+        "module native_record_list.\n\
+         import std.collections.List.\n\
+         pub struct Entry { value: Int }.\n\
+         make(value: Int): Entry -> Entry(value = value).\n\
+         pub count(): Int -> List.length([make(1), make(2)]).\n",
+    );
+    let expected = "List(Struct(native_record_list.Entry;value:Int))";
+    assert!(
+        modules
+            .iter()
+            .flat_map(|module| &module.managed_collections)
+            .any(
+                |encoded| crate::runtime::native_image::managed::decode_collection_layout(encoded)
+                    .expect("valid collection descriptor")
+                    .canonical_type()
+                    == expected
+            ),
+        "inferred operand list must be admitted even without a List parameter or result"
+    );
+    let object = super::emit_native_application_object("inferred-record-list", &modules)
+        .expect("emit inferred record list");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "count")
+        .expect("count export")
+        .export_id;
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "inferred-record-list",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: Vec::new(),
+            expected_status: super::status::OK,
+            expected_result: Some(2),
+        }],
+    );
+}
+
+#[test]
 fn list_literal_and_cons_lower_to_managed_collection_operations() {
     let modules = lower(
         "module native_collections.\n\n\

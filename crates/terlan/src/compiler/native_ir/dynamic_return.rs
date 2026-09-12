@@ -4,6 +4,9 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{CoreExpr, CoreFunction, CorePattern, CoreTupleTypeElem, CoreType};
 
+mod application;
+pub(super) use application::close_application_returns;
+
 /// Recovers one concrete return type from a compiler-generated dynamic entry.
 ///
 /// Recovery is structural and fail-closed. It handles only expression forms

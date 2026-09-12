@@ -1,22 +1,30 @@
 # Changelog
 
-User-facing features, behavior changes, compatibility, and security updates
-are tracked here. Internal engineering work belongs in maintainer documentation.
+Release notes describe changes users will notice, compatibility and security
+impacts, and any action required when upgrading. They are not an engineering
+activity log. Internal implementation and validation details belong in maintainer
+documentation; unchanged capabilities do not need a release recap.
 
 ## Unreleased
 
 ## 0.0.8
 
-A maintenance and security release for the native AOT platform introduced in
-0.0.7.
+### Reliability and security
 
-- Fix incorrect results and crashes in AOT-compiled applications and scripts
-  using short-circuit Boolean expressions with I/O.
-- Strengthen native-worker isolation by preventing unintended access to
-  inherited file descriptors.
-- Remove vulnerable OpenTelemetry dependencies. Tracing and OTLP support are
-  temporarily unavailable in the Foundations adapter; logging and metrics
-  remain supported.
+- Boolean expressions that conditionally perform I/O now evaluate correctly
+  in compiled applications and scripts, fixing incorrect results and crashes.
+- Native workers are prevented from accessing files and connections through
+  unintentionally inherited handles.
+
+### Before upgrading
+
+Foundations tracing and OTLP export are temporarily unavailable. Logging and
+metrics remain supported. If your application relies on Foundations tracing,
+you will need another tracing solution before upgrading.
+
+[Install Terlan](https://github.com/terlan-lang/terlan/blob/v0.0.8/README.md#install)
+or choose the archive for your operating system and CPU architecture from the
+release assets.
 
 ## 0.0.7
 

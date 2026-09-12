@@ -1,0 +1,63 @@
+/**
+ * Preparation commands are separate from read-only publication verification.
+ */
+module release_promotion.PreparationCommands.
+
+import release_promotion.{NativeActivity, OwnerDirectoryOwnerTest, OwnerDirectoryTest, PreparationAotTest, PreparationCandidateTest, PreparationContractTest, PreparationGraphTest, PreparationLocalReportsTest, PreparationMulticoreTest, PreparationOwnerTest, PreparationProofKernelsTest, PreparationProofLanesTest, PreparationProofNativeBoundaryTest, PreparationProofPolicyTest, PreparationProofTest, PreparationProofTrackTest, PreparationReadinessTest, PreparationReleaseReportsTest, PreparationStagedDistributionTest, PrepareAotRelease, PrepareContracts, PrepareLocalReports, PrepareManagedList, PrepareMulticoreRelease, PrepareProofKernels, PrepareProofLanes, PrepareProofNativeBoundary, PrepareProofPolicy, PrepareProofRelease, PrepareProofSmoke, PrepareProofTrack, PrepareReadiness, PrepareReleaseReports, PrepareStagedDistribution, ProcessActivityTest, ProofInputsTest, PublicationCache, PublicationCacheTest}.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+pub run(root: String, command: String, first: String, second: String, third: String): Option[Bool] ->
+    case command {
+        "prepare-proof-native-boundary" -> Some(PrepareProofNativeBoundary.run_locked(root, first));
+        "preparation-proof-native-boundary-self-test" ->
+            Some(PreparationProofNativeBoundaryTest.self_test());
+        "prepare-proof-kernels" -> Some(PrepareProofKernels.run_locked(root, first, second, third));
+        "preparation-proof-kernels-self-test" -> Some(PreparationProofKernelsTest.self_test());
+        "prepare-proof-policies" -> Some(PrepareProofPolicy.run_all_locked(root, first));
+        "prepare-proof-policy" -> Some(PrepareProofPolicy.run_locked(root, first, second));
+        "preparation-proof-policy-self-test" -> Some(PreparationProofPolicyTest.self_test());
+        "preparation-proof-track-self-test" -> Some(PreparationProofTrackTest.self_test());
+        "prepare-proof-track" -> Some(PrepareProofTrack.run_locked(root, first));
+        "prepare-proof-smoke" -> Some(PrepareProofSmoke.run_locked(root, first));
+        "prepare-proof-lanes" -> Some(PrepareProofLanes.run_locked(root, first));
+        "preparation-proof-lanes-self-test" -> Some(PreparationProofLanesTest.self_test());
+        "preparation-proof-smoke-self-test" -> Some(PrepareProofSmoke.self_test());
+        "preparation-proof-input-self-test" -> Some(ProofInputsTest.self_test());
+        "prepare-proof-release" -> Some(PrepareProofRelease.run_locked(root, first, second));
+        "preparation-proof-self-test" -> Some(PreparationProofTest.self_test(root, first, second));
+        "preparation-readiness-self-test" ->
+            Some(PreparationReadinessTest.self_test(root, first, second));
+        "prepare-readiness" -> Some(PrepareReadiness.run_locked(root, first, second, third));
+        "prepare-staged-distribution" ->
+            Some(PrepareStagedDistribution.run_locked(root, first, second));
+        "preparation-staged-distribution-self-test" ->
+            Some(PreparationStagedDistributionTest.self_test(root, first, second));
+        "prepare-release-reports" -> Some(PrepareReleaseReports.run_locked(root, first, second));
+        "preparation-release-reports-self-test" ->
+            Some(PreparationReleaseReportsTest.self_test(root, first, second));
+        "prepare-platform-contract" -> Some(PrepareContracts.run_locked(root, first, second));
+        "preparation-contract-self-test" ->
+            Some(PreparationContractTest.self_test(root, first, second));
+        "native-activity-check" -> Some(NativeActivity.run(first));
+        "native-activity-self-test" -> Some(ProcessActivityTest.self_test());
+        "prune-publication-cache" -> Some(PublicationCache.run_locked(root, first));
+        "publication-cache-self-test" -> Some(PublicationCacheTest.self_test());
+        "prepare-managed-list-profile" -> Some(PrepareManagedList.run_locked(root));
+        "prepare-local-reports" -> Some(PrepareLocalReports.run_locked(root, first, second));
+        "prepare-multicore-release-record" ->
+            Some(PrepareMulticoreRelease.run_locked(root, first, second));
+        "prepare-aot-release-record" -> Some(PrepareAotRelease.run_locked(root, first, second));
+        "preparation-owner-self-test" -> Some(PreparationOwnerTest.self_test());
+        "preparation-directory-self-test" ->
+            Some(OwnerDirectoryTest.self_test() and OwnerDirectoryOwnerTest.self_test());
+        "preparation-graph-self-test" -> Some(PreparationGraphTest.self_test());
+        "preparation-local-reports-self-test" ->
+            Some(PreparationLocalReportsTest.self_test(root, first, second));
+        "preparation-candidate-self-test" -> Some(PreparationCandidateTest.self_test());
+        "preparation-multicore-self-test" ->
+            Some(PreparationMulticoreTest.self_test(root, first, second));
+        "preparation-aot-self-test" -> Some(PreparationAotTest.self_test(root, first, second));
+        _ -> None
+    }.

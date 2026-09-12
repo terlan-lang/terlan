@@ -658,7 +658,7 @@ fn resolve_constructor_identities_in_core_expr(
                 );
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             for param in params {
                 resolve_constructor_identities_in_core_pattern(param, constructor_identities);
             }

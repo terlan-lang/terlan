@@ -269,7 +269,7 @@ fn rewrite(expr: &mut CoreExpr, aliases: &HashMap<String, AliasValue>) {
                 rewrite(&mut clause.body, aliases);
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             params
                 .iter_mut()
                 .for_each(|pattern| rewrite_pattern(pattern, aliases));

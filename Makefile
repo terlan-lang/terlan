@@ -5,10 +5,14 @@ EXACT_CARGO_TEST := bash scripts/run_exact_cargo_test.sh
 TERLAN_BOOTSTRAP_COMPILER := target/debug/terlc
 TERLAN_BOOTSTRAP_COMPILER_BUILD := $(TERLAN_BOOTSTRAP_COMPILER) build --incremental
 TERLAN_BOOTSTRAP_VM := target/debug/terlan-vm
+TERLAN_BUILD_CACHE := target/debug/terlan-build-cache
 TERLAN_SERVE_RUNTIME_PROFILE := serve-runtime
 TERLAN_SERVE_RUNTIME_BIN := $(CURDIR)/target/$(TERLAN_SERVE_RUNTIME_PROFILE)/terlan-serve-runtime
+TERLAN_SERVE_RUNTIME_REL_BIN := $(patsubst $(CURDIR)/%,%,$(TERLAN_SERVE_RUNTIME_BIN))
 TERLAN_SERVE_RUNTIME_BUILD := $(CARGO) build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
-TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm
+TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
+TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS ?= 3600
+TERLAN_BUILD_MINIMUM_FREE_BYTES ?= 8589934592
 TERLAN_TYPED_VALIDATOR_BUILD := bash scripts/build_typed_validator.sh
 TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := target/self-validation/typed-validator-common.inputs.sha256
 TERLAN_TYPED_VALIDATOR_COMMON_INPUTS := $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
@@ -38,6 +42,46 @@ TERLAN_RUST_QUALITY := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_R
 TERLAN_RELEASE_PROMOTION_DIR := target/self-validation/release-promotion
 TERLAN_RELEASE_PROMOTION_IMAGE := $(TERLAN_RELEASE_PROMOTION_DIR)/vm/scripts_ReleasePromotion.tvm
 TERLAN_RELEASE_PROMOTION := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_PROMOTION_IMAGE) --script-eval --
+
+# The outer invocation owns fd 9. Reuse that file description, not a new open
+# of the same flock (which would conflict with our own invocation). A distinct
+# owner lock serializes sibling graph producers within an inherited scope.
+TERLAN_PREPARATION_OWNER = /bin/sh -ec '\
+	test -d target && test ! -L target; \
+	test -d target/quality && test ! -L target/quality; \
+	for lock in target/quality/preparation.lock target/quality/preparation-owner.lock; do \
+		test ! -L "$$lock"; \
+		if test -e "$$lock"; then test -f "$$lock"; fi; \
+	done; \
+	case "$${TERLAN_PREPARATION_LOCK_HELD:-}" in \
+		1) test /proc/self/fd/9 -ef target/quality/preparation.lock ;; \
+		"") exec 9>target/quality/preparation.lock ;; \
+		*) echo "invalid preparation lease scope" >&2; exit 1 ;; \
+	esac; \
+	flock --exclusive --wait 120 9; \
+	test /proc/self/fd/9 -ef target/quality/preparation.lock; \
+	export TERLAN_PREPARATION_LOCK_HELD=1; \
+	exec flock --exclusive --wait 120 target/quality/preparation-owner.lock "$$@"\
+' preparation-owner
+
+# Publication preparation owns contract execution; ordinary development targets
+# continue to run the requested contract directly. Reuse is hash-verified by the
+# owner, never authorized merely by this routing selection.
+ifneq ($(filter publish-prepare publish-evidence-refresh,$(MAKECMDGOALS)),)
+ifeq ($(origin TERLAN_PREPARATION_CONTRACT_OWNERS),command line)
+ifneq ($(TERLAN_PREPARATION_CONTRACT_OWNERS),1)
+$(error publication preparation cannot disable contract ownership)
+endif
+endif
+override export TERLAN_PREPARATION_CONTRACT_OWNERS := 1
+endif
+ifeq ($(TERLAN_PREPARATION_CONTRACT_OWNERS),1)
+TERLAN_TVM_CONTRACT_CHECK := $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-platform-contract "$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+TERLAN_TVM_CONTRACT_BOOTSTRAP := terlan-tvm-platform-matrix-bootstrap terlan-release-promotion-bootstrap publish-preparation-lock-directory
+else
+TERLAN_TVM_CONTRACT_CHECK := $(TERLAN_TVM_PLATFORM_MATRIX)
+TERLAN_TVM_CONTRACT_BOOTSTRAP := terlan-tvm-platform-matrix-bootstrap
+endif
 TERLAN_RELEASE_CLOSEOUT_DIR := target/self-validation/release-closeout
 TERLAN_RELEASE_CLOSEOUT_IMAGE := $(TERLAN_RELEASE_CLOSEOUT_DIR)/vm/scripts_ReleaseCloseout.tvm
 TERLAN_RELEASE_CLOSEOUT := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_CLOSEOUT_IMAGE) --script-eval --
@@ -166,20 +210,83 @@ SHELL := bash
 
 .PHONY: docs-light-check rust-security-audit-check terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
 
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+terlan-serve-runtime-bootstrap: | terlan-build-owner-bootstrap
+endif
+endif
 terlan-serve-runtime-bootstrap:
 ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
 	test -x $(TERLAN_SERVE_RUNTIME_BIN)
 else
-	$(TERLAN_SERVE_RUNTIME_BUILD)
+	@if test "$(shell uname -s)" = Linux; then \
+		set -eu; \
+		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+		mkdir -p target/quality; \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		build_command="$$cargo_program $$cargo_args build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin"; \
+		if git diff --quiet \
+			&& git diff --cached --quiet \
+			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' serve-runtime-release; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			"$(TERLAN_BUILD_CACHE)" owner \
+				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/serve-runtime.json" \
+				--input-sha256 "$$input" \
+				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+				--output "$(TERLAN_SERVE_RUNTIME_REL_BIN)" \
+				-- /bin/sh -c "$$build_command"; \
+		else \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin; \
+		fi; \
+	else \
+		$(TERLAN_SERVE_RUNTIME_BUILD); \
+	fi
 endif
 
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+terlan-http-benchmark-release-bootstrap: | terlan-build-owner-bootstrap
+endif
+endif
 terlan-http-benchmark-release-bootstrap:
 ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
 	@for binary in terlan-axum-baseline terlan-hyper-baseline terlan-http-framework-benchmark terlan-http-paired-benchmark; do \
 		test -x "target/release/$$binary"; \
 	done
 else
-	$(CARGO) build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools
+	@if test "$(shell uname -s)" = Linux; then \
+		set -eu; \
+		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+		mkdir -p target/quality; \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		build_command="$$cargo_program $$cargo_args build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools"; \
+		if git diff --quiet \
+			&& git diff --cached --quiet \
+			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' http-benchmark-release; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			"$(TERLAN_BUILD_CACHE)" owner \
+				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/http-benchmark-release.json" \
+				--input-sha256 "$$input" \
+				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+				--output target/release/terlan-axum-baseline \
+				--output target/release/terlan-hyper-baseline \
+				--output target/release/terlan-http-framework-benchmark \
+				--output target/release/terlan-http-paired-benchmark \
+				-- /bin/sh -c "$$build_command"; \
+		else \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools; \
+		fi; \
+	else \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		"$$cargo_program" $$cargo_args build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools; \
+	fi
 endif
 docs-light-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
@@ -262,34 +369,31 @@ rust-security-audit-check:
 .PHONY: vm-http-acme-tls-base-check vm-http-acme-tls-production-check vm-http-protocol-readiness-check
 .PHONY: vm-otp-abstractions-terlan-stdlib-check
 
-ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
-RUST_TEST := true
-EXACT_CARGO_TEST := true
-endif
-
+include mk/rust-coverage.mk
 include crates/terlan/cli.mk
 include std/stdlib.mk
 include editors/editor.mk
+
+# Legacy success/skip switches are deliberately unsupported. A caller that
+# still supplies one must fail before Make expands any producer, and use the
+# live current-input coverage owner instead.
+ifneq ($(filter 1,$(TERLAN_RUST_SUITE_ALREADY_RUN) $(TERLAN_CHECK_ALREADY_RUN)),)
+$(error legacy Rust/Make skip flags are unsupported; use the live coverage owner)
+endif
 include mk/code-quality.mk
 
 COVERAGE_MIN ?= 84.20
 COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm
 COVERAGE_IGNORE_FILENAME_REGEX ?= crates/terlan/src/(lsp|vm)/\.\./
 
-ifeq ($(TERLAN_CHECK_ALREADY_RUN),1)
-TEST_RELEASE_STDLIB_TARGET := stdlib-release-runtime-owned-by-check
-LEAN_PROOF_CLOSEOUT_DEPS :=
-VM_HTTP_BENCHMARK_COMPARABILITY_DEPS :=
-else
 TEST_RELEASE_STDLIB_TARGET := stdlib-release-check
 LEAN_PROOF_CLOSEOUT_DEPS := lean-proof-track-check
 VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
-endif
 
 HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 
-ifneq ($(filter publish publish-preflight,$(MAKECMDGOALS)),)
+ifneq ($(filter publish publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -345,13 +449,49 @@ CHECK_GATES := \
 # `TERLAN_VALIDATION_BOOTSTRAPPED=1`; nested Make processes therefore trust the
 # already-verified boundary instead of repeating fingerprints and file probes.
 .PHONY: terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-quality-bootstrap terlan-benchmark-release-bootstrap terlan-native-worker-bootstrap terlan-typed-validator-fingerprint terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
+# Build the small process owner before the compiler. Linux admits disk/cache
+# resources through that same support build; no second Cargo bootstrap is added.
+# Prebuilt consumers and read-only publication never request this prerequisite.
+ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_BUILD_ARTIFACTS_PREBUILT)),)
+terlan-compiler-bootstrap: | terlan-build-owner-bootstrap
+ifeq ($(shell uname -s),Linux)
+terlan-compiler-bootstrap: | rust-build-resource-admission
+endif
+endif
 terlan-compiler-bootstrap:
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 	test -x $(TERLAN_BOOTSTRAP_COMPILER)
 	test -x $(TERLAN_BOOTSTRAP_VM)
+	test -x target/debug/terlan-native-worker
+	test -x $(TERLAN_RUST_ORCHESTRATOR)
 else
-	$(CARGO) build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS)
+	@if test "$(shell uname -s)" = Linux; then \
+		set -eu; \
+		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+		mkdir -p target/quality; \
+		build_command='$(CARGO) build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS)'; \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		if git diff --quiet \
+			&& git diff --cached --quiet \
+			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			"$(TERLAN_BUILD_CACHE)" owner \
+				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/compiler.json" \
+				--input-sha256 "$$input" \
+				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+				--output "$(TERLAN_BOOTSTRAP_COMPILER)" \
+				--output "$(TERLAN_BOOTSTRAP_VM)" \
+				--output "target/debug/terlan-native-worker" \
+				--output "$(TERLAN_RUST_ORCHESTRATOR)" \
+				-- /bin/sh -c "$$build_command"; \
+		else \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); \
+		fi; \
+	fi
 endif
 endif
 
@@ -360,6 +500,9 @@ endif
 # quality target can request the tools without running the entire test suite.
 terlan-quality-tools-bootstrap:
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifneq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
+terlan-quality-tools-bootstrap: | terlan-build-owner-bootstrap
+endif
 ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 	@for binary in \
 		terlan-quality \
@@ -379,31 +522,98 @@ ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 		}; \
 	done
 else
-	$(CARGO) build \
-		-p terlan \
-		-p terlan-rust-boundary-audit \
-		--bin terlan-quality \
-		--bin terlan-native-target-feasibility \
-		--bin terlan-lean-proof-closeout \
-		--bin terlan-accelerator-value-contract \
-		--bin terlan-accelerator-target-admission \
-		--bin terlan-accelerator-ir \
-		--bin terlan-accelerator-aot-backend \
-		--bin terlan-accelerator-placement \
-		--bin terlan-accelerator-vm-integration \
-		--bin terlan-accelerator-specialized-artifact \
-		--bin terlan-rust-boundary-audit \
-		--features terlan/quality-tools
+	@if test "$(shell uname -s)" = Linux; then \
+		set -eu; \
+		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+		mkdir -p target/quality; \
+		build_command='$(CARGO) build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/quality-tools'; \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		if git diff --quiet \
+			&& git diff --cached --quiet \
+			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml tools/rust_boundary_audit/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build quality-tools; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			"$(TERLAN_BUILD_CACHE)" owner \
+				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/quality-tools.json" \
+				--input-sha256 "$$input" \
+				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+				--output target/debug/terlan-quality \
+				--output target/debug/terlan-native-target-feasibility \
+				--output target/debug/terlan-lean-proof-closeout \
+				--output target/debug/terlan-accelerator-value-contract \
+				--output target/debug/terlan-accelerator-target-admission \
+				--output target/debug/terlan-accelerator-ir \
+				--output target/debug/terlan-accelerator-aot-backend \
+				--output target/debug/terlan-accelerator-placement \
+				--output target/debug/terlan-accelerator-vm-integration \
+				--output target/debug/terlan-accelerator-specialized-artifact \
+				--output target/debug/terlan-rust-boundary-audit \
+				-- /bin/sh -c "$$build_command"; \
+		else \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/quality-tools; \
+		fi; \
+	else \
+		$(CARGO) build \
+			-p terlan \
+			-p terlan-rust-boundary-audit \
+			--bin terlan-quality \
+			--bin terlan-native-target-feasibility \
+			--bin terlan-lean-proof-closeout \
+			--bin terlan-accelerator-value-contract \
+			--bin terlan-accelerator-target-admission \
+			--bin terlan-accelerator-ir \
+			--bin terlan-accelerator-aot-backend \
+			--bin terlan-accelerator-placement \
+			--bin terlan-accelerator-vm-integration \
+			--bin terlan-accelerator-specialized-artifact \
+			--bin terlan-rust-boundary-audit \
+			--features terlan/quality-tools; \
+	fi
 endif
 endif
 
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
+terlan-benchmark-release-bootstrap: | terlan-build-owner-bootstrap
+endif
+endif
 terlan-benchmark-release-bootstrap:
 ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
 	test -x target/release/terlc
 	test -x target/release/terlan-vm
 	test -x target/release/terlan-benchmark
 else
-	$(CARGO) build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
+	@if test "$(shell uname -s)" = Linux; then \
+		set -eu; \
+		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+		mkdir -p target/quality; \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		build_command="$$cargo_program $$cargo_args build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools"; \
+		if git diff --quiet \
+			&& git diff --cached --quiet \
+			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' benchmark-release-tools; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			"$(TERLAN_BUILD_CACHE)" owner \
+				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/benchmark-release.json" \
+				--input-sha256 "$$input" \
+				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+				--output target/release/terlc \
+				--output target/release/terlan-vm \
+				--output target/release/terlan-benchmark \
+				-- /bin/sh -c "$$build_command"; \
+		else \
+			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools; \
+		fi; \
+	else \
+		cargo_program='$(firstword $(CARGO))'; \
+		cargo_args='$(wordlist 2,99,$(CARGO))'; \
+		"$$cargo_program" $$cargo_args build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools; \
+	fi
 endif
 
 # GNU Make 4.3 treats its global-serialization special target as process-wide.
@@ -412,15 +622,18 @@ endif
 terlan-quality-bootstrap: rust-test-suite
 	$(MAKE) --no-print-directory --jobs=1 terlan-quality-tools-bootstrap
 
+ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 terlan-native-worker-bootstrap:
-ifneq ($(filter 1,$(TERLAN_BUILD_ARTIFACTS_PREBUILT) $(TERLAN_RUST_SUITE_ALREADY_RUN)),)
 	test -x target/debug/terlan-native-worker
 else
-	$(CARGO) build -p terlan --bin terlan-native-worker
+terlan-native-worker-bootstrap: terlan-compiler-bootstrap
+	test -x target/debug/terlan-native-worker
 endif
 
 terlan-typed-validator-fingerprint: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	@identity=$$($(TERLAN_BOOTSTRAP_COMPILER) build --print-toolchain-identity) || exit $$?; \
+	TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$$identity" \
 	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std
@@ -433,7 +646,7 @@ ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_ARTIFACT_MEASUREMENT
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std scripts/self_validation/BuildArtifactBudgetTest.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
-		scripts/self_validation/BuildArtifactBudgetTest.terl
+		scripts/self_validation/BuildArtifactBudgetTest.terl --out-dir _build
 	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 endif
 
@@ -539,7 +752,8 @@ endif
 terlan-release-closeout-image-bootstrap: terlan-compiler-bootstrap terlan-typed-validator-fingerprint
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_CLOSEOUT_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_closeout -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/release_closeout \
+		scripts/self_validation/rust_quality -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/release_closeout/scripts/ReleaseCloseout.terls \
 		--target terlan-vm --out-dir $(TERLAN_RELEASE_CLOSEOUT_DIR)
@@ -580,7 +794,7 @@ release-notes-accuracy-check: release-compatibility-baseline-check
 	test -s target/quality/release-notes-accuracy-report.json
 	@rg -q '"decision": "pass"' target/quality/release-notes-accuracy-report.json
 
-release-supply-chain-provenance-check: terlan-release-closeout-bootstrap
+release-supply-chain-provenance-check: rust-cargo-metadata-report terlan-release-closeout-bootstrap
 	TERLAN_RELEASE_CLOSEOUT_ROOT=$(CURDIR) $(TERLAN_RELEASE_CLOSEOUT) supply-chain
 	test -s target/quality/release-sbom.cargo-metadata.json
 	test -s target/quality/release-unsafe-inventory.json
@@ -645,9 +859,12 @@ release-fault-injection-check: release-mutation-check
 	@rg -q '"decision": "pass"' target/quality/release-fault-injection-report.json
 	@rg -q '"skip_reasons": \[\]' target/quality/release-fault-injection-report.json
 
+TERLAN_READINESS_RUN = $(TERLAN_RELEASE_PROMOTION) readiness --version $(RELEASE_VERSION)
+TERLAN_OWNED_READINESS = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-readiness "$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_RELEASE_PROMOTION_IMAGE)" "$(RELEASE_VERSION)"
+
 release-readiness-attestation-check: release-example-projects-check release-project-upgrade-matrix-check release-reference-app-suite-check release-notes-accuracy-check release-fault-injection-check terlan-release-promotion-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) readiness --version $(RELEASE_VERSION)
+		$(TERLAN_READINESS_RUN)
 	test -s target/quality/release-readiness-attestation-report.json
 	@rg -q '"decision": "pass"' target/quality/release-readiness-attestation-report.json
 	@rg -q '"publication_required": false' target/quality/release-readiness-attestation-report.json
@@ -658,16 +875,19 @@ release-readiness-attestation-refresh:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) readiness --version $(RELEASE_VERSION)
+		$(TERLAN_READINESS_RUN)
 	test -s target/quality/release-readiness-attestation-report.json
 	@rg -q '"decision": "pass"' target/quality/release-readiness-attestation-report.json
 	@rg -q '"publication_required": false' target/quality/release-readiness-attestation-report.json
+
+TERLAN_STAGED_DISTRIBUTION_RUN = $(TERLAN_TVM_PLATFORM_MATRIX) release-staged-distribution
+TERLAN_OWNED_STAGED_DISTRIBUTION = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-staged-distribution "$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
 
 release-staged-distribution-verification-check: release-readiness-attestation-check | terlan-tvm-platform-matrix-bootstrap
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) verify --version $(RELEASE_VERSION)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_TVM_PLATFORM_MATRIX) release-staged-distribution
+		$(TERLAN_STAGED_DISTRIBUTION_RUN)
 	test -s target/quality/release-staged-distribution-verification-report.json
 	@rg -q '"decision": "pass"' target/quality/release-staged-distribution-verification-report.json
 	@rg -q '"failed_upgrade_rollback": "pass"' target/quality/release-staged-distribution-verification-report.json
@@ -680,11 +900,27 @@ release-staged-distribution-verification-refresh: release-readiness-attestation-
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) verify --version $(RELEASE_VERSION)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_TVM_PLATFORM_MATRIX) release-staged-distribution
+		$(TERLAN_STAGED_DISTRIBUTION_RUN)
 	test -s target/quality/release-staged-distribution-verification-report.json
 	@rg -q '"decision": "pass"' target/quality/release-staged-distribution-verification-report.json
 	@rg -q '"failed_upgrade_rollback": "pass"' target/quality/release-staged-distribution-verification-report.json
 	@rg -q '"source_checkout_required": false' target/quality/release-staged-distribution-verification-report.json
+
+# Publication's warm repair uses the same checkpoint as its cold hosted graph.
+# Standalone developer verification keeps the normal direct producer.
+.PHONY: publish-staged-distribution-prepare release-preparation-staged-distribution-check
+publish-staged-distribution-prepare: TERLAN_STAGED_DISTRIBUTION_RUN = $(TERLAN_OWNED_STAGED_DISTRIBUTION)
+publish-staged-distribution-prepare: TERLAN_READINESS_RUN = $(TERLAN_OWNED_READINESS)
+publish-staged-distribution-prepare: release-staged-distribution-verification-refresh
+
+release-preparation-staged-distribution-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 1800s $(TERLAN_RELEASE_PROMOTION) preparation-staged-distribution-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+.PHONY: release-preparation-readiness-check
+release-preparation-readiness-check: | terlan-release-promotion-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-readiness-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_RELEASE_PROMOTION_IMAGE)"
 
 terlan-web-manifest-preflight-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
@@ -736,7 +972,12 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_REPOSITORY_VALIDATION_IMAGE)
 endif
 
-terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
+terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap terlan-proof-release-bootstrap
+
+# Proof consumers need this image, not the entire validator fleet. The aggregate
+# still shares this producer with focused consumers in the same Make invocation.
+.PHONY: terlan-proof-release-bootstrap
+terlan-proof-release-bootstrap: terlan-compiler-bootstrap terlan-typed-validator-fingerprint
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_PROOF_RELEASE_IMAGE) \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
@@ -748,22 +989,28 @@ endif
 
 $(TERLAN_COMPILER_CONSUMER_GATES): | terlan-compiler-bootstrap
 lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check: | terlan-semantic-kernel-bootstrap
+lean-proof-parser-shape-check lean-proof-feature-cull-check lean-proof-native-boundary-check lean-proof-smoke-check proof-repro-check lean-proof-track-runtime-check lean-proof-track-pr-gate lean-proof-track-regression-check: | terlan-quality-tools-bootstrap
+lalrpop-grammar-contract-check lean-proof-lanes-check lean-proof-feature-binding-contract-check: | terlan-compiler-bootstrap
+lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check: | terlan-quality-tools-bootstrap
+
+# Each invocation has one correctness owner; ambiguous aggregate requests must
+# not run one suite with whichever target-specific environment happens to win.
+ifneq ($(word 2,$(filter check release-check release-evidence-refresh,$(MAKECMDGOALS))),)
+$(error choose one correctness entry point: check, release-check, or release-evidence-refresh)
+endif
 
 check: rust-test-suite
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
-		$(MAKE) --no-print-directory \
+	$(MAKE) --no-print-directory \
 		terlan-quality-tools-bootstrap
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		$(MAKE) --no-print-directory --jobs=$(TERLAN_VALIDATOR_BUILD_JOBS) \
-		terlan-self-validation-bootstrap
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		terlan-self-validation-bootstrap \
+		$(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),terlan-release-closeout-image-bootstrap)
+	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
+		$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage \
+		$(CURDIR)/target/quality/rust-test-suite-report.json -- \
 		$(MAKE) --no-print-directory \
-		TERLC=$(CURDIR)/target/debug/terlc \
-		TERLAN_QUALITY=$(CURDIR)/target/debug/terlan-quality \
-		check-gates
+		check-gates $(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)
 
 check-gates: $(CHECK_GATES)
 
@@ -888,21 +1135,18 @@ value-lifecycle-contract-check: validate-ebnf tree-sitter-cli-check editor-check
 
 test: cli-test
 
+ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
 rust-test-suite:
-ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
-	@echo "[rust-test-suite] canonical owned Rust suite already passed."
-else ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
+	$(TERLAN_RUST_ORCHESTRATOR) --coverage-request --whole-suite
+else
+rust-test-suite: rust-cargo-metadata-report
 	@set -eu; \
-	for binary in terlc terlan-vm terlan-native-worker terlan-test-orchestrator; do \
+	for binary in terlc terlan-vm terlan-native-worker; do \
 		test -x "target/debug/$$binary"; \
 	done; \
+	test -x $(TERLAN_RUST_ORCHESTRATOR); \
 	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
-		target/debug/terlan-test-orchestrator
-	test -s target/quality/rust-test-suite-report.json
-else
-	$(CARGO) build --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
-	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
-		target/debug/terlan-test-orchestrator
+		$(TERLAN_RUST_ORCHESTRATOR)
 	test -s target/quality/rust-test-suite-report.json
 endif
 
@@ -1281,37 +1525,35 @@ compiler-purity-metadata-check:
 		tests/language/PurityEffectsTest.terl \
 		tests/fixtures/purity_template/PurityTemplateTest.terl
 
-lean-proof-track-check:
-	$(MAKE) --no-print-directory --jobs=1 \
-		lean-proof-feature-cull-check \
-		lean-proof-semantic-kernels-check \
-		lean-proof-track-runtime-check \
-		proof-repro-check \
-		lean-proof-smoke-check \
-		lean-proof-track-pr-gate \
-		lean-proof-track-regression-check
-	target/debug/terlc test \
-		scripts/self_validation/LeanProofLanesTest.terl \
-		scripts/self_validation/LeanProofFeatureBindingTest.terl
+.PHONY: lean-proof-lanes-check lean-proof-feature-binding-contract-check lalrpop-grammar-contract-check
+# Shared producers stay in one Make graph. Dependencies, rather than recursive
+# serial invocations, preserve runtime -> replay -> smoke -> lane seal ordering.
+lean-proof-track-check: lean-proof-lanes-check lean-proof-feature-binding-contract-check
 
-lalrpop-parser-parity-check: tree-sitter-package-check tree-sitter-cli-check editor-check
+lalrpop-grammar-contract-check:
 	target/debug/terlc test scripts/self_validation/LalrpopGrammarContractTest.terl
+
+lalrpop-parser-parity-check: tree-sitter-package-check tree-sitter-cli-check editor-check lalrpop-grammar-contract-check
 	$(RUST_TEST) -p terlan --lib compiler::syntax:: -- --test-threads=1
 
-lean-proof-parser-shape-check:
-	target/debug/terlc test scripts/self_validation/LalrpopGrammarContractTest.terl
+lean-proof-parser-shape-check: lalrpop-grammar-contract-check
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_PROOF_PATH=parser_shape/ParserShape.lean \
 		target/debug/terlc test scripts/self_validation/LeanProofExecutionTest.terl
 
 lean-proof-native-boundary-check: native-boundary-security-check
-	target/debug/terlc test scripts/self_validation/LeanProofNativeBoundaryTest.terl
+	$(TERLAN_PROOF_NATIVE_BOUNDARY_RUN)
 
-lean-proof-smoke-check: lean-proof-native-boundary-check
-	target/debug/terlc test scripts/self_validation/LeanProofSmokeTest.terl
+lean-proof-smoke-check: proof-repro-check lean-proof-native-boundary-check
+	$(TERLAN_PROOF_SMOKE_RUN)
 
-lean-proof-feature-binding-check: proof-repro-check
+lean-proof-lanes-check: lean-proof-smoke-check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-semantic-kernels-check
+	$(TERLAN_PROOF_LANES_RUN)
+
+lean-proof-feature-binding-contract-check: lean-proof-lanes-check
 	target/debug/terlc test scripts/self_validation/LeanProofFeatureBindingTest.terl
+
+lean-proof-feature-binding-check: lean-proof-feature-binding-contract-check
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_SNAPSHOT_TASK=diff \
 		target/debug/terlc test scripts/self_validation/LeanProofSnapshotTest.terl
@@ -1343,19 +1585,28 @@ lean-proof-feature-cull-check:
 	TERLAN_LEAN_PROOF_PATH=Terlan/FeatureCull/LegacyBoundaries.lean \
 		target/debug/terlc test scripts/self_validation/LeanProofExecutionTest.terl
 
-proof-repro-check:
+TERLAN_PROOF_TRACK_RUN = $(TERLAN_QUALITY) lean-proof-track
+TERLAN_OWNED_PROOF_TRACK = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-kernels "target/debug/terlan-quality" "$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_SEMANTIC_KERNEL_IMAGE)"
+TERLAN_PROOF_SMOKE_RUN = target/debug/terlc test --incremental scripts/self_validation/LeanProofSmokeTest.terl
+TERLAN_PROOF_NATIVE_BOUNDARY_RUN = target/debug/terlc test --incremental scripts/self_validation/LeanProofNativeBoundaryTest.terl
+TERLAN_OWNED_PROOF_NATIVE_BOUNDARY = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-native-boundary "target/debug/terlc"
+TERLAN_OWNED_PROOF_SMOKE = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-smoke "target/debug/terlc"
+TERLAN_PROOF_LANES_RUN = target/debug/terlc test --incremental scripts/self_validation/LeanProofLanesTest.terl
+TERLAN_OWNED_PROOF_LANES = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-lanes "target/debug/terlc"
+TERLAN_PROOF_RUNTIME_RUN = $(TERLAN_QUALITY) lean-proof-runtime
+TERLAN_PROOF_PR_RUN = $(TERLAN_QUALITY) lean-proof-pr
+TERLAN_PROOF_REGRESSION_RUN = $(TERLAN_QUALITY) lean-proof-regression
+TERLAN_OWNED_PROOF_POLICIES = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-policies "target/debug/terlan-quality"
+
+proof-repro-check: lean-proof-track-runtime-check
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_track
-	$(TERLAN_QUALITY) lean-proof-track
-	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
-	TERLAN_LEAN_PROOF_TASK=proof-repro-report \
-		target/debug/terlc test scripts/self_validation/LeanProofExecutionTest.terl \
-			--name selected_lean_task_holds
+	$(TERLAN_PROOF_TRACK_RUN)
 
 proof_repro_check: proof-repro-check
 
 lean-proof-track-pr-gate:
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_pr_test
-	$(TERLAN_QUALITY) lean-proof-pr
+	$(TERLAN_PROOF_PR_RUN)
 lean-proof-templates-routes-check:
 	TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- check-family templates-routes
@@ -1380,41 +1631,68 @@ lean-proof-std-package-check:
 	TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- check-family std-packages
 
-lean-proof-semantic-kernels-check:
-	TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- self-test
-	TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- check
+define TERLAN_SEMANTIC_KERNEL_RUN
+TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" $(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- self-test
+TERLAN_SEMANTIC_KERNEL_ROOT="$(CURDIR)" $(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SEMANTIC_KERNEL_IMAGE) --script-eval -- check
+endef
 
-lean-proof-track-runtime-check: lean-proof-semantic-kernels-check
+lean-proof-semantic-kernels-check: lean-proof-feature-cull-check
+	$(TERLAN_SEMANTIC_KERNEL_RUN)
+
+lean-proof-track-runtime-check: lean-proof-feature-cull-check
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_runtime_test
-	$(TERLAN_QUALITY) lean-proof-runtime
+	$(TERLAN_PROOF_RUNTIME_RUN)
 
 lean-proof-track-regression-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_regression_test
-	$(TERLAN_QUALITY) lean-proof-regression
+	$(TERLAN_PROOF_REGRESSION_RUN)
 
 
-# These two gates share build/artifacts/lean-proof-gate.json. Keep their order
-# explicit: runtime validation establishes the runner contract, then the proof
-# replay gate seals the family evidence consumed by the lane and release checks.
-# Ordinary prerequisites are insufficient because parallel make may reorder them.
-release-artifacts-closeout-check: | terlan-self-validation-bootstrap
-	$(MAKE) TERLAN_VALIDATION_BOOTSTRAPPED=1 lean-proof-track-runtime-check
-	$(MAKE) TERLAN_VALIDATION_BOOTSTRAPPED=1 proof-repro-check
-	target/debug/terlc test scripts/self_validation/LeanProofLanesTest.terl
+# The lane prerequisite includes the ordered runtime/replay/smoke producers.
+# Sharing that node avoids resealing the same report in a recursive Make graph.
+TERLAN_PROOF_RELEASE_RUN = $(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- closeout
+TERLAN_OWNED_PROOF_RELEASE = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-release "$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_PROOF_RELEASE_IMAGE)"
+
+release-artifacts-closeout-check: lean-proof-lanes-check | terlan-proof-release-bootstrap
 	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- self-test
-	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
+		$(TERLAN_PROOF_RELEASE_RUN)
 
 proof-coverage-release-artifacts-smoke: release-artifacts-closeout-check
 	@TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- summary
 
+# Closeout constructs and validates one document, runs its adversarial tests,
+# and produces the release-mode report. Do not replay the composer here.
 proof-readiness-release-mode-check: release-artifacts-closeout-check
-	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- release-mode
+
+.PHONY: release-preparation-proof-check release-preparation-proof-input-check release-preparation-proof-track-check release-preparation-proof-policy-check release-preparation-proof-kernels-check
+release-preparation-proof-kernels-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-kernels-self-test
+
+release-preparation-proof-policy-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-policy-self-test
+
+release-preparation-proof-input-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-input-self-test
+
+release-preparation-proof-track-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-track-self-test
+
+release-preparation-proof-check: release-preparation-proof-input-check release-preparation-proof-track-check release-preparation-proof-policy-check release-preparation-proof-kernels-check | terlan-release-promotion-bootstrap terlan-proof-release-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_PROOF_RELEASE_IMAGE)"
+
+.PHONY: release-preparation-proof-smoke-check
+.PHONY: release-preparation-proof-native-boundary-check
+release-preparation-proof-native-boundary-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-native-boundary-self-test
+
+release-preparation-proof-smoke-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-smoke-self-test
+
+.PHONY: release-preparation-proof-lanes-check
+release-preparation-proof-lanes-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-lanes-self-test
 
 lean-proof-track-gap-hygiene-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_gap_hygiene
@@ -1436,21 +1714,19 @@ RELEASE_EVIDENCE_GATES := \
 	proof-readiness-release-mode-check \
 	release-staged-distribution-verification-check
 
-# Refresh is intentionally separate from preflight. The canonical `check`
-# invocation owns the Rust suite, compiler, quality tools, and typed validator
-# builds. Only after that boundary passes do the evidence owners run in one
-# inherited Make graph, with duplicate Rust/build launchers disabled. The
-# preflight below only composes and validates existing evidence, so a late
-# failure can be repaired by rerunning the invalidated owner instead of
-# replaying every successful gate.
-release-evidence-compose:
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-		$(MAKE) --no-print-directory $(RELEASE_EVIDENCE_GATES)
+# One live Make graph owns correctness and release evidence prerequisites,
+# allowing Make to share common nodes instead of replaying them recursively.
+ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
+release-evidence-compose: $(RELEASE_EVIDENCE_GATES)
 	@echo "[release-evidence-compose] version $(RELEASE_VERSION) candidate-bound evidence composed"
+else
+release-evidence-compose:
+	@echo 'release evidence requires a live coverage owner; run make release-evidence-refresh' >&2
+	@exit 1
+endif
 
-release-evidence-refresh: check terlan-release-closeout-image-bootstrap
-	$(MAKE) --no-print-directory release-evidence-compose
+release-evidence-refresh: export TERLAN_CHECK_RELEASE_EVIDENCE := 1
+release-evidence-refresh: check
 
 release-preflight:
 	test -x $(TERLAN_BOOTSTRAP_VM)
@@ -1488,7 +1764,7 @@ release-candidate-check: build-artifact-budget-record
 		$(MAKE) --no-print-directory release-proof-baseline-check
 
 .PHONY: release-proof-baseline-check
-release-proof-baseline-check: | terlan-self-validation-bootstrap
+release-proof-baseline-check: | terlan-proof-release-bootstrap
 	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
 
@@ -1877,8 +2153,8 @@ tvm-aot-thread-sanitizer-check: | terlan-tvm-platform-matrix-bootstrap
 		echo 'TVM AOT ThreadSanitizer executable lane unavailable locally; contract passed'; \
 	fi
 
-tvm-aot-thread-sanitizer-contract-check: | terlan-tvm-platform-matrix-bootstrap
-	$(TERLAN_TVM_PLATFORM_MATRIX) tsan-self-test
+tvm-aot-thread-sanitizer-contract-check: | $(TERLAN_TVM_CONTRACT_BOOTSTRAP)
+	$(TERLAN_TVM_CONTRACT_CHECK) tsan-self-test
 
 AOT_RELEASE_LOCAL_GATES := \
 	runtime-aot-only-check \
@@ -1909,41 +2185,32 @@ AOT_RELEASE_LOCAL_GATES := \
 	no-vmir-interpreter-check \
 	rust-quality-check
 
-AOT_RELEASE_MULTICORE_REUSED_GATES := \
-	tvm-aot-runtime-transition-check \
-	tvm-managed-memory-check \
-	rust-quality-check
+# The default-feature library check has a different build policy from the
+# union-feature correctness suite; a passed suite cannot silently replace it.
+# Keep the check under the same process owner as the other release producers so
+# actual Cargo launch/reap evidence is retained instead of inferred from Make.
+AOT_RELEASE_CARGO_CHECK := $(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds $(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS) -- env -u RUSTFLAGS $(CARGO) check -p terlan
 
-ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
-AOT_RELEASE_CARGO_CHECK := true
-else
-AOT_RELEASE_CARGO_CHECK := env -u RUSTFLAGS $(CARGO) check -p terlan
-endif
-
-ifeq ($(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN),1)
-AOT_RELEASE_LOCAL_GATES_TO_RUN := $(filter-out $(AOT_RELEASE_MULTICORE_REUSED_GATES),$(AOT_RELEASE_LOCAL_GATES))
-else
+# Local gates are always admitted by the current Make graph. Target-level
+# deduplication handles overlap within one invocation; no caller-provided
+# "already run" flag may suppress correctness work across invocations.
 AOT_RELEASE_LOCAL_GATES_TO_RUN := $(AOT_RELEASE_LOCAL_GATES)
-endif
 
 tvm-aot-release-closeout-contract-check: tvm-aot-thread-sanitizer-contract-check tvm-aot-platform-matrix-contract-check
-	$(TERLAN_TVM_PLATFORM_MATRIX) release-self-test
+	$(TERLAN_TVM_CONTRACT_CHECK) release-self-test
 
-tvm-aot-release-closeout-check: tvm-aot-release-closeout-contract-check
-	@if test "$(TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN)" = 1; then \
-		test -s target/quality/vm-multicore-release-closeout.json; \
-		rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json; \
-		revision=$$(git rev-parse HEAD); \
-		rg -q "\"source_revision\": \"$$revision\"" target/quality/vm-multicore-release-closeout.json; \
-	fi
+.PHONY: tvm-aot-release-prerequisites
+tvm-aot-release-closeout-check: tvm-aot-release-prerequisites
+	$(TERLAN_TVM_PLATFORM_MATRIX) release-record
+
+tvm-aot-release-prerequisites: tvm-aot-release-closeout-contract-check
 	$(MAKE) $(AOT_RELEASE_LOCAL_GATES_TO_RUN)
 	$(AOT_RELEASE_CARGO_CHECK)
-	$(TERLAN_TVM_PLATFORM_MATRIX) release-record
 
 tvm-aot-publish-evidence-check:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
-	$(TERLAN_TVM_PLATFORM_MATRIX) release-verify
+	timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) release-verify
 
 tvm-aot-static-callable-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::static_callable_test
@@ -2308,8 +2575,8 @@ tvm-aot-c-abi-boundary-check:
 	fi
 
 .PHONY: tvm-aot-platform-matrix-contract-check tvm-aot-platform-target-check tvm-aot-platform-aggregate-check tvm-aot-platform-matrix-check
-tvm-aot-platform-matrix-contract-check: | terlan-tvm-platform-matrix-bootstrap
-	$(TERLAN_TVM_PLATFORM_MATRIX) self-test
+tvm-aot-platform-matrix-contract-check: | $(TERLAN_TVM_CONTRACT_BOOTSTRAP)
+	$(TERLAN_TVM_CONTRACT_CHECK) self-test
 
 tvm-aot-platform-target-check: tvm-aot-platform-matrix-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) target
@@ -3568,8 +3835,8 @@ VM_MULTICORE_PUBLISH_REUSED_GATES := \
 
 VM_MULTICORE_PUBLISH_LOCAL_GATES := $(filter-out $(VM_MULTICORE_PUBLISH_REUSED_GATES),$(VM_MULTICORE_RELEASE_LOCAL_GATES))
 
-vm-multicore-release-contract-check: | terlan-tvm-platform-matrix-bootstrap
-	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-self-test
+vm-multicore-release-contract-check: | $(TERLAN_TVM_CONTRACT_BOOTSTRAP)
+	$(TERLAN_TVM_CONTRACT_CHECK) multicore-release-self-test
 
 vm-multicore-release-record:
 	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-record
@@ -3582,16 +3849,23 @@ vm-multicore-release-check: vm-multicore-release-contract-check
 	$(MAKE) $(VM_MULTICORE_RELEASE_LOCAL_GATES)
 	$(MAKE) vm-multicore-release-record
 
-vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check
-	test -s target/quality/hosted-candidate-validation.json
-	@revision=$$(git rev-parse HEAD); rg -q "\"source_revision\": \"$$revision\"" target/quality/hosted-candidate-validation.json
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 $(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
-	$(MAKE) vm-multicore-release-record
+.PHONY: vm-multicore-publish-prerequisites
+ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
+vm-multicore-publish-prerequisites: vm-multicore-release-contract-check $(VM_MULTICORE_PUBLISH_LOCAL_GATES)
+
+vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check vm-multicore-publish-prerequisites | terlan-release-promotion-bootstrap
+	$(TERLAN_PREPARATION_OWNER) \
+		$(TERLAN_RELEASE_PROMOTION) prepare-multicore-release-record \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+else
+vm-multicore-publish-prerequisites vm-multicore-publish-evidence-refresh: | terlan-release-promotion-bootstrap
+	$(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage -- $(MAKE) --no-print-directory $@
+endif
 
 vm-multicore-publish-check:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
-	$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify
+	timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
@@ -4175,17 +4449,36 @@ release-gate-report-schema-check: release-gate-duration-budget-check
 release-failure-reproduction-check: release-gate-report-schema-check
 	$(TERLAN_QUALITY) release-failure-reproduction
 
-release-generated-artifacts-freshness-pass:
-	$(MAKE) --no-print-directory stdlib-summary-drift-check
-	$(MAKE) --no-print-directory stdlib-js-bindings-drift-check
-	$(MAKE) --no-print-directory stdlib-native-artifacts-check
-	$(MAKE) --no-print-directory stdlib-release-manifest-check
-	$(MAKE) --no-print-directory tree-sitter-cli-check
+RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES := \
+	stdlib-summary-drift-check \
+	stdlib-js-bindings-drift-check \
+	stdlib-native-artifacts-check \
+	stdlib-release-manifest-check \
+	tree-sitter-cli-check
 
-release-generated-artifacts-check: | terlan-tvm-platform-matrix-bootstrap
+.PHONY: release-generated-artifacts-before release-generated-artifacts-freshness-pass release-generated-artifacts-check
+
+# Capture before any shared freshness producer, including producers reached first
+# through check-gates or publication source prerequisites. Non-release focused
+# checks do not pay for an unrelated full-inventory snapshot.
+ifneq ($(strip $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE))$(filter hosted-source,$(TERLAN_RUST_COVERAGE_SCOPE))$(filter release-evidence-compose release-generated-artifacts-before release-generated-artifacts-check release-generated-artifacts-freshness-pass,$(MAKECMDGOALS))),)
+RELEASE_GENERATED_ARTIFACT_SNAPSHOT_REQUIRED := 1
+$(RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES): | release-generated-artifacts-before
+else
+RELEASE_GENERATED_ARTIFACT_SNAPSHOT_REQUIRED := 0
+endif
+
+release-generated-artifacts-before: | editor-node-tools-check terlan-tvm-platform-matrix-bootstrap
+	@test "$(RELEASE_GENERATED_ARTIFACT_SNAPSHOT_REQUIRED)" = 1 || { \
+		echo 'generated-artifact validation requires its public Make target or TERLAN_CHECK_RELEASE_EVIDENCE=1 before shared producers run' >&2; \
+		exit 1; \
+	}
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-generated-artifacts-self-test
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-generated-artifacts-record
-	$(MAKE) --no-print-directory release-generated-artifacts-freshness-pass
+
+release-generated-artifacts-freshness-pass: release-generated-artifacts-before $(RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES)
+
+release-generated-artifacts-check: release-generated-artifacts-freshness-pass
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-generated-artifacts-finalize
 	rm -f target/quality/release-generated-artifacts-before.json
 
@@ -4621,20 +4914,103 @@ release-artifact-smoke: | terlan-tvm-platform-matrix-bootstrap
 release-artifact-installer-smoke: | terlan-tvm-platform-matrix-bootstrap
 	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-installer-smoke
 
-publish-preflight:
+.PHONY: publish-source-preflight publish-prepare publish-preflight publish publish-release-from-dist release-preparation-recovery-check publish-cache-prune
+
+# Explicit Linux acceptance rehearsal, separate from ordinary promotion self-tests.
+# The private fixture owns its Cargo runs; publication never invokes this target.
+.PHONY: release-preparation-process-containment-check
+release-preparation-process-containment-check:
+	$(CARGO) test --locked -p terlan-process-owner
+
+.PHONY: release-preparation-candidate-acceptance-check
+release-preparation-candidate-acceptance-check:
+	$(CARGO) test --locked -p terlan-test-orchestrator --test publish_prepare_make \
+		full_candidate_rehearsal_covers_cold_warm_resume_and_upload_retry -- --exact --nocapture
+
+release-preparation-recovery-check: release-preparation-process-containment-check release-preparation-candidate-acceptance-check | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-candidate-self-test
+
+# One explicit local closeout entry point for the complete preparation-owner
+# graph. Make shares common bootstrap prerequisites within this invocation while
+# each rehearsal retains its own deterministic fault-injection scenarios.
+.PHONY: release-preparation-owner-graph-check
+release-preparation-owner-graph-check: \
+	release-preparation-recovery-check \
+	release-preparation-contract-check \
+	release-preparation-aot-check \
+	release-preparation-release-reports-check \
+	release-preparation-local-reports-check \
+	release-preparation-multicore-check \
+	release-preparation-readiness-check \
+	release-preparation-staged-distribution-check \
+	release-preparation-proof-check \
+	release-preparation-proof-smoke-check \
+	release-preparation-proof-native-boundary-check \
+	release-preparation-proof-lanes-check
+	@echo '[release-preparation-owner-graph] all owner rehearsals passed'
+
+.PHONY: release-preparation-multicore-check
+release-preparation-multicore-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-multicore-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+.PHONY: release-preparation-local-reports-check
+release-preparation-local-reports-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-local-reports-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+.PHONY: release-preparation-aot-check
+.PHONY: release-preparation-release-reports-check
+release-preparation-release-reports-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-release-reports-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+release-preparation-aot-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-aot-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+.PHONY: publish-preparation-lock-directory
+publish-preparation-lock-directory:
+	mkdir -p target/quality
+
+.PHONY: release-preparation-contract-check
+release-preparation-contract-check: | terlan-release-promotion-bootstrap terlan-tvm-platform-matrix-bootstrap
+	TERLAN_RELEASE_ROOT="$(CURDIR)" timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-contract-self-test \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+
+# Explicit Linux acceptance tier: compile actual Terlan proof callers, then reuse
+# one tiny completed Rust suite through the production authenticated request bridge.
+.PHONY: release-preparation-aot-coverage-check
+release-preparation-aot-coverage-check: | terlan-compiler-bootstrap
+	@test "$$(uname -s)/$$(uname -m)" = Linux/x86_64 || { echo 'AOT coverage acceptance requires Linux x86_64' >&2; exit 1; }
+	TERLAN_COVERAGE_AOT_TOOLS="$(CURDIR)/target/debug" \
+		timeout 1200s $(CARGO) test -p terlan-test-orchestrator --test make_coverage \
+		release_refresh_keeps_shared_gate_nodes_inside_one_live_make_graph -- --exact --nocapture
+
+publish-source-preflight:
 	@echo "Preparing Terlan $(VERSION) publication preflight"
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		changed_count=$$(git status --porcelain | wc -l | tr -d ' '); \
+	@if source_changes=$$(git status --porcelain); then :; else \
+		echo 'cannot determine source checkout state; publication preflight stopped' >&2; \
+		exit 1; \
+	fi; \
+	if [ -n "$$source_changes" ]; then \
+		changed_count=$$(printf '%s\n' "$$source_changes" | wc -l | tr -d ' '); \
 		echo "publish-preflight failed: working tree is not clean"; \
 		echo "changed files: $$changed_count"; \
 		echo "first changed files:"; \
-		git status --short | sed -n '1,20p'; \
+		printf '%s\n' "$$source_changes" | sed -n '1,20p'; \
 		if [ "$$changed_count" -gt 20 ]; then \
 			echo "... $$((changed_count - 20)) more changed files omitted"; \
 		fi; \
 		echo "next step: review and commit the release contents, then rerun make publish"; \
 		exit 1; \
 	fi
+
+# Network/tag checks and GitHub authentication are publication-only. Keeping
+# them out of publish-source-preflight lets local preparation run without gh or
+# a network while publish-preflight still enforces the complete promotion policy.
+.PHONY: publish-remote-preflight
+publish-remote-preflight: publish-source-preflight
 	@command -v gh >/dev/null 2>&1 || { \
 		echo "publish requires GitHub CLI: install gh and run gh auth login"; \
 		exit 127; \
@@ -4648,89 +5024,281 @@ publish-preflight:
 		echo "publication must run from main; current branch is $$branch"; \
 		exit 1; \
 	fi
-	$(MAKE) --no-print-directory release-version-metadata-check VERSION="$(VERSION)"
-	@git fetch --quiet origin main; \
+	@git fetch --quiet origin main || exit $$?; \
 	if ! git merge-base --is-ancestor origin/main HEAD; then \
 		echo "origin/main is not an ancestor of HEAD; publication would require a non-fast-forward push"; \
 		exit 1; \
 	fi
-	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null \
-		&& git ls-remote --exit-code --tags origin "refs/tags/v$(VERSION)" >/dev/null 2>&1; then \
-		git fetch --quiet origin "refs/tags/v$(VERSION):refs/tags/v$(VERSION)"; \
-	fi
-	@if git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
-		tag_type=$$(git cat-file -t "refs/tags/v$(VERSION)"); \
+	@tag_ref="refs/tags/v$(VERSION)"; \
+	if remote_tags=$$(git ls-remote --tags origin "$$tag_ref" "$$tag_ref^{}"); then :; else \
+		echo 'cannot determine remote release tag state; retry after restoring Git access' >&2; \
+		exit 1; \
+	fi; \
+	remote_tag_object_sha=$$(printf '%s\n' "$$remote_tags" | awk -v ref="$$tag_ref" '$$2 == ref { print $$1 }'); \
+	remote_tag_sha=$$(printf '%s\n' "$$remote_tags" | awk -v ref="$$tag_ref^{}" '$$2 == ref { print $$1 }'); \
+	if [ -n "$$remote_tags" ] && { [ -z "$$remote_tag_object_sha" ] || [ -z "$$remote_tag_sha" ]; }; then \
+		echo "remote tag v$(VERSION) must be annotated with a resolvable commit" >&2; \
+		exit 1; \
+	fi; \
+	if git show-ref --verify --quiet "$$tag_ref"; then \
+		local_tag_present=1; \
+	else \
+		local_tag_status=$$?; \
+		test "$$local_tag_status" -eq 1 || exit "$$local_tag_status"; \
+		local_tag_present=0; \
+	fi; \
+	if [ "$$local_tag_present" -eq 0 ] && [ -n "$$remote_tag_object_sha" ]; then \
+		git fetch --quiet origin "$$tag_ref:$$tag_ref" || exit $$?; \
+		local_tag_present=1; \
+	fi; \
+	head_sha=$$(git rev-parse HEAD) || exit $$?; \
+	if [ "$$local_tag_present" -eq 1 ]; then \
+		tag_type=$$(git cat-file -t "$$tag_ref") || exit $$?; \
 		if [ "$$tag_type" != tag ]; then \
 			echo "local tag v$(VERSION) must be annotated; found $$tag_type"; \
 			exit 1; \
 		fi; \
-		tag_sha=$$(git rev-parse "refs/tags/v$(VERSION)^{commit}"); \
-		head_sha=$$(git rev-parse HEAD); \
+		tag_sha=$$(git rev-parse "$$tag_ref^{commit}") || exit $$?; \
 		if [ "$$tag_sha" != "$$head_sha" ]; then \
 			echo "local tag v$(VERSION) already exists at $$tag_sha, not HEAD $$head_sha"; \
 			exit 1; \
 		fi; \
 		echo "local tag v$(VERSION) already exists at HEAD; continuing"; \
-	fi
-	@if remote_tag_line=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)" 2>/dev/null) && [ -n "$$remote_tag_line" ]; then \
-		remote_tag_object_sha=$$(printf '%s\n' "$$remote_tag_line" | awk 'NR == 1 { print $$1 }'); \
-		remote_tag_sha=$$(git ls-remote --tags origin "refs/tags/v$(VERSION)^{}" 2>/dev/null | awk 'NR == 1 { print $$1 }'); \
-		if [ -z "$$remote_tag_sha" ]; then \
-			echo "remote tag v$(VERSION) must be annotated"; \
-			exit 1; \
-		fi; \
-		local_tag_object_sha=$$(git rev-parse "refs/tags/v$(VERSION)"); \
+	fi; \
+	if [ -n "$$remote_tag_object_sha" ]; then \
+		local_tag_object_sha=$$(git rev-parse "$$tag_ref") || exit $$?; \
 		if [ "$$remote_tag_object_sha" != "$$local_tag_object_sha" ]; then \
 			echo "local and remote annotated tag objects differ for v$(VERSION)"; \
 			exit 1; \
 		fi; \
-		head_sha=$$(git rev-parse HEAD); \
 		if [ "$$remote_tag_sha" != "$$head_sha" ]; then \
 			echo "remote tag v$(VERSION) already exists at $$remote_tag_sha, not HEAD $$head_sha"; \
 			exit 1; \
 		fi; \
 		echo "remote tag v$(VERSION) already exists at HEAD; release upload can be retried"; \
 	fi
-	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
-	@if ! dist/terlc --version; then \
+
+# Preparation may build and refresh evidence. Publication below never does.
+# Keep missing host tools from being discovered after an expensive refresh.
+# A successful full refresh already owns readiness and staged installation.
+# Only the existing-evidence path needs their focused repair. This local
+# decision comes from completed commands, never a caller's skip flag.
+publish-prepare: publish-source-preflight
+	@for tool in cargo rustc node npm jq lake clang flock sha256sum realpath timeout; do \
+		command -v "$$tool" >/dev/null 2>&1 || { \
+			echo "publication preparation requires $$tool; install it before preparing the candidate" >&2; \
+			exit 127; \
+		}; \
+	done
+	@if [ -n "$${JAVA_HOME:-}" ]; then \
+		test -x "$$JAVA_HOME/bin/java" || { echo 'JAVA_HOME must point to a usable JDK' >&2; exit 127; }; \
+	else \
+		command -v java >/dev/null 2>&1 || { echo 'publication preparation requires Java; set JAVA_HOME or add java to PATH' >&2; exit 127; }; \
+	fi
+	@set -eu; \
+	channel=$$(sed -nE 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' rust-toolchain.toml | head -n 1); \
+	test -n "$$channel" || { echo 'rust-toolchain.toml has no pinned channel' >&2; exit 1; }; \
+	rustc_path=$$(command -v rustc); cargo_path=$$(command -v cargo); \
+	test -x "$$rustc_path" && test -x "$$cargo_path" || { echo 'Rust compiler tools are not executable' >&2; exit 127; }; \
+	rustc_version=$$(rustc --version | awk '{print $$2}'); cargo_version=$$(cargo --version | awk '{print $$2}'); \
+	test "$$rustc_version" = "$$channel" || { echo "rustc $$rustc_version does not match pinned $$channel" >&2; exit 1; }; \
+	test "$$cargo_version" = "$$channel" || { echo "cargo $$cargo_version does not match pinned $$channel" >&2; exit 1; }
+	timeout 900s bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
+	@if ! timeout 30s dist/terlc --version; then \
 		echo 'publication requires a host that can execute the verified Linux x86_64 artifact (Ubuntu 24.04-compatible userspace); use a compatible container if needed' >&2; \
 		exit 1; \
 	fi
 	$(MAKE) --no-print-directory publish-evidence-plan-check
 	$(MAKE) --no-print-directory publish-evidence-refresh-plan-check
-	@if ! $(MAKE) --no-print-directory publish-evidence-check; then \
+	@set -eu; \
+	mkdir -p target/quality; \
+	# Hold the preparation lease across the selected branch and final preflight. \
+	test ! -L target && test ! -L target/quality && test ! -L target/quality/preparation.lock; \
+	if test -e target/quality/preparation.lock; then test -f target/quality/preparation.lock; fi; \
+	exec 9>target/quality/preparation.lock; \
+	timeout 120s flock -w 120 9; \
+	test /proc/self/fd/9 -ef target/quality/preparation.lock; \
+	export TERLAN_PREPARATION_LOCK_HELD=1; \
+	if $(MAKE) --no-print-directory publish-evidence-check; then \
+		$(MAKE) --no-print-directory publish-preparation-warm VERSION="$(VERSION)"; \
+	else \
 		echo '[publish] candidate evidence is absent or stale; refreshing its owners once'; \
-		$(MAKE) --no-print-directory publish-evidence-refresh; \
-	fi
-	$(MAKE) --no-print-directory publish-evidence-check
-	$(MAKE) release-boundary-check
-	$(MAKE) source-extension-check
-	$(MAKE) terlan-release-promotion-bootstrap
-	$(MAKE) release-staged-distribution-verification-refresh
-	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"
+		$(MAKE) --no-print-directory publish-preparation-cold VERSION="$(VERSION)"; \
+	fi; \
+	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"; \
+	flock -u 9; \
+	exec 9>&-
 
-publish-evidence-refresh:
-	$(MAKE) --no-print-directory \
-		terlan-self-validation-bootstrap \
-		terlan-release-closeout-image-bootstrap \
-		terlan-quality-tools-bootstrap \
-		terlan-native-worker-bootstrap \
-		terlan-benchmark-release-bootstrap
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
-		$(MAKE) --no-print-directory vm-multicore-publish-evidence-refresh
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
-		$(MAKE) --no-print-directory tvm-managed-list-profile-benchmark-check
-	TERLAN_RUST_SUITE_ALREADY_RUN=1 \
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
-		$(MAKE) --no-print-directory tvm-aot-release-closeout-check TERLAN_MULTICORE_CLOSEOUT_ALREADY_RUN=1
-	bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)" --restore
-	$(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-matrix
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-	TERLAN_RELEASE_BINARIES_PREBUILT=1 \
-		$(MAKE) --no-print-directory release-evidence-compose
+# One Make process owns each preparation branch and shares all bootstrap nodes.
+# These routes do not assert cached success or introduce a prebuilt skip flag.
+.PHONY: publish-preparation-cold publish-preparation-warm publish-preparation-checks publish-preparation-verified
+publish-preparation-checks: release-version-metadata-check release-boundary-check source-extension-check terlan-release-promotion-bootstrap publish-preparation-admission
+
+publish-preparation-verified: publish-evidence-refresh
+	$(MAKE) --no-print-directory publish-evidence-check
+
+publish-preparation-cold: publish-preparation-checks publish-preparation-verified publish-cache-prune
+publish-preparation-warm: publish-preparation-checks publish-staged-distribution-prepare publish-cache-prune
+
+# Cache retirement cannot race refresh/restoration; warm installation must not
+# proceed after failed source checks. Keep these edges local to these entrypoints
+# so ordinary development checks retain their focused dependency graphs.
+ifneq ($(filter publish-preparation-cold,$(MAKECMDGOALS)),)
+ifneq ($(filter publish-preparation-warm,$(MAKECMDGOALS)),)
+$(error preparation selects either the cold or warm graph, never both)
+endif
+publish-cache-prune: publish-preparation-checks publish-preparation-verified
+endif
+ifneq ($(filter publish-preparation-warm,$(MAKECMDGOALS)),)
+publish-cache-prune: publish-preparation-checks
+release-staged-distribution-verification-refresh: publish-preparation-checks publish-cache-prune
+endif
+
+publish-cache-prune: | terlan-release-promotion-bootstrap
+	flock --exclusive --nonblock target/publication-inputs.lock \
+		timeout 120s $(TERLAN_RELEASE_PROMOTION) prune-publication-cache "$$(git rev-parse HEAD)"
+
+# One shared resource admission is the first node of every publication
+# preparation branch. Make deduplicates it within a graph; the flock also
+# serializes concurrent invocations before they inspect or retire caches.
+.PHONY: publish-preparation-admission
+publish-preparation-admission: publish-preparation-lock-directory rust-build-resource-admission
+
+# This native bootstrap must remain usable when there is insufficient space to
+# rebuild the compiler. Audit and prune consume the prebuilt tool without Cargo
+# replay; the workspace-support tier owns its tests. This is Linux-only tooling.
+.PHONY: terlan-build-owner-bootstrap rust-build-cache-bootstrap rust-build-resource-admission rust-incremental-cache-audit rust-incremental-cache-prune
+terlan-build-owner-bootstrap:
+ifeq ($(shell uname -s),Linux)
+	@set -eu; \
+	if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
+	mkdir -p target/quality; \
+	build_command='$(CARGO) build -p terlan-test-orchestrator -p terlan-build-cache'; \
+	if test -x "$(TERLAN_BUILD_CACHE)" \
+		&& test -x "target/debug/terlan-test-orchestrator" \
+		&& git diff --quiet \
+		&& git diff --cached --quiet \
+		&& test -z "$$(git ls-files --others --exclude-standard)"; then \
+		input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan-build-cache/Cargo.toml crates/terlan-test-orchestrator/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build -p terlan-test-orchestrator -p terlan-build-cache; } | sha256sum | awk '{print $$1}')"; \
+		timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+		"$(TERLAN_BUILD_CACHE)" owner \
+			--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/support.json" \
+			--input-sha256 "$$input" \
+			--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
+			--output "$(TERLAN_BUILD_CACHE)" \
+			--output "target/debug/terlan-test-orchestrator" \
+			-- /bin/sh -c "$$build_command"; \
+	else \
+		timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+		env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command"; \
+	fi
+else
+	CARGO_BUILD_JOBS=1 $(CARGO) build -p terlan-test-orchestrator
+endif
+	target/debug/terlan-test-orchestrator --install-snapshot $(TERLAN_RUST_ORCHESTRATOR)
+
+rust-build-cache-bootstrap: terlan-build-owner-bootstrap
+
+rust-build-resource-admission: rust-build-cache-bootstrap
+	mkdir -p target/quality
+	$(TERLAN_PREPARATION_OWNER) timeout 120s \
+		target/debug/terlan-build-cache admit --minimum-free-bytes "$(TERLAN_BUILD_MINIMUM_FREE_BYTES)"
+
+rust-incremental-cache-audit:
+	test -x target/debug/terlan-build-cache
+	timeout 120s target/debug/terlan-build-cache audit
+
+rust-incremental-cache-prune:
+	test -x target/debug/terlan-build-cache
+	timeout 120s target/debug/terlan-build-cache prune
+
+publish-preflight: publish-remote-preflight
+	@test -x $(TERLAN_BOOTSTRAP_VM) \
+		&& test -s $(TERLAN_RELEASE_PROMOTION_IMAGE) \
+		&& test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) \
+		&& test -s dist/release-candidate.json || { \
+			echo 'no prepared release candidate; run make publish-prepare once, then retry make publish' >&2; \
+			exit 1; \
+		}
+	$(MAKE) --no-print-directory publish-evidence-check
+	TERLAN_RELEASE_ROOT="$(CURDIR)" \
+		timeout 300s $(TERLAN_RELEASE_PROMOTION) preflight --version "$(VERSION)"
+
+publish-evidence-refresh: release-version-metadata-check terlan-self-validation-bootstrap terlan-release-closeout-image-bootstrap terlan-quality-tools-bootstrap terlan-native-worker-bootstrap terlan-benchmark-release-bootstrap publish-preparation-admission
+	@case "$${MAKEFLAGS%% *}" in \
+		*n*) TERLAN_RUST_COVERAGE_SCOPE=hosted-source \
+			TERLAN_RUST_COVERAGE_CONTEXT=dry-run:no-live-owner \
+			$(MAKE) --no-print-directory publish-evidence-covered-gates ;; \
+		*) TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+			TERLAN_RELEASE_BINARIES_PREBUILT=1 \
+			timeout 1800s $(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage -- $(MAKE) --no-print-directory publish-evidence-covered-gates ;; \
+	esac
+
+# One live owner admits hosted source coverage before any source-test gate runs.
+# Ordinary prerequisites share overlapping multicore/AOT nodes within this Make.
+# Local report production and staged-distribution validation still execute locally.
+.PHONY: publish-evidence-source-prerequisites publish-evidence-covered-gates publish-evidence-staged-inputs
+ifeq ($(TERLAN_RUST_COVERAGE_SCOPE),hosted-source)
+ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
+publish-evidence-source-prerequisites: vm-multicore-publish-prerequisites $(AOT_RELEASE_LOCAL_GATES) tvm-aot-release-closeout-contract-check
+	$(AOT_RELEASE_CARGO_CHECK)
+
+publish-evidence-covered-gates: release-evidence-compose lean-proof-lanes-check
+# The runtime prerequisite owns all three source-only policy reports under one
+# shared preflight. PR/regression recipes retain their exact Rust coverage
+# requests, but their report producers have already succeeded in that graph.
+lean-proof-track-runtime-check: TERLAN_PROOF_RUNTIME_RUN = $(TERLAN_OWNED_PROOF_POLICIES)
+lean-proof-smoke-check: TERLAN_PROOF_SMOKE_RUN = $(TERLAN_OWNED_PROOF_SMOKE)
+lean-proof-native-boundary-check: TERLAN_PROOF_NATIVE_BOUNDARY_RUN = $(TERLAN_OWNED_PROOF_NATIVE_BOUNDARY)
+# The native consumer may only verify completed replicas, and must not race
+# the proof owner for the preparation lease under parallel Make.
+lean-proof-native-boundary-check: proof-repro-check
+lean-proof-native-boundary-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
+lean-proof-lanes-check: TERLAN_PROOF_LANES_RUN = $(TERLAN_OWNED_PROOF_LANES)
+lean-proof-lanes-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
+lean-proof-track-runtime-check: publish-evidence-source-prerequisites
+lean-proof-smoke-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
+lean-proof-track-pr-gate: TERLAN_PROOF_PR_RUN =
+lean-proof-track-pr-gate: proof-repro-check
+lean-proof-track-regression-check: TERLAN_PROOF_REGRESSION_RUN =
+lean-proof-track-regression-check: lean-proof-track-pr-gate
+lean-proof-track-runtime-check lean-proof-track-pr-gate lean-proof-track-regression-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
+proof-repro-check: TERLAN_PROOF_TRACK_RUN = $(TERLAN_OWNED_PROOF_TRACK)
+proof-repro-check: publish-evidence-source-prerequisites
+proof-repro-check: | terlan-release-promotion-bootstrap terlan-semantic-kernel-bootstrap publish-preparation-lock-directory
+# This graph's semantic owner consumes the completed track with the same fresh
+# tool admission; it cannot execute a missing proof or publish a partial report.
+lean-proof-semantic-kernels-check: TERLAN_SEMANTIC_KERNEL_RUN =
+lean-proof-semantic-kernels-check: proof-repro-check
+release-staged-distribution-verification-check: TERLAN_STAGED_DISTRIBUTION_RUN = $(TERLAN_OWNED_STAGED_DISTRIBUTION)
+release-readiness-attestation-check: TERLAN_READINESS_RUN = $(TERLAN_OWNED_READINESS)
+release-artifacts-closeout-check: TERLAN_PROOF_RELEASE_RUN = $(TERLAN_OWNED_PROOF_RELEASE)
+release-artifacts-closeout-check: publish-evidence-staged-inputs | terlan-release-promotion-bootstrap
+release-readiness-attestation-check: release-artifacts-closeout-check
+
+# Report and distribution consumers wait for this producer, while independent
+# source/proof gates may share prerequisites with source admission in parallel.
+# These are data dependencies, so -k cannot seal evidence after staging fails.
+release-evidence-compose: publish-evidence-staged-inputs
+terlan-release-closeout-bootstrap release-generated-artifacts-check: | publish-evidence-staged-inputs
+
+# Finish the proof consumers before another producer takes the same lease.
+publish-evidence-staged-inputs: publish-evidence-source-prerequisites lean-proof-lanes-check
+	$(TERLAN_PREPARATION_OWNER) \
+		timeout 900s $(TERLAN_RELEASE_PROMOTION) prepare-release-reports \
+		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)"
+	timeout 900s bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)" --restore
+	timeout 900s $(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-matrix
+else
+publish-evidence-source-prerequisites publish-evidence-covered-gates publish-evidence-staged-inputs:
+	@echo 'publication source gates require a live hosted coverage owner' >&2
+	@exit 1
+endif
+else
+publish-evidence-source-prerequisites publish-evidence-covered-gates publish-evidence-staged-inputs:
+	@echo 'run make publish-evidence-refresh to admit hosted source coverage' >&2
+	@exit 1
+endif
 
 publish-evidence-check:
 	$(MAKE) --no-print-directory vm-multicore-publish-check
@@ -4740,9 +5308,11 @@ publish-evidence-plan-check:
 	@set -eu; \
 	plan=$$(mktemp); \
 	trap 'rm -f "$$plan"' EXIT; \
-	env -u TERLAN_VALIDATION_BOOTSTRAPPED \
+	env -u MAKEFLAGS -u MAKEOVERRIDES -u MFLAGS \
+		-u TERLAN_RUST_COVERAGE_CONTEXT \
+		-u TERLAN_RUST_COVERAGE_SCOPE \
+		-u TERLAN_VALIDATION_BOOTSTRAPPED \
 		-u TERLAN_BUILD_ARTIFACTS_PREBUILT \
-		-u TERLAN_RUST_SUITE_ALREADY_RUN \
 		-u TERLAN_RELEASE_BINARIES_PREBUILT \
 		$(MAKE) --no-print-directory -n publish-evidence-check >"$$plan"; \
 	if rg -n '(^|[[:space:]])cargo([[:space:]]|$$)|run_exact_cargo_test|terlc (test|build)' "$$plan"; then \
@@ -4755,14 +5325,23 @@ publish-evidence-refresh-plan-check:
 	@set -eu; \
 	plan=$$(mktemp); \
 	trap 'rm -f "$$plan"' EXIT; \
-	env -u TERLAN_VALIDATION_BOOTSTRAPPED \
+	env -u MAKEFLAGS -u MAKEOVERRIDES -u MFLAGS \
+		-u TERLAN_RUST_COVERAGE_CONTEXT \
+		-u TERLAN_RUST_COVERAGE_SCOPE \
+		-u TERLAN_VALIDATION_BOOTSTRAPPED \
 		-u TERLAN_BUILD_ARTIFACTS_PREBUILT \
-		-u TERLAN_RUST_SUITE_ALREADY_RUN \
 		-u TERLAN_RELEASE_BINARIES_PREBUILT \
 		$(MAKE) --no-print-directory -Bn publish-evidence-refresh >"$$plan"; \
-	cargo_count=$$(rg -c '^cargo --locked ' "$$plan" || true); \
+	cargo_pattern='(^|[[:space:]])cargo --locked (build|test|check|clippy)([[:space:]]|$$)'; \
+	cargo_count=$$(rg -c "$$cargo_pattern" "$$plan" || true); \
 	exact_count=$$(rg -c 'run_exact_cargo_test' "$$plan" || true); \
-	duplicate_cargo=$$(rg '^cargo --locked ' "$$plan" | sort | uniq -d || true); \
+	checkpoint_count=$$(rg -c ' prepare-release-reports([[:space:]]|$$)' "$$plan" || true); \
+	if test "$${checkpoint_count:-0}" -ne 1; then \
+		echo 'error[publish.evidence.refresh_plan]: expected exactly one release-report graph owner' >&2; \
+		exit 1; \
+	fi; \
+	exact_count=$$(($${exact_count:-0} + $${checkpoint_count:-0})); \
+	duplicate_cargo=$$(rg "$$cargo_pattern" "$$plan" | sort | uniq -d || true); \
 	if test "$$cargo_count" -gt 6; then \
 		echo "error[publish.evidence.refresh_plan]: $$cargo_count Cargo invocations exceed the six-invocation budget" >&2; \
 		exit 1; \
@@ -4776,6 +5355,10 @@ publish-evidence-refresh-plan-check:
 		echo "$$duplicate_cargo" >&2; \
 		exit 1; \
 	fi; \
+	if rg -n 'scripts_TvmAotPlatformMatrix\.tvm.*-- (self-test|tsan-self-test|release-self-test|multicore-release-self-test)([[:space:]]|$$)' "$$plan"; then \
+		echo 'error[publish.evidence.refresh_plan]: contract self-test bypasses its preparation owner' >&2; \
+		exit 1; \
+	fi; \
 	echo "[publish-evidence-refresh-plan] cargo=$$cargo_count exact-isolated=$$exact_count duplicate-builds=0"
 
 publish: publish-preflight
@@ -4787,9 +5370,9 @@ publish: publish-preflight
 	$(MAKE) publish-release-from-dist VERSION=$(VERSION)
 
 publish-release-from-dist:
-	bash scripts/publish_release_from_dist.sh "$(VERSION)"
+	timeout 900s bash scripts/publish_release_from_dist.sh "$(VERSION)"
 
-release-promotion-pipeline-check: terlan-release-promotion-bootstrap
+release-promotion-pipeline-check: terlan-release-promotion-bootstrap release-preparation-contract-check
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) self-test --report
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \

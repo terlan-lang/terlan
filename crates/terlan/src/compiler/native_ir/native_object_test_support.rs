@@ -1,9 +1,10 @@
 //! Shared linked-object execution support for NativeIR tests.
 
+use crate::support::test_fs::TestDirectory;
+use std::collections::BTreeSet;
 use std::ffi::c_void;
 use std::fs;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use libloading::{Library, Symbol};
 
@@ -13,8 +14,7 @@ use crate::runtime::native_image::managed::{
     PendingManagedCaptures,
 };
 use crate::runtime::native_image::{
-    TvmBoundaryType, TvmCallableDescriptor, TvmManagedCollectionDescriptor,
-    TvmManagedLayoutDescriptor,
+    TvmBoundaryType, TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
 };
 
 use super::{status, NativeModule, NativeType};
@@ -83,15 +83,7 @@ fn assert_native_object_result_with_stack_policy(
     small_stack: bool,
     minimum_yields: usize,
 ) {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-{label}-object-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos()
-    ));
-    fs::create_dir_all(&root).expect("create native object test root");
+    let root = TestDirectory::new("native-object", label);
     let object_path = root.join("module.o");
     let harness_path = root.join("harness.rs");
     let executable_path = root.join("harness");
@@ -138,7 +130,7 @@ fn assert_native_object_result_with_stack_policy(
         "native object execution failed:\n{}",
         String::from_utf8_lossy(&run.stderr)
     );
-    fs::remove_dir_all(root).expect("remove native object test root");
+    root.close();
 }
 
 /// Links once and executes a batch of native exports and failure paths.
@@ -147,15 +139,7 @@ pub(super) fn assert_native_object_invocations(
     object: &[u8],
     invocations: &[NativeObjectInvocation],
 ) {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-{label}-object-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos()
-    ));
-    fs::create_dir_all(&root).expect("create native object test root");
+    let root = TestDirectory::new("native-object", label);
     let object_path = root.join("module.o");
     let harness_path = root.join("harness.rs");
     let executable_path = root.join("harness");
@@ -205,7 +189,7 @@ pub(super) fn assert_native_object_invocations(
         "native object execution failed:\n{}",
         String::from_utf8_lossy(&run.stderr)
     );
-    fs::remove_dir_all(root).expect("remove native object test root");
+    root.close();
 }
 
 /// Links and executes native exports with the real actor-owned managed ABI.
@@ -218,6 +202,8 @@ pub(super) fn assert_managed_native_object_invocations(
     let layouts = modules
         .iter()
         .flat_map(|module| module.managed_layouts.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .map(|encoded_layout| {
             let descriptor = decode_aggregate_layout(&encoded_layout).expect("aggregate layout");
             TvmManagedLayoutDescriptor {
@@ -229,6 +215,8 @@ pub(super) fn assert_managed_native_object_invocations(
     let collections = modules
         .iter()
         .flat_map(|module| module.managed_collections.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .map(|encoded_layout| {
             let descriptor = decode_collection_layout(&encoded_layout).expect("collection layout");
             TvmManagedCollectionDescriptor {
@@ -240,29 +228,10 @@ pub(super) fn assert_managed_native_object_invocations(
     let atoms = modules
         .iter()
         .flat_map(|module| module.atoms.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .collect::<Vec<_>>();
-    let callables = modules
-        .iter()
-        .flat_map(|module| &module.functions)
-        .filter(|function| !function.callable_captures.is_empty())
-        .map(|function| TvmCallableDescriptor {
-            id: function.export_id,
-            parameters: function
-                .params
-                .iter()
-                .skip(function.callable_captures.len())
-                .copied()
-                .map(NativeType::boundary_type)
-                .collect(),
-            results: vec![function.return_type.boundary_type()],
-            captures: function
-                .callable_captures
-                .iter()
-                .copied()
-                .map(NativeType::boundary_type)
-                .collect(),
-        })
-        .collect::<Vec<_>>();
+    let callables = crate::compiler::native_ir::native_callable_descriptors(modules);
     let mut runtime = ManagedExecutionRuntime::with_executable_image_metadata(
         &layouts,
         &collections,
@@ -272,6 +241,19 @@ pub(super) fn assert_managed_native_object_invocations(
     )
     .expect("managed native-object runtime");
     let (library, root) = link_managed_library(label, object);
+    let callable_width = modules
+        .iter()
+        .flat_map(|module| {
+            module
+                .functions
+                .iter()
+                .map(|function| function.params.len())
+                .chain(module.continuations.iter().map(|entry| entry.params.len()))
+        })
+        .max()
+        .unwrap_or(0);
+    let transition_capacity =
+        crate::runtime::native_image::transition_scratch_capacity(callable_width);
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
             .get(b"terlan_native_dispatch_v3")
@@ -279,7 +261,7 @@ pub(super) fn assert_managed_native_object_invocations(
     };
     for (index, invocation) in invocations.iter().enumerate() {
         let mut result = -1;
-        let mut transitions = [0_i64; 128];
+        let mut transitions = vec![0_i64; transition_capacity];
         let mut transition_len;
         let mut export_id = invocation.export_id;
         let mut arguments = invocation.arguments.clone();
@@ -440,7 +422,7 @@ pub(super) fn assert_managed_native_object_invocations(
         );
     }
     drop(library);
-    fs::remove_dir_all(root).expect("remove managed object test root");
+    root.close();
 }
 
 fn linked_entry_parameters(
@@ -500,16 +482,8 @@ fn decode_linked_completion_frames(mut words: &[i64]) -> Result<Vec<(u64, Vec<i6
     reversed.reverse();
     Ok(reversed)
 }
-fn link_managed_library(label: &str, object: &[u8]) -> (Library, std::path::PathBuf) {
-    let root = std::env::temp_dir().join(format!(
-        "terlan-{label}-managed-object-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos()
-    ));
-    fs::create_dir_all(&root).expect("create managed object test root");
+fn link_managed_library(label: &str, object: &[u8]) -> (Library, TestDirectory) {
+    let root = TestDirectory::new("managed-object", label);
     let object_path = root.join("image.o");
     let library_path = root.join("image.so");
     fs::write(&object_path, object).expect("write managed object");

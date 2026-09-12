@@ -72,6 +72,7 @@ fn free_variables_cover_comprehension_lambda_and_managed_shapes() {
         lift: None,
     };
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Tuple(vec![CorePattern::Var(
             "parameter".into(),
         )])],

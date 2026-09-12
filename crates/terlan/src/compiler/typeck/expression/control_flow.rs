@@ -144,7 +144,7 @@ fn check_clauses_exhaustiveness(
 ) {
     let expanded = expand_type_aliases(match_type, ctx.aliases);
     let mut remaining = as_exhaustive_union_variants(&expanded);
-    if remaining.len() <= 1 {
+    if remaining.len() <= 1 && !has_finite_fields(&expanded) {
         return;
     }
 
@@ -167,7 +167,13 @@ fn check_clauses_exhaustiveness(
             return;
         }
 
-        remaining.retain(|variant| !syntax_pattern_subsumes_variant(pattern, variant, ctx.aliases));
+        remaining = match subtract_finite_pattern(remaining, pattern, ctx.aliases) {
+            Ok(remaining) => remaining,
+            Err(message) => {
+                errors.push(message);
+                return;
+            }
+        };
         if remaining.is_empty() {
             return;
         }

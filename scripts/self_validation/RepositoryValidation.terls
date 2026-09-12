@@ -85,6 +85,12 @@ all_files_exist(repository: String, paths: List[String]): Bool ->
     }.
 
 @pure
+contains_any(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> false;
+        [fragment | rest] -> String.contains(source, fragment) or contains_any(source, rest)
+    }.
+
 contains_all(source: String, fragments: List[String]): Bool ->
     case fragments {
         [] -> true;
@@ -670,6 +676,44 @@ case File.delete(child(temporary, "unexpected.txt")) {
 count_occurrences(source: String, needle: String): Int ->
     List.length(String.split(source, needle)) - 1.
 
+/**
+ * Receipt hash fields print command words; they do not launch Cargo. Keep
+ * conditional command branches in this conservative dry-run count. Actual
+ * execution counts still come from the subprocess observation ledger.
+ */
+@pure
+planned_cargo_count(plan: String): Int ->
+    count_occurrences(
+        plan.replace("printf '%s\\n' cargo --locked ", "printf '%s\\n' <cargo-input> "),
+        "cargo --locked ",
+    ).
+
+@pure
+compiler_build_declaration(): String ->
+    "build_command='cargo --locked build -p terlan --bin terlc --bin terlan-vm".
+
+@pure
+quality_build_declaration(): String ->
+    "build_command='cargo --locked build -p terlan -p terlan-rust-boundary-audit".
+
+@pure
+bootstrap_declarations_hold(plan: String): Bool ->
+    count_occurrences(plan, compiler_build_declaration()) == 1
+        and count_occurrences(plan, quality_build_declaration()) == 1.
+
+@pure
+bootstrap_order_holds(plan: String): Bool ->
+    ordered_fragments(
+        String.split(plan, "\n"),
+        [
+            compiler_build_declaration(),
+            "-- --measure-if-stale",
+            "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
+            quality_build_declaration(),
+            "bash scripts/clean_build_outputs.sh --check-partials",
+        ],
+    ).
+
 @pure
 validator_parallelism(plan: String): Int ->
     if {
@@ -844,8 +888,9 @@ build_release_contract(repository: String): Bool ->
         "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
         "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
         "error: missing prebuilt release Rust tool:",
-        "TERLC=$(CURDIR)/target/debug/terlc",
-        "TERLAN_QUALITY=$(CURDIR)/target/debug/terlan-quality",
+        "include mk/rust-coverage.mk",
+        "--with-cargo-coverage",
+        "--coverage-request --metadata",
         "TERLAN_VALIDATION_BOOTSTRAPPED=1",
         "VERSION ?= $(RELEASE_VERSION)",
         "vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check",
@@ -968,16 +1013,27 @@ build_release_process_contract(repository: String): Bool ->
                 repository,
                 "env",
                 [
+                    "-u",
+                    "MAKEFLAGS",
+                    "-u",
+                    "MAKEOVERRIDES",
+                    "-u",
+                    "MFLAGS",
                     "TERLAN_VALIDATION_BOOTSTRAPPED=0",
                     "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
                     "TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=0",
-                    "TERLAN_RUST_SUITE_ALREADY_RUN=0",
-                    "TERLAN_CHECK_ALREADY_RUN=0",
                     "make",
                     "-n",
                     "release-candidate-check",
                 ],
                 120000,
+            );
+        Some(publication) <-
+            run_output(
+                repository,
+                "env",
+                ["-u", "MAKEFLAGS", "-u", "MAKEOVERRIDES", "-u", "MFLAGS", "make", "-n", "publish"],
+                30000,
             );
         Some(tracked) <- run_output(repository, "git", ["ls-files"], 30000)
     } else {
@@ -987,32 +1043,37 @@ build_release_process_contract(repository: String): Bool ->
 let tracked_paths = String.split(Process.stdout(tracked), "\n");
 let oversized = first_oversized(repository, tracked_paths);
 let duplicate_validator = duplicate_validator_output(plan_text);
-let cargo_invocations = count_occurrences(plan_text, "cargo --locked ");
+let rust_orchestrators = rust_orchestrator_count(plan_text);
+let cargo_invocations = planned_cargo_count(plan_text);
 let typed_validator_requests = count_occurrences(plan_text, "bash scripts/build_typed_validator.sh ");
 let terlc_test_invocations = count_occurrences(plan_text, "target/debug/terlc test ");
-let terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build ");
+let toolchain_probes = count_occurrences(plan_text, "target/debug/terlc build --print-toolchain-identity");
+let terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build ") - toolchain_probes;
 let incremental_terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build --incremental ");
 let lifecycle_partial_checks = count_occurrences(plan_text, "bash scripts/clean_build_outputs.sh --check-partials");
 let validator_build_parallelism = validator_parallelism(plan_text);
 if {
-    Process.status(plan) != 0 or Process.status(tracked) != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
-    count_occurrences(plan_text, "target/debug/terlan-test-orchestrator") != 1 -> failure("build_release.suite", "release plan must own one Rust orchestrator");
-    count_occurrences(plan_text, "cargo --locked build -p terlan --bin terlc --bin terlan-vm") != 1
-        or count_occurrences(plan_text, "--bin terlan-rust-boundary-audit") != 1 -> failure(
+    Process.status(plan) != 0 or Process.status(publication) != 0 or Process.status(tracked) != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
+    contains_any(
+        Process.stdout(publication),
+        [
+            "cargo ",
+            "terlc test ",
+            "terlc build ",
+            "npm ",
+            "download_validated_release_artifacts.sh",
+            "make --no-print-directory publish-evidence-refresh",
+        ],
+    ) -> failure(
+        "build_release.publication",
+        "publication must not build, test, download, or refresh evidence",
+    );
+    rust_orchestrators != 1 -> failure("build_release.suite", "release plan must own one Rust orchestrator");
+    not bootstrap_declarations_hold(plan_text) -> failure(
         "build_release.bootstrap",
         "release plan must build the compiler before destructive measurement and quality tools after it",
     );
-    not ordered_fragments(
-    String.split(plan_text, "\n"),
-    [
-        "cargo --locked build -p terlan --bin terlc --bin terlan-vm",
-        "-- --measure-if-stale",
-        "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
-        "cargo --locked build \\",
-        "--bin terlan-rust-boundary-audit",
-        "bash scripts/clean_build_outputs.sh --check-partials",
-    ],
-) -> failure(
+    not bootstrap_order_holds(plan_text) -> failure(
         "build_release.bootstrap_order",
         "release plan must build quality tools after destructive measurement and before validation",
     );
@@ -1024,7 +1085,10 @@ if {
         "build_release.lifecycle",
         "release plan must reject partial builds before and after the exhaustive gate graph",
     );
-    cargo_invocations > 6 -> failure("build_release.cargo_budget", "release plan exceeds the six-invocation Cargo budget");
+    cargo_invocations > 8 -> failure(
+        "build_release.cargo_budget",
+        "release plan exceeds the reviewed eight-invocation Cargo budget",
+    );
     typed_validator_requests > 17 -> failure(
         "build_release.validator_budget",
         "release plan exceeds the typed-validator request budget",
@@ -1041,6 +1105,10 @@ if {
         "build_release.terlc_build_budget",
         "release plan exceeds the Terlan AOT build-process budget",
     );
+    toolchain_probes != 1 -> failure(
+        "build_release.toolchain_probe_budget",
+        "release plan must resolve the compiler-owned toolchain identity exactly once",
+    );
     incremental_terlc_build_invocations != terlc_build_invocations -> failure(
         "build_release.incremental_aot",
         "every typed-validator AOT build must use verified incremental reuse",
@@ -1053,13 +1121,19 @@ if {
     true -> case run_output(repository, "git", ["check-ignore", "tests/example/.terlan/native-aot/module.o"], 30000) {
         Some(output) ->
             Process.status(output) == 0
-                and write_build_plan_report(repository, plan_text, duplicate_validator)
+                and write_build_plan_report(repository, plan_text, duplicate_validator, rust_orchestrators)
                 and release_artifact_self_test();
         None -> false
     }
 }).
 
-write_build_plan_report(repository: String, plan: String, duplicate_validator: String): Bool ->
+write_build_plan_report(
+    repository: String,
+    plan: String,
+    duplicate_validator: String,
+    rust_orchestrators: Int,
+): Bool ->
+    let toolchain_probes = count_occurrences(plan, "target/debug/terlc build --print-toolchain-identity");
     let report =
         Json.object()
             .put("schema", Json.string("terlan.validation-build-plan.v1"))
@@ -1067,12 +1141,10 @@ write_build_plan_report(repository: String, plan: String, duplicate_validator: S
             .put("plan", Json.string("release-candidate-check"))
             .put("plan_sha256", Json.string(Hash.sha256(plan)))
             .put("plan_line_count", Json.int(List.length(String.split(plan, "\n"))))
-            .put("cargo_invocation_count", Json.int(count_occurrences(plan, "cargo --locked ")))
-            .put("cargo_invocation_maximum", Json.int(6))
-            .put(
-                "rust_orchestrator_count",
-                Json.int(count_occurrences(plan, "target/debug/terlan-test-orchestrator")),
-            )
+            .put("cargo_invocation_count", Json.int(planned_cargo_count(plan)))
+            .put("cargo_invocation_maximum", Json.int(8))
+            .put("count_scope", Json.string("conservative-dry-run-not-observed-execution"))
+            .put("rust_orchestrator_count", Json.int(rust_orchestrators))
             .put(
                 "typed_validator_request_count",
                 Json.int(count_occurrences(plan, "bash scripts/build_typed_validator.sh ")),
@@ -1087,8 +1159,10 @@ write_build_plan_report(repository: String, plan: String, duplicate_validator: S
             .put("terlc_test_invocation_maximum", Json.int(32))
             .put(
                 "terlc_build_invocation_count",
-                Json.int(count_occurrences(plan, "target/debug/terlc build ")),
+                Json.int(count_occurrences(plan, "target/debug/terlc build ") - toolchain_probes),
             )
+            .put("terlc_toolchain_probe_invocation_count", Json.int(toolchain_probes))
+            .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
             .put("terlc_build_invocation_maximum", Json.int(16))
             .put(
                 "incremental_terlc_build_invocation_count",
@@ -1130,6 +1204,27 @@ if {
 duplicate_validator_output(plan: String): String ->
     duplicate_validator_rows(String.split(plan, "\n"), List.new[String]()).
 
+rust_orchestrator_count(plan: String): Int ->
+    let Ok(pattern) <-
+        Regex.compile(
+            "^(?:[A-Za-z_][A-Za-z0-9_]*=[^ \\t]+[ \\t]+)*(?:/[^ \\t]+/)?target/(?:debug|validation-tools)/terlan-test-orchestrator$",
+        ) else {
+        _ -> -1
+    };
+    rust_orchestrator_rows(String.split(plan, "\n"), pattern, 0).
+
+rust_orchestrator_rows(lines: List[String], pattern: Regex, count: Int): Int ->
+    case lines {
+        [] -> count;
+        [line | rest] ->
+            let next =
+                if {
+                    Regex.is_match(pattern, String.trim(line)) -> count + 1;
+                    true -> count
+                };
+            rust_orchestrator_rows(rest, pattern, next)
+    }.
+
 duplicate_validator_rows(lines: List[String], seen: List[String]): String ->
     case lines {
         [] -> "";
@@ -1166,8 +1261,49 @@ first_oversized(repository: String, paths: List[String]): String ->
             }
     }.
 
+bootstrap_plan_self_test(): Bool ->
+    let compiler = compiler_build_declaration();
+    let quality = quality_build_declaration();
+    let plan =
+        String.concat(
+            [
+                compiler,
+                "\n-- --measure-if-stale\nTERLAN_BUILD_ARTIFACTS_PREBUILT=0\n",
+                quality,
+                "\nbash scripts/clean_build_outputs.sh --check-partials\n",
+            ],
+        );
+    bootstrap_declarations_hold(plan)
+        and bootstrap_order_holds(plan)
+        and not bootstrap_declarations_hold(String.append(plan, compiler))
+        and not bootstrap_declarations_hold(String.append(plan, quality))
+        and not bootstrap_order_holds(String.concat([quality, "\n", compiler])).
+
+cargo_plan_self_test(): Bool ->
+    planned_cargo_count("printf '%s\\n' cargo --locked build -p example\n") == 0
+        and planned_cargo_count("cargo --locked build -p example\ncargo --locked build -p example\n") == 2
+        and planned_cargo_count(
+    "build_command='cargo --locked build -p example'\nprintf '%s\\n' cargo --locked build -p example\n",
+) == 1.
+
 self_test(): Bool ->
-    fenced_block("before\n```terlan\nvalue\n```\nafter\n", "terlan") == "value\n"
+    bootstrap_plan_self_test()
+        and cargo_plan_self_test()
+        and rust_orchestrator_count("/checkout/target/validation-tools/terlan-test-orchestrator\n") == 1
+        and rust_orchestrator_count(
+    "target/debug/terlan-test-orchestrator --install-snapshot /checkout/target/validation-tools/terlan-test-orchestrator\n",
+) == 0
+        and rust_orchestrator_count("\ttarget/debug/terlan-test-orchestrator\n") == 1
+        and rust_orchestrator_count(
+    "TERLAN_RUST_SUITE_REPORT=/tmp/report /checkout/target/debug/terlan-test-orchestrator\n",
+) == 1
+        and rust_orchestrator_count(
+    "target/debug/terlan-test-orchestrator\ntarget/debug/terlan-test-orchestrator\n",
+) == 2
+        and rust_orchestrator_count(
+    "test -x target/debug/terlan-test-orchestrator\necho target/debug/terlan-test-orchestrator\ncargo build --bin terlan-test-orchestrator\n/checkout/target/debug/terlan-test-orchestrator --cargo-metadata \\\n /tmp/output -- cargo --locked\n",
+) == 0
+        and fenced_block("before\n```terlan\nvalue\n```\nafter\n", "terlan") == "value\n"
         and stale_extension("sample.tl")
         and not stale_extension("sample.terl")
         and same_set(["a", "b"], ["b", "a"])

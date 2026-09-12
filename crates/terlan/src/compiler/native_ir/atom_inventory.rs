@@ -345,7 +345,7 @@ pub(super) fn collect_expr(expr: &CoreExpr, atoms: &mut BTreeSet<String>) {
                 collect_expr(&clause.body, atoms);
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             params
                 .iter()
                 .for_each(|pattern| collect_pattern(pattern, atoms));

@@ -1,0 +1,204 @@
+/**
+ * Deterministic retention planning for immutable, exclusively owned generations.
+ * Planning never removes files. Active and recently created generations remain
+ * pinned even when that makes the requested budget impossible to satisfy.
+ */
+module release_promotion.CacheRetention.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.{contains as string_contains}.
+
+import type std.core.Result.
+
+/**
+ * One immutable generation measured while holding its storage owner's lock.
+ */
+pub struct Generation {
+    key: String,
+    bytes: Int,
+    modified_ns: Int,
+}.
+
+/**
+ * Makes measured generation metadata available across the retention boundary.
+ */
+pub constructor Generation {
+    (key: String, bytes: Int, modified_ns: Int): Generation ->
+        Generation {key: key, bytes: bytes, modified_ns: modified_ns}
+}.
+
+/**
+ * Hard byte/count budgets and age limits, expressed in nanoseconds.
+ */
+pub struct Budget {
+    bytes: Int,
+    entries: Int,
+    maximum_age_ns: Int,
+    minimum_age_ns: Int,
+}.
+
+/**
+ * Declares policy values; planning validates them before authorizing eviction.
+ */
+pub constructor Budget {
+    (bytes: Int, entries: Int, maximum_age_ns: Int, minimum_age_ns: Int): Budget ->
+        Budget {
+            bytes: bytes,
+            entries: entries,
+            maximum_age_ns: maximum_age_ns,
+            minimum_age_ns: minimum_age_ns,
+        }
+}.
+
+/**
+ * Exact generation identities to retire, never broad directory patterns.
+ */
+pub struct Plan {
+    retire: List[Generation],
+    retained_bytes: Int,
+    retained_entries: Int,
+}.
+
+/**
+ * Accepts only lowercase SHA-256 generation identities.
+ */
+pub valid_key(key: String): Bool ->
+    key.byte_size() == 64 and valid_key_at(key, 0).
+
+valid_key_at(key: String, index: Int): Bool ->
+    if {
+        index == 64 -> true;
+        true -> string_contains("0123456789abcdef", key.utf8_slice(index, 1))
+            and valid_key_at(key, index + 1)
+    }.
+
+contains(keys: List[String], key: String): Bool ->
+    case keys {
+        [] -> false;
+        [current | rest] -> current == key or contains(rest, key)
+    }.
+
+validate(
+    generations: List[Generation],
+    seen: List[String],
+    remaining: Int,
+): Result[List[String], String] ->
+    case generations {
+        [] -> Ok(seen);
+        [generation | rest] ->
+            let {
+                true <- remaining > 0;
+                true <- valid_key(generation.key);
+                true <- not contains(seen, generation.key);
+                true <- generation.bytes >= 0 and generation.bytes <= 1125899906842624;
+                true <- generation.modified_ns >= 0
+            } else {
+                _ -> Err("invalid, duplicate, or excessive cache generation inventory")
+            };
+            validate(rest, [generation.key | seen], remaining - 1)
+    }.
+
+valid_pins(keys: List[String], known: List[String], seen: List[String]): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            contains(known, key)
+                and not contains(seen, key)
+                and valid_pins(rest, known, [key | seen])
+    }.
+
+insert_newest(generation: Generation, sorted: List[Generation]): List[Generation] ->
+    case sorted {
+        [] -> [generation];
+        [current | rest] ->
+            if {
+                generation.modified_ns > current.modified_ns -> [generation | sorted];
+                true -> [current | insert_newest(generation, rest)]
+            }
+    }.
+
+collect(
+    generations: List[Generation],
+    pins: List[String],
+    budget: Budget,
+    now_ns: Int,
+    retained: Plan,
+    eligible: List[Generation],
+): Result[Plan, String] ->
+    case generations {
+        [] -> choose(eligible, budget, now_ns, retained);
+        [generation | rest] ->
+            if {
+                contains(pins, generation.key)
+                    or generation.modified_ns > now_ns
+                    or now_ns - generation.modified_ns < budget.minimum_age_ns -> collect(rest, pins, budget, now_ns, retain_one(retained, generation), eligible);
+                true -> collect(rest, pins, budget, now_ns, retained, insert_newest(generation, eligible))
+            }
+    }.
+
+retain_one(retained: Plan, generation: Generation): Plan ->
+    Plan(
+        retire = retained.retire,
+        retained_bytes = retained.retained_bytes + generation.bytes,
+        retained_entries = retained.retained_entries + 1,
+    ).
+
+retire_one(retained: Plan, generation: Generation): Plan ->
+    Plan(
+        retire = [generation | retained.retire],
+        retained_bytes = retained.retained_bytes,
+        retained_entries = retained.retained_entries,
+    ).
+
+fits(generation: Generation, retained: Plan, budget: Budget, now_ns: Int): Bool ->
+    now_ns - generation.modified_ns <= budget.maximum_age_ns
+        and retained.retained_entries < budget.entries
+        and generation.bytes <= budget.bytes - retained.retained_bytes.
+
+choose(
+    generations: List[Generation],
+    budget: Budget,
+    now_ns: Int,
+    retained: Plan,
+): Result[Plan, String] ->
+    let true <- retained.retained_bytes <= budget.bytes and retained.retained_entries <= budget.entries else {
+        _ -> Err("pinned or recent cache generations exceed retention budget; no eviction is safe")
+    };
+    case generations {
+        [] -> Ok(retained);
+        [generation | rest] ->
+            if {
+                fits(generation, retained, budget, now_ns) -> choose(rest, budget, now_ns, retain_one(retained, generation));
+                true -> choose(rest, budget, now_ns, retire_one(retained, generation))
+            }
+    }.
+
+/**
+ * Plans oldest-first eviction from an inventory already ordered by key.
+ * Bounds also prevent arithmetic overflow; unknown or duplicate pins fail
+ * closed rather than accidentally discarding an active dependency.
+ */
+pub plan_retention(
+    generations: List[Generation],
+    pins: List[String],
+    budget: Budget,
+    now_ns: Int,
+): Result[Plan, String] ->
+    let {
+        true <- budget.bytes >= 0 and budget.bytes <= 1152921504606846976;
+        true <- budget.entries >= 0 and budget.entries <= 1024;
+        true <- budget.minimum_age_ns >= 0 and budget.maximum_age_ns >= budget.minimum_age_ns;
+        true <- now_ns >= 0;
+        Ok(known) <- validate(generations, [], 1024);
+        true <- valid_pins(pins, known, [])
+    } else {
+        _ -> Err("invalid cache retention policy or generation inventory")
+    };
+    collect(
+        generations,
+        pins,
+        budget,
+        now_ns,
+        Plan(retire = [], retained_bytes = 0, retained_entries = 0),
+        [],
+    ).

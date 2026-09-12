@@ -13,7 +13,7 @@ pub(super) fn format_forwarding_lambda(expr: &Expr) -> Option<String> {
     let [clause] = clauses.as_slice() else {
         return None;
     };
-    if clause.guard.is_some() {
+    if clause.guard.is_some() || clause.parameter_types.iter().any(Option::is_some) {
         return None;
     }
     let Expr::Call {

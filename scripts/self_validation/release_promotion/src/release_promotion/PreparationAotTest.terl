@@ -1,0 +1,166 @@
+/**
+ * Executes the real AOT report composer against disposable admission fixtures.
+ * Constructed reports do not certify platform checks or sanitizer execution.
+ */
+module release_promotion.PreparationAotTest.
+
+import release_promotion.{OwnerStorage, PreparationMulticoreTest, PrepareAotRelease}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+import std.vcs.Git.
+
+import type release_promotion.PreparationOwner.Decision.
+import type std.core.Result.
+import type std.data.Json.
+
+output(): String -> "target/quality/tvm-aot-release-closeout-report.json".
+
+platform(): String -> "target/quality/tvm-aot-platform/linux-x86_64.json".
+
+managed(): String -> "target/quality/tvm-managed-list-profile.json".
+
+host_report(revision: String): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.tvm-aot-platform-target.v2"))
+        .put("decision", Json.string("pass"))
+        .put("source_revision", Json.string(revision))
+        .put("target_id", Json.string("linux-x86_64"))
+        .put("os", Json.string("linux"))
+        .put("arch", Json.string("x86_64"))
+        .put("target_triple", Json.string("x86_64-unknown-linux-gnu"))
+        .put("object_format", Json.string("elf"))
+        .put("operating_system", Json.string("linux"))
+        .put("calling_convention", Json.string("system_v"))
+        .put(
+            "descriptor_digest",
+            Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        )
+        .put(
+            "image_sha256",
+            Json.string("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        )
+        .put("continuation_ids", Json.array().push(Json.int(1)))
+        .put("native_debug_record_count", Json.int(2))
+        .put(
+            "executed_checks",
+            Json.array()
+                .push(Json.string("compiler-generated-image"))
+                .push(Json.string("archive-package-admission"))
+                .push(Json.string("installed-package-admission"))
+                .push(Json.string("release-binary-smoke"))
+                .push(Json.string("public-installer-smoke"))
+                .push(Json.string("native-debug-stack-metadata"))
+                .push(Json.string("deterministic-support-bundle"))
+                .push(Json.string("crash-metadata"))
+                .push(Json.string("hot-reload-replacement"))
+                .push(Json.string("generation-quarantine"))
+                .push(Json.string("incompatible-image-rejection")),
+        ).
+
+pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/runtime"));
+        Ok(_inventory) <-
+            File.copy(
+                OwnerStorage.child(origin, "docs/runtime/TVM_AOT_PIVOT_INVENTORY.md"),
+                OwnerStorage.child(root, "docs/runtime/TVM_AOT_PIVOT_INVENTORY.md"),
+            );
+        Ok(_toolchain) <-
+            File.write_text(
+                OwnerStorage.child(root, "rust-toolchain.toml"),
+                "[toolchain]\nchannel = \"1.96.0\"\n",
+            );
+        true <- PreparationMulticoreTest.fixture(root, origin, vm, image);
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(_platform) <- Directory.create_all(OwnerStorage.child(root, "target/quality/tvm-aot-platform"));
+        true <- OwnerStorage.atomic_json(root, platform(), host_report(Git.revision(identity)));
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                managed(),
+                Json.object()
+                    .put("schema", Json.string("terlan.tvm.managed-list-profile.v1"))
+                    .put("correctness_verified", Json.bool(true)),
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+stage(root: String, label: String): Result[Decision, String] ->
+    let _printed = Console.println(label);
+    case PrepareAotRelease.prepare(root, "target/tools/terlan-vm", "target/tools/matrix.tvm") {
+        Ok(result) -> Ok(result);
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            Err(reason)
+    }.
+
+exercise(root: String, origin: String, vm: String, image: String): Bool ->
+    let sanitizer = OwnerStorage.child(root, "target/quality/tvm-aot-thread-sanitizer-report.json");
+    let report = OwnerStorage.child(root, output());
+    let {
+        true <- fixture(root, origin, vm, image);
+        Err(_unsafe) <- PrepareAotRelease.prepare(root, "../outside-vm", "target/tools/matrix.tvm");
+        Ok(cold) <- stage(root, "[AOT rehearsal] cold composition");
+        true <- cold.valid and not cold.reused;
+        Ok(first) <- File.read_text(report);
+        Ok(warm) <- stage(root, "[AOT rehearsal] warm reuse without composer launch");
+        true <- warm.valid and warm.reused;
+        Ok(_invalid_sanitizer) <- File.write_text(sanitizer, "{\"decision\":\"fail\"}");
+        Ok(failed) <- stage(root, "[AOT rehearsal] optional sanitizer appeared (expected rejection)");
+        true <- not failed.valid;
+        Ok(retained) <- File.read_text(report);
+        true <- retained == first;
+        Ok(_removed_invalid) <- File.delete(sanitizer);
+        Ok(resumed) <- stage(root, "[AOT rehearsal] resume after sanitizer removal");
+        true <- resumed.valid and not resumed.reused;
+        Ok(restored) <- File.read_text(report);
+        true <- restored == first;
+        Ok(valid_managed) <- File.read_text(OwnerStorage.child(root, managed()));
+        Ok(_changed_managed) <- File.write_text(OwnerStorage.child(root, managed()), String.append(valid_managed, "\n"));
+        Ok(changed) <- stage(root, "[AOT rehearsal] changed upstream report bytes");
+        true <- changed.valid and not changed.reused;
+        Ok(second) <- File.read_text(report);
+        true <- second != first;
+        Ok(valid_platform) <- File.read_text(OwnerStorage.child(root, platform()));
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                platform(),
+                host_report("0000000000000000000000000000000000000000"),
+            );
+        Ok(stale) <- stage(root, "[AOT rehearsal] wrong platform revision (expected rejection)");
+        true <- not stale.valid;
+        Ok(preserved) <- File.read_text(report);
+        true <- preserved == second;
+        Ok(_restore_platform) <- File.write_text(OwnerStorage.child(root, platform()), valid_platform);
+        Ok(_restore_managed) <- File.write_text(OwnerStorage.child(root, managed()), valid_managed);
+        Ok(recovered) <- stage(root, "[AOT rehearsal] recovered original reports");
+        true <- recovered.valid and not recovered.reused;
+        Ok(final) <- File.read_text(report)
+    } else {
+        _ -> false
+    };
+    first == final.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-aot-preparation-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, origin, vm, image);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "AOT preparation rehearsal passed: cold, warm, optional inputs, changed evidence, rejected revision, recovery";
+            true -> "AOT preparation rehearsal failed"
+        },
+    );
+valid and removed).

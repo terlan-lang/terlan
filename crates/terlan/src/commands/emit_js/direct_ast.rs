@@ -397,7 +397,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         crate::terlan_typeck::CoreExpr::If { clauses } => {
             core_if_clauses_to_oxc_expression(ast, clauses)
         }
-        crate::terlan_typeck::CoreExpr::Lam { params, body } => {
+        crate::terlan_typeck::CoreExpr::Lam { params, body, .. } => {
             core_lam_expr_to_oxc_expression(ast, params, body)
         }
         crate::terlan_typeck::CoreExpr::UnaryOp { operator, operand } => {

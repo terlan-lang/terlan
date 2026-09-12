@@ -13,6 +13,7 @@ import std.system.{Arguments, Environment, Process}.
 
 import type std.core.Option.
 import type std.data.Json.
+import type std.system.Process.Output.
 
 struct KernelResult {
     valid: Bool,
@@ -143,31 +144,30 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
             let bounded =
                 if {
                     program == "cargo" -> Process.with_timeout_ms(configured, 300000);
-                    true -> configured
-                };
+                    true -> Process.with_timeout_ms(configured, 600000)
+                }
+                    .with_output_limit_bytes(8388608);
             case Process.run(bounded) {
-                Ok(output) ->
-                    if {
-                        Process.status(output) == 0 -> pass(Json.null());
-                        true -> reject(
-                            String.append(
-                                "command failed: ",
-                                String.append(
-                                    program,
-                                    String.append(
-                                        "\n",
-                                        String.append(
-                                            Process.stdout(output),
-                                            Process.stderr(output),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        )
-                    };
+                Ok(output) -> command_result(program, output);
                 Err(reason) -> reject(Process.error_message(reason))
             }
     }.
+
+command_result(program: String, output: Output): KernelResult ->
+    if {
+        Process.status(output) != 0 -> reject(
+            String.concat(
+                ["command failed: ", program, "\n", Process.stdout(output), Process.stderr(output)],
+            ),
+        );
+        program == "cargo" and not exact_rust_test_output_holds(Process.stdout(output)) -> reject("Rust oracle did not execute exactly one passing, non-ignored test");
+        true -> pass(Json.null())
+    }.
+
+exact_rust_test_output_holds(output: String): Bool ->
+    let normalized = String.replace(output, "\r\n", "\n");
+    String.contains(normalized, "running 1 test\n")
+        and String.contains(normalized, "test result: ok. 1 passed; 0 failed; 0 ignored;").
 
 rust_runtime_owned_by_canonical_suite(values: List[String]): Bool ->
     let {
@@ -178,17 +178,57 @@ rust_runtime_owned_by_canonical_suite(values: List[String]): Bool ->
     };
     true.
 
-canonical_rust_suite_passed(): Bool ->
-    case Environment.get("TERLAN_RUST_SUITE_ALREADY_RUN") {
-        Some("1") -> true;
+rust_coverage_requested(): Bool ->
+    case Environment.get("TERLAN_RUST_COVERAGE_CONTEXT") {
+        Some(_endpoint) -> true;
         _ -> false
     }.
 
-proof_command(root_path: String, proof: String): KernelResult ->
-    case String.split_once(proof, "proofs/lean/") {
-        Some({_prefix, relative}) ->
-            run_command(root_path, "proofs/lean", ["lake", "env", "lean", relative]);
-        None -> reject(String.append("invalid proof path: ", proof))
+request_rust_coverage(root_path: String, values: List[String]): KernelResult ->
+    let {
+        ["cargo" | tail] <- values;
+        ["test" | arguments] <- tail
+    } else {
+        _ -> reject("coverage request is not a Rust test command")
+    };
+    (let program = Support.root_path(root_path, "target/validation-tools/terlan-test-orchestrator");
+let request =
+    Process.command(program)
+        .with_arguments(["--coverage-request" | arguments])
+        .with_working_directory(root_path)
+        .with_timeout_ms(30000)
+        .with_output_limit_bytes(131072);
+case Process.run(request) {
+    Ok(output) -> command_result(program, output);
+    Err(reason) -> reject(Process.error_message(reason))
+}).
+
+hosted_source_coverage(): Bool ->
+    case Environment.get("TERLAN_RUST_COVERAGE_SCOPE") {
+        Some("hosted-source") -> true;
+        _ -> false
+    }.
+
+selected_proof_paths(
+    families: Json,
+    selected: String,
+    position: Int,
+    count: Int,
+): Option[List[String]] ->
+    if {
+        position >= count -> Some([]);
+        true -> let {
+            Ok(family) <- families.at(position);
+            Some(family_id) <- Support.json_string(family, "family");
+            Some(proof) <- Support.json_string(family, "proof");
+            Some(rest) <- selected_proof_paths(families, selected, position + 1, count)
+        } else {
+            _ -> None
+        };
+        if {
+            selected == "" or selected == family_id -> Some([proof | rest]);
+            true -> Some(rest)
+        }
     }.
 
 family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
@@ -234,20 +274,19 @@ family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
                 inventory_status != "current" -> reject(String.append(proof, ": current inventory row missing"));
                 recorded_digest != actual_digest -> reject(String.append(proof, ": artifact digest is stale"));
                 not binding_is_current(index, slice, family_id) -> reject(String.append(slice, ": feature binding is not proof-current"));
-                true -> let proof_result = proof_command(root_path, proof);
-                let runtime_reused = canonical_rust_suite_passed() and rust_runtime_owned_by_canonical_suite(runtime);
+                true -> let runtime_reused = rust_coverage_requested() and rust_runtime_owned_by_canonical_suite(runtime);
                 let runtime_result =
                     if {
-                        runtime_reused -> pass(Json.null());
+                        runtime_reused -> request_rust_coverage(root_path, runtime);
                         true -> run_command(root_path, ".", runtime)
                     };
                 let runtime_owner =
                     if {
+                        runtime_reused and hosted_source_coverage() -> "hosted-canonical-source-tests";
                         runtime_reused -> "rust-test-suite";
                         true -> "semantic-kernel"
                     };
                 if {
-                    not proof_result.valid -> proof_result;
                     not runtime_result.valid -> runtime_result;
                     true -> pass(
                         Json.object()
@@ -323,12 +362,19 @@ family_exists(families: Json, expected: String, position: Int, count: Int): Bool
         value == expected or family_exists(families, expected, position + 1, count)
     }.
 
-run_check(root_path: String, selected: String): Bool ->
+proof_program(root_path: String): String ->
+    case Environment.get("TERLAN_PROOF_QUALITY_EXECUTABLE") {
+        Some(path) -> path;
+        None -> Support.root_path(root_path, "target/debug/terlan-quality")
+    }.
+
+run_check(root_path: String, selected: String, completed_only: Bool): Bool ->
     let {
         Some(config) <- Support.load_json(root_path, "proofs/lean/semantic-kernels.json");
         Some(schema) <- Support.json_string(config, "schema");
         Some(families) <- Support.json_member(config, "families");
         Ok(count) <- families.length();
+        Some(proof_paths) <- selected_proof_paths(families, selected, 0, count);
         Some(index_document) <-
             Support.load_json(
                 root_path,
@@ -340,7 +386,28 @@ run_check(root_path: String, selected: String): Bool ->
     if {
         schema != "terlan.lean-semantic-kernel-config.v1" -> failure("semantic kernel configuration has the wrong schema");
         selected != "" and not family_exists(families, selected, 0, count) -> failure(String.append("unknown semantic kernel family `", String.append(selected, "`")));
-        true -> let result = check_families(root_path, families, index_document, selected, 0, count, Json.array());
+        true -> let proofs =
+            run_command(
+                root_path,
+                ".",
+                [proof_program(root_path) | [if {
+    completed_only -> "lean-proof-replay-cached";
+    true -> "lean-proof-replay"
+} | proof_paths]],
+            );
+        let result =
+            if {
+                proofs.valid -> check_families(
+                    root_path,
+                    families,
+                    index_document,
+                    selected,
+                    0,
+                    count,
+                    Json.array(),
+                );
+                true -> proofs
+            };
         if {
             not result.valid -> failure(result.message);
             true -> let report =
@@ -350,7 +417,7 @@ run_check(root_path: String, selected: String): Bool ->
                     .put("external_protocol_or_database_isolation_claims", Json.bool(false))
                     .put("placeholder_theorems", Json.bool(false));
             if {
-                not Support.write_json(root_path, "build/artifacts/lean-semantic-kernels.json", report) -> failure("semantic kernel report could not be written");
+                not Support.write_json(root_path, "target/quality/proof-artifacts/lean-semantic-kernels.json", report) -> failure("semantic kernel report could not be written");
                 true -> case result.evidence.length() {
                     Ok(checked_count) ->
                         let message =
@@ -376,11 +443,37 @@ self_test(root_path: String): Bool ->
     };
     if {
         count != 6 -> failure("self-test: exactly six semantic kernel families are required");
+        not selection_contract_holds() -> failure("self-test: selected proof batch is incomplete or unfiltered");
+        exact_rust_test_output_holds(
+            "running 0 tests\ntest result: ok. 0 passed; 0 failed; 0 ignored;",
+        ) -> failure("self-test: zero-test oracle was accepted");
+        exact_rust_test_output_holds(
+            "running 1 test\ntest result: ok. 0 passed; 0 failed; 1 ignored;",
+        ) -> failure("self-test: ignored oracle was accepted");
+        not exact_rust_test_output_holds("running 1 test\r\ntest result: ok. 1 passed; 0 failed; 0 ignored;") -> failure("self-test: passing oracle was rejected");
         not rust_runtime_owned_by_canonical_suite(["cargo", "test", "--locked"]) -> failure("self-test: canonical Cargo test ownership was not recognized");
         rust_runtime_owned_by_canonical_suite(["target/debug/terlc", "test", "suite.terl"]) -> failure("self-test: Terlan runtime oracle was assigned to the Rust suite");
         true -> let _printed = println("Lean semantic kernel self-test passed");
         true
     }.
+
+selection_contract_holds(): Bool ->
+    let families =
+        Json.array()
+            .push(selection_fixture("first", "proofs/lean/First.lean"))
+            .push(selection_fixture("second", "proofs/lean/Second.lean"));
+    case {
+    selected_proof_paths(families, "", 0, 2),
+    selected_proof_paths(families, "second", 0, 2),
+    selected_proof_paths(Json.array().push(Json.object()), "", 0, 1),
+} {
+        {Some(["proofs/lean/First.lean", "proofs/lean/Second.lean"]), Some(["proofs/lean/Second.lean"]), None} ->
+            true;
+        _ -> false
+    }.
+
+selection_fixture(family: String, proof: String): Json ->
+    Json.object().put("family", Json.string(family)).put("proof", Json.string(proof)).
 
 failure(message: String): Bool ->
     let _printed = eprintln(String.append("Lean semantic kernel failure: ", message));
@@ -394,9 +487,12 @@ run(root_path: String, command: String, selected: String): Bool ->
             true -> failure(result.message)
         };
         command == "self-test" -> self_test(root_path);
-        command == "check" -> run_check(root_path, "");
-        command == "check-family" -> run_check(root_path, selected);
-        true -> failure("usage: SemanticKernels.terls <record|self-test|check|check-family FAMILY>")
+        command == "check" -> run_check(root_path, "", false);
+        command == "check-cached" -> self_test(root_path) and run_check(root_path, "", true);
+        command == "check-family" -> run_check(root_path, selected, false);
+        true -> failure(
+            "usage: SemanticKernels.terls <record|self-test|check|check-cached|check-family FAMILY>",
+        )
     }.
 
 entry(): Bool ->

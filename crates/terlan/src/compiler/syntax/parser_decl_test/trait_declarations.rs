@@ -15,7 +15,7 @@ use crate::terlan_syntax::{parse_interface_module, parse_module};
 /// - Parses the module through the recursive-descent parser, inspects trait
 ///   declaration metadata, and confirms trait calls remain ordinary
 ///   function declarations for later semantic conformance resolution.
-
+///
 /// Verifies the A0.29 trait and primitive conformance syntax inventory.
 ///
 /// Inputs:
@@ -103,7 +103,7 @@ fn formal_trait_conformance_inventory_preserves_trait_surface() {
 /// - Parses the source through the formal recursive-descent parser and
 ///   confirms declaration-site conformance is preserved on the struct while
 ///   behavior remains an ordinary receiver method.
-
+///
 /// Verifies declaration-site trait conformance syntax preserves the
 /// Java-style `implements` form without requiring an explicit impl block.
 ///
@@ -168,7 +168,7 @@ fn formal_trait_conformance_syntax_supports_implements_with_receiver_method() {
 /// Transformation:
 /// - Confirms explicit adapter conformance is structured separately from
 ///   declaration-site `implements` and from raw declarations.
-
+///
 /// Verifies explicit trait implementation blocks are parsed as adapter
 /// conformances.
 ///

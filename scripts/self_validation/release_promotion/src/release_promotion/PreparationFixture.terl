@@ -1,0 +1,26 @@
+/**
+ * Git history created only inside disposable preparation-test projects.
+ */
+module release_promotion.PreparationFixture.
+
+import release_promotion.OwnerStorage.
+
+pub commit(root: String): Bool ->
+    OwnerStorage.command(root, "git", ["init", "--quiet"])
+        and OwnerStorage.command(root, "git", ["add", "."])
+        and OwnerStorage.command(
+    root,
+    "git",
+    [
+        "-c",
+        "user.name=Terlan fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "--quiet",
+        "-m",
+        "Test preparation",
+    ],
+).

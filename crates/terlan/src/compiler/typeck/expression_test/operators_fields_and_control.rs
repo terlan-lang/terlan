@@ -605,6 +605,29 @@ pub demo(): Unit ->\n\
     );
 }
 
+#[test]
+fn explicit_lambda_parameter_types_are_checked_at_callback_boundaries() {
+    for source in [
+        "module typed_lambda_bad_return. pub incompatible(): (Int) -> Int -> ((value: String) -> value).",
+        "module typed_lambda_bad_argument. consume(callback: (Int) -> Int): Int -> callback(1). pub main(): Int -> consume((value: String) -> 1).",
+        "module typed_lambda_bad_body. pub main(): (Int) -> Int -> ((value: Int) -> value + \"suffix\").",
+    ] {
+        let diagnostics = check_syntax_output(source);
+        assert!(!diagnostics.is_empty(), "explicit annotation was discarded: {source}");
+    }
+}
+
+#[test]
+fn explicit_lambda_parameters_preserve_precise_local_function_types() {
+    let diagnostics = check_syntax_output("module typed_lambda_local. pub main(choice: Bool): Int -> let operation = if { choice -> ((value: Int) -> value + 1); true -> ((value: Int) -> value - 1) }; operation(10).");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let diagnostics = check_syntax_output("module typed_lambda_local_bad. pub main(): Int -> let operation = ((value: Int) -> value + 1); operation(\"wrong\").");
+    assert!(
+        !diagnostics.is_empty(),
+        "typed local callback accepted a String argument"
+    );
+}
+
 /// Verifies callback return types are covariant.
 ///
 /// Inputs:

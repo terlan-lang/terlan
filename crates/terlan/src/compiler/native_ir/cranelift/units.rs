@@ -14,8 +14,9 @@ use super::{
 /// Produces the application ABI identity that invalidates module object units.
 ///
 /// The identity excludes function bodies while retaining every property that
-/// changes a direct-call declaration. A body-only edit therefore rebuilds its
-/// owning unit without poisoning otherwise compatible dependency objects.
+/// changes a direct-call declaration. This is only the ABI component of a cache
+/// key: emission also depends on the complete implementation closure because
+/// cross-module tail components can inline sibling bodies.
 pub(crate) fn native_application_abi_fingerprint(
     natives: &[NativeModule],
 ) -> Result<String, terlan_runtime_abi::BoundaryError> {

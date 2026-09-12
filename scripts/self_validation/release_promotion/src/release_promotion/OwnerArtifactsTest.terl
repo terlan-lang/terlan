@@ -1,0 +1,223 @@
+/**
+ * Tests output-set admission and actual incomplete producer failures.
+ */
+module release_promotion.OwnerArtifactsTest.
+
+import release_promotion.{NativeCycle, OwnerArtifacts, OwnerStorage, OwnerTableTest, PreparationGraph, PreparationOwner}.
+import std.core.Result.{Err, Ok}.
+import std.io.{Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationOwner.Owner.
+
+selected(mode: String): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "outputs",
+            "candidate",
+            "linux-x64",
+            "fixture",
+            "fixture-v1",
+            ["producer.sh"],
+            [],
+            "/bin/sh",
+            ["producer.sh", mode],
+            [environment_entry("PATH", "/usr/bin:/bin")],
+            "target/quality/primary.json",
+            "PRIMARY_OUTPUT",
+            "outputs.v1",
+            "completed",
+            30000,
+        ),
+        [OwnerArtifacts.declare_artifact("target/quality/extra.json", "EXTRA_OUTPUT", "outputs.v1")],
+    ).
+
+invalid(path: String, variable: String, schema: String): Bool ->
+    not PreparationOwner.valid_declaration(
+    PreparationOwner.with_additional_outputs(
+        selected("pass"),
+        [OwnerArtifacts.declare_artifact(path, variable, schema)],
+    ),
+).
+
+declarations(): Bool ->
+    let value = selected("pass");
+    let collision =
+        PreparationOwner.with_additional_outputs(
+            PreparationOwner.owner(
+                "other",
+                "candidate",
+                "linux-x64",
+                "fixture",
+                "fixture-v1",
+                [],
+                [],
+                "/bin/sh",
+                ["other.sh"],
+                [],
+                "target/quality/other.json",
+                "OTHER",
+                "outputs.v1",
+                "completed",
+                30000,
+            ),
+            value.additional_outputs,
+        );
+    invalid("target/quality/primary.json", "EXTRA", "outputs.v1")
+        and invalid("target/quality/primary.json/child.json", "EXTRA", "outputs.v1")
+        and invalid("target/quality/./primary.json", "EXTRA", "outputs.v1")
+        and invalid("target/quality//primary.json", "EXTRA", "outputs.v1")
+        and invalid("target/quality/extra.json", "PRIMARY_OUTPUT", "outputs.v1")
+        and invalid("target/quality/extra.json", "TERLAN_BUILD_ACTIVITY_LOG", "outputs.v1")
+        and invalid("target/quality/extra.json", "TERLAN_PROCESS_ACTIVITY_LOG", "outputs.v1")
+        and invalid("target/quality/preparation/candidate/outputs.json", "EXTRA", "outputs.v1")
+        and invalid("dist/other.json", "EXTRA", "outputs.v1")
+        and invalid("target/quality/extra.json", "EXTRA", "")
+        and graph_contracts(value, collision).
+
+graph_contracts(value: Owner, collision: Owner): Bool ->
+    let consumer =
+        PreparationOwner.with_dependencies(
+            PreparationOwner.with_additional_outputs(collision, []),
+            ["target/quality/extra.json"],
+        );
+    let nested =
+        PreparationOwner.with_additional_outputs(
+            collision,
+            [
+                OwnerArtifacts.declare_artifact(
+                    "target/quality/extra.json/child",
+                    "EXTRA_OUTPUT",
+                    "outputs.v1",
+                ),
+            ],
+        );
+    let {
+        Err(_duplicate) <-
+            PreparationGraph.validate(
+                [
+                    PreparationGraph.declare_node(value, []),
+                    PreparationGraph.declare_node(collision, []),
+                ],
+            );
+        Err(_overlap) <-
+            PreparationGraph.validate(
+                [
+                    PreparationGraph.declare_node(value, []),
+                    PreparationGraph.declare_node(nested, []),
+                ],
+            );
+        Err(_missing_edge) <-
+            PreparationGraph.validate(
+                [
+                    PreparationGraph.declare_node(value, []),
+                    PreparationGraph.declare_node(consumer, []),
+                ],
+            );
+        Ok("candidate") <-
+            PreparationGraph.validate(
+                [
+                    PreparationGraph.declare_node(value, []),
+                    PreparationGraph.declare_node(consumer, [value.name]),
+                ],
+            )
+    } else {
+        _ -> false
+    };
+    PreparationOwner.output_paths(PreparationOwner.with_dependencies(value, ["input"])) == PreparationOwner.output_paths(value).
+
+prepare(root: String): Bool ->
+    let {
+        Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_producer) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                "set -eu\necho run >> calls\nprintf '{\"schema\":\"outputs.v1\"}\\n' > \"$PRIMARY_OUTPUT\"\ncase $1 in missing) echo completed; exit 0;; kill) kill -KILL $$;; wrong) printf '{\"schema\":\"wrong\"}\\n' > \"$EXTRA_OUTPUT\";; *) printf '{\"schema\":\"outputs.v1\"}\\n' > \"$EXTRA_OUTPUT\";; esac\necho completed\n",
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+exercise(root: String, mode: String): Bool ->
+    let first = PreparationOwner.run_locked(root, selected("pass"));
+    let warm = PreparationOwner.run_locked(root, selected("pass"));
+    let {
+        true <- first.valid and not first.reused and warm.valid and warm.reused;
+        Ok(prior) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
+        Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls"));
+        true <- calls == "run\n"
+    } else {
+        _ -> false
+    };
+    (let failed = PreparationOwner.run_locked(root, selected(mode));
+(let {
+    false <- failed.valid;
+    Ok(retained) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
+    true <- OwnerStorage.digest(prior) == OwnerStorage.digest(retained)
+} else {
+    _ -> false
+};
+(let resumed = PreparationOwner.run_locked(root, selected("pass"));
+(let Ok(final_calls) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+    _ -> false
+};
+resumed.valid and not resumed.reused and final_calls == "run\nrun\nrun\n")))).
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-owner-artifacts-") else {
+        _ -> false
+    };
+    (let passed = prepare(root) and exercise(root, mode);
+let cleaned =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+passed and cleaned).
+
+/**
+ * Multi-output failures preserve every previously published report.
+ */
+pub self_test(): Bool ->
+    declarations()
+        and OwnerTableTest.self_test()
+        and scenario("missing")
+        and scenario("wrong")
+        and scenario("kill")
+        and graph_commit_gap().
+
+graph_commit_gap(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-owner-output-graph-") else {
+        _ -> false
+    };
+    (let passed = prepare(root) and recover_graph(root);
+let cleaned =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        Err(_reason) -> false
+    };
+passed and cleaned).
+
+recover_graph(root: String): Bool ->
+    let value = selected("pass");
+    let {
+        Ok(_directory) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/graphs"),
+            );
+        Ok(cycle) <- NativeCycle.open(root, "candidate", "outputs");
+        true <- NativeCycle.before(root, NativeCycle.path("candidate", "outputs"), cycle, value)
+    } else {
+        _ -> false
+    };
+    (let first = PreparationOwner.run_locked(root, value);
+let resumed = PreparationGraph.run_locked(root, "outputs", [PreparationGraph.declare_node(value, [])]);
+(let Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+    _ -> false
+};
+first.valid
+    and resumed.valid
+    and resumed.reused == 1
+    and resumed.completed == 0
+    and calls == "run\n")).

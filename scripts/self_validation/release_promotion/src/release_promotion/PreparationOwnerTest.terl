@@ -1,0 +1,644 @@
+module release_promotion.PreparationOwnerTest.
+
+import release_promotion.{NativeActivityTest, OwnerArtifactsTest, OwnerCommitTest, OwnerDirectoryOwnerTest, OwnerDirectoryTest, OwnerNativeTest, OwnerStorage, OwnerTools, PreparationOwner}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+import std.system.Process.
+
+import type release_promotion.PreparationOwner.Owner.
+
+owner(mode: String, timeout: Int): Owner ->
+    PreparationOwner.owner(
+        "fixture",
+        "candidate",
+        "linux-x64",
+        "fixture",
+        "fixture-v1",
+        ["input.txt", "producer.sh"],
+        ["dependency.txt"],
+        "/bin/sh",
+        ["producer.sh", mode],
+        if {
+            mode == "reserved-environment" -> [Process.environment_entry("TERLAN_BUILD_ACTIVITY_LOG", "outside.jsonl")];
+            mode == "reserved-process-environment" -> [Process.environment_entry("TERLAN_PROCESS_ACTIVITY_LOG", "outside.jsonl")];
+            true -> [Process.environment_entry("PATH", "/usr/bin:/bin")]
+        },
+        "target/quality/fixture.json",
+        if {
+            mode == "reserved-output" -> "TERLAN_BUILD_ACTIVITY_LOG";
+            mode == "reserved-process-output" -> "TERLAN_PROCESS_ACTIVITY_LOG";
+            true -> "OWNER_OUTPUT"
+        },
+        "fixture.v1",
+        "running 1 test",
+        timeout,
+    ).
+
+prepare(root: String): Bool ->
+    let {
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_input) <- File.write_text(OwnerStorage.child(root, "input.txt"), "source");
+        Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "dependency");
+        Ok(_script) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                "set -eu\necho run >> calls\ncase $1 in fail) exit 7;; timeout) sleep 1;; mutate) echo changed > input.txt;; zero) exit 0;; wrong-schema) printf '{\"schema\":\"wrong\"}\\n' > \"$OWNER_OUTPUT\"; echo 'running 1 test'; exit 0;; signal) kill -KILL $$;; esac\nif read ignored; then exit 9; fi\nprintf '{\"schema\":\"fixture.v1\"}\\n' > \"$OWNER_OUTPUT\"\necho 'running 1 test'\n",
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+calls(root: String, expected: String): Bool ->
+    let Ok(source) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+        _ -> false
+    };
+    source == expected.
+
+owned_file_count(root: String, paths: List[String]): Int ->
+    case paths {
+        [] -> 0;
+        [path | rest] ->
+            let present =
+                case File.size(OwnerStorage.child(root, path)) {
+                    Ok(_size) -> 1;
+                    Err(_reason) -> 0
+                };
+            present + owned_file_count(root, rest)
+    }.
+
+outcome(root: String, expected: String): Bool ->
+    let {
+        Ok(ledger) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(root, PreparationOwner.ledger_path(owner("pass", 30000))),
+            );
+        Some(actual) <- OwnerStorage.text(ledger, "outcome");
+        Ok(usage) <- Directory.tree_usage(OwnerStorage.child(root, "target/quality/preparation/candidate"))
+    } else {
+        _ -> false
+    };
+    (let owner = owner("pass", 30000);
+let registered =
+    owned_file_count(
+        root,
+        [
+            PreparationOwner.ledger_path(owner),
+            PreparationOwner.activity_path(owner),
+            PreparationOwner.failed_activity_path(owner),
+            "target/quality/preparation/candidate/fixture.work/output.json",
+            "target/quality/preparation/candidate/fixture.work/native.jsonl",
+        ],
+    );
+actual == expected and usage.regular_file_count == registered).
+
+warm(root: String): Bool ->
+    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let second = PreparationOwner.run_locked(root, owner("pass", 30000));
+    first.valid
+        and not first.reused
+        and second.valid
+        and second.reused
+        and calls(root, "run\n")
+        and outcome(root, "pass").
+
+reusable(root: String, selected: Owner): Bool ->
+    case PreparationOwner.checked_admission(root, selected) {
+        Some(admission) -> admission.reused;
+        _ -> false
+    }.
+
+checked_reuse(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let ledger = OwnerStorage.child(root, PreparationOwner.ledger_path(selected));
+    let pending = String.append(ledger, ".pending");
+    let work = OwnerStorage.child(root, "target/quality/preparation/candidate/fixture.work");
+    let output = OwnerStorage.child(root, selected.output);
+    let native = OwnerStorage.child(root, PreparationOwner.activity_path(selected));
+    let link_target = OwnerStorage.child(root, "link-target");
+    let {
+        false <- reusable(root, selected);
+        true <- PreparationOwner.run_locked(root, selected).valid;
+        Ok(before) <-
+            OwnerStorage.files(
+                root,
+                [
+                    PreparationOwner.ledger_path(selected),
+                    selected.output,
+                    PreparationOwner.activity_path(selected),
+                ],
+            );
+        true <- reusable(root, selected);
+        Ok(unchanged) <-
+            OwnerStorage.files(
+                root,
+                [
+                    PreparationOwner.ledger_path(selected),
+                    selected.output,
+                    PreparationOwner.activity_path(selected),
+                ],
+            );
+        true <- OwnerStorage.digest(before) == OwnerStorage.digest(unchanged);
+        Ok(original_ledger) <- File.read_text(ledger);
+        Ok(original_output) <- File.read_text(output);
+        Ok(original_native) <- File.read_text(native);
+        Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "changed");
+        false <- reusable(root, selected);
+        Ok(_restored) <- File.write_text(OwnerStorage.child(root, "input.txt"), "source");
+        Ok(_bad_output) <- File.write_text(output, "corrupt");
+        false <- reusable(root, selected);
+        Ok(_output_restored) <- File.write_text(output, original_output);
+        Ok(_bad_native) <- File.write_text(native, "corrupt");
+        false <- reusable(root, selected);
+        Ok(_native_restored) <- File.write_text(native, original_native);
+        Ok(document) <- Json.parse(original_ledger);
+        Ok(prepared) <- Json.stringify(document.put("outcome", Json.string("prepared")));
+        Ok(_prepared) <- File.write_text(ledger, prepared);
+        false <- reusable(root, selected);
+        Ok(_ledger_restored) <- File.write_text(ledger, original_ledger);
+        Ok(_pending) <- File.write_text(pending, "interrupted replacement");
+        false <- reusable(root, selected);
+        Ok("interrupted replacement") <- File.read_text(pending);
+        Ok(_pending_removed) <- File.delete(pending);
+        Ok(_work) <- Directory.create_all(work);
+        false <- reusable(root, selected);
+        Ok(_work_removed) <- Directory.remove_all(work);
+        Ok(_target) <- Directory.create_all(link_target);
+        Ok(_link) <- Directory.create_symbolic_link(link_target, work);
+        Ok(_target_removed) <- Directory.remove_all(link_target);
+        false <- reusable(root, selected);
+        Ok(_link_removed) <- File.delete(work);
+        true <- reusable(root, selected);
+        Ok(final_bytes) <-
+            OwnerStorage.files(
+                root,
+                [
+                    PreparationOwner.ledger_path(selected),
+                    selected.output,
+                    PreparationOwner.activity_path(selected),
+                ],
+            );
+        true <- OwnerStorage.digest(before) == OwnerStorage.digest(final_bytes)
+    } else {
+        _ -> false
+    };
+    calls(root, "run\n").
+
+admitted_execution(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let {
+        true <- PreparationOwner.run_locked(root, selected).valid;
+        Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "next source");
+        Some(admission) <- PreparationOwner.checked_admission(root, selected);
+        false <- admission.reused
+    } else {
+        _ -> false
+    };
+    (let executed = PreparationOwner.run_admitted(admission);
+(let {
+    true <- executed.valid and not executed.reused;
+    true <- calls(root, "run\nrun\n");
+    Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output));
+    Ok(_changed_again) <- File.write_text(OwnerStorage.child(root, "input.txt"), "another source");
+    Some(mutating) <- PreparationOwner.checked_admission(root, owner("mutate", 30000));
+    false <- mutating.reused
+} else {
+    _ -> false
+};
+(let rejected = PreparationOwner.run_admitted(mutating);
+(let Ok(retained) <- File.read_text(OwnerStorage.child(root, selected.output)) else {
+    _ -> false
+};
+not rejected.valid
+    and prior == retained
+    and calls(root, "run\nrun\nrun\n")
+    and outcome(root, "failed"))))).
+
+changed(root: String): Bool ->
+    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "new source") else {
+        _ -> false
+    };
+    (let second = PreparationOwner.run_locked(root, owner("pass", 30000));
+(let Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "new dependency") else {
+    _ -> false
+};
+(let third = PreparationOwner.run_locked(root, owner("pass", 30000));
+first.valid
+    and second.valid
+    and not second.reused
+    and third.valid
+    and not third.reused
+    and calls(root, "run\nrun\nrun\n")))).
+
+failure_preserves_output(root: String, mode: String, timeout: Int): Bool ->
+    let Ok(_prior) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "prior evidence") else {
+        _ -> false
+    };
+    (let failed = PreparationOwner.run_locked(root, owner(mode, timeout));
+let failed_recorded = outcome(root, "failed");
+(let Ok(prior) <- File.read_text(OwnerStorage.child(root, "target/quality/fixture.json")) else {
+    _ -> false
+};
+(let resumed = PreparationOwner.run_locked(root, owner("pass", 30000));
+not failed.valid
+    and failed_recorded
+    and prior == "prior evidence"
+    and resumed.valid
+    and not resumed.reused
+    and calls(root, "run\nrun\n")))).
+
+interrupted(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let first = PreparationOwner.run_locked(root, selected);
+    let {
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                PreparationOwner.ledger_path(selected),
+                ledger.put("outcome", Json.string("running")),
+            )
+    } else {
+        _ -> false
+    };
+    (let resumed = PreparationOwner.run_locked(root, selected); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
+
+corrupt_output(root: String): Bool ->
+    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "corrupt") else {
+        _ -> false
+    };
+    (let resumed = PreparationOwner.run_locked(root, owner("pass", 30000)); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
+
+corrupt_ledger(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let first = PreparationOwner.run_locked(root, selected);
+    let Ok(_written) <- File.write_text(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)), "{") else {
+        _ -> false
+    };
+    (let resumed = PreparationOwner.run_locked(root, selected); first.valid and not resumed.valid and calls(root, "run\n")).
+
+changed_producer(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let first = PreparationOwner.run_locked(root, selected);
+    let {
+        Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
+        Ok(_written) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                String.append(source, "# changed producer\n"),
+            )
+    } else {
+        _ -> false
+    };
+    (let resumed = PreparationOwner.run_locked(root, selected); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
+
+configuration_changes(root: String): Bool ->
+    let env = [Process.environment_entry("HOME", root)];
+    let {
+        Ok(before) <- OwnerTools.configuration(root, env);
+        Ok(warm) <- OwnerTools.configuration(root, env);
+        Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, ".cargo"));
+        Ok(_created) <- File.write_text(OwnerStorage.child(root, ".cargo/config.toml"), "[build]\njobs = 1\n");
+        Ok(created) <- OwnerTools.configuration(root, env);
+        Ok(_changed) <- File.write_text(OwnerStorage.child(root, ".cargo/config.toml"), "[build]\njobs = 2\n");
+        Ok(changed) <- OwnerTools.configuration(root, env);
+        Ok(_deleted) <- File.delete(OwnerStorage.child(root, ".cargo/config.toml"));
+        Ok(restored) <- OwnerTools.configuration(root, env)
+    } else {
+        _ -> false
+    };
+    before == warm and before != created and created != changed and restored == before.
+
+pending_write_is_discarded(root: String): Bool ->
+    let selected = owner("pass", 30000);
+    let first = PreparationOwner.run_locked(root, selected);
+    let Ok(_pending) <-
+        File.write_text(
+            OwnerStorage.child(
+                root,
+                String.append(PreparationOwner.ledger_path(selected), ".pending"),
+            ),
+            "{partial",
+        ) else {
+        _ -> false
+    };
+    (let second = PreparationOwner.run_locked(root, selected);
+first.valid
+    and second.valid
+    and second.reused
+    and count_completed_files(root)
+    and calls(root, "run\n")).
+
+count_completed_files(root: String): Bool ->
+    let Ok(usage) <- Directory.tree_usage(OwnerStorage.child(root, "target/quality/preparation/candidate")) else {
+        _ -> false
+    };
+    usage.regular_file_count == 2.
+
+optional_mutation(root: String, mode: String): Bool ->
+    let optional = OwnerStorage.child(root, "optional.txt");
+    let selected = PreparationOwner.with_optional_dependencies(owner("pass", 30000), ["optional.txt"]);
+    let {
+        Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
+        Ok(_producer) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                String.replace(
+                    source,
+                    "case $1 in",
+                    "case $1 in optional-create) printf input > optional.txt;; optional-remove) rm optional.txt;;",
+                ),
+            );
+        true <-
+            if {
+                mode == "optional-remove" -> case File.write_text(optional, "initial") {
+                    Ok(_written) -> true;
+                    _ -> false
+                };
+                true -> true
+            }
+    } else {
+        _ -> false
+    };
+    (let first = PreparationOwner.run_locked(root, selected);
+(let {
+    true <- first.valid;
+    Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output))
+} else {
+    _ -> false
+};
+(let changed =
+    PreparationOwner.run_locked(
+        root,
+        PreparationOwner.with_optional_dependencies(owner(mode, 30000), ["optional.txt"]),
+    );
+(let {
+    false <- changed.valid;
+    Ok(preserved) <- File.read_text(OwnerStorage.child(root, selected.output));
+    true <- preserved == prior
+} else {
+    _ -> false
+};
+(let resumed = PreparationOwner.run_locked(root, selected);
+let warm = PreparationOwner.run_locked(root, selected);
+resumed.valid
+    and not resumed.reused
+    and warm.valid
+    and warm.reused
+    and calls(root, "run\nrun\nrun\n")
+    and outcome(root, "pass")))))).
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-owner-") else {
+        _ -> false
+    };
+    (let valid =
+    prepare(root)
+        and case mode {
+    "warm" -> warm(root);
+    "checked-reuse" -> checked_reuse(root);
+    "admitted-execution" -> admitted_execution(root);
+    "changed" -> changed(root);
+    "interrupted" -> interrupted(root);
+    "corrupt-output" -> corrupt_output(root);
+    "corrupt-ledger" -> corrupt_ledger(root);
+    "changed-producer" -> changed_producer(root);
+    "configuration" -> configuration_changes(root);
+    "pending" -> pending_write_is_discarded(root);
+    "optional-create" -> optional_mutation(root, mode);
+    "optional-remove" -> optional_mutation(root, mode);
+    "timeout" -> failure_preserves_output(root, "timeout", 50);
+    other -> failure_preserves_output(root, other, 30000)
+};
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+reported(mode, valid))).
+
+native_scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-native-owner-") else {
+        _ -> false
+    };
+    (let valid = prepare(root) and native_owner_check(root, mode);
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+reported(String.append("native-", mode), valid))).
+
+reported(mode: String, valid: Bool): Bool ->
+    let _printed =
+        Console.println(
+            String.concat(
+                [
+                    "[preparation owner test] ",
+                    mode,
+                    if {
+                        valid -> ": passed";
+                        true -> ": failed"
+                    },
+                ],
+            ),
+        );
+    valid.
+
+native_owner_check(root: String, mode: String): Bool ->
+    let source =
+        case mode {
+            "incomplete" -> NativeActivityTest.start("one", "module-object");
+            "duplicate" ->
+                String.append(NativeActivityTest.object("one"), NativeActivityTest.object("two"));
+            "malformed" -> "not json\n";
+            _ -> NativeActivityTest.object("one")
+        };
+    let copy =
+        if {
+            mode == "missing" -> "rm -- \"$TERLAN_BUILD_ACTIVITY_LOG\"\n";
+            true -> "cat -- native-input.jsonl >> \"$TERLAN_BUILD_ACTIVITY_LOG\"\n"
+        };
+    let {
+        Ok(_input) <- File.write_text(OwnerStorage.child(root, "native-input.jsonl"), source);
+        Ok(_prior) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/fixture.json"),
+                "prior evidence",
+            );
+        Ok(_producer) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                String.concat(
+                    [
+                        "set -eu\necho run >> calls\n",
+                        copy,
+                        "printf '{\"schema\":\"fixture.v1\"}\\n' > \"$OWNER_OUTPUT\"\necho 'running 1 test'\n",
+                    ],
+                ),
+            )
+    } else {
+        _ -> false
+    };
+    (let selected = PreparationOwner.with_dependencies(owner("pass", 30000), ["native-input.jsonl"]);
+let result = PreparationOwner.run_locked(root, selected);
+if {
+    mode == "warm" -> result.valid and not result.reused and native_warm(root, selected, source);
+    true -> let Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output)) else {
+        _ -> false
+    };
+    not result.valid
+        and prior == "prior evidence"
+        and outcome(root, "failed")
+        and calls(root, "run\n")
+}).
+
+native_warm(root: String, selected: Owner, source: String): Bool ->
+    let path = OwnerStorage.child(root, PreparationOwner.activity_path(selected));
+    let Ok(before) <- File.read_text(path) else {
+        _ -> false
+    };
+    (let warm = PreparationOwner.run_locked(root, selected);
+(let {
+    true <- warm.valid and warm.reused and calls(root, "run\n");
+    Ok(retained) <- File.read_text(path);
+    true <- retained == before and NativeActivityTest.owned_log(retained, source);
+    Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
+    Ok(summary) <- ledger.get("native_inventory");
+    Ok(completed) <- summary.get("completed_work");
+    Ok(count) <- completed.as_int();
+    true <- count == 1;
+    Ok(_tampered) <- File.write_text(path, "corrupt evidence")
+} else {
+    _ -> false
+};
+(let repaired = PreparationOwner.run_locked(root, selected);
+(let {
+    true <- repaired.valid and not repaired.reused and calls(root, "run\nrun\n");
+    Ok(_removed) <- File.delete(path)
+} else {
+    _ -> false
+};
+(let missing = PreparationOwner.run_locked(root, selected); missing.valid and not missing.reused and calls(root, "run\nrun\nrun\n")))))).
+
+@test
+pub native_inventory_is_owned_retained_and_validated_on_reuse(): Bool ->
+    native_scenario("warm").
+
+@test
+pub native_inventory_destination_cannot_be_overridden(): Bool ->
+    not PreparationOwner.valid_declaration(owner("reserved-environment", 30000))
+        and not PreparationOwner.valid_declaration(owner("reserved-output", 30000))
+        and not PreparationOwner.valid_declaration(owner("reserved-process-environment", 30000))
+        and not PreparationOwner.valid_declaration(owner("reserved-process-output", 30000)).
+
+@test
+pub incomplete_duplicate_missing_and_malformed_native_work_cannot_be_sealed(): Bool ->
+    native_scenario("incomplete")
+        and native_scenario("duplicate")
+        and native_scenario("missing")
+        and native_scenario("malformed").
+
+@test
+pub unchanged_owner_is_executed_once(): Bool ->
+    scenario("warm").
+
+@test
+pub checked_admission_reuses_only_verified_evidence_and_rechecks_producer_inputs(): Bool ->
+    scenario("checked-reuse") and scenario("admitted-execution").
+
+@test
+pub changed_inputs_and_dependencies_invalidate_owner(): Bool ->
+    scenario("changed").
+
+@test
+pub interrupted_owner_is_not_reused(): Bool ->
+    scenario("interrupted").
+
+@test
+pub corrupted_output_is_not_reused(): Bool ->
+    scenario("corrupt-output").
+
+@test
+pub failed_owner_preserves_prior_evidence_and_resumes(): Bool ->
+    scenario("fail").
+
+@test
+pub timed_out_owner_preserves_prior_evidence_and_resumes(): Bool ->
+    scenario("timeout").
+
+@test
+pub zero_test_owner_cannot_be_sealed(): Bool ->
+    scenario("zero").
+
+@test
+pub inputs_changed_during_execution_cannot_be_sealed(): Bool ->
+    scenario("mutate").
+
+@test
+pub corrupt_ledger_fails_without_replaying_owner(): Bool ->
+    scenario("corrupt-ledger").
+
+@test
+pub changed_producer_invalidates_owner(): Bool ->
+    scenario("changed-producer").
+
+@test
+pub wrong_schema_preserves_prior_evidence(): Bool ->
+    scenario("wrong-schema").
+
+@test
+pub killed_producer_preserves_prior_evidence_and_resumes(): Bool ->
+    scenario("signal").
+
+@test
+pub cargo_configuration_creation_change_and_removal_affect_identity(): Bool ->
+    scenario("configuration").
+
+@test
+pub interrupted_pending_write_does_not_replay_completed_owner(): Bool ->
+    scenario("pending").
+
+@test
+pub optional_input_created_during_execution_cannot_be_sealed(): Bool ->
+    scenario("optional-create").
+
+@test
+pub optional_input_removed_during_execution_cannot_be_sealed(): Bool ->
+    scenario("optional-remove").
+
+@test
+pub native_retention_uses_exactly_the_inspected_snapshot(): Bool ->
+    OwnerNativeTest.self_test().
+
+@test
+pub completed_owner_publication_recovers_without_producer_replay(): Bool ->
+    OwnerArtifactsTest.self_test()
+        and OwnerCommitTest.self_test()
+        and OwnerDirectoryTest.self_test()
+        and OwnerDirectoryOwnerTest.self_test().
+
+pub self_test(): Bool ->
+    completed_owner_publication_recovers_without_producer_replay()
+        and checked_admission_reuses_only_verified_evidence_and_rechecks_producer_inputs()
+        and unchanged_owner_is_executed_once()
+        and changed_inputs_and_dependencies_invalidate_owner()
+        and interrupted_owner_is_not_reused()
+        and corrupted_output_is_not_reused()
+        and failed_owner_preserves_prior_evidence_and_resumes()
+        and timed_out_owner_preserves_prior_evidence_and_resumes()
+        and zero_test_owner_cannot_be_sealed()
+        and inputs_changed_during_execution_cannot_be_sealed()
+        and corrupt_ledger_fails_without_replaying_owner()
+        and changed_producer_invalidates_owner()
+        and wrong_schema_preserves_prior_evidence()
+        and killed_producer_preserves_prior_evidence_and_resumes()
+        and cargo_configuration_creation_change_and_removal_affect_identity()
+        and interrupted_pending_write_does_not_replay_completed_owner()
+        and optional_input_created_during_execution_cannot_be_sealed()
+        and optional_input_removed_during_execution_cannot_be_sealed()
+        and native_inventory_is_owned_retained_and_validated_on_reuse()
+        and native_inventory_destination_cannot_be_overridden()
+        and incomplete_duplicate_missing_and_malformed_native_work_cannot_be_sealed()
+        and native_retention_uses_exactly_the_inspected_snapshot().

@@ -44,20 +44,12 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-
-sha256_file() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{ print $1 }'
-  elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$1" | awk '{ print $1 }'
-  else
-    echo "publish requires sha256sum or shasum" >&2
-    return 127
-  fi
-}
+command -v jq >/dev/null 2>&1 || { echo "publish requires jq" >&2; exit 127; }
 
 read_remote_assets() {
-  gh api "repos/$repository/releases/tags/$tag" \
+  # GitHub does not reliably expose drafts through the tag lookup endpoint.
+  [[ "$release_id" =~ ^[0-9]+$ ]] || return 1
+  gh api "repos/$repository/releases/$release_id" \
     --jq '.assets[] | [.name, (.size | tostring), (.digest // "")] | @tsv' \
     | LC_ALL=C sort
 }
@@ -84,26 +76,27 @@ release_promotion=(
   --script-eval --
 )
 
-TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" verify --version "$version"
-mapfile -t artifacts < <(
-  TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" list --version "$version"
-)
-
-if [[ "${#artifacts[@]}" -eq 0 ]]; then
-  echo "sealed release candidate contains no publishable artifacts" >&2
-  exit 1
-fi
-
 work_dir="$(mktemp -d)"
+publication_plan="$work_dir/publication-plan.json"
 notes="$work_dir/notes.md"
 changelog_section="$work_dir/changelog.md"
 expected_assets="$work_dir/expected-assets.txt"
 actual_assets="$work_dir/actual-assets.txt"
 expected_asset_metadata="$work_dir/expected-asset-metadata.tsv"
 actual_asset_metadata="$work_dir/actual-asset-metadata.tsv"
-published_body="$work_dir/published-body.md"
 trap 'rm -rf "$work_dir"' EXIT
-candidate_seal="$(TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" digest --version "$version")"
+# One checked export owns verification, artifact inventory, sizes, and hashes.
+# A failing producer cannot be hidden by process-substitution exit semantics.
+TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" publication-plan --version "$version" > "$publication_plan"
+jq -e --arg version "$version" '
+  .schema == "terlan.publication-plan.v1" and .version == $version
+  and (.candidate_seal | test("^sha256:[0-9a-f]{64}$"))
+  and (.artifacts | type == "array" and length > 1)
+  and all(.artifacts[];
+    (.path | type == "string") and (.size_bytes | type == "number" and . > 0)
+    and (.sha256 | test("^sha256:[0-9a-f]{64}$")))
+' "$publication_plan" >/dev/null
+mapfile -t artifacts < <(jq -r '.artifacts[].path' "$publication_plan")
 awk -v version="$version" '
   $0 == "## " version { in_section = 1; next }
   in_section && /^## / { exit }
@@ -113,13 +106,17 @@ if ! grep -q '[^[:space:]]' "$changelog_section"; then
   echo "CHANGELOG.md is missing release notes for $version" >&2
   exit 1
 fi
-printf 'Release candidate seal: `%s`\n\n' "$candidate_seal" > "$notes"
-cat "$changelog_section" >> "$notes"
+# Human-facing notes come only from the curated changelog. Cryptographic
+# identity remains in the uploaded candidate manifest, not the announcement.
+cp "$changelog_section" "$notes"
 
 : > "$expected_assets"
-: > "$expected_asset_metadata"
 for artifact in "${artifacts[@]}"; do
   case "$artifact" in
+    dist/*/*|*\\*|*$'\t'*|*$'\n'*)
+      echo "release candidate contains an unsafe artifact path: $artifact" >&2
+      exit 1
+      ;;
     dist/*) ;;
     *)
       echo "release candidate contains an artifact outside dist/: $artifact" >&2
@@ -131,41 +128,63 @@ for artifact in "${artifacts[@]}"; do
     exit 1
   fi
   artifact_name="$(basename "$artifact")"
-  artifact_size="$(wc -c < "$artifact" | tr -d '[:space:]')"
-  artifact_digest="$(sha256_file "$artifact")"
   printf '%s\n' "$artifact_name" >> "$expected_assets"
-  printf '%s\t%s\tsha256:%s\n' "$artifact_name" "$artifact_size" "$artifact_digest" \
-    >> "$expected_asset_metadata"
 done
+jq -r '.artifacts[] | [(.path | split("/") | last), (.size_bytes | tostring), .sha256] | @tsv' \
+  "$publication_plan" > "$expected_asset_metadata"
 LC_ALL=C sort -o "$expected_assets" "$expected_assets"
 LC_ALL=C sort -o "$expected_asset_metadata" "$expected_asset_metadata"
 
-if [[ "$(wc -l < "$expected_assets" | tr -d ' ')" -ne "${#artifacts[@]}" ]]; then
+if [[ "$(uniq "$expected_assets" | wc -l | tr -d ' ')" -ne "${#artifacts[@]}" ]]; then
   echo "release candidate contains duplicate artifact names" >&2
   exit 1
 fi
 
-if gh release view "$tag" >/dev/null 2>&1; then
-  is_draft="$(gh release view "$tag" --json isDraft --jq .isDraft)"
+# A failed lookup is not proof of absence: authentication/network errors must
+# never be interpreted as permission to create another release. The list API
+# also sees drafts when the tag lookup endpoint does not.
+if ! gh release view "$tag" --json databaseId,isDraft,body > "$work_dir/release.json"; then
+  gh api --paginate "repos/$repository/releases?per_page=100" \
+    --jq '.[] | {tag_name, id, draft, body}' > "$work_dir/releases.json"
+  jq -s --arg tag "$tag" '
+    map(select(.tag_name == $tag)) |
+    if length == 0 then null
+    elif length == 1 then .[0] | {databaseId: .id, isDraft: .draft, body}
+    else error("multiple releases found for the same tag") end
+  ' "$work_dir/releases.json" > "$work_dir/release.json"
+fi
+jq -e '(. == null) or
+  (type == "object" and (.databaseId | type == "number" and . > 0)
+   and (.isDraft | type == "boolean"))' "$work_dir/release.json" >/dev/null
+if jq -e '. != null' "$work_dir/release.json" >/dev/null; then
+  release_id="$(jq -r '.databaseId' "$work_dir/release.json")"
+  is_draft="$(jq -r '.isDraft' "$work_dir/release.json")"
   if [[ "$is_draft" != "true" ]]; then
     read_remote_assets > "$actual_asset_metadata"
     cut -f1 "$actual_asset_metadata" > "$actual_assets"
-    gh release view "$tag" --json body --jq .body > "$published_body"
+    # The exact manifest digest binds the candidate seal. Editorial wording is
+    # not an integrity signal and must not prevent an otherwise valid retry.
     if cmp -s "$expected_assets" "$actual_assets" \
-      && cmp -s "$expected_asset_metadata" "$actual_asset_metadata" \
-      && grep -Fq "Release candidate seal: \`$candidate_seal\`" "$published_body"; then
+      && cmp -s "$expected_asset_metadata" "$actual_asset_metadata"; then
       echo "Release $tag is already public with the exact sealed asset set."
       exit 0
     fi
     echo "release $tag is public but does not match the sealed candidate; refusing to mutate it" >&2
     exit 1
   fi
-  gh release edit "$tag" --title "$tag" --notes-file "$notes"
+  gh release edit "$tag" --title "Terlan $version" --notes-file "$notes"
 else
-  gh release create "$tag" --draft --verify-tag --title "$tag" --notes-file "$notes"
+  gh release create "$tag" --draft --verify-tag --title "Terlan $version" --notes-file "$notes"
+  release_id="$(gh release view "$tag" --json databaseId --jq .databaseId)"
 fi
 
+read_remote_assets > "$actual_asset_metadata"
 for artifact in "${artifacts[@]}"; do
+  expected_row="$(awk -F '\t' -v name="$(basename "$artifact")" '$1 == name' "$expected_asset_metadata")"
+  if grep -Fxq "$expected_row" "$actual_asset_metadata"; then
+    echo "Reusing verified upload $artifact"
+    continue
+  fi
   echo "Uploading $artifact"
   gh release upload "$tag" "$artifact" --clobber
 done

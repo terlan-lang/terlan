@@ -3,6 +3,7 @@
  */
 module scripts.self_validation.LeanProofNativeBoundaryTest.
 
+import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
@@ -67,6 +68,7 @@ struct Inputs {
     runtime: String,
     runtime_test: String,
     dispatch: String,
+    dispatch_values: String,
     metadata: String,
     worker: String,
 }.
@@ -685,7 +687,7 @@ generated_manifest(
                     path = root_path(
                         root,
                         String.append(
-                            "build/artifacts/native_boundaries/",
+                            "target/quality/proof-artifacts/native_boundaries/",
                             basename(source.source_path),
                         ),
                     ),
@@ -787,7 +789,10 @@ binding_file(
         Ok(rendered) ->
             Some(
                 GeneratedFile(
-                    path = root_path(root, "build/artifacts/native_boundaries/proof-manifest-binding.json"),
+                    path = root_path(
+                        root,
+                        "target/quality/proof-artifacts/native_boundaries/proof-manifest-binding.json",
+                    ),
                     contents = String.append(rendered, "\n"),
                     manifest_digest = digest,
                     source_digest = "",
@@ -800,7 +805,7 @@ binding_file(
 @pure
 no_legacy_fallback(inputs: Inputs): Bool ->
     not contains_all_any(
-    [inputs.runtime, inputs.dispatch, inputs.metadata, inputs.worker],
+    [inputs.runtime, inputs.dispatch, inputs.dispatch_values, inputs.metadata, inputs.worker],
     ["load_nif", "erl_nif_", "rustler::", "erts.nif."],
 ).
 
@@ -826,13 +831,14 @@ fixed_paths(root: String): List[String] ->
         root_path(root, "crates/terlan/src/runtime/native_boundary/runtime.rs"),
         root_path(root, "crates/terlan/src/runtime/native_boundary/runtime_test.rs"),
         root_path(root, "crates/terlan/src/runtime/native_boundary/dispatch.rs"),
+        root_path(root, "crates/terlan/src/runtime/native_boundary/dispatch/value.rs"),
         root_path(root, "crates/terlan/src/runtime/native_boundary/metadata.rs"),
         root_path(root, "crates/terlan/src/runtime/native_boundary/worker.rs"),
     ].
 
 inputs_from_files(files: List[TextFile]): Option[Inputs] ->
     case files {
-        [proof, policy, security, runtime, runtime_test, dispatch, metadata, worker] ->
+        [proof, policy, security, runtime, runtime_test, dispatch, dispatch_values, metadata, worker] ->
             Some(
                 Inputs(
                     proof = proof.contents,
@@ -841,6 +847,7 @@ inputs_from_files(files: List[TextFile]): Option[Inputs] ->
                     runtime = runtime.contents,
                     runtime_test = runtime_test.contents,
                     dispatch = dispatch.contents,
+                    dispatch_values = dispatch_values.contents,
                     metadata = metadata.contents,
                     worker = worker.contents,
                 ),
@@ -858,18 +865,40 @@ command(program: String, arguments: List[String], root: String, working: String)
         .with_output_limit_bytes(4194304).
 
 lean_command(root: String): Command ->
-    command("lake", ["env", "lean", "native_boundary/NativeBoundary.lean"], root, "proofs/lean").
+    command(
+        root_path(root, "target/debug/terlan-quality"),
+        [
+            if {
+                environment_or("TERLAN_NATIVE_BOUNDARY_PROOF_MODE", "standalone") == "cached" -> "lean-proof-replay-cached";
+                true -> "lean-proof-replay"
+            },
+            "proofs/lean/native_boundary/NativeBoundary.lean",
+        ],
+        root,
+        ".",
+    ).
 
 oracle_commands(root: String, selectors: List[String]): List[Command] ->
+    if {
+        rust_coverage_requested() -> covered_oracle_commands(root, selectors);
+        true -> [
+            command(
+                "cargo",
+                List.concat(
+                    ["test", "--locked", "-p", "terlan", "--lib", "--", "--exact"],
+                    selectors,
+                ),
+                root,
+                ".",
+            ),
+        ]
+    }.
+
+covered_oracle_commands(root: String, selectors: List[String]): List[Command] ->
     case selectors {
         [] -> empty_commands();
         [selector | rest] ->
-            [command(
-    "cargo",
-    ["test", "--locked", "-p", "terlan", "--lib", selector, "--", "--exact"],
-    root,
-    ".",
-) | oracle_commands(root, rest)]
+            [rust_oracle_command(root, selector) | covered_oracle_commands(root, rest)]
     }.
 
 empty_commands(): List[Command] -> [].
@@ -879,9 +908,104 @@ output_passed(output: Output): Bool ->
 
 completion_passed(completion: BatchCompletion): Bool ->
     case {Process.completion_output(completion), Process.completion_error(completion)} {
-        {Some(output), None} -> output_passed(output);
+        {Some(output), None} ->
+            if {
+                rust_coverage_requested() -> rust_oracle_output_holds(Process.status(output), Process.stdout(output), true);
+                true -> standalone_oracles_passed(Process.status(output), Process.stdout(output))
+            };
         _ -> false
     }.
+
+rust_coverage_requested(): Bool ->
+    case Environment.get("TERLAN_RUST_COVERAGE_CONTEXT") {
+        Some(_endpoint) -> true;
+        _ -> false
+    }.
+
+rust_oracle_owner(): String ->
+    if {
+        not rust_coverage_requested() -> "standalone-rust-test";
+        true -> case Environment.get("TERLAN_RUST_COVERAGE_SCOPE") {
+            Some("hosted-source") -> "hosted-canonical-source-tests";
+            _ -> "rust-test-suite"
+        }
+    }.
+
+rust_oracle_command(root: String, selector: String): Command ->
+    let arguments = ["--locked", "-p", "terlan", "--lib", selector, "--", "--exact"];
+    Process.command(root_path(root, "target/validation-tools/terlan-test-orchestrator"))
+        .with_arguments(["--coverage-request" | arguments])
+        .with_working_directory(root)
+        .with_timeout_ms(30000)
+        .with_output_limit_bytes(131072).
+
+standalone_oracles_passed(status: Int, output: String): Bool ->
+    let normalized = String.replace(output, "\r\n", "\n");
+    status == 0
+        and String.contains(normalized, "running 4 tests\n")
+        and String.contains(normalized, "test result: ok. 4 passed; 0 failed; 0 ignored;")
+        and oracle_names_passed(normalized, runtime_oracles()).
+
+oracle_names_passed(output: String, selectors: List[String]): Bool ->
+    case selectors {
+        [] -> true;
+        [selector | rest] ->
+            String.contains(output, String.append("\ntest ", String.append(selector, " ... ok\n")))
+                and oracle_names_passed(output, rest)
+    }.
+
+oracle_fixture(selectors: List[String]): String ->
+    case selectors {
+        [] -> "test result: ok. 4 passed; 0 failed; 0 ignored;\n";
+        [selector | rest] ->
+            String.append(
+                "test ",
+                String.append(selector, String.append(" ... ok\n", oracle_fixture(rest))),
+            )
+    }.
+
+@test
+pub standalone_oracles_require_all_exact_names_and_no_skips(): Bool ->
+    let output = String.append("running 4 tests\n", oracle_fixture(runtime_oracles()));
+    standalone_oracles_passed(0, output)
+        and standalone_oracles_passed(0, String.replace(output, "\n", "\r\n"))
+        and not standalone_oracles_passed(1, output)
+        and not standalone_oracles_passed(0, String.replace(output, " ... ok", " ... ignored"))
+        and not standalone_oracles_passed(
+    0,
+    String.replace(output, "runtime_executes_base64_operations_through_terms", "unrelated_test"),
+)
+        and not standalone_oracles_passed(0, "running 0 tests\ntest result: ok. 0 passed; 0 failed; 0 ignored;")
+        and not standalone_oracles_passed(
+    0,
+    String.replace(output, "4 passed; 0 failed; 0 ignored;", "3 passed; 0 failed; 1 ignored;"),
+)
+        and not standalone_oracles_passed(0, String.replace(output, "4 tests", "3 tests")).
+
+rust_oracle_output_holds(status: Int, output: String, reused: Bool): Bool ->
+    status == 0 and (reused or exact_rust_test_output_holds(output)).
+
+exact_rust_test_output_holds(output: String): Bool ->
+    let normalized = String.replace(output, "\r\n", "\n");
+    String.contains(normalized, "running 1 test\n")
+        and String.contains(normalized, "test result: ok. 1 passed; 0 failed; 0 ignored;").
+
+@test
+pub rust_oracle_requires_one_passing_non_ignored_test(): Bool ->
+    exact_rust_test_output_holds("running 1 test\ntest result: ok. 1 passed; 0 failed; 0 ignored;")
+        and not exact_rust_test_output_holds("running 0 tests\ntest result: ok. 0 passed; 0 failed; 0 ignored;")
+        and not exact_rust_test_output_holds("running 1 test\ntest result: ok. 0 passed; 0 failed; 1 ignored;").
+
+@test
+pub rust_oracle_reuse_requires_success_and_preserves_standalone_output_contract(): Bool ->
+    rust_oracle_output_holds(0, "", true)
+        and not rust_oracle_output_holds(1, "", true)
+        and not rust_oracle_output_holds(0, "", false)
+        and not rust_oracle_output_holds(
+    1,
+    "running 1 test\ntest result: ok. 1 passed; 0 failed; 0 ignored;",
+    false,
+).
 
 completions_passed(completions: List[BatchCompletion]): Bool ->
     case completions {
@@ -894,6 +1018,10 @@ runtime_source_digests(inputs: Inputs): Json ->
         .put(
             "crates/terlan/src/runtime/native_boundary/dispatch.rs",
             Json.string(sha256(inputs.dispatch)),
+        )
+        .put(
+            "crates/terlan/src/runtime/native_boundary/dispatch/value.rs",
+            Json.string(sha256(inputs.dispatch_values)),
         )
         .put(
             "crates/terlan/src/runtime/native_boundary/runtime.rs",
@@ -950,6 +1078,7 @@ runtime_report(
             .put("manifest_row_count", Json.int(row_count))
             .put("proof_digest", Json.string(proof_digest))
             .put("runtime_oracles", oracle_rows(runtime_oracles(), proof_digest, inputs))
+            .put("runtime_oracle_owner", Json.string(rust_oracle_owner()))
             .put("schema", Json.string("terlan.native-boundary-proof-runtime-oracles.v1"))
             .put("status", Json.string("pass"));
     let signature = canonical_digest(report);
@@ -958,12 +1087,21 @@ runtime_report(
         Err(_reason) -> None
     }.
 
-write_generated_files(files: List[GeneratedFile]): Bool ->
+output_directory(root: String): String ->
+    environment_or(
+        "TERLAN_NATIVE_BOUNDARY_OUTPUT",
+        root_path(root, "target/quality/proof-artifacts/native_boundaries"),
+    ).
+
+output_file(root: String, name: String): String ->
+    root_path(output_directory(root), name).
+
+write_generated_files(root: String, files: List[GeneratedFile]): Bool ->
     case files {
         [] -> true;
         [file | rest] ->
-            case write_text(file.path, file.contents) {
-                Ok(Unit) -> write_generated_files(rest);
+            case write_text(output_file(root, basename(file.path)), file.contents) {
+                Ok(Unit) -> write_generated_files(root, rest);
                 Err(_reason) -> false
             }
     }.
@@ -987,8 +1125,19 @@ if {
     not promotion_policy_holds(inputs.promotion_policy) -> fail("promotion policy is not fail-closed");
     not build.valid -> fail("source manifest generation failed");
     not no_legacy_fallback(inputs) -> fail("legacy NativeBoundary fallback symbol is forbidden");
-    true -> prepare_output(root, inputs, promotion, proof_digest, build)
+    true -> run_proof_and_oracles(root, inputs, promotion, proof_digest, build)
 }).
+
+prepare_directory(root: String): Bool ->
+    let output = output_directory(root);
+    let retained =
+        case Environment.get("TERLAN_NATIVE_BOUNDARY_OUTPUT") {
+            Some(_private) -> true;
+            None ->
+                let _removed = remove_all(output);
+                true
+        };
+    retained and create_all(output) == Ok(Unit).
 
 prepare_output(
     root: String,
@@ -997,24 +1146,19 @@ prepare_output(
     proof_digest: String,
     build: BuildState,
 ): Bool ->
-    let output = root_path(root, "build/artifacts/native_boundaries");
-    let _removed = remove_all(output);
-    case create_all(output) {
-        Ok(Unit) ->
-            case binding_file(root, proof_digest, promotion, build.files) {
-                Some(binding) ->
-                    if {
-                        write_generated_files([binding | build.files]) -> run_proof_and_oracles(root, inputs, proof_digest, build);
-                        true -> fail("generated NativeBoundary evidence could not be written")
-                    };
-                None -> fail("proof binding report could not be rendered")
-            };
-        Err(_reason) -> fail("NativeBoundary output directory could not be created")
-    }.
+    let {
+        Some(binding) <- binding_file(root, proof_digest, promotion, build.files);
+        true <- prepare_directory(root);
+        true <- write_generated_files(root, [binding | build.files])
+    } else {
+        _ -> fail("generated NativeBoundary evidence could not be staged")
+    };
+    persist_runtime_report(root, inputs, proof_digest, build).
 
 run_proof_and_oracles(
     root: String,
     inputs: Inputs,
+    promotion: Json,
     proof_digest: String,
     build: BuildState,
 ): Bool ->
@@ -1022,17 +1166,23 @@ run_proof_and_oracles(
         Ok(output) ->
             if {
                 not output_passed(output) -> fail("Lean NativeBoundary proof command failed");
-                true -> run_runtime_oracles(root, inputs, proof_digest, build)
+                true -> run_runtime_oracles(root, inputs, promotion, proof_digest, build)
             };
         Err(reason) -> fail(Process.error_message(reason))
     }.
 
-run_runtime_oracles(root: String, inputs: Inputs, proof_digest: String, build: BuildState): Bool ->
+run_runtime_oracles(
+    root: String,
+    inputs: Inputs,
+    promotion: Json,
+    proof_digest: String,
+    build: BuildState,
+): Bool ->
     case Process.run_many(Process.batch(oracle_commands(root, runtime_oracles()), 2)) {
         Ok(batch) ->
             if {
                 not completions_passed(Process.completions(batch)) -> fail("one or more NativeBoundary runtime oracles failed");
-                true -> persist_runtime_report(root, inputs, proof_digest, build)
+                true -> prepare_output(root, inputs, promotion, proof_digest, build)
             };
         Err(reason) -> fail(Process.error_message(reason))
     }.
@@ -1045,10 +1195,7 @@ persist_runtime_report(
 ): Bool ->
     case runtime_report(proof_digest, generated_file_count(build.files), build.trace_count, inputs) {
         Some(report) ->
-            case write_text(
-    root_path(root, "build/artifacts/native_boundaries/runtime-oracle-signatures.json"),
-    report,
-) {
+            case write_text(output_file(root, "runtime-oracle-signatures.json"), report) {
                 Ok(Unit) ->
                     let _printed =
                         println(

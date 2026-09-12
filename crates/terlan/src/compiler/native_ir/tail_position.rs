@@ -676,7 +676,7 @@ fn attach_reduction_yields(
 }
 
 /// Computes canonical SCC identities with iterative Kosaraju traversals.
-fn strongly_connected_components(graph: &[Vec<usize>]) -> Vec<usize> {
+pub(super) fn strongly_connected_components(graph: &[Vec<usize>]) -> Vec<usize> {
     let mut visited = vec![false; graph.len()];
     let mut finish_order = Vec::with_capacity(graph.len());
     for start in 0..graph.len() {

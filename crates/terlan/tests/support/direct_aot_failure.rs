@@ -70,7 +70,8 @@ pub(super) fn assert_vm_failure_transition(image_path: &Path) {
         "child Failure was not isolated from its parent:\n{}",
         String::from_utf8_lossy(&isolated.stderr)
     );
-    for entry in ["fail_self"] {
+    {
+        let entry = "fail_self";
         let failed = run(entry);
         assert!(!failed.status.success(), "{entry} unexpectedly succeeded");
         let stderr = String::from_utf8_lossy(&failed.stderr);

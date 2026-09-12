@@ -218,7 +218,7 @@ pub(crate) fn core_expr_is_lean_modeled(expr: &CoreExpr) -> bool {
         CoreExpr::Case { scrutinee, clauses } => {
             core_expr_is_lean_modeled(scrutinee) && core_case_clauses_are_lean_modeled(clauses)
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             params.iter().all(core_pattern_is_lean_modeled) && core_expr_is_lean_modeled(body)
         }
         CoreExpr::BinaryOp {

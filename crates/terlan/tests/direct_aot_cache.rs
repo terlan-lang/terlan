@@ -133,7 +133,7 @@ fn native_aot_cache_verifies_and_recovers_every_required_file() {
     let original_image_sha = Sha256::digest(fs::read(&deployed_image).expect("read native image"));
     let cache_root = output_dir.join(".terlan/native-aot");
     let original_cache = only_cache_directory(&cache_root);
-    let files = cache_files(&original_cache, &image_name);
+    let files = cache_files(&original_cache, image_name);
     let manifest = fs::read_to_string(&files.manifest).expect("read native cache manifest");
     assert!(manifest.starts_with("terlan-native-cache-v1\n"));
     assert_eq!(
@@ -189,7 +189,7 @@ fn native_aot_cache_verifies_and_recovers_every_required_file() {
         .into_iter()
         .find(|path| path != &original_cache)
         .expect("variant cache directory");
-    let variant_files = cache_files(&variant_cache, &image_name);
+    let variant_files = cache_files(&variant_cache, image_name);
     let variant_image = fs::read(&variant_files.image).expect("read variant image");
 
     fs::write(&source, SOURCE_41).expect("restore original cache input");
@@ -231,7 +231,7 @@ fn native_aot_cache_verifies_and_recovers_every_required_file() {
         .contains(&format!("input-sha256 {original_input}\n")));
 
     fs::write(&files.image, &variant_image).expect("place valid image under wrong cache key");
-    rewrite_manifest_file_record(&files.manifest, &image_name, &variant_image);
+    rewrite_manifest_file_record(&files.manifest, image_name, &variant_image);
     run_build(&root, &source, &output_dir, true, None);
     assert_eq!(
         Sha256::digest(fs::read(&deployed_image).expect("read recovered native image")),
@@ -322,11 +322,11 @@ fn concurrent_native_aot_builds_publish_one_verified_cache_entry() {
     let image_name = "cache_probe.tvm";
     let files = cache_files(&cache, image_name);
     assert_eq!(
-        fs::read(&root.join("build-one/vm").join(image_name)).unwrap(),
+        fs::read(root.join("build-one/vm").join(image_name)).unwrap(),
         fs::read(&files.image).unwrap()
     );
     assert_eq!(
-        fs::read(&root.join("build-two/vm").join(image_name)).unwrap(),
+        fs::read(root.join("build-two/vm").join(image_name)).unwrap(),
         fs::read(&files.image).unwrap()
     );
 

@@ -97,6 +97,7 @@ fn lower(expr: &CoreExpr) -> Result<NativeExpr, String> {
 /// Wraps one body in the production native-function input contract.
 fn function(body: CoreExpr, return_type: &str, core_return_type: CoreType) -> CoreFunction {
     CoreFunction {
+        source: None,
         name: "optimized".to_owned(),
         arity: 0,
         public: true,

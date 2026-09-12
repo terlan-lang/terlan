@@ -283,18 +283,25 @@ inputs.
 From a clean `main` commit with successful Compiler CI and Release validation:
 
 ```sh
+make publish-prepare
 make publish
 ```
 
 The version comes from the workspace. Publication requires authenticated GitHub
 CLI access and a Linux x86_64 environment capable of running the hosted artifact
-(Ubuntu 24.04-compatible userspace), with Node 24 for installed JavaScript
-examples. An older Linux host can use a compatible container; CPU quietness and
+(Ubuntu 24.04-compatible userspace). Preparation needs Node 24/npm for installed
+JavaScript examples and JDK 21 for editor packaging, in addition to the build
+toolchains. An older Linux host can use a compatible container; CPU quietness and
 a self-hosted GitHub runner are not prerequisites.
 
-Publication retains the verified hosted archives while refreshing stale local
-evidence, then restores those exact bytes before sealing installed-candidate
-reports. Successful candidate tests are not replayed during publication retries.
+Preparation retains the verified hosted archives while refreshing stale local
+evidence, then restores those exact bytes before sealing the candidate.
+Retries reuse a checksummed download checkpoint for the same successful workflow
+runs and attempts; they still check live CI status and validate local bytes.
+`make publish` never builds, tests, downloads archives, or refreshes evidence;
+it rejects a missing or stale prepared candidate. Retry `make publish` after an
+interrupted upload: matching assets are reused, and mismatches keep the release
+unpublished. Rerun preparation only when the candidate's inputs change.
 
 ## Documentation
 

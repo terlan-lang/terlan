@@ -200,6 +200,7 @@ fn rewrite_expr(
                             .map(|parameter| format!("$native_named_callback_{index}_{parameter}"))
                             .collect::<Vec<_>>();
                         *arg = CoreExpr::Lam {
+                            parameter_types: parameter_types.iter().cloned().map(Some).collect(),
                             params: parameters.iter().cloned().map(CorePattern::Var).collect(),
                             body: Box::new(CoreExpr::Call {
                                 function,
@@ -209,7 +210,7 @@ fn rewrite_expr(
                     }
                 }
                 if let (
-                    CoreExpr::Lam { params, body },
+                    CoreExpr::Lam { params, body, .. },
                     Some(CoreType::Arrow {
                         params: parameter_types,
                         ..

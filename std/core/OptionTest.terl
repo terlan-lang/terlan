@@ -1,10 +1,60 @@
 module std.core.OptionTest.
 
+import std.core.Int.
 import std.core.Option.{None, Some, compare, is_none, is_some, with_default}.
 import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.Result.{Err, Ok}.
 import std.test.Test.{assert, assert_equal}.
 
 import type std.core.Ordering.{Comparison}.
+import type std.core.{Option, Result}.
+
+result_option(result: Result[String, Int]): Option[String] ->
+    case result {
+        Ok(value) ->
+            if {
+                value == "" -> None;
+                true -> Some(value)
+            };
+        Err(reason) ->
+            if {
+                reason == 0 -> Some("");
+                true -> None
+            }
+    }.
+
+@test
+pub nested_result_none_equals_missing_literal(): Bool ->
+    result_option(Err(1)) == None.
+
+@test
+pub nested_result_empty_equals_missing_literal(): Bool ->
+    result_option(Ok("")) == None.
+
+optional_string(present: Bool): Option[String] ->
+    if {
+        present -> Some("present");
+        true -> None
+    }.
+
+@test
+pub returned_none_matches_missing_pattern(): Bool ->
+    case optional_string(false) {
+        None -> true;
+        Some(_value) -> false
+    }.
+
+@test
+pub returned_none_equals_missing_literal(): Bool ->
+    optional_string(false) == None.
+
+@test
+pub missing_literal_equals_returned_none(): Bool ->
+    None == optional_string(false).
+
+@test
+pub returned_none_is_not_unequal_to_missing_literal(): Bool ->
+    not (optional_string(false) != None).
 
 pub compare_int(left: Int, right: Int): Comparison ->
     std.core.Int.compare(left, right).

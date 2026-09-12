@@ -795,6 +795,7 @@ fn binary_layout_expr_field_output(
 /// Transformation: lowers the pattern, optional guard, and body expression.
 fn case_clause_output(clause: &CaseClause, span: EbnfSourceSpan) -> SyntaxClauseOutput {
     SyntaxClauseOutput {
+        parameter_types: Vec::new(),
         patterns: vec![pattern_output(&clause.pattern)],
         guard: clause
             .guard
@@ -811,6 +812,7 @@ fn case_clause_output(clause: &CaseClause, span: EbnfSourceSpan) -> SyntaxClause
 /// branch body.
 fn if_clause_output(clause: &IfClause, span: EbnfSourceSpan) -> SyntaxClauseOutput {
     SyntaxClauseOutput {
+        parameter_types: Vec::new(),
         patterns: Vec::new(),
         guard: Some(Box::new(expr_output_with_span(&clause.condition, span))),
         body: Box::new(expr_output_with_span(&clause.body, span)),
@@ -827,6 +829,19 @@ fn function_clause_output_with_span(
 ) -> SyntaxClauseOutput {
     SyntaxClauseOutput {
         patterns: clause.patterns.iter().map(pattern_output).collect(),
+        parameter_types: clause
+            .parameter_types
+            .iter()
+            .map(|annotation| {
+                annotation.as_ref().map(|ty| SyntaxTypeOutput {
+                    text: ty.text.clone(),
+                    span: EbnfSourceSpan {
+                        start: ty.span.start,
+                        end: ty.span.end,
+                    },
+                })
+            })
+            .collect(),
         guard: clause
             .guard
             .as_deref()

@@ -9,6 +9,76 @@ use crate::terlan_typeck::{
 
 use super::NativeType;
 
+/// Inferred constructor arms inherit matching payload labels from a checked Result.
+#[test]
+fn mixed_result_constructors_preserve_checked_union_identity_in_both_orders() {
+    let result_type = CoreType::Union(vec![
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("ok".to_owned())),
+            CoreTupleTypeElem::Field {
+                name: "value".to_owned(),
+                ty: CoreType::Bool,
+            },
+        ]),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("error".to_owned())),
+            CoreTupleTypeElem::Field {
+                name: "reason".to_owned(),
+                ty: CoreType::String,
+            },
+        ]),
+    ]);
+    let call = CoreExpr::Call {
+        function: "checked".to_owned(),
+        args: Vec::new(),
+    };
+    let error = CoreExpr::Tuple(vec![
+        CoreExpr::Atom("error".to_owned()),
+        CoreExpr::Binary("failure".to_owned()),
+    ]);
+    let functions = HashMap::from([(("checked".to_owned(), 0), result_type.clone())]);
+    let variables = HashMap::from([("flag".to_owned(), CoreType::Bool)]);
+    for branches in [
+        vec![call.clone(), error.clone()],
+        vec![error.clone(), call.clone()],
+    ] {
+        let expression = CoreExpr::Case {
+            scrutinee: Box::new(CoreExpr::Var("flag".to_owned())),
+            clauses: branches
+                .into_iter()
+                .map(|body| CoreCaseClause {
+                    pattern: CorePattern::Wildcard,
+                    guard: None,
+                    body,
+                })
+                .collect(),
+        };
+        assert_eq!(
+            super::structured_case::core_expr_type(&expression, &variables, &functions),
+            Some(result_type.clone()),
+        );
+    }
+    let incompatible = CoreExpr::Case {
+        scrutinee: Box::new(CoreExpr::Var("flag".to_owned())),
+        clauses: vec![
+            call,
+            CoreExpr::Tuple(vec![CoreExpr::Atom("error".to_owned()), CoreExpr::Int(1)]),
+        ]
+        .into_iter()
+        .map(|body| CoreCaseClause {
+            pattern: CorePattern::Wildcard,
+            guard: None,
+            body,
+        })
+        .collect(),
+    };
+    assert_ne!(
+        super::structured_case::core_expr_type(&incompatible, &variables, &functions),
+        Some(result_type),
+        "different payload types must not be erased as label-only differences",
+    );
+}
+
 #[test]
 fn hidden_continuation_slots_keep_new_source_locals_disjoint() {
     let sparse = HashMap::from([("capture".to_string(), 1), ("result".to_string(), 2)]);

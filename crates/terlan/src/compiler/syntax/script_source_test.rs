@@ -126,8 +126,31 @@ fn script_inline_assertion_guards_the_remaining_top_level_sequence() {
         panic!("expected leading implicit binding");
     };
 
-    assert!(matches!(body.as_deref(), Some(Expr::If { .. })));
+    let Some(Expr::Sequence(sequence)) = body.as_deref() else {
+        panic!("expected one assertion check followed by its shared tail");
+    };
+    assert!(matches!(sequence.first(), Some(Expr::If { .. })));
     assert!(module.declarations.iter().any(|declaration| {
         matches!(declaration, Decl::Import(import) if import.module_name == "std.test.Test")
     }));
+}
+
+/// Sequential assertion lowering must retain each statement only once.
+#[test]
+fn script_assertion_sequence_has_linear_failure_and_success_nodes() {
+    for count in [1, 8, 32] {
+        let source = format!("{}42.\n", "assert(true);\n".repeat(count));
+        let module = parse_script(&source, "script.Linear").expect("parse linear assertions");
+        let main = module
+            .declarations
+            .iter()
+            .find_map(|declaration| match declaration {
+                Decl::Function(function) if function.name == "main" => Some(function),
+                _ => None,
+            })
+            .expect("script main");
+        let tree = format!("{:?}", main.clauses[0].body);
+        assert_eq!(tree.matches("__script_fail").count(), count);
+        assert_eq!(tree.matches("Int(42)").count(), 1);
+    }
 }

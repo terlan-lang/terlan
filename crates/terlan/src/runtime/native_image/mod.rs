@@ -30,6 +30,13 @@ pub(crate) use sealed::{reject_tvm_image_sidecars, SealedTvmImage};
 /// can call any admitted suspending target without retaining a native stack.
 pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize = 128;
 
+/// Transition scratch shared by loaded images and linked execution probes.
+/// Reserve the indirect frame plus capability arguments and completion words.
+pub(crate) fn transition_scratch_capacity(callable_width: usize) -> usize {
+    TVM_INDIRECT_TRANSITION_WORD_CAPACITY
+        .saturating_add(callable_width.saturating_mul(5).saturating_add(6))
+}
+
 #[cfg(test)]
 #[path = "native_image_test.rs"]
 #[cfg(test)]

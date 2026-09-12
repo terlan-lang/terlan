@@ -1,7 +1,7 @@
 module=std.system.Arguments
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=5570845824425551918
 interface_hash=12848713017084339992
 interface_doc_hash=7034518827109616807

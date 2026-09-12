@@ -160,6 +160,7 @@ fn is_forwarding_lambda(expr: &SyntaxExprOutput) -> bool {
     }
     let clause = &expr.clauses[0];
     if clause.guard.is_some()
+        || clause.parameter_types.iter().any(Option::is_some)
         || !matches!(
             clause.body.kind,
             SyntaxExprKind::Call | SyntaxExprKind::FunctionCall
@@ -583,21 +584,25 @@ fn collect_unused_destructure_binding_diagnostics(
     }
 }
 
-/// Appends diagnostics for destructured let bindings unused by the let body.
+/// Counts each binding's uses in its guard, later initializers/guards, and body.
+/// Its own initializer and shared fallback are outside that binding's scope.
 fn collect_let_unused_destructure_binding_diagnostics(
     path: &Path,
     source: &str,
     expr: &SyntaxExprOutput,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
-    let Some(body) = expr.children.get(expr.patterns.len()) else {
+    if expr.children.get(expr.patterns.len()).is_none() {
         return;
-    };
+    }
     for (index, pattern) in expr.patterns.iter().enumerate() {
-        let mut uses = vec![body];
-        if let Some(guard) = expr.let_guards.get(index).and_then(Option::as_deref) {
-            uses.push(guard);
-        }
+        let mut uses = expr.children[index + 1..].iter().collect::<Vec<_>>();
+        uses.extend(
+            expr.let_guards
+                .iter()
+                .skip(index)
+                .filter_map(Option::as_deref),
+        );
         collect_unused_pattern_bindings(path, source, pattern, &uses, diagnostics);
     }
 }

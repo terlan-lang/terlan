@@ -1,0 +1,186 @@
+/**
+ * Actual proof composer recovery over copied inputs in a disposable Git root.
+ */
+module release_promotion.PreparationProofTest.
+
+import release_promotion.{CandidateFiles, OwnerStorage, PreparationFixture, PrepareProofRelease, ProofInputs}.
+import std.collections.List.{concat}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{append}.
+import std.data.Json.{int}.
+import std.io.{Console, Directory, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+outputs(): List[String] ->
+    [
+        "target/quality/proof-artifacts/proof-release-evidence.json",
+        "target/quality/proof-artifacts/proof-release-evidence-diff.json",
+        "target/quality/proof-artifacts/proof-readiness-release-mode.json",
+    ].
+
+material_paths(
+    values: Json,
+    index: Int,
+    count: Int,
+    paths: List[String],
+): Result[List[String], String] ->
+    if {
+        index == count -> Ok(paths);
+        true -> let {
+            Ok(row) <- values.at(index);
+            Some(path) <- OwnerStorage.text(row, "path")
+        } else {
+            _ -> Err("proof fixture material is malformed")
+        };
+        material_paths(values, index + 1, count, [path | paths])
+    }.
+
+copy_inputs(root: String, origin: String): Bool ->
+    let {
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(
+                    origin,
+                    "target/quality/proof-artifacts/proof-release-evidence.json",
+                ),
+            );
+        Ok(materials) <- document.get("candidate_materials");
+        Ok(count) <- materials.length();
+        Ok(paths) <-
+            material_paths(
+                materials,
+                0,
+                count,
+                ["proofs/lean/release_evidence/baseline.json", "rust-toolchain.toml"],
+            );
+        Ok(selected) <- ProofInputs.collect(origin)
+    } else {
+        _ -> false
+    };
+    copy_selected(root, origin, CandidateFiles.sort_unique(concat(paths, selected))).
+
+copy_selected(root: String, origin: String, files: List[String]): Bool ->
+    OwnerStorage.command(origin, "/bin/cp", concat(["--parents", "--"], concat(files, [root]))).
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        true <- copy_inputs(root, origin);
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_vm) <- File.copy(OwnerStorage.child(origin, vm), OwnerStorage.child(root, "fixture-vm"));
+        Ok(_image) <-
+            File.copy(
+                OwnerStorage.child(origin, image),
+                OwnerStorage.child(root, "target/tools/proof.tvm"),
+            );
+        true <- write(root, ".gitignore", "/target/\n");
+        true <- write(root, "target/calls", "");
+        true <-
+            write(
+                root,
+                "target/tools/vm",
+                "#!/bin/sh\nset -eu\nif test \"$1\" = run; then\n  echo run >> target/calls\n  if test -f target/kill-proof; then kill -KILL $$; fi\nfi\nexec ./fixture-vm \"$@\"\n",
+            );
+        true <- OwnerStorage.command(root, "/bin/chmod", ["+x", "fixture-vm", "target/tools/vm"]);
+        true <- PreparationFixture.commit(root)
+    } else {
+        _ -> false
+    };
+    true.
+
+stage(root: String, label: String, valid: Bool, reused: Bool): Bool ->
+    let _printed = Console.println(append("[proof preparation rehearsal] ", label));
+    case PrepareProofRelease.prepare(root, "target/tools/vm", "target/tools/proof.tvm") {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            let _printed = Console.println(result.message);
+            result.valid == valid and result.reused == reused
+    }.
+
+calls(root: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+        _ -> false
+    };
+    actual == expected.
+
+snapshot(root: String): Result[String, String] ->
+    let Ok(files) <- OwnerStorage.files(root, outputs()) else {
+        Err(reason) -> Err(reason)
+    };
+    OwnerStorage.digest(files).
+
+repair(root: String, paths: List[String], expected: String): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let {
+                Ok(prior) <- snapshot(root);
+                true <- write(root, path, "corrupt");
+                true <- stage(root, append("repair ", path), true, false);
+                Ok(current) <- snapshot(root);
+                true <- current == prior;
+                true <- calls(root, append(expected, "run\n"))
+            } else {
+                _ -> false
+            };
+            repair(root, rest, append(expected, "run\n"))
+    }.
+
+interruption(root: String): Bool ->
+    let path = "target/quality/proof-artifacts/lean-proof-lanes.json";
+    let {
+        Ok(prior) <- snapshot(root);
+        Ok(lanes) <- OwnerStorage.read_json(OwnerStorage.child(root, path));
+        true <- OwnerStorage.atomic_json(root, path, lanes.put("fixture_generation", int(2)));
+        true <- write(root, "target/kill-proof", "kill");
+        true <- stage(root, "killed changed-input producer", false, false);
+        Ok(retained) <- snapshot(root);
+        true <- retained == prior;
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/kill-proof"));
+        true <- stage(root, "resume unfinished proof composer", true, false);
+        true <- stage(root, "unchanged recovered composer", true, true);
+        true <- calls(root, "run\nrun\nrun\nrun\nrun\nrun\n");
+        Ok(recovered) <- snapshot(root)
+    } else {
+        _ -> false
+    };
+    recovered == prior.
+
+exercise(root: String): Bool ->
+    let {
+        true <- stage(root, "cold composer", true, false);
+        Ok(cold) <- snapshot(root);
+        true <- stage(root, "zero-launch warm composer", true, true);
+        true <- calls(root, "run\n");
+        Ok(warm) <- snapshot(root);
+        true <- cold == warm;
+        true <- repair(root, outputs(), "run\n")
+    } else {
+        _ -> false
+    };
+    interruption(root).
+
+/**
+ * Executes the real image; copied evidence is a fixture, not certification.
+ */
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-preparation-") else {
+        _ -> false
+    };
+    (let passed = fixture(root, origin, vm, image) and exercise(root);
+let cleaned =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+passed and cleaned).

@@ -9,6 +9,8 @@ use crate::compiler::native_ir::{
 };
 
 use super::super::BuildOneError;
+use super::artifact_cache_retention::{Budget, CacheFamily, RetainedCache};
+use super::build_activity::{Activity, Operation};
 use super::native_cache;
 use super::native_image::{
     DIRECT_AOT_BACKEND, DIRECT_AOT_BUILD_POLICY, DIRECT_AOT_CACHE_SCHEMA,
@@ -16,21 +18,22 @@ use super::native_image::{
 };
 use super::parallel_compile::{bounded_worker_limit, run_indexed_bounded, ParallelTaskError};
 
-const NATIVE_UNIT_SCHEMA: &str = "terlan-native-unit-v6";
+const NATIVE_UNIT_SCHEMA: &str = "terlan-native-unit-v7";
 
 /// One verified object path for each NativeIR module in canonical order.
 pub(super) struct NativeObjectUnits {
     /// Content-addressed relocatable object paths consumed by the final link.
     pub(super) paths: Vec<PathBuf>,
+    /// Prevents retirement until the linker has finished consuming every path.
+    _cache: RetainedCache,
 }
 
 struct NativeObjectUnitContext<'a> {
-    units_root: &'a Path,
+    cache: &'a RetainedCache,
+    identities: &'a [String],
     application: &'a str,
     natives: &'a [NativeModule],
     target: &'a str,
-    abi: &'a str,
-    implementation: &'a str,
     policy: NativeCodegenPolicy,
 }
 
@@ -63,28 +66,33 @@ pub(super) fn prepare_native_object_units(
     // therefore dependent on the complete NativeIR implementation closure,
     // even though only the selected module's symbols are exported.
     let implementation = application_implementation_fingerprint(natives);
-    let units_root = cache_root.join("units");
-    fs::create_dir_all(&units_root).map_err(|error| {
-        BuildOneError::Message(format!(
-            "error[tvm.native_unit.directory]: cannot create `{}`: {error}",
-            units_root.display()
-        ))
-    })?;
+    let identities = natives
+        .iter()
+        .map(|native| unit_identity(application, native, target, &abi, &implementation, policy))
+        .collect::<Vec<_>>();
+    let cache = RetainedCache::open(
+        &cache_root.join("units-v2"),
+        CacheFamily::NativeObjects,
+        identities.iter().cloned().collect(),
+        Budget::default(),
+    )?;
     let indexes = (0..natives.len()).collect::<Vec<_>>();
     let context = NativeObjectUnitContext {
-        units_root: &units_root,
+        cache: &cache,
+        identities: &identities,
         application,
         natives,
         target,
-        abi: &abi,
-        implementation: &implementation,
         policy,
     };
     let result = run_indexed_bounded(&indexes, bounded_worker_limit(), |index| {
         prepare_native_object_unit(&context, *index)
     });
     match result {
-        Ok(paths) => Ok(NativeObjectUnits { paths }),
+        Ok(paths) => Ok(NativeObjectUnits {
+            paths,
+            _cache: cache,
+        }),
         Err(ParallelTaskError::Task(error)) => Err(error),
         Err(ParallelTaskError::WorkerPanicked) => Err(BuildOneError::Message(
             "error[tvm.native_unit.worker_panic]: native object worker panicked".to_string(),
@@ -92,28 +100,37 @@ pub(super) fn prepare_native_object_units(
     }
 }
 
+fn unit_identity(
+    application: &str,
+    native: &NativeModule,
+    target: &str,
+    abi: &str,
+    implementation: &str,
+    policy: NativeCodegenPolicy,
+) -> String {
+    let input = format!(
+        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{application}\0{abi}\0{implementation}\0{}",
+        env!("CARGO_PKG_VERSION"),
+        policy.cache_identity(),
+        native.fingerprint_sha256()
+    );
+    native_cache::sha256_hex(input.as_bytes())
+}
+
 fn prepare_native_object_unit(
     context: &NativeObjectUnitContext<'_>,
     module_index: usize,
 ) -> Result<PathBuf, BuildOneError> {
     let NativeObjectUnitContext {
-        units_root,
+        cache,
+        identities,
         application,
         natives,
         target,
-        abi,
-        implementation,
         policy,
     } = context;
-    let native = &natives[module_index];
-    let input = format!(
-        "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}\0{NATIVE_UNIT_SCHEMA}\0{}\0{target}\0{abi}\0{implementation}\0{}",
-        env!("CARGO_PKG_VERSION"),
-        policy.cache_identity(),
-        native.fingerprint_sha256()
-    );
-    let identity = native_cache::sha256_hex(input.as_bytes());
-    let directory = units_root.join(&identity);
+    let identity = &identities[module_index];
+    let directory = cache.path(identity)?;
     fs::create_dir_all(&directory).map_err(|error| {
         BuildOneError::Message(format!(
             "error[tvm.native_unit.directory]: cannot create `{}`: {error}",
@@ -129,7 +146,7 @@ fn prepare_native_object_unit(
     let load = || {
         native_cache::load_verified_entry(
             &directory,
-            &identity,
+            identity,
             target,
             DIRECT_AOT_BACKEND,
             &[object_name],
@@ -137,25 +154,26 @@ fn prepare_native_object_unit(
         )
     };
     if load().is_some() {
+        cache.touch(identity)?;
         return Ok(object_path);
     }
-    let _lock = native_cache::CacheBuildLock::acquire(&directory)?;
-    if load().is_some() {
-        return Ok(object_path);
-    }
+    // The object-set root lease already excludes every cooperating publisher.
+    // A second per-entry lock and repeated miss verification add no ownership.
+    let activity = Activity::begin(Operation::ModuleObject, identity)?;
     let object = emit_native_module_object_with_policy(application, natives, module_index, *policy)
-        .map_err(|error| BuildOneError::Message(error.into()))?;
-    native_cache::publish_file(&object_path, &object)?;
+        .map_err(|error| BuildOneError::Message(error.into()));
+    activity.finish(
+        object.is_ok(),
+        object.as_ref().ok().map(|bytes| bytes.len() as u64),
+    )?;
+    let object = object?;
     let manifest = native_cache::cache_manifest_bytes(
-        &identity,
+        identity,
         target,
         DIRECT_AOT_BACKEND,
         &[(object_name, object.as_slice())],
     );
-    native_cache::publish_file(
-        &directory.join(native_cache::CACHE_MANIFEST_NAME),
-        &manifest,
-    )?;
+    cache.publish(identity, object_name, &object, &manifest)?;
     Ok(object_path)
 }
 

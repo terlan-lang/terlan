@@ -13,6 +13,13 @@ TREE_SITTER_DEPENDENCY_STAMP := tree-sitter-terlan/node_modules/.terlan-package-
 
 .PHONY: editor-help editor-check editor-package-output-directories lsp-outline-check editor-code-action-auto-import-check editor-completion-signature-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check vscode-extension-check vscode-extension-core-check vscode-diagnostics-smoke-check vscode-textmate-bridge-check vscode-package-report-check tree-sitter-package-check tree-sitter-package-report-check tree-sitter-cli-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-debugger-surface-check
 .PHONY: editor-definition-navigation-check
+.PHONY: editor-node-tools-check
+
+# Probe execution, not just PATH presence: cached package dependencies can outlive
+# the Node installation or be mounted into an incompatible validation container.
+editor-node-tools-check:
+	@node --version >/dev/null || { echo 'editor validation requires an executable Node.js toolchain' >&2; exit 1; }
+	@npm --version >/dev/null || { echo 'editor validation requires npm in the current Node.js toolchain' >&2; exit 1; }
 
 editor-help:
 	@echo "  make editor-check - verify editor package contracts"
@@ -84,12 +91,12 @@ tree-sitter-package-report-check: | editor-package-output-directories
 tree-sitter-package-check: tree-sitter-package-report-check
 	cd tree-sitter-terlan && npm_config_cache=$(NPM_PACK_CACHE) npm run check
 
-$(TREE_SITTER_DEPENDENCY_STAMP): tree-sitter-terlan/package.json tree-sitter-terlan/package-lock.json
+$(TREE_SITTER_DEPENDENCY_STAMP): tree-sitter-terlan/package.json tree-sitter-terlan/package-lock.json | editor-node-tools-check
 	mkdir -p $(NPM_PACK_CACHE)
 	npm_config_cache=$(NPM_PACK_CACHE) npm ci --prefix tree-sitter-terlan --no-audit --no-fund
 	touch $@
 
-tree-sitter-cli-check: $(TREE_SITTER_DEPENDENCY_STAMP)
+tree-sitter-cli-check: $(TREE_SITTER_DEPENDENCY_STAMP) | editor-node-tools-check
 	mkdir -p $(TREE_SITTER_CLI_HOME) $(TREE_SITTER_CLI_CACHE)
 	cd tree-sitter-terlan && HOME=$(TREE_SITTER_CLI_HOME) XDG_CACHE_HOME=$(TREE_SITTER_CLI_CACHE) npm run check:cli
 

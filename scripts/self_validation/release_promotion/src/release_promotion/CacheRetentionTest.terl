@@ -1,0 +1,91 @@
+/**
+ * Pure retention decisions never evict active or insufficiently old outputs.
+ */
+module release_promotion.CacheRetentionTest.
+
+import release_promotion.CacheRetention.
+import release_promotion.CacheRetention.{Budget, Generation}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{append}.
+import std.crypto.Hash.{sha256}.
+
+import type release_promotion.CacheRetention.{Budget, Generation, Plan}.
+
+generation(name: String, bytes: Int, modified_ns: Int): Generation ->
+    Generation(key = sha256(name), bytes = bytes, modified_ns = modified_ns).
+
+budget(bytes: Int, entries: Int): Budget ->
+    Budget(bytes = bytes, entries = entries, maximum_age_ns = 100, minimum_age_ns = 10).
+
+keys(generations: List[Generation]): String ->
+    case generations {
+        [] -> "";
+        [generation | rest] -> append(generation.key, keys(rest))
+    }.
+
+matches_plan(actual: Plan, retired: List[Generation], bytes: Int, entries: Int): Bool ->
+    keys(actual.retire) == keys(retired)
+        and actual.retained_bytes == bytes
+        and actual.retained_entries == entries.
+
+byte_and_count_budgets(): Bool ->
+    let active = generation("active", 4, 1);
+    let newer = generation("newer", 3, 180);
+    let older = generation("older", 3, 150);
+    let {
+        Ok(bytes) <- CacheRetention.plan_retention([active, older, newer], [active.key], budget(7, 3), 200);
+        Ok(count) <- CacheRetention.plan_retention([active, older, newer], [active.key], budget(10, 2), 200);
+        Ok(warm) <- CacheRetention.plan_retention([active, newer], [active.key], budget(7, 2), 200)
+    } else {
+        _ -> false
+    };
+    matches_plan(bytes, [older], 7, 2)
+        and matches_plan(count, [older], 7, 2)
+        and matches_plan(warm, [], 7, 2).
+
+age_boundaries(): Bool ->
+    let active = generation("active", 4, 1);
+    let expired = generation("expired", 3, 99);
+    let boundary = generation("boundary", 3, 100);
+    let recent = generation("recent", 3, 191);
+    let future = generation("future", 3, 201);
+    let {
+        Ok(age) <-
+            CacheRetention.plan_retention(
+                [active, expired, boundary],
+                [active.key],
+                budget(20, 3),
+                200,
+            );
+        Ok(protected) <- CacheRetention.plan_retention([recent, future], [], budget(6, 2), 200);
+        Err(_protected_overflow) <- CacheRetention.plan_retention([recent, future], [], budget(3, 1), 200)
+    } else {
+        _ -> false
+    };
+    matches_plan(age, [expired], 7, 2) and matches_plan(protected, [], 6, 2).
+
+invalid_inventory(): Bool ->
+    let active = generation("active", 4, 1);
+    let negative = generation("negative", -1, 1);
+    let oversized = generation("oversized", 1125899906842625, 1);
+    let {
+        Err(_duplicate) <- CacheRetention.plan_retention([active, active], [], budget(10, 3), 200);
+        Err(_unknown_pin) <- CacheRetention.plan_retention([active], [sha256("missing")], budget(10, 3), 200);
+        Err(_duplicate_pin) <- CacheRetention.plan_retention([active], [active.key, active.key], budget(10, 3), 200);
+        Err(_negative_size) <- CacheRetention.plan_retention([negative], [], budget(10, 3), 200);
+        Err(_oversized) <- CacheRetention.plan_retention([oversized], [], budget(10, 3), 200);
+        Err(_time) <- CacheRetention.plan_retention([active], [], budget(10, 3), -1);
+        Err(_pinned_overflow) <- CacheRetention.plan_retention([active], [active.key], budget(3, 3), 200);
+        Err(_policy) <- CacheRetention.plan_retention([], [], budget(-1, 3), 200)
+    } else {
+        _ -> false
+    };
+    CacheRetention.valid_key(active.key)
+        and not CacheRetention.valid_key("..")
+        and not CacheRetention.valid_key(append("../", active.key)).
+
+/**
+ * Exercises byte, count, age, pinned-generation, clock, and malformed-input rules.
+ */
+pub self_test(): Bool ->
+    byte_and_count_budgets() and age_boundaries() and invalid_inventory().

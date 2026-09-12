@@ -1,0 +1,163 @@
+/**
+ * Bounded filesystem operations for Linux publication preparation owners.
+ * Callers hold the preparation flock for the entire read/execute/commit cycle.
+ */
+module release_promotion.OwnerStorage.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Directory.{NotFound}.
+import std.io.File.{NotFound as FileNotFound}.
+import std.io.{Directory, File}.
+import std.system.Process.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+
+pub child(root: String, path: String): String ->
+    String.concat([root, "/", path]).
+
+pub safe_name(value: String): Bool ->
+    value != ""
+        and value != "."
+        and value != ".."
+        and value.byte_size() <= 128
+        and safe_bytes(value, 0).
+
+safe_bytes(value: String, index: Int): Bool ->
+    if {
+        index == value.byte_size() -> true;
+        true -> let byte = value.utf8_slice(index, 1);
+        String.contains("abcdefghijklmnopqrstuvwxyz0123456789-_.", byte)
+            and safe_bytes(value, index + 1)
+    }.
+
+pub text(value: Json, key: String): Option[String] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(source) <- field.as_string()
+    } else {
+        _ -> None
+    };
+    Some(source).
+
+pub read_json(path: String): Result[Json, String] ->
+    let {
+        Ok(size) <- File.size(path);
+        true <- size <= 16777216
+    } else {
+        _ -> Err("owner JSON is unavailable or exceeds the 16 MiB budget")
+    };
+    case File.read_text(path) {
+        Err(reason) -> Err(File.message(reason));
+        Ok(source) ->
+            case Json.parse(source) {
+                Ok(document) -> Ok(document);
+                Err(reason) -> Err(Json.error_message(reason))
+            }
+    }.
+
+/**
+ * Produces a bounded inventory of explicitly declared regular files.
+ */
+pub files(root: String, paths: List[String]): Result[Json, String] ->
+    files_at(root, paths, Json.array(), 16384, false).
+
+/**
+ * Missing optional files are explicit inputs, not omitted declarations.
+ */
+pub optional_files(root: String, paths: List[String]): Result[Json, String] ->
+    files_at(root, paths, Json.array(), 16384, true).
+
+file_row(root: String, path: String, optional: Bool): Result[Json, String] ->
+    let row = Json.object().put("path", Json.string(path));
+    case Hash.sha256_file(child(root, path)) {
+        Err(reason) ->
+            if {
+                optional and File.code(reason) == FileNotFound -> Ok(row.put("absent", Json.bool(true)));
+                true -> Err(String.append("cannot hash owner input: ", path))
+            };
+        Ok(digest) ->
+            let Ok(size) <- File.size(child(root, path)) else {
+                _ -> Err(String.append("cannot size owner input: ", path))
+            };
+            Ok(row.put("sha256", Json.string(digest)).put("size_bytes", Json.int(size)))
+    }.
+
+files_at(
+    root: String,
+    paths: List[String],
+    rows: Json,
+    remaining: Int,
+    optional: Bool,
+): Result[Json, String] ->
+    case paths {
+        [] -> Ok(rows);
+        [path | rest] ->
+            let {
+                true <- remaining > 0;
+                Ok(row) <- file_row(root, path, optional)
+            } else {
+                _ -> Err(String.append("cannot hash owner input: ", path))
+            };
+            files_at(root, rest, rows.push(row), remaining - 1, optional)
+    }.
+
+pub digest(value: Json): Result[String, String] ->
+    case Json.stringify(value) {
+        Ok(source) -> Ok(Hash.sha256(source));
+        Err(reason) -> Err(Json.error_message(reason))
+    }.
+
+pub command(root: String, program: String, args: List[String]): Bool ->
+    case Process.run(
+    Process.command(program)
+        .with_arguments(args)
+        .with_working_directory(root)
+        .with_stdin("")
+        .with_timeout_ms(30000)
+        .with_output_limit_bytes(1048576),
+) {
+        Ok(output) -> Process.status(output) == 0;
+        Err(_reason) -> false
+    }.
+
+/**
+ * Same-filesystem atomic replacement: a failed write never truncates a ledger.
+ * Temporary residue has a fixed owner-local name and is replaced under flock.
+ */
+pub atomic_json(root: String, path: String, value: Json): Bool ->
+    let pending = String.append(path, ".pending");
+    let {
+        Ok(source) <- Json.stringify_pretty(value);
+        true <- source.byte_size() < 16777216;
+        Ok(_written) <- File.write_text(child(root, pending), String.append(source, "\n"))
+    } else {
+        _ ->
+            let _removed = File.delete(child(root, pending));
+            false
+    };
+    (let moved = command(root, "/usr/bin/mv", ["-f", "-T", "--", child(root, pending), child(root, path)]);
+if {
+    moved -> true;
+    true -> let _removed = File.delete(child(root, pending));
+    false
+}).
+
+/**
+ * Discards interrupted writes only while holding this owner's exclusive lock.
+ */
+pub discard_pending(root: String, path: String): Bool ->
+    case File.delete(child(root, String.append(path, ".pending"))) {
+        Ok(_removed) -> true;
+        Err(reason) -> File.code(reason) == FileNotFound
+    }.
+
+pub clean_workspace(root: String, relative: String): Bool ->
+    case Directory.remove_all(child(root, relative)) {
+        Ok(_removed) -> true;
+        Err(reason) -> Directory.code(reason) == NotFound
+    }.

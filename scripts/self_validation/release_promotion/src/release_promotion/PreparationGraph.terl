@@ -1,0 +1,429 @@
+/**
+ * Ordered, dependency-bound preparation owners under one external flock.
+ * Graph summaries are audit records; reuse always revalidates each owner.
+ */
+module release_promotion.PreparationGraph.
+
+import release_promotion.{NativeCycle, OwnerArtifacts, OwnerStorage, PreparationOwner}.
+import std.collections.List.{concat, subtract}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory}.
+
+import type release_promotion.PreparationOwner.{Admission, Owner}.
+import type std.core.{Option, Result}.
+
+/**
+ * One declared producer and its explicit predecessor owner names.
+ */
+pub struct Node {
+    producer: Owner,
+    requires: List[String],
+}.
+
+/**
+ * Counts completed and reused owners without claiming nested process coverage.
+ */
+pub struct Summary {
+    valid: Bool,
+    completed: Int,
+    reused: Int,
+    message: String,
+}.
+
+/**
+ * Declares one node without executing or inspecting its producer.
+ */
+pub declare_node(producer: Owner, requires: List[String]): Node ->
+    Node(producer = producer, requires = requires).
+
+make_summary(valid: Bool, completed: Int, reused: Int, message: String): Summary ->
+    Summary(valid = valid, completed = completed, reused = reused, message = message).
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+find(values: List[Node], name: String): Option[Node] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.producer.name == name -> Some(value);
+                true -> find(rest, name)
+            }
+    }.
+
+/**
+ * Requiring predecessors makes declaration order deterministic, rejecting
+ * cycles, missing edges, and forward edges before any producer is launched.
+ */
+valid_edges(edges: List[String], seen: List[String], names: List[String]): Bool ->
+    case edges {
+        [] -> true;
+        [name | rest] ->
+            contains(names, name)
+                and not contains(seen, name)
+                and valid_edges(rest, [name | seen], names)
+    }.
+
+validate_at(
+    nodes: List[Node],
+    candidate: String,
+    names: List[String],
+    outputs: List[String],
+    producers: List[String],
+    remaining: Int,
+): Result[Bool, String] ->
+    case nodes {
+        [] -> Ok(true);
+        [value | rest] ->
+            let owner = value.producer;
+            let Ok(producer) <- validate_node(value, candidate, names, outputs, producers, remaining) else {
+                Err(reason) -> Err(reason)
+            };
+            validate_at(
+                rest,
+                candidate,
+                [owner.name | names],
+                concat(PreparationOwner.output_paths(owner), outputs),
+                [producer | producers],
+                remaining - 1,
+            )
+    }.
+
+validate_node(
+    value: Node,
+    candidate: String,
+    names: List[String],
+    outputs: List[String],
+    producers: List[String],
+    remaining: Int,
+): Result[String, String] ->
+    let owner = value.producer;
+    let {
+        true <- remaining > 0;
+        true <- PreparationOwner.valid_declaration(owner);
+        true <- owner.candidate == candidate;
+        true <- not String.starts_with(owner.output, "target/quality/preparation/");
+        true <- not contains(names, owner.name);
+        true <- OwnerArtifacts.disjoint(PreparationOwner.output_paths(owner), outputs);
+        true <- valid_edges(value.requires, [], names);
+        Ok(producer) <- PreparationOwner.producer_identity(owner);
+        true <- not contains(producers, producer)
+    } else {
+        _ -> Err(String.append("invalid or duplicate preparation graph owner: ", owner.name))
+    };
+    Ok(producer).
+
+/**
+ * Validates the entire ordered ownership graph before any producer runs.
+ */
+pub validate(nodes: List[Node]): Result[String, String] ->
+    let [first | _rest] <- nodes else {
+        _ -> Err("preparation graph cannot be empty")
+    };
+    (let candidate = first.producer.candidate;
+(let Ok(_valid) <- validate_at(nodes, candidate, [], [], [], 256) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- declared_consumers(nodes, nodes) else {
+    _ ->
+        Err("preparation graph consumes another owner's output without an explicit dependency edge")
+};
+Ok(candidate)))).
+
+producer_for_path(nodes: List[Node], path: String): Option[String] ->
+    case nodes {
+        [] -> None;
+        [value | rest] ->
+            if {
+                PreparationOwner.owns_output_path(value.producer, path)
+                    or PreparationOwner.activity_path(value.producer) == path
+                    or PreparationOwner.ledger_path(value.producer) == path -> Some(value.producer.name);
+                true -> producer_for_path(rest, path)
+            }
+    }.
+
+declared_files(paths: List[String], parents: List[String], nodes: List[Node]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let declared =
+                case producer_for_path(nodes, path) {
+                    None -> true;
+                    Some(name) -> contains(parents, name)
+                };
+            declared and declared_files(rest, parents, nodes)
+    }.
+
+declared_consumers(remaining: List[Node], nodes: List[Node]): Bool ->
+    case remaining {
+        [] -> true;
+        [value | rest] ->
+            declared_files(
+    concat(
+        value.producer.inputs,
+        concat(value.producer.dependencies, value.producer.optional_dependencies),
+    ),
+    value.requires,
+    nodes,
+)
+                and declared_consumers(rest, nodes)
+    }.
+
+parent_files(edges: List[String], done: List[Node], paths: List[String]): List[String] ->
+    let {
+        [name | rest] <- edges;
+        Some(parent) <- find(done, name)
+    } else {
+        _ -> paths
+    };
+    parent_files(
+        rest,
+        done,
+        concat(
+            PreparationOwner.output_paths(parent.producer),
+            [PreparationOwner.activity_path(parent.producer) | [PreparationOwner.ledger_path(parent.producer) | paths]],
+        ),
+    ).
+
+/**
+ * Returns the graph summary path; individual owner ledgers remain authoritative.
+ */
+pub ledger_path(candidate: String, graph: String): String ->
+    String.concat(["target/quality/preparation/", candidate, "/graphs/", graph, ".json"]).
+
+record(
+    root: String,
+    path: String,
+    candidate: String,
+    outcome: String,
+    rows: Json,
+    result: Summary,
+): Bool ->
+    let identity =
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-graph.v1"))
+            .put("candidate", Json.string(candidate));
+    let progress = identity.put("outcome", Json.string(outcome)).put("message", Json.string(result.message));
+    let counts =
+        progress
+            .put("completed_owners", Json.int(result.completed))
+            .put("reused_owners", Json.int(result.reused));
+    let report = counts.put("owners", rows);
+    OwnerStorage.atomic_json(root, path, report).
+
+owner_row(owner: Owner, result: Summary, reused: Bool): Json ->
+    let identity =
+        Json.object()
+            .put("owner", Json.string(owner.name))
+            .put("ledger", Json.string(PreparationOwner.ledger_path(owner)));
+    let state = identity.put("valid", Json.bool(result.valid)).put("reused", Json.bool(reused));
+    state.put("message", Json.string(result.message)).
+
+advance(
+    root: String,
+    path: String,
+    candidate: String,
+    owner: Owner,
+    rows: Json,
+    completed: Int,
+    reused: Int,
+    cycle: Json,
+    journal: String,
+): Summary ->
+    let admission = PreparationOwner.checked_admission(root, owner);
+    let warm =
+        case admission {
+            Some(ready) -> ready.reused;
+            None -> false
+        };
+    if {
+        warm -> let result = make_summary(true, completed, reused + 1, "");
+        let _updated = rows.push(owner_row(owner, result, true));
+        result;
+        true -> advance_owned(
+            root,
+            path,
+            candidate,
+            owner,
+            rows,
+            completed,
+            reused,
+            cycle,
+            journal,
+            admission,
+        )
+    }.
+
+/**
+ * Only a potentially executing/recovering owner needs an active-owner journal
+ * transition. Verified warm rows are included in the next/final graph record.
+ */
+advance_owned(
+    root: String,
+    path: String,
+    candidate: String,
+    owner: Owner,
+    rows: Json,
+    completed: Int,
+    reused: Int,
+    cycle: Json,
+    journal: String,
+    admission: Option[Admission],
+): Summary ->
+    let true <- NativeCycle.before(root, journal, cycle, owner) else {
+        _ -> make_summary(false, completed, reused, "cannot checkpoint active native owner")
+    };
+    (let _printed = Console.println(String.append("[preparation owner] ", owner.name));
+let decision =
+    case admission {
+        Some(ready) -> PreparationOwner.run_admitted(ready);
+        None -> PreparationOwner.run_locked(root, owner)
+    };
+let accounted =
+    case decision.native_inventory {
+        Some(report) -> NativeCycle.accept(root, journal, cycle, owner, report);
+        None ->
+            if {
+                decision.valid and not decision.reused -> false;
+                decision.reused -> NativeCycle.clear(root, journal, cycle);
+                true -> NativeCycle.recover(root, journal, cycle, owner)
+            }
+    };
+let executed_count =
+    if {
+        decision.valid and not decision.reused -> 1;
+        true -> 0
+    };
+let reused_count =
+    if {
+        decision.reused -> 1;
+        true -> 0
+    };
+let result =
+    make_summary(
+        decision.valid and accounted,
+        completed + executed_count,
+        reused + reused_count,
+        if {
+            accounted -> decision.message;
+            true -> "native cycle rejected replayed work or could not checkpoint it"
+        },
+    );
+let _updated = rows.push(owner_row(owner, result, decision.reused));
+let outcome =
+    if {
+        result.valid -> "running";
+        true -> "failed"
+    };
+if {
+    record(root, path, candidate, outcome, rows, result) -> result;
+    true -> make_summary(false, result.completed, result.reused, "cannot checkpoint preparation graph")
+}).
+
+execute(
+    root: String,
+    path: String,
+    candidate: String,
+    nodes: List[Node],
+    done: List[Node],
+    rows: Json,
+    completed: Int,
+    reused: Int,
+    cycle: Json,
+    journal: String,
+): Summary ->
+    case nodes {
+        [] ->
+            let result = make_summary(true, completed, reused, "");
+            if {
+                NativeCycle.complete(root, journal, cycle)
+                    and record(root, path, candidate, "pass", rows, result) -> result;
+                true -> make_summary(false, completed, reused, "cannot seal preparation graph")
+            };
+        [value | rest] ->
+            let owner =
+                PreparationOwner.with_dependencies(
+                    value.producer,
+                    subtract(parent_files(value.requires, done, []), value.producer.dependencies),
+                );
+            let result = advance(root, path, candidate, owner, rows, completed, reused, cycle, journal);
+            if {
+                not result.valid -> result;
+                true -> execute(
+                    root,
+                    path,
+                    candidate,
+                    rest,
+                    [value | done],
+                    rows,
+                    result.completed,
+                    result.reused,
+                    cycle,
+                    journal,
+                )
+            }
+    }.
+
+recover_cycle(root: String, journal: String, cycle: Json, nodes: List[Node]): Bool ->
+    let owner = NativeCycle.active(cycle);
+    if {
+        owner == "" -> true;
+        true -> case find(nodes, owner) {
+            Some(node) -> NativeCycle.recover(root, journal, cycle, node.producer);
+            None -> false
+        }
+    }.
+
+/**
+ * A stale, corrupt, or interrupted summary never authorizes skipping an owner.
+ * Only this graph's pending summary is discarded; owner evidence is preserved.
+ */
+pub run_locked(root: String, graph: String, nodes: List[Node]): Summary ->
+    let true <- OwnerStorage.safe_name(graph) else {
+        _ -> make_summary(false, 0, 0, "invalid preparation graph name")
+    };
+    (let Ok(candidate) <- validate(nodes) else {
+    Err(reason) -> make_summary(false, 0, 0, reason)
+};
+(let {
+    Ok(_directory) <-
+        Directory.create_all(
+            OwnerStorage.child(
+                root,
+                String.concat(["target/quality/preparation/", candidate, "/graphs"]),
+            ),
+        );
+    true <- OwnerStorage.discard_pending(root, ledger_path(candidate, graph));
+    Ok(cycle) <- NativeCycle.open(root, candidate, graph);
+    true <- recover_cycle(root, NativeCycle.path(candidate, graph), cycle, nodes);
+    true <-
+        record(
+            root,
+            ledger_path(candidate, graph),
+            candidate,
+            "running",
+            Json.array(),
+            make_summary(true, 0, 0, ""),
+        )
+} else {
+    _ -> make_summary(false, 0, 0, "cannot initialize preparation graph")
+};
+execute(
+    root,
+    ledger_path(candidate, graph),
+    candidate,
+    nodes,
+    [],
+    Json.array(),
+    0,
+    0,
+    cycle,
+    NativeCycle.path(candidate, graph),
+))).

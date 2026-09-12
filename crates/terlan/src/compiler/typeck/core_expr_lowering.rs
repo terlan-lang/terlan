@@ -6,6 +6,8 @@ use super::*;
 #[path = "core_expr_lowering/name_case.rs"]
 mod name_case;
 use name_case::{starts_with_ascii_lowercase, starts_with_ascii_uppercase};
+#[path = "core_expr_lowering/lambda.rs"]
+mod lambda;
 
 /// Converts a syntax-output expression into a typed Core expression when covered.
 ///
@@ -70,16 +72,7 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::Try => core_try_expr_from_syntax(expr),
         SyntaxExprKind::If => core_if_expr_from_syntax(expr),
         SyntaxExprKind::RawMacro => sql_query_core_expr_from_syntax(expr),
-        SyntaxExprKind::Fun if expr.clauses.len() == 1 => {
-            let clause = &expr.clauses[0];
-            if clause.guard.is_some() {
-                return None;
-            }
-            Some(CoreExpr::Lam {
-                params: core_patterns_from_syntax_slice(&clause.patterns)?,
-                body: Box::new(core_expr_from_syntax(&clause.body)?),
-            })
-        }
+        SyntaxExprKind::Fun if expr.clauses.len() == 1 => lambda::lower(expr),
         SyntaxExprKind::BinaryOp => {
             let operator = expr.operator.clone()?;
             if operator == "|>" {

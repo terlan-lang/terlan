@@ -3,7 +3,10 @@
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
+use std::time::Duration;
+
+use crate::runtime::native_boundary::dispatch::capture_tool_command;
 
 use serde_json::Value;
 
@@ -13,6 +16,17 @@ pub(crate) const RSBUILD_PACKAGE: &str = "@rsbuild/core";
 pub(crate) const RSBUILD_VERSION: &str = "2.1.13";
 pub(crate) const RSPACK_PACKAGE: &str = "@rspack/core";
 pub(crate) const RSPACK_VERSION: &str = "2.1.10";
+
+/// Runs either managed browser bundler through one noninteractive resource policy.
+pub(super) fn run_managed_bundler(command: &mut Command) -> Result<Output, String> {
+    capture_tool_command(
+        command,
+        "managed browser bundler",
+        Duration::from_secs(300),
+        16 * 1024 * 1024,
+    )
+    .map_err(|error| format!("error[web_rsbuild]: failed to run Rsbuild: {error}"))
+}
 
 /// Resolved immutable browser toolchain selected by the compiler.
 #[derive(Debug)]
@@ -211,15 +225,15 @@ pub(crate) fn bundle_managed_angular_entry(
         )
     })?;
 
-    let output = Command::new(&toolchain.rsbuild)
-        .arg("build")
-        .arg("--config")
-        .arg(&config_path)
-        .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
-        .env("NODE_PATH", toolchain.root.join("node_modules"))
-        .current_dir(build_root)
-        .output()
-        .map_err(|error| format!("error[web_rsbuild]: failed to start Rsbuild: {error}"))?;
+    let output = run_managed_bundler(
+        Command::new(&toolchain.rsbuild)
+            .arg("build")
+            .arg("--config")
+            .arg(&config_path)
+            .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
+            .env("NODE_PATH", toolchain.root.join("node_modules"))
+            .current_dir(build_root),
+    )?;
     if !output.status.success() {
         return Err(format!(
             "error[web_rsbuild]: Rsbuild failed for {}:\n{}{}",

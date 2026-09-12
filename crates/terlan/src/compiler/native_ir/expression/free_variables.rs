@@ -125,7 +125,7 @@ fn collect_free_variables(
                 collect_free_variables(&after.body, bound, free);
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             let original = bound.clone();
             for pattern in params {
                 bind_pattern(pattern, bound);

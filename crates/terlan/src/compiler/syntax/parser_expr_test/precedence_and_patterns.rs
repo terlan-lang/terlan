@@ -2,6 +2,33 @@ use crate::terlan_syntax::parse_tree::{Decl, Expr, Pattern, StringPatternSegment
 use crate::terlan_syntax::{parse_module, parse_terlan_expr};
 
 #[test]
+fn typed_lambda_annotations_survive_syntax_serialization() {
+    let source = "// λ\n(value: Int, other, message: String) -> {value, other, message}";
+    let syntax = crate::terlan_syntax::parse_expr_as_syntax_output(source).unwrap();
+    let annotations = &syntax.clauses[0].parameter_types;
+    assert_eq!(annotations.len(), 3);
+    assert_eq!(annotations[0].as_ref().unwrap().text, "Int");
+    assert!(annotations[1].is_none());
+    assert_eq!(annotations[2].as_ref().unwrap().text, "String");
+    for annotation in annotations.iter().flatten() {
+        assert_eq!(
+            source[annotation.span.start..annotation.span.end].trim(),
+            annotation.text
+        );
+    }
+    let serialized = serde_json::to_vec(&syntax).unwrap();
+    let restored: crate::terlan_syntax::syntax_output::SyntaxExprOutput =
+        serde_json::from_slice(&serialized).unwrap();
+    assert_eq!(syntax, restored);
+    let untyped = crate::terlan_syntax::parse_expr_as_syntax_output("(value) -> value").unwrap();
+    assert!(untyped.clauses[0].parameter_types.is_empty());
+    assert!(!serde_json::to_string(&untyped)
+        .unwrap()
+        .contains("parameter_types"));
+    assert!(crate::terlan_syntax::parse_expr_as_syntax_output("(value: List[) -> value").is_err());
+}
+
+#[test]
 fn formal_expr_precedence_keeps_pipe_below_boolean_chain() {
     let expr = parse_terlan_expr("A |> B + C * D or Ready").expect("parse formal precedence");
     let Expr::BinaryOp { op, right, .. } = expr else {
@@ -670,7 +697,7 @@ fn assert_typed_string_capture_pattern(
 /// Transformation:
 /// - Parses one expression through the recursive-descent parser and
 ///   inspects the nested binary operator tree.
-
+///
 /// Verifies the boolean precedence chain introduced by the canonical EBNF.
 ///
 /// Inputs:
@@ -735,7 +762,7 @@ fn formal_boolean_operators_preserve_ebnf_precedence() {
 /// Transformation:
 /// - Parses representative expressions and inspects the preserved syntax
 ///   tree instead of resolving the conversion semantically.
-
+///
 /// Verifies explicit cast syntax follows the canonical precedence chain.
 ///
 /// Inputs:
@@ -797,7 +824,7 @@ fn formal_cast_expr_preserves_ebnf_precedence() {
 /// - Parses each expression through the recursive-descent parser and
 ///   asserts the comparison operator guard fires before syntax output is
 ///   accepted.
-
+///
 /// Verifies that canonical Terlan source rejects backend-style equality
 /// spellings.
 ///

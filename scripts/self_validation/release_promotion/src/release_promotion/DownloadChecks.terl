@@ -1,0 +1,257 @@
+/**
+ * Local subprocess tests for verified hosted-download checkpoints.
+ */
+module release_promotion.DownloadChecks.
+
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.{Console, Directory, File}.
+import std.system.{Environment, Process}.
+
+child(root: String, path: String): String ->
+    String.concat([root, "/", path]).
+
+write_files(root: String, names: List[String], contents: String): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let Ok(_written) <- File.write_text(child(root, name), contents) else {
+                _ -> false
+            };
+            write_files(root, rest, contents)
+    }.
+
+gh_stub(): String ->
+    String.concat(
+        [
+            "#!/usr/bin/env bash\nset -eu\nroot=$DOWNLOAD_FIXTURE\n",
+            "case \"$1 $2\" in\n",
+            "'auth status') exit 0;;\n'repo view') echo fixture/repository; exit 0;;\n",
+            "'run download') echo download >> \"$root/calls\"; case \"$5\" in release-distribution) cp \"$root/archives/\"* \"$7/\";; release-hosted-validation-evidence) cp \"$root/evidence/\"* \"$7/\";; compiler-test-coverage-22-1) cp \"$root/coverage/\"* \"$7/\";; *) exit 92;; esac; exit 0;;\n",
+            "'attestation verify') echo attest >> \"$root/calls\"; case \"$3\" in */compiler-coverage/*) test \"$*\" = \"attestation verify $3 --repo fixture/repository --signer-workflow fixture/repository/.github/workflows/ci.yml --source-ref refs/heads/main --source-digest aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"; if [ \"$DOWNLOAD_MODE\" = bad-attestation ]; then exit 19; fi;; esac; exit 0;;\nesac\n",
+            "case \"$*\" in\n",
+            "*commits/*/status*) echo status >> \"$root/calls\"; echo '{\"state\":\"success\",\"target_url\":\"https://github.com/fixture/repository/actions/runs/21\"}';;\n",
+            "*check-runs*) echo '{\"details_url\":\"https://github.com/fixture/repository/actions/runs/22/job/1\"}';;\n",
+            "*actions/runs/21*) attempt=1; if [ \"$DOWNLOAD_MODE\" = attempt-two ]; then attempt=2; fi; jq -n --argjson attempt \"$attempt\" '{id:21,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:\"success\",path:\".github/workflows/release.yml\"}';;\n",
+            "*actions/runs/22*) conclusion=success; attempt=1; if [ \"$DOWNLOAD_MODE\" = failed-ci ]; then conclusion=failure; fi; if [ \"$DOWNLOAD_MODE\" = signing-retry ]; then attempt=2; fi; jq -n --arg conclusion \"$conclusion\" --argjson attempt \"$attempt\" '{id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:$conclusion,path:\".github/workflows/ci.yml\"}';;\n",
+            "*actions/jobs/1*) attempt=1; if [ \"$DOWNLOAD_MODE\" = bad-job ]; then attempt=0; fi; jq -n --argjson attempt \"$attempt\" '{id:1,run_id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",name:\"Compiler check and test\",status:\"completed\",conclusion:\"success\"}';;\n",
+            "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
+        ],
+    ).
+
+make_stub(): String ->
+    "#!/usr/bin/env bash\nset -eu\ncase \"$*\" in *release-artifact-set-check*) ;; *) exit 94;; esac\ncase \"$*\" in *RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD=1*) if [ \"$DOWNLOAD_MODE\" = late-failure ]; then exit 17; fi;; esac\n".
+
+reader_stub(): String ->
+    "#!/usr/bin/env bash\nset -eu\necho inspect >> \"$DOWNLOAD_FIXTURE/calls\"\ntest \"$1\" = --check-hosted-coverage-records\ntest -s \"$3\"\nif [ \"$DOWNLOAD_MODE\" = bad-records ]; then exit 18; fi\nprintf '%s\\n' '{\"schema\":\"terlan.hosted-coverage-records.v1\",\"decision\":\"records-consistent\",\"authentication_required\":true,\"current_inputs_verified\":false,\"reusable\":false}'\n".
+
+prepare(root: String): Bool ->
+    let names =
+        [
+            "terlc",
+            "terlan-vm",
+            "terlan-native-worker",
+            "terlan-lsp",
+            "terlan-release.json",
+            "terlan-install-manifest.json",
+        ];
+    let evidence =
+        [
+            "tvm-aot-platform-matrix-report.json",
+            "tvm-aot-thread-sanitizer-report.json",
+            "vm-multicore-thread-sanitizer-report.json",
+            "vm-multicore-memory-model-tsan.json",
+        ];
+    let {
+        Ok(_scripts) <- Directory.create_all(child(root, "scripts"));
+        Ok(_bin) <- Directory.create_all(child(root, "bin"));
+        Ok(_payload) <- Directory.create_all(child(root, "payload/share/terlan"));
+        Ok(_doc) <- File.write_text(child(root, "payload/share/terlan/README.md"), "packaged documentation");
+        Ok(_archives) <- Directory.create_all(child(root, "archives"));
+        Ok(_evidence) <- Directory.create_all(child(root, "evidence"));
+        Ok(_coverage) <- Directory.create_all(child(root, "coverage"));
+        Ok(_tools) <- Directory.create_all(child(root, "target/validation-tools"));
+        true <-
+            write_files(
+                child(root, "coverage"),
+                [
+                    "rust-test-suite-report.json",
+                    "rust-test-suite-report.json.selections.json",
+                    "rust-test-suite-report.json.make-coverage.json",
+                ],
+                "{}",
+            );
+        Ok(_reader) <-
+            File.write_text(
+                child(root, "target/validation-tools/terlan-test-orchestrator"),
+                reader_stub(),
+            );
+        true <- write_files(child(root, "payload"), names, "fixture");
+        true <- write_files(child(root, "evidence"), evidence, "{}");
+        Ok(_sums) <-
+            File.write_text(
+                child(root, "payload/SHA256SUMS"),
+                String.concat([Hash.sha256("fixture"), "  terlc\n"]),
+            );
+        Ok(script) <- File.read_text("scripts/download_validated_release_artifacts.sh");
+        Ok(_script) <- File.write_text(child(root, "scripts/download_validated_release_artifacts.sh"), script);
+        Ok(_git) <-
+            File.write_text(
+                child(root, "bin/git"),
+                "#!/usr/bin/env bash\nset -eu\nif [ \"$1\" != rev-parse ]; then exit 95; fi\necho aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+            );
+        Ok(_gh) <- File.write_text(child(root, "bin/gh"), gh_stub());
+        Ok(_make) <- File.write_text(child(root, "bin/make"), make_stub());
+        Ok(_tar) <-
+            File.write_text(
+                child(root, "bin/tar"),
+                "#!/usr/bin/env bash\nset -eu\nif [ \"$1\" = -xzf ]; then echo extract >> \"$DOWNLOAD_FIXTURE/calls\"; fi\nexec /usr/bin/tar \"$@\"\n",
+            );
+        Ok(chmod) <-
+            Process.run(
+                Process.command("chmod")
+                    .with_arguments(
+                        [
+                            "+x",
+                            child(root, "bin/git"),
+                            child(root, "bin/gh"),
+                            child(root, "bin/make"),
+                            child(root, "bin/tar"),
+                            child(root, "target/validation-tools/terlan-test-orchestrator"),
+                        ],
+                    ),
+            );
+        Ok(tar) <-
+            Process.run(
+                Process.command("/usr/bin/tar")
+                    .with_arguments(
+                        [
+                            "-czf",
+                            child(root, "archives/terlc-linux-x86_64.tar.gz"),
+                            "-C",
+                            child(root, "payload"),
+                            ".",
+                        ],
+                    ),
+            );
+        Ok(digest) <- Hash.sha256_file(child(root, "archives/terlc-linux-x86_64.tar.gz"));
+        Ok(_checksum) <-
+            File.write_text(
+                child(root, "archives/terlc-linux-x86_64.tar.gz.sha256"),
+                String.concat([digest, "  terlc-linux-x86_64.tar.gz\n"]),
+            )
+    } else {
+        _ -> false
+    };
+    Process.status(chmod) == 0 and Process.status(tar) == 0.
+
+run(root: String, mode: String, expected_status: Int, expected_calls: String): Bool ->
+    let script = child(root, "scripts/download_validated_release_artifacts.sh");
+    let revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let command =
+        if {
+            mode == "locked" -> Process.command("flock")
+                .with_arguments(
+                    ["-x", child(root, "target/publication-inputs.lock"), "bash", script, revision],
+                );
+            true -> Process.command("bash").with_arguments([script, revision])
+        };
+    let {
+        Ok(_reset) <- File.write_text(child(root, "calls"), "");
+        Some(path) <- Environment.get("PATH");
+        Ok(output) <-
+            Process.run(
+                command
+                    .with_environment(
+                        [
+                            Process.environment_entry(
+                                "PATH",
+                                String.concat([child(root, "bin"), ":", path]),
+                            ),
+                            Process.environment_entry("DOWNLOAD_FIXTURE", root),
+                            Process.environment_entry("DOWNLOAD_MODE", mode),
+                        ],
+                    ),
+            );
+        Ok(calls) <- File.read_text(child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    if {
+        Process.status(output) == expected_status and calls == expected_calls -> true;
+        true -> let _reported =
+            Console.eprintln(
+                String.concat(
+                    [
+                        "download scenario ",
+                        mode,
+                        " failed: ",
+                        Process.stdout(output),
+                        Process.stderr(output),
+                        "calls: ",
+                        calls,
+                    ],
+                ),
+            );
+        false
+    }.
+
+corrupt_archives(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let written =
+                if {
+                    String.ends_with(path, "/archives/terlc-linux-x86_64.tar.gz") -> case File.write_text(path, "corrupt") {
+                        Ok(_written) -> true;
+                        _ -> false
+                    };
+                    true -> true
+                };
+            written and corrupt_archives(rest)
+    }.
+
+exercise(root: String): Bool ->
+    let authenticated = "status\ndownload\ndownload\ndownload\nattest\nattest\nattest\nattest\nattest\n";
+    let downloaded = String.append(authenticated, "inspect\nextract\n");
+    let {
+        true <- prepare(root);
+        true <- run(root, "bad-job", 1, "status\n");
+        true <-
+            run(
+                root,
+                "bad-attestation",
+                19,
+                "status\ndownload\ndownload\ndownload\nattest\nattest\nattest\n",
+            );
+        true <- run(root, "bad-records", 18, String.append(authenticated, "inspect\n"));
+        true <- run(root, "late-failure", 17, downloaded);
+        true <- run(root, "normal", 0, "status\ninspect\n");
+        true <- run(root, "signing-retry", 0, "status\ninspect\n");
+        true <- run(root, "locked", 1, "");
+        true <- run(root, "failed-ci", 1, "status\n");
+        true <- run(root, "attempt-two", 0, downloaded);
+        Ok(files) <- Directory.files_recursive_excluding(child(root, "target/publication-downloads"), []);
+        true <- corrupt_archives(files);
+        Ok(_sentinel) <- File.write_text(child(root, "dist/release-candidate.json"), "preserve me");
+        true <- run(root, "attempt-two", 1, "status\n");
+        Ok(preserved) <- File.read_text(child(root, "dist/release-candidate.json"))
+    } else {
+        _ -> false
+    };
+    preserved == "preserve me".
+
+/**
+ * Cold failure, warm retry, changed attempts, live CI rejection, and corruption.
+ */
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-hosted-download-") else {
+        _ -> false
+    };
+    (let passed = exercise(root);
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+passed)).

@@ -413,22 +413,22 @@ fn is_script_assertion_call(expression: &Expr) -> bool {
 
 fn guarded_script_assertion(assertion: Expr, success: Expr) -> Expr {
     let reason = script_internal_call("__script_exit_reason", vec![Expr::Int(1)]);
-    let failure = Expr::Sequence(vec![
-        script_internal_call("__script_fail", vec![reason]),
-        success.clone(),
-    ]);
-    Expr::If {
+    // Both check branches are Unit-valued. Process.fail terminates the actor,
+    // so only the successful branch can reach the single remaining sequence.
+    // Copying `success` after failure doubles the AST for every assertion.
+    let check = Expr::If {
         clauses: vec![
             super::parse_tree::IfClause {
                 condition: assertion,
-                body: success,
+                body: Expr::Atom("Unit".to_string()),
             },
             super::parse_tree::IfClause {
                 condition: Expr::Atom("true".to_string()),
-                body: failure,
+                body: script_internal_call("__script_fail", vec![reason]),
             },
         ],
-    }
+    };
+    Expr::Sequence(vec![check, success])
 }
 
 fn script_internal_call(name: &str, args: Vec<Expr>) -> Expr {

@@ -148,10 +148,26 @@
       ]
     },
     {
+      "name": "terlan-build-cache",
+      "responsibility": "Own compiler-independent Linux Rust incremental-cache inspection and lease-coordinated retirement without linking compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "incremental",
+        "layout"
+      ]
+    },
+    {
       "name": "terlan-foundations-adapter",
       "responsibility": "Own the optional conversion from portable Terlan service events into Foundations telemetry without owning VM scheduling.",
       "top_level_feature_modules": [
         "lib"
+      ]
+    },
+    {
+      "name": "terlan-process-owner",
+      "responsibility": "Own child lifetimes and bounded tool capture shared by VM capabilities and compiler-independent build/test tooling.",
+      "top_level_feature_modules": [
+        "child",
+        "command"
       ]
     },
     {
@@ -187,9 +203,57 @@
     },
     {
       "name": "terlan-test-orchestrator",
-      "responsibility": "Own standard-library-only Rust test phase orchestration without inheriting Terlan product dependencies.",
+      "responsibility": "Own compiler-independent Rust test phases and durable direct-launch observations through shared process ownership.",
       "top_level_feature_modules": [
-        "main"
+        "cargo_artifact_stream",
+        "cargo_compiler_environment",
+        "cargo_configuration",
+        "cargo_default_tools",
+        "cargo_harness_admission",
+        "cargo_metadata_owner",
+        "cargo_proxy_path",
+        "cargo_target_declaration",
+        "cargo_tool_settings",
+        "compiler_invocation",
+        "configured_cargo_tools",
+        "coverage_batch",
+        "coverage_bridge",
+        "coverage_requests",
+        "coverage_resolution",
+        "doctest_output",
+        "driver_snapshot",
+        "executable_binding",
+        "execution_environment",
+        "file_identity",
+        "hosted_checkpoint",
+        "hosted_coverage",
+        "hosted_make",
+        "hosted_producer",
+        "launch_ledger",
+        "main",
+        "make_coverage",
+        "make_environment",
+        "native_coverage",
+        "phase_plan",
+        "report_file",
+        "rust_toolchain",
+        "rustdoc_owner",
+        "rustup_selection",
+        "selected_compiler",
+        "shutdown",
+        "source_inventory",
+        "suite_inputs",
+        "test_execution",
+        "test_inventory",
+        "test_result_log",
+        "test_selections",
+        "tool_configuration",
+        "tool_tree",
+        "validation_inputs",
+        "verify_coverage",
+        "workspace_native",
+        "workspace_native_runner",
+        "workspace_native_storage"
       ]
     },
     {

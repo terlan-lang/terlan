@@ -257,7 +257,9 @@ IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
 CaseExpr ::= "case" Expr "{" [ Clause { ";" Clause } [ ";" ] ] "}" .
 Clause ::= PatternList [ "where" Expr ] "->" Expr .
-LambdaExpr ::= "(" [ PatternList ] ")" "->" Expr .
+LambdaExpr ::= "(" [ LambdaParameterList ] ")" "->" Expr .
+LambdaParameterList ::= LambdaParameter { "," LambdaParameter } [ "," ] .
+LambdaParameter ::= Pattern | LowerIdent ":" TypeExpr .
 TryExpr ::= "try" Expr "{" [ Clause { ";" Clause } [ ";" ] ] [ "catch" CatchClause { ";" CatchClause } [ ";" ] ] [ "after" Expr "->" Expr ] "}" .
 
 IfExpr ::= "if" "{" IfClause { ";" IfClause } [ ";" ] "}" .

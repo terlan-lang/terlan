@@ -8,6 +8,41 @@ use crate::terlan_typeck::{
 
 use super::super::{native_type, NativeExpr, NativeType};
 
+/// Shared grouped-let fallbacks span different closed unions and scalar guards.
+/// Disjoint arms must not project fields or lower unreachable bindings. Unknown
+/// and nominal types stay conservative: a missing layout is not disjointness.
+pub(super) fn type_excludes_pattern(pattern: &CorePattern, core_type: Option<&CoreType>) -> bool {
+    if let CorePattern::Alias { pattern, .. } = pattern {
+        return type_excludes_pattern(pattern, core_type);
+    }
+    match (pattern, core_type) {
+        (_, Some(CoreType::Union(variants))) => variants
+            .iter()
+            .all(|ty| type_excludes_pattern(pattern, Some(ty))),
+        (CorePattern::Atom(expected), Some(CoreType::AtomLiteral(actual))) => expected != actual,
+        (CorePattern::Tuple(patterns), Some(CoreType::Tuple(elements))) => {
+            patterns.len() != elements.len()
+                || patterns.iter().zip(elements).any(|(pattern, element)| {
+                    type_excludes_pattern(pattern, Some(tuple_element_type(element)))
+                })
+        }
+        (
+            CorePattern::Tuple(_),
+            Some(
+                CoreType::Bool
+                | CoreType::Int
+                | CoreType::Float
+                | CoreType::Number
+                | CoreType::String
+                | CoreType::Binary
+                | CoreType::Atom
+                | CoreType::AtomLiteral(_),
+            ),
+        ) => true,
+        _ => false,
+    }
+}
+
 pub(super) fn native_core_type(ty: &CoreType) -> Result<NativeType, String> {
     native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
         format!(
@@ -72,11 +107,9 @@ pub(super) fn core_expr_type(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
         CoreExpr::List(items) if !items.is_empty() => {
-            let first = core_expr_type(&items[0], types, functions)?;
-            items[1..]
-                .iter()
-                .all(|item| core_expr_type(item, types, functions) == Some(first.clone()))
-                .then(|| CoreType::List(Box::new(first)))
+            super::super::expression::homogeneous_list_type(items, |item| {
+                core_expr_type(item, types, functions)
+            })
         }
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base = core_expr_type(base, types, functions)?;
@@ -157,7 +190,9 @@ pub(super) fn core_expr_type(
                 let CorePattern::Var(name) = &binding.pattern else {
                     return None;
                 };
-                if let Some(ty) = core_expr_type(&binding.value, &lexical, functions) {
+                let inferred = core_expr_type(&binding.value, &lexical, functions);
+                lexical.remove(name);
+                if let Some(ty) = inferred {
                     lexical.insert(name.clone(), ty);
                 }
             }
@@ -331,6 +366,17 @@ fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> 
     if expected == found {
         return Some(expected);
     }
+    // Constructor expressions recover positional payloads, while checked
+    // signatures retain payload labels. Prefer the covering signature's
+    // layout instead of manufacturing duplicate variants with different IDs.
+    if union_covers(&found, &expected)
+        && (!union_covers(&expected, &found) || payload_labels(&found) > payload_labels(&expected))
+    {
+        return Some(found);
+    }
+    if union_covers(&expected, &found) {
+        return Some(expected);
+    }
     let mut variants = match expected {
         CoreType::Union(variants) if variants.iter().all(is_tagged_variant) => variants,
         variant if is_tagged_variant(&variant) => vec![variant],
@@ -347,6 +393,42 @@ fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> 
         }
     }
     Some(CoreType::Union(variants))
+}
+
+fn union_covers(cover: &CoreType, candidate: &CoreType) -> bool {
+    let CoreType::Union(variants) = cover else {
+        return false;
+    };
+    if variants.is_empty() || !variants.iter().all(is_tagged_variant) {
+        return false;
+    }
+    let covered = |candidate: &CoreType| {
+        variants.iter().any(|variant| match (variant, candidate) {
+            (CoreType::Tuple(left), CoreType::Tuple(right)) => {
+                left.len() == right.len()
+                    && left
+                        .iter()
+                        .zip(right)
+                        .all(|(left, right)| tuple_element_type(left) == tuple_element_type(right))
+            }
+            _ => variant == candidate,
+        })
+    };
+    match candidate {
+        CoreType::Union(candidates) => candidates.iter().all(covered),
+        candidate => covered(candidate),
+    }
+}
+
+fn payload_labels(ty: &CoreType) -> usize {
+    match ty {
+        CoreType::Union(variants) => variants.iter().map(payload_labels).sum(),
+        CoreType::Tuple(elements) => elements
+            .iter()
+            .filter(|element| matches!(element, CoreTupleTypeElem::Field { .. }))
+            .count(),
+        _ => 0,
+    }
 }
 
 /// Reports whether a type is one transparent constructor variant.

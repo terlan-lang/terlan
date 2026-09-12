@@ -127,6 +127,7 @@ pub(super) fn checked_parse_failure_clause(
     assertion.let_guards = vec![None];
     Some(SyntaxClauseOutput {
         patterns: vec![invalid_pattern],
+        parameter_types: Vec::new(),
         guard: None,
         body: Box::new(assertion),
     })
@@ -168,6 +169,7 @@ pub(super) fn checked_parse_clause(
     };
     Some(SyntaxClauseOutput {
         patterns: vec![value_to_pattern(representation)?],
+        parameter_types: Vec::new(),
         guard: None,
         body: Box::new(value_to_expr(value, span)),
     })

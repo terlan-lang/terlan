@@ -1,10 +1,10 @@
 //! Thread-neutral state retained while direct native execution is parked.
 
 use crate::runtime::native_image::control::TvmTransitionOperation;
-use crate::runtime::native_image::{TvmBoundaryType, TvmContinuationDescriptor};
+use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::actor::VmNativeTraceCall;
 
-use super::NativeResultProjection;
+use super::{NativeContinuationTable, NativeResultProjection};
 
 /// Stable identities required to resume one exact native call.
 #[derive(Debug)]
@@ -29,15 +29,15 @@ pub(super) struct OwnedNativeTransition {
 pub(super) struct OwnedNativeResumeProgram {
     pub(super) result_type: TvmBoundaryType,
     pub(super) result_projection: NativeResultProjection,
-    pub(super) continuations: Vec<TvmContinuationDescriptor>,
+    pub(super) continuations: NativeContinuationTable,
     pub(super) resume_count: usize,
 }
 
 /// Owned native continuation state retained while its VM actor is parked.
 ///
-/// This type deliberately has no lifetime, pointer, scheduler handle, worker
+/// This type deliberately has no borrowed lifetime, native pointer, scheduler handle, worker
 /// connection, or cache parameter. Moving it between scheduler threads moves
-/// only stable identities and owned VM values.
+/// only stable identities and owned VM values; immutable signatures remain shared.
 #[derive(Debug)]
 pub(crate) struct PureNativeSuspension {
     identity: NativeContinuationIdentity,
@@ -53,7 +53,7 @@ pub(super) struct NativeResumeState {
     pub(super) values: Vec<i64>,
     pub(super) result_type: TvmBoundaryType,
     pub(super) result_projection: NativeResultProjection,
-    pub(super) continuations: Vec<TvmContinuationDescriptor>,
+    pub(super) continuations: NativeContinuationTable,
     pub(super) resume_count: usize,
     pub(super) trace_call: VmNativeTraceCall,
 }

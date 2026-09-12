@@ -1,0 +1,106 @@
+/**
+ * Actual subprocesses exercise lane output transactions and frozen history.
+ */
+module release_promotion.PreparationProofLanesTest.
+
+import release_promotion.{OwnerHistory, OwnerStorage, PreparationContext, PreparationGraph, PrepareProofLanes}.
+import std.core.Result.{Err, Ok}.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"))
+    } else {
+        _ -> false
+    };
+    write(root, "input.txt", "first")
+        and write(root, "target/quality/proof-artifacts/lean-proof-track.json", "{}")
+        and write(root, "target/quality/proof-artifacts/lean-proof-repro-report.json", "{}")
+        and write(root, "target/quality/proof-artifacts/lean-proof-smoke.json", "{}")
+        and write(root, "target/quality/proof-artifacts/lean-proof-smoke-attempt.json", "{}")
+        and write(
+    root,
+    "target/tools/compiler",
+    "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest \"$3\" = scripts/self_validation/LeanProofLanesTest.terl\ntest -n \"$TERLAN_BUILD_ACTIVITY_LOG\"\ntest -n \"$TERLAN_PROCESS_ACTIVITY_LOG\"\ntest -s \"$TERLAN_PROOF_LANES_HISTORY\"\necho run >> calls\nvalue=$(cat input.txt)\nprintf '{\"schema\":\"terlan.lean-proof-lanes.v1\",\"value\":\"%s\"}\\n' \"$value\" > \"$TERLAN_PROOF_LANES_OUTPUT\"\ntest \"$value\" != fail\nprintf '{\"schema\":\"terlan.lean-proof-gate.v1\",\"value\":\"%s\"}\\n' \"$value\" > \"$TERLAN_PROOF_LANE_GATE_OUTPUT\"\necho 'Lean proof lanes passed: 8 ordered hard lanes sealed'\n",
+)
+        and OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/compiler"]).
+
+exercise(root: String): Bool ->
+    let source = "target/quality/proof-artifacts/lean-proof-lanes.json";
+    let {
+        true <- fixture(root);
+        Ok(history) <- OwnerHistory.capture(root, "candidate", "proof-lanes", source);
+        Ok(initial) <- File.read_text(OwnerStorage.child(root, history))
+    } else {
+        _ -> false
+    };
+    (let context =
+    PreparationContext.from_parts(
+        revision = "candidate",
+        sources = ["input.txt"],
+        environment = [environment_entry("PATH", "/usr/bin:/bin")],
+        runtime_tools = "fixture-v1",
+    );
+let owner = PrepareProofLanes.declare(root, "target/tools/compiler", context, history, "fixture-aot", []);
+let nodes = [PreparationGraph.declare_node(owner, [])];
+let cold = PreparationGraph.run_locked(root, "proof-lanes", nodes);
+let warm = PreparationGraph.run_locked(root, "proof-lanes", nodes);
+(let {
+    true <- cold.valid and cold.completed == 1 and warm.valid and warm.reused == 1;
+    Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+    Ok(same_history) <- OwnerHistory.capture(root, "candidate", "proof-lanes", source);
+    true <- same_history == history;
+    Ok(unchanged) <- File.read_text(OwnerStorage.child(root, history));
+    true <- initial == unchanged;
+    Ok(before) <- OwnerStorage.files(root, [source, "target/quality/proof-artifacts/lean-proof-gate.json"]);
+    true <- write(root, "input.txt", "fail");
+    false <- PreparationGraph.run_locked(root, "proof-lanes", nodes).valid;
+    Ok(retained) <- OwnerStorage.files(root, [source, "target/quality/proof-artifacts/lean-proof-gate.json"]);
+    true <- OwnerStorage.digest(before) == OwnerStorage.digest(retained);
+    true <- write(root, "input.txt", "changed");
+    true <- PreparationGraph.run_locked(root, "proof-lanes", nodes).valid;
+    true <- PreparationGraph.run_locked(root, "proof-lanes", nodes).reused == 1;
+    Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+    true <- write(root, source, "corrupt");
+    true <- PreparationGraph.run_locked(root, "proof-lanes", nodes).valid;
+    Ok("run\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+    Ok(next) <- OwnerHistory.capture(root, "next-candidate", "proof-lanes", source);
+    Ok(next_history) <- File.read_text(OwnerStorage.child(root, next));
+    true <- initial != next_history;
+    true <- write(root, history, "{}");
+    Err(_corrupt) <- OwnerHistory.capture(root, "candidate", "proof-lanes", source);
+    Ok("{}") <- File.read_text(OwnerStorage.child(root, history));
+    Err(_unsafe) <- OwnerHistory.capture(root, "candidate", "proof-lanes", "../outside");
+    true <- write(root, source, "");
+    Err(_empty) <- OwnerHistory.capture(root, "empty-candidate", "proof-lanes", source)
+} else {
+    _ -> false
+};
+true)).
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-lanes-owner-") else {
+        _ -> false
+    };
+    (let valid = exercise(root);
+let removed = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "proof lanes owner rehearsal passed";
+            true -> "proof lanes owner rehearsal failed"
+        },
+    );
+valid
+    and case removed {
+    Ok(_removed) -> true;
+    _ -> false
+}).

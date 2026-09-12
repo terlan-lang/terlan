@@ -1,0 +1,307 @@
+/**
+ * Linux preparation tool and Cargo configuration identity.
+ */
+module release_promotion.OwnerTools.
+
+import release_promotion.{OwnerStorage, PreparationOwner}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.{NotFound}.
+import std.io.{Directory, File, Path}.
+import std.system.Process.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+import type std.system.Process.EnvironmentEntry.
+
+/**
+ * Build-tool observations shared by declarations in one preparation graph.
+ */
+pub struct BuildIdentity {
+    rustc: String,
+    cargo: String,
+    digest: String,
+}.
+
+pub build_identity(
+    root: String,
+    env: List[EnvironmentEntry],
+    runtime: String,
+): Result[BuildIdentity, String] ->
+    let {
+        Ok(rustc) <- run(root, "rustc", ["-vV"], env);
+        Ok(cargo) <- run(root, "cargo", ["--version"], env);
+        Ok(digest) <- with_runtime_identity(root, env, runtime)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(BuildIdentity(rustc = rustc, cargo = cargo, digest = digest)).
+
+pub run(
+    root: String,
+    program: String,
+    args: List[String],
+    env: List[EnvironmentEntry],
+): Result[String, String] ->
+    case Process.run(
+    Process.command("/usr/bin/env")
+        .with_arguments(["-i" | PreparationOwner.environment_arguments(env, [program | args])])
+        .with_working_directory(root)
+        .with_stdin("")
+        .with_timeout_ms(30000)
+        .with_output_limit_bytes(8388608),
+) {
+        Err(reason) -> Err(Process.error_message(reason));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Ok(String.trim(Process.stdout(output)));
+                true -> Err(Process.stderr(output))
+            }
+    }.
+
+setting(env: List[EnvironmentEntry], key: String): Option[String] ->
+    case env {
+        [] -> None;
+        [entry | rest] ->
+            if {
+                entry.key == key -> Some(entry.value);
+                true -> setting(rest, key)
+            }
+    }.
+
+config(path: String, rows: Json): Result[Json, String] ->
+    case File.read_text(path) {
+        Ok(source) ->
+            Ok(
+                rows
+                    .push(
+                        Json.object()
+                            .put("path", Json.string(path))
+                            .put("sha256", Json.string(Hash.sha256(source))),
+                    ),
+            );
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> Ok(
+                    rows
+                        .push(
+                            Json.object()
+                                .put("path", Json.string(path))
+                                .put("absent", Json.bool(true)),
+                        ),
+                );
+                true -> Err(File.message(reason))
+            }
+    }.
+
+configs(path: String, rows: Json): Result[Json, String] ->
+    let {
+        Ok(legacy) <- config(OwnerStorage.child(path, ".cargo/config"), rows);
+        Ok(current) <- config(OwnerStorage.child(path, ".cargo/config.toml"), legacy);
+        Ok(parsed) <- Path.from_string(path)
+    } else {
+        _ -> Err("cannot fingerprint ancestor Cargo configuration")
+    };
+    case parsed.parent() {
+        None -> Ok(current);
+        Some(parent) -> configs(parent.to_string(), current)
+    }.
+
+/**
+ * Includes absent configuration files so creation also invalidates reuse.
+ */
+pub configuration(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
+    let Some(home) <- setting(env, "HOME") else {
+        _ -> Err("preparation requires an explicit HOME")
+    };
+    (let cargo_home =
+    case setting(env, "CARGO_HOME") {
+        Some(value) -> value;
+        None -> OwnerStorage.child(home, ".cargo")
+    };
+(let {
+    Ok(ancestors) <- configs(root, Json.array());
+    Ok(legacy) <- config(OwnerStorage.child(cargo_home, "config"), ancestors);
+    Ok(current) <- config(OwnerStorage.child(cargo_home, "config.toml"), legacy)
+} else {
+    _ -> Err("cannot fingerprint Cargo configuration")
+};
+OwnerStorage.digest(current))).
+
+/**
+ * Hashes actual tool bytes; a tool reporting the same version is not sufficient.
+ */
+tool(root: String, name: String, env: List[EnvironmentEntry], rows: Json): Result[Json, String] ->
+    let {
+        Ok(path) <- run(root, "/bin/sh", ["-c", "command -v \"$1\"", "terlan-tool-identity", name], env);
+        Ok(digest) <- Hash.sha256_file(path)
+    } else {
+        _ -> Err(String.append("cannot fingerprint preparation tool: ", name))
+    };
+    Ok(
+        rows
+            .push(
+                Json.object()
+                    .put("tool", Json.string(name))
+                    .put("path", Json.string(path))
+                    .put("sha256", Json.string(digest)),
+            ),
+    ).
+
+file_digest(path: String): Result[String, String] ->
+    case Hash.sha256_file(path) {
+        Ok(digest) -> Ok(digest);
+        Err(reason) -> Err(String.concat(["cannot hash ", path, ": ", File.message(reason)]))
+    }.
+
+relative_paths(
+    prefix: String,
+    paths: List[String],
+    result: List[String],
+): Result[List[String], String] ->
+    case paths {
+        [] -> Ok(result);
+        [path | rest] ->
+            if {
+                String.starts_with(path, prefix) -> relative_paths(
+                    prefix,
+                    rest,
+                    [path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()) | result],
+                );
+                true -> Err("toolchain inventory escaped its root")
+            }
+    }.
+
+toolchain_digest(sysroot: String): Result[String, String] ->
+    case Directory.files_recursive_excluding(sysroot, ["share", "etc"]) {
+        Err(reason) -> Err(Directory.message(reason));
+        Ok(paths) ->
+            let Ok(relative) <- relative_paths(String.append(sysroot, "/"), paths, List.new[String]()) else {
+                Err(reason) -> Err(reason)
+            };
+            case Hash.sha256_selected_files(sysroot, relative) {
+                Ok(digest) -> Ok(digest);
+                Err(reason) -> Err(String.append("Rust sysroot digest: ", File.message(reason)))
+            }
+    }.
+
+pub identity(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
+    let Ok(runtime) <- report_identity(root, env) else {
+        Err(reason) -> Err(reason)
+    };
+    with_runtime_identity(root, env, runtime).
+
+/**
+ * Reuses the graph's already verified runtime-tool identity within this cycle.
+ */
+pub with_runtime_identity(
+    root: String,
+    env: List[EnvironmentEntry],
+    runtime: String,
+): Result[String, String] ->
+    let {
+        Ok(sysroot) <- run(root, "rustc", ["--print", "sysroot"], env);
+        Ok(toolchain) <- toolchain_digest(sysroot);
+        Ok(rustc) <- tool(root, "rustc", env, Json.array());
+        Ok(cargo) <- tool(root, "cargo", env, rustc);
+        Ok(cc) <- tool(root, "cc", env, cargo);
+        Ok(ld) <- tool(root, "ld", env, cc);
+        Ok(ar) <- tool(root, "ar", env, ld);
+        Ok(configuration) <- configuration(root, env)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    OwnerStorage.digest(
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-tools.v1"))
+            .put("rust_sysroot", Json.string(sysroot))
+            .put("rust_toolchain", Json.string(toolchain))
+            .put("native_tools", ar)
+            .put("runtime_tools", Json.string(runtime))
+            .put("cargo_configuration", Json.string(configuration)),
+    ).
+
+/**
+ * Runtime/report tools do not depend on the Rust compiler sysroot.
+ */
+pub report_identity(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
+    let {
+        Ok(git) <- tool(root, "git", env, Json.array());
+        Ok(environment) <- tool(root, "/usr/bin/env", env, git);
+        Ok(move) <- tool(root, "/usr/bin/mv", env, environment);
+        Ok(shell) <- tool(root, "/bin/sh", env, move);
+        Ok(os) <- file_digest("/etc/os-release");
+        Ok(packages) <- file_digest("/var/lib/dpkg/status")
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    OwnerStorage.digest(
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-report-tools.v1"))
+            .put("tools", shell)
+            .put("os", Json.string(os))
+            .put("packages", Json.string(packages)),
+    ).
+
+/**
+ * The Linux offline installer uses these selected executables. Its HOME is
+ * owner-private, so caller curl configuration is not an input to this profile.
+ */
+pub installer_identity(
+    root: String,
+    env: List[EnvironmentEntry],
+    runtime: String,
+): Result[String, String] ->
+    let Ok(selected) <-
+        installer_tools(
+            root,
+            env,
+            [
+                "sh",
+                "curl",
+                "tar",
+                "gzip",
+                "sha256sum",
+                "awk",
+                "grep",
+                "uname",
+                "dirname",
+                "mktemp",
+                "mkdir",
+                "rm",
+                "cp",
+                "mv",
+                "chmod",
+                "tr",
+                "sort",
+                "uniq",
+            ],
+            Json.array(),
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    OwnerStorage.digest(
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-installer-tools.v1"))
+            .put("runtime", Json.string(runtime))
+            .put("tools", selected),
+    ).
+
+installer_tools(
+    root: String,
+    env: List[EnvironmentEntry],
+    names: List[String],
+    rows: Json,
+): Result[Json, String] ->
+    case names {
+        [] -> Ok(rows);
+        [name | rest] ->
+            let Ok(next) <- tool(root, name, env, rows) else {
+                Err(reason) -> Err(reason)
+            };
+            installer_tools(root, env, rest, next)
+    }.

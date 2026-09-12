@@ -45,13 +45,16 @@ fn expand_type_aliases_inner(
                 if alias.params.len() != args.len() {
                     return ty.clone();
                 }
-                if !active_aliases.insert(name.clone()) {
-                    return ty.clone();
-                }
+                // Arguments are finite caller input, not recursive references
+                // introduced by this alias body. Expand them before marking
+                // the current alias active (for example Option[Option[Bool]]).
                 let args = args
                     .iter()
                     .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                     .collect::<Vec<_>>();
+                if !active_aliases.insert(name.clone()) {
+                    return ty.clone();
+                }
                 let mapping = alias
                     .params
                     .iter()
@@ -96,13 +99,13 @@ fn expand_type_aliases_inner(
                 if alias.params.len() != args.len() {
                     return ty.clone();
                 }
-                if !active_aliases.insert(qualified_name.clone()) {
-                    return ty.clone();
-                }
                 let args = args
                     .iter()
                     .map(|arg| expand_type_aliases_inner(arg, aliases, active_aliases))
                     .collect::<Vec<_>>();
+                if !active_aliases.insert(qualified_name.clone()) {
+                    return ty.clone();
+                }
                 let mapping = alias
                     .params
                     .iter()
