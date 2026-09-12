@@ -376,12 +376,19 @@ configured(root: String, program: String, arguments: List[String]): std.system.P
         8388608,
     ).
 
-run_command(root: String, program: String, arguments: List[String]): Option[Output] ->
+run_command(
+    root: String,
+    stage: String,
+    program: String,
+    arguments: List[String],
+): Option[Output] ->
+    let _started = println(String.append("[aot-platform] starting ", stage));
     case Process.run(configured(root, program, arguments)) {
         Err(error) -> output_failure("process", Process.error_message(error));
         Ok(output) ->
             if {
-                Process.status(output) == 0 -> Some(output);
+                Process.status(output) == 0 -> let _finished = println(String.append("[aot-platform] completed ", stage));
+                Some(output);
                 true -> output_failure(
                     "process",
                     String.concat(
@@ -407,6 +414,7 @@ run_native_tests(root: String): Bool ->
         };
     case run_command(
     root,
+    "native library tests",
     child(root, executable),
     [
         "--run-library-tests",
@@ -430,6 +438,7 @@ run_native_tests(root: String): Bool ->
 run_package_consumer(root: String): Bool ->
     case run_command(
     root,
+    "package consumer",
     child(cargo_validation_target(root), "debug/terlan-vm"),
     [
         "run",
@@ -447,6 +456,7 @@ run_package_consumer(root: String): Bool ->
     }.
 
 run_release_tool(root: String, command: String): Bool ->
+    let _started = println(String.append("[aot-platform] starting ", command));
     case command {
         "package" -> package_release(root);
         "smoke" -> smoke_release(root);
@@ -599,6 +609,7 @@ pub run_target(): Bool ->
             let debug_build =
                 run_command(
                     root,
+                    "debug compiler build",
                     "cargo",
                     [
                         "build",
@@ -625,6 +636,7 @@ pub run_target(): Bool ->
                         true -> let release_build =
                             run_command(
                                 root,
+                                "release compiler build",
                                 "cargo",
                                 [
                                     "build",
