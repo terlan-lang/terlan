@@ -3,7 +3,7 @@
 
 use std::fs::{self, File};
 use std::io::Write;
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, symlink};
+use std::os::unix::fs::{symlink, DirBuilderExt, MetadataExt};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

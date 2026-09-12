@@ -66,7 +66,7 @@ fn fixture() -> Fixture {
         r#"#!/bin/sh
 set -eu
 case "$*" in
-  'build -p terlan-test-orchestrator -p terlan-build-cache')
+  'build -p terlan-test-orchestrator -p terlan-build-cache'|'build -p terlan-test-orchestrator')
     printf 'support\n' >> events
     if test "$BOOTSTRAP_FIXTURE_MODE" = support-failure; then exit 7; fi
     ;;
@@ -186,6 +186,38 @@ fn compiler_bootstrap_shares_support_and_owns_success_failure_timeout_and_stdin(
             .is_file());
         if mode == "timeout" {
             descendant_stopped(&fixture.0);
+        }
+    }
+}
+
+/// Exercise the production non-Linux Make branch on a bounded host fixture.
+/// This is recipe coverage, not macOS or Windows runtime certification.
+#[test]
+fn non_linux_bootstrap_runs_compiler_and_propagates_failure() {
+    for platform in ["Darwin", "MINGW64_NT-10.0"] {
+        for mode in ["success", "failure"] {
+            let fixture = fixture();
+            executable(
+                &fixture.0.join("uname"),
+                &format!("#!/bin/sh\nprintf '%s\\n' '{platform}'\n"),
+            );
+            let mut paths = vec![fixture.0.clone()];
+            paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+            let mut command = command(&fixture, mode);
+            command.env("PATH", std::env::join_paths(paths).unwrap());
+            let output = ProcessControl::new(Duration::from_secs(15))
+                .capture_stdout_result(&mut command, 64 * 1024, |_| Ok(()))
+                .unwrap();
+            assert_eq!(
+                output.outcome.is_ok(),
+                mode == "success",
+                "{platform}: {output:?}"
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.0.join("events")).unwrap(),
+                "support\ncompiler\n",
+                "{platform}: compiler skipped or Linux admission selected"
+            );
         }
     }
 }

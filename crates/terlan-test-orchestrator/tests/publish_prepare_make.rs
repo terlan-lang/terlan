@@ -368,11 +368,9 @@ fn preparation_rejects_competing_cold_and_warm_graphs_before_producers() {
         .capture_stdout_result(&mut command, 64 * 1024, |_| Ok(()))
         .unwrap();
     assert!(result.outcome.is_err());
-    assert!(
-        String::from_utf8(result.stdout)
-            .unwrap()
-            .contains("preparation selects either the cold or warm graph, never both")
-    );
+    assert!(String::from_utf8(result.stdout)
+        .unwrap()
+        .contains("preparation selects either the cold or warm graph, never both"));
     assert!(!fixture.0.join("events").exists());
 }
 
@@ -469,11 +467,9 @@ publish-release-from-dist:
 
     // Interrupt the final preparation owner, then resume it without replaying
     // any completed owner or changing its sealed output bytes.
-    assert!(
-        run_preparation("cold", "release-preflight")
-            .outcome
-            .is_err()
-    );
+    assert!(run_preparation("cold", "release-preflight")
+        .outcome
+        .is_err());
     assert!(run_preparation("resume", "").outcome.is_ok());
     assert_eq!(
         fs::read_to_string(fixture.0.join("producer-events")).unwrap(),
@@ -618,7 +614,7 @@ fn clean_bootstrap_uses_one_receipt_owner_and_dirty_bootstrap_falls_back_safely(
     assert!(recipe.contains("--receipt \"target/quality/preparation/bootstrap/"));
     assert!(recipe.contains("--output \"$(TERLAN_BOOTSTRAP_COMPILER)\""));
     assert!(recipe.contains("--output \"$(TERLAN_BOOTSTRAP_VM)\""));
-    assert!(recipe.contains("--output \"$(TERLAN_RUST_ORCHESTRATOR)\""));
+    assert!(recipe.contains("--output \"$(patsubst $(CURDIR)/%,%,$(TERLAN_RUST_ORCHESTRATOR))\""));
     assert!(recipe.contains("--run-owned --timeout-seconds"));
 }
 
@@ -1049,11 +1045,9 @@ fn interrupted_preparation_resumes_only_the_failed_owner() {
         "final owner fault must interrupt preparation"
     );
     let after_failure = fs::read_to_string(fixture.0.join("producer-events")).unwrap();
-    assert!(
-        after_failure
-            .lines()
-            .any(|stage| stage == "release-preflight")
-    );
+    assert!(after_failure
+        .lines()
+        .any(|stage| stage == "release-preflight"));
     assert!(
         run("resume", "").outcome.is_ok(),
         "resume should recover the candidate"

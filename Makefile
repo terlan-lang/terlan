@@ -485,12 +485,14 @@ else
 				--output "$(TERLAN_BOOTSTRAP_COMPILER)" \
 				--output "$(TERLAN_BOOTSTRAP_VM)" \
 				--output "target/debug/terlan-native-worker" \
-				--output "$(TERLAN_RUST_ORCHESTRATOR)" \
+				--output "$(patsubst $(CURDIR)/%,%,$(TERLAN_RUST_ORCHESTRATOR))" \
 				-- /bin/sh -c "$$build_command"; \
 		else \
 			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); \
 		fi; \
+	else \
+		$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$(firstword $(CARGO))" $(wordlist 2,99,$(CARGO)) build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); \
 	fi
 endif
 endif
