@@ -413,6 +413,7 @@ run_native_tests(root: String): Bool ->
         "--target-dir",
         cargo_validation_target(root),
         "--",
+        "commands::run::run_test::run_built_native_script_propagates_result",
         "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
         "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
         "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
