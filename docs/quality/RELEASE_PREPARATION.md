@@ -4771,3 +4771,40 @@ exit status/reaping and permission-error preservation. Strict Clippy and
 formatting pass. Logs: `/tmp/terlan-v9-process-cleanup-tests.log` and
 `/tmp/terlan-v9-process-cleanup-clippy.log`. Native macOS coverage is now run
 before expensive compiler builds; its result is still required.
+
+### Native test selection and metadata hydration (2026-09-12)
+
+The next Linux platform job built and smoked its archive, but its separate
+multicore step printed `0 passed`: the thin VM binary no longer contains the
+library's tests. Inspection found the same obsolete binary selection in three
+reload/recovery checks. Those green statuses are not accepted as execution
+evidence. The platform validator now owns all three oracles and both stress/
+watchdog tests in one exact library selection, replacing four Cargo test calls.
+The shared Rust driver checks libtest's private result channel against every
+requested name; process exit zero, ignored/missing names, duplicate results or
+child stdout cannot substitute for completed tests. Private logs are removed
+on success and failure. Actual Cargo fixtures cover successful, empty, partial,
+ignored and failing selections plus invalid arguments without launching Cargo
+(`/tmp/terlan-v9-library-selection.log`). Native execution still requires CI.
+
+Compiler CI also reproduced a cold-cache metadata failure: metadata downloaded
+target-specific dependencies after resolver inputs were captured. Metadata
+production now records one bounded `cargo fetch --locked` before binding the
+resolver cache, followed by one offline metadata query. It preserves caller
+offline policy for fetching, rejects source/tool changes across both phases,
+and retains strict resolver stability across the query. Failed hydration does
+not publish or replace a prior observation. No metadata retry was introduced.
+All 17 focused tests pass (`/tmp/terlan-v9-metadata-hydration.log`), including
+cache hydration before observation and rejection of mutation during metadata.
+The optional-source fixture now pins its own Cargo target directory so an
+enclosing shared target cannot pollute its source-count assertion.
+
+The complete orchestrator suite passes in
+`/tmp/terlan-v9-orchestrator-closeout.log`; strict all-target Clippy passes in
+`/tmp/terlan-v9-orchestrator-closeout-clippy.log`. The platform script passes
+typechecking and formatting. These fixes do not close full-candidate acceptance
+or the outstanding V9-2 harness/dispatcher split and measurements.
+The updated platform validator also compiles to a 9.1 MiB native image and passes
+its executable matrix self-test (`/tmp/terlan-v9-platform-validator-build.log`
+and `/tmp/terlan-v9-platform-validator-self-test.log`). This checks the validator,
+not the five platform tests that the hosted run must execute.

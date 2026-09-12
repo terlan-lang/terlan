@@ -119,9 +119,6 @@ jobs:
         env:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
 
-      - name: Stress the portable multicore memory model
-        run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
-
       # The target validator has already built, packaged, smoked, and installer-
       # smoked this exact archive. Rebuilding it here duplicated the release
       # cycle and could exhaust slower hosted runners after all checks passed.

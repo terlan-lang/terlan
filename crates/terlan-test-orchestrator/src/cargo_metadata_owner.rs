@@ -38,6 +38,9 @@ fn command(environment: &ExecutionEnvironment, cargo: &Path) -> std::process::Co
     ] {
         command.env_remove(key);
     }
+    // Dependency hydration has its own observed launch before the cache is
+    // bound. The metadata query itself must not change resolver inputs.
+    command.env("CARGO_NET_OFFLINE", "true");
     command
 }
 
@@ -137,7 +140,6 @@ fn query(
     }
     let mut tools = ExecutableBinding::capture(&paths, control)?;
     let mut configuration = ToolConfiguration::capture(environment, control)?;
-    let mut resolver_cache = resolver_cache::Binding::capture(environment, control)?;
     let mut selected_cargo = if tools.same_identity("cargo", "rustup") {
         let rustup = rustup.ok_or_else(|| failure("Rustup proxy has no admitted resolver"))?;
         let selected = crate::rust_toolchain::resolve_installed_tool(
@@ -164,6 +166,20 @@ fn query(
         )?),
         after: None,
     };
+    let mut fetch = command(environment, &cargo);
+    match environment.value("CARGO_NET_OFFLINE") {
+        Some(value) => {
+            fetch.env("CARGO_NET_OFFLINE", value);
+        }
+        None => {
+            fetch.env_remove("CARGO_NET_OFFLINE");
+        }
+    }
+    fetch.args(arguments).args(["fetch", "--locked"]);
+    control
+        .run(&mut fetch, |pid| attempt.launched("cargo-fetch", pid))
+        .map_err(process_failure)?;
+    let mut resolver_cache = resolver_cache::Binding::capture(environment, control)?;
     let mut command = command(environment, &cargo);
     command.args(arguments).args([
         "metadata",

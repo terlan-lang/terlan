@@ -398,28 +398,31 @@ cargo_validation_target(root: String): String ->
         true -> child(root, "target")
     }.
 
-cargo_test(root: String, binary: String, test_name: String): Bool ->
+run_native_tests(root: String): Bool ->
+    let platform = Platform.current();
+    let executable =
+        if {
+            platform.operating_system == "windows" -> "target/validation-tools/terlan-test-orchestrator.exe";
+            true -> "target/validation-tools/terlan-test-orchestrator"
+        };
     case run_command(
     root,
-    "cargo",
+    child(root, executable),
     [
-        "test",
-        "--locked",
+        "--run-library-tests",
         "--target-dir",
         cargo_validation_target(root),
-        "--no-default-features",
-        "--features",
-        "native-codegen",
-        "-p",
-        "terlan",
-        "--bin",
-        binary,
-        test_name,
         "--",
-        "--exact",
+        "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
+        "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
+        "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
+        "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::bounded_seeded_multicore_memory_model_has_deadlock_watchdog",
+        "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::deadlock_watchdog_terminates_stuck_child",
     ],
 ) {
-        Some(_output) -> true;
+        Some(output) ->
+            let _printed = println(Process.stdout(output));
+            true;
         None -> false
     }.
 
@@ -617,21 +620,7 @@ pub run_target(): Bool ->
                 Some(_debug_output) ->
                     if {
                         not run_package_consumer(root) -> false;
-                        not cargo_test(
-    root,
-    "terlc",
-    "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
-) -> false;
-                        not cargo_test(
-    root,
-    "terlc",
-    "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
-) -> false;
-                        not cargo_test(
-    root,
-    "terlan-vm",
-    "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
-) -> false;
+                        not run_native_tests(root) -> false;
                         true -> let release_build =
                             run_command(
                                 root,
@@ -708,7 +697,6 @@ pub workflow_text_valid(workflow: String): Bool ->
                 "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
                 "make tvm-aot-platform-aggregate-check",
                 "uses: ./.github/actions/setup-native-dependencies",
-                "cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm",
                 "retention-days: 90",
                 "uses: actions/checkout@",
                 "uses: actions/upload-artifact@",

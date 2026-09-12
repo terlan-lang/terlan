@@ -67,7 +67,12 @@ fn real_metadata_records_one_query_and_failed_lock_refresh_keeps_prior_output() 
             .skip(usize::from(proxied))
             .map(|row| row["role"].as_str().unwrap())
             .collect::<Vec<_>>(),
-        ["source-before", "cargo-metadata", "source-after"]
+        [
+            "source-before",
+            "cargo-fetch",
+            "cargo-metadata",
+            "source-after"
+        ]
     );
     assert!(launches.iter().all(|row| row["pid"].as_u64().unwrap() > 0));
     assert_eq!(value["workspace_members"].as_array().unwrap().len(), 1);
@@ -92,7 +97,7 @@ fn real_metadata_records_one_query_and_failed_lock_refresh_keeps_prior_output() 
     );
     assert_eq!(
         attempt["launches"][1 + usize::from(proxied)]["role"],
-        "cargo-metadata"
+        "cargo-fetch"
     );
     assert_ne!(attempt["run_id"], record["run_id"]);
 }
@@ -135,7 +140,14 @@ fn producer_rejects_successful_empty_output_and_source_mutation_without_overwrit
     let script = root.join("cargo_fixture.rs");
     fs::write(&script, r#"
 fn main() {
+    if std::env::args().skip(1).collect::<Vec<_>>() == ["fetch", "--locked"] {
+        let path = std::path::PathBuf::from(std::env::var_os("CARGO_HOME").unwrap()).join("registry/src/example");
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(path.join("Cargo.toml"), "hydrated manifest").unwrap();
+        return;
+    }
     assert_eq!(std::env::args().skip(1).collect::<Vec<_>>(), ["metadata","--locked","--all-features","--format-version","1"]);
+    assert_eq!(std::env::var("CARGO_NET_OFFLINE").unwrap(), "true");
     let mode = std::env::var("METADATA_OWNER_MODE").unwrap();
     if mode == "empty" { return; }
     if mode == "mutate" { std::fs::write("lib.rs", "pub fn changed() {}\n").unwrap(); }
@@ -201,7 +213,7 @@ fn main() {
         );
         assert_eq!(
             attempt["launches"].as_array().unwrap().len(),
-            if mode == "empty" { 2 } else { 3 }
+            if mode == "empty" { 3 } else { 4 }
         );
         if mode == "mutate" {
             assert_eq!(
@@ -255,6 +267,7 @@ fn main() {
         else { println!("{}", std::env::current_dir().unwrap().join("target/native-cargo").display()); }
         return;
     }
+    if arguments == ["fetch", "--locked"] { return; }
     assert_eq!(arguments, ["metadata", "--locked", "--all-features", "--format-version", "1"]);
     if mode == "mutate-native" {
         std::fs::write("target/native-cargo", "changed native Cargo input").unwrap();
@@ -302,7 +315,7 @@ fn main() {
         assert_eq!(attempt["launches"][0]["role"], "rustup-cargo-resolution");
         assert_eq!(
             attempt["launches"].as_array().unwrap().len(),
-            if mode == "bad-resolution" { 1 } else { 4 }
+            if mode == "bad-resolution" { 1 } else { 5 }
         );
         if mode == "mutate-native" {
             assert_eq!(

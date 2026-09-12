@@ -35,6 +35,7 @@ mod hosted_coverage;
 mod hosted_make;
 mod hosted_producer;
 mod launch_ledger;
+mod library_selection;
 mod make_coverage;
 mod make_environment;
 mod native_coverage;
@@ -199,6 +200,9 @@ fn main() -> ExitCode {
     match arguments.next().as_deref() {
         Some(value) if value == std::ffi::OsStr::new("--run-owned") => {
             return owned_command::main(arguments);
+        }
+        Some(value) if value == std::ffi::OsStr::new("--run-library-tests") => {
+            return library_selection::main(arguments);
         }
         Some(value) if value == std::ffi::OsStr::new("--install-snapshot") => {
             return driver_snapshot::main(arguments);

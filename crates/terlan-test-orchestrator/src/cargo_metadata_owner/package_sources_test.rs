@@ -147,10 +147,16 @@ fn production_metadata_covers_optional_path_dependency_sources_without_building(
     fs::write(fixture.0.join("Cargo.lock"), "version = 4\n[[package]]\nname='example'\nversion='0.0.0'\ndependencies=['optional-dependency']\n[[package]]\nname='optional-dependency'\nversion='0.0.0'\n").unwrap();
     let (source, cache) = inputs(&fixture.0);
     let environment = ExecutionEnvironment::from_entries(
-        std::env::vars_os().chain([(
-            "CARGO_HOME".into(),
-            fixture.0.join("target/cargo-home").into_os_string(),
-        )]),
+        std::env::vars_os().chain([
+            (
+                "CARGO_HOME".into(),
+                fixture.0.join("target/cargo-home").into_os_string(),
+            ),
+            (
+                "CARGO_TARGET_DIR".into(),
+                fixture.0.join("target").into_os_string(),
+            ),
+        ]),
         &fixture.0,
     )
     .unwrap();
