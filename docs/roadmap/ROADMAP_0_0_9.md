@@ -20,6 +20,12 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Draft PR #22 is running hosted validation. Its first run exposed two clean-build
+defects: a relative-output contract violation on Linux and a missing compiler
+invocation on non-Linux hosts. Both have local reproductions and tested fixes;
+native hosted reruns are still required. Required acceptance remains open, and
+the draft must not be merged or published on the strength of component tests.
+
 An authorized detached local candidate now exists, with no changes to existing
 branches or public releases. Its cold-checkout plan check exposed and now fixes
 an unbuilt-orchestrator dependency; actual execution retains live coverage

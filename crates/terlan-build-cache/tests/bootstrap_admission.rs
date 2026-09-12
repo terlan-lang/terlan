@@ -107,7 +107,7 @@ esac
     // this boundary fixture isolates real disk admission and Make ordering.
     executable(
         &fixture.0.join("target/debug/terlan-test-orchestrator"),
-        "#!/bin/sh\nset -eu\ncase \"$1\" in\n--install-snapshot) exit 0;;\n--run-owned) shift 4; exec \"$@\";;\n*) exit 91;;\nesac\n",
+        "#!/bin/sh\nset -eu\ncase \"$1\" in\n--install-snapshot) mkdir -p \"$(dirname \"$2\")\"; cp \"$0\" \"$2\";;\n--run-owned) shift 4; exec \"$@\";;\n*) exit 91;;\nesac\n",
     );
     fs::OpenOptions::new()
         .append(true)
@@ -160,7 +160,6 @@ fn run(fixture: &Fixture, floor: &str, prebuilt: bool) -> (bool, String) {
             "CARGO=./cargo",
         ])
         .arg(format!("TERLAN_BUILD_MINIMUM_FREE_BYTES={floor}"))
-        .arg("TERLAN_RUST_ORCHESTRATOR=target/debug/terlan-test-orchestrator")
         .stdin(Stdio::null())
         .stdout(output.try_clone().unwrap())
         .stderr(output);
@@ -231,6 +230,15 @@ fn adequate_space_admits_one_shared_bootstrap_and_prebuilt_use_replays_nothing()
         "{output}"
     );
     let expected = "cache-bootstrap\ncompiler-build\n";
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("events")).unwrap(),
+        expected
+    );
+    // Keep the production absolute snapshot path, and verify real receipt reuse
+    // without a prebuilt flag before checking the explicit prebuilt route.
+    let (passed, output) = run(&fixture, "1", false);
+    assert!(passed, "{output}");
+    assert!(output.contains("\"decision\":\"reused\""), "{output}");
     assert_eq!(
         fs::read_to_string(fixture.0.join("events")).unwrap(),
         expected

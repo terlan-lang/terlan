@@ -4708,3 +4708,28 @@ Cargo references with zero duplicates. No hosted evidence was fabricated or
 copied across revisions. Production hosted acceptance still requires verified
 compiler/release artifacts for the exact commit; local fixture success cannot
 satisfy it. V9-1 acceptance, V9-2 and V9-3 remain open.
+
+### Hosted cold-bootstrap correction (2026-09-12)
+
+Draft PR #22 starts hosted validation on the release-only branch; it preserves
+the newer attestation action already merged into main. Neither merge nor
+publication is permitted while required validation or roadmap acceptance fails.
+
+Compiler and docs CI exposed an absolute snapshot output passed to the build
+owner's relative-path contract. The actual clean Make fixture reproduces that
+failure (`/tmp/terlan-v9-root-output-before.log`). Make now declares the snapshot
+relative to the checkout; the owner still rejects absolute and escaping paths.
+The fixture retains the production default snapshot path and verifies both
+cold execution and unchanged warm receipt reuse without prebuilt overrides.
+All three real admission tests pass in `/tmp/terlan-v9-root-output-after.log`.
+
+Both macOS jobs also exposed a missing compiler invocation in the non-Linux
+branch. That branch now invokes the existing bounded process owner rather than
+returning success without compiling. Linux-hosted recipe fixtures select Darwin
+and Windows-style uname values and verify success/failure propagation; these
+fixtures do not certify those operating systems. Native hosted reruns remain
+required. The compiler-bootstrap, preparation and plan suites pass in
+`/tmp/terlan-v9-bootstrap-portability-tests.log`, and strict all-target Clippy
+for both support crates passes in `/tmp/terlan-v9-bootstrap-portability-clippy.log`.
+Canonical workspace Rustfmt also passes after correcting the earlier scoped
+formatter's edition mismatch. No lint allowance or validation bypass was added.
