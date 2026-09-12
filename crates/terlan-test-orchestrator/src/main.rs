@@ -35,6 +35,7 @@ mod hosted_coverage;
 mod hosted_make;
 mod hosted_producer;
 mod launch_ledger;
+mod library_filter;
 mod library_selection;
 mod make_coverage;
 mod make_environment;
@@ -203,6 +204,9 @@ fn main() -> ExitCode {
         }
         Some(value) if value == std::ffi::OsStr::new("--run-library-tests") => {
             return library_selection::main(arguments);
+        }
+        Some(value) if value == std::ffi::OsStr::new("--run-library-filter") => {
+            return library_filter::main(arguments);
         }
         Some(value) if value == std::ffi::OsStr::new("--install-snapshot") => {
             return driver_snapshot::main(arguments);

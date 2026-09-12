@@ -4808,3 +4808,34 @@ The updated platform validator also compiles to a 9.1 MiB native image and passe
 its executable matrix self-test (`/tmp/terlan-v9-platform-validator-build.log`
 and `/tmp/terlan-v9-platform-validator-self-test.log`). This checks the validator,
 not the five platform tests that the hosted run must execute.
+
+Further inspection found the same obsolete VM-binary selector in the AOT
+ThreadSanitizer producer. Its earlier green outcome is withdrawn as execution
+evidence. The separate multicore sanitizer uses a dedicated harness and requires
+its seeded stress report; that producer does not use the empty VM wrapper.
+
+The AOT sanitizer now builds exactly one library harness using the pinned
+nightly, `-Zbuild-std` and explicit thread instrumentation. It uses the shared
+Cargo artifact/declaration admission, byte-binds the selected harness, inventories
+its complete `runtime::vm::pure_native` selection (including declared ignores),
+rejects zero runnable tests, then directly executes it once and verifies every
+private result. There is no second Cargo build or reduction to a smoke subset.
+The direct harness retains the pinned Rustup selection for compiler subprocesses.
+Missing/conflicting instrumentation, encoded flag overrides and non-fail-fast
+sanitizer options are rejected. The exact platform selections and the discovered
+filter share the existing canonical result parser.
+
+Real Cargo fixtures pass for discovered success, missing/ignored-only filters,
+failed tests and absent instrumentation (`/tmp/terlan-v9-filter-final.log`).
+Strict Clippy, platform source checks, and the rebuilt executable sanitizer
+self-test pass (`/tmp/terlan-v9-filter-final-clippy.log`,
+`/tmp/terlan-v9-tsan-source-check.log`,
+`/tmp/terlan-v9-tsan-validator-build.log`,
+`/tmp/terlan-v9-tsan-validator-self-test.log`). Actual instrumented test execution
+and all other required hosted acceptance remain open.
+
+The actual repository metadata producer also passes after downloading previously
+missing packages, with source/cache/tool verification and exactly one observed
+fetch followed by one offline query (`/tmp/terlan-v9-real-metadata.log`). This
+confirms the cold-cache fix beyond the isolated fixtures; it is not full release
+preparation acceptance.
