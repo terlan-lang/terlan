@@ -33,7 +33,12 @@ cleanup encounters Darwin's zombie-only EPERM behavior. The scoped correction
 requires a retained exited leader and a kernel inventory containing only that
 leader; live/other-member permission failures remain errors. All 47 process-owner
 tests pass on Linux; native macOS tests and full hosted validation remain open.
-Both sanitizers and CodeQL pass. Linux archive/installer checks pass, but review
+The separate multicore sanitizer and CodeQL pass. The AOT sanitizer's previous
+green result used the same obsolete binary selector and does not count as
+executed coverage. Its correction inventories and byte-binds the actual library
+harness before running and verifying the full filtered selection under the
+pinned instrumented toolchain. Local filter and sanitizer-admission tests pass;
+hosted sanitizer execution remains required. Linux archive/installer checks pass, but review
 found obsolete binary test selectors that ran zero library tests; those statuses
 do not establish the required reload/recovery/stress coverage. The correction
 batches five exact library tests through private-result verification. Compiler

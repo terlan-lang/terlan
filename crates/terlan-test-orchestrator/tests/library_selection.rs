@@ -68,6 +68,35 @@ mod selected {
         }
         output.outcome.is_ok()
     }
+
+    fn run_filter(&self, filter: &str, sanitizer: bool) -> bool {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_terlan-test-orchestrator"));
+        command
+            .current_dir(&self.0)
+            .args(["--run-library-filter", "--target-dir"])
+            .arg(self.0.join("target"))
+            .args(["--filter", filter])
+            .env("CARGO_NET_OFFLINE", "true");
+        if sanitizer {
+            command
+                .arg("--thread-sanitizer")
+                .env_remove("RUSTFLAGS")
+                .env_remove("TSAN_OPTIONS");
+        }
+        let output = ProcessControl::new(Duration::from_secs(30))
+            .capture_stdout_result(&mut command, 1024 * 1024, |_| Ok(()))
+            .unwrap();
+        if output.outcome.is_ok() {
+            assert!(String::from_utf8(output.stdout)
+                .unwrap()
+                .contains("verified 1 runnable library tests"));
+        }
+        let logs = self.0.join("target/quality");
+        if logs.exists() {
+            assert!(fs::read_dir(logs).unwrap().next().is_none());
+        }
+        output.outcome.is_ok()
+    }
 }
 
 impl Drop for Fixture {
@@ -97,4 +126,20 @@ fn invalid_library_selection_does_not_start_cargo() {
         assert!(!fixture.run(&names));
         assert!(!fixture.0.join("target").exists());
     }
+}
+
+#[test]
+fn discovered_library_filter_checks_compiled_inventory_and_results() {
+    let fixture = Fixture::new();
+    assert!(fixture.run_filter("selected::first", false));
+    assert!(!fixture.run_filter("missing", false));
+    assert!(!fixture.run_filter("selected::ignored", false));
+    assert!(!fixture.run_filter("selected::failing", false));
+}
+
+#[test]
+fn sanitizer_selection_cannot_run_without_instrumentation() {
+    let fixture = Fixture::new();
+    assert!(!fixture.run_filter("selected", true));
+    assert!(!fixture.0.join("target").exists());
 }
