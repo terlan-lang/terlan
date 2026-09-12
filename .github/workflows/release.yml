@@ -110,6 +110,10 @@ jobs:
         with:
           components: ""
 
+      - name: Validate macOS process ownership
+        if: runner.os == 'macOS'
+        run: cargo test --locked -p terlan-process-owner
+
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
         env:

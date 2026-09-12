@@ -28,6 +28,11 @@ the draft must not be merged or published on the strength of component tests.
 The next run exposed a lock-wait timeout incorrectly wrapping entire builds;
 separate acquisition/execution bounds now pass real Make tests. Output/receipt
 parent-path checks also reject reproduced symlink redirects before launch.
+Docs CI now passes. Both macOS compiler builds finish but their process-group
+cleanup encounters Darwin's zombie-only EPERM behavior. The scoped correction
+requires a retained exited leader and a kernel inventory containing only that
+leader; live/other-member permission failures remain errors. All 47 process-owner
+tests pass on Linux; native macOS tests and full hosted validation remain open.
 
 An authorized detached local candidate now exists, with no changes to existing
 branches or public releases. Its cold-checkout plan check exposed and now fixes

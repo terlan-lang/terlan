@@ -4756,3 +4756,18 @@ lease: parallel subprocess creation can briefly inherit the file description
 until exec. This fixes the test's release boundary without changing retention
 policy or adding timing retries. Strict Clippy, workspace formatting, and the
 unchanged build/retry count budgets pass. Hosted validation must rerun these fixes.
+
+Both macOS architectures then completed compiler builds but failed during
+process cleanup. Darwin's `killpg1` filters out zombies before checking whether
+any group member could be signalled, and can return EPERM for a zombie-only
+group ([kernel implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c)).
+The owner now accepts that case only after non-reaping exit observation and
+native process enumeration prove that the retained child is the group's sole
+member. It still rejects live children, other group members and inventory errors;
+the PID remains retained until cleanup and reaping. The macOS-only `libproc`
+dependency supplies the safe kernel-query interface without a subprocess or
+local unsafe FFI. All 47 process-owner tests pass on Linux, including natural
+exit status/reaping and permission-error preservation. Strict Clippy and
+formatting pass. Logs: `/tmp/terlan-v9-process-cleanup-tests.log` and
+`/tmp/terlan-v9-process-cleanup-clippy.log`. Native macOS coverage is now run
+before expensive compiler builds; its result is still required.

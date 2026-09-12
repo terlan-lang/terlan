@@ -172,7 +172,7 @@ impl OwnedChild {
                     .ok_or_else(|| io::Error::other("invalid child process identity"))?;
                 match kill_process_group(pid, Signal::KILL) {
                     Ok(()) | Err(rustix::io::Errno::SRCH) => Ok(()),
-                    Err(error) => Err(io::Error::from(error)),
+                    Err(error) => self.check_group_error(pid, error),
                 }
             } else {
                 Ok(())
@@ -191,6 +191,34 @@ impl OwnedChild {
             return Ok(status);
         }
         self.child.wait()
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn check_group_error(&self, pid: Pid, error: rustix::io::Errno) -> io::Result<()> {
+        #[cfg(target_os = "macos")]
+        if error == rustix::io::Errno::PERM {
+            // Darwin's killpg1 excludes zombies, then returns EPERM when it
+            // found no signalable members. Do not suppress permission errors
+            // for live children or groups containing any other process.
+            // NOWAIT retains our PID/PGID throughout this kernel inventory.
+            let exited = waitid(
+                WaitId::Pid(pid),
+                WaitIdOptions::EXITED | WaitIdOptions::NOHANG | WaitIdOptions::NOWAIT,
+            )?
+            .is_some();
+            if exited {
+                use libproc::processes::{pids_by_type, ProcFilter};
+                let members = pids_by_type(ProcFilter::ByProgramGroup {
+                    pgrpid: self.child.id(),
+                })?;
+                if members.as_slice() == [self.child.id()] {
+                    return Ok(());
+                }
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        let _ = pid;
+        Err(io::Error::from(error))
     }
 }
 
