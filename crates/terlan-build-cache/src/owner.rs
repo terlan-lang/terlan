@@ -64,6 +64,7 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
         "input_sha256": options.input_sha256,
         "outputs": outputs,
     });
+    owned_file_path(root, &options.receipt)?;
     publish_receipt(&options.receipt, &receipt)?;
     println!("{}", receipt);
     Ok(true)
@@ -133,6 +134,10 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
     }) {
         return Err(io::Error::other("owner output escapes repository root"));
     }
+    owned_file_path(root, &receipt)?;
+    for output in &outputs {
+        owned_file_path(root, &root.join(output))?;
+    }
     Ok(Options {
         root: root.to_path_buf(),
         receipt,
@@ -157,7 +162,47 @@ fn usage() -> &'static str {
     "usage: owner --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... -- <program> [args...]"
 }
 
+/// Missing descendants are allowed for cold builds, but existing components
+/// must not redirect a receipt or output outside the selected checkout.
+fn owned_file_path(root: &Path, path: &Path) -> io::Result<()> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| io::Error::other("owner path escapes repository root"))?;
+    let components: Vec<_> = relative.components().collect();
+    if components.is_empty()
+        || components
+            .iter()
+            .any(|part| !matches!(part, Component::Normal(_)))
+        || !fs::symlink_metadata(root)?.is_dir()
+    {
+        return Err(io::Error::other("invalid owner file path"));
+    }
+    let mut current = root.to_path_buf();
+    for (index, component) in components.iter().enumerate() {
+        current.push(component.as_os_str());
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                let valid = if index + 1 == components.len() {
+                    metadata.is_file()
+                } else {
+                    metadata.is_dir()
+                };
+                if !valid {
+                    return Err(io::Error::other(format!(
+                        "owner path contains a redirected or nonregular component: {}",
+                        current.display()
+                    )));
+                }
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(())
+}
+
 fn reusable(options: &Options) -> io::Result<bool> {
+    owned_file_path(&options.root, &options.receipt)?;
     let source = match fs::read(&options.receipt) {
         Ok(source) => source,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
@@ -201,6 +246,7 @@ fn output_hashes(root: &Path, paths: &[PathBuf]) -> io::Result<BTreeMap<String, 
         } else {
             root.join(path)
         };
+        owned_file_path(root, &absolute)?;
         let metadata = fs::symlink_metadata(&absolute)?;
         if !metadata.is_file() {
             return Err(io::Error::other(format!(

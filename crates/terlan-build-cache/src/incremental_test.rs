@@ -96,6 +96,9 @@ fn rustc_shared_and_exclusive_leases_protect_old_generations() {
         assert_eq!(report.unmeasured_sessions, 1);
         assert!(!report.budget_verified);
         assert!(old.exists());
+        // A concurrently spawned child can inherit the description until exec.
+        // Explicit release, like the production Lease, makes the boundary exact.
+        lease.unlock().unwrap();
         drop(lease);
         assert_eq!(fixture.run(true).unwrap().removed_sessions, 1);
     }

@@ -12,6 +12,9 @@ TERLAN_SERVE_RUNTIME_REL_BIN := $(patsubst $(CURDIR)/%,%,$(TERLAN_SERVE_RUNTIME_
 TERLAN_SERVE_RUNTIME_BUILD := $(CARGO) build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS ?= 3600
+TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS ?= 120
+# Only acquisition uses the lock deadline; each producer owns its execution bound.
+TERLAN_BOOTSTRAP_LOCK = flock --exclusive --wait $(TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS) target/quality/bootstrap-owner.lock
 TERLAN_BUILD_MINIMUM_FREE_BYTES ?= 8589934592
 TERLAN_TYPED_VALIDATOR_BUILD := bash scripts/build_typed_validator.sh
 TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := target/self-validation/typed-validator-common.inputs.sha256
@@ -230,7 +233,7 @@ else
 			&& git diff --cached --quiet \
 			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' serve-runtime-release; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			"$(TERLAN_BUILD_CACHE)" owner \
 				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/serve-runtime.json" \
 				--input-sha256 "$$input" \
@@ -238,7 +241,7 @@ else
 				--output "$(TERLAN_SERVE_RUNTIME_REL_BIN)" \
 				-- /bin/sh -c "$$build_command"; \
 		else \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin; \
 		fi; \
 	else \
@@ -268,7 +271,7 @@ else
 			&& git diff --cached --quiet \
 			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' http-benchmark-release; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			"$(TERLAN_BUILD_CACHE)" owner \
 				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/http-benchmark-release.json" \
 				--input-sha256 "$$input" \
@@ -279,7 +282,7 @@ else
 				--output target/release/terlan-http-paired-benchmark \
 				-- /bin/sh -c "$$build_command"; \
 		else \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --release -p terlan --bin terlan-axum-baseline --bin terlan-hyper-baseline --bin terlan-http-framework-benchmark --bin terlan-http-paired-benchmark --features axum-baseline,benchmark-tools; \
 		fi; \
 	else \
@@ -477,7 +480,7 @@ else
 			&& git diff --cached --quiet \
 			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			"$(TERLAN_BUILD_CACHE)" owner \
 				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/compiler.json" \
 				--input-sha256 "$$input" \
@@ -488,7 +491,7 @@ else
 				--output "$(patsubst $(CURDIR)/%,%,$(TERLAN_RUST_ORCHESTRATOR))" \
 				-- /bin/sh -c "$$build_command"; \
 		else \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); \
 		fi; \
 	else \
@@ -535,7 +538,7 @@ else
 			&& git diff --cached --quiet \
 			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml tools/rust_boundary_audit/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build quality-tools; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			"$(TERLAN_BUILD_CACHE)" owner \
 				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/quality-tools.json" \
 				--input-sha256 "$$input" \
@@ -553,7 +556,7 @@ else
 				--output target/debug/terlan-rust-boundary-audit \
 				-- /bin/sh -c "$$build_command"; \
 		else \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/quality-tools; \
 		fi; \
 	else \
@@ -598,7 +601,7 @@ else
 			&& git diff --cached --quiet \
 			&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 			input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan/Cargo.toml; rustc --version; cargo --version; printf '%s\n' benchmark-release-tools; sha256sum "$(TERLAN_BUILD_CACHE)"; } | sha256sum | awk '{print $$1}')"; \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			"$(TERLAN_BUILD_CACHE)" owner \
 				--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/benchmark-release.json" \
 				--input-sha256 "$$input" \
@@ -608,7 +611,7 @@ else
 				--output target/release/terlan-benchmark \
 				-- /bin/sh -c "$$build_command"; \
 		else \
-			timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+			$(TERLAN_BOOTSTRAP_LOCK) \
 			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools; \
 		fi; \
 	else \
@@ -5182,7 +5185,7 @@ ifeq ($(shell uname -s),Linux)
 		&& git diff --cached --quiet \
 		&& test -z "$$(git ls-files --others --exclude-standard)"; then \
 		input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan-build-cache/Cargo.toml crates/terlan-test-orchestrator/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build -p terlan-test-orchestrator -p terlan-build-cache; } | sha256sum | awk '{print $$1}')"; \
-		timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
+		$(TERLAN_BOOTSTRAP_LOCK) \
 		"$(TERLAN_BUILD_CACHE)" owner \
 			--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/support.json" \
 			--input-sha256 "$$input" \
@@ -5191,8 +5194,8 @@ ifeq ($(shell uname -s),Linux)
 			--output "target/debug/terlan-test-orchestrator" \
 			-- /bin/sh -c "$$build_command"; \
 	else \
-		timeout 120s flock -w 120 target/quality/bootstrap-owner.lock \
-		env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command"; \
+		$(TERLAN_BOOTSTRAP_LOCK) \
+		timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command"; \
 	fi
 else
 	CARGO_BUILD_JOBS=1 $(CARGO) build -p terlan-test-orchestrator

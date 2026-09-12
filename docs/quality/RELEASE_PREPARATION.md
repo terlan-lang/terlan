@@ -4733,3 +4733,26 @@ required. The compiler-bootstrap, preparation and plan suites pass in
 for both support crates passes in `/tmp/terlan-v9-bootstrap-portability-clippy.log`.
 Canonical workspace Rustfmt also passes after correcting the earlier scoped
 formatter's edition mismatch. No lint allowance or validation bypass was added.
+
+The next hosted run passed that admission boundary, then demonstrated a second
+Linux error: `timeout 120s flock ... <producer>` killed compilation at the lock
+wait limit despite the producer's separate 3,600-second deadline. All bootstrap
+groups now use one acquisition-only `flock --wait` declaration. Owned commands
+retain their execution deadline; the initial support build, before its owner
+exists, has an explicit execution timeout inside the acquired lock. Real Make
+tests verify a build outlasting a shorter lock deadline and an occupied lock
+rejecting work without launching a producer. Their final log is
+`/tmp/terlan-v9-bootstrap-deadlines-focused.log`.
+
+The output audit additionally reproduced symlink-parent redirection of output
+and receipt paths (`/tmp/terlan-v9-owner-path-before.log`). The owner now rejects
+existing redirected/nonregular path components before launch and rechecks
+outputs and receipt destinations before sealing; missing cold directories are
+still accepted. This is validation under the owner lease, not a sandbox against
+an adversarial concurrent filesystem writer. All 36 cache-tool unit tests and
+three actual Make admission tests pass in `/tmp/terlan-v9-owner-path-tests.log`.
+One lease test needed explicit unlock before close, matching the production
+lease: parallel subprocess creation can briefly inherit the file description
+until exec. This fixes the test's release boundary without changing retention
+policy or adding timing retries. Strict Clippy, workspace formatting, and the
+unchanged build/retry count budgets pass. Hosted validation must rerun these fixes.
