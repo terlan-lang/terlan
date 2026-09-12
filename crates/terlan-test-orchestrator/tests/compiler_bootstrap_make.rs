@@ -77,6 +77,7 @@ case "$*" in
     case "$BOOTSTRAP_FIXTURE_MODE" in
       failure) exit 9 ;;
       timeout) trap '' TERM; sleep 300 & echo $! > descendant; wait ;;
+      slow) sleep 0.2; printf 'compiler-completed\n' ;;
       *) printf 'compiler-completed\n' ;;
     esac
     ;;
@@ -220,4 +221,37 @@ fn non_linux_bootstrap_runs_compiler_and_propagates_failure() {
             );
         }
     }
+}
+
+#[test]
+fn compiler_execution_outlives_lock_acquisition_deadline() {
+    let fixture = fixture();
+    let mut command = command(&fixture, "slow");
+    command.arg("TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS=0.05");
+    let started = Instant::now();
+    let output = ProcessControl::new(Duration::from_secs(15))
+        .capture_stdout_result(&mut command, 64 * 1024, |_| Ok(()))
+        .unwrap();
+    assert!(output.outcome.is_ok(), "{output:?}");
+    assert!(started.elapsed() >= Duration::from_millis(200));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("events")).unwrap(),
+        "support\nadmission\ncompiler\n"
+    );
+}
+
+#[test]
+fn occupied_bootstrap_lock_expires_without_launching_a_producer() {
+    let fixture = fixture();
+    fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
+    let lock = fs::File::create(fixture.0.join("target/quality/bootstrap-owner.lock")).unwrap();
+    lock.lock().unwrap();
+    let mut command = command(&fixture, "success");
+    command.arg("TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS=0.05");
+    let output = ProcessControl::new(Duration::from_secs(15))
+        .capture_stdout_result(&mut command, 64 * 1024, |_| Ok(()))
+        .unwrap();
+    lock.unlock().unwrap();
+    assert!(output.outcome.is_err(), "{output:?}");
+    assert!(!fixture.0.join("events").exists());
 }

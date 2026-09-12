@@ -102,3 +102,27 @@ fn owner_rejects_stale_output_bytes_and_replaces_receipt_atomically() {
         serde_json::from_slice(&fs::read(fixture.0.join("target/owner.json")).unwrap()).unwrap();
     assert_eq!(document["outcome"], "pass");
 }
+
+#[test]
+fn owner_rejects_redirected_outputs_before_launch() {
+    use std::os::unix::fs::symlink;
+    let external = fixture();
+    let fixture = fixture();
+    symlink(&external.0, fixture.0.join("target")).unwrap();
+    let options = args("owner.json", &"a".repeat(64), "target/output");
+    assert!(run(&fixture.0, &options).is_err());
+    assert!(!external.0.join("output").exists());
+}
+
+#[test]
+fn owner_rejects_redirected_receipts_before_launch() {
+    use std::os::unix::fs::symlink;
+    let external = fixture();
+    let fixture = fixture();
+    fs::create_dir(fixture.0.join("target")).unwrap();
+    symlink(&external.0, fixture.0.join("receipts")).unwrap();
+    let options = args("receipts/owner.json", &"a".repeat(64), "target/output");
+    assert!(run(&fixture.0, &options).is_err());
+    assert!(!fixture.0.join("target/output").exists());
+    assert!(!external.0.join("owner.json").exists());
+}

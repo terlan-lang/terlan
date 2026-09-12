@@ -25,6 +25,9 @@ defects: a relative-output contract violation on Linux and a missing compiler
 invocation on non-Linux hosts. Both have local reproductions and tested fixes;
 native hosted reruns are still required. Required acceptance remains open, and
 the draft must not be merged or published on the strength of component tests.
+The next run exposed a lock-wait timeout incorrectly wrapping entire builds;
+separate acquisition/execution bounds now pass real Make tests. Output/receipt
+parent-path checks also reject reproduced symlink redirects before launch.
 
 An authorized detached local candidate now exists, with no changes to existing
 branches or public releases. Its cold-checkout plan check exposed and now fixes
