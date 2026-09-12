@@ -17,7 +17,7 @@ fn package(root: &Path) -> Value {
     )
     .unwrap();
     fs::write(root.join("src/lib.rs"), "pub fn example() {}\n").unwrap();
-    json!({"manifest_path":root.join("Cargo.toml"), "targets":[{"src_path":root.join("src/lib.rs")}]})
+    json!({"id":root.to_string_lossy(), "manifest_path":root.join("Cargo.toml"), "targets":[{"kind":["lib"], "src_path":root.join("src/lib.rs")}]})
 }
 
 fn inputs(root: &Path) -> (SourceSnapshot, resolver_cache::Binding) {
@@ -54,7 +54,7 @@ fn ignored_package_sources_are_bound_without_rehashing_git_owned_files() {
     fs::write(fixture.0.join(".gitignore"), "local/ignored.rs\ntarget/\n").unwrap();
     let local = package(&fixture.0.join("local"));
     fs::write(fixture.0.join("local/ignored.rs"), "hidden input").unwrap();
-    let document = json!({"target_directory":fixture.0.join("target"), "packages":[local]});
+    let document = json!({"target_directory":fixture.0.join("target"), "workspace_members":[], "packages":[local]});
     let (source, cache) = inputs(&fixture.0);
     let mut binding = Binding::capture(&document, &fixture.0, &source, &cache, control()).unwrap();
     assert_eq!(binding.json()["before"]["hashed_files"], 1);
@@ -80,7 +80,7 @@ fn external_dependency_contents_and_file_discovery_invalidate_closeout() {
     let external = temporary_fixture("package-source-external");
     fs::write(fixture.0.join(".gitignore"), "target/\n").unwrap();
     let dependency = package(&external.0);
-    let document = json!({"target_directory":fixture.0.join("target"), "packages":[dependency]});
+    let document = json!({"target_directory":fixture.0.join("target"), "workspace_members":[], "packages":[dependency]});
     let (source, cache) = inputs(&fixture.0);
     for mode in ["edit", "new", "delete"] {
         let mut binding =
@@ -101,7 +101,7 @@ fn build_outputs_are_excluded_but_cannot_be_declared_rust_sources() {
     let fixture = temporary_fixture("package-source-outputs");
     fs::write(fixture.0.join(".gitignore"), "target/\n.terlan/\n").unwrap();
     let local = package(&fixture.0);
-    let mut document = json!({"target_directory":fixture.0.join("target"), "packages":[local]});
+    let mut document = json!({"target_directory":fixture.0.join("target"), "workspace_members":[], "packages":[local]});
     let (source, cache) = inputs(&fixture.0);
     let mut binding = Binding::capture(&document, &fixture.0, &source, &cache, control()).unwrap();
     fs::create_dir_all(fixture.0.join("target")).unwrap();
@@ -125,7 +125,7 @@ fn source_file_links_bind_the_resolved_bytes_and_retargeting() {
     let target = external.0.join("input.rs");
     fs::write(&target, "linked source").unwrap();
     symlink(&target, fixture.0.join("local/linked.rs")).unwrap();
-    let document = json!({"target_directory":fixture.0.join("target"), "packages":[local]});
+    let document = json!({"target_directory":fixture.0.join("target"), "workspace_members":[], "packages":[local]});
     let (source, cache) = inputs(&fixture.0);
     let mut binding = Binding::capture(&document, &fixture.0, &source, &cache, control()).unwrap();
     fs::write(target, "changed linked source").unwrap();
@@ -140,7 +140,7 @@ fn production_metadata_covers_optional_path_dependency_sources_without_building(
     package(&fixture.0.join("vendor/optional"));
     fs::write(
         fixture.0.join("vendor/optional/Cargo.toml"),
-        "[package]\nname='optional-dependency'\nversion='0.0.0'\n",
+        "[package]\nname='optional-dependency'\nversion='0.0.0'\n[[example]]\nname='not-packaged'\npath='not_packaged.rs'\n",
     )
     .unwrap();
     fs::write(fixture.0.join("Cargo.toml"), "[package]\nname='example'\nversion='0.0.0'\n[dependencies]\noptional-dependency={path='vendor/optional', optional=true}\n").unwrap();
@@ -193,7 +193,7 @@ fn package_source_admission_respects_cancellation_before_filesystem_discovery() 
     let local = package(&fixture.0);
     let (source, cache) = inputs(&fixture.0);
     let cancelled = std::sync::atomic::AtomicBool::new(true);
-    let document = json!({"target_directory":fixture.0.join("target"), "packages":[local]});
+    let document = json!({"target_directory":fixture.0.join("target"), "workspace_members":[], "packages":[local]});
     assert!(Binding::capture(
         &document,
         &fixture.0,
@@ -202,4 +202,65 @@ fn package_source_admission_respects_cancellation_before_filesystem_discovery() 
         control().with_cancellation(&cancelled)
     )
     .is_err());
+}
+
+#[test]
+fn unshipped_dependency_auxiliary_targets_do_not_require_nonexistent_sources() {
+    let fixture = temporary_fixture("package-source-unshipped-targets");
+    let external = temporary_fixture("package-source-published-dependency");
+    fs::write(fixture.0.join(".gitignore"), "target/\n").unwrap();
+    let mut dependency = package(&external.0);
+    for kind in ["test", "example", "bench"] {
+        dependency["targets"].as_array_mut().unwrap().push(json!({
+            "kind":[kind], "src_path":external.0.join(format!("{kind}.rs"))
+        }));
+    }
+    let document = json!({"target_directory":fixture.0.join("target"),
+        "workspace_members":[], "packages":[dependency]});
+    let (source, cache) = inputs(&fixture.0);
+    let mut binding = Binding::capture(&document, &fixture.0, &source, &cache, control()).unwrap();
+    binding.verify(control()).unwrap();
+    let mut changed = Binding::capture(&document, &fixture.0, &source, &cache, control()).unwrap();
+    fs::write(external.0.join("example.rs"), "newly packaged input").unwrap();
+    assert!(
+        changed.verify(control()).is_err(),
+        "present auxiliary bytes stay observed"
+    );
+}
+
+#[test]
+fn missing_workspace_targets_and_dependency_build_sources_still_fail_admission() {
+    let fixture = temporary_fixture("package-source-required-targets");
+    let external = temporary_fixture("package-source-required-dependency");
+    fs::write(fixture.0.join(".gitignore"), "target/\n").unwrap();
+    let dependency = package(&external.0);
+    let mut document = json!({"target_directory":fixture.0.join("target"),
+        "workspace_members":[], "packages":[dependency]});
+    let (source, cache) = inputs(&fixture.0);
+    for kind in [
+        "lib",
+        "proc-macro",
+        "custom-build",
+        "bin",
+        "test",
+        "example",
+        "bench",
+    ] {
+        document["workspace_members"] = if matches!(kind, "test" | "example" | "bench") {
+            json!([document["packages"][0]["id"]])
+        } else {
+            json!([])
+        };
+        document["packages"][0]["targets"] = json!([
+            {"kind":[kind], "src_path":external.0.join("missing.rs")}
+        ]);
+        let error = Binding::capture(&document, &fixture.0, &source, &cache, control())
+            .err()
+            .expect("required source must not be skipped");
+        assert!(
+            error.detail.contains("missing.rs"),
+            "{kind}: {}",
+            error.detail
+        );
+    }
 }
