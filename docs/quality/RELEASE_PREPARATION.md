@@ -4878,3 +4878,22 @@ the seeded stress children, then passes packaging and installer checks
 (`/tmp/terlan-v9-linux-103614673317.log`). Unlike the superseded empty-selector
 result, this is real execution evidence for candidate `9621f4c4`; it does not
 certify the subsequent corrections or other platforms.
+
+Windows ARM64 job `103614673299` then reaches the real library harness and
+finds a platform-neutral script-result test calling a Unix-only shell helper
+(`/tmp/terlan-v9-windows-arm-103614673299.log`). The test now compiles one tiny
+native Rust runner, checks the same VM arguments, and verifies propagation of
+both zero and nonzero exit status. Owned scratch and a bounded compiler process
+replace the unmanaged shell-only fixture; the test remains enabled on Windows.
+It joins the platform driver's exact selection, so all six hosts must execute
+this regression rather than merely compile its test body. The existing Unix
+fixture helper now fails immediately on a failed command, instead of allowing
+a final `exit 0` to hide argument assertion failures.
+
+The shared runner fixture compiles locally with `-Dwarnings`; success, exit 23,
+wrong script flag, missing image and wrong separator all produce their expected
+statuses. This validates the fixture itself, not the full Terlan handoff test
+or Windows execution. Those remain required in the next hosted run.
+The updated platform source check, native validator build, executable matrix
+self-test, and workspace formatting pass
+(`/tmp/terlan-v9-six-platform-{source-check,validator-build,validator-self-test}.log`).
