@@ -33,6 +33,13 @@ cleanup encounters Darwin's zombie-only EPERM behavior. The scoped correction
 requires a retained exited leader and a kernel inventory containing only that
 leader; live/other-member permission failures remain errors. All 47 process-owner
 tests pass on Linux; native macOS tests and full hosted validation remain open.
+Both sanitizers and CodeQL pass. Linux archive/installer checks pass, but review
+found obsolete binary test selectors that ran zero library tests; those statuses
+do not establish the required reload/recovery/stress coverage. The correction
+batches five exact library tests through private-result verification. Compiler
+CI also exposed metadata downloading dependencies after cache admission; a
+bounded fetch now precedes an offline, cache-stable query. Focused regressions
+and the complete orchestrator suite pass. Hosted reruns remain required.
 
 An authorized detached local candidate now exists, with no changes to existing
 branches or public releases. Its cold-checkout plan check exposed and now fixes

@@ -102,6 +102,7 @@ fn metadata_make_runs_once_and_failed_refresh_preserves_prior_observation() {
     let source = root.join("cargo.rs");
     fs::write(&source, r#"
 fn main() -> std::process::ExitCode {
+    if std::env::args().skip(1).collect::<Vec<_>>() == ["fetch", "--locked"] { return std::process::ExitCode::SUCCESS; }
     assert_eq!(std::env::args().skip(1).collect::<Vec<_>>(), ["metadata", "--locked", "--all-features", "--format-version", "1"]);
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open("target/calls").unwrap();
     std::io::Write::write_all(&mut file, b"metadata\n").unwrap();
@@ -195,8 +196,9 @@ fn main() -> std::process::ExitCode {
             "failed refresh must not impersonate the previous successful observation"
         );
         let launches = attempt["launches"].as_array().unwrap();
-        assert_eq!(launches.len(), if mode == "success" { 3 } else { 2 });
-        assert_eq!(launches[1]["role"], "cargo-metadata");
+        assert_eq!(launches.len(), if mode == "success" { 4 } else { 3 });
+        assert_eq!(launches[1]["role"], "cargo-fetch");
+        assert_eq!(launches[2]["role"], "cargo-metadata");
         assert!(launches.iter().all(|row| row["pid"].as_u64().unwrap() > 0));
         assert_eq!(
             fs::read_dir(root.join("target/quality")).unwrap().count(),

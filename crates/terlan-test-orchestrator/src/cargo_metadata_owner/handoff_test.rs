@@ -29,6 +29,7 @@ fn suite_admits_one_generation_and_rejects_changed_inputs_without_querying_cargo
     let source = root.join("cargo.rs");
     fs::write(&source, r#"
 fn main() {
+    if std::env::args().skip(1).collect::<Vec<_>>() == ["fetch", "--locked"] { return; }
     assert_eq!(std::env::args().skip(1).collect::<Vec<_>>(), ["metadata", "--locked", "--all-features", "--format-version", "1"]);
     let marker = "target/query";
     assert!(!std::path::Path::new(marker).exists(), "duplicate metadata query");
