@@ -171,7 +171,7 @@ notify = "8"
 object = { version = "=0.39.1", default-features = false, features = ["read", "write", "std"] }
 openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
-quick-xml = "0.41.0"
+quick-xml = "0.42.0"
 rcgen = "0.13"
 rand = "0.9.4"
 regex = "1"
