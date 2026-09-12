@@ -143,3 +143,73 @@ fn moving_child_cannot_escape_direct_termination() {
     }
     peer.finish().unwrap();
 }
+
+fn await_exit(child: &OwnedChild) -> Pid {
+    let pid = Pid::from_raw(child.id() as i32).unwrap();
+    let start = Instant::now();
+    loop {
+        if waitid(
+            WaitId::Pid(pid),
+            WaitIdOptions::EXITED | WaitIdOptions::NOHANG | WaitIdOptions::NOWAIT,
+        )
+        .unwrap()
+        .is_some()
+        {
+            return pid;
+        }
+        assert!(start.elapsed() < Duration::from_secs(5));
+        thread::sleep(Duration::from_millis(2));
+    }
+}
+
+#[test]
+fn natural_exit_preserves_status_and_reaps_retained_group_leader() {
+    for code in [0, 7] {
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", &format!("exit {code}")]);
+        let mut child = OwnedChild::spawn(command).unwrap();
+        let pid = await_exit(&child);
+        assert_eq!(child.try_wait().unwrap().unwrap().code(), Some(code));
+        assert_eq!(child.try_wait().unwrap().unwrap().code(), Some(code));
+        assert_eq!(child.finish().unwrap().code(), Some(code));
+        assert!(matches!(
+            waitid(
+                WaitId::Pid(pid),
+                WaitIdOptions::EXITED | WaitIdOptions::NOHANG
+            ),
+            Err(rustix::io::Errno::CHILD)
+        ));
+    }
+}
+
+#[test]
+fn group_permission_errors_remain_errors_for_live_children() {
+    let mut command = Command::new("/bin/sh");
+    command.args(["-c", "sleep 30"]);
+    let mut child = OwnedChild::spawn(command).unwrap();
+    let pid = Pid::from_raw(child.id() as i32).unwrap();
+    assert_eq!(
+        child
+            .check_group_error(pid, rustix::io::Errno::PERM)
+            .unwrap_err()
+            .raw_os_error(),
+        Some(rustix::io::Errno::PERM.raw_os_error())
+    );
+    child.finish().unwrap();
+}
+
+#[test]
+fn exited_leader_does_not_hide_permission_errors_for_remaining_members() {
+    let mut command = Command::new("/bin/sh");
+    command.args(["-c", "sleep 30 & exit 7"]);
+    let mut child = OwnedChild::spawn(command).unwrap();
+    let pid = await_exit(&child);
+    assert_eq!(
+        child
+            .check_group_error(pid, rustix::io::Errno::PERM)
+            .unwrap_err()
+            .raw_os_error(),
+        Some(rustix::io::Errno::PERM.raw_os_error())
+    );
+    assert_eq!(child.finish().unwrap().code(), Some(7));
+}
