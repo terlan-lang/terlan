@@ -34,6 +34,9 @@ impl Binding {
         control.check(started).map_err(crate::process_failure)?;
         let target = absolute(&document["target_directory"])?;
         let excluded = BTreeSet::from([target, root.join(".terlan")]);
+        let members = document["workspace_members"]
+            .as_array()
+            .ok_or_else(|| failure("missing package source workspace inventory"))?;
         let mut declarations = BTreeMap::new();
         let mut roots = BTreeSet::new();
         let packages = document["packages"]
@@ -42,6 +45,11 @@ impl Binding {
             .ok_or_else(|| failure("invalid resolved package source inventory"))?;
         for package in packages {
             control.check(started).map_err(crate::process_failure)?;
+            let id = package["id"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .ok_or_else(|| failure("resolved package has no identity"))?;
+            let workspace_member = members.iter().any(|member| member.as_str() == Some(id));
             let manifest = absolute(&package["manifest_path"])?;
             if manifest.file_name().is_none_or(|name| name != "Cargo.toml") {
                 return Err(failure("resolved package has no Cargo.toml manifest"));
@@ -59,6 +67,23 @@ impl Binding {
                 .ok_or_else(|| failure("missing resolved package target inventory"))?;
             for target in targets {
                 control.check(started).map_err(crate::process_failure)?;
+                let kinds = target["kind"]
+                    .as_array()
+                    .filter(|kinds| !kinds.is_empty())
+                    .ok_or_else(|| failure("resolved package target has no kind"))?;
+                // Published dependency manifests can retain test/example/bench
+                // declarations whose sources are not shipped. Cargo does not
+                // build those targets as dependencies. The manifest and all
+                // present package bytes remain bound by the package-root walk.
+                // Every workspace target and dependency build target still
+                // requires its declared source, even when feature-gated.
+                if !workspace_member
+                    && kinds
+                        .iter()
+                        .all(|kind| matches!(kind.as_str(), Some("test" | "example" | "bench")))
+                {
+                    continue;
+                }
                 let source = resolve(&absolute(&target["src_path"])?, &mut declarations)?;
                 if source.components().any(|part| part.as_os_str() == ".git") {
                     return Err(failure(
@@ -164,7 +189,12 @@ fn resolve(
     if declarations.len() == 65_536 {
         return Err(failure("excessive resolved package source declarations"));
     }
-    let resolved = std::fs::canonicalize(path).map_err(failure)?;
+    let resolved = std::fs::canonicalize(path).map_err(|error| {
+        failure(format!(
+            "cannot resolve package source {}: {error}",
+            path.display()
+        ))
+    })?;
     if !resolved.is_file() {
         return Err(failure("package source declaration is not a regular file"));
     }

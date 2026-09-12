@@ -4839,3 +4839,42 @@ missing packages, with source/cache/tool verification and exactly one observed
 fetch followed by one offline query (`/tmp/terlan-v9-real-metadata.log`). This
 confirms the cold-cache fix beyond the isolated fixtures; it is not full release
 preparation acceptance.
+
+The complete orchestrator suite also passes on candidate
+`9621f4c41c48a60b59e2b5e6cf94846981b6d162`, including the new discovered-filter
+execution tests (`/tmp/terlan-v9-orchestrator-9621-full.log`, exit zero).
+Both native macOS process-ownership steps pass in release validation run
+`34716456773`. These establish the focused cleanup and selection corrections;
+the longer platform and compiler jobs are still pending and must not be inferred
+from those results. The AOT sanitizer reaches the actual library build, then
+rejects a redundant `Digest` import: the test's wildcard parent import also
+imports the parent's anonymous trait binding on the pinned nightly. Explicit
+parent imports retain the test's direct SHA-256 dependency without an allowance.
+Formatting passes; instrumented compilation and execution still require a rerun
+(`/tmp/terlan-v9-tsan-103614673261.log`).
+
+Compiler run `34716458520` successfully publishes its metadata generation but
+fails during supplemental package-source admission. Its uploaded document lists
+unshipped auxiliary targets in published `nom`, `num_threads`, and `web-time`
+packages; the same nine missing paths reproduce in the local registry cache.
+Cargo does not build a dependency's tests, examples, or benchmarks as dependency
+targets. Admission now distinguishes those declarations from workspace targets,
+while still binding dependency manifests and every present package byte.
+Workspace auxiliary targets and dependency libraries, proc macros, binaries,
+and build scripts must still resolve to regular source files. Missing required
+sources now report their path instead of an unattributed filesystem error.
+
+All 19 metadata tests pass, including real Cargo metadata with an unshipped
+path-dependency example, missing-required-source rejection, and invalidation
+when an auxiliary file appears (`/tmp/terlan-v9-metadata-packaged-targets.log`).
+Strict Clippy passes (`/tmp/terlan-v9-metadata-packaged-targets-clippy.log`).
+The separate multicore sanitizer passes in job `103614673274`; this does not
+substitute for the still-unexecuted AOT sanitizer selection.
+
+The complete orchestrator suite passes after this correction
+(`/tmp/terlan-v9-packaged-targets-full.log`, exit zero). Linux x86-64 job
+`103614673317` now verifies all five exact platform library tests, including
+the seeded stress children, then passes packaging and installer checks
+(`/tmp/terlan-v9-linux-103614673317.log`). Unlike the superseded empty-selector
+result, this is real execution evidence for candidate `9621f4c4`; it does not
+certify the subsequent corrections or other platforms.
