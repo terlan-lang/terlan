@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-12. Baseline: 0.0.8 is published.
+Updated: 2026-09-13. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -19,6 +19,21 @@ tagging or publicly publishing it. The exact candidate and its artifacts must
 pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
+
+Draft PR #22 remains unready for merge or publication. Candidate `ed441cf5`
+passes both real sanitizer selections and all four Linux/macOS release jobs.
+Compiler CI reports 6,223 passing tests and two failures; both now pass locally
+after correcting the native-object cache fixture and stale grammar fingerprints.
+All 22 tail-position tests also pass. Windows compilation rejects 13 fixture
+helpers used only by Unix tests; their compilation scope now matches those
+existing consumers, without disabling tests or adding warning allowances.
+The next hosted run must verify these corrections. The separate CodeQL check
+also reports logging alerts: the redaction-test diagnostic now avoids echoing
+its input; two numeric-count alerts await documented false-positive review.
+Full production cold/warm/resume acceptance, the V9-2 harness/dispatcher split
+and measurements, and V9-3 remain open. Active versions are still 0.0.8.
+
+### Earlier implementation checkpoints
 
 Draft PR #22 is running hosted validation. Its first run exposed two clean-build
 defects: a relative-output contract violation on Linux and a missing compiler

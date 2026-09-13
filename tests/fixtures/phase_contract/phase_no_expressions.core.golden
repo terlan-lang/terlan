@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_no_expressions
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 export=UserId:type
 type=UserId visibility=Public params= body=Int body_core=Int
 binding_fingerprint=cbf29ce484222325

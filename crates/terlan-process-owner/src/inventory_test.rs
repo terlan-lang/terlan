@@ -139,7 +139,10 @@ fn command_metadata_is_redacted_and_framed() {
     drop(Inventory::begin_at(&command, Some(fixture.log())).unwrap());
     let raw = fs::read_to_string(fixture.log()).unwrap();
     for secret in ["secret", "SECRET_KEY", "/private"] {
-        assert!(!raw.contains(secret), "inventory disclosed {secret}");
+        assert!(
+            !raw.contains(secret),
+            "inventory disclosed command metadata"
+        );
     }
     let events = fixture.events();
     assert_eq!(events[0]["program_kind"], "other");

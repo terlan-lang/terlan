@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_constructor_pattern_resolution
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 export=Some:constructor/1
 export=unwrap/1
 function=unwrap/1 public=true params=input:Dynamic:core=Dynamic return=Dynamic return_core=Dynamic

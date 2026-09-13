@@ -3,7 +3,8 @@ use super::*;
 /// Proves a multi-module closure compiles into one deterministic native image.
 #[test]
 fn parallel_frontend_compilation_preserves_one_application_link() {
-    let root = make_temp_dir("parallel_frontend_application_link");
+    let root =
+        crate::support::test_fs::TestDirectory::new("build", "parallel_frontend_application_link");
     let project = root.join("project");
     let source = project.join("src/app");
     let out_dir = root.join("build");
@@ -41,7 +42,7 @@ fn parallel_frontend_compilation_preserves_one_application_link() {
     assert_eq!(run(command.clone(), state.clone()), ExitCode::SUCCESS);
     let image_path = out_dir.join("vm/app_Main.tvm");
     let first_image = fs::read(&image_path).expect("read first native image");
-    let units_dir = out_dir.join(".terlan/native-aot/units");
+    let units_dir = out_dir.join(".terlan/native-aot/units-v2/entries");
     let first_units = native_unit_snapshots(&units_dir);
     assert_eq!(first_units.len(), 3);
     assert_eq!(
@@ -82,7 +83,7 @@ fn parallel_frontend_compilation_preserves_one_application_link() {
     let final_cache = fs::read_dir(out_dir.join(".terlan/native-aot"))
         .expect("read native application cache")
         .map(|entry| entry.expect("read native application cache entry").path())
-        .find(|path| path.is_dir() && path.file_name().is_some_and(|name| name != "units"))
+        .find(|path| path.join("manifest.v1").is_file())
         .expect("native application cache directory");
     fs::remove_file(final_cache.join("manifest.v1")).expect("invalidate final image cache");
     assert_eq!(run(command.clone(), state.clone()), ExitCode::SUCCESS);
