@@ -170,15 +170,6 @@ pub(super) fn lower_prepared_call(
             }
         };
     contextualize_comparison_prefix(&mut region, result_core_type.as_ref());
-    let call_ordinal = *ordinal;
-    *ordinal = ordinal.saturating_add(1);
-    let completion_id = stable_composed_completion_id(module, function, arity, call_ordinal);
-    if !stable_ids.insert(completion_id) {
-        return Err(format!(
-            "error[native_ir.continuation_id_collision]: continuation id {completion_id} collides in module `{module}`"
-        ));
-    }
-
     let mut entry_vars = params.clone();
     let mut entry_types = param_types.clone();
     let mut entry_core_types = param_core_types.clone();
@@ -222,6 +213,61 @@ pub(super) fn lower_prepared_call(
             entry_core_types.insert(name.clone(), core_type);
         }
         next_entry_local = next_entry_local.saturating_add(1);
+    }
+
+    // Gate extraction reaches this path even when the selected branch simply
+    // returns its callee's result. Such a branch remains a tail call: retaining
+    // an identity completion would grow the VM caller stack on each iteration.
+    if let Some(function) = function_index {
+        if completion.is_none()
+            && region.join.is_none()
+            && result_type == return_type
+            && matches!(&region.resume, CoreExpr::Var(name) if name == &region.result_name)
+        {
+            let args = region
+                .args
+                .iter()
+                .map(|argument| {
+                    super::super::structured_case::lower_lexical_expr(
+                        argument,
+                        &entry_vars,
+                        &entry_types,
+                        &entry_core_types,
+                        super::super::structured_case::StructuredCaseEnvironment {
+                            functions,
+                            function_types,
+                            function_core_types,
+                            constructors,
+                        },
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let tail = NativeExpr::TailCall {
+                function,
+                args,
+                yield_continuation_id: None,
+            };
+            return Ok((
+                if entry_bindings.is_empty() {
+                    tail
+                } else {
+                    NativeExpr::Let {
+                        bindings: entry_bindings,
+                        body: Box::new(tail),
+                    }
+                },
+                Vec::new(),
+            ));
+        }
+    }
+
+    let call_ordinal = *ordinal;
+    *ordinal = ordinal.saturating_add(1);
+    let completion_id = stable_composed_completion_id(module, function, arity, call_ordinal);
+    if !stable_ids.insert(completion_id) {
+        return Err(format!(
+            "error[native_ir.continuation_id_collision]: continuation id {completion_id} collides in module `{module}`"
+        ));
     }
 
     let mut captures = free_variables(&region.resume);

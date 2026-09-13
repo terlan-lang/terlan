@@ -713,6 +713,62 @@ fn calls_followed_by_cleanup_are_not_tail_calls() {
 }
 
 #[test]
+fn preclassified_recursive_tail_calls_receive_installed_reduction_yields() {
+    let mut modules = vec![module(NativeExpr::TailCall {
+        function: 0,
+        args: vec![decrement(), NativeExpr::Param(1)],
+        yield_continuation_id: None,
+    })];
+    super::tail_position::install_reduction_continuations(&mut modules)
+        .expect("install recursive reduction target");
+    let expected = super::identity::stable_reduction_continuation_id("app.Tail", "loop", 2);
+    for _ in 0..2 {
+        lower_recursive_tail_calls(&mut modules);
+        let NativeExpr::TailCall {
+            function,
+            args,
+            yield_continuation_id,
+        } = &modules[0].functions[0].body
+        else {
+            panic!("preserve preclassified tail call");
+        };
+        assert_eq!(*function, 0);
+        assert_eq!(args, &[decrement(), NativeExpr::Param(1)]);
+        assert_eq!(*yield_continuation_id, Some(expected));
+    }
+}
+
+#[test]
+fn generated_tail_reentry_yields_without_reyielding_the_reduction_resume() {
+    let tail = NativeExpr::TailCall {
+        function: 0,
+        args: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+        yield_continuation_id: None,
+    };
+    let mut modules = vec![module(tail.clone())];
+    super::tail_position::install_reduction_continuations(&mut modules)
+        .expect("recursive reduction entry");
+    let reduction_id = modules[0].continuations[0].id;
+    let mut ordinary = modules[0].continuations[0].clone();
+    ordinary.id = reduction_id ^ 1;
+    ordinary.body = tail.clone();
+    modules[0].continuations.push(ordinary);
+    for _ in 0..2 {
+        super::tail_position::attach_installed_reduction_yields(&mut modules);
+        assert_eq!(modules[0].continuations[0].body, tail);
+        assert_eq!(
+            modules[0].continuations[1].body,
+            NativeExpr::Suspend {
+                operation: super::NativeTransitionOperation::Yield,
+                arguments: vec![],
+                continuation_id: reduction_id,
+                values: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+            }
+        );
+    }
+}
+
+#[test]
 fn recursive_component_rejects_terminal_dynamic_target_before_codegen() {
     let dynamic = NativeExpr::InvokeClosure {
         callee: Box::new(NativeExpr::Param(2)),

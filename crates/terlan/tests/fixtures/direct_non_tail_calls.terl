@@ -1,0 +1,93 @@
+module direct_non_tail_calls.
+
+import std.vm.Process.
+
+pub non_tail_yielding(flag: Bool): Int ->
+    branch_yield(flag) + 1.
+
+pub non_tail_yielding_offset(flag: Bool, offset: Int): Int ->
+    branch_yield(flag) + offset.
+
+pub non_tail_nested(flag: Bool): Int ->
+    (branch_yield(flag) + 1) * 2.
+
+pub non_tail_negated(flag: Bool): Int ->
+    -branch_yield(flag).
+
+pub non_tail_call_argument(flag: Bool): Int ->
+    add(branch_yield(flag), 1).
+
+pub non_tail_second_call_argument(divisor: Int, flag: Bool): Int ->
+    add(1 div divisor, branch_yield(flag)).
+
+pub non_tail_let(flag: Bool): Int ->
+    let value = branch_yield(flag);
+    value + 2.
+
+pub non_tail_later_let(divisor: Int, flag: Bool): Int ->
+    let checked = 1 div divisor;
+    let value = branch_yield(flag);
+    checked + value.
+
+pub non_tail_local_capture(flag: Bool, value: Int, offset: Int): Int ->
+    branch_yield_local(flag, value) + offset.
+
+pub non_tail_bool(flag: Bool): Bool ->
+    not yielded_bool(flag).
+
+pub non_tail_condition(flag: Bool): Int ->
+    if {
+        yielded_bool(flag) -> 70;
+        true -> 71
+    }.
+
+pub non_tail_checked_argument(divisor: Int): Int ->
+    branch_yield(1 div divisor > 0) + 3.
+
+pub non_tail_branch(which: Bool, flag: Bool): Int ->
+    if {
+        which -> branch_yield(flag) + 4;
+        true -> 5
+    }.
+
+pub tail_composed_call(flag: Bool): Int ->
+    non_tail_yielding(flag).
+
+pub non_tail_eager_right(divisor: Int, flag: Bool): Int ->
+    1 div divisor + branch_yield(flag).
+
+pub non_tail_two_calls(first: Bool, second: Bool): Int ->
+    branch_yield(first) + branch_yield(second).
+
+pub call_then_direct_yield(flag: Bool, value: Int): Int ->
+    branch_yield(flag) + (Process.yield_now(); value).
+
+pub direct_yield_then_call(value: Int, flag: Bool): Int ->
+    (Process.yield_now(); value) + branch_yield(flag).
+
+pub non_tail_eight_calls(
+    a: Bool,
+    b: Bool,
+    c: Bool,
+    d: Bool,
+    e: Bool,
+    f: Bool,
+    g: Bool,
+    h: Bool,
+): Int ->
+    add(
+        branch_yield(a),
+        add(
+            branch_yield(b),
+            add(
+                branch_yield(c),
+                add(
+                    branch_yield(d),
+                    add(
+                        branch_yield(e),
+                        add(branch_yield(f), add(branch_yield(g), branch_yield(h))),
+                    ),
+                ),
+            ),
+        ),
+    ).

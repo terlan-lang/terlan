@@ -77,7 +77,7 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
         .flat_map(|core| {
             core.types.iter().filter_map(move |declaration| {
                 let canonical = format!("{}.{}", core.module, declaration.name);
-                if is_compiler_managed_value_facade(&canonical) {
+                if is_compiler_owned_value_facade(&canonical) {
                     return None;
                 }
                 let body = if matches!(
@@ -126,10 +126,22 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 /// an owner-local managed string by template lowering. Treating it as a native
 /// resource would replace list element types with the four-field capability
 /// handle layout before that lowering runs.
-fn is_compiler_managed_value_facade(canonical: &str) -> bool {
+/// Process identities and lifecycle tokens likewise retain the scalar ABI
+/// owned by VM intrinsic lowering, not a native worker's resource layout.
+fn is_compiler_owned_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
-        "std.template.Template.Html" | "std.http.Request.Request" | "std.http.Response.Response"
+        "std.template.Template.Html"
+            | "std.http.Request.Request"
+            | "std.http.Response.Response"
+            | "std.vm.Process.Process"
+            | "std.vm.Process.Entry"
+            | "std.vm.Process.Timer"
+            | "std.vm.Process.Monitor"
+            | "std.vm.Process.ResourceKind"
+            | "std.vm.Process.Resource"
+            | "std.vm.Process.ExitReason"
+            | "std.vm.Process.SchedulingClass"
     )
 }
 
@@ -579,7 +591,7 @@ pub(super) fn native_handle_layouts(
                 declaration.visibility,
                 crate::terlan_typeck::CoreVisibility::Opaque
             ) && declaration.core_body.is_none()
-                && !is_compiler_managed_value_facade(&canonical)
+                && !is_compiler_owned_value_facade(&canonical)
         })
         .map(|declaration| {
             let canonical = format!("{}.{}", core.module, declaration.name);

@@ -477,12 +477,45 @@ fn aggregate_use_after_destructuring_blocks_local_replacement() {
     let CoreExpr::Let { body, .. } = &mut expression else {
         panic!("expected local tuple let");
     };
-    *body = Box::new(CoreExpr::Var("pair".to_owned()));
+    **body = CoreExpr::Var("pair".to_owned());
 
     assert_eq!(
         scalar_replace_fixed_aggregates(&expression, &layouts()),
         expression
     );
+}
+
+/// Renaming an aggregate must not masquerade as a scalarization step.
+#[test]
+fn aggregate_alias_chains_reach_a_stable_scalar_replacement_result() {
+    for value in [
+        pair(CoreExpr::Int(20), CoreExpr::Int(22)),
+        CoreExpr::Tuple(vec![CoreExpr::Int(20), CoreExpr::Int(22)]),
+    ] {
+        let expression = CoreExpr::Let {
+            bindings: vec![
+                CoreLetBinding {
+                    pattern: CorePattern::Var("original".into()),
+                    value,
+                },
+                CoreLetBinding {
+                    pattern: CorePattern::Var("alias".into()),
+                    value: CoreExpr::Var("original".into()),
+                },
+                CoreLetBinding {
+                    pattern: CorePattern::Var("result".into()),
+                    value: CoreExpr::Var("alias".into()),
+                },
+            ],
+            body: Box::new(CoreExpr::Var("result".into())),
+        };
+        let rewritten = scalar_replace_fixed_aggregates(&expression, &layouts());
+        assert_eq!(rewritten, expression);
+        assert_eq!(
+            scalar_replace_fixed_aggregates(&rewritten, &layouts()),
+            rewritten
+        );
+    }
 }
 
 /// Preserves wildcard field evaluation while removing its tuple container.

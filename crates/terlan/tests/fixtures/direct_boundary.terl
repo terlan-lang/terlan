@@ -1,0 +1,226 @@
+module direct_boundary.
+
+import std.collections.{Map, Set}.
+import std.vm.Process.
+
+import type std.vm.Process.{Entry, ExitReason, Monitor, Process, Resource, ResourceKind, SchedulingClass, Timer}.
+
+pub yield_capture(value: Int): Int ->
+    Process.yield_now();
+    value + 1.
+
+pub local_capture(value: Int): Int ->
+    let live = value * 2;
+    Process.yield_now();
+    live + 1.
+
+pub repeated_capture(value: Int): Int ->
+    let first = yield_capture(value);
+    yield_capture(first).
+
+pub repeated_direct_capture(value: Int): Int ->
+    Process.yield_now();
+    let next = value + 1; (Process.yield_now(); next + 1).
+
+pub bool_capture(value: Bool): Bool ->
+    Process.yield_now();
+    value.
+
+pub pair_capture(left: Int, right: Int): Int ->
+    Process.yield_now();
+    left + right.
+
+pub send_capture(value: Int): Int ->
+    Process.send_int(1, value);
+    value + 1.
+
+pub receive_capture(value: Int): Int ->
+    let received = Process.receive_int();
+    received + value.
+
+pub spawn_capture(entry: Entry[Int], value: Int): Int ->
+    let child = Process.spawn[Int](entry);
+    value + 1.
+
+pub timer_capture(value: Int): Int ->
+    Process.sleep(Process.timer(3));
+    value + 1.
+
+pub link_capture(peer: Process[Int], value: Int): Int ->
+    Process.link[Int](peer);
+    value + 1.
+
+pub monitor_capture(peer: Process[Int], value: Int): Int ->
+    let monitor = Process.monitor[Int](peer);
+    value + 1.
+
+pub resource_capture(kind: ResourceKind[Int], value: Int): Int ->
+    let resource = Process.acquire[Int](kind);
+    value + 1.
+
+pub cancellation_capture(peer: Process[Int], value: Int): Int ->
+    Process.cancel[Int](peer);
+    value + 1.
+
+pub failure_capture(reason: ExitReason, value: Int): Int ->
+    Process.fail(reason);
+    value + 1.
+
+pub scheduling_capture(class: SchedulingClass, value: Int): Int ->
+    Process.schedule(class);
+    value + 1.
+
+pub composed_send(value: Int): Int ->
+    send_capture(value) + 1.
+
+pub composed_receive(value: Int): Int ->
+    receive_capture(value) + 1.
+
+pub composed_spawn(entry: Entry[Int], value: Int): Int ->
+    spawn_capture(entry, value) + 1.
+
+pub composed_timer(value: Int): Int ->
+    timer_capture(value) + 1.
+
+pub composed_link(peer: Process[Int], value: Int): Int ->
+    link_capture(peer, value) + 1.
+
+pub composed_monitor(peer: Process[Int], value: Int): Int ->
+    monitor_capture(peer, value) + 1.
+
+pub composed_resource(kind: ResourceKind[Int], value: Int): Int ->
+    resource_capture(kind, value) + 1.
+
+pub composed_cancellation(peer: Process[Int], value: Int): Int ->
+    cancellation_capture(peer, value) + 1.
+
+pub composed_failure(reason: ExitReason, value: Int): Int ->
+    failure_capture(reason, value) + 1.
+
+pub composed_scheduling(class: SchedulingClass, value: Int): Int ->
+    scheduling_capture(class, value) + 1.
+
+pub branch_yield_both(flag: Bool): Int ->
+    if {
+        flag -> (Process.yield_now(); 1);
+        true -> (Process.yield_now(); 2)
+    }.
+
+pub nested_branch_yield(outer: Bool, inner: Bool): Int ->
+    if {
+        outer -> if {
+            inner -> (Process.yield_now(); 11);
+            true -> 12
+        };
+        true -> 13
+    }.
+
+pub short_circuit_yield(left: Bool, right: Bool): Bool ->
+    left and (Process.yield_now(); right).
+
+pub yield_then_branch(flag: Bool): Int ->
+    Process.yield_now();
+    if {
+    flag -> (Process.yield_now(); 21);
+    true -> 22
+}.
+
+pub branch_capture_pair(flag: Bool, left: Int, right: Int): Int ->
+    if {
+        flag -> (Process.yield_now(); left + right);
+        true -> 0
+    }.
+
+pub branch_yield_only(flag: Bool): Int ->
+    if {
+        flag -> (Process.yield_now(); 1)
+    }.
+
+pub bool_capture_twice(flag: Bool): Bool ->
+    Process.yield_now();
+    Process.yield_now();
+    flag.
+
+pub divide(left: Int, right: Int): Int ->
+    left / right.
+
+pub only_true(flag: Bool): Int ->
+    if {
+        flag -> 1
+    }.
+
+pub float_divide(left: Float, right: Float): Float ->
+    left / right.
+
+send_only(value: Int): Unit ->
+    Process.send_int(1, value).
+
+receive_only(): Int ->
+    Process.receive_int().
+
+spawn_only(entry: Entry[Int]): Process[Int] ->
+    Process.spawn[Int](entry).
+
+sleep_only(timer: Timer): Unit ->
+    Process.sleep(timer).
+
+link_only(peer: Process[Int]): Unit ->
+    Process.link[Int](peer).
+
+monitor_only(peer: Process[Int]): Monitor[Int] ->
+    Process.monitor[Int](peer).
+
+resource_only(kind: ResourceKind[Int]): Resource[Int] ->
+    Process.acquire[Int](kind).
+
+cancel_only(peer: Process[Int]): Unit ->
+    Process.cancel[Int](peer).
+
+fail_only(reason: ExitReason): Unit ->
+    Process.fail(reason).
+
+schedule_only(class: SchedulingClass): Unit ->
+    Process.schedule(class).
+
+pub delegated_send(value: Int): Int ->
+    let sent = send_only(value);
+    value + 1.
+
+pub delegated_receive(value: Int): Int ->
+    let received = receive_only();
+    value + received.
+
+pub delegated_spawn(entry: Entry[Int], value: Int): Int ->
+    let child = spawn_only(entry);
+    value + 1.
+
+pub delegated_timer(value: Int): Int ->
+    let slept = sleep_only(Process.timer(3));
+    value + 1.
+
+pub delegated_link(peer: Process[Int], value: Int): Int ->
+    let linked = link_only(peer);
+    value + 1.
+
+pub delegated_monitor(peer: Process[Int], value: Int): Int ->
+    let monitor = monitor_only(peer);
+    value + 1.
+
+pub delegated_resource(kind: ResourceKind[Int], value: Int): Int ->
+    let resource = resource_only(kind);
+    value + 1.
+
+pub delegated_cancellation(peer: Process[Int], value: Int): Int ->
+    let cancelled = cancel_only(peer);
+    value + 1.
+
+pub delegated_failure(reason: ExitReason, value: Int): Int ->
+    let failed = fail_only(reason);
+    value + 1.
+
+pub delegated_scheduling(class: SchedulingClass, value: Int): Int ->
+    let scheduled = schedule_only(class);
+    value + 1.
+
+pub typed_empty_collections(): Bool ->
+    Map.new[String, Int]().is_empty() and Set.new[String]().is_empty().

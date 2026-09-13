@@ -785,3 +785,7 @@ fn transition_injected_type(
 #[path = "direct_backend_test.rs"]
 #[cfg(test)]
 mod direct_backend_test;
+
+#[cfg(test)]
+#[path = "direct_backend_compiled_test.rs"]
+mod direct_backend_compiled_test;

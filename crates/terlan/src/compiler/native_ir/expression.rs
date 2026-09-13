@@ -68,7 +68,7 @@ mod value_intrinsics;
 pub(super) use collection_literal_types::homogeneous_list_type;
 use equality::{lower_equality_operand, managed_equality_semantic};
 use field_access::lower_managed_field_access;
-pub(super) use free_variable_analysis::free_variables;
+pub(super) use free_variable_analysis::{free_variables, free_variables_with_bindings};
 use type_mapping::is_empty_list;
 pub(super) use type_mapping::{
     core_string_runtime_value, literal_collection_type, managed_semantic_contract, native_type,

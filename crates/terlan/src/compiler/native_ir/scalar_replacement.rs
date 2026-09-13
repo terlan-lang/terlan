@@ -288,6 +288,15 @@ fn local_fixed_destructuring(
     }
     for (consumer, binding) in bindings.iter().enumerate().skip(producer + 1) {
         if matches!(&binding.value, CoreExpr::Var(name) if name == target) {
+            // An alias is not destructuring. Replacing `alias = producer`
+            // merely renames a constructor producer, so retrying this index
+            // would manufacture fresh aliases forever without removing shape.
+            if !matches!(
+                binding.pattern,
+                CorePattern::Tuple(_) | CorePattern::Constructor { .. }
+            ) {
+                return None;
+            }
             let mut leaves = Vec::new();
             flatten_fixed_pattern(&binding.pattern, value, &mut leaves)?;
             if local_observed_after_binding(bindings, body, consumer, target) {
