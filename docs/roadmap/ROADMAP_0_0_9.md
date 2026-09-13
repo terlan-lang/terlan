@@ -20,6 +20,40 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Draft PR #22 is not ready for merge or publication. The last completed hosted candidate,
+`bb7b3401`, passes the complete hosted release workflow, but Compiler CI fails
+in the direct-AOT integration tier after passing the core, integration-harness,
+and ABI tiers. All nine tests across the main, condition, condition-expression,
+tail-call, non-tail-call, and multi-stage-call AOT integration targets now pass
+together against the final local compiler fixes
+(`target/quality/release-diagnostics/direct-aot-all-six-targets.log`).
+The consumer run includes the 53 shard
+expressions, lifecycle diagnostics, managed continuations, cache reuse, and REPL.
+Strict Clippy for the production library and all six touched integration targets
+passes in `direct-aot-all-six-clippy.log`. The remaining six application
+integration targets also pass: sixteen tests covering cache identity/recovery,
+local shards, packages, managed continuations, fail-closed artifact admission,
+and VM supervision (`direct-aot-remaining-integration.log`). Workspace binary
+Clippy passes with warnings denied in both default and all-feature profiles;
+workspace Rust formatting and changed Terlan fixture formatting pass. All 468 native-compiler tests and the
+compiled-backend ownership suite pass as well. These corrections await hosted
+verification. All five call/control-flow integration fixtures now pass through
+the production VM, retaining their original test names and checking the same
+values and failure diagnostics. Their shared compiled-backend test also passes
+(`direct-boundary-all-call-fixtures.log`), inspecting actual parked caller frames,
+capture order, continuation identities, and invalid/duplicate resumes against one
+compiled image. Shared scalar helpers are compiled once per owning fixture.
+Thirteen unreferenced worker-protocol helpers were removed after their
+replacement checks passed; the genuine capability-worker runtime is unchanged.
+
+V9-1 still requires complete production cold/warm/resume acceptance. V9-2's
+harness/dispatcher splits and comparative measurements, and V9-3's version
+update and publication, remain open. Active versions are still 0.0.8. The
+consolidated hosted final stage measured 9m07s instead of 18m00s, but total
+hosted duration was 87m33s, not an end-to-end improvement over the 80m45s baseline.
+
+### Candidate validation checkpoints
+
 Draft PR #22 remains unready for merge or publication. Candidate `36a3d8d6`
 passes the complete hosted release-validation workflow and Docs CI. Its six
 native platform jobs, both sanitizer families, matrix aggregation, final artifact
@@ -31,8 +65,9 @@ The correction retains every workload and assertion while making report writing
 an explicit, fail-closed evidence mode. All nine focused tests pass locally;
 actual report-writing probes also pass and reject missing revision metadata.
 These changes and the preparation-lease changes still need hosted confirmation.
-The separate CodeQL check reports two numeric-count logging alerts awaiting
-documented false-positive review; the redaction diagnostic alert is resolved.
+The two numeric-count CodeQL alerts were dismissed with source-level reasoning
+after explicit user approval; CodeQL is now green. The redaction diagnostic
+alert is resolved.
 Full production cold/warm/resume acceptance, the V9-2 harness/dispatcher split
 and measurements, and V9-3 remain open. Active versions are still 0.0.8.
 Further V9-1 review extends the candidate lease over distribution restoration
@@ -49,6 +84,123 @@ rejects mismatched budgets. These fixes still need hosted confirmation.
 The completed hosted baseline took 80m45s; matrix aggregation and final artifact
 validation occupied separate 9m49s and 8m11s jobs. The shared-job change has not
 yet produced a hosted timing comparison and is not a full-cycle speedup claim.
+
+Candidate `bb7b3401` confirms the ABI correction in hosted Compiler CI: all nine
+ABI tests pass after 6,225 core and 1,160 integration-tier tests pass. Three
+direct-AOT integration tests then fail. Local reproduction identifies missing
+Memory storage variant declarations, a rejection fixture whose deep condition
+is now supported, and a consumer fixture still using the removed execution-worker
+protocol. Explicit storage aliases preserve the emitted atom identities; native
+execution now verifies all three values. The rejection fixture retains the
+fail-closed native-admission assertion using an unsupported fixed array, and a
+separate positive test executes the former deep-condition case. These three
+focused checks pass locally. Migrating the remaining worker fixture's assertions
+to the current AOT/shard interfaces is still required; no test is skipped and
+the full integration suite is not claimed green. Logs are under
+`target/quality/release-diagnostics/direct-aot-{before,after,memory,rejection,clippy}.log`.
+The separate hosted release run `34767160245` now passes completely: all six
+native targets, both sanitizer families, security audit, consolidated validation,
+and distribution attestation. The final validation job took 9m07s, versus 18m00s
+combined for the baseline's two final jobs. This is a measured final-stage
+reduction, not a full-cycle speedup: the current run took 87m33s versus 80m45s,
+with macOS x64 taking 78m02s. Evidence is retained in
+`target/quality/release-diagnostics/release-bb7b3401.json` and
+`target/quality/release-diagnostics/release-validation-103760690224.log`.
+The worker-fixture migration now executes 49 application assertions through the
+production shard, using one compiled image with explicit reachable test entries.
+It exposed and fixes a reachability defect: a parameter named `timer` was mistaken
+for an imported function value, retaining `Process.timer`'s native placeholder
+after its actual intrinsic call had already lowered correctly. All three pruning
+paths now reuse lexical free-variable analysis, preserving real callback values
+while excluding parameters and local pattern bindings. Eleven pruning tests pass,
+and the standalone nested-timer build/execution succeeds. The 49 application
+assertions return successfully before the retained obsolete-worker assertion
+fails; this is migration progress, not a passing full integration test. Evidence:
+`target/quality/release-diagnostics/pruning-scopes.log` and
+`target/quality/release-diagnostics/direct-aot-shard-migration.log`.
+The compiled-image boundary regression exposed another representation error:
+bodyless VM tokens such as `Process.ExitReason` were rewritten as native-worker
+resource records. Exact canonical VM identities now retain their intrinsic ABI;
+similarly named package resources still receive private handle layouts. Six
+native-package tests pass. The new compiled-image test builds once and verifies
+ten operations both directly and through non-tail calls, ordered/live captures,
+repeated suspension, owner/request/continuation authority, duplicate-resume
+rejection, and malformed-word rejection by the production capture validator.
+It passes with no added public backend API or duplicate runtime validation.
+Evidence: `target/quality/release-diagnostics/native-package-token-layouts.log`
+and `target/quality/release-diagnostics/direct-boundary-compiled.log`.
+The obsolete worker integration assertions remain until their complete coverage
+has been migrated; the compiler pipeline and V9-1 are not yet closed.
+Strict Clippy passes for the production library and the two touched integration
+targets. An additional `--lib --tests` audit fails with 468 diagnostics in the
+library test harness; the configured release Clippy gate targets workspace
+binaries, not that harness. This broader audit is not a clean result and has not
+been suppressed. The multi-stage integration helper now groups its two ordered
+capture expectations rather than exceeding the argument-count limit. Logs:
+`target/quality/release-diagnostics/direct-boundary-production-clippy.log` and
+`target/quality/release-diagnostics/direct-boundary-clippy.log`.
+
+The boundary suite now covers direct, delegated, and composed calls for all ten
+transition operations, plus branch selection, capture ordering, repeated
+suspension, and native arithmetic failures. All scenarios share one compiled
+image; the delegated-call and branch checks pass. Extending the application
+fixture to execute collection identities exposed two compiler defects, rather
+than merely stale test expectations: scalar replacement looped indefinitely on
+an aggregate alias chain, and typed Map/Set construction lost its explicit type
+arguments. Scalar replacement now requires actual destructuring progress (not
+an iteration limit), with all 30 surrounding tests passing. Collection lowering
+preserves all List/Map/Set type arguments; its focused type-check/lowering test
+and the compiled-image collection execution both pass. Evidence includes
+`target/quality/release-diagnostics/scalar-replacement-aliases.log`,
+`target/quality/release-diagnostics/typed-collection-constructors-with-interfaces.log`,
+and `target/quality/release-diagnostics/direct-boundary-delegated-fixed.log`.
+The main application fixture now executes 53 expressions through the VM and
+uses owned, deadline-bounded lifecycle checks. Its former worker-wire assertions
+have moved to the actual private direct backend. The remaining condition and
+call-composition integration fixtures still require migration; this is not a
+passing canonical compiler run or V9-1 closeout.
+
+The next migration step preserves the three condition/expression/tail integration
+test names while replacing their execution-worker handshake with one focused
+AOT build and a production-VM contract per target. All three pass, in
+`target/quality/release-diagnostics/direct-aot-condition-vm.log`,
+`target/quality/release-diagnostics/direct-aot-condition-expr-vm.log`, and
+`target/quality/release-diagnostics/direct-aot-tail-vm.log` (approximately 1.09 s,
+0.94 s, and 0.59 s, excluding Rust compilation).
+The same focused source fixtures feed the single compiled-backend image, whose
+additional assertions retain ordered captures, exact suspension counts,
+short-circuit error timing, Unit/Boolean word validation, callee continuation
+identity, stale/foreign ownership, and duplicate-resume rejection. The direct
+boundary passes in `target/quality/release-diagnostics/direct-boundary-condition-expr.log`.
+Delegated Unit calls retain caller values in VM completion frames, rather than
+exposing them as the callee's captures; this matches the current execution-shard
+architecture and does not restore the removed worker protocol. Shared test
+support owns temporary directories and bounds compiler/VM execution, including
+expected failures with checked stderr. No additional public backend API or
+production compatibility layer was added. Two legacy call-composition targets
+remain, and canonical compiler/production-candidate acceptance is still open.
+Stronger inspection of actual VM-owned completion frames then exposed an
+unnecessary identity frame on direct tail calls inside conditionals. Prepared
+call lowering now forwards unchanged results without allocating that frame,
+including branches with local bindings and checked arithmetic. The regression
+requires empty caller-frame stacks for tail calls and precise retained caller
+values for non-tail Unit helpers; it passes in
+`target/quality/release-diagnostics/direct-boundary-tail-prefixes.log`.
+The broader native-compiler run caught a reduction-yield regression from this
+earlier tail classification. Existing `TailCall` nodes now receive installed
+recursive reduction identities too; all 467 native-compiler tests then pass,
+including one million recursive edges on a small stack with observed scheduler
+yields (`native-ir-tail-yield-fixed.log`). Review also found that generated
+continuation annotation tested membership in a set containing every continuation,
+making it a no-op. It now excludes only reduction-resume entries, with an
+idempotence test proving ordinary re-entry yields while the resume itself does
+not immediately yield again. All 468 native-compiler tests pass after that
+correction (`native-ir-generated-yields-fixed.log`, 23.94 s excluding Rust
+compilation), as does the compiled-backend ownership suite
+(`direct-boundary-final-yields.log`). Strict Clippy passes for the production
+library and affected integration targets (`direct-aot-call-migration-clippy.log`).
+These remain local component results, not V9-1 production acceptance or a green
+canonical compiler workflow.
 
 ### Earlier implementation checkpoints
 

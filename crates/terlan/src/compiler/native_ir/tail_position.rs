@@ -100,9 +100,13 @@ pub(super) fn attach_installed_reduction_yields(modules: &mut [NativeModule]) {
                 .chain(module.functions.iter().map(|item| item.export_id))
         })
         .collect::<HashSet<_>>();
+    let reduction_entries = functions.iter().copied().collect::<HashSet<_>>();
     for module in modules {
         for continuation in &mut module.continuations {
-            if !installed.contains(&continuation.id) {
+            // Only reduction-resume entries must re-enter without immediately
+            // yielding again. Every ordinary continuation is also installed;
+            // testing that set here would skip this entire annotation pass.
+            if !reduction_entries.contains(&continuation.id) {
                 attach_reduction_yields(&mut continuation.body, &functions, &installed);
             }
         }
@@ -234,6 +238,18 @@ fn lower_tail_position(
     forwarding_completions: &HashSet<u64>,
 ) {
     match expr {
+        NativeExpr::TailCall {
+            function,
+            yield_continuation_id,
+            ..
+        } if yield_continuation_id.is_none()
+            && components.get(*function).copied() == Some(current_component) =>
+        {
+            // Suspension-aware branch lowering can identify tail calls before
+            // recursive components receive their reduction continuations.
+            // Already classified edges still require scheduler fairness.
+            *yield_continuation_id = yield_ids.get(*function).copied().flatten();
+        }
         NativeExpr::Call { function, args }
             if components.get(*function).copied() == Some(current_component) =>
         {

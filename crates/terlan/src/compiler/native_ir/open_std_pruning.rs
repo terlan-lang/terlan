@@ -72,19 +72,7 @@ pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&st
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
     for function in &core.functions {
         let caller = (core.module.clone(), function.name.clone(), function.arity);
-        let mut calls = HashSet::new();
-        for clause in &function.clauses {
-            if let Some(guard) = clause
-                .guard
-                .as_ref()
-                .and_then(|guard| guard.core_expr.as_ref())
-            {
-                collect_calls(guard, core, &providers, &mut calls);
-            }
-            if let Some(body) = &clause.body.core_expr {
-                collect_calls(body, core, &providers, &mut calls);
-            }
-        }
+        let calls = collect_function_calls(function, core, &providers);
         edges.insert(caller, calls);
     }
     let root_names = roots.iter().copied().collect::<HashSet<_>>();
@@ -136,19 +124,7 @@ pub(crate) fn prune_application_to_function_roots(
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
-            let mut calls = HashSet::new();
-            for clause in &function.clauses {
-                if let Some(guard) = clause
-                    .guard
-                    .as_ref()
-                    .and_then(|guard| guard.core_expr.as_ref())
-                {
-                    collect_calls(guard, core, &providers, &mut calls);
-                }
-                if let Some(body) = &clause.body.core_expr {
-                    collect_calls(body, core, &providers, &mut calls);
-                }
-            }
+            let calls = collect_function_calls(function, core, &providers);
             edges.insert(caller, calls);
         }
     }
@@ -193,19 +169,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
-            let mut calls = HashSet::new();
-            for clause in &function.clauses {
-                if let Some(guard) = clause
-                    .guard
-                    .as_ref()
-                    .and_then(|guard| guard.core_expr.as_ref())
-                {
-                    collect_calls(guard, core, &providers, &mut calls);
-                }
-                if let Some(body) = &clause.body.core_expr {
-                    collect_calls(body, core, &providers, &mut calls);
-                }
-            }
+            let calls = collect_function_calls(function, core, &providers);
             edges.insert(caller, calls);
         }
     }
@@ -370,6 +334,38 @@ fn resolve_remote(
         .cloned()
 }
 
+/// Collects direct calls and lexically free named callback values. A local
+/// parameter or pattern binding must never create an edge to an imported
+/// function with the same spelling (for example a parameter named `timer`).
+fn collect_function_calls(
+    function: &crate::terlan_typeck::CoreFunction,
+    caller: &CoreModule,
+    providers: &[FunctionKey],
+) -> HashSet<FunctionKey> {
+    let mut calls = HashSet::new();
+    for clause in &function.clauses {
+        let guard = clause
+            .guard
+            .as_ref()
+            .and_then(|guard| guard.core_expr.as_ref());
+        for expr in guard.into_iter().chain(clause.body.core_expr.as_ref()) {
+            collect_calls(expr, caller, providers, &mut calls);
+            let free = super::expression::free_variables_with_bindings(
+                expr,
+                function
+                    .params
+                    .iter()
+                    .map(|parameter| parameter.name.clone()),
+                clause.core_patterns.iter().flatten(),
+            );
+            for name in free {
+                collect_function_value_candidates(caller, &name, providers, &mut calls);
+            }
+        }
+    }
+    calls
+}
+
 fn collect_calls(
     expr: &CoreExpr,
     caller: &CoreModule,
@@ -525,7 +521,7 @@ fn collect_calls(
             collect_calls(left, caller, providers, calls);
             collect_calls(right, caller, providers, calls);
         }
-        CoreExpr::Var(name) => collect_function_value_candidates(caller, name, providers, calls),
+        CoreExpr::Var(_) => {}
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) => {}
     }
 }

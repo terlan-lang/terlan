@@ -7,6 +7,8 @@ mod registry;
 mod return_types;
 
 #[cfg(test)]
+mod collection_test;
+#[cfg(test)]
 mod effect_test;
 
 pub(crate) use effects::{
@@ -230,18 +232,38 @@ fn core_typed_collection_intrinsic_expr_from_parts(
     args: Vec<CoreExpr>,
     span: Span,
 ) -> Option<CoreExpr> {
-    if module != "std.collections.List"
-        || function != "new"
-        || !args.is_empty()
-        || type_args.len() != 1
-    {
+    if function != "new" || !args.is_empty() {
         return None;
     }
-    let element = core_type_from_text(&type_args[0].text)?;
+    let parameters = type_args
+        .iter()
+        .map(|argument| core_type_from_text(&argument.text))
+        .collect::<Option<Vec<_>>>()?;
+    let (intrinsic, return_type) = match (module, parameters.as_slice()) {
+        ("std.collections.List", [element]) => (
+            CorePrimitiveIntrinsic::ListNew,
+            CoreType::List(Box::new(element.clone())),
+        ),
+        ("std.collections.Map", [_, _]) => (
+            CorePrimitiveIntrinsic::MapNew,
+            CoreType::Apply {
+                constructor: "Map".into(),
+                args: parameters,
+            },
+        ),
+        ("std.collections.Set", [_]) => (
+            CorePrimitiveIntrinsic::SetNew,
+            CoreType::Apply {
+                constructor: "Set".into(),
+                args: parameters,
+            },
+        ),
+        _ => return None,
+    };
     Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
-        id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew),
+        id: CoreIntrinsicId::Primitive(intrinsic),
         args,
-        return_type: CoreType::List(Box::new(element)),
+        return_type,
         effects: core_pure_effect_set(),
         span,
     }))
