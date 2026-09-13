@@ -4897,3 +4897,38 @@ or Windows execution. Those remain required in the next hosted run.
 The updated platform source check, native validator build, executable matrix
 self-test, and workspace formatting pass
 (`/tmp/terlan-v9-six-platform-{source-check,validator-build,validator-self-test}.log`).
+
+### Hosted compiler and Windows fixture corrections (2026-09-13)
+
+Candidate `ed441cf5` completes release validation run `34719872707` with both
+sanitizers and all Linux/macOS jobs passing. Its real AOT sanitizer verifies
+73 tests. Windows compilation fails on 13 unused tail-position fixture helpers;
+each is consumed only by existing Unix-gated object/execution tests. Applying
+the same scope to those helpers and their exclusive imports preserves every
+test and keeps warnings fatal. Native Windows confirmation remains required.
+
+Compiler run `34719875155` reaches 6,223 passes, two failures and 11 ignores.
+The application-link test still reads the pre-retention `units` directory.
+It now inspects `units-v2/entries` and selects the sealed application directory
+by its manifest, preserving the three-unit inventory, byte reuse, poisoned-unit
+repair, one-image/export assertions, and six-unit inventory after a source edit.
+Its scratch directory now has an RAII owner for cleanup on success and panic.
+
+The phase snapshots retained grammar fingerprint `fnv1a64:2e489e5f33744fbf` after
+typed lambda parameters changed the canonical grammar. The checked-in syntax
+contract summary already records `fnv1a64:eadfc8d7c5c2271b`, matching actual
+compiler output. Only that identity field changes in 28 CoreIR goldens; resolve,
+typed and all other CoreIR fields remain unchanged. The complete phase-fixture
+test, application-link regression and all 22 tail-position tests pass together:
+24 passed, zero failed or ignored, 9.04 seconds after a 98-second cached build
+(`target/quality/release-diagnostics/focused-release-fixes.log`). This is focused
+evidence, not a full-cycle timing or readiness claim.
+
+The separate CodeQL check reports three logging alerts. The redaction test now
+uses a static panic diagnostic rather than echoing the forbidden input. Its
+focused test passes (`target/quality/release-diagnostics/redaction-diagnostic.log`).
+Alerts 7 and 18 concern numeric fixture/test counts, respectively: the former
+comes from constant table lengths; the latter from the verified runnable-test
+inventory length. Neither success message prints credential values. They remain
+open pending authorization for documented false-positive dispositions; no rule
+suppression, alert dismissal, or release-policy bypass has been performed.

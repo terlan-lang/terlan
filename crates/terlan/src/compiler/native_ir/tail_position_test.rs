@@ -3,17 +3,20 @@ use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::tail_position::{
     lower_recursive_tail_calls, mutual_tail_components, validate_recursive_tail_targets,
 };
+#[cfg(unix)]
+use super::NativeTransitionOperation;
 use super::{
-    NativeBinaryOperator, NativeContinuation, NativeExpr, NativeFunction, NativeModule,
-    NativeTransitionOperation, NativeType,
+    NativeBinaryOperator, NativeContinuation, NativeExpr, NativeFunction, NativeModule, NativeType,
 };
 use crate::runtime::native_image::managed::SemanticTypeId;
+#[cfg(unix)]
 use crate::runtime::native_image::managed::{
     encode_aggregate_layout, encode_collection_layout, encode_list_from_elements_operation,
     ManagedAggregateDescriptor, ManagedCollectionDescriptor, ManagedFieldType,
 };
 #[cfg(unix)]
 use std::fs;
+#[cfg(unix)]
 use std::sync::Arc;
 #[cfg(unix)]
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -73,6 +76,7 @@ fn increment_accumulator() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn deep_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -96,6 +100,7 @@ fn deep_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn deep_let_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -122,6 +127,7 @@ fn deep_let_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn suspending_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -150,6 +156,7 @@ fn suspending_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn failing_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -178,6 +185,7 @@ fn failing_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn non_tail_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -244,6 +252,7 @@ fn mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn suspending_mutual_countdown_module() -> NativeModule {
     let body = |target| NativeExpr::If {
         clauses: vec![
@@ -287,6 +296,7 @@ fn suspending_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn cancelling_mutual_countdown_module() -> NativeModule {
     let body = |target| NativeExpr::If {
         clauses: vec![
@@ -345,6 +355,7 @@ fn cancelling_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn heterogeneous_mutual_countdown_module() -> NativeModule {
     let condition = || NativeExpr::Binary {
         operator: NativeBinaryOperator::Equal,
@@ -393,6 +404,7 @@ fn heterogeneous_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_mutual_countdown_module() -> NativeModule {
     let managed = NativeType::ManagedRef(
         SemanticTypeId::from_canonical("TailToken").expect("managed tail token identity"),
@@ -438,6 +450,7 @@ fn managed_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_parallel_swap_module() -> NativeModule {
     let managed = NativeType::ManagedRef(
         SemanticTypeId::from_canonical("TailToken").expect("managed tail token identity"),
@@ -476,6 +489,7 @@ fn managed_parallel_swap_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_aggregate_countdown_module() -> NativeModule {
     let canonical = "TailBox";
     let descriptor = Arc::new(
@@ -542,6 +556,7 @@ fn managed_aggregate_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_collection_countdown_module() -> NativeModule {
     let descriptor = ManagedCollectionDescriptor::list("List[Int]", ManagedFieldType::Int)
         .expect("tail collection descriptor");
@@ -609,6 +624,7 @@ fn managed_collection_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn split_mutual_countdown_modules() -> Vec<NativeModule> {
     let combined = mutual_countdown_module();
     let mut functions = combined.functions.into_iter();
