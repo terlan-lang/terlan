@@ -594,6 +594,124 @@ fn preparation_network_and_binary_probes_have_outer_deadlines() {
     );
 }
 
+#[cfg(target_os = "linux")]
+fn preparation_command(fixture: &Fixture) -> Command {
+    let mut paths = vec![fixture.0.join("bin")];
+    paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+    let mut command = Command::new("make");
+    command
+        .current_dir(&fixture.0)
+        .args(["--no-print-directory", "-j8", "-k", "publish-prepare"])
+        .env_remove("MAKEFLAGS")
+        .env_remove("MAKEOVERRIDES")
+        .env_remove("MFLAGS")
+        .env_remove("JAVA_HOME")
+        .env_remove("TERLAN_PREPARATION_LOCK_HELD")
+        .env("PATH", std::env::join_paths(paths).unwrap())
+        .env("FIXTURE_CHILD", std::env::current_exe().unwrap())
+        .env("TERLAN_PREPARE_FIXTURE", &fixture.0)
+        .env("TERLAN_PREPARE_MODE", "cold")
+        .env("TERLAN_PREPARE_FAULT", "");
+    command
+}
+
+/// Distribution replacement and execution belong to the same candidate lease
+/// as the later evidence owners, including when either external step fails.
+#[cfg(target_os = "linux")]
+#[test]
+fn preparation_holds_lease_during_download_and_compiler_probe() {
+    for failed_stage in ["", "download", "probe"] {
+        let fixture = fixture();
+        for tool in ["timeout", "flock"] {
+            fs::copy(format!("/usr/bin/{tool}"), fixture.0.join("bin").join(tool))
+                .expect("use real process deadline and kernel lease tools");
+        }
+        let lease_check = r#"
+test "${TERLAN_PREPARATION_LOCK_HELD:-}" = 1
+test /proc/self/fd/9 -ef target/quality/preparation.lock
+if flock --nonblock target/quality/preparation.lock /bin/true; then
+    echo 'candidate lease was not held' >&2
+    exit 91
+fi
+"#;
+        for (stage, path) in [
+            (
+                "download",
+                "scripts/download_validated_release_artifacts.sh",
+            ),
+            ("probe", "dist/terlc"),
+        ] {
+            executable(
+                &fixture.0.join(path),
+                &format!(
+                    "#!/bin/sh\nset -eu\n{lease_check}\nprintf '{stage}\\n' >> external-events\ntest '{stage}' != '{failed_stage}'\n"
+                ),
+            );
+        }
+        let mut command = preparation_command(&fixture);
+        // Recursive Make recipes execute under -n: the owner must still leave
+        // external services, its journal, and its lock directory untouched.
+        let mut plan = preparation_command(&fixture);
+        plan.arg("--dry-run");
+        let plan_result = ProcessControl::new(Duration::from_secs(30))
+            .capture_stdout_result(&mut plan, 256 * 1024, |_| Ok(()))
+            .unwrap();
+        assert!(plan_result.outcome.is_ok());
+        assert!(String::from_utf8_lossy(&plan_result.stdout)
+            .contains("download_validated_release_artifacts.sh"));
+        assert!(!fixture.0.join("external-events").exists());
+        assert!(!fixture.0.join("events").exists());
+        assert!(!fixture.0.join("target").exists());
+        let result = ProcessControl::new(Duration::from_secs(30))
+            .capture_stdout_result(&mut command, 256 * 1024, |_| Ok(()))
+            .unwrap();
+        assert_eq!(
+            result.outcome.is_ok(),
+            failed_stage.is_empty(),
+            "{failed_stage}: {}",
+            String::from_utf8_lossy(&result.stdout)
+        );
+        assert_eq!(
+            fs::read_to_string(fixture.0.join("external-events")).unwrap(),
+            if failed_stage == "download" {
+                "download\n"
+            } else {
+                "download\nprobe\n"
+            }
+        );
+        if !failed_stage.is_empty() {
+            assert!(!fixture.0.join("started-readiness").exists());
+            assert!(!fixture.0.join("started-release-preflight").exists());
+        }
+        fs::File::open(fixture.0.join("target/quality/preparation.lock"))
+            .unwrap()
+            .try_lock()
+            .expect("success and failure must release the candidate lease");
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn preparation_rejects_symlinked_directories_before_creating_lock_storage() {
+    for relative in ["target", "target/quality"] {
+        let root = fixture();
+        let foreign = fixture();
+        let redirected = root.0.join(relative);
+        fs::create_dir_all(redirected.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(&foreign.0, redirected).unwrap();
+        let result = ProcessControl::new(Duration::from_secs(10))
+            .capture_stdout_result(&mut preparation_command(&root), 256 * 1024, |_| Ok(()))
+            .unwrap();
+        assert!(result.outcome.is_err());
+        assert!(!foreign.0.join("quality").exists());
+        assert!(!foreign.0.join("preparation.lock").exists());
+        assert_eq!(
+            fs::read_to_string(root.0.join("producer-events")).unwrap(),
+            "publish-source-preflight\n"
+        );
+    }
+}
+
 #[test]
 fn clean_bootstrap_uses_one_receipt_owner_and_dirty_bootstrap_falls_back_safely() {
     let source =

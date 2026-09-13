@@ -11,9 +11,10 @@ if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 publication_inputs="target/publication-inputs/$revision"
 # One download/restore owner per worktree; concurrent writers share dist/.
+# Keep fd 9 intact: the enclosing preparation owner lends it to nested Make.
 mkdir -p target
-exec 9>target/publication-inputs.lock
-flock -n 9 || { echo "another publication input owner is running" >&2; exit 1; }
+exec 8>target/publication-inputs.lock
+flock -n 8 || { echo "another publication input owner is running" >&2; exit 1; }
 
 retire_previous_candidate() {
   if [[ -e dist/release-candidate.json || -L dist/release-candidate.json ]]; then

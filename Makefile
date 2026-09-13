@@ -70,7 +70,7 @@ TERLAN_PREPARATION_OWNER = /bin/sh -ec '\
 # Publication preparation owns contract execution; ordinary development targets
 # continue to run the requested contract directly. Reuse is hash-verified by the
 # owner, never authorized merely by this routing selection.
-ifneq ($(filter publish-prepare publish-evidence-refresh,$(MAKECMDGOALS)),)
+ifneq ($(filter publish-prepare publish-prepare-locked publish-evidence-refresh,$(MAKECMDGOALS)),)
 ifeq ($(origin TERLAN_PREPARATION_CONTRACT_OWNERS),command line)
 ifneq ($(TERLAN_PREPARATION_CONTRACT_OWNERS),1)
 $(error publication preparation cannot disable contract ownership)
@@ -5108,6 +5108,34 @@ publish-prepare: publish-source-preflight
 	rustc_version=$$(rustc --version | awk '{print $$2}'); cargo_version=$$(cargo --version | awk '{print $$2}'); \
 	test "$$rustc_version" = "$$channel" || { echo "rustc $$rustc_version does not match pinned $$channel" >&2; exit 1; }; \
 	test "$$cargo_version" = "$$channel" || { echo "cargo $$cargo_version does not match pinned $$channel" >&2; exit 1; }
+	@set -eu; \
+	# Recursive Make still runs under -n; only traverse, never acquire or write. \
+	case "$${MAKEFLAGS%% *}" in \
+		*n*) $(MAKE) --no-print-directory publish-prepare-locked VERSION="$(VERSION)"; exit $$? ;; \
+	esac; \
+	test ! -L target && test ! -L target/quality || exit 1; \
+	mkdir -p target/quality; \
+	# Distribution restoration shares this lease with every evidence consumer. \
+	test ! -L target && test ! -L target/quality && test ! -L target/quality/preparation.lock || exit 1; \
+	if test -e target/quality/preparation.lock; then test -f target/quality/preparation.lock; fi; \
+	exec 9>target/quality/preparation.lock; \
+	timeout 120s flock -w 120 9; \
+	test /proc/self/fd/9 -ef target/quality/preparation.lock; \
+	export TERLAN_PREPARATION_LOCK_HELD=1; \
+	$(MAKE) --no-print-directory publish-prepare-locked VERSION="$(VERSION)"; \
+	flock -u 9; \
+	exec 9>&-
+
+# Enter only from the enclosing owner. Separate recipes let Make dry-runs show
+# the real download/probe graph without executing these external operations.
+.PHONY: publish-prepare-locked
+publish-prepare-locked:
+	@test "$${TERLAN_PREPARATION_LOCK_HELD:-}" = 1 && \
+		test -d target && test ! -L target && \
+		test -d target/quality && test ! -L target/quality && \
+		test -f target/quality/preparation.lock && test ! -L target/quality/preparation.lock && \
+		test /proc/self/fd/9 -ef target/quality/preparation.lock && \
+		timeout 120s flock -w 120 9
 	timeout 900s bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
 	@if ! timeout 30s dist/terlc --version; then \
 		echo 'publication requires a host that can execute the verified Linux x86_64 artifact (Ubuntu 24.04-compatible userspace); use a compatible container if needed' >&2; \
@@ -5116,23 +5144,13 @@ publish-prepare: publish-source-preflight
 	$(MAKE) --no-print-directory publish-evidence-plan-check
 	$(MAKE) --no-print-directory publish-evidence-refresh-plan-check
 	@set -eu; \
-	mkdir -p target/quality; \
-	# Hold the preparation lease across the selected branch and final preflight. \
-	test ! -L target && test ! -L target/quality && test ! -L target/quality/preparation.lock; \
-	if test -e target/quality/preparation.lock; then test -f target/quality/preparation.lock; fi; \
-	exec 9>target/quality/preparation.lock; \
-	timeout 120s flock -w 120 9; \
-	test /proc/self/fd/9 -ef target/quality/preparation.lock; \
-	export TERLAN_PREPARATION_LOCK_HELD=1; \
 	if $(MAKE) --no-print-directory publish-evidence-check; then \
 		$(MAKE) --no-print-directory publish-preparation-warm VERSION="$(VERSION)"; \
 	else \
 		echo '[publish] candidate evidence is absent or stale; refreshing its owners once'; \
 		$(MAKE) --no-print-directory publish-preparation-cold VERSION="$(VERSION)"; \
 	fi; \
-	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"; \
-	flock -u 9; \
-	exec 9>&-
+	$(MAKE) release-preflight RELEASE_VERSION="$(VERSION)"
 
 # One Make process owns each preparation branch and shares all bootstrap nodes.
 # These routes do not assert cached success or introduce a prebuilt skip flag.
