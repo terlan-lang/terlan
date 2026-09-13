@@ -17,7 +17,12 @@ missing evidence into a skipped success.
 | Release candidate | `make abi1-release-candidate-check` | All six prerequisite reports |
 | Compatibility freeze | `make abi1-compatibility-freeze-check` | Candidate report and frozen compatibility baseline |
 
-`TERLAN_ABI1_REVISION` is mandatory for measured producers. Cross-target
+Ordinary workspace tests execute all four ABI workloads and their assertions
+without writing release reports. Evidence production is a separate, explicit
+mode: these Make targets set `TERLAN_ABI1_EMIT_EVIDENCE=1`, and
+`TERLAN_ABI1_REVISION` remains mandatory. Direct producer invocations must also
+set that mode; partial or malformed evidence configuration fails rather than
+silently falling back to correctness-only execution. Cross-target
 production additionally requires `TERLAN_ABI1_AARCH64_RUNNER`; the configured
 runner must execute the aarch64 test binary rather than merely compile it.
 

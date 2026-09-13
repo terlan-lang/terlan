@@ -20,16 +20,18 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-Draft PR #22 remains unready for merge or publication. Candidate `ed441cf5`
-passes both real sanitizer selections and all four Linux/macOS release jobs.
-Compiler CI reports 6,223 passing tests and two failures; both now pass locally
-after correcting the native-object cache fixture and stale grammar fingerprints.
-All 22 tail-position tests also pass. Windows compilation rejects 13 fixture
-helpers used only by Unix tests; their compilation scope now matches those
-existing consumers, without disabling tests or adding warning allowances.
-The next hosted run must verify these corrections. The separate CodeQL check
-also reports logging alerts: the redaction-test diagnostic now avoids echoing
-its input; two numeric-count alerts await documented false-positive review.
+Draft PR #22 remains unready for merge or publication. Candidate `36a3d8d6`
+passes both real sanitizer selections, all four Linux/macOS release jobs,
+Windows ARM64, and Docs CI. Windows x86-64 is still running. Compiler CI now
+passes 6,225 core tests and 1,160 integration-tier tests, confirming the cache
+fixture and grammar-fingerprint fixes. It then fails four workspace ABI tests
+because ordinary correctness execution required release-producer metadata.
+The correction retains every workload and assertion while making report writing
+an explicit, fail-closed evidence mode. All nine focused tests pass locally;
+actual report-writing probes also pass and reject missing revision metadata.
+These changes and the preparation-lease changes still need hosted confirmation.
+The separate CodeQL check reports two numeric-count logging alerts awaiting
+documented false-positive review; the redaction diagnostic alert is resolved.
 Full production cold/warm/resume acceptance, the V9-2 harness/dispatcher split
 and measurements, and V9-3 remain open. Active versions are still 0.0.8.
 Further V9-1 review extends the candidate lease over distribution restoration
