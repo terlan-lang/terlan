@@ -20,37 +20,34 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-Draft PR #22 is not ready for merge or publication. The last completed hosted candidate,
-`bb7b3401`, passes the complete hosted release workflow, but Compiler CI fails
-in the direct-AOT integration tier after passing the core, integration-harness,
-and ABI tiers. All nine tests across the main, condition, condition-expression,
-tail-call, non-tail-call, and multi-stage-call AOT integration targets now pass
-together against the final local compiler fixes
-(`target/quality/release-diagnostics/direct-aot-all-six-targets.log`).
-The consumer run includes the 53 shard
-expressions, lifecycle diagnostics, managed continuations, cache reuse, and REPL.
-Strict Clippy for the production library and all six touched integration targets
-passes in `direct-aot-all-six-clippy.log`. The remaining six application
-integration targets also pass: sixteen tests covering cache identity/recovery,
-local shards, packages, managed continuations, fail-closed artifact admission,
-and VM supervision (`direct-aot-remaining-integration.log`). Workspace binary
-Clippy passes with warnings denied in both default and all-feature profiles;
-workspace Rust formatting and changed Terlan fixture formatting pass. All 468 native-compiler tests and the
-compiled-backend ownership suite pass as well. These corrections await hosted
-verification. All five call/control-flow integration fixtures now pass through
-the production VM, retaining their original test names and checking the same
-values and failure diagnostics. Their shared compiled-backend test also passes
-(`direct-boundary-all-call-fixtures.log`), inspecting actual parked caller frames,
-capture order, continuation identities, and invalid/duplicate resumes against one
-compiled image. Shared scalar helpers are compiled once per owning fixture.
-Thirteen unreferenced worker-protocol helpers were removed after their
-replacement checks passed; the genuine capability-worker runtime is unchanged.
+Draft PR #22 is not ready for merge or publication. Candidate `1c582a51` passes
+the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34775745813):
+all six native platforms, both sanitizer families, the security audit,
+consolidated artifact validation, and distribution attestation. Docs and CodeQL
+also pass. [Compiler CI](https://github.com/terlan-lang/terlan/actions/runs/34775748138)
+passes all owned Rust harnesses, including the migrated production-VM integration
+tests, in 1,382.30 seconds, then fails the file-headroom gate: the tail-position
+test file grew from 1,836 to 1,908 lines inside its no-growth band.
+
+The local correction moves only the nine embedded native-executable harness
+strings into a 484-line support module, reducing the original test file to
+1,436 lines. All test functions, names, assertions, and harness contents are
+preserved. Its 24 tests and workspace Rust formatting pass
+(`target/quality/release-diagnostics/tail-position-headroom-tests.log`).
+The obsolete headroom inventory row is removed because the file is now below
+the warning band; no size limit or allowance is relaxed. The freshly compiled
+current-source validator passes its headroom and module-structure self-tests and
+repository checks (`headroom-current-source-check.log` and
+`tail-position-module-structure-check.log` in the same diagnostics directory).
+Hosted confirmation of this correction remains pending.
 
 V9-1 still requires complete production cold/warm/resume acceptance. V9-2's
 harness/dispatcher splits and comparative measurements, and V9-3's version
 update and publication, remain open. Active versions are still 0.0.8. The
-consolidated hosted final stage measured 9m07s instead of 18m00s, but total
-hosted duration was 87m33s, not an end-to-end improvement over the 80m45s baseline.
+latest consolidated hosted final stage measured 8m37s instead of the baseline's
+two stages totaling 18m00s. Total hosted release duration was 73m48s, compared
+with 87m33s for `bb7b3401` and the 80m45s baseline. These are individual hosted
+observations, not the required reproducible cold/warm/localized-edit comparison.
 
 ### Candidate validation checkpoints
 

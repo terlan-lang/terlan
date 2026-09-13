@@ -24,7 +24,6 @@ crates/terlan/src/compiler/native_ir/call_composition.rs	implementation	903	900	
 crates/terlan/src/compiler/native_ir/constructors.rs	implementation	963	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/expression.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/function_lowering.rs	implementation	937	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/native_ir/tail_position_test.rs	test	1836	1800	2000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/core_expr_lowering.rs	implementation	988	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/core_ir/termination.rs	implementation	980	900	1000	compiler-structure	0.0.9
