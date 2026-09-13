@@ -897,15 +897,15 @@ build_release_contract(repository: String): Bool ->
         "publish-evidence-plan-check:",
         "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
         "$(MAKE) --no-print-directory vm-multicore-publish-check",
+        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
     ];
 let release_fragments =
     [
         "name: release VM multicore ThreadSanitizer",
         "name: release-hosted-validation-evidence",
-        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+        "run: make release-hosted-validation-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution",
         "name: release-distribution-${{ matrix.target }}",
-        "make release-artifact-set-check",
-        "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
+        "actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6",
         "artifact-metadata: write",
         "attestations: write",
         "id-token: write",
