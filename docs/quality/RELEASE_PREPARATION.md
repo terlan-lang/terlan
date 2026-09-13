@@ -4932,3 +4932,43 @@ comes from constant table lengths; the latter from the verified runnable-test
 inventory length. Neither success message prints credential values. They remain
 open pending authorization for documented false-positive dispositions; no rule
 suppression, alert dismissal, or release-policy bypass has been performed.
+
+### Preparation-wide distribution ownership (2026-09-13)
+
+The canonical preparation recipe previously took its candidate lease only after
+the download helper restored `dist/` and probed its compiler. A second invocation
+could therefore replace inputs while the first invocation's evidence owners were
+using them. The new external-service fixture uses real `timeout` and `flock`,
+not their lightweight graph stubs, and fails against that ordering
+(`target/quality/release-diagnostics/preparation-download-lease-before.log`).
+
+The enclosing owner now holds the preparation lease across download/restore,
+compiler probing, plan checks, the selected evidence graph and final preflight.
+An internal Make target preserves separate external-operation recipes so GNU
+Make's recursive dry-run behavior cannot execute a download or create lock
+storage. That target validates/reacquires the inherited kernel descriptor and
+retains mandatory contract ownership. Success, failed download, failed probe
+and side-effect-free dry-run cases pass with real child processes.
+
+The real download helper also reused fd 9 for its own input-writer lock, which
+would break the inherited preparation scope in nested Make. Its independent
+lock now uses fd 8. A fixture executes the actual helper through its restore
+path and verifies fd 9's inode and held kernel lock from its Git subprocess;
+the pre-fix fixture fails and the corrected fixture passes without network or
+fabricated successful release evidence
+(`target/quality/release-diagnostics/download-descriptor-before.log`).
+
+An adversarial directory fixture additionally reproduced `mkdir -p` following
+a redirected `target` before rejection. Ancestors are now checked before that
+write, with explicit failure propagation: `set -e` alone does not stop when an
+early member of an AND-list fails. Both `target` and `target/quality` redirects
+are rejected without creating foreign lock storage or launching preparation
+producers (`target/quality/release-diagnostics/preparation-lock-directory-before.log`).
+
+All 42 outer tests pass across the live-Make coverage, preparation leases,
+publication preflight, preparation graph and refresh-plan binaries
+(`target/quality/release-diagnostics/preparation-scope-final.log`). Strict
+all-target orchestrator Clippy passes (`preparation-scope-clippy.log` in the same
+directory), as do Rustfmt, shell syntax and whitespace checks. Existing cold,
+warm, interrupted-resume, upload-retry and count-budget assertions remain intact.
+These are ownership/contract results, not full production candidate acceptance.

@@ -32,6 +32,11 @@ also reports logging alerts: the redaction-test diagnostic now avoids echoing
 its input; two numeric-count alerts await documented false-positive review.
 Full production cold/warm/resume acceptance, the V9-2 harness/dispatcher split
 and measurements, and V9-3 remain open. Active versions are still 0.0.8.
+Further V9-1 review extends the candidate lease over distribution restoration
+and compiler probing, preserves that descriptor through nested download tools,
+and rejects redirected lock directories before writing. Real-process
+reproductions and 42 surrounding contract tests pass; hosted confirmation of
+these additional changes is still required.
 
 ### Earlier implementation checkpoints
 

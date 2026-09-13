@@ -3,7 +3,7 @@
 
 use std::fs::{self, File};
 use std::io::Write;
-use std::os::unix::fs::{symlink, DirBuilderExt, MetadataExt};
+use std::os::unix::fs::{symlink, DirBuilderExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -211,4 +211,51 @@ fn foreign_outer_lease_is_not_bypassed() {
         probe.try_lock().is_err(),
         "timeout must preserve another owner's lease"
     );
+}
+
+#[test]
+fn hosted_input_restore_preserves_the_inherited_preparation_descriptor() {
+    let fixture = fixture();
+    fs::create_dir(fixture.0.join("scripts")).unwrap();
+    fs::create_dir(fixture.0.join("bin")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../scripts/download_validated_release_artifacts.sh"),
+        fixture
+            .0
+            .join("scripts/download_validated_release_artifacts.sh"),
+    )
+    .unwrap();
+    let git = fixture.0.join("bin/git");
+    fs::write(
+        &git,
+        r#"#!/bin/sh
+set -eu
+test "$*" = 'rev-parse HEAD'
+TERLAN_LEASE_STAGE=download-git "$FIXTURE_CHILD" --exact lease_child >/dev/null
+printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
+"#,
+    )
+    .unwrap();
+    fs::set_permissions(git, fs::Permissions::from_mode(0o700)).unwrap();
+    // Stop at the intentionally missing restore payload after Git observes
+    // the actual download helper's descriptor table; no network is involved.
+    assert!(run(
+        &fixture.0,
+        r#"
+exec 9>target/quality/preparation.lock
+flock --exclusive 9
+export TERLAN_PREPARATION_LOCK_HELD=1
+export PATH="$PWD/bin:$PATH"
+if bash scripts/download_validated_release_artifacts.sh aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --restore; then exit 90; fi
+"#
+    ));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("events")).unwrap(),
+        "download-git\n"
+    );
+    File::open(fixture.0.join("target/quality/preparation.lock"))
+        .unwrap()
+        .try_lock()
+        .expect("restore failure must release the inherited lease");
 }
