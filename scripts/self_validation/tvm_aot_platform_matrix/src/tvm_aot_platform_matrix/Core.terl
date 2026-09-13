@@ -703,12 +703,13 @@ pub workflow_text_valid(workflow: String): Bool ->
         not normalized_workflow.contains("  workflow_dispatch:\n") -> false;
         occurrences(normalized_workflow, "          - target:") != 6 -> false;
         not runner_rows_valid(normalized_workflow, targets()) -> false;
+        not normalized_workflow.contains("make tvm-aot-platform-aggregate-check")
+            and not normalized_workflow.contains("make release-hosted-validation-check") -> false;
         true -> fragments_present(
             normalized_workflow,
             [
                 "make tvm-aot-platform-target-check",
                 "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
-                "make tvm-aot-platform-aggregate-check",
                 "uses: ./.github/actions/setup-native-dependencies",
                 "retention-days: 90",
                 "uses: actions/checkout@",
@@ -765,10 +766,11 @@ pub workflow_contract(): Bool ->
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
-        not release
+        not release.contains("run: make release-hosted-validation-check") -> failure("workflow", "hosted release contract gate is missing");
+        not makefile
     .contains(
-        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
-    ) -> failure("workflow", "hosted release contract gate is missing");
+        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+    ) -> failure("workflow", "hosted release graph is incomplete");
         release.contains("self-hosted") -> failure("workflow", "release validation must use hosted runners only");
         release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "host-sensitive performance must remain diagnostic-only");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");

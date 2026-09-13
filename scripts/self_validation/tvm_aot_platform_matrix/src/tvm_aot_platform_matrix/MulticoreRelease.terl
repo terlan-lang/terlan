@@ -109,6 +109,7 @@ pub validate_makefile(makefile: String): Bool ->
                         "rustup target list --installed --toolchain 1.96.0 2>/dev/null | grep -Fqx 'x86_64-unknown-linux-gnutsan'",
                         "error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI",
                         "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI",
+                        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
                     ],
                 )
             }
@@ -122,10 +123,7 @@ count_requirements(workflow: String, requirements: List[{String, Int}]): Bool ->
     }.
 
 final_check_ordered(workflow: String): Bool ->
-    case String.split_once(
-    workflow,
-    "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
-) {
+    case String.split_once(workflow, "run: make release-hosted-validation-check") {
         None -> false;
         Some({prefix, suffix}) ->
             prefix.contains("Download hosted multicore ThreadSanitizer evidence")
@@ -147,7 +145,7 @@ pub validate_workflow(workflow: String): Bool ->
         {"      - name: Install release utilities\n", 3},
         {"run: make vm-multicore-thread-sanitizer-check", 1},
         {"name: release-vm-multicore-thread-sanitizer", 2},
-        {"run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check", 1},
+        {"run: make release-hosted-validation-check", 1},
     ],
 ) -> false;
         not fragments_present(

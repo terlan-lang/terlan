@@ -21,8 +21,9 @@ pass verification first. This scope does not cover publishing 0.0.10.
 ## Current Status
 
 Draft PR #22 remains unready for merge or publication. Candidate `36a3d8d6`
-passes both real sanitizer selections, all four Linux/macOS release jobs,
-Windows ARM64, and Docs CI. Windows x86-64 is still running. Compiler CI now
+passes the complete hosted release-validation workflow and Docs CI. Its six
+native platform jobs, both sanitizer families, matrix aggregation, final artifact
+validation, and distribution attestation pass. Compiler CI now
 passes 6,225 core tests and 1,160 integration-tier tests, confirming the cache
 fixture and grammar-fingerprint fixes. It then fails four workspace ABI tests
 because ordinary correctness execution required release-producer metadata.
@@ -39,6 +40,15 @@ and compiler probing, preserves that descriptor through nested download tools,
 and rejects redirected lock directories before writing. Real-process
 reproductions and 42 surrounding contract tests pass; hosted confirmation of
 these additional changes is still required.
+Final matrix aggregation and artifact/contract validation now share one hosted
+job and Make graph, removing a duplicate cold bootstrap. Serial/parallel graph
+tests verify single execution of every leaf and failure propagation. Review also
+reproduced a stale six-build report expectation despite the reviewed eight-build
+policy; the consumer now agrees with the validator, and its regression test
+rejects mismatched budgets. These fixes still need hosted confirmation.
+The completed hosted baseline took 80m45s; matrix aggregation and final artifact
+validation occupied separate 9m49s and 8m11s jobs. The shared-job change has not
+yet produced a hosted timing comparison and is not a full-cycle speedup claim.
 
 ### Earlier implementation checkpoints
 

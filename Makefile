@@ -1265,7 +1265,7 @@ repository-build-release-contract-check: | terlan-repository-validation-bootstra
 	@rg -q '"terlc_build_invocation_maximum": 16' target/quality/validation-build-plan-report.json
 	@rg -q '"incremental_terlc_build_invocation_count":' target/quality/validation-build-plan-report.json
 	@rg -q '"lifecycle_partial_check_count": 2' target/quality/validation-build-plan-report.json
-	@rg -q '"cargo_invocation_maximum": 6' target/quality/validation-build-plan-report.json
+	@rg -q '"cargo_invocation_maximum": 8' target/quality/validation-build-plan-report.json
 	@rg -q '"typed_validator_request_maximum": 17' target/quality/validation-build-plan-report.json
 	@rg -q '"typed_validator_parallelism_maximum": 2' target/quality/validation-build-plan-report.json
 
@@ -1275,6 +1275,11 @@ release-boundary-check: repository-build-release-contract-check
 
 RELEASE_ARTIFACT_SET_ROOT ?= target/release-distribution
 RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD ?= 0
+# One hosted workspace and Make graph own the final compiler/validator bootstrap.
+# All underlying checks remain independently callable for local diagnosis.
+.PHONY: release-hosted-validation-check
+release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check
+
 release-artifact-set-check: | terlan-repository-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_REPOSITORY_VALIDATION) release-artifact-set \

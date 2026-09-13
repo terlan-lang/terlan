@@ -93,6 +93,11 @@ For an actual release-validation run, every native runner also builds and
 installer-smokes its own archive. The final job rejects anything other than the
 exact six archives and six matching checksum sidecars, then retains that joined
 distribution under the successful run.
+Matrix aggregation and final archive/contract validation share that job and
+`make release-hosted-validation-check`. The single Make graph executes their
+common compiler and validator prerequisites once. It retains the matrix report,
+hosted evidence bundle, and distribution uploads; any prerequisite or validation
+failure prevents distribution attestation and promotion.
 Final AOT roadmap retirement runs
 `make tvm-aot-roadmap-reconciliation-check` only after every owned AOT slice is
 complete. Ordinary compiler CI keeps running the implementation gates while an
