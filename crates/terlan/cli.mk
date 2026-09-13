@@ -32,7 +32,7 @@ abi1-pre-freeze-check:
 
 abi1-continuous-fuzz-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_continuous_fuzz_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_continuous_fuzz_producer -- --exact
 	$(TERLAN_QUALITY) abi1-continuous-fuzz
 
 abi1-cross-target-conformance-check:
@@ -41,7 +41,7 @@ abi1-cross-target-conformance-check:
 
 abi1-tail-latency-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_tail_latency_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_tail_latency_producer -- --exact
 	$(TERLAN_QUALITY) abi1-tail-latency
 
 abi1-zero-copy-conformance-check:
@@ -50,7 +50,7 @@ abi1-zero-copy-conformance-check:
 
 abi1-specialization-equivalence-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_specialization_equivalence_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_specialization_equivalence_producer -- --exact
 	$(TERLAN_QUALITY) abi1-specialization-equivalence
 
 abi1-trusted-adapter-audit-check:

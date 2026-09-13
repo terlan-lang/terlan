@@ -1,10 +1,8 @@
 use std::env;
-use std::fs;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use serde_json::{json, Value};
+use serde_json::json;
 use sha2::{Digest, Sha256};
 use terlan::runtime::native_image::managed::{ActorHeap, ActorId, HeapLimits};
 use terlan::runtime::native_image::{
@@ -13,7 +11,9 @@ use terlan::runtime::native_image::{
     TvmImageTarget,
 };
 
-const SCHEMA: &str = "terlan.abi1.gate-evidence.v1";
+#[path = "support/abi1_evidence.rs"]
+mod evidence;
+use evidence::Evidence;
 
 fn hex_digest(bytes: impl AsRef<[u8]>) -> String {
     bytes
@@ -21,36 +21,6 @@ fn hex_digest(bytes: impl AsRef<[u8]>) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
-}
-
-fn revision() -> String {
-    let revision = env::var("TERLAN_ABI1_REVISION").expect("TERLAN_ABI1_REVISION is required");
-    assert!(!revision.trim().is_empty() && revision != "unknown");
-    revision
-}
-
-fn output_path(gate: &str) -> PathBuf {
-    env::var_os("TERLAN_ABI1_EVIDENCE_OUTPUT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(format!("target/abi1-evidence/{gate}.json")))
-}
-
-fn write_json(path: &Path, document: &Value) {
-    fs::create_dir_all(path.parent().expect("evidence parent")).expect("create evidence parent");
-    let text = serde_json::to_string_pretty(document).expect("serialize ABI evidence");
-    fs::write(path, format!("{text}\n")).expect("write ABI evidence");
-}
-
-fn envelope(gate: &str, runs: Vec<Value>) -> Value {
-    json!({
-        "schema": SCHEMA,
-        "gate": gate,
-        "abi_version": 1,
-        "managed_layout_profile": 1,
-        "status": "passed",
-        "revision": revision(),
-        "runs": runs,
-    })
 }
 
 fn descriptor() -> TvmExecutableDescriptor {
@@ -107,6 +77,7 @@ fn next_random(state: &mut u64) -> u64 {
 
 #[test]
 fn abi1_continuous_fuzz_producer() {
+    let evidence = Evidence::from_environment("continuous-fuzz");
     const SEEDS: [u64; 3] = [0x4152_4931, 0x5445_524c_414e, 0xd1ce_b00c];
     const CASES: u64 = 4_096;
     let canonical = encode_descriptor(&descriptor()).expect("canonical descriptor");
@@ -147,10 +118,9 @@ fn abi1_continuous_fuzz_producer() {
         }));
     }
 
-    write_json(
-        &output_path("continuous-fuzz"),
-        &envelope("continuous-fuzz", runs),
-    );
+    if let Some(evidence) = evidence {
+        evidence.write("continuous-fuzz", runs);
+    }
 }
 
 fn heap(owner: u64, hard_bytes: usize) -> ActorHeap {
@@ -168,6 +138,7 @@ fn percentile(samples: &[u64], percentile: usize) -> u64 {
 
 #[test]
 fn abi1_tail_latency_producer() {
+    let evidence = Evidence::from_environment("tail-latency");
     const WARMUP: usize = 1_000;
     const SAMPLES: usize = 10_000;
     let payload = [0x5a; 64];
@@ -209,9 +180,8 @@ fn abi1_tail_latency_producer() {
     assert!(p95 <= p95_limit, "p95 {p95} exceeds limit {p95_limit}");
     assert!(p99 <= p99_limit, "p99 {p99} exceeds limit {p99_limit}");
 
-    write_json(
-        &output_path("tail-latency"),
-        &envelope(
+    if let Some(evidence) = evidence {
+        evidence.write(
             "tail-latency",
             vec![json!({
                 "workload": "actor-heap-bytes-allocate-read-64",
@@ -221,8 +191,8 @@ fn abi1_tail_latency_producer() {
                 "p95_limit_ns": p95_limit,
                 "p99_limit_ns": p99_limit,
             })],
-        ),
-    );
+        );
+    }
 }
 
 fn generic_binary_bytes(
@@ -241,6 +211,7 @@ fn generic_binary_bytes(
 
 #[test]
 fn abi1_specialization_equivalence_producer() {
+    let evidence = Evidence::from_environment("specialization-equivalence");
     let cases = [
         ("single-byte", vec![0xa5]),
         ("protocol-header", (0u8..32).collect()),
@@ -270,36 +241,24 @@ fn abi1_specialization_equivalence_producer() {
             "specialized_status": "passed",
         }));
     }
-    write_json(
-        &output_path("specialization-equivalence"),
-        &envelope("specialization-equivalence", runs),
-    );
+    if let Some(evidence) = evidence {
+        evidence.write("specialization-equivalence", runs);
+    }
 }
 
 #[test]
 fn abi1_cross_target_probe() {
+    let evidence = Evidence::from_environment("cross-target-conformance");
     assert_eq!(usize::BITS, 64, "ABI 1 requires a 64-bit target");
-    assert!(
-        cfg!(target_endian = "little"),
-        "ABI 1 requires little endian"
-    );
+    const {
+        assert!(
+            cfg!(target_endian = "little"),
+            "ABI 1 requires little endian"
+        );
+    }
     let architecture = env::consts::ARCH;
     assert!(matches!(architecture, "x86_64" | "aarch64"));
-    let target =
-        env::var("TERLAN_ABI1_TARGET_TRIPLE").expect("TERLAN_ABI1_TARGET_TRIPLE is required");
-    assert!(target.starts_with(architecture));
-    let path = env::var_os("TERLAN_ABI1_TARGET_FRAGMENT")
-        .map(PathBuf::from)
-        .expect("TERLAN_ABI1_TARGET_FRAGMENT is required");
-    write_json(
-        &path,
-        &json!({
-            "target": target,
-            "architecture": architecture,
-            "pointer_width": usize::BITS,
-            "endian": if cfg!(target_endian = "little") { "little" } else { "big" },
-            "failures": 0,
-            "status": "passed",
-        }),
-    );
+    if let Some(evidence) = evidence {
+        evidence.write_target(architecture);
+    }
 }
