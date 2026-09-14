@@ -1,4 +1,7 @@
 #[cfg(unix)]
+#[path = "tail_position_test/generated_reentry_test.rs"]
+mod generated_reentry_test;
+#[cfg(unix)]
 #[path = "tail_position_test/harnesses.rs"]
 mod harnesses;
 #[cfg(unix)]
@@ -769,11 +772,10 @@ fn generated_tail_reentry_yields_without_reyielding_the_reduction_resume() {
         assert_eq!(modules[0].continuations[0].body, tail);
         assert_eq!(
             modules[0].continuations[1].body,
-            NativeExpr::Suspend {
-                operation: super::NativeTransitionOperation::Yield,
-                arguments: vec![],
-                continuation_id: reduction_id,
-                values: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+            NativeExpr::TailCall {
+                function: 0,
+                args: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+                yield_continuation_id: Some(reduction_id),
             }
         );
     }

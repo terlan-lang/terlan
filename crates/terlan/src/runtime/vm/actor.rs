@@ -497,7 +497,7 @@ impl VmActorRuntime {
     /// transition stream without enabling mutable global profiling state.
     #[cfg(test)]
     pub(crate) fn system_profile_cursor(&self) -> VmSystemProfileCursor {
-        VmSystemProfileCursor::at(self.scheduler.metrics().queue_transitions.len())
+        VmSystemProfileCursor::at(self.scheduler.metrics().queue_transitions().len())
     }
 
     /// Captures every scheduler transition since a previously obtained cursor.

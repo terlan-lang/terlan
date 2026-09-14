@@ -47,7 +47,7 @@ crates/terlan/src/runtime/native_image/managed/maps.rs	implementation	993	900	10
 crates/terlan/src/runtime/native_image/managed/operation_abi/collections.rs	implementation	949	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/acme_worker.rs	implementation	910	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/actor.rs	implementation	922	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/actor_directory.rs	implementation	996	900	1000	runtime-structure	0.0.9
+crates/terlan/src/runtime/vm/actor_directory.rs	implementation	965	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/capability_worker.rs	implementation	983	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/code_server.rs	implementation	905	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/coordination.rs	implementation	966	900	1000	runtime-structure	0.0.9
@@ -64,7 +64,6 @@ crates/terlan/src/runtime/vm/process.rs	implementation	944	900	1000	runtime-stru
 crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values.rs	implementation	903	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution.rs	implementation	930	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution_shard.rs	implementation	934	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/scheduler.rs	implementation	904	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/supervision.rs	implementation	917	900	1000	runtime-structure	0.0.9
 crates/terlan/src/validation/proof_baseline/manifests.rs	implementation	976	900	1000	validation-structure	0.0.9
 crates/terlan/src/validation/target_profile/profile/shape.rs	implementation	909	900	1000	validation-structure	0.0.9
