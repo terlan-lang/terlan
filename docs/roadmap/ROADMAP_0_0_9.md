@@ -20,6 +20,27 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Candidate `f6f6dc4d` commits the dependency corrections below. Its hosted
+security audit discovers newly published RUSTSEC-2026-0285 affecting locked
+Rustls 0.23.42; the earlier passing audit predates this advisory. The local
+correction raises the Rustls minimum to patched 0.23.45 and updates its required
+crypto/certificate dependencies. The unchanged warnings-denied security audit
+passes, as do 358 selected transport/related tests, strict default/all-feature
+workspace and runtime-only Clippy, and the refreshed dependency-impact check.
+The dependency budgets remain 56 direct dependencies and 34 duplicate families.
+Committed-candidate hosted verification remains required.
+
+Review also invalidates the combined preparation rehearsal's old interruption
+claim: a second cold run against an already-completed fixture failed at the
+source preflight, not the intended final owner. A strengthened assertion
+reproduces that false positive. The correction uses an independent cold fixture,
+proves the final owner actually failed, compares completed outputs, and requires
+resume to launch only that failed owner. The corrected rehearsal and the other
+23 preparation tests pass, as does strict test-target Clippy. These remain
+fixture results, not production cold/warm/resume acceptance. Evidence uses the
+`preparation-interruption-` and `rustls-` log prefixes under
+`target/quality/release-diagnostics/`.
+
 Draft PR #22 is not ready for merge or publication. Candidate `305902f3` passes
 the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34851940995):
 all six native platforms, both sanitizer families, the security audit,

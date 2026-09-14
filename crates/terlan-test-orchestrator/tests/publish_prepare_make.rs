@@ -431,7 +431,7 @@ publish-release-from-dist:
     );
     fs::write(&make_path, make).unwrap();
 
-    let run_preparation = |mode: &str, fault: &str| {
+    let run_preparation = |fixture: &Fixture, mode: &str, fault: &str| {
         let mut paths = vec![fixture.0.join("bin")];
         paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
         let mut command = Command::new("make");
@@ -452,30 +452,53 @@ publish-release-from-dist:
             .unwrap()
     };
 
-    assert!(run_preparation("cold", "").outcome.is_ok());
+    assert!(run_preparation(&fixture, "cold", "").outcome.is_ok());
     let producers = fs::read_to_string(fixture.0.join("producer-events")).unwrap();
     assert!(!producers.is_empty());
     let outputs = successful_owner_outputs(&fixture.0);
     assert!(!outputs.is_empty());
 
-    assert!(run_preparation("warm", "").outcome.is_ok());
+    assert!(run_preparation(&fixture, "warm", "").outcome.is_ok());
     assert_eq!(
         fs::read_to_string(fixture.0.join("producer-events")).unwrap(),
         producers
     );
     assert_eq!(successful_owner_outputs(&fixture.0), outputs);
 
-    // Interrupt the final preparation owner, then resume it without replaying
-    // any completed owner or changing its sealed output bytes.
-    assert!(run_preparation("cold", "release-preflight")
+    // Start a fresh cold candidate so the injected fault actually reaches the
+    // final owner, rather than failing on an earlier already-completed producer.
+    let interrupted = fresh_fixture();
+    assert!(run_preparation(&interrupted, "cold", "release-preflight")
         .outcome
         .is_err());
-    assert!(run_preparation("resume", "").outcome.is_ok());
+    let failed_producers = fs::read_to_string(interrupted.0.join("producer-events")).unwrap();
+    assert!(failed_producers.ends_with("release-preflight\n"));
     assert_eq!(
-        fs::read_to_string(fixture.0.join("producer-events")).unwrap(),
-        producers
+        failed_producers
+            .lines()
+            .filter(|stage| *stage == "release-preflight")
+            .count(),
+        1
     );
-    assert_eq!(successful_owner_outputs(&fixture.0), outputs);
+    assert!(
+        !interrupted.0.join("passed-release-preflight").exists(),
+        "the intended final owner must fail, not an earlier duplicate producer"
+    );
+    assert_eq!(
+        successful_owner_outputs(&interrupted.0),
+        outputs
+            .iter()
+            .filter(|(name, _)| name != "passed-release-preflight")
+            .cloned()
+            .collect::<Vec<_>>()
+    );
+    assert!(run_preparation(&interrupted, "resume", "").outcome.is_ok());
+    assert_eq!(
+        fs::read_to_string(interrupted.0.join("producer-events")).unwrap(),
+        format!("{failed_producers}release-preflight\n"),
+        "resume must rerun only the failed final owner"
+    );
+    assert_eq!(successful_owner_outputs(&interrupted.0), outputs);
 
     let publish_log = fixture.0.join("publish-operations");
     let upload_failed = fixture.0.join("upload-failed");
