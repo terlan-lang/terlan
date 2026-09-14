@@ -57,7 +57,7 @@ pub(in crate::compiler::typeck) fn subtract_finite_pattern(
         if covers(pattern, &region, aliases) {
             continue;
         }
-        if let Some((left, right)) = refine(pattern, &region, 0)? {
+        if let Some((left, right)) = refine(pattern, &region, aliases, 0)? {
             pending.push(right);
             pending.push(left);
         } else {
@@ -117,29 +117,31 @@ fn covers(pattern: &SyntaxPatternOutput, ty: &Type, aliases: &HashMap<String, Ty
     syntax_pattern_subsumes_variant(pattern, ty, aliases)
 }
 
-fn disjoint(pattern: &SyntaxPatternOutput, ty: &Type) -> bool {
+fn disjoint(
+    pattern: &SyntaxPatternOutput,
+    ty: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+) -> bool {
     if let Some(child) = nested_pattern(pattern) {
-        return disjoint(child, ty);
+        return disjoint(child, ty, aliases);
     }
     match ty {
         Type::LiteralAtom(atom) if pattern.kind == SyntaxPatternKind::Atom => {
             pattern.text.as_ref().is_some_and(|value| value != atom)
         }
-        Type::LiteralAtom(atom)
+        Type::LiteralAtom(_)
             if pattern.kind == SyntaxPatternKind::Constructor && pattern.children.is_empty() =>
         {
-            pattern
-                .text
-                .as_deref()
-                .is_some_and(|name| constructor_pattern_atom_name(name) != *atom)
+            // A constructor alias need not share its runtime atom's spelling.
+            !syntax_pattern_subsumes_variant(pattern, ty, aliases)
         }
         Type::Tuple(items) => tuple_children(pattern, items).is_some_and(|(offset, children)| {
             children
                 .iter()
                 .zip(&items[offset..])
-                .any(|(child, ty)| disjoint(child, ty))
+                .any(|(child, ty)| disjoint(child, ty, aliases))
         }),
-        Type::Union(items) => items.iter().all(|item| disjoint(pattern, item)),
+        Type::Union(items) => items.iter().all(|item| disjoint(pattern, item, aliases)),
         _ => false,
     }
 }
@@ -147,15 +149,16 @@ fn disjoint(pattern: &SyntaxPatternOutput, ty: &Type) -> bool {
 fn refine(
     pattern: &SyntaxPatternOutput,
     ty: &Type,
+    aliases: &HashMap<String, TypeAlias>,
     depth: usize,
 ) -> Result<Option<(Type, Type)>, FiniteCoverageError> {
     if depth > MAX_DEPTH {
         return Err(FiniteCoverageError::NestingBudget);
     }
     if let Some(child) = nested_pattern(pattern) {
-        return refine(child, ty, depth + 1);
+        return refine(child, ty, aliases, depth + 1);
     }
-    if disjoint(pattern, ty) {
+    if disjoint(pattern, ty, aliases) {
         return Ok(None);
     }
     match ty {
@@ -180,7 +183,7 @@ fn refine(
             if let Some((offset, children)) = tuple_children(pattern, items) {
                 for (index, child) in children.iter().enumerate() {
                     let index = offset + index;
-                    if let Some((left, right)) = refine(child, &items[index], depth + 1)? {
+                    if let Some((left, right)) = refine(child, &items[index], aliases, depth + 1)? {
                         let mut left_items = items.clone();
                         let mut right_items = items.clone();
                         left_items[index] = left;

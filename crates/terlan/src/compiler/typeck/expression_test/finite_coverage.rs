@@ -57,6 +57,45 @@ fn boolean_tuple_coverage_tracks_combinations() {
     }
 }
 
+/// Alias spelling cannot make a reachable finite tuple branch appear disjoint.
+#[test]
+fn boolean_and_atom_alias_tuple_coverage_uses_resolved_atoms() {
+    let branches = [
+        "{false, BigEndian} -> 0",
+        "{false, LittleEndian} -> 1",
+        "{true, BigEndian} -> 2",
+        "{true, LittleEndian} -> 3",
+    ];
+    for omitted in 0..=branches.len() {
+        let selected = branches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != omitted)
+            .map(|(_, branch)| *branch)
+            .collect::<Vec<_>>()
+            .join("; ");
+        let source = format!(
+            "module fixture.AliasTupleCoverage.\n\
+             pub type BigEndian = Atom[\"big\"].\n\
+             pub type LittleEndian = Atom[\"little\"].\n\
+             pub type EndianPolicy = BigEndian | LittleEndian.\n\
+             pub value(flag: Bool, endian: EndianPolicy): Int ->\n\
+             case {{flag, endian}} {{ {selected} }}.\n"
+        );
+        let diagnostics = check_syntax_output(&source);
+        if omitted == branches.len() {
+            assert!(diagnostics.is_empty(), "{diagnostics:?}");
+        } else {
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|error| error.message.contains("non-exhaustive case")),
+                "omitted branch {omitted}: {diagnostics:?}"
+            );
+        }
+    }
+}
+
 /// Refinement only visits tested coordinates of large finite products.
 #[test]
 fn wide_boolean_tuple_does_not_expand_its_cartesian_product() {
