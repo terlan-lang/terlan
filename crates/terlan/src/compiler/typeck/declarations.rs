@@ -434,7 +434,7 @@ fn check_syntax_constructor_clauses(
         }
 
         let inferred_expanded = expand_type_aliases(&inferred, aliases);
-        if let Err(message) = unify(&expected_return, &inferred_expanded, &mut subst) {
+        if let Err(message) = unify_return_type(&expected_return, &inferred_expanded, &mut subst) {
             diagnostics.push(Diagnostic {
                 span,
                 message: format!("constructor `{}` body {}", constructor_name, message),
@@ -952,18 +952,17 @@ fn check_syntax_callable_clauses(
             diagnostics.push(expression_error_to_diagnostic(error, span));
         }
 
-        let expected_expanded = expand_type_aliases(&instantiated.ret, aliases);
         let inferred_expanded = expand_type_aliases(&inferred, aliases);
 
-        if let Err(message) = unify(&expected_expanded, &inferred_expanded, &mut subst) {
+        if let Err(message) = unify_return_type(&expected_return, &inferred_expanded, &mut subst) {
             let revealed_inferred = reveal_opaque_aliases(&inferred_expanded, aliases);
-            if unify(&expected_expanded, &revealed_inferred, &mut subst).is_ok() {
+            if unify_return_type(&expected_return, &revealed_inferred, &mut subst).is_ok() {
                 clause_patterns.push((clause.patterns.clone(), span));
                 continue;
             }
             if expected_syntax_opaque_constructor_return_matches(
                 &clause.body,
-                &expected_expanded,
+                &expected_return,
                 &locals,
                 expr_ctx,
                 &mut subst,

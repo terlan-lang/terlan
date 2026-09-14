@@ -19,6 +19,10 @@ pub(super) fn infer_syntax_var(
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext,
 ) -> Type {
+    // Syntax output represents canonical Boolean literals as variable-like names.
+    if matches!(name, "true" | "false") {
+        return Type::Bool;
+    }
     locals
         .get(name)
         .cloned()

@@ -1,5 +1,21 @@
 use super::test_support::*;
 
+/// Boolean literals must not fall back to Dynamic and satisfy arbitrary annotations.
+#[test]
+fn syntax_output_rejects_boolean_literals_as_integers() {
+    for literal in ["true", "false"] {
+        let diagnostics = check_syntax_output(&format!(
+            "module boolean_return. pub invalid(): Int -> {literal}."
+        ));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d.message == "expected Int found Bool"),
+            "must retain the Boolean literal type: {diagnostics:?}"
+        );
+    }
+}
+
 /// Verifies lowercase booleans are the only built-in boolean literals.
 ///
 /// Inputs:

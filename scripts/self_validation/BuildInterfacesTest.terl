@@ -300,7 +300,6 @@ reverse_commands_at(values: List[Command], reversed: List[Command]): List[Comman
         [value | rest] -> reverse_commands_at(rest, [value | reversed])
     }.
 
-@pure
 completions_hold(completions: List[BatchCompletion]): Bool ->
     case completions {
         [] -> true;
@@ -309,9 +308,10 @@ completions_hold(completions: List[BatchCompletion]): Bool ->
                 {Some(output), None} ->
                     if {
                         Process.status(output) == 0 -> completions_hold(rest);
-                        true -> false
+                        true -> print_output_failure("NativeBoundary metadata command failed", output)
                     };
-                {None, Some(_reason)} -> false;
+                {None, Some(reason)} ->
+                    print_process_error("NativeBoundary metadata command failed", reason);
                 _ -> false
             }
     }.

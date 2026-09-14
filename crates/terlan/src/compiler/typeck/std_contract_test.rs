@@ -204,3 +204,28 @@ pub config(domains: List[String]): Config ->\n\
         diagnostics
     );
 }
+/// Portable assertions must resolve every dependency in their public report aliases.
+#[test]
+fn syntax_output_accepts_portable_test_report_contracts() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        include_str!("../../../../../std/test/Test.terl"),
+        "std/test/Test.terl",
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "portable test contracts: {diagnostics:?}"
+    );
+}
+
+/// Every optional metadata path must retain the response builder's return contract.
+#[test]
+fn syntax_output_accepts_response_security_builder_contracts() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        include_str!("../../../../../std/http/Response.terl"),
+        "std/http/Response.terl",
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "response builder contracts: {diagnostics:?}"
+    );
+}
