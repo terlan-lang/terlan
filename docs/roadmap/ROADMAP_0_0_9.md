@@ -20,21 +20,44 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-Candidate `f7602c02` passes the complete hosted release workflow: six native
+Candidate `53fd1a47` passes the complete hosted release workflow: six native
 platforms, both sanitizer families, the patched dependency audit, consolidated
-artifact validation and attestation. Compiler CI's canonical Rust report passes
-in 1,410.996 seconds, but its subsequent stdlib summary drift gate fails:
-`Memory.terl` gained three public storage aliases without refreshing its summary.
-The generated correction adds exactly those aliases and updates their source,
-interface and documentation hashes. With the corrected interface embedded in
-the rebuilt compiler, all 206 generated summaries match, both embedded-interface
-tests pass, and the six release-manifest tests cover 85 modules and API tests.
-The follow-on JS binding/review, native-artifact, Rust-backed manifest/adapter,
-backend-primitive, receiver-method, VM-default and negative-API gates also pass.
-Exact-candidate hosted verification remains required after this correction.
-The successful release workflow takes 83m40s including queue/bookkeeping time;
-it does not establish the intended end-to-end speedup. Production cold/warm/
-resume acceptance, V9-2 and V9-3 remain open. No merge or publication is implied.
+artifact validation and attestation. Its duration is 75m05s including scheduling
+and bookkeeping, versus `f7602c02`'s 83m40s; these individual observations do not
+establish the required reproducible speedup. Compiler CI's canonical Rust report
+passes in 1,421.870 seconds, but release-promotion validator compilation fails
+because imported optional struct fields lose dependency type information.
+
+The local correction shares dependency-alias resolution with interface signature
+loading. Negative tests also expose union return checking that accepted any
+matching branch and Boolean literals inferred as Dynamic. Return checking now
+requires every alternative, preserves complete generic unions and diagnostic
+details, and does not commit substitutions on failure; literals retain Bool.
+The stronger check reveals imported constructors returning unqualified nominal
+types, a missing Option type import in std.test.Test, and two HTTP response
+helpers returning Unit on their enabled branches. Constructors retain provider
+identity, Test imports its report dependency, and the HTTP helpers use the
+existing response-returning header builder. Their generated summaries are fresh.
+Direct calls to the optional HTTP helpers remain outside the existing native
+managed profile; this change does not introduce a new native surface.
+
+All 821 type-checker tests (including the release collection sweep and complete
+Test/Response source contracts) pass. The earlier 1,129 other compiler tests,
+22 managed-HTTP lowering tests, three managed-HTTP runtime tests, both strict
+workspace Clippy profiles and runtime-only Clippy pass. Both validators now
+build and seal; promotion/preflight adversarial tests, repository contract,
+native-boundary ownership and candidate fixture cold/warm/interrupted-resume
+rehearsals pass. This is not production preparation acceptance. All 206 summaries,
+embedded interfaces, the 85-module release manifest, native artifacts, Rust-backed
+contracts and negative APIs pass. API, module, dependency, documentation and lint
+checks pass without increased budgets or allowances; the declarations no-growth
+ceiling decreases from 993 to 992 lines. Local logs use the `typeck-` prefix under
+`target/quality/release-diagnostics/`. The API follow-up repeated the six manifest
+fixture tests from the earlier local closeout; these diagnostic runs do not
+establish the required single-owner/no-replay production acceptance.
+Exact-candidate hosted verification remains required after these corrections.
+Production cold/warm/resume acceptance, V9-2 and V9-3 remain open. No merge or
+publication is implied.
 
 Candidate `f6f6dc4d` commits the dependency corrections below. Its hosted
 security audit discovers newly published RUSTSEC-2026-0285 affecting locked

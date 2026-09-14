@@ -9,6 +9,8 @@ mod interface;
 mod map_fields;
 mod opaque_aliases;
 pub(super) use opaque_aliases::reveal_opaque_aliases;
+mod return_type;
+pub(super) use return_type::unify_return_type;
 pub(crate) mod parser;
 mod special;
 use special::portable_list_element;
@@ -22,7 +24,7 @@ pub(super) use builtins::{
 pub(super) use interface::{
     expand_interface_global_aliases, interface_qualified_type_names, interface_type_aliases,
     interface_type_names, parse_interface_constructor_schemes, parse_interface_signature,
-    parse_symbol_scheme, qualify_type_names,
+    parse_symbol_scheme, qualify_type_names, unique_global_alias_short_names,
 };
 pub(super) use map_fields::{
     map_fields_is_subtype, map_fields_is_subtype_with_aliases, unify_map_fields,

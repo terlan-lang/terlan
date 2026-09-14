@@ -278,6 +278,7 @@ crates/terlan/src/compiler/typeck/patterns/string_capture.rs	2	internal-helper	c
 crates/terlan/src/compiler/typeck/trait_conformance/negative_impls.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/type_system.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/type_system/map_fields.rs	1	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/typeck/type_system/return_type.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/formal_pipeline.rs	2	internal-helper	support-errors	0.0.9
 crates/terlan/src/formal_pipeline/templates.rs	3	internal-helper	support-errors	0.0.9
 crates/terlan/src/html/parser.rs	1	internal-helper	support-errors	0.0.9

@@ -58,11 +58,14 @@ pub(in super::super) fn infer_generic_struct_construction(
 
     let callable = FunctionScheme {
         params,
-        ret: Type::Named {
-            module: None,
-            name: name.to_string(),
-            args: scheme.params.iter().copied().map(Type::Var).collect(),
-        },
+        ret: qualify_type_names(
+            &Type::Named {
+                module: None,
+                name: name.to_string(),
+                args: scheme.params.iter().copied().map(Type::Var).collect(),
+            },
+            ctx.imported_type_names,
+        ),
         generic_params: scheme.generic_params.clone(),
         bounds: scheme.bounds.clone(),
     };

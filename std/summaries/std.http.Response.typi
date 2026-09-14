@@ -227,7 +227,7 @@ pub redirect(location: String, status: Int = 302): Response.
 /// Applies typed secure response headers.
 ///
 /// Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
-/// Output: `Unit`.
+/// Output: the same `Response` after applying the selected headers.
 /// Transformation: serializes typed policy values into validated response
 /// headers through the normal response metadata path.
 
