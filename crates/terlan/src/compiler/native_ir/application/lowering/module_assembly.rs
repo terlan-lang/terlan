@@ -252,6 +252,7 @@ pub(super) fn finalize_native_application(
         ),
     );
     validate_composed_suspending_calls(&modules, suspending_native, suspending_targets)?;
-    super::super::super::recursive_suspension::defer_recursive_calls(&mut modules)?;
+    super::super::super::recursive_suspension::defer_recursive_calls(&mut modules)
+        .map_err(|error| error.to_string())?;
     Ok(modules)
 }

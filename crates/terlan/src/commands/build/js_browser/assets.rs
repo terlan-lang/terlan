@@ -350,7 +350,8 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
             .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
             .env("NODE_PATH", toolchain.root.join("node_modules"))
             .current_dir(project_root),
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     if !output.status.success() {
         return Err(format!(
             "error[web_rsbuild]: Rsbuild failed for {}:\n{}{}",

@@ -22,7 +22,9 @@ fn inventory_records_attempt_launch_and_completion_separately() -> Result<(), St
     let root = TestDirectory::new("native_activity", "completion");
     let path = root.join("cycle.jsonl");
     let mut activity = start(&path, Operation::NativeLink)?;
-    activity.spawned(123)?;
+    activity
+        .spawned(123)
+        .map_err(|error| format!("{error:?}"))?;
     activity
         .finish(true, Some(4096))
         .map_err(|error| format!("{error:?}"))?;

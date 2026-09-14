@@ -25,6 +25,7 @@ pub(crate) fn run_command_with_timeout(
     timeout: Duration,
 ) -> Result<Output, String> {
     capture_tool_command(command, label, timeout, TOOL_OUTPUT_LIMIT)
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]

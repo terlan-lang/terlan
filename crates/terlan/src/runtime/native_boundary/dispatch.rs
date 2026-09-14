@@ -26,8 +26,10 @@ mod panic_boundary;
 mod platform_dispatch;
 mod process;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use process::capture_optional_tool_command;
-pub(crate) use process::{capture_tool_command, capture_tool_command_with_launch};
+pub(crate) use process::{
+    capture_optional_tool_command, capture_tool_command, capture_tool_command_with_launch,
+    ToolCommandError,
+};
 mod resources;
 mod value;
 pub use value::{NativeBoundaryBridgeValue, NativeBoundaryValue};

@@ -6,6 +6,30 @@ const MAX_REGIONS: usize = 4096;
 const MAX_REFINEMENTS: usize = 65536;
 const MAX_DEPTH: usize = 256;
 
+#[cfg(test)]
+#[path = "finite_coverage_test.rs"]
+mod tests;
+
+/// Distinguishes analysis exhaustion from excessive pattern nesting.
+#[derive(Debug, PartialEq, Eq)]
+pub(in crate::compiler::typeck) enum FiniteCoverageError {
+    AnalysisBudget,
+    NestingBudget,
+}
+
+impl std::fmt::Display for FiniteCoverageError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::AnalysisBudget => {
+                "finite pattern coverage exceeds its analysis budget; add a covering pattern"
+            }
+            Self::NestingBudget => "finite pattern coverage exceeds its nesting budget",
+        })
+    }
+}
+
+impl std::error::Error for FiniteCoverageError {}
+
 /// Identifies finite products that need checking even when their outer type is one tuple.
 pub(in crate::compiler::typeck) fn has_finite_fields(ty: &Type) -> bool {
     match ty {
@@ -21,17 +45,14 @@ pub(in crate::compiler::typeck) fn subtract_finite_pattern(
     remaining: Vec<Type>,
     pattern: &SyntaxPatternOutput,
     aliases: &HashMap<String, TypeAlias>,
-) -> Result<Vec<Type>, String> {
+) -> Result<Vec<Type>, FiniteCoverageError> {
     let mut pending = remaining.into_iter().rev().collect::<Vec<_>>();
     let mut output = Vec::new();
     let mut steps = 0;
     while let Some(region) = pending.pop() {
         steps += 1;
         if steps > MAX_REFINEMENTS || pending.len() + output.len() >= MAX_REGIONS {
-            return Err(
-                "finite pattern coverage exceeds its analysis budget; add a covering pattern"
-                    .to_owned(),
-            );
+            return Err(FiniteCoverageError::AnalysisBudget);
         }
         if covers(pattern, &region, aliases) {
             continue;
@@ -127,9 +148,9 @@ fn refine(
     pattern: &SyntaxPatternOutput,
     ty: &Type,
     depth: usize,
-) -> Result<Option<(Type, Type)>, String> {
+) -> Result<Option<(Type, Type)>, FiniteCoverageError> {
     if depth > MAX_DEPTH {
-        return Err("finite pattern coverage exceeds its nesting budget".to_owned());
+        return Err(FiniteCoverageError::NestingBudget);
     }
     if let Some(child) = nested_pattern(pattern) {
         return refine(child, ty, depth + 1);

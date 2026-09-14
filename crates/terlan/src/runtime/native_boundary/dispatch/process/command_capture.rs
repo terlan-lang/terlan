@@ -5,6 +5,46 @@ use std::time::Duration;
 
 use super::{capture_command, CaptureFailure};
 
+/// Keeps process failure classification and execution context until presentation.
+#[derive(Debug)]
+pub(crate) struct ToolCommandError {
+    failure: CaptureFailure,
+    label: String,
+    timeout: Duration,
+}
+
+impl ToolCommandError {
+    /// Stable process/pipe classification without parsing rendered diagnostics.
+    pub(crate) fn code(&self) -> &'static str {
+        match &self.failure {
+            CaptureFailure::Process(code, _) => code,
+            CaptureFailure::MissingProgram(_) => "spawn_failed",
+            CaptureFailure::Pipe(error) => error.code(),
+        }
+    }
+}
+
+impl std::fmt::Display for ToolCommandError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let label = &self.label;
+        match &self.failure {
+            CaptureFailure::Process("timed_out", _) => write!(
+                formatter,
+                "{label} timed out after {} milliseconds",
+                self.timeout.as_millis()
+            ),
+            CaptureFailure::Process(_, message) | CaptureFailure::MissingProgram(message) => {
+                write!(formatter, "{label} {}: {message}", self.code())
+            }
+            CaptureFailure::Pipe(error) => {
+                write!(formatter, "{label} {}: {}", self.code(), error.message())
+            }
+        }
+    }
+}
+
+impl std::error::Error for ToolCommandError {}
+
 /// Captures a noninteractive tool without duplicating process and pipe ownership.
 ///
 /// Inputs:
@@ -24,7 +64,7 @@ pub(crate) fn capture_tool_command(
     label: &str,
     timeout: Duration,
     output_limit: usize,
-) -> Result<Output, String> {
+) -> Result<Output, ToolCommandError> {
     capture_tool_command_with_launch(command, label, timeout, output_limit, |_| Ok(()))
 }
 
@@ -36,9 +76,12 @@ pub(crate) fn capture_tool_command_with_launch(
     timeout: Duration,
     output_limit: usize,
     launched: impl FnOnce(u32) -> Result<(), String>,
-) -> Result<Output, String> {
-    capture_tool(command, timeout, output_limit, launched)
-        .map_err(|failure| describe_failure(failure, label, timeout))
+) -> Result<Output, ToolCommandError> {
+    capture_tool(command, timeout, output_limit, launched).map_err(|failure| ToolCommandError {
+        failure,
+        label: label.to_owned(),
+        timeout,
+    })
 }
 
 /// Captures an optional tool; only a missing OS executable may be skipped.
@@ -49,11 +92,15 @@ pub(crate) fn capture_optional_tool_command(
     label: &str,
     timeout: Duration,
     output_limit: usize,
-) -> Result<Option<Output>, String> {
+) -> Result<Option<Output>, ToolCommandError> {
     match capture_tool(command, timeout, output_limit, |_| Ok(())) {
         Ok(output) => Ok(Some(output)),
         Err(CaptureFailure::MissingProgram(_)) => Ok(None),
-        Err(failure) => Err(describe_failure(failure, label, timeout)),
+        Err(failure) => Err(ToolCommandError {
+            failure,
+            label: label.to_owned(),
+            timeout,
+        }),
     }
 }
 
@@ -74,20 +121,4 @@ fn capture_tool(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     capture_command(command, Vec::new(), timeout, output_limit, None, launched)
-}
-
-fn describe_failure(failure: CaptureFailure, label: &str, timeout: Duration) -> String {
-    match failure {
-        CaptureFailure::Process("timed_out", _) => {
-            format!(
-                "{label} timed out after {} milliseconds",
-                timeout.as_millis()
-            )
-        }
-        CaptureFailure::Process(code, message) => format!("{label} {code}: {message}"),
-        CaptureFailure::MissingProgram(message) => format!("{label} spawn_failed: {message}"),
-        CaptureFailure::Pipe(error) => {
-            format!("{label} {}: {}", error.code(), error.message())
-        }
-    }
 }

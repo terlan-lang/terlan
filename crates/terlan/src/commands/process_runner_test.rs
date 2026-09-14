@@ -7,6 +7,7 @@ use super::run_command_with_timeout;
 use crate::runtime::native_boundary::dispatch::capture_optional_tool_command;
 use crate::runtime::native_boundary::dispatch::capture_tool_command;
 use crate::runtime::native_boundary::dispatch::capture_tool_command_with_launch;
+use crate::runtime::native_boundary::dispatch::ToolCommandError;
 
 /// Optional tools may be absent, but resource failures must never become skips.
 #[test]
@@ -37,7 +38,8 @@ fn optional_tool_capture_preserves_absence_exit_and_resource_failures() {
         4096,
     )
     .unwrap_err();
-    assert!(timeout.contains("timed out"), "{timeout}");
+    assert_eq!(timeout.code(), "timed_out");
+    assert!(timeout.to_string().contains("timed out"), "{timeout}");
     let overflow = capture_optional_tool_command(
         &mut shell("head -c 4097 /dev/zero"),
         "optional",
@@ -45,7 +47,11 @@ fn optional_tool_capture_preserves_absence_exit_and_resource_failures() {
         4096,
     )
     .unwrap_err();
-    assert!(overflow.contains("output_limit_exceeded"), "{overflow}");
+    assert_eq!(overflow.code(), "output_limit_exceeded");
+    assert!(
+        overflow.to_string().contains("output_limit_exceeded"),
+        "{overflow}"
+    );
     assert!(capture_optional_tool_command(
         &mut Command::new("/nonexistent/terlan-optional-tool"),
         "optional",
@@ -88,13 +94,14 @@ fn optional_tool_capture_does_not_skip_failed_observation() {
     let error =
         capture_optional_tool_command(&mut command, "optional", Duration::from_secs(5), 4096)
             .unwrap_err();
-    assert!(error.contains("spawn_failed"), "{error}");
+    assert_eq!(error.code(), "spawn_failed");
+    assert!(error.to_string().contains("spawn_failed"), "{error}");
     std::fs::remove_dir_all(root).unwrap();
 }
 
 /// The launch observer is called exactly once and only after successful spawn.
 #[test]
-fn tool_inventory_observes_only_successful_spawns() -> Result<(), String> {
+fn tool_inventory_observes_only_successful_spawns() -> Result<(), ToolCommandError> {
     let mut observed = Vec::new();
     let output = capture_tool_command_with_launch(
         &mut shell("printf observed"),
@@ -136,7 +143,8 @@ fn tool_inventory_failure_retains_process_cleanup_ownership() {
         |_| Err("inventory unavailable".to_owned()),
     );
     assert!(
-        matches!(result, Err(message) if message.contains("launch_observation_failed: inventory unavailable"))
+        matches!(result, Err(error) if error.code() == "launch_observation_failed"
+            && error.to_string().contains("launch_observation_failed: inventory unavailable"))
     );
     assert!(started.elapsed() < Duration::from_secs(5));
 }
@@ -234,7 +242,8 @@ fn combined_tool_output_limit_is_enforced() {
         4096,
     );
     assert!(
-        matches!(result, Err(message) if message.contains("noisy-linker output_limit_exceeded"))
+        matches!(result, Err(error) if error.code() == "output_limit_exceeded"
+            && error.to_string().contains("noisy-linker output_limit_exceeded"))
     );
 }
 
@@ -249,7 +258,8 @@ fn invalid_tool_limits_fail_before_spawn() {
             bytes,
         );
         assert!(
-            matches!(result, Err(message) if message.contains("positive timeout and output limits"))
+            matches!(result, Err(error) if error.code() == "invalid_limits"
+                && error.to_string().contains("positive timeout and output limits"))
         );
     }
 }

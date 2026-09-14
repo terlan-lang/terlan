@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Duration;
 
-use crate::runtime::native_boundary::dispatch::capture_tool_command;
+use crate::runtime::native_boundary::dispatch::{capture_tool_command, ToolCommandError};
 
 use serde_json::Value;
 
@@ -17,15 +17,35 @@ pub(crate) const RSBUILD_VERSION: &str = "2.1.13";
 pub(crate) const RSPACK_PACKAGE: &str = "@rspack/core";
 pub(crate) const RSPACK_VERSION: &str = "2.1.10";
 
+/// Adds browser-build context without losing the process failure as an error source.
+#[derive(Debug)]
+pub(super) struct ManagedBundlerError(ToolCommandError);
+
+impl std::fmt::Display for ManagedBundlerError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "error[web_rsbuild]: failed to run Rsbuild: {}",
+            self.0
+        )
+    }
+}
+
+impl std::error::Error for ManagedBundlerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
 /// Runs either managed browser bundler through one noninteractive resource policy.
-pub(super) fn run_managed_bundler(command: &mut Command) -> Result<Output, String> {
+pub(super) fn run_managed_bundler(command: &mut Command) -> Result<Output, ManagedBundlerError> {
     capture_tool_command(
         command,
         "managed browser bundler",
         Duration::from_secs(300),
         16 * 1024 * 1024,
     )
-    .map_err(|error| format!("error[web_rsbuild]: failed to run Rsbuild: {error}"))
+    .map_err(ManagedBundlerError)
 }
 
 /// Resolved immutable browser toolchain selected by the compiler.
@@ -233,7 +253,8 @@ pub(crate) fn bundle_managed_angular_entry(
             .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
             .env("NODE_PATH", toolchain.root.join("node_modules"))
             .current_dir(build_root),
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     if !output.status.success() {
         return Err(format!(
             "error[web_rsbuild]: Rsbuild failed for {}:\n{}{}",

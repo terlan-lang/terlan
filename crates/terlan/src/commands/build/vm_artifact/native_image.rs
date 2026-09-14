@@ -679,7 +679,7 @@ fn link_native_image(
         &label,
         Duration::from_secs(300),
         16 * 1024 * 1024,
-        |pid| activity.spawned(pid),
+        |pid| activity.spawned(pid).map_err(|error| format!("{error:?}")),
     )
     .map_err(|error| BuildOneError::Message(format!("error[tvm.native_link.execution]: {error}")));
     activity.finish(

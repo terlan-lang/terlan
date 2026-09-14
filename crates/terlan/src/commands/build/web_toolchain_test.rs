@@ -46,6 +46,15 @@ fn managed_bundler_closes_stdin_preserves_diagnostics_and_rejects_excess_output(
     let error =
         run_managed_bundler(Command::new("/bin/sh").args(["-c", "head -c 16777217 /dev/zero"]))
             .expect_err("bundler output must be bounded");
-    assert!(error.contains("output_limit_exceeded"), "{error}");
-    assert!(error.contains("managed browser bundler"), "{error}");
+    let cause = std::error::Error::source(&error)
+        .expect("bundler retains its typed process error")
+        .downcast_ref::<ToolCommandError>()
+        .expect("process capture error source");
+    assert_eq!(cause.code(), "output_limit_exceeded");
+    let diagnostic = error.to_string();
+    assert!(diagnostic.contains("output_limit_exceeded"), "{diagnostic}");
+    assert!(
+        diagnostic.contains("managed browser bundler"),
+        "{diagnostic}"
+    );
 }
