@@ -17,6 +17,42 @@ use super::{
 
 const MODULE: &str = "$terlan.recursive_suspension";
 
+#[cfg(test)]
+#[path = "recursive_suspension_error_test.rs"]
+mod error_tests;
+
+/// Structural admission failures retain their identity until diagnostic rendering.
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum RecursiveSuspensionError {
+    IdentityCollision,
+    UnsupportedReturnContext,
+    MissingCaptureLayout(u64),
+    UnavailableCallback(u64),
+    UnavailableCallTarget,
+}
+
+impl std::fmt::Display for RecursiveSuspensionError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::IdentityCollision => formatter.write_str(
+                "error[native_ir.recursive_suspend_identity]: generated identity collision",
+            ),
+            Self::UnsupportedReturnContext => formatter.write_str(
+                "error[native_ir.recursive_suspend_shape]: recursive suspension is not in a supported return context",
+            ),
+            Self::MissingCaptureLayout(id) => write!(formatter,
+                "error[native_ir.recursive_suspend_entry]: continuation {id} has no capture layout"),
+            Self::UnavailableCallback(export) => write!(formatter,
+                "error[native_ir.recursive_suspend_target]: unavailable callback {export}"),
+            Self::UnavailableCallTarget => formatter.write_str(
+                "error[native_ir.recursive_suspend_target]: unavailable call target",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RecursiveSuspensionError {}
+
 #[derive(Clone, Copy)]
 struct DeferredEntry {
     function: usize,
@@ -24,7 +60,9 @@ struct DeferredEntry {
     captures: usize,
 }
 
-pub(super) fn defer_recursive_calls(modules: &mut Vec<NativeModule>) -> Result<(), String> {
+pub(super) fn defer_recursive_calls(
+    modules: &mut Vec<NativeModule>,
+) -> Result<(), RecursiveSuspensionError> {
     let functions = modules
         .iter()
         .flat_map(|module| module.functions.iter())
@@ -74,10 +112,7 @@ pub(super) fn defer_recursive_calls(modules: &mut Vec<NativeModule>) -> Result<(
         );
         let export = stable_export_id(MODULE, &name, original.arity);
         if !identities.insert(continuation) || !identities.insert(export) {
-            return Err(
-                "error[native_ir.recursive_suspend_identity]: generated identity collision"
-                    .to_string(),
-            );
+            return Err(RecursiveSuspensionError::IdentityCollision);
         }
         *entry = Some(DeferredEntry {
             function: functions.len() + deferred.functions.len(),
@@ -130,7 +165,7 @@ pub(super) fn defer_recursive_calls(modules: &mut Vec<NativeModule>) -> Result<(
         rewritten += rewrite_returning_calls(&mut function.body, caller, &components, &targets);
     }
     if rewritten != expected {
-        return Err("error[native_ir.recursive_suspend_shape]: recursive suspension is not in a supported return context".to_string());
+        return Err(RecursiveSuspensionError::UnsupportedReturnContext);
     }
     modules.push(deferred);
     refresh_entry_contracts(modules)?;
@@ -140,7 +175,7 @@ pub(super) fn defer_recursive_calls(modules: &mut Vec<NativeModule>) -> Result<(
 /// A deferred entry is outwardly visible through every caller, including a
 /// nonrecursive caller outside the transformed component. Propagate identities
 /// with a worklist rather than repeatedly cloning the whole function catalog.
-fn refresh_entry_contracts(modules: &mut [NativeModule]) -> Result<(), String> {
+fn refresh_entry_contracts(modules: &mut [NativeModule]) -> Result<(), RecursiveSuspensionError> {
     let functions = modules
         .iter()
         .flat_map(|module| &module.functions)
@@ -215,7 +250,7 @@ fn refresh_returning_calls(
     entries: &[HashSet<u64>],
     captures: &HashMap<u64, usize>,
     exports: &HashMap<u64, usize>,
-) -> Result<(), String> {
+) -> Result<(), RecursiveSuspensionError> {
     match expr {
         NativeExpr::CallThen {
             function,
@@ -236,7 +271,10 @@ fn refresh_returning_calls(
                 {
                     continue;
                 }
-                let count = captures.get(id).copied().ok_or_else(|| format!("error[native_ir.recursive_suspend_entry]: continuation {id} has no capture layout"))?;
+                let count = captures
+                    .get(id)
+                    .copied()
+                    .ok_or(RecursiveSuspensionError::MissingCaptureLayout(*id))?;
                 resumes.push(NativeCallResume {
                     callee_continuation_id: *id,
                     callee_capture_count: count,
@@ -260,18 +298,19 @@ fn refresh_returning_calls(
                 .map(|resume| resume.callee_export_id)
                 .collect::<HashSet<_>>();
             for export in targets {
-                let function = exports.get(&export).ok_or_else(|| {
-                    format!(
-                        "error[native_ir.recursive_suspend_target]: unavailable callback {export}"
-                    )
-                })?;
+                let function = exports
+                    .get(&export)
+                    .ok_or(RecursiveSuspensionError::UnavailableCallback(export))?;
                 for id in &entries[*function] {
                     if resumes.iter().any(|resume| {
                         resume.callee_export_id == export && resume.callee_continuation_id == *id
                     }) {
                         continue;
                     }
-                    let count = captures.get(id).copied().ok_or_else(|| format!("error[native_ir.recursive_suspend_entry]: continuation {id} has no capture layout"))?;
+                    let count = captures
+                        .get(id)
+                        .copied()
+                        .ok_or(RecursiveSuspensionError::MissingCaptureLayout(*id))?;
                     resumes.push(NativeDynamicCallResume {
                         callee_export_id: export,
                         callee_continuation_id: *id,
@@ -303,7 +342,7 @@ fn refresh_returning_calls(
     Ok(())
 }
 
-fn call_graph(functions: &[&NativeFunction]) -> Result<Vec<Vec<usize>>, String> {
+fn call_graph(functions: &[&NativeFunction]) -> Result<Vec<Vec<usize>>, RecursiveSuspensionError> {
     let exports = functions
         .iter()
         .enumerate()
@@ -343,10 +382,7 @@ fn call_graph(functions: &[&NativeFunction]) -> Result<Vec<Vec<usize>>, String> 
             calls.sort_unstable();
             calls.dedup();
             if calls.iter().any(|target| *target >= functions.len()) {
-                return Err(
-                    "error[native_ir.recursive_suspend_target]: unavailable call target"
-                        .to_string(),
-                );
+                return Err(RecursiveSuspensionError::UnavailableCallTarget);
             }
             Ok(calls)
         })

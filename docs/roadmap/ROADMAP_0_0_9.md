@@ -20,14 +20,30 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-Draft PR #22 is not ready for merge or publication. Candidate `2b018189` passes
-the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34779997063):
+Draft PR #22 is not ready for merge or publication. Candidate `305902f3` passes
+the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34851940995):
 all six native platforms, both sanitizer families, the security audit,
 consolidated artifact validation, and distribution attestation. Docs and CodeQL
-also pass. [Compiler CI](https://github.com/terlan-lang/terlan/actions/runs/34780000964)
-passes all owned Rust harnesses in 1,417.10 seconds and confirms the tail-position
-file-headroom correction. It then exhausts the unchanged 128 MiB address-space
-limit in the module-structure validator. Local constrained reproduction and
+also pass. [Compiler CI](https://github.com/terlan-lang/terlan/actions/runs/34851947641)
+passes all owned Rust harnesses in 1,416.05 seconds and confirms the bounded
+runtime-history, generated-reentry, module-structure, and lint corrections below.
+It then fails the internal string-error inventory gate: command, compiler, and
+native-boundary helpers exceed their unchanged site budgets, and moved helpers
+have stale inventory locations. The local correction retains typed structural,
+coverage-budget, and process failures until their existing diagnostic boundaries;
+it refreshes moved inventory rows without raising budgets or adding allowances.
+The fresh AST-backed API gate passes, as do 1,303 affected tests, the separately
+owned release standard-library contract test, and both configured strict Clippy
+profiles. These local changes still require committed-candidate hosted verification.
+The runtime-only feature profile additionally exposed unconditional compiler-tool
+exports. Their module and exports now follow the existing compiler-presence
+condition; strict runtime-only Clippy passes without dead-code allowances.
+Bounded lint/module checks, file headroom, Rust documentation, dormant-runtime,
+and deterministic-map checks also pass. Local logs use the `api-boundary-`
+prefix in `target/quality/release-diagnostics/`.
+
+The preceding `2b018189` candidate exhausted the unchanged 128 MiB address-space
+limit in the module-structure validator. Constrained reproduction and
 debugger backtraces identify unbounded production retention of test-only actor
 ownership history. Removing that retention makes the exact failing gate pass
 in 23.80 seconds at 83.4 MiB peak resident memory. A follow-up constrained
@@ -60,7 +76,8 @@ orchestrator tests pass, and workspace validation passes in 128.81 seconds at
 or timeout limit is increased. The validator image
 grew from 7,471,880 to 11,969,232 bytes as generated reentry joins native tail
 components. This is a recorded code-size cost for V9-2's pending dispatcher work,
-not a claim that every cost improved. Hosted confirmation remains pending.
+not a claim that every cost improved. Candidate `305902f3` confirms these
+runtime and validator corrections in the hosted compiler workflow.
 Logs and debugger backtraces are in
 `target/quality/release-diagnostics/` (`generated-reentry-*`,
 `transition-telemetry-*`, `module-structure-bounded-*`, and
@@ -69,10 +86,16 @@ Logs and debugger backtraces are in
 V9-1 still requires complete production cold/warm/resume acceptance. V9-2's
 harness/dispatcher splits and comparative measurements, and V9-3's version
 update and publication, remain open. Active versions are still 0.0.8. The
-latest consolidated hosted final stage measured 7m03s instead of the baseline's
-two stages totaling 18m00s. Total hosted release duration was 63m54s, compared
-with 73m48s for `1c582a51` and the 80m45s baseline. These are individual hosted
-observations, not the required reproducible cold/warm/localized-edit comparison.
+latest consolidated hosted final stage measured 10m32s, versus `2b018189`'s
+7m03s and the baseline's two stages totaling 18m00s. Total hosted release duration
+was 67m56s, versus 63m54s and the 80m45s baseline. Investigation records slower
+Rust compilation (250s versus 176s) and platform-matrix AOT compilation
+(259.04s versus 147.83s), without a duplicated final bootstrap. The workers use
+the same runner image but different regions; this does not establish a causal
+explanation or dismiss the regression. Measurements are recorded in
+`target/quality/release-diagnostics/hosted-timing-305902f3.md`. These are individual
+hosted observations, not the required reproducible cold/warm/localized-edit
+comparison.
 
 ### Candidate validation checkpoints
 

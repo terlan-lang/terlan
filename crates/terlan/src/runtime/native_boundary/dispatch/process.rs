@@ -13,12 +13,15 @@ use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken
 
 use super::{DispatchError, NativeBoundaryValue};
 
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod command_capture;
 mod framed;
 mod framed_execution;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use command_capture::capture_optional_tool_command;
-pub(crate) use command_capture::{capture_tool_command, capture_tool_command_with_launch};
+pub(crate) use command_capture::{
+    capture_optional_tool_command, capture_tool_command, capture_tool_command_with_launch,
+    ToolCommandError,
+};
 mod pipe_scope;
 mod response;
 use framed::FrameSignal;

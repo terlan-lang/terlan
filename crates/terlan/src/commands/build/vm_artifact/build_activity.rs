@@ -90,12 +90,10 @@ impl Activity {
     }
 
     /// Records a child only after the OS has successfully returned its PID.
-    pub(super) fn spawned(&mut self, pid: u32) -> Result<(), String> {
+    pub(super) fn spawned(&mut self, pid: u32) -> Result<(), BuildOneError> {
         if let Some(activity) = &mut self.0 {
             activity.child_pid = Some(pid);
-            activity
-                .record("spawned", None)
-                .map_err(|error| format!("{error:?}"))?;
+            activity.record("spawned", None)?;
         }
         Ok(())
     }

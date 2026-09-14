@@ -170,7 +170,7 @@ fn check_clauses_exhaustiveness(
         remaining = match subtract_finite_pattern(remaining, pattern, ctx.aliases) {
             Ok(remaining) => remaining,
             Err(message) => {
-                errors.push(message);
+                errors.push(message.to_string());
                 return;
             }
         };

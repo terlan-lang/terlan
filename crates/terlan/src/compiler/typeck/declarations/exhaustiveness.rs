@@ -49,7 +49,7 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
             Err(message) => {
                 diagnostics.push(Diagnostic {
                     span: *span,
-                    message,
+                    message: message.to_string(),
                     severity: DiagSeverity::Error,
                 });
                 return;
