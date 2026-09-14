@@ -17,7 +17,7 @@ the server entry module back into a mixed-responsibility file.
 ## Public Surface
 
 - `main`: starts the LSP server on standard input/output.
-- `Backend`: `tower_lsp::LanguageServer` implementation.
+- `Backend`: `tower_lsp_server::LanguageServer` implementation.
 - `OpenDocuments`: internal document store.
 
 ## Core Model
@@ -38,6 +38,9 @@ Important invariants:
 
 - UTF-16 LSP positions are derived from source text on demand.
 - Diagnostics are published for the latest known text version.
+- Protocol document identifiers use `ls_types::Uri`; `uri.rs` admits only
+  `file:` identifiers for filesystem-backed import/schema discovery and uses
+  the URL library for platform path conversion and percent encoding.
 - Compiler crates remain the source of language truth.
 - Template files must not receive bogus Terlan module parse errors simply
   because an editor attaches them to the shared LSP.
@@ -68,7 +71,7 @@ Rejected with a range beginning at the `${` pair:
 - `crate::terlan_hir::resolve_syntax_module_output_with_interfaces`: resolver entry
   point.
 - `crate::terlan_typeck::type_check_syntax_module_output`: type checker entry point.
-- `tower_lsp`: LSP server trait and protocol types.
+- `tower_lsp_server`: LSP server trait and protocol types.
 
 ## File Layout
 

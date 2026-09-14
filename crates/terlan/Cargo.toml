@@ -116,7 +116,7 @@ serve-runtime-bin = ["service-foundation"]
 registry-network = ["dep:ureq"]
 service-foundation = ["dep:terlan-service-foundation"]
 acme-live = ["dep:tokio"]
-editor-lsp = ["dep:tower-lsp", "dep:tokio", "tokio/io-std"]
+editor-lsp = ["dep:tower-lsp-server", "dep:tokio", "tokio/io-std"]
 axum-baseline = ["dep:axum", "dep:hyper-util", "dep:tokio", "tokio/macros", "tokio/net", "tokio/rt-multi-thread"]
 benchmark-tools = []
 multicore-tsan-harness = ["native-codegen"]
@@ -160,7 +160,6 @@ oxc_span = "0.134.0"
 oxc_syntax = "0.134.0"
 bytes = "1"
 http = "1.3.1"
-http-body = "1.0.1"
 http-body-util = { version = "0.1.3", features = ["channel", "full"] }
 httparse = "1.10.1"
 hyper = { version = "1.10.1", features = ["client", "http1", "http2", "server"] }
@@ -196,7 +195,7 @@ terlan-service-foundation = { workspace = true, optional = true }
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { workspace = true, features = ["rt"], optional = true }
-tower-lsp = { version = "0.20", optional = true }
+tower-lsp-server = { version = "=0.23.0", optional = true }
 tungstenite = "0.28"
 ureq = { version = "=3.1.4", default-features = false, features = ["rustls"], optional = true }
 url = "2.5.8"
@@ -204,8 +203,8 @@ docker-compose-types = "0.24.0"
 wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
 
-[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
-rustix = { version = "1.1.4", features = ["event", "fs", "process"] }
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dev-dependencies]
+rustix = { version = "1.1.4", features = ["process"] }
 
 [dev-dependencies]
 cxx.workspace = true

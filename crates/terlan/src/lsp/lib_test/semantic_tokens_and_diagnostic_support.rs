@@ -3,7 +3,7 @@ use super::super::Backend;
 use std::io::{self as std_io, ErrorKind};
 use tokio::io::{duplex, AsyncReadExt, AsyncWriteExt, DuplexStream};
 use tokio::time::{timeout, Duration};
-use tower_lsp::{LspService, Server};
+use tower_lsp_server::{LspService, Server};
 
 #[test]
 pub(super) fn value_lifecycle_semantic_tokens_mark_constants_read_only() {

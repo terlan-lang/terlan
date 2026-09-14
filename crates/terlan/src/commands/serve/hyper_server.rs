@@ -169,7 +169,7 @@ fn declared_body_exceeds_limit(headers: &http::HeaderMap, max_body_bytes: u64) -
 
 async fn collect_bounded_body<B>(mut body: B, max_body_bytes: u64) -> Result<Vec<u8>, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let mut bytes = Vec::new();
@@ -194,7 +194,7 @@ async fn spool_bounded_body<B>(
     max_body_bytes: u64,
 ) -> Result<TemporaryBodyFile, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let configured_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT").map_err(|_| {
@@ -211,7 +211,7 @@ async fn spool_bounded_body_to_root<B>(
     root: &Path,
 ) -> Result<TemporaryBodyFile, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let root = root.to_path_buf();

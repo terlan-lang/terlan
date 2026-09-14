@@ -42,6 +42,30 @@ Bounded lint/module checks, file headroom, Rust documentation, dormant-runtime,
 and deterministic-map checks also pass. Local logs use the `api-boundary-`
 prefix in `target/quality/release-diagnostics/`.
 
+That correction is committed as `f767592f`; its compiler and release workflows
+are running. A subsequent local dependency-impact check exposes the next gate:
+58 direct normal dependencies exceed 56, 36 duplicate families exceed 34, and
+the report/classifications are stale. The in-progress correction shares Unix
+pipe readiness through the process owner, uses Hyper's public body trait, and
+migrates the editor to `tower-lsp-server` 0.23.0. Fresh Cargo metadata shows
+56 direct dependencies and 34 duplicate families without changing budgets.
+All 134 previously executed LSP tests remain in the new compiled inventory;
+four URI tests are added. The new virtual-document test exposed that URL path
+conversion does not itself require the file scheme. With explicit scheme
+admission, the rebuilt harness passes all 141 LSP/command tests. Shared process
+ownership (49 tests), runtime process capture (31), and Hyper/SSE (10) pass too.
+Cargo-audit 0.22.2 passes with warnings denied, as do strict default/all-feature
+workspace Clippy and runtime-only Clippy. The Tokio boundary remains intact.
+Disk space briefly fell below 200 MiB; full compilation paused until space
+became available again without this session pruning shared caches.
+The final source-bound dependency report, dependency-impact gate, API gate,
+lint allowance scan and workspace-policy check pass. The build-graph gate also
+passes after refreshing the stale same-name Entry classification: proof
+tool-admission entries bind executable contracts, distinct from disk retention,
+parse-cache and multicore-inventory entries. Module structure and file headroom
+also pass; committed-candidate hosted verification remains outstanding. Detailed local evidence uses
+the `dependency-` log prefix in `target/quality/release-diagnostics/`.
+
 The preceding `2b018189` candidate exhausted the unchanged 128 MiB address-space
 limit in the module-structure validator. Constrained reproduction and
 debugger backtraces identify unbounded production retention of test-only actor

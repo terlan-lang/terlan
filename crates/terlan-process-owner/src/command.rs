@@ -333,15 +333,8 @@ enum ReadEvent {
 impl Reader {
     fn new(stdout: ChildStdout, limit: usize) -> Result<Self, Failure> {
         #[cfg(any(target_os = "linux", target_os = "macos"))]
-        {
-            use rustix::fs::{fcntl_getfl, fcntl_setfl, OFlags};
-            fcntl_setfl(
-                &stdout,
-                fcntl_getfl(&stdout).map_err(|error| Failure::new("capture-failed", error))?
-                    | OFlags::NONBLOCK,
-            )
+        crate::pipe::set_nonblocking(&stdout)
             .map_err(|error| Failure::new("capture-failed", error))?;
-        }
         let stop = Arc::new(AtomicBool::new(false));
         let stopped = Arc::clone(&stop);
         // At most 512 KiB plus one pending chunk, within the overall byte limit.

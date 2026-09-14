@@ -21,6 +21,8 @@
 mod child;
 mod command;
 mod inventory;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub mod pipe;
 
 pub use child::OwnedChild;
 pub use command::{
