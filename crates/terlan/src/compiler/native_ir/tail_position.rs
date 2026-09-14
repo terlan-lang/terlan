@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use super::{NativeContinuation, NativeExpr, NativeModule, NativeTransitionOperation};
+use super::{NativeContinuation, NativeExpr, NativeModule};
 
 /// Installs one stable resume entry for every recursive application function.
 ///
@@ -596,13 +596,11 @@ fn attach_reduction_yields(
             }
             if let Some(id) = function_identities.get(*function).copied() {
                 if installed.contains(&id) && yield_continuation_id.is_none() {
-                    let values = std::mem::take(args);
-                    *expr = NativeExpr::Suspend {
-                        operation: NativeTransitionOperation::Yield,
-                        arguments: Vec::new(),
-                        continuation_id: id,
-                        values,
-                    };
+                    // Materialized continuations participate in the same native
+                    // tail component and reduction budget as source functions.
+                    // An unconditional Suspend here forces a VM round trip on
+                    // every generated reentry, even when the slice has budget.
+                    *yield_continuation_id = Some(id);
                 }
             }
         }

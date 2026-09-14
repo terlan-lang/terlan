@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::Mutex;
 
 use super::process::VmProcessId;
 
@@ -12,6 +11,8 @@ mod migration;
 mod state;
 #[path = "actor_directory/transfer.rs"]
 mod transfer;
+#[path = "actor_directory/transition_history.rs"]
+mod transition_history;
 
 use mailbox::VmActorMailbox;
 pub(crate) use mailbox::VmMailboxWake;
@@ -21,6 +22,9 @@ pub(crate) use migration::VmActorMigrationStamp;
 use state::{
     next_generation, ownership_race_error, pack_state, unpack_state, validate_token, VmActorState,
 };
+use transition_history::TransitionHistory;
+#[cfg(test)]
+pub(crate) use transition_history::VmActorTransitionEvent;
 
 const LIFECYCLE_BITS: u32 = 4;
 const GENERATION_BITS: u32 = 20;
@@ -124,23 +128,6 @@ impl VmActorMutatorToken {
     }
 }
 
-/// Stable actor ownership transition identity retained for replay and diagnostics.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct VmActorTransitionEvent {
-    /// Monotonic event sequence within one directory.
-    pub(crate) sequence: u64,
-    /// Actor affected by the transition.
-    pub(crate) handle: VmActorHandle,
-    /// Lifecycle before the transition.
-    pub(crate) from: VmActorLifecycle,
-    /// Lifecycle after the transition.
-    pub(crate) to: VmActorLifecycle,
-    /// Scheduler owner, or zero for unowned transitions.
-    pub(crate) owner: u64,
-    /// Ownership generation visible after the transition.
-    pub(crate) owner_generation: u64,
-}
-
 /// Generation-qualified identity assigned before mailbox storage is mutated.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct VmActorPublication {
@@ -236,8 +223,7 @@ pub(crate) struct VmActorDirectory<T, P = ()> {
     slots: Vec<VmActorSlot<T, P>>,
     free_slots: Vec<u32>,
     actor_slots: BTreeMap<VmProcessId, u32>,
-    events: Mutex<Vec<VmActorTransitionEvent>>,
-    next_event_sequence: AtomicU64,
+    history: TransitionHistory,
 }
 
 impl<T, P> Default for VmActorDirectory<T, P> {
@@ -247,8 +233,7 @@ impl<T, P> Default for VmActorDirectory<T, P> {
             slots: Vec::new(),
             free_slots: Vec::new(),
             actor_slots: BTreeMap::new(),
-            events: Mutex::new(Vec::new()),
-            next_event_sequence: AtomicU64::new(0),
+            history: TransitionHistory::default(),
         }
     }
 }
@@ -812,13 +797,10 @@ impl<T, P> VmActorDirectory<T, P> {
         Ok(cell.value)
     }
 
-    /// Returns the immutable transition log used by replay and diagnostics.
+    /// Returns a complete test trace, rejecting history that exceeded its budget.
     #[cfg(test)]
     pub(crate) fn transition_events(&self) -> Vec<VmActorTransitionEvent> {
-        self.events
-            .lock()
-            .expect("actor transition log mutex must not be poisoned")
-            .clone()
+        self.history.snapshot()
     }
 
     /// Replaces the packed state so tests can verify fail-stop corruption handling.
@@ -957,7 +939,7 @@ impl<T, P> VmActorDirectory<T, P> {
         Ok(cell)
     }
 
-    /// Appends one stable transition identity to the ownership history.
+    /// Observes a transition in tests without retaining production history.
     fn record_transition(
         &self,
         handle: VmActorHandle,
@@ -966,21 +948,8 @@ impl<T, P> VmActorDirectory<T, P> {
         owner: u64,
         owner_generation: u64,
     ) {
-        let sequence = self
-            .next_event_sequence
-            .fetch_add(1, Ordering::AcqRel)
-            .saturating_add(1);
-        self.events
-            .lock()
-            .expect("actor transition log mutex must not be poisoned")
-            .push(VmActorTransitionEvent {
-                sequence,
-                handle,
-                from,
-                to,
-                owner,
-                owner_generation,
-            });
+        self.history
+            .record(handle, from, to, owner, owner_generation);
     }
 }
 

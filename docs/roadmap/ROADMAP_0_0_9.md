@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-13. Baseline: 0.0.8 is published.
+Updated: 2026-09-14. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -20,33 +20,58 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-Draft PR #22 is not ready for merge or publication. Candidate `1c582a51` passes
-the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34775745813):
+Draft PR #22 is not ready for merge or publication. Candidate `2b018189` passes
+the complete hosted [release workflow](https://github.com/terlan-lang/terlan/actions/runs/34779997063):
 all six native platforms, both sanitizer families, the security audit,
 consolidated artifact validation, and distribution attestation. Docs and CodeQL
-also pass. [Compiler CI](https://github.com/terlan-lang/terlan/actions/runs/34775748138)
-passes all owned Rust harnesses, including the migrated production-VM integration
-tests, in 1,382.30 seconds, then fails the file-headroom gate: the tail-position
-test file grew from 1,836 to 1,908 lines inside its no-growth band.
+also pass. [Compiler CI](https://github.com/terlan-lang/terlan/actions/runs/34780000964)
+passes all owned Rust harnesses in 1,417.10 seconds and confirms the tail-position
+file-headroom correction. It then exhausts the unchanged 128 MiB address-space
+limit in the module-structure validator. Local constrained reproduction and
+debugger backtraces identify unbounded production retention of test-only actor
+ownership history. Removing that retention makes the exact failing gate pass
+in 23.80 seconds at 83.4 MiB peak resident memory. A follow-up constrained
+lint-allowance run exposes the same defect in scheduler queue-transition history.
 
-The local correction moves only the nine embedded native-executable harness
-strings into a 484-line support module, reducing the original test file to
-1,436 lines. All test functions, names, assertions, and harness contents are
-preserved. Its 24 tests and workspace Rust formatting pass
-(`target/quality/release-diagnostics/tail-position-headroom-tests.log`).
-The obsolete headroom inventory row is removed because the file is now below
-the warning band; no size limit or allowance is relaxed. The freshly compiled
-current-source validator passes its headroom and module-structure self-tests and
-repository checks (`headroom-current-source-check.log` and
-`tail-position-module-structure-check.log` in the same diagnostics directory).
-Hosted confirmation of this correction remains pending.
+The local correction removes both production histories while preserving actor
+ownership checks, scheduler behavior, and cumulative counters. Test-only traces
+retain a bounded prefix and reject incomplete replay evidence explicitly; no
+trace is silently presented as complete. Regression tests cover storage bounds,
+concurrent actor-event ordering, and scheduler-history cleanup. The 57 scheduler
+tests and 209 actor/profile/control tests pass; the one ignored control helper is
+executed by its passing parent with all eight explicit seeds. The scheduler file
+is below the warning band and the actor-directory no-growth ceiling is reduced
+to its actual size. Both configured Clippy profiles, the rebuilt dormant-runtime
+checker, and constrained module/headroom checks pass. The lint and workspace
+validators initially remained within their memory limit, but reached the existing
+1,048,576-resume limit. Native debugger snapshots show scanner progress between
+resumes; generated continuation re-entry forces a yield on almost every scanner
+step instead of using the existing reduction budget. A new compiled regression
+reproduces that excessive-yield failure before the correction; afterward it
+executes one million steps on a 128 KiB stack with periodic yields and bounded
+resume counts. All 469 NativeIR tests and 25 direct-backend/handler tests pass,
+as do both configured Clippy profiles. The full rebuilt lint scan passes in
+129.35 seconds at 81.4 MiB peak resident memory. Workspace validation then exposes
+a duplicated `getrandom` version in the orchestrator manifest; switching it to
+workspace inheritance preserves the exact dependency and lockfile. The complete
+orchestrator tests pass, and workspace validation passes in 128.81 seconds at
+42 MiB. Module structure and headroom pass in 22.58 and 20.71 seconds, with
+69 near-limit files and zero oversized or inline-test files. No memory, resume,
+or timeout limit is increased. The validator image
+grew from 7,471,880 to 11,969,232 bytes as generated reentry joins native tail
+components. This is a recorded code-size cost for V9-2's pending dispatcher work,
+not a claim that every cost improved. Hosted confirmation remains pending.
+Logs and debugger backtraces are in
+`target/quality/release-diagnostics/` (`generated-reentry-*`,
+`transition-telemetry-*`, `module-structure-bounded-*`, and
+`lint-allowance-bounded-backtrace.log`).
 
 V9-1 still requires complete production cold/warm/resume acceptance. V9-2's
 harness/dispatcher splits and comparative measurements, and V9-3's version
 update and publication, remain open. Active versions are still 0.0.8. The
-latest consolidated hosted final stage measured 8m37s instead of the baseline's
-two stages totaling 18m00s. Total hosted release duration was 73m48s, compared
-with 87m33s for `bb7b3401` and the 80m45s baseline. These are individual hosted
+latest consolidated hosted final stage measured 7m03s instead of the baseline's
+two stages totaling 18m00s. Total hosted release duration was 63m54s, compared
+with 73m48s for `1c582a51` and the 80m45s baseline. These are individual hosted
 observations, not the required reproducible cold/warm/localized-edit comparison.
 
 ### Candidate validation checkpoints
