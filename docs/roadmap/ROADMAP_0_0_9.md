@@ -20,6 +20,22 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Candidate `f7602c02` passes the complete hosted release workflow: six native
+platforms, both sanitizer families, the patched dependency audit, consolidated
+artifact validation and attestation. Compiler CI's canonical Rust report passes
+in 1,410.996 seconds, but its subsequent stdlib summary drift gate fails:
+`Memory.terl` gained three public storage aliases without refreshing its summary.
+The generated correction adds exactly those aliases and updates their source,
+interface and documentation hashes. With the corrected interface embedded in
+the rebuilt compiler, all 206 generated summaries match, both embedded-interface
+tests pass, and the six release-manifest tests cover 85 modules and API tests.
+The follow-on JS binding/review, native-artifact, Rust-backed manifest/adapter,
+backend-primitive, receiver-method, VM-default and negative-API gates also pass.
+Exact-candidate hosted verification remains required after this correction.
+The successful release workflow takes 83m40s including queue/bookkeeping time;
+it does not establish the intended end-to-end speedup. Production cold/warm/
+resume acceptance, V9-2 and V9-3 remain open. No merge or publication is implied.
+
 Candidate `f6f6dc4d` commits the dependency corrections below. Its hosted
 security audit discovers newly published RUSTSEC-2026-0285 affecting locked
 Rustls 0.23.42; the earlier passing audit predates this advisory. The local

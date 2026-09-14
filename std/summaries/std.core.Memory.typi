@@ -6,6 +6,11 @@
 
 module std.core.Memory.
 
+/// Values carried directly in native storage.
+
+pub type Inline =
+    Atom["Inline"].
+
 /// Physical representation selected for one type on the current target.
 ///
 /// `size` and `alignment` are expressed in bytes. They describe a value slot,
@@ -16,6 +21,16 @@ pub struct Layout {
     alignment: Int,
     storage: Storage
 }.
+
+/// Actor-local references with runtime-accounted object payloads.
+
+pub type Managed =
+    Atom["Managed"].
+
+/// Target resources without a portable inspectable representation.
+
+pub type Opaque =
+    Atom["Opaque"].
 
 /// Storage class selected for a Terlan value representation.
 ///
