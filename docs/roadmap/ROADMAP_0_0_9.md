@@ -20,6 +20,25 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Candidate `c68f80bb` passes the complete hosted release workflow in 71m29s,
+including all six native platforms, both sanitizer families, the dependency
+audit, consolidated artifact validation and distribution attestation. Compiler
+CI's owned Rust harnesses pass in 1,403.53 seconds, but the later
+shape-implications gate rejects Binary.decode_protocol_integer's complete
+Boolean/endian tuple case. Finite coverage incorrectly treats constructor alias
+spelling as its runtime atom, so BigEndian does not match Atom["big"] during
+disjointness analysis. A focused regression reproduces the failure; the local
+correction reuses the existing alias-aware matcher. All seven finite-coverage
+tests, the other 814 type-checker tests, the separately executed release
+collection contract, and the exact failing BinaryTest case pass. This is local
+correction evidence, not passing CI for a new candidate. Logs use the
+`finite-alias-` prefix under `target/quality/release-diagnostics/`.
+Both strict workspace Clippy profiles, formatting, API boundaries, module
+structure, file headroom and the refreshed dependency-impact report also pass.
+No analysis, size, dependency or lint allowance budget is increased.
+V9-1 production acceptance, V9-2 and V9-3 remain open; no merge or publication
+is implied by the successful release workflow.
+
 Candidate `53fd1a47` passes the complete hosted release workflow: six native
 platforms, both sanitizer families, the patched dependency audit, consolidated
 artifact validation and attestation. Its duration is 75m05s including scheduling
