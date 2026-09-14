@@ -100,8 +100,8 @@ module math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -153,8 +153,8 @@ module math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -206,8 +206,8 @@ module math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -269,8 +269,8 @@ module stats.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 

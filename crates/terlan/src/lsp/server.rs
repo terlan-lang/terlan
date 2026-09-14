@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use tower_lsp::{LspService, Server};
+use tower_lsp_server::{LspService, Server};
 
 use super::Backend;
 

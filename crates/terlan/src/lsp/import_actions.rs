@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 
 use crate::terlan_hir::load_discovery_interfaces_for_symbol_from_file_set;
-use tower_lsp::lsp_types::{
-    CodeAction, CodeActionKind, Position, Range, TextEdit, Url, WorkspaceEdit,
+use tower_lsp_server::ls_types::{
+    CodeAction, CodeActionKind, Position, Range, TextEdit, Uri, WorkspaceEdit,
 };
 
 /// Auto-import edit candidate for one unresolved Terlan symbol.
@@ -35,7 +35,7 @@ impl ImportActionCandidate {
     /// Transformation:
     /// - Wraps the text edit in a single-file workspace edit so VS Code and
     ///   other LSP clients can apply it directly.
-    pub(crate) fn into_code_action(self, uri: &Url) -> CodeAction {
+    pub(crate) fn into_code_action(self, uri: &Uri) -> CodeAction {
         let mut changes = HashMap::new();
         changes.insert(uri.clone(), vec![self.edit]);
         CodeAction {
@@ -66,7 +66,7 @@ impl ImportActionCandidate {
 ///   visible interfaces for modules/functions that expose that symbol, and
 ///   builds import insertion or same-leaf import replacement edits.
 pub(crate) fn import_code_actions_for_diagnostic(
-    uri: &Url,
+    uri: &Uri,
     text: &str,
     diagnostic_message: &str,
 ) -> Vec<CodeAction> {
@@ -94,7 +94,7 @@ pub(crate) fn import_code_actions_for_diagnostic(
 ///   module leaf or constructor matches `symbol`, and selective function
 ///   import candidates when a public function has the same name.
 pub(crate) fn import_candidates_for_symbol(
-    uri: &Url,
+    uri: &Uri,
     text: &str,
     symbol: &str,
 ) -> Vec<ImportActionCandidate> {
@@ -611,8 +611,8 @@ fn module_leaf(module_name: &str) -> Option<&str> {
 ///
 /// Transformation:
 /// - Uses Tower LSP URL conversion and drops non-file URIs.
-fn source_path_for_uri(uri: &Url) -> Option<PathBuf> {
-    uri.to_file_path().ok()
+fn source_path_for_uri(uri: &Uri) -> Option<PathBuf> {
+    super::uri::to_file_path(uri)
 }
 
 /// Returns compiler-owned fallback module suggestions for shipped std modules.

@@ -1,5 +1,6 @@
 use super::support::*;
 use crate::terlan_syntax::SyntaxDeclarationPayload;
+use std::str::FromStr;
 
 #[tokio::test]
 async fn did_change_is_accepted() -> std_io::Result<()> {
@@ -164,8 +165,8 @@ async fn did_close_is_accepted() -> std_io::Result<()> {
 #[test]
 pub(super) fn track_open_documents() {
     let store = OpenDocuments::default();
-    let uri_one = Url::parse("file:///tmp/module_one.terl").expect("uri");
-    let uri_two = Url::parse("file:///tmp/module_two.terl").expect("uri");
+    let uri_one = Uri::from_str("file:///tmp/module_one.terl").expect("uri");
+    let uri_two = Uri::from_str("file:///tmp/module_two.terl").expect("uri");
 
     assert!(!store.is_open(&uri_one));
     assert_eq!(store.count(), 0);
@@ -253,7 +254,7 @@ pub(super) fn track_open_documents() {
 #[test]
 fn open_script_document_uses_headerless_script_compilation_mode() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/scripts/Smoke.terls").expect("script URI");
+    let uri = Uri::from_str("file:///tmp/scripts/Smoke.terls").expect("script URI");
     let parse_error = store.open(
         uri.clone(),
         "answer = 40 + 2;\nassert_equal(answer, 42);\nanswer.\n".to_string(),
@@ -333,7 +334,7 @@ fn open_documents_format_source_interfaces_scripts_and_not_templates() {
 #[test]
 pub(super) fn adversarial_lsp_diagnostics_isolate_unicode_parse_failures() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/adversarial_unicode.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/adversarial_unicode.terl").expect("uri");
     let source = "\
 module adversarial_unicode.
 
@@ -371,7 +372,7 @@ pub broken(): String ->
 #[test]
 pub(super) fn lsp_document_accepts_string_capture_patterns() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/string_capture_lsp.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/string_capture_lsp.terl").expect("uri");
     let source = r#"
 module string_capture_lsp.
 
@@ -412,7 +413,7 @@ pub route(path: String): String ->
 #[test]
 pub(super) fn lsp_document_rejects_adjacent_string_capture_patterns() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/string_capture_lsp_bad.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/string_capture_lsp_bad.terl").expect("uri");
     let source = r#"
 module string_capture_lsp_bad.
 
@@ -457,7 +458,7 @@ pub route(path: String): String ->
 #[test]
 pub(super) fn lsp_document_accepts_shape_synonym_declarations() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/shape_synonym_lsp.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/shape_synonym_lsp.terl").expect("uri");
     let source = r#"
 module shape_synonym_lsp.
 
@@ -497,7 +498,7 @@ shape OkResponse(body) =
 #[test]
 pub(super) fn open_template_document_skips_source_module_parsing() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/page.terl.html").expect("uri");
+    let uri = Uri::from_str("file:///tmp/page.terl.html").expect("uri");
 
     let parse_error = store.open(
         uri.clone(),
@@ -535,7 +536,7 @@ pub(super) fn open_document_loads_local_typi_interfaces_for_resolution() {
     .expect("write interface");
 
     let store = OpenDocuments::default();
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl")).expect("file uri");
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl")).expect("file uri");
     store.open(
         uri.clone(),
         "module consumer.\n\nimport type provider.{Item}.\n".to_string(),
@@ -567,7 +568,7 @@ pub(super) fn open_document_loads_local_typi_interfaces_for_resolution() {
 #[test]
 pub(super) fn open_document_accepts_trait_backed_receiver_method_call() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/trait-receiver.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/trait-receiver.terl").expect("uri");
     store.open(
         uri.clone(),
         "\

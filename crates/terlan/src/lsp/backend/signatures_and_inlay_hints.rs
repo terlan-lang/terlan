@@ -365,7 +365,7 @@ impl Backend {
     ///   inference.
     pub(in super::super) fn inlay_hints_for_range(
         document: &OpenDocument,
-        uri: &Url,
+        uri: &Uri,
         range: Range,
     ) -> Vec<InlayHint> {
         let Ok(module) = document.parse_syntax() else {

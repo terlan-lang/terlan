@@ -102,24 +102,11 @@ impl PipeScope {
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub(super) fn wrap<T: std::os::fd::AsFd>(&self, pipe: T) -> io::Result<ScopedPipe<T>> {
-        use rustix::fs::{fcntl_getfl, fcntl_setfl, OFlags};
-        fcntl_setfl(&pipe, fcntl_getfl(&pipe)? | OFlags::NONBLOCK)?;
+        terlan_process_owner::pipe::set_nonblocking(&pipe)?;
         Ok(ScopedPipe {
             pipe,
             state: Arc::clone(&self.0),
-            wait: |pipe, writing, timeout| {
-                use rustix::event::{poll, PollFd, PollFlags, Timespec};
-                let flags = if writing {
-                    PollFlags::OUT
-                } else {
-                    PollFlags::IN
-                };
-                let timeout = Timespec::try_from(timeout).map_err(io::Error::other)?;
-                match poll(&mut [PollFd::new(pipe, flags)], Some(&timeout)) {
-                    Ok(_) | Err(rustix::io::Errno::INTR) => Ok(()),
-                    Err(error) => Err(error.into()),
-                }
-            },
+            wait: |pipe, writing, timeout| terlan_process_owner::pipe::wait(pipe, writing, timeout),
         })
     }
 

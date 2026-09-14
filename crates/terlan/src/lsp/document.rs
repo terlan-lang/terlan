@@ -17,7 +17,7 @@ use crate::terlan_typeck::{
     type_check_syntax_module_output_with_database_schema, DiagSeverity,
     Diagnostic as TypeDiagnostic,
 };
-use tower_lsp::lsp_types::{Position, Range, Url};
+use tower_lsp_server::ls_types::{Position, Range, Uri};
 
 /// Open Terlan document tracked by the LSP server.
 ///
@@ -307,12 +307,13 @@ impl DocumentKind {
     /// Transformation:
     /// - Uses the shared editor language-id prefix convention instead of file
     ///   extension parsing so untitled template buffers behave consistently.
-    fn from_document(uri: &Url, language_id: &str) -> Self {
+    fn from_document(uri: &Uri, language_id: &str) -> Self {
         if language_id.starts_with("terlan-template-") {
             Self::Template
         } else if language_id == "terlan-script"
             || uri
                 .path()
+                .as_str()
                 .rsplit('/')
                 .next()
                 .is_some_and(|name| name.ends_with(".terls"))
@@ -337,7 +338,7 @@ impl DocumentKind {
 ///   document state safely.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct OpenDocuments {
-    documents: Arc<Mutex<HashMap<Url, OpenDocument>>>,
+    documents: Arc<Mutex<HashMap<Uri, OpenDocument>>>,
 }
 
 impl OpenDocuments {
@@ -352,7 +353,7 @@ impl OpenDocuments {
     /// Transformation:
     /// - Performs a read-only lookup in the open-document cache.
     #[cfg(test)]
-    pub(crate) fn is_open(&self, uri: &Url) -> bool {
+    pub(crate) fn is_open(&self, uri: &Uri) -> bool {
         self.documents
             .lock()
             .expect("open documents lock")
@@ -376,7 +377,7 @@ impl OpenDocuments {
     ///   source-module parsing and validate through `terlan_html`.
     pub(crate) fn open(
         &self,
-        uri: Url,
+        uri: Uri,
         text: String,
         version: i32,
         language_id: String,
@@ -389,7 +390,7 @@ impl OpenDocuments {
                         DocumentKind::Script => {
                             crate::terlan_syntax::parse_script_as_syntax_output(
                                 &text,
-                                &uri.to_file_path().ok().map_or_else(
+                                &super::uri::to_file_path(&uri).map_or_else(
                                     || "script.Editor".to_string(),
                                     |path| crate::formal_pipeline::script_module_name(&path),
                                 ),
@@ -458,12 +459,12 @@ impl OpenDocuments {
     }
 
     fn database_schema_for_uri(
-        uri: &Url,
+        uri: &Uri,
     ) -> (
         Option<crate::database_schema::DatabaseSchemaSnapshot>,
         Option<String>,
     ) {
-        let Ok(path) = uri.to_file_path() else {
+        let Some(path) = super::uri::to_file_path(uri) else {
             return (None, None);
         };
         match crate::database_schema::DatabaseSchemaSnapshot::discover_for_source(&path) {
@@ -487,10 +488,9 @@ impl OpenDocuments {
     ///   select HTML, Markdown, JSON, TOML, YAML, or text rules. Non-file URIs
     ///   use their URI path as a best-effort suffix source for untitled/editor
     ///   virtual documents.
-    fn template_diagnostics_for_uri(uri: &Url, text: &str) -> Vec<HtmlDiagnostic> {
-        let path = uri
-            .to_file_path()
-            .unwrap_or_else(|_| PathBuf::from(uri.path()));
+    fn template_diagnostics_for_uri(uri: &Uri, text: &str) -> Vec<HtmlDiagnostic> {
+        let path =
+            super::uri::to_file_path(uri).unwrap_or_else(|| PathBuf::from(uri.path().as_str()));
         if let Err(error) = scan_template_interpolations(text) {
             return vec![
                 HtmlDiagnostic::new(Some(path), error.message).with_span(HtmlSpan {
@@ -531,11 +531,10 @@ impl OpenDocuments {
 
     /// Loads the exact local/imported interface closure needed by one module.
     pub(crate) fn imported_interfaces_for_uri(
-        uri: &Url,
+        uri: &Uri,
         module: &crate::terlan_syntax::SyntaxModuleOutput,
     ) -> HashMap<String, ModuleInterface> {
-        uri.to_file_path()
-            .ok()
+        super::uri::to_file_path(uri)
             .map(|path| load_imported_interfaces_from_file_set(&path.to_string_lossy(), module))
             .unwrap_or_default()
     }
@@ -550,7 +549,7 @@ impl OpenDocuments {
     ///
     /// Transformation:
     /// - Mutates only the cache entry for the supplied URI.
-    pub(crate) fn close(&self, uri: &Url) -> Option<OpenDocument> {
+    pub(crate) fn close(&self, uri: &Uri) -> Option<OpenDocument> {
         self.documents
             .lock()
             .expect("open documents lock")
@@ -568,7 +567,7 @@ impl OpenDocuments {
     /// Transformation:
     /// - Keeps diagnostics publishing outside the mutex critical section by
     ///   returning an owned clone.
-    pub(crate) fn snapshot(&self, uri: &Url) -> Option<OpenDocument> {
+    pub(crate) fn snapshot(&self, uri: &Uri) -> Option<OpenDocument> {
         self.documents
             .lock()
             .expect("open documents lock")

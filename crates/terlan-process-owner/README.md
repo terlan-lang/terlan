@@ -14,6 +14,10 @@ Build tools use closed stdin, bounded stdout capture, and a single deadline for
 execution and pipe drainage. VM capability code supplies its own typed framing,
 cancellation, and policy on top of the same child owner.
 
+Linux/macOS `pipe` helpers share nonblocking flag setup and bounded readiness
+waiting between VM pipes and tool capture. They retain caller-owned deadlines
+and cancellation; descriptor readiness never resets either policy.
+
 Observed execution APIs report a PID only after a successful operating-system
 spawn, while the child is still owned. If persisting that observation fails, the
 owner terminates and reaps the child. This accounts for direct child launches;

@@ -44,8 +44,8 @@ pub public_value(): Int ->
   secret().
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -99,8 +99,8 @@ pub(super) fn definition_locations_reject_missing_provider_file() -> std_io::Res
         std::process::id()
     ));
     fs::create_dir_all(&temp_dir)?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -164,8 +164,8 @@ module provider.
 pub to_string(value: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -233,10 +233,10 @@ module pkg.math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -303,10 +303,10 @@ pub pick(value: Int): Int.
 pub pick(value: String): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -381,10 +381,10 @@ import base.{add}.
 export add/2.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let base_uri = Url::from_file_path(base_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid base URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let base_uri = crate::lsp::uri::from_file_path(base_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid base URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -450,8 +450,8 @@ import renamed.{add}.
 export add/2.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -519,10 +519,10 @@ module pkg.generated.Widget.
 pub render(value: String): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -589,10 +589,10 @@ module std.core.Option.
 pub type Option[T].
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -656,10 +656,10 @@ module provider.
 pub type ExternalUser.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -728,10 +728,10 @@ pub struct ExternalUser {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -803,10 +803,10 @@ module provider.
 pub shape UserAsset(id) = \"users/${id}/asset\".
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
