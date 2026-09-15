@@ -193,7 +193,7 @@
       "positive_tests": ["lambda_and_closure_execute", "lambda_variable_pattern_binds_argument"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/compiler/typeck/core_ir.rs::CoreExpr::Lam { params, body }",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering/lambda.rs::Some(CoreExpr::Lam {",
         "crates/terlan/src/compiler/native_ir/closure_conversion.rs::pub(super) fn lower_escaping_lambda"
       ]
     },

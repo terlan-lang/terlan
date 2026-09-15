@@ -59,3 +59,23 @@ fn tuple_arity_and_aliases_use_the_same_disjointness_proof() {
         Some(&tagged("error", CoreType::Int))
     ));
 }
+
+#[test]
+fn singleton_atom_patterns_are_disjoint_from_products_but_not_unknowns() {
+    let pattern = CorePattern::Atom("none".into());
+    assert!(type_excludes_pattern(
+        &pattern,
+        Some(&tagged("some", CoreType::Int))
+    ));
+    assert!(type_excludes_pattern(
+        &pattern,
+        Some(&CoreType::AtomLiteral("absent".into()))
+    ));
+    for ty in [
+        CoreType::Atom,
+        CoreType::Dynamic,
+        CoreType::AtomLiteral("none".into()),
+    ] {
+        assert!(!type_excludes_pattern(&pattern, Some(&ty)));
+    }
+}

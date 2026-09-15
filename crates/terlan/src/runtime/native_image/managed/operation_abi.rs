@@ -41,6 +41,7 @@ mod projection;
 mod session;
 #[path = "operation_abi/string.rs"]
 mod string;
+mod string_pattern;
 #[path = "operation_abi/template.rs"]
 mod template;
 pub use binary_pattern::{
@@ -113,6 +114,11 @@ pub use string::{
     encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
     encode_string_utf8_slice_operation,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use string_pattern::{
+    encode_string_pattern_extract_operation, encode_string_pattern_matches_operation,
+    ManagedStringCaptureKind, ManagedStringPatternSegment,
+};
 pub use template::{encode_template_render_operation, ManagedTemplateValueKind};
 
 const MAGIC: &[u8; 4] = b"TVMO";
@@ -147,6 +153,7 @@ const APPEND_VALUE_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2 + 4;
 pub fn is_managed_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
         || binary_pattern::is_binary_pattern_operation(encoded)
+        || string_pattern::is_string_pattern_operation(encoded)
         || bitstring::is_bitstring_operation(encoded)
         || bytes::is_bytes_operation(encoded)
         || collections::is_collection_operation(encoded)
@@ -175,6 +182,9 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     }
     if binary_pattern::is_binary_pattern_operation(encoded) {
         return binary_pattern::binary_pattern_result_is_reference(encoded);
+    }
+    if string_pattern::is_string_pattern_operation(encoded) {
+        return string_pattern::string_pattern_result_is_reference(encoded);
     }
     if bitstring::is_bitstring_operation(encoded) {
         return bitstring::bitstring_result_is_reference(encoded);
@@ -372,6 +382,9 @@ pub(crate) fn execute_managed_operation_with_context(
         }
         if binary_pattern::is_binary_pattern_operation(encoded) {
             return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
+        }
+        if string_pattern::is_string_pattern_operation(encoded) {
+            return string_pattern::execute_string_pattern_operation(heap, encoded, words);
         }
         if bitstring::is_bitstring_operation(encoded) {
             return bitstring::execute_bitstring_operation(heap, encoded, words);

@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 mod eager_operands;
+mod function_heads;
 
 use crate::terlan_typeck::{
     CoreCaseClause, CoreExpr, CoreFunction, CoreIfClause, CoreLetBinding, CoreModule, CorePattern,
@@ -72,6 +73,16 @@ impl ScalarCaseLowerer {
     /// their concrete VM value type when the source annotation was a
     /// shape-expanded layout rather than ordinary type text.
     fn normalize_function_head(&mut self, function: &mut CoreFunction) -> Result<(), String> {
+        if function.clauses.len() > 1
+            || function.clauses.first().is_some_and(|clause| {
+                clause.guard.is_some()
+                    && clause.core_patterns.iter().zip(&function.params).all(|(pattern, parameter)| {
+                        matches!(pattern, Some(CorePattern::Var(name)) if name == &parameter.name)
+                    })
+            })
+        {
+            return function_heads::normalize(function).map_err(String::from);
+        }
         let [clause] = function.clauses.as_mut_slice() else {
             return Ok(());
         };

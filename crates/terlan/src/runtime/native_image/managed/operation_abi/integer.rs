@@ -81,10 +81,14 @@ fn parse_integer(
     base: u32,
 ) -> Result<Option<i64>, ManagedMemoryError> {
     let text = heap.read_string(super::reference_word(text)?.cast::<ManagedString>())?;
+    Ok(parse_integer_text(text, base))
+}
+
+pub(super) fn parse_integer_text(text: &str, base: u32) -> Option<i64> {
     if text.is_empty() || text.len() > MAX_INTEGER_PARSE_BYTES {
-        return Ok(None);
+        return None;
     }
-    Ok(i64::from_str_radix(text, base).ok())
+    i64::from_str_radix(text, base).ok()
 }
 
 fn format_radix(value: i64, base: u32) -> String {

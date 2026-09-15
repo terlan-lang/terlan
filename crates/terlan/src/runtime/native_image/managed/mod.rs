@@ -116,6 +116,11 @@ pub use operation_abi::{
     ManagedBinaryPatternField, ManagedBitStringOperation, ManagedCookieHeaderOperation,
     ManagedSessionMutation, ManagedTemplateValueKind,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use operation_abi::{
+    encode_string_pattern_extract_operation, encode_string_pattern_matches_operation,
+    ManagedStringCaptureKind, ManagedStringPatternSegment,
+};
 pub use roots::{
     ManagedContinuation, ManagedRoot, RootLocation, StackMapEntry, StackMapRecord, StackMapTable,
     StackRootKind,

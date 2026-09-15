@@ -20,6 +20,7 @@ pub(super) fn type_excludes_pattern(pattern: &CorePattern, core_type: Option<&Co
             .iter()
             .all(|ty| type_excludes_pattern(pattern, Some(ty))),
         (CorePattern::Atom(expected), Some(CoreType::AtomLiteral(actual))) => expected != actual,
+        (CorePattern::Atom(_), Some(CoreType::Tuple(_))) => true,
         (CorePattern::Tuple(patterns), Some(CoreType::Tuple(elements))) => {
             patterns.len() != elements.len()
                 || patterns.iter().zip(elements).any(|(pattern, element)| {
@@ -62,7 +63,7 @@ pub(super) fn core_expr_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(_) => Some(CoreType::Atom),
+        CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) => types.get(name).cloned(),
         CoreExpr::Call { function, args } => {

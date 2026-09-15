@@ -20,6 +20,144 @@ fn core(source: &str) -> CoreModule {
     lower_syntax_module_output_to_core(&module, &resolved)
 }
 
+#[test]
+fn structured_lambda_arguments_retain_aggregate_types() {
+    let module = core(
+        r#"
+module structured_lambda_arguments.
+pub type Pair = {Atom["pair"], Int, Int}.
+pub answer(): Int ->
+    let add = (({left, right}) -> left + right);
+    let head_plus_tail = (([head | tail]) ->
+        case tail { [next] -> head + next; _ -> 0 });
+    let score = ((Pair(_id, size)) -> size * 10);
+    let Pair(_id, bonus) = Pair(0, 2);
+    add({4, 5}) + head_plus_tail([3, 4]) + score(Pair(7, 3)) + bonus.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower aggregate lambdas");
+    let object = emit_native_application_object("aggregate-lambdas", &modules)
+        .expect("emit aggregate lambdas");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("lambda export")
+        .export_id;
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "aggregate-lambdas",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(48),
+        }],
+    );
+}
+
+#[test]
+fn ordered_function_heads_specialize_patterns_and_keep_guard_scope() {
+    let module = core(
+        "module native_function_heads.\n\
+         pair_or_scalar[T](value: T): Int.\n\
+         pair_or_scalar({left, right}) -> left + right;\n\
+         pair_or_scalar(_) -> 0.\n\
+         choose(value: Int): Int.\n\
+         choose(value) where value >= 0 -> 10;\n\
+         choose(1) -> 20;\n\
+         choose(_) -> 30.\n\
+         combine(left: Int, right: Int): Int.\n\
+         combine(x, y) where x > y -> x - y;\n\
+         combine(_, y) -> y.\n\
+         zero(): Int.\n\
+         zero() where false -> 100;\n\
+         zero() -> 0.\n\
+         pub answer(value: Int): Int ->\n\
+             pair_or_scalar({value, 5}) + pair_or_scalar(value)\n\
+             + choose(value) + combine(value, 2) + zero().\n",
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower function heads");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("answer export")
+        .export_id;
+    let object = emit_native_application_object("function-heads", &modules).expect("emit heads");
+    let invocations = [(4, 21), (-1, 36), (1, 18)].map(|(argument, expected)| {
+        super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![argument],
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "function-heads",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
+#[test]
+fn function_head_clause_budget_is_checked_before_normalization() {
+    let mut module = core("module heads_budget.\nf(value: Int): Int -> value.\n");
+    let clause = module.functions[0].clauses[0].clone();
+    module.functions[0].clauses = vec![clause; 257];
+    let error = lower_scalar_cases(&mut module).expect_err("reject excessive head clauses");
+    assert!(
+        error.starts_with("error[native_ir.function_head_budget]"),
+        "{error}"
+    );
+}
+
+#[test]
+fn constant_empty_list_cases_keep_guards_and_skip_unreachable_heads() {
+    let module = core(
+        r#"
+module native_empty_case.
+pub choose(guard: Bool): Int ->
+    case [] {
+        [head | _tail] -> head;
+        [] where guard -> 1;
+        [] -> 2
+    }.
+pub missing(): Int -> case [] { [_head] -> 3 }.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower empty list cases");
+    let object =
+        emit_native_application_object("empty-list-case", &modules).expect("emit empty case");
+    let mut invocations = Vec::new();
+    for (name, arguments, expected_status, expected_result) in [
+        ("choose", vec![1], super::status::OK, Some(1)),
+        ("choose", vec![0], super::status::OK, Some(2)),
+        ("missing", vec![], super::status::NO_MATCHING_BRANCH, None),
+    ] {
+        let export_id = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("empty-case export")
+            .export_id;
+        invocations.push(super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments,
+            expected_status,
+            expected_result,
+        });
+    }
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "empty-list-case",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
 /// Builds retained structured control with a scalar result for operand tests.
 fn structured_operand() -> CoreExpr {
     CoreExpr::Case {

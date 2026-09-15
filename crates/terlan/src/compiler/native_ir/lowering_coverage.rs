@@ -119,9 +119,7 @@ pub(super) fn pattern_coverage(pattern: &CorePattern) -> LoweringCoverage {
         CorePattern::Int(_) => LoweringCoverage::rewritten("Pattern.Int"),
         CorePattern::Float(_) => LoweringCoverage::rewritten("Pattern.Float"),
         CorePattern::String(_) => LoweringCoverage::native("Pattern.String"),
-        CorePattern::StringPattern(_) => {
-            LoweringCoverage::rejected("Pattern.StringPattern", "native_ir.pattern.string_segments")
-        }
+        CorePattern::StringPattern(_) => LoweringCoverage::native("Pattern.StringPattern"),
         CorePattern::Atom(_) => LoweringCoverage::rewritten("Pattern.Atom"),
         CorePattern::Tuple(_) => LoweringCoverage::native("Pattern.Tuple"),
         CorePattern::Alias { .. } => LoweringCoverage::rewritten("Pattern.Alias"),

@@ -529,7 +529,7 @@ pub(super) fn structural_constructor_fields(
             }
         }
         CoreType::Union(variants) => variants.iter().enumerate().find_map(|(index, variant)| {
-            if name == "None" && matches!(variant, CoreType::AtomLiteral(atom) if atom == "none") {
+            if matches!(variant, CoreType::AtomLiteral(atom) if name.eq_ignore_ascii_case(atom)) {
                 return Some((
                     u32::try_from(index).ok()?,
                     u32::try_from(variants.len()).ok()?,
