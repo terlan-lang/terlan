@@ -26,7 +26,7 @@ pub(super) fn compile_vm_module(
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
     if state.incremental {
         if let Some(compiled) =
-            checked_cache::load_checked_implementation(path, &source_text, state)
+            checked_cache::load_checked_implementation(path, &source_text, state)?
         {
             return Ok(CompiledVmModule {
                 source_path: path.to_string(),

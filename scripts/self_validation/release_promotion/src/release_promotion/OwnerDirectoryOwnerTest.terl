@@ -1,0 +1,242 @@
+/**
+ * Directory generations participate in normal owner and dependency reuse.
+ */
+module release_promotion.OwnerDirectoryOwnerTest.
+
+import release_promotion.{OwnerArtifacts, OwnerCommit, OwnerDirectory, OwnerDirectoryContract, OwnerNative, OwnerOutputs, OwnerStorage, PreparationGraph, PreparationOwner}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationOwner.Owner.
+
+contracts(): Bool ->
+    let old = OwnerDirectoryContract.declare_member("old.json", "directory.v1");
+    let unsafe = OwnerDirectoryContract.declare_member("../outside.json", "directory.v1");
+    let duplicate = OwnerArtifacts.declare_directory(output(), "DIRECTORY_OUTPUT", [old, old]);
+    let empty = OwnerArtifacts.declare_directory(output(), "DIRECTORY_OUTPUT", []);
+    let overlap =
+        OwnerArtifacts.declare_artifact(
+            String.append(output(), "/other.json"),
+            "OTHER_OUTPUT",
+            "directory.v1",
+        );
+    let duplicate_owner = PreparationOwner.with_output(selected("old.json"), duplicate);
+    let empty_owner = PreparationOwner.with_output(selected("old.json"), empty);
+    let overlapping_owner = PreparationOwner.with_additional_outputs(selected("old.json"), [overlap]);
+    not OwnerDirectoryContract.valid([unsafe])
+        and not PreparationOwner.valid_declaration(duplicate_owner)
+        and not PreparationOwner.valid_declaration(empty_owner)
+        and not PreparationOwner.valid_declaration(overlapping_owner).
+
+schema_rejections(root: String): Bool ->
+    let path = OwnerStorage.child(root, output());
+    let wrong_name = OwnerDirectoryContract.declare_member("wrong.json", "directory.v1");
+    let wrong_schema = OwnerDirectoryContract.declare_member("old.json", "wrong.v1");
+    not OwnerDirectoryContract.schemas(path, [wrong_name])
+        and not OwnerDirectoryContract.schemas(path, [wrong_schema]).
+
+directory_edges(): Bool ->
+    let producer = PreparationGraph.declare_node(selected("old.json"), []);
+    let reader = PreparationOwner.with_dependencies(consumer(), [String.append(output(), "/old.json")]);
+    let {
+        Err(_undeclared) <- PreparationGraph.validate([producer, PreparationGraph.declare_node(reader, [])]);
+        Ok(_declared) <-
+            PreparationGraph.validate(
+                [producer, PreparationGraph.declare_node(reader, ["directory"])],
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+output(): String -> "target/quality/native-boundary".
+
+work(): String -> "target/quality/preparation/candidate/directory.work".
+
+staged(): String ->
+    String.append(work(), "/output.json").
+
+selected(name: String): Owner ->
+    PreparationOwner.with_output(
+        PreparationOwner.owner(
+            "directory",
+            "candidate",
+            "linux-x64",
+            "fixture",
+            "fixture-v1",
+            ["producer.sh", "input"],
+            [],
+            "/bin/sh",
+            ["producer.sh", name],
+            [environment_entry("PATH", "/usr/bin:/bin")],
+            output(),
+            "DIRECTORY_OUTPUT",
+            "unused",
+            "completed",
+            30000,
+        ),
+        OwnerArtifacts.declare_directory(
+            output(),
+            "DIRECTORY_OUTPUT",
+            [OwnerDirectoryContract.declare_member(name, "directory.v1")],
+        ),
+    ).
+
+consumer(): Owner ->
+    PreparationOwner.owner(
+        "consumer",
+        "candidate",
+        "linux-x64",
+        "fixture",
+        "fixture-v1",
+        ["consumer.sh"],
+        [],
+        "/bin/sh",
+        ["consumer.sh"],
+        [environment_entry("PATH", "/usr/bin:/bin")],
+        "target/quality/consumer.json",
+        "CONSUMER_OUTPUT",
+        "consumer.v1",
+        "completed",
+        30000,
+    ).
+
+write(root: String, path: String, source: String): Bool ->
+    File.write_text(OwnerStorage.child(root, path), source) == Ok(Unit).
+
+fixture(root: String): Bool ->
+    write(root, "input", "initial")
+        and write(
+    root,
+    "producer.sh",
+    "set -eu\necho run >> calls\nmkdir \"$DIRECTORY_OUTPUT\"\nprintf '{\"schema\":\"directory.v1\"}\\n' > \"$DIRECTORY_OUTPUT/$1\"\ntest \"$(cat input)\" != fail\necho completed\n",
+)
+        and write(
+    root,
+    "consumer.sh",
+    "set -eu\necho run >> consumers\nprintf '{\"schema\":\"consumer.v1\"}\\n' > \"$CONSUMER_OUTPUT\"\necho completed\n",
+).
+
+graph(root: String, name: String): Bool ->
+    PreparationGraph.run_locked(
+    root,
+    "directory",
+    [
+        PreparationGraph.declare_node(selected(name), []),
+        PreparationGraph.declare_node(consumer(), ["directory"]),
+    ],
+).valid.
+
+replacement(root: String): Bool ->
+    let {
+        true <- fixture(root);
+        true <- graph(root, "old.json");
+        true <- schema_rejections(root);
+        true <- graph(root, "old.json");
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "consumers"));
+        Ok(prior) <- OwnerOutputs.files(root, [output()]);
+        true <- write(root, "input", "fail");
+        false <- graph(root, "new.json");
+        Ok(retained) <- OwnerOutputs.files(root, [output()]);
+        true <- OwnerStorage.digest(prior) == OwnerStorage.digest(retained);
+        true <- write(root, "input", "changed");
+        true <- graph(root, "new.json");
+        true <- graph(root, "new.json");
+        Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Ok("run\nrun\n") <- File.read_text(OwnerStorage.child(root, "consumers"));
+        Err(_old) <- File.read_text(OwnerStorage.child(root, String.append(output(), "/old.json")));
+        true <- write(root, String.append(output(), "/unexpected.json"), "unexpected");
+        true <- graph(root, "new.json");
+        true <- graph(root, "new.json");
+        Ok("run\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Err(_extra) <- File.read_text(OwnerStorage.child(root, String.append(output(), "/unexpected.json")))
+    } else {
+        _ -> false
+    };
+    true.
+
+prepare_recovery(root: String): Bool ->
+    let owner = selected("old.json");
+    let {
+        true <- fixture(root);
+        true <- PreparationOwner.run_locked(root, owner).valid;
+        Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+        Ok(snapshot) <-
+            OwnerNative.read_snapshot(
+                OwnerStorage.child(root, PreparationOwner.activity_path(owner)),
+            );
+        Ok(_stage) <- Directory.create_all(OwnerStorage.child(root, staged()));
+        true <-
+            write(
+                root,
+                String.append(staged(), "/old.json"),
+                "{\"schema\":\"directory.v1\",\"generation\":2}",
+            );
+        true <-
+            OwnerCommit.prepare_many(
+                root,
+                PreparationOwner.ledger_path(owner),
+                [OwnerCommit.declare_directory(staged(), output())],
+                String.append(work(), "/retained-native.jsonl"),
+                PreparationOwner.activity_path(owner),
+                state,
+                snapshot,
+            )
+    } else {
+        _ -> false
+    };
+    OwnerStorage.command(
+        root,
+        "/usr/bin/mv",
+        [
+            "-T",
+            "--",
+            OwnerStorage.child(root, output()),
+            OwnerStorage.child(root, OwnerDirectory.backup(staged())),
+        ],
+    ).
+
+recovery(root: String): Bool ->
+    let owner = selected("old.json");
+    let {
+        true <- prepare_recovery(root);
+        true <- PreparationOwner.run_locked(root, owner).valid;
+        true <- PreparationOwner.run_locked(root, owner).reused;
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Ok("{\"schema\":\"directory.v1\",\"generation\":2}") <- File.read_text(OwnerStorage.child(root, String.append(output(), "/old.json")));
+        Err(_removed) <- Directory.entries(OwnerStorage.child(root, work()))
+    } else {
+        _ -> false
+    };
+    true.
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-directory-owner-") else {
+        _ -> false
+    };
+    (let valid =
+    if {
+        mode == "replacement" -> replacement(root);
+        true -> recovery(root)
+    };
+let removed = Directory.remove_all(root) == Ok(Unit);
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[directory owner] ",
+                mode,
+                if {
+                    valid and removed -> ": passed";
+                    true -> ": failed"
+                },
+            ],
+        ),
+    );
+valid and removed).
+
+pub self_test(): Bool ->
+    contracts() and directory_edges() and scenario("replacement") and scenario("recovery").

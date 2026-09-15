@@ -7,10 +7,11 @@ use sha2::{Digest, Sha256};
 
 use super::QualityResult;
 
-const GATE_REPORT: &str = "build/artifacts/lean-proof-gate.json";
-const LANE_REPORT: &str = "build/artifacts/lean-proof-lanes.json";
-const SMOKE_REPORT: &str = "build/artifacts/lean-proof-smoke.json";
-const BASELINE: &str = "build/artifacts/lean-proof-baseline.tsv";
+const GATE_REPORT: &str = "target/quality/proof-artifacts/lean-proof-gate.json";
+const LANE_REPORT: &str = "target/quality/proof-artifacts/lean-proof-lanes.json";
+const SMOKE_REPORT: &str = "target/quality/proof-artifacts/lean-proof-smoke.json";
+const SMOKE_ATTEMPT: &str = "target/quality/proof-artifacts/lean-proof-smoke-attempt.json";
+const BASELINE: &str = "target/quality/proof-artifacts/lean-proof-baseline.tsv";
 const TOOLCHAIN: &str = "proofs/lean/lean-toolchain";
 const LAKE_MANIFEST: &str = "proofs/lean/lake-manifest.json";
 const EXPECTED_CLASSES: &[&str] = &[
@@ -139,6 +140,18 @@ pub fn run_lean_proof_closeout(root: &Path) -> QualityResult<LeanProofCloseoutSu
     let gate = parse_gate_report(&gate_text)?;
     let lanes = parse_lane_report(&lane_text)?;
     let smoke = parse_smoke_report(&smoke_text)?;
+    let attempt: serde_json::Value =
+        serde_json::from_str(&read(root, SMOKE_ATTEMPT)?).map_err(|error| {
+            format!("error[lean_proof_closeout_smoke]: invalid current attempt: {error}")
+        })?;
+    if attempt["schema"] != "terlan.lean-proof-smoke-attempt.v1"
+        || attempt["decision"] != "pass"
+        || attempt["report_sha256"] != sha256_text(&smoke_text)
+    {
+        diagnostics.push(
+            "error[lean_proof_closeout_smoke]: no matching completed current smoke attempt".into(),
+        );
+    }
     let baseline = parse_baseline(&baseline_text)?;
     diagnostics.extend(validate_family_schema(&gate.families));
     diagnostics.extend(validate_lanes(&gate, &lanes));

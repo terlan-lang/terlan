@@ -395,6 +395,76 @@ pub render(pair: {Int, String}): String ->
     );
 }
 
+#[test]
+fn lint_counts_grouped_binding_uses_in_later_initializers() {
+    let source = r#"
+module sample.
+value(input: Result[Int, String]): Int ->
+    let {
+        Ok(first) <- input;
+        Ok(second) <- next(first)
+    } else {
+        _ -> 0
+    };
+    second.
+"#;
+    crate::terlan_syntax::parse_module_as_syntax_output(source)
+        .expect("valid grouped binding source");
+    let diagnostics = lint_source(Path::new("Sample.terl"), source);
+    assert!(
+        diagnostics.iter().all(|item| item.rule_id != "TL0004"),
+        "later initializer uses first: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_counts_grouped_binding_uses_in_later_boolean_guards() {
+    let source = r#"
+module sample.
+value(input: Result[Int, String]): Int ->
+    let {
+        Ok(first) <- input;
+        true <- first > 0
+    } else {
+        _ -> 0
+    };
+    1.
+"#;
+    crate::terlan_syntax::parse_module_as_syntax_output(source)
+        .expect("valid grouped guard source");
+    let diagnostics = lint_source(Path::new("Sample.terl"), source);
+    assert!(
+        diagnostics.iter().all(|item| item.rule_id != "TL0004"),
+        "later guard uses first: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_keeps_genuinely_unused_grouped_binding_diagnostics() {
+    let source = r#"
+module sample.
+value(unused: Int): Int ->
+    let {
+        Ok(unused) <- next(unused);
+        Ok(second) <- next(1)
+    } else {
+        _ -> unused
+    };
+    second.
+"#;
+    crate::terlan_syntax::parse_module_as_syntax_output(source)
+        .expect("valid grouped shadowing source");
+    let diagnostics = lint_source(Path::new("Sample.terl"), source);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .filter(|item| item.rule_id == "TL0004")
+            .count(),
+        1,
+        "own initializer and fallback use the outer binding, not the new one: {diagnostics:?}"
+    );
+}
+
 /// Verifies clause patterns are covered by the same destructuring rule.
 #[test]
 fn lint_reports_unused_destructured_case_binding() {

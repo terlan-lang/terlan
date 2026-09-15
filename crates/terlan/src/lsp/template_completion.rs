@@ -4,12 +4,14 @@ use crate::terlan_html::{
     extract_template_metadata, template_attribute_slot_kind, template_interpolation_at_offset,
     TemplateAttributeSlotKind, TemplateInterpolationContext,
 };
-use tower_lsp::lsp_types::{CompletionItem, CompletionItemKind, Documentation, Position, Url};
+use tower_lsp_server::ls_types::{
+    CompletionItem, CompletionItemKind, Documentation, Position, Uri,
+};
 
 use super::document::OpenDocument;
 
 pub(super) fn template_completion_items(
-    uri: &Url,
+    uri: &Uri,
     document: &OpenDocument,
     position: Position,
 ) -> Vec<CompletionItem> {
@@ -19,9 +21,7 @@ pub(super) fn template_completion_items(
     let Ok(Some(region)) = template_interpolation_at_offset(&document.text, offset) else {
         return Vec::new();
     };
-    let path = uri
-        .to_file_path()
-        .unwrap_or_else(|_| PathBuf::from(uri.path()));
+    let path = super::uri::to_file_path(uri).unwrap_or_else(|| PathBuf::from(uri.path().as_str()));
     let Ok(metadata) = extract_template_metadata(&document.text, &path) else {
         return Vec::new();
     };

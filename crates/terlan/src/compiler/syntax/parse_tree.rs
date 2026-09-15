@@ -238,6 +238,8 @@ pub struct MethodDecl {
 #[derive(Debug, Clone)]
 pub struct FunctionClause {
     pub patterns: Vec<Pattern>,
+    /// Explicit lambda parameter annotations, aligned with patterns when present.
+    pub parameter_types: Vec<Option<TypeExpr>>,
     pub body: Expr,
     pub span: Span,
     pub guard: Option<Box<Expr>>,

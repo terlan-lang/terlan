@@ -1,0 +1,300 @@
+module release_promotion.OwnerCommitTest.
+
+import release_promotion.{OwnerArtifacts, OwnerCommit, OwnerNative, OwnerStorage, PreparationOwner}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+import std.system.Process.
+
+import type release_promotion.OwnerCommit.Publication.
+import type release_promotion.PreparationOwner.Owner.
+
+selected(): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "commit",
+            "candidate",
+            "linux-x64",
+            "fixture",
+            "fixture-v1",
+            ["producer.sh", "input"],
+            [],
+            "/bin/sh",
+            ["producer.sh"],
+            [Process.environment_entry("PATH", "/usr/bin:/bin")],
+            "target/quality/commit.json",
+            "OWNER_OUTPUT",
+            "commit.v1",
+            "completed",
+            30000,
+        ),
+        [
+            OwnerArtifacts.declare_artifact(
+                "target/quality/second.json",
+                "SECOND_OUTPUT",
+                "commit.v1",
+            ),
+            OwnerArtifacts.declare_artifact(
+                "target/quality/third.json",
+                "THIRD_OUTPUT",
+                "commit.v1",
+            ),
+        ],
+    ).
+
+work(): String -> "target/quality/preparation/candidate/commit.work".
+
+staged(): String ->
+    String.append(work(), "/output.json").
+
+native(): String ->
+    String.append(work(), "/retained-native.jsonl").
+
+second(): String ->
+    String.append(work(), "/output-1.json").
+
+third(): String ->
+    String.append(work(), "/output-2.json").
+
+publications(): List[Publication] ->
+    [
+        OwnerCommit.declare_publication(staged(), selected().output),
+        OwnerCommit.declare_publication(second(), "target/quality/second.json"),
+        OwnerCommit.declare_publication(third(), "target/quality/third.json"),
+    ].
+
+prepare(root: String): Bool ->
+    let {
+        Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_input) <- File.write_text(OwnerStorage.child(root, "input"), "source");
+        Ok(_producer) <-
+            File.write_text(
+                OwnerStorage.child(root, "producer.sh"),
+                "set -eu\necho run >> calls\nfor output in \"$OWNER_OUTPUT\" \"$SECOND_OUTPUT\" \"$THIRD_OUTPUT\"; do printf '{\"schema\":\"commit.v1\",\"generation\":1}\\n' > \"$output\"; done\necho completed\n",
+            )
+    } else {
+        _ -> false
+    };
+    (let owner = selected();
+let first = PreparationOwner.run_locked(root, owner);
+(let {
+    true <- first.valid;
+    Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+    Ok(snapshot) <- OwnerNative.read_snapshot(OwnerStorage.child(root, PreparationOwner.activity_path(owner)));
+    Ok(_work) <- Directory.create_all(OwnerStorage.child(root, work()));
+    Ok(_output) <-
+        File.write_text(
+            OwnerStorage.child(root, staged()),
+            "{\"schema\":\"commit.v1\",\"generation\":2}\n",
+        );
+    Ok(_second) <-
+        File.write_text(
+            OwnerStorage.child(root, second()),
+            "{\"schema\":\"commit.v1\",\"generation\":2}\n",
+        );
+    Ok(_third) <-
+        File.write_text(
+            OwnerStorage.child(root, third()),
+            "{\"schema\":\"commit.v1\",\"generation\":2}\n",
+        );
+    Ok(_raw) <- File.write_text(OwnerStorage.child(root, String.append(work(), "/native.jsonl")), "")
+} else {
+    _ -> false
+};
+OwnerCommit.prepare_many(
+    root,
+    PreparationOwner.ledger_path(owner),
+    publications(),
+    native(),
+    PreparationOwner.activity_path(owner),
+    state,
+    snapshot,
+))).
+
+advance(root: String, phase: String): Bool ->
+    let owner = selected();
+    let {
+        Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+        Ok(outputs) <- state.get("outputs");
+        Ok(output) <- outputs.at(0);
+        Ok(second_output) <- outputs.at(1);
+        Ok(third_output) <- outputs.at(2);
+        Ok(log) <- outputs.at(3)
+    } else {
+        _ -> false
+    };
+    if {
+        phase == "prepared" -> true;
+        phase == "corrupt-native" -> case File.write_text(OwnerStorage.child(root, native()), "corrupt") {
+            Ok(_written) -> true;
+            _ -> false
+        };
+        phase == "corrupt-stage" -> case File.write_text(OwnerStorage.child(root, staged()), "corrupt") {
+            Ok(_written) -> true;
+            _ -> false
+        };
+        phase == "corrupt-third" -> case File.write_text(OwnerStorage.child(root, third()), "corrupt") {
+            Ok(_written) -> true;
+            _ -> false
+        };
+        phase == "changed-input" or phase == "changed-input-fails" -> let Ok(_written) <- File.write_text(OwnerStorage.child(root, "input"), "changed") else {
+            _ -> false
+        };
+        if {
+            phase == "changed-input" -> true;
+            true -> let {
+                Ok(script) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
+                Ok(_changed) <-
+                    File.write_text(
+                        OwnerStorage.child(root, "producer.sh"),
+                        String.append(script, "exit 7\n"),
+                    )
+            } else {
+                _ -> false
+            };
+            true
+        };
+        phase == "sealed" -> case OwnerCommit.complete_many(
+    root,
+    PreparationOwner.ledger_path(owner),
+    publications(),
+    native(),
+    PreparationOwner.activity_path(owner),
+    state,
+) {
+            Ok(_report) -> true;
+            _ -> false
+        };
+        true -> OwnerCommit.publish_file(root, staged(), owner.output, output)
+            and if {
+    phase == "output" -> true;
+    phase == "corrupt-final" -> case File.write_text(OwnerStorage.child(root, owner.output), "corrupt") {
+        Ok(_written) -> true;
+        _ -> false
+    };
+    true -> OwnerCommit.publish_file(root, second(), "target/quality/second.json", second_output)
+        and if {
+    phase == "second" -> true;
+    true -> OwnerCommit.publish_file(root, third(), "target/quality/third.json", third_output)
+        and if {
+    phase == "third" -> true;
+    true -> OwnerCommit.publish_file(root, native(), PreparationOwner.activity_path(owner), log)
+}
+}
+}
+    }.
+
+verify(root: String, phase: String): Bool ->
+    let owner = selected();
+    let resumed = PreparationOwner.run_locked(root, owner);
+    let {
+        Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls"));
+        true <-
+            calls == if {
+    phase == "changed-input" or phase == "changed-input-fails" -> "run\nrun\n";
+    true -> "run\n"
+};
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+        Some(outcome) <- OwnerStorage.text(ledger, "outcome")
+    } else {
+        _ -> false
+    };
+    if {
+        phase == "corrupt-native" or phase == "corrupt-third" -> let {
+            Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, owner.output));
+            Ok(value) <- document.get("generation");
+            Ok(1) <- value.as_int()
+        } else {
+            _ -> false
+        };
+        not resumed.valid and outcome == "prepared";
+        phase == "corrupt-stage" or phase == "corrupt-final" -> not resumed.valid and outcome == "prepared";
+        phase == "changed-input" -> let again = PreparationOwner.run_locked(root, owner);
+        let Ok(updated_calls) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+            _ -> false
+        };
+        resumed.valid
+            and not resumed.reused
+            and outcome == "pass"
+            and again.valid
+            and again.reused
+            and updated_calls == "run\nrun\n"
+            and outputs_have_generation(root, 1);
+        phase == "changed-input-fails" -> not resumed.valid and outcome == "failed" and outputs_have_generation(root, 2);
+        true -> let {
+            Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, owner.output));
+            Ok(value) <- document.get("generation");
+            Ok(generation) <- value.as_int();
+            Ok(second_document) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/second.json"));
+            Ok(third_document) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/third.json"));
+            true <- OwnerStorage.digest(second_document) == OwnerStorage.digest(document);
+            true <- OwnerStorage.digest(third_document) == OwnerStorage.digest(document);
+            Ok(usage) <-
+                Directory.tree_usage(
+                    OwnerStorage.child(root, "target/quality/preparation/candidate"),
+                )
+        } else {
+            _ -> false
+        };
+        resumed.valid
+            and resumed.reused
+            and outcome == "pass"
+            and generation == 2
+            and usage.regular_file_count == 2
+    }.
+
+outputs_have_generation(root: String, expected: Int): Bool ->
+    let {
+        Ok(first) <- OwnerStorage.read_json(OwnerStorage.child(root, selected().output));
+        Ok(second) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/second.json"));
+        Ok(third) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/third.json"));
+        Ok(value) <- first.get("generation");
+        Ok(generation) <- value.as_int()
+    } else {
+        _ -> false
+    };
+    generation == expected
+        and OwnerStorage.digest(first) == OwnerStorage.digest(second)
+        and OwnerStorage.digest(first) == OwnerStorage.digest(third).
+
+scenario(phase: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-owner-commit-") else {
+        _ -> false
+    };
+    (let passed = prepare(root) and advance(root, phase) and verify(root, phase);
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[owner commit test] ",
+                phase,
+                ": ",
+                if {
+                    passed -> "passed";
+                    true -> "failed"
+                },
+            ],
+        ),
+    );
+let cleaned =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+passed and cleaned).
+
+pub self_test(): Bool ->
+    scenario("prepared")
+        and scenario("output")
+        and scenario("second")
+        and scenario("third")
+        and scenario("both")
+        and scenario("sealed")
+        and scenario("corrupt-stage")
+        and scenario("corrupt-final")
+        and scenario("corrupt-native")
+        and scenario("corrupt-third")
+        and scenario("changed-input")
+        and scenario("changed-input-fails").

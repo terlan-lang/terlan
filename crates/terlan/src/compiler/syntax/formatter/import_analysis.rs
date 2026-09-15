@@ -627,6 +627,9 @@ pub(super) fn collect_type_refs_from_function_clause(
     clause: &crate::terlan_syntax::parse_tree::FunctionClause,
     counts: &mut BTreeMap<String, usize>,
 ) {
+    for annotation in clause.parameter_types.iter().flatten() {
+        collect_type_refs_from_type_text(&annotation.text, counts);
+    }
     if let Some(guard) = &clause.guard {
         collect_type_refs_from_expr(guard, counts);
     }

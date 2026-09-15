@@ -7,6 +7,13 @@ families while keeping every broader obligation explicit in the gap manifest.
 
 The gate is `make lean-proof-track-check`.
 
+Focused consumers use `target/debug/terlan-quality lean-proof-replay` followed by
+one or more exact `proofs/lean/*.lean` paths. This shares the track's isolated
+replicas and Linux checkpoints; it never overwrites complete track reports with
+a partial selection. Smoke and semantic-kernel checks batch their proof paths,
+then run their distinct runtime oracles. Rust oracles must execute one passing,
+non-ignored test: a successful process with zero matching tests is not evidence.
+
 ## Inventories
 
 - `docs/compiler/proof_track/lean_proof_inventory.tsv` classifies every Lean
@@ -82,6 +89,9 @@ The gate is `make lean-proof-track-check`.
   without renewing the hash therefore fails the gate.
 - `lean-proof-gate.json` records maximum unresolved `gap_staleness_days`, aggregate
   `gap_classification_confidence`, unresolved-open count, and per-gap metrics.
+- `lean-proof-runtime-policy.json` separately records validated runner
+  configuration. Its limits are policy, not measured CPU, memory, or I/O usage;
+  running that check does not replace completed proof verdicts.
 - A proof gap planned gate must be an existing `*-check` Make target, and the
   owner must be one of the accepted proof-track owner groups.
 - `make lean-proof-track-gap-hygiene-check` rejects exact feature overlap

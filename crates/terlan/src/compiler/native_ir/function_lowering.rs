@@ -430,47 +430,11 @@ pub(super) fn lower_native_function_with_callables(
     ))
 }
 
-/// Recovers the source declaration represented by a concrete generic clone.
-///
-/// Generic specialization symbols retain the fully qualified template name so
-/// a clone emitted into a consumer module can still point debugger metadata at
-/// the declaration that supplied its body. Runtime dispatch continues to use
-/// the consumer module and generated symbol independently of this provenance.
+/// Keeps source provenance independent of generated symbols and capture arities.
 fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String, String, usize) {
-    if let Some((source_function, source_arity)) = generated_list_builder_origin(&function.name) {
-        return (module.to_string(), source_function, source_arity);
-    }
-    let origin = function
-        .name
-        .strip_prefix("$aot_generic_")
-        .and_then(|name| name.rsplit_once('_').map(|(qualified, _ordinal)| qualified))
-        .and_then(|qualified| qualified.rsplit_once('.'));
-    match origin {
-        Some((source_module, source_function))
-            if !source_module.is_empty() && !source_function.is_empty() =>
-        {
-            (
-                source_module.to_string(),
-                source_function.to_string(),
-                function.arity,
-            )
-        }
-        _ => (module.to_string(), function.name.clone(), function.arity),
-    }
+    let source = function.source_declaration(module);
+    (source.module, source.function, source.arity)
 }
-
-/// Recovers the source owner encoded in a synthesized list-builder symbol.
-fn generated_list_builder_origin(name: &str) -> Option<(String, usize)> {
-    let encoded = name
-        .strip_prefix("$aot_list_builder_")
-        .or_else(|| name.strip_prefix("$aot_list_reverse_"))?;
-    let (source, arity) = encoded.rsplit_once('_')?;
-    let arity = arity.parse().ok()?;
-    (!source.is_empty()).then(|| (source.to_string(), arity))
-}
-
-/// Retains a concrete generic return type at the construction that produces it.
-/// CoreIR record/constructor nodes do not carry their surrounding expected
 /// type, while direct AOT needs that type to choose an exact managed semantic
 /// identity. Only tail constructions are annotated, so evaluation order and
 /// non-tail inference remain unchanged.
@@ -912,6 +876,15 @@ fn expr_is_native_condition(expr: &CoreExpr) -> bool {
 
 fn expr_is_native_condition_at_depth(expr: &CoreExpr, depth: usize) -> bool {
     if expr_is_scalar(expr) {
+        return true;
+    }
+    // Structured cases are expressions, including in Boolean conditions.
+    // Their calls use the same composition and lexical matcher as case-valued
+    // let bindings; admission must not require a source-level temporary.
+    if matches!(expr, CoreExpr::Case { .. })
+        && depth < MAX_NATIVE_CONDITION_COMPOSITION_DEPTH
+        && expr_is_native_control(expr)
+    {
         return true;
     }
     if condition_yield_region(expr).is_some_and(|region| {

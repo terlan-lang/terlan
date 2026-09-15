@@ -29,8 +29,8 @@ async fn definition_request_returns_provider_location_for_imported_reference() -
         temp_dir.join("provider.terli"),
         "module provider.\n\npub to_string(value: Int): String.\n",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_definitions.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_definitions.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -62,7 +62,7 @@ async fn definition_request_returns_provider_location_for_imported_reference() -
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_definitions.\n\nimport provider.{{to_string}}.\n\npub caller(): String ->\n  to_string(1).\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -75,7 +75,7 @@ async fn definition_request_returns_provider_location_for_imported_reference() -
 
     let definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":4}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &definition_payload).await?;
     let definition_response = timeout(
@@ -88,9 +88,11 @@ async fn definition_request_returns_provider_location_for_imported_reference() -
     assert!(
         definition_response.contains(&format!(
             r#""uri":"{}""#,
-            Url::from_file_path(temp_dir.join("provider.terli")).map_err(|()| {
-                std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
-            })?
+            crate::lsp::uri::from_file_path(temp_dir.join("provider.terli"))
+                .map_err(|_| {
+                    std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
+                })?
+                .as_str()
         )),
         "{definition_response}"
     );
@@ -166,8 +168,8 @@ pub struct ExternalUser {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_field_definitions.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_field_definitions.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -199,7 +201,7 @@ pub struct ExternalUser {
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_field_definitions.\n\nimport type provider.{{ExternalUser}}.\n\npub user_name(user: ExternalUser): String ->\n  user.name.\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -212,7 +214,7 @@ pub struct ExternalUser {
 
     let definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":8}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &definition_payload).await?;
     let definition_response = timeout(
@@ -225,9 +227,11 @@ pub struct ExternalUser {
     assert!(
         definition_response.contains(&format!(
             r#""uri":"{}""#,
-            Url::from_file_path(temp_dir.join("provider.terli")).map_err(|()| {
-                std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
-            })?
+            crate::lsp::uri::from_file_path(temp_dir.join("provider.terli"))
+                .map_err(|_| {
+                    std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
+                })?
+                .as_str()
         )),
         "{definition_response}"
     );
@@ -296,10 +300,10 @@ async fn definition_request_returns_provider_location_for_imported_shape_referen
         &provider_path,
         "module provider.\n\npub shape UserAsset(id) = \"users/${id}/asset\".\n",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_shapes.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_shapes.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -331,7 +335,7 @@ async fn definition_request_returns_provider_location_for_imported_shape_referen
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_shapes.\n\nimport provider.{{UserAsset}}.\n\npub route_name(): Dynamic ->\n  UserAsset.\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let _ = timeout(
@@ -343,7 +347,7 @@ async fn definition_request_returns_provider_location_for_imported_shape_referen
 
     let definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":3}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &definition_payload).await?;
     let definition_response = timeout(
@@ -354,7 +358,7 @@ async fn definition_request_returns_provider_location_for_imported_shape_referen
     .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "definition response timeout"))??;
     assert!(definition_response.contains(r#""id":2"#));
     assert!(
-        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri)),
+        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri.as_str())),
         "{definition_response}"
     );
     assert!(
@@ -431,10 +435,10 @@ pub constructor BuildExternalUser {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_constructors.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_constructors.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -466,7 +470,7 @@ pub constructor BuildExternalUser {
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_constructors.\n\nimport provider.{{BuildExternalUser}}.\n\npub made(): Dynamic ->\n  BuildExternalUser(\"Ada\").\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let _ = timeout(
@@ -478,7 +482,7 @@ pub constructor BuildExternalUser {
 
     let definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":3}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &definition_payload).await?;
     let definition_response = timeout(
@@ -489,7 +493,7 @@ pub constructor BuildExternalUser {
     .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "definition response timeout"))??;
     assert!(definition_response.contains(r#""id":2"#));
     assert!(
-        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri)),
+        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri.as_str())),
         "{definition_response}"
     );
     assert!(
@@ -563,10 +567,10 @@ pub trait Named[T] {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_traits.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_traits.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -598,7 +602,7 @@ pub trait Named[T] {
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_traits.\n\nimport provider.{{Named}}.\n\npub trait_name(): Dynamic ->\n  Named.\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let _ = timeout(
@@ -610,7 +614,7 @@ pub trait Named[T] {
 
     let definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/definition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":3}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &definition_payload).await?;
     let definition_response = timeout(
@@ -621,7 +625,7 @@ pub trait Named[T] {
     .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "definition response timeout"))??;
     assert!(definition_response.contains(r#""id":2"#));
     assert!(
-        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri)),
+        definition_response.contains(&format!(r#""uri":"{}""#, provider_uri.as_str())),
         "{definition_response}"
     );
     assert!(
@@ -689,8 +693,8 @@ async fn declaration_request_returns_provider_location_for_imported_reference() 
         temp_dir.join("provider.terli"),
         "module provider.\n\npub to_string(value: Int): String.\n",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_declarations.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_declarations.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -722,7 +726,7 @@ async fn declaration_request_returns_provider_location_for_imported_reference() 
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_declarations.\n\nimport provider.{{to_string}}.\n\npub caller(): String ->\n  to_string(1).\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -735,7 +739,7 @@ async fn declaration_request_returns_provider_location_for_imported_reference() 
 
     let declaration_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/declaration","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":4}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &declaration_payload).await?;
     let declaration_response = timeout(
@@ -748,9 +752,11 @@ async fn declaration_request_returns_provider_location_for_imported_reference() 
     assert!(
         declaration_response.contains(&format!(
             r#""uri":"{}""#,
-            Url::from_file_path(temp_dir.join("provider.terli")).map_err(|()| {
-                std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
-            })?
+            crate::lsp::uri::from_file_path(temp_dir.join("provider.terli"))
+                .map_err(|_| {
+                    std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
+                })?
+                .as_str()
         )),
         "{declaration_response}"
     );

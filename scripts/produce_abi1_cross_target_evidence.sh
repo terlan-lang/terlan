@@ -20,7 +20,8 @@ rm -f "$fragment_dir/x86_64.json" "$fragment_dir/aarch64.json"
 
 (
   cd "$root"
-  TERLAN_ABI1_TARGET_FRAGMENT="$fragment_dir/x86_64.json" \
+  TERLAN_ABI1_EMIT_EVIDENCE=1 \
+    TERLAN_ABI1_TARGET_FRAGMENT="$fragment_dir/x86_64.json" \
     TERLAN_ABI1_TARGET_TRIPLE="x86_64-unknown-linux-gnu" \
     TERLAN_ABI1_REVISION="$revision" \
     "$cargo" test --locked --release -p terlan \
@@ -31,7 +32,8 @@ rm -f "$fragment_dir/x86_64.json" "$fragment_dir/aarch64.json"
 
 (
   cd "$root"
-  TERLAN_ABI1_TARGET_FRAGMENT="$fragment_dir/aarch64.json" \
+  TERLAN_ABI1_EMIT_EVIDENCE=1 \
+    TERLAN_ABI1_TARGET_FRAGMENT="$fragment_dir/aarch64.json" \
     TERLAN_ABI1_TARGET_TRIPLE="aarch64-unknown-linux-gnu" \
     TERLAN_ABI1_REVISION="$revision" \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER="$runner" \

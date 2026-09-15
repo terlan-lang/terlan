@@ -331,13 +331,13 @@ rustflags(): String ->
 
 after_test_command(root: String, output: Option[Output]): Bool ->
     case output {
-        Some(_completed) -> after_tests(root);
+        Some(completed) ->
+            let _printed = println(Process.stdout(completed));
+            after_tests(root);
         None -> false
     }.
 
 run_tests(root: String): Bool ->
-    let toolchain_argument = String.append("+", toolchain());
-    let selected_target = target();
     let selected_filter = test_filter();
     let flags = rustflags();
     let rustflags_entry = Process.environment_entry("RUSTFLAGS", flags);
@@ -345,19 +345,14 @@ run_tests(root: String): Bool ->
     let output =
         run_command(
             root,
-            "cargo",
+            child(root, "target/validation-tools/terlan-test-orchestrator"),
             [
-                toolchain_argument,
-                "test",
-                "-Zbuild-std",
-                "--locked",
-                "-p",
-                "terlan",
-                "--bin",
-                "terlan-vm",
-                "--target",
-                selected_target,
+                "--run-library-filter",
+                "--target-dir",
+                child(root, "target/aot-thread-sanitizer"),
+                "--filter",
                 selected_filter,
+                "--thread-sanitizer",
             ],
             [rustflags_entry, tsan_entry],
         );

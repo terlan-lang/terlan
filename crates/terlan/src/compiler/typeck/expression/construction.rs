@@ -382,7 +382,7 @@ pub(super) fn infer_syntax_field_access(
 ///
 /// Transformation:
 /// - Reconstructs the provider's field type from interface metadata, qualifies
-///   provider-local type names, substitutes receiver generic arguments, and
+///   provider-local types, resolves dependency aliases, substitutes receiver arguments, and
 ///   enforces cross-module field visibility without requiring a type import.
 fn infer_qualified_interface_struct_field(
     module: &str,
@@ -440,15 +440,18 @@ fn infer_qualified_interface_struct_field(
         vars.insert(normalize_type_param_name(param), next_var);
         next_var += 1;
     }
+    let mut type_names = interface_type_names(interface);
+    type_names.extend(unique_global_alias_short_names(ctx.aliases));
     let parsed = parse_type_expr(
         &field_signature.annotation,
-        &interface_type_names(interface),
+        &type_names,
         &mut vars,
         &mut next_var,
     )
     .unwrap_or(Type::Dynamic);
     let parsed = expand_type_aliases(&parsed, &interface_type_aliases(interface));
     let parsed = qualify_type_names(&parsed, &interface_qualified_type_names(interface));
+    let parsed = expand_interface_global_aliases(&parsed, ctx.aliases);
     let mapping = generic_params
         .iter()
         .enumerate()

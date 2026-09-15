@@ -200,6 +200,7 @@ fn rewrite_expr(
                             .map(|parameter| format!("$native_named_callback_{index}_{parameter}"))
                             .collect::<Vec<_>>();
                         *arg = CoreExpr::Lam {
+                            parameter_types: parameter_types.iter().cloned().map(Some).collect(),
                             params: parameters.iter().cloned().map(CorePattern::Var).collect(),
                             body: Box::new(CoreExpr::Call {
                                 function,
@@ -209,7 +210,7 @@ fn rewrite_expr(
                     }
                 }
                 if let (
-                    CoreExpr::Lam { params, body },
+                    CoreExpr::Lam { params, body, .. },
                     Some(CoreType::Arrow {
                         params: parameter_types,
                         ..
@@ -318,6 +319,33 @@ fn rewrite_expr(
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
             for item in items {
                 rewrite_expr(item, variables, templates, cache, generated, module, budget)?;
+            }
+        }
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } if matches!(operator.as_str(), "==" | "!=") => {
+            let left_type = infer_type(left, variables, templates, module);
+            let right_type = if matches!(left.as_ref(), CoreExpr::Map(_))
+                && matches!(right.as_ref(), CoreExpr::Map(_))
+            {
+                // Literal records share a checked comparison layout; source
+                // field order remains an evaluation order, not type identity.
+                left_type.clone()
+            } else {
+                infer_type(right, variables, templates, module)
+            };
+            for (operand, ty) in [(left, left_type), (right, right_type)] {
+                // Preserve aggregate operand schemas before calls receive
+                // specialized names. Equality returns Bool, so its enclosing
+                // result cannot supply the literals' managed layouts later.
+                rewrite_expr(
+                    operand, variables, templates, cache, generated, module, budget,
+                )?;
+                if let Some(ty) = ty.filter(|ty| !contains_implicit_generic_type(ty)) {
+                    apply_contextual_argument_type(operand, &ty);
+                }
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -439,6 +467,12 @@ fn rewrite_expr(
             rewrite_expr(
                 scrutinee, variables, templates, cache, generated, module, budget,
             )?;
+            if let Some(ty) = scrutinee_type
+                .as_ref()
+                .filter(|ty| !contains_implicit_generic_type(ty))
+            {
+                apply_contextual_argument_type(scrutinee, ty);
+            }
             for clause in clauses {
                 let mut locals = variables.clone();
                 if let Some(scrutinee_type) = scrutinee_type.as_ref() {

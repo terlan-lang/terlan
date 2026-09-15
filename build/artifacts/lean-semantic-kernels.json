@@ -61,8 +61,8 @@
         "--",
         "--exact"
       ],
-      "runtime_oracle_owner": "rust-test-suite",
-      "runtime_oracle_reused": true,
+      "runtime_oracle_owner": "semantic-kernel",
+      "runtime_oracle_reused": false,
       "slice": "Slice 17",
       "theorems": [
         "Terlan.Collections.listUpdatePreservesLength",
@@ -106,12 +106,12 @@
         "-p",
         "terlan",
         "--lib",
-        "runtime::native::postgres::postgres_test::config_builders_set_pool_limits_and_timeouts",
+        "runtime::native::postgres_test::config_builders_set_pool_limits_and_timeouts",
         "--",
         "--exact"
       ],
-      "runtime_oracle_owner": "rust-test-suite",
-      "runtime_oracle_reused": true,
+      "runtime_oracle_owner": "semantic-kernel",
+      "runtime_oracle_reused": false,
       "slice": "Slice 19",
       "theorems": [
         "Terlan.DatabaseSql.matchingPreparedStatementAccepted",
@@ -138,8 +138,8 @@
         "--",
         "--exact"
       ],
-      "runtime_oracle_owner": "rust-test-suite",
-      "runtime_oracle_reused": true,
+      "runtime_oracle_owner": "semantic-kernel",
+      "runtime_oracle_reused": false,
       "slice": "Slice 20",
       "theorems": [
         "Terlan.StdPackages.jsonRoundTrip",

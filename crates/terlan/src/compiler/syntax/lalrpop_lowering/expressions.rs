@@ -531,8 +531,27 @@ fn lower_lambda(
         .len()
         .checked_sub(1)
         .ok_or_else(|| context.error(node, "lambda expression is missing its body"))?;
+    let mut parameter_types = node.children[..body_index]
+        .iter()
+        .map(|pattern| {
+            let Some(annotation) = pattern
+                .children
+                .first()
+                .filter(|child| child.kind == LalrpopSyntaxNodeKind::Type)
+            else {
+                return Ok(None);
+            };
+            super::super::lalrpop_boundary::parse_lalrpop_type(context.text(annotation.span))
+                .map_err(|_| context.error(annotation, "invalid lambda parameter type"))?;
+            Ok(Some(context.type_expression(annotation)))
+        })
+        .collect::<LalrpopLoweringResult<Vec<_>>>()?;
+    if parameter_types.iter().all(Option::is_none) {
+        parameter_types.clear();
+    }
     Ok(Expr::Fun {
         clauses: vec![FunctionClause {
+            parameter_types,
             patterns: node.children[..body_index]
                 .iter()
                 .map(|pattern| lower_pattern(context, pattern))

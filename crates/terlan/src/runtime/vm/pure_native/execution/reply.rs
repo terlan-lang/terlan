@@ -78,7 +78,7 @@ pub(super) fn handle_reply(
                 return Err(format!("error[pure_native_resume_budget]: native call exceeded {MAX_NATIVE_RESUME_COUNT} continuation resumes at {continuation_id}"));
             }
             let continuations = prepared.continuations.as_ref().ok_or_else(|| "error[pure_native_continuation_metadata]: transition has no admitted continuation table".to_string())?;
-            let continuation = continuations.iter().find(|entry| entry.id == continuation_id).ok_or_else(|| format!("error[pure_native_continuation_unknown]: image yielded undeclared continuation {continuation_id}"))?;
+            let continuation = continuations.get(continuation_id).ok_or_else(|| format!("error[pure_native_continuation_unknown]: image yielded undeclared continuation {continuation_id}"))?;
             validate_transition_continuation(
                 continuation,
                 &prepared.result_type,

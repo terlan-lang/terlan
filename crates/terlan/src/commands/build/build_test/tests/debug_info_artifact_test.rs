@@ -1,6 +1,43 @@
 use super::*;
 use object::{Object, ObjectSection};
 
+/// Selected closure factories and lifted bodies keep their declaration spans.
+#[test]
+fn debug_info_artifact_covers_typed_conditional_closure_factories() {
+    let dir = make_temp_dir("conditional_closure_debug");
+    let source_path = dir.join("conditional_closure_debug.terl");
+    let out_dir = dir.join("build");
+    let source = "module conditional_closure_debug.\npub select(choice: Bool, offset: Int): Int -> let operation = if { choice -> ((value: Int) -> value + offset); true -> ((value: Int) -> value - offset) }; operation(10).\n";
+    fs::write(&source_path, source).unwrap();
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".into()),
+        args: vec![source_path.display().to_string()],
+    };
+    assert_eq!(run(cmd, state), ExitCode::SUCCESS);
+    let records = native_debug_records(&out_dir.join("vm/conditional_closure_debug.tvm"));
+    let factories = records
+        .iter()
+        .filter(|record| record.function.starts_with("$aot_closure_factory_"))
+        .collect::<Vec<_>>();
+    assert_eq!(factories.len(), 2);
+    for record in factories {
+        assert_eq!(
+            record.source_origin,
+            "generated:conditional_closure_debug.select/2"
+        );
+        assert_eq!(record.source_file, source_path.display().to_string());
+        let declaration = &source[record.span_start..record.span_end];
+        assert!(
+            declaration.contains("select("),
+            "declaration span: {declaration}"
+        );
+    }
+}
+
 /// Emits complete debug metadata without a source annotation or compiler flag.
 #[test]
 fn debug_info_artifact_covers_public_and_private_functions() {

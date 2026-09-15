@@ -3,9 +3,10 @@
 use std::collections::HashSet;
 
 use super::super::{
-    ActorHeap, ManagedAggregate, ManagedBinary, ManagedBytes, ManagedCollectionKind,
-    ManagedFieldType, ManagedFieldValue, ManagedLayoutRegistry, ManagedList, ManagedMap,
-    ManagedMemoryError, ManagedSet, ManagedString, SemanticTypeId, TvmRef,
+    ActorHeap, AtomIndex, ManagedAggregate, ManagedAggregateDescriptor, ManagedBinary,
+    ManagedBytes, ManagedCollectionKind, ManagedFieldType, ManagedFieldValue,
+    ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError, ManagedSet, ManagedString,
+    SemanticTypeId, TvmRef,
 };
 use super::reference_word;
 
@@ -44,9 +45,25 @@ pub(super) fn execute_equality_operation(
     };
     let left_immediate = is_immediate_union_word(*left);
     let right_immediate = is_immediate_union_word(*right);
-    if left_immediate || right_immediate {
+    if left_immediate && right_immediate {
+        let left = immediate_variant(layouts, semantic, *left)?;
+        let right = immediate_variant(layouts, semantic, *right)?;
         return Ok(u64::from(
-            left_immediate && right_immediate && left == right,
+            left.managed().fingerprint() == right.managed().fingerprint(),
+        ));
+    }
+    if left_immediate || right_immediate {
+        let (atom, reference) = if left_immediate {
+            (*left, *right)
+        } else {
+            (*right, *left)
+        };
+        let immediate = immediate_variant(layouts, semantic, atom)?;
+        let reference = reference_word(reference)?;
+        require_semantic(heap, semantic, reference)?;
+        let allocated = aggregate_layout(heap, layouts, semantic, reference)?;
+        return Ok(u64::from(
+            immediate.managed().fingerprint() == allocated.managed().fingerprint(),
         ));
     }
     let left = reference_word(*left)?;
@@ -63,6 +80,31 @@ pub(super) fn execute_equality_operation(
 /// always carry a nonzero heap token in the upper 32 bits.
 fn is_immediate_union_word(word: i64) -> bool {
     u64::from_ne_bytes(word.to_ne_bytes()) >> 32 == 0
+}
+
+/// Resolves an immediate variant through the owning image and exact union type.
+/// Compact atoms and allocated zero-field constructors denote the same value;
+/// arbitrary integers and atoms outside this union must not bypass validation.
+fn immediate_variant(
+    layouts: &ManagedLayoutRegistry,
+    semantic: SemanticTypeId,
+    word: i64,
+) -> Result<&ManagedAggregateDescriptor, ManagedMemoryError> {
+    let index = u32::try_from(word).map_err(|_| ManagedMemoryError::InvalidAggregateField)?;
+    let identity = layouts.atom_identity(AtomIndex::from_runtime(index))?;
+    let mut candidates = layouts.layouts(semantic).iter().filter(|layout| {
+        layout.fields().is_empty()
+            && layout
+                .variant_name()
+                .is_some_and(|name| name.eq_ignore_ascii_case(identity))
+    });
+    let candidate = candidates
+        .next()
+        .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+    if candidates.any(|other| other.managed().fingerprint() != candidate.managed().fingerprint()) {
+        return Err(ManagedMemoryError::ManagedTypeMismatch);
+    }
+    Ok(candidate)
 }
 
 /// Decodes one exact structural equality operation.

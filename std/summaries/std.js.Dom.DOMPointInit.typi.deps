@@ -1,7 +1,7 @@
 module=std.js.Dom.DOMPointInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=1717327718401133957
 interface_hash=15085788278610153035
 interface_doc_hash=15085788278610153035

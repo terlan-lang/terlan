@@ -22,6 +22,7 @@ fn binding(name: &str, value: CoreExpr) -> CoreLetBinding {
 /// Creates one single-parameter integer lambda fixture.
 fn increment_lambda(capture: &str) -> CoreExpr {
     CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: "+".to_string(),
@@ -59,6 +60,7 @@ fn captured_lambda_binding_is_erased_into_ordinary_let_control() {
 fn immediately_invoked_lambda_is_beta_lowered() {
     let source = CoreExpr::FunctionCall {
         callee: Box::new(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("value".to_string())],
             body: Box::new(CoreExpr::Var("value".to_string())),
         }),
@@ -80,6 +82,7 @@ fn immediately_invoked_lambda_is_beta_lowered() {
 fn immediate_lambda_nested_in_tuple_is_beta_lowered() {
     let source = CoreExpr::Tuple(vec![CoreExpr::FunctionCall {
         callee: Box::new(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("value".to_string())],
             body: Box::new(CoreExpr::Var("value".to_string())),
         }),
@@ -147,6 +150,7 @@ fn unresolved_dynamic_call_reaches_owned_closure_lowering() {
 #[test]
 fn escaping_lambda_reaches_native_closure_conversion() {
     let source = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::Var("value".to_string())),
     };
@@ -164,6 +168,7 @@ fn terminal_bound_callable_reaches_native_closure_conversion() {
         bindings: vec![binding(
             "identity",
             CoreExpr::Lam {
+                parameter_types: Vec::new(),
                 params: vec![CorePattern::Var("value".to_string())],
                 body: Box::new(CoreExpr::Var("value".to_string())),
             },
@@ -174,6 +179,7 @@ fn terminal_bound_callable_reaches_native_closure_conversion() {
     assert_eq!(
         normalize_static_callables(&source).expect("terminal escaping callable"),
         CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("value".to_string())],
             body: Box::new(CoreExpr::Var("value".to_string())),
         }
@@ -214,6 +220,7 @@ fn nonterminal_bound_callable_value_escape_is_rejected() {
             binding(
                 "identity",
                 CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: vec![CorePattern::Var("value".to_string())],
                     body: Box::new(CoreExpr::Var("value".to_string())),
                 },
@@ -255,6 +262,7 @@ fn static_callable_specialization_explosion_is_rejected() {
     for _ in 0..129 {
         source = CoreExpr::FunctionCall {
             callee: Box::new(CoreExpr::Lam {
+                parameter_types: Vec::new(),
                 params: vec![CorePattern::Var("value".to_string())],
                 body: Box::new(CoreExpr::Var("value".to_string())),
             }),
@@ -276,6 +284,7 @@ fn nested_static_callable_specialization_explosion_is_rejected() {
     for _ in 0..129 {
         nested = CoreExpr::FunctionCall {
             callee: Box::new(CoreExpr::Lam {
+                parameter_types: Vec::new(),
                 params: vec![CorePattern::Var("value".to_string())],
                 body: Box::new(CoreExpr::Var("value".to_string())),
             }),
@@ -298,6 +307,7 @@ fn static_callable_capture_budget_has_stable_prelink_rejection() {
     bindings.push(binding(
         "callback",
         CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: Vec::new(),
             body: Box::new(CoreExpr::Tuple(
                 (0..65)
@@ -329,6 +339,7 @@ fn static_callable_renames_captures_inside_managed_shapes() {
             binding(
                 "callback",
                 CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: Vec::new(),
                     body: Box::new(CoreExpr::Tuple(vec![
                         CoreExpr::Var("left".to_string()),

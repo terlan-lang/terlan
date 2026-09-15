@@ -18,7 +18,7 @@ use crate::support::test_fs::temp_dir as shared_temp_dir;
 fn write_executable_script(path: &Path, body: &str) {
     use std::os::unix::fs::PermissionsExt;
 
-    fs::write(path, format!("#!/usr/bin/env sh\n{body}\n")).expect("write script");
+    fs::write(path, format!("#!/usr/bin/env sh\nset -e\n{body}\n")).expect("write script");
     let mut permissions = fs::metadata(path).expect("script metadata").permissions();
     permissions.set_mode(0o755);
     fs::set_permissions(path, permissions).expect("set executable bit");
@@ -449,31 +449,49 @@ exit 0"#,
 /// Verifies `.terls` execution asks the VM to propagate the final script value.
 #[test]
 fn run_built_native_script_propagates_result() {
-    let temp = shared_temp_dir("run_command", "script_result");
+    let temp = crate::support::test_fs::TestDirectory::new("run_command", "script_result");
     let vm_dir = temp.join("vm");
     fs::create_dir_all(&vm_dir).expect("create vm dir");
     let source = temp.join("Check.terls");
     fs::write(&source, "42.\n").expect("write script");
     fs::write(vm_dir.join("script_Check.tvm"), "image").expect("write artifact");
-    let runner = temp.join("terlan-vm");
-    write_executable_script(
-        &runner,
-        r#"test "$1" = "run"
-test -f "$2"
-test "$3" = "--script-eval"
-test "$4" = "--"
-exit 0"#,
-    );
+    let runner = compile_script_runner(temp.path());
     let state = CliState {
-        out_dir: temp,
+        out_dir: temp.path().to_owned(),
         ..CliState::default()
     };
 
-    assert_eq!(
-        run_built_native_image_with_runner(&state, &runner, &source, &[])
-            .expect("run native script"),
-        ExitCode::SUCCESS
-    );
+    for code in [0_u8, 23] {
+        assert_eq!(
+            run_built_native_image_with_runner(&state, &runner, &source, &[code.to_string()])
+                .expect("run native script"),
+            ExitCode::from(code)
+        );
+    }
+    temp.close();
+}
+
+/// Uses one native fixture on every host; failed argument assertions are errors.
+fn compile_script_runner(root: &Path) -> PathBuf {
+    let source = root.join("script_runner.rs");
+    fs::write(
+        &source,
+        include_str!("../../../tests/fixtures/script_runner.rs"),
+    )
+    .expect("write native script runner fixture");
+    let runner = root.join(format!("terlan-vm{}", std::env::consts::EXE_SUFFIX));
+    let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
+    terlan_process_owner::ProcessControl::new(std::time::Duration::from_secs(60))
+        .run(
+            Command::new(rustc)
+                .args(["--edition=2021", "-Dwarnings"])
+                .arg(&source)
+                .arg("-o")
+                .arg(&runner),
+            |_| Ok(()),
+        )
+        .expect("compile native script runner fixture");
+    runner
 }
 
 /// Verifies run artifact lookup derives the compiler-owned `.terls` module identity.

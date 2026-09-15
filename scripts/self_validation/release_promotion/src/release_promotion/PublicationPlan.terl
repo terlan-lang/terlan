@@ -1,0 +1,111 @@
+/**
+ * Exports upload metadata from one verified candidate without rehashing its inputs.
+ */
+module release_promotion.PublicationPlan.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Console, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Includes the candidate file itself without changing the verified document.
+ * The caller must validate the candidate against its retained inputs first.
+ */
+pub build(root: String, candidate: Json): Result[Json, String] ->
+    let path = String.append(root, "/dist/release-candidate.json");
+    let {
+        Ok(version) <- candidate.get("version");
+        Ok(seal) <- candidate.get("seal");
+        Ok(digest) <- seal.get("digest");
+        Ok(rows) <- candidate.get("artifacts");
+        Ok(encoded) <- Json.stringify(rows);
+        Ok(artifacts) <- Json.parse(encoded);
+        Ok(source) <- File.read_text(path);
+        Ok(stored) <- Json.parse(source);
+        Ok(stored_text) <- Json.stringify(stored);
+        Ok(verified_text) <- Json.stringify(candidate);
+        true <- stored_text == verified_text
+    } else {
+        _ -> Err("cannot export verified publication metadata")
+    };
+    Ok(
+        Json.object()
+            .put("schema", Json.string("terlan.publication-plan.v1"))
+            .put("version", version)
+            .put("candidate_seal", digest)
+            .put(
+                "artifacts",
+                artifacts
+                    .push(
+                        Json.object()
+                            .put("path", Json.string("dist/release-candidate.json"))
+                            .put("size_bytes", Json.int(source.byte_size()))
+                            .put(
+                                "sha256",
+                                Json.string(String.append("sha256:", Hash.sha256(source))),
+                            ),
+                    ),
+            ),
+    ).
+
+/**
+ * Writes only machine-readable output; errors never produce a partial plan.
+ */
+pub emit(root: String, candidate: Json): Bool ->
+    let {
+        Ok(plan) <- build(root, candidate);
+        Ok(encoded) <- Json.stringify(plan)
+    } else {
+        _ ->
+            let _printed = Console.eprintln("cannot export verified publication metadata");
+            false
+    };
+    (let _printed = Console.println(encoded); true).
+
+/**
+ * Checks metadata integrity and that export leaves the verified candidate intact.
+ */
+pub self_test(root: String, candidate: Json): Bool ->
+    let {
+        Ok(before) <- Json.stringify(candidate);
+        Ok(plan) <- build(root, candidate);
+        Ok(rendered_after) <- Json.stringify(candidate);
+        Ok(rows) <- plan.get("artifacts");
+        Ok(count) <- rows.length();
+        Ok(row) <- rows.at(count - 1);
+        Ok(path_value) <- row.get("path");
+        Ok(path) <- path_value.as_string();
+        Ok(digest_value) <- row.get("sha256");
+        Ok(digest) <- digest_value.as_string();
+        Ok(hash) <- Hash.sha256_file(String.append(root, "/dist/release-candidate.json"))
+    } else {
+        _ -> false
+    };
+    before == rendered_after
+        and count == 3
+        and path == "dist/release-candidate.json"
+        and digest == String.append("sha256:", hash)
+        and rejects_changed_manifest(root, candidate).
+
+rejects_changed_manifest(root: String, candidate: Json): Bool ->
+    let path = String.append(root, "/dist/release-candidate.json");
+    let {
+        Ok(source) <- File.read_text(path);
+        Ok(_changed) <- File.write_text(path, "{}")
+    } else {
+        _ -> false
+    };
+    (let rejected =
+    case build(root, candidate) {
+        Err(_reason) -> true;
+        Ok(_plan) -> false
+    };
+(let Ok(_restored) <- File.write_text(path, source) else {
+    _ -> false
+};
+rejected)).

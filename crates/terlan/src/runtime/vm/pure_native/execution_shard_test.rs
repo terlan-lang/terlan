@@ -192,7 +192,8 @@ pub(super) fn local_boundary_named(image_identity: &str, digest: u8) -> PureNati
                     parameters: Vec::new(),
                     results: vec![TvmBoundaryType::Bool],
                 },
-            ],
+            ]
+            .into(),
         }),
         backend: Some(Box::<LocalTransitionBackend>::default()),
         call_cache: None,
@@ -313,7 +314,8 @@ fn resident_spawn_boundary() -> PureNativeBoundary {
                     parameters: vec![TvmBoundaryType::Int],
                     results: vec![TvmBoundaryType::Unit],
                 },
-            ],
+            ]
+            .into(),
         }),
         backend: Some(Box::<ResidentSpawnBackend>::default()),
         call_cache: None,
@@ -407,7 +409,8 @@ fn typed_io_epoch_boundary(image_identity: &str, digest: u8) -> PureNativeBounda
                 id: 31,
                 parameters: vec![TvmBoundaryType::Int],
                 results: vec![TvmBoundaryType::Bool],
-            }],
+            }]
+            .into(),
         }),
         backend: Some(Box::<TypedIoEpochBackend>::default()),
         call_cache: None,
@@ -519,7 +522,8 @@ fn failing_boundary() -> PureNativeBoundary {
                     parameters: Vec::new(),
                     results: vec![TvmBoundaryType::Bool],
                 },
-            ],
+            ]
+            .into(),
         }),
         backend: Some(Box::<FailingResumeBackend>::default()),
         call_cache: None,

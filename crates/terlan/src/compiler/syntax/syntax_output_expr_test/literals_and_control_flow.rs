@@ -129,7 +129,7 @@ pub(super) fn syntax_output_includes_canonical_atom_literal_expr_source() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output`, extracts each
 ///   function clause body, and compares the syntax-output value text.
-
+///
 /// Verifies prefixed integer literals cross the formal syntax-output
 /// boundary as normalized integer values.
 ///
@@ -189,7 +189,7 @@ pub(super) fn syntax_output_normalizes_prefixed_integer_literals() {
 /// Transformation:
 /// - Keeps backend Vm binary syntax from entering canonical Terlan
 ///   syntax output.
-
+///
 /// Verifies Vm binary segment syntax is rejected before syntax-output
 /// boundary.
 ///

@@ -1,4 +1,5 @@
 use super::support::*;
+use std::str::FromStr;
 
 /// Verifies completion tolerates incomplete syntax.
 ///
@@ -166,8 +167,8 @@ module provider.
 pub lookup(id: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module consumer.
 
@@ -242,7 +243,7 @@ pub caller(): Int ->
 ///   overloaded method surfaces remain discoverable in editors.
 #[test]
 pub(super) fn completion_preserves_overloaded_receiver_method_items() -> std_io::Result<()> {
-    let uri = Url::parse("file:///tmp/overloaded-method-completion.terl")
+    let uri = Uri::from_str("file:///tmp/overloaded-method-completion.terl")
         .map_err(|err| std_io::Error::new(ErrorKind::InvalidInput, err))?;
     let text = "\
 module overloaded_methods.
@@ -348,7 +349,7 @@ pub caller(): Unit -> shifted(); shifted().
             .count() as u32,
         prefix.rsplit('\n').next().unwrap_or(prefix).chars().count() as u32,
     );
-    let uri = Url::parse("file:///tmp/formatter-shift-completion.terl")
+    let uri = Uri::from_str("file:///tmp/formatter-shift-completion.terl")
         .map_err(|err| std_io::Error::new(ErrorKind::InvalidInput, err))?;
     let document = OpenDocument {
         version: 1,
@@ -408,8 +409,8 @@ module pkg.math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module consumer.
 
@@ -492,8 +493,8 @@ module pkg.stale.
 pub gone(): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module consumer.
 
@@ -589,8 +590,8 @@ module std.vm.Task.
 pub spawn(value: Dynamic): Dynamic.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("mixed.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("mixed.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module mixed.
 

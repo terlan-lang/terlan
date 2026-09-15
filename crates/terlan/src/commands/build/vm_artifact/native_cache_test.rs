@@ -3,8 +3,56 @@ use std::fs;
 use crate::support::test_fs;
 
 use super::native_cache::{
-    cache_manifest_bytes, load_verified_entry, publish_file, sha256_hex, CACHE_MANIFEST_NAME,
+    cache_manifest_bytes, load_verified_entry, publish_file, publish_file_using, sha256_hex,
+    TemporaryCacheFile, CACHE_MANIFEST_NAME,
 };
+
+#[test]
+fn native_link_pin_survives_canonical_replacement_and_retirement() {
+    let root = test_fs::TestDirectory::new("native_cache", "link_pin");
+    let source = root.join("module.o");
+    fs::write(&source, b"old immutable object").unwrap();
+    let pin = TemporaryCacheFile::linked_beside(&source, &root.join("link-input.o")).unwrap();
+    let pinned_path = pin.path().to_path_buf();
+    publish_file(&source, b"replacement object").unwrap();
+    assert_eq!(fs::read(pin.path()).unwrap(), b"old immutable object");
+    fs::remove_file(&source).unwrap();
+    assert_eq!(fs::read(pin.path()).unwrap(), b"old immutable object");
+    drop(pin);
+    assert!(!pinned_path.exists());
+    root.close();
+}
+
+#[test]
+fn native_link_pin_collision_preserves_the_other_owner() {
+    let root = test_fs::TestDirectory::new("native_cache", "link_pin_collision");
+    let source = root.join("module.o");
+    let destination = root.join("other-owner.o");
+    fs::write(&source, b"source object").unwrap();
+    fs::write(&destination, b"another owner").unwrap();
+    assert!(matches!(
+        TemporaryCacheFile::reserve_link(&source, destination.clone()),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists
+    ));
+    assert_eq!(fs::read(destination).unwrap(), b"another owner");
+    assert_eq!(fs::read(source).unwrap(), b"source object");
+    root.close();
+}
+
+#[cfg(unix)]
+#[test]
+fn native_link_pin_rejects_symlinks_without_adopting_the_destination() {
+    let root = test_fs::TestDirectory::new("native_cache", "link_pin_symlink");
+    let source = root.join("source.o");
+    let indirect = root.join("indirect.o");
+    let destination = root.join("link-input.o");
+    fs::write(&source, b"source object").unwrap();
+    std::os::unix::fs::symlink(&source, &indirect).unwrap();
+    assert!(TemporaryCacheFile::reserve_link(&indirect, destination.clone()).is_err());
+    assert!(!destination.exists());
+    assert_eq!(fs::read(source).unwrap(), b"source object");
+    root.close();
+}
 
 #[test]
 fn native_cache_publication_replaces_complete_files_without_temporary_leaks() {
@@ -33,6 +81,88 @@ fn native_cache_publication_replaces_complete_files_without_temporary_leaks() {
     );
 
     fs::remove_dir_all(root).expect("remove native cache test directory");
+}
+
+/// A replacement failure leaves the previous artifact byte-exact and removes
+/// only the temporary file exclusively reserved by this publication attempt.
+#[test]
+fn native_cache_failed_replacement_preserves_previous_artifact() -> Result<(), String> {
+    let root = test_fs::TestDirectory::new("native_cache", "failed_replacement");
+    let path = root.join("module.tvm");
+    fs::write(&path, b"verified-old-image").map_err(|error| error.to_string())?;
+    let result = publish_file_using(&path, b"new-image", |temporary, destination| {
+        assert_eq!(fs::read(temporary)?, b"new-image");
+        assert_eq!(fs::read(destination)?, b"verified-old-image");
+        Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "injected replacement failure",
+        ))
+    });
+    assert!(result.is_err());
+    assert_eq!(
+        fs::read(&path).map_err(|error| error.to_string())?,
+        b"verified-old-image"
+    );
+    assert_eq!(
+        fs::read_dir(&root)
+            .map_err(|error| error.to_string())?
+            .count(),
+        1
+    );
+    root.close();
+    Ok(())
+}
+
+/// A colliding temporary path is never adopted or removed by the failed owner.
+#[test]
+fn native_cache_temporary_collision_preserves_foreign_bytes() -> Result<(), String> {
+    let root = test_fs::TestDirectory::new("native_cache", "temporary_collision");
+    let path = root.join(".module.tvm.123.0.tmp");
+    fs::write(&path, b"another-owner").map_err(|error| error.to_string())?;
+    let result = TemporaryCacheFile::reserve(path.clone());
+    assert!(matches!(result, Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists));
+    assert_eq!(
+        fs::read(path).map_err(|error| error.to_string())?,
+        b"another-owner"
+    );
+    root.close();
+    Ok(())
+}
+
+/// Linker scratch is exclusively created before it is handed to a child tool.
+#[test]
+fn native_cache_temporary_reservation_owns_exactly_one_file() -> Result<(), String> {
+    let root = test_fs::TestDirectory::new("native_cache", "temporary_ownership");
+    let path = root.join(".module.tvm.tmp");
+    let temporary = TemporaryCacheFile::reserve(path.clone()).map_err(|error| error.to_string())?;
+    assert_eq!(fs::read(&path).map_err(|error| error.to_string())?, b"");
+    fs::write(temporary.path(), b"partial-link-output").map_err(|error| error.to_string())?;
+    drop(temporary);
+    assert!(!path.exists());
+    root.close();
+    Ok(())
+}
+
+/// Replacement failure against a directory must not disturb its contents.
+#[test]
+fn native_cache_rejects_directory_destination_without_data_loss() -> Result<(), String> {
+    let root = test_fs::TestDirectory::new("native_cache", "directory_destination");
+    let path = root.join("module.tvm");
+    fs::create_dir(&path).map_err(|error| error.to_string())?;
+    fs::write(path.join("owned"), b"preserved").map_err(|error| error.to_string())?;
+    assert!(publish_file(&path, b"new-image").is_err());
+    assert_eq!(
+        fs::read(path.join("owned")).map_err(|error| error.to_string())?,
+        b"preserved"
+    );
+    assert_eq!(
+        fs::read_dir(&root)
+            .map_err(|error| error.to_string())?
+            .count(),
+        1
+    );
+    root.close();
+    Ok(())
 }
 
 /// Proves cache admission binds the directory key, target, backend, manifest,

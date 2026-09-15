@@ -208,6 +208,22 @@ fn package_fetch_rejects_revision_absent_from_repository() {
 }
 
 #[test]
+fn package_fetch_failed_clone_leaves_no_partial_checkout_or_lockfile() {
+    let root = test_fs::temp_dir("package_git", "failed_clone");
+    let app = root.join("app");
+    write_consumer(&app, &root.join("missing-remote"), &"a".repeat(40));
+    let error = fetch_project_git_dependencies(&app).expect_err("missing repository must fail");
+    assert!(error.contains("error[package_git_fetch_failed]"), "{error}");
+    assert!(!app.join(LOCKFILE_NAME).exists());
+    assert_eq!(
+        fs::read_dir(app.join(".terlan/packages/git"))
+            .unwrap()
+            .count(),
+        0
+    );
+}
+
+#[test]
 fn package_fetch_and_build_follow_path_to_transitive_git_dependency() {
     let root = test_fs::temp_dir("package_git", "transitive_git");
     let repository = root.join("remote_utils");

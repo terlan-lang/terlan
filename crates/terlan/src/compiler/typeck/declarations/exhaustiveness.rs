@@ -24,8 +24,9 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
         &mut next_var,
     )
     .unwrap_or(Type::Dynamic);
-    let variants = as_exhaustive_union_variants(&expand_type_aliases(&expected, aliases));
-    if variants.len() <= 1 {
+    let expanded = expand_type_aliases(&expected, aliases);
+    let variants = as_exhaustive_union_variants(&expanded);
+    if variants.len() <= 1 && !has_finite_fields(&expanded) {
         return;
     }
     let mut remaining = variants;
@@ -43,7 +44,17 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
         ) {
             return;
         }
-        remaining.retain(|variant| !syntax_pattern_subsumes_variant(pattern, variant, aliases));
+        remaining = match subtract_finite_pattern(remaining, pattern, aliases) {
+            Ok(remaining) => remaining,
+            Err(message) => {
+                diagnostics.push(Diagnostic {
+                    span: *span,
+                    message: message.to_string(),
+                    severity: DiagSeverity::Error,
+                });
+                return;
+            }
+        };
         if remaining.is_empty() {
             return;
         }

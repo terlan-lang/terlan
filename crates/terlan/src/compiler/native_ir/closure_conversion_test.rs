@@ -36,10 +36,10 @@ fn lower(
             available_types: outer_types,
         },
         &ClosureLoweringEnvironment {
-            identities: identities,
-            function_types: function_types,
+            identities,
+            function_types,
             constructors: &NativeConstructorLayouts::new(),
-            suspending: suspending,
+            suspending,
             callable_shapes: &std::collections::HashMap::new(),
         },
         ClosureOwner {
@@ -53,6 +53,7 @@ fn lower(
 #[test]
 fn captured_parameters_are_snapshotted_in_stable_name_order() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: "+".to_string(),
@@ -108,6 +109,7 @@ fn scalar_lexical_prefix_is_evaluated_before_local_capture_snapshot() {
             },
         }],
         body: Box::new(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("value".to_string())],
             body: Box::new(CoreExpr::BinaryOp {
                 operator: "+".to_string(),
@@ -207,6 +209,7 @@ fn non_closure_let_bypasses_closure_prefix_validation() {
 #[test]
 fn closure_branches_receive_distinct_ordered_lifted_identities() {
     let lambda = |operator: &str| CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: operator.to_string(),
@@ -293,6 +296,7 @@ fn closure_branch_rejects_a_suspending_condition() {
                 args: Vec::new(),
             },
             body: CoreExpr::Lam {
+                parameter_types: Vec::new(),
                 params: vec![CorePattern::Var("value".to_string())],
                 body: Box::new(CoreExpr::Var("value".to_string())),
             },
@@ -313,6 +317,7 @@ fn closure_branch_budget_rejects_more_than_sixty_four_clauses() {
             .map(|_| CoreIfClause {
                 condition: CoreExpr::Atom("true".to_string()),
                 body: CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: vec![CorePattern::Var("value".to_string())],
                     body: Box::new(CoreExpr::Var("value".to_string())),
                 },
@@ -342,6 +347,7 @@ fn closure_branch_can_mix_named_and_lifted_targets() {
             CoreIfClause {
                 condition: CoreExpr::Atom("true".to_string()),
                 body: CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: vec![CorePattern::Var("value".to_string())],
                     body: Box::new(CoreExpr::Var("value".to_string())),
                 },
@@ -400,6 +406,7 @@ fn closure_branch_can_mix_named_and_lifted_targets() {
 #[test]
 fn escaping_lambda_rejects_non_variable_parameters() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Wildcard],
         body: Box::new(CoreExpr::Int(1)),
     };
@@ -422,6 +429,7 @@ fn escaping_lambda_rejects_non_variable_parameters() {
 #[test]
 fn escaping_lambda_rejects_declared_arity_drift() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Int(1)),
     };
@@ -444,6 +452,7 @@ fn escaping_lambda_rejects_declared_arity_drift() {
 #[test]
 fn escaping_lambda_rejects_untyped_non_parameter_captures() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: "+".to_string(),
@@ -470,6 +479,7 @@ fn escaping_lambda_rejects_untyped_non_parameter_captures() {
 #[test]
 fn escaping_lambda_capture_budget_has_stable_prelink_rejection() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Tuple(
             (0..65)
@@ -504,6 +514,7 @@ fn escaping_lambda_capture_budget_has_stable_prelink_rejection() {
 #[test]
 fn escaping_lambda_tail_calls_one_admitted_suspending_target() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Call {
             function: "pause".to_string(),

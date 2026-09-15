@@ -108,8 +108,19 @@ fn substitute_expr_types(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => substitute_expr_types(base, parameters, values),
+        | CoreExpr::UnaryOp { operand: base, .. } => {
+            substitute_expr_types(base, parameters, values)
+        }
+        CoreExpr::Lam {
+            parameter_types,
+            body,
+            ..
+        } => {
+            for ty in parameter_types.iter_mut().flatten() {
+                *ty = substitute(ty, parameters, values);
+            }
+            substitute_expr_types(body, parameters, values);
+        }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
                 substitute_expr_types(&mut binding.value, parameters, values);

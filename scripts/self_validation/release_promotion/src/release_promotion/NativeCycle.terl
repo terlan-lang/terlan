@@ -1,0 +1,305 @@
+/**
+ * Durable accounting for successful native work within one preparation graph.
+ * Callers hold the preparation lock until the graph is completed or interrupted.
+ */
+module release_promotion.NativeCycle.
+
+import release_promotion.{NativeActivity, OwnerNative, OwnerStorage, PreparationOwner}.
+import std.collections.List.{concat}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.
+import std.io.File.{NotFound}.
+
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+import type std.data.Json.
+
+pub path(candidate: String, graph: String): String ->
+    String.concat(["target/quality/preparation/", candidate, "/graphs/", graph, ".native.json"]).
+
+fresh(candidate: String, graph: String): Json ->
+    Json.object()
+        .put("candidate", Json.string(candidate))
+        .put("graph", Json.string(graph))
+        .put("outcome", Json.string("running"))
+        .put("active_owner", Json.string(""))
+        .put("active_before", Json.string("absent"))
+        .put("claims", Json.object())
+        .put("consumed", Json.object())
+        .put("native_link_launches", Json.int(0)).
+
+save(root: String, journal: String, state: Json): Bool ->
+    let Ok(digest) <- OwnerStorage.digest(state) else {
+        _ -> false
+    };
+    OwnerStorage.atomic_json(
+        root,
+        journal,
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-native-cycle.v1"))
+            .put("body", state)
+            .put("body_sha256", Json.string(digest)),
+    ).
+
+number(state: Json, field: String): Result[Int, String] ->
+    let {
+        Ok(value) <- state.get(field);
+        Ok(count) <- value.as_int();
+        true <- count >= 0 and count <= 65536
+    } else {
+        _ -> Err("invalid native cycle count")
+    };
+    Ok(count).
+
+load(root: String, journal: String, candidate: String, graph: String): Result[Json, String] ->
+    let {
+        Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, journal));
+        Some("terlan.preparation-native-cycle.v1") <- OwnerStorage.text(document, "schema");
+        Ok(state) <- document.get("body");
+        Some(expected) <- OwnerStorage.text(document, "body_sha256");
+        Ok(actual) <- OwnerStorage.digest(state);
+        true <- expected == actual;
+        Some(prior_candidate) <- OwnerStorage.text(state, "candidate");
+        Some(prior_graph) <- OwnerStorage.text(state, "graph");
+        true <- prior_candidate == candidate and prior_graph == graph;
+        Some(outcome) <- OwnerStorage.text(state, "outcome");
+        Some(_owner) <- OwnerStorage.text(state, "active_owner");
+        Some(_before) <- OwnerStorage.text(state, "active_before");
+        Ok(claims) <- state.get("claims");
+        Ok(claim_count) <- claims.object_length();
+        true <- claim_count <= 65536;
+        Ok(consumed) <- state.get("consumed");
+        Ok(consumed_count) <- consumed.object_length();
+        true <- consumed_count <= 4096;
+        Ok(_launches) <- number(state, "native_link_launches")
+    } else {
+        _ -> Err("native cycle checkpoint is corrupt or belongs to another graph")
+    };
+    case outcome {
+        "pass" -> Ok(fresh(candidate, graph));
+        "running" -> Ok(state);
+        "failed" -> Err("native cycle previously rejected duplicate or invalid work");
+        _ -> Err("unknown native cycle outcome")
+    }.
+
+/**
+ * A completed invocation starts a new cycle; interrupted invocations retain claims.
+ */
+pub open(root: String, candidate: String, graph: String): Result[Json, String] ->
+    let journal = path(candidate, graph);
+    let loaded =
+        case File.size(OwnerStorage.child(root, journal)) {
+            Ok(_size) -> load(root, journal, candidate, graph);
+            Err(reason) ->
+                if {
+                    File.code(reason) == NotFound -> Ok(fresh(candidate, graph));
+                    true -> Err("cannot inspect native cycle checkpoint")
+                }
+        };
+    let {
+        Ok(state) <- loaded;
+        true <- OwnerStorage.discard_pending(root, journal);
+        true <- save(root, journal, state)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("cannot open native cycle checkpoint")
+    };
+    Ok(state).
+
+pub active(state: Json): String ->
+    case OwnerStorage.text(state, "active_owner") {
+        Some(owner) -> owner;
+        None -> ""
+    }.
+
+activity_path(root: String, owner: Owner): String ->
+    let {
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+        Some("failed") <- OwnerStorage.text(ledger, "outcome")
+    } else {
+        _ -> PreparationOwner.activity_path(owner)
+    };
+    PreparationOwner.failed_activity_path(owner).
+
+signature(root: String, owner: Owner): Result[String, String] ->
+    case Hash.sha256_file(OwnerStorage.child(root, activity_path(root, owner))) {
+        Ok(digest) -> Ok(digest);
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> Ok("absent");
+                true -> Err("cannot fingerprint native owner log")
+            }
+    }.
+
+/**
+ * Publish the active owner before launching it, covering the owner/graph commit gap.
+ */
+pub before(root: String, journal: String, state: Json, owner: Owner): Bool ->
+    let Ok(digest) <- signature(root, owner) else {
+        _ -> false
+    };
+    save(
+        root,
+        journal,
+        state.put("active_owner", Json.string(owner.name)).put("active_before", Json.string(digest)),
+    ).
+
+claim(inputs: Json, index: Int, count: Int, claims: Json, owner: String): Result[Bool, String] ->
+    if {
+        index == count -> Ok(true);
+        true -> let {
+            Ok(value) <- inputs.at(index);
+            Ok(key) <- value.as_string();
+            true <- key.byte_size() >= 76 and key.byte_size() <= 83
+        } else {
+            _ -> Err("invalid completed native input identity")
+        };
+        case claims.get(key) {
+            Ok(_prior) ->
+                Err(String.append("native work was completed by multiple owner attempts: ", key));
+            Err(_missing) ->
+                let _stored = claims.put(key, Json.string(owner));
+                claim(inputs, index + 1, count, claims, owner)
+        }
+    }.
+
+merge(state: Json, owner: String, digest: String, report: Json): Result[Bool, String] ->
+    let {
+        Some("terlan.execution-inventory.v1") <- OwnerStorage.text(report, "schema");
+        Some(decision) <- OwnerStorage.text(report, "decision");
+        true <- decision == "pass" or decision == "failed" or decision == "interrupted";
+        Ok(inputs) <- report.get("completed_inputs");
+        Ok(count) <- inputs.length();
+        Ok(completed) <- number(report, "completed_work");
+        true <- count == completed;
+        Ok(launches) <- number(report, "native_link_launches");
+        Ok(prior_launches) <- number(state, "native_link_launches");
+        true <- launches + prior_launches <= 65536;
+        Ok(claims) <- state.get("claims");
+        Ok(prior_count) <- claims.object_length();
+        true <- prior_count + count <= 65536;
+        Ok(consumed) <- state.get("consumed");
+        Ok(consumed_count) <- consumed.object_length();
+        true <- consumed_count < 4096
+    } else {
+        _ -> Err("native cycle inventory is invalid or exceeds its budget")
+    };
+    (let identity = String.concat([owner, ":", digest]);
+case consumed.get(identity) {
+    Ok(_already_accounted) -> Ok(true);
+    Err(_new) ->
+        let Ok(_claimed) <- claim(inputs, 0, count, claims, owner) else {
+            Err(reason) -> Err(reason)
+        };
+        (let _seen = consumed.put(identity, report);
+let _updated =
+    state
+        .put("claims", claims)
+        .put("consumed", consumed)
+        .put("native_link_launches", Json.int(prior_launches + launches));
+Ok(true))
+}).
+
+pub accept(root: String, journal: String, state: Json, owner: Owner, report: Json): Bool ->
+    let result =
+        case signature(root, owner) {
+            Ok(digest) ->
+                if {
+                    digest == "absent" -> Err("completed native log is missing");
+                    true -> merge(state, owner.name, digest, report)
+                };
+            Err(reason) -> Err(reason)
+        };
+    case result {
+        Err(reason) ->
+            let _failed =
+                save(
+                    root,
+                    journal,
+                    state.put("outcome", Json.string("failed")).put("error", Json.string(reason)),
+                );
+            false;
+        Ok(_merged) -> clear(root, journal, state)
+    }.
+
+pub clear(root: String, journal: String, state: Json): Bool ->
+    save(
+        root,
+        journal,
+        state.put("active_owner", Json.string("")).put("active_before", Json.string("absent")),
+    ).
+
+/**
+ * Recover only a newly sealed log, verifying it against the successful owner ledger.
+ */
+pub recover(root: String, journal: String, state: Json, owner: Owner): Bool ->
+    case PreparationOwner.recover_pending(root, owner) {
+        None -> recover_retained(root, journal, state, owner);
+        Some(decision) ->
+            case decision.native_inventory {
+                Some(report) -> accept(root, journal, state, owner, report);
+                None -> false
+            }
+    }.
+
+recover_retained(root: String, journal: String, state: Json, owner: Owner): Bool ->
+    let {
+        Some(before) <- OwnerStorage.text(state, "active_before");
+        Ok(current) <- signature(root, owner)
+    } else {
+        _ -> false
+    };
+    if {
+        before == current or current == "absent" -> clear(root, journal, state);
+        true -> let {
+            Ok(ledger) <-
+                OwnerStorage.read_json(
+                    OwnerStorage.child(root, PreparationOwner.ledger_path(owner)),
+                );
+            Some(outcome) <- OwnerStorage.text(ledger, "outcome");
+            true <- outcome == "pass" or outcome == "failed"
+        } else {
+            _ -> clear(root, journal, state)
+        };
+        (let {
+    Ok(expected) <-
+        ledger
+            .get(
+                if {
+                    outcome == "pass" -> "outputs";
+                    true -> "native_outputs"
+                },
+            );
+    Ok(actual) <-
+        OwnerStorage.files(
+            root,
+            if {
+                outcome == "pass" -> concat(
+                    PreparationOwner.output_paths(owner),
+                    [PreparationOwner.activity_path(owner)],
+                );
+                true -> [PreparationOwner.failed_activity_path(owner)]
+            },
+        );
+    Ok(expected_hash) <- OwnerStorage.digest(expected);
+    Ok(actual_hash) <- OwnerStorage.digest(actual);
+    true <- expected_hash == actual_hash;
+    Ok(report) <-
+        if {
+            outcome == "pass" -> NativeActivity.read(OwnerStorage.child(root, PreparationOwner.activity_path(owner)));
+            true -> OwnerNative.inspect_file(
+                OwnerStorage.child(root, PreparationOwner.failed_activity_path(owner)),
+            )
+        }
+} else {
+    _ -> false
+};
+accept(root, journal, state, owner, report))
+    }.
+
+pub complete(root: String, journal: String, state: Json): Bool ->
+    save(root, journal, state.put("outcome", Json.string("pass"))).

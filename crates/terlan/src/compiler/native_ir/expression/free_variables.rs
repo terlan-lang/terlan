@@ -6,8 +6,21 @@ use crate::terlan_typeck::{CoreExpr, CorePattern};
 
 /// Returns the names read by an expression outside its lexical bindings.
 pub(in crate::compiler::native_ir) fn free_variables(expr: &CoreExpr) -> HashSet<String> {
+    free_variables_with_bindings(expr, [], [])
+}
+
+/// Returns free reads after admitting enclosing parameters and clause patterns.
+pub(in crate::compiler::native_ir) fn free_variables_with_bindings<'a>(
+    expr: &CoreExpr,
+    parameters: impl IntoIterator<Item = String>,
+    patterns: impl IntoIterator<Item = &'a CorePattern>,
+) -> HashSet<String> {
     let mut free = HashSet::new();
-    collect_free_variables(expr, &mut HashSet::new(), &mut free);
+    let mut bound = parameters.into_iter().collect();
+    for pattern in patterns {
+        bind_pattern(pattern, &mut bound);
+    }
+    collect_free_variables(expr, &mut bound, &mut free);
     free
 }
 
@@ -125,7 +138,7 @@ fn collect_free_variables(
                 collect_free_variables(&after.body, bound, free);
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             let original = bound.clone();
             for pattern in params {
                 bind_pattern(pattern, bound);

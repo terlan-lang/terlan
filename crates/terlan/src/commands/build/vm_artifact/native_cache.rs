@@ -12,6 +12,7 @@ use super::super::BuildOneError;
 pub(super) const CACHE_MANIFEST_NAME: &str = "manifest.v1";
 const CACHE_BUILD_LOCK_NAME: &str = "build.lock";
 const CACHE_BUILD_LOCK_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_TEMPORARY_ATTEMPTS: usize = 64;
 static NEXT_TEMPORARY_ID: AtomicU64 = AtomicU64::new(0);
 
 pub(super) struct TemporaryCacheFile {
@@ -20,6 +21,20 @@ pub(super) struct TemporaryCacheFile {
 
 impl TemporaryCacheFile {
     pub(super) fn beside(path: &Path) -> Result<Self, BuildOneError> {
+        Self::beside_using(path, Self::reserve)
+    }
+
+    /// Pins immutable object bytes outside the evictable unit namespace.
+    /// An uncatchable compiler exit leaves this private link intact for a
+    /// surviving linker; normal scope cleanup removes only its owned name.
+    pub(super) fn linked_beside(source: &Path, path: &Path) -> Result<Self, BuildOneError> {
+        Self::beside_using(path, |destination| Self::reserve_link(source, destination))
+    }
+
+    fn beside_using(
+        path: &Path,
+        reserve: impl Fn(PathBuf) -> std::io::Result<Self>,
+    ) -> Result<Self, BuildOneError> {
         let parent = path.parent().ok_or_else(|| {
             BuildOneError::Message(format!(
                 "error[tvm.cache.temporary_path]: cache file `{}` has no parent directory",
@@ -35,10 +50,46 @@ impl TemporaryCacheFile {
                     path.display()
                 ))
             })?;
-        let id = NEXT_TEMPORARY_ID.fetch_add(1, Ordering::Relaxed);
-        Ok(Self {
-            path: parent.join(format!(".{name}.{}.{}.tmp", std::process::id(), id)),
-        })
+        for _ in 0..MAX_TEMPORARY_ATTEMPTS {
+            let id = NEXT_TEMPORARY_ID.fetch_add(1, Ordering::Relaxed);
+            let temporary_path = parent.join(format!(".{name}.{}.{}.tmp", std::process::id(), id));
+            match reserve(temporary_path) {
+                Ok(temporary) => return Ok(temporary),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => {
+                    return Err(BuildOneError::Message(format!(
+                        "error[tvm.cache.temporary_create]: cannot reserve temporary beside `{}`: {error}",
+                        path.display()
+                    )));
+                }
+            }
+        }
+        Err(BuildOneError::Message(format!(
+            "error[tvm.cache.temporary_create]: exhausted temporary names beside `{}`",
+            path.display()
+        )))
+    }
+
+    /// Establishes cleanup ownership only after exclusive file creation succeeds.
+    pub(super) fn reserve(path: PathBuf) -> std::io::Result<Self> {
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)?;
+        Ok(Self { path })
+    }
+
+    /// Hard-link creation is exclusive; collisions never confer ownership.
+    pub(super) fn reserve_link(source: &Path, path: PathBuf) -> std::io::Result<Self> {
+        let metadata = fs::symlink_metadata(source)?;
+        if !metadata.is_file() || metadata.file_type().is_symlink() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "native link input is not a regular object file",
+            ));
+        }
+        fs::hard_link(source, &path)?;
+        Ok(Self { path })
     }
 
     pub(super) fn path(&self) -> &Path {
@@ -98,10 +149,22 @@ impl CacheBuildLock {
 
 /// Publishes one complete cache file without exposing a partial write.
 pub(super) fn publish_file(path: &Path, bytes: &[u8]) -> Result<(), BuildOneError> {
+    publish_file_using(path, bytes, |source, destination| {
+        fs::rename(source, destination)
+    })
+}
+
+/// Writes and syncs owned scratch before one replacement operation; failure
+/// never authorizes removing the previous destination.
+pub(super) fn publish_file_using(
+    path: &Path,
+    bytes: &[u8],
+    replace: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+) -> Result<(), BuildOneError> {
     let temporary = TemporaryCacheFile::beside(path)?;
     let mut file = OpenOptions::new()
         .write(true)
-        .create_new(true)
+        .truncate(true)
         .open(temporary.path())
         .map_err(|error| {
             BuildOneError::Message(format!(
@@ -118,23 +181,12 @@ pub(super) fn publish_file(path: &Path, bytes: &[u8]) -> Result<(), BuildOneErro
             ))
         })?;
     drop(file);
-    match fs::rename(temporary.path(), path) {
-        Ok(()) => Ok(()),
-        Err(first_error) if path.exists() => {
-            fs::remove_file(path).and_then(|()| fs::rename(temporary.path(), path)).map_err(
-                |error| {
-                    BuildOneError::Message(format!(
-                        "error[tvm.cache.publish]: failed to replace cache file `{}` after {first_error}: {error}",
-                        path.display()
-                    ))
-                },
-            )
-        }
-        Err(error) => Err(BuildOneError::Message(format!(
+    replace(temporary.path(), path).map_err(|error| {
+        BuildOneError::Message(format!(
             "error[tvm.cache.publish]: failed to publish cache file `{}`: {error}",
             path.display()
-        ))),
-    }
+        ))
+    })
 }
 
 /// Computes lowercase SHA-256 without depending on a host checksum utility.

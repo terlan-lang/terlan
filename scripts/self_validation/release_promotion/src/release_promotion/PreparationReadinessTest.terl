@@ -1,0 +1,235 @@
+/**
+ * Real promotion subprocesses over synthetic artifacts in a disposable Git root.
+ * Instrumentation counts launches and kills an actual readiness producer.
+ */
+module release_promotion.PreparationReadinessTest.
+
+import release_promotion.{CandidateFiles, CandidateFixture, EvidenceReportsTest, OwnerStorage, OwnerTools, PreparationEnvironment, PreparationFixture, PrepareReadiness}.
+import std.collections.List.{length}.
+import std.core.Int.{to_string}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{append, concat, split}.
+import std.data.Json.{string}.
+import std.io.{Console, Directory, File}.
+
+fail(message: String): Bool ->
+    let _printed = Console.eprintln(append("[readiness owner diagnostic] ", message));
+    false.
+
+step(label: String, result: Bool): Bool ->
+    if {
+        result -> true;
+        true -> fail(label)
+    }.
+
+copy_step(
+    origin: String,
+    source: String,
+    root: String,
+    destination: String,
+    label: String,
+): Bool ->
+    case File.copy(OwnerStorage.child(origin, source), OwnerStorage.child(root, destination)) {
+        Ok(_copied) -> true;
+        Err(_reason) -> fail(label)
+    }.
+
+write(root: String, path: String, contents: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), contents) {
+        Ok(_written) -> true;
+        Err(_reason) -> false
+    }.
+
+bind_revision(root: String): Bool ->
+    let {
+        Ok(revision) <-
+            OwnerTools.run(
+                root,
+                "git",
+                ["rev-parse", "HEAD"],
+                PreparationEnvironment.selected(["PATH", "HOME"]),
+            );
+        Ok(metadata) <- OwnerStorage.read_json(OwnerStorage.child(root, "dist/terlan-release.json"))
+    } else {
+        _ -> fail("bind revision")
+    };
+    OwnerStorage.atomic_json(
+        root,
+        "dist/terlan-release.json",
+        metadata.put("source_revision", string(revision)),
+    ).
+
+fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        true <- step("candidate fixture", CandidateFixture.create(root));
+        true <- step("synthetic reports", EvidenceReportsTest.prepare_reports(root));
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        true <-
+            copy_step(
+                origin,
+                image,
+                root,
+                "target/tools/promotion.tvm",
+                "fixture promotion image copy",
+            );
+        true <-
+            step(
+                "fixture gitignore",
+                write(root, ".gitignore", "/target/\n/dist/\n/std/generated/\n"),
+            );
+        true <- step("fixture call log", write(root, "target/calls", ""));
+        true <-
+            step(
+                "fixture launcher",
+                write(
+                    root,
+                    "target/tools/vm",
+                    concat(
+                        [
+                            "#!/bin/sh\nset -eu\nif test \"$1\" = run; then\n  printf '%s\\n' \"$5\" >> target/calls\n  if test \"$5\" = attest-existing && test -f target/kill-readiness; then kill -KILL $$; fi\nfi\nexec ",
+                            OwnerStorage.child(origin, vm),
+                            " \"$@\"\n",
+                        ],
+                    ),
+                ),
+            );
+        true <-
+            step(
+                "fixture chmod",
+                OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/vm"]),
+            );
+        true <- step("fixture commit", PreparationFixture.commit(root))
+    } else {
+        _ -> fail("fixture setup")
+    };
+    bind_revision(root).
+
+stage(root: String, label: String, valid: Bool, completed: Int, reused: Int): Bool ->
+    let _printed = Console.println(append("[readiness rehearsal] ", label));
+    case PrepareReadiness.prepare(root, "target/tools/vm", "target/tools/promotion.tvm", "0.0.7") {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            result.valid == valid and result.completed == completed and result.reused == reused
+    }.
+
+same(root: String, path: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, path)) else {
+        _ -> fail("read expected file")
+    };
+    actual == expected.
+
+cold_and_warm(root: String): Bool ->
+    let {
+        true <- stage(root, "cold seal and attestation", true, 2, 0);
+        true <- same(root, "target/calls", "seal\nattest-existing\n");
+        Ok(candidate) <- File.read_text(OwnerStorage.child(root, "dist/release-candidate.json"));
+        Ok(readiness) <-
+            File.read_text(
+                OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json"),
+            );
+        true <- stage(root, "unchanged reuse", true, 0, 2);
+        true <- same(root, "target/calls", "seal\nattest-existing\n");
+        true <- same(root, "dist/release-candidate.json", candidate);
+        true <- same(root, "target/quality/release-readiness-attestation-report.json", readiness);
+        Err(_version) <- PrepareReadiness.prepare(root, "target/tools/vm", "target/tools/promotion.tvm", "wrong");
+        true <- same(root, "target/calls", "seal\nattest-existing\n")
+    } else {
+        _ -> fail("cold and warm graph")
+    };
+    true.
+
+interrupted(root: String): Bool ->
+    let {
+        Ok(previous) <-
+            File.read_text(
+                OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json"),
+            );
+        true <- write(root, "target/quality/extra-report.json", "{}\n");
+        true <- write(root, "target/kill-readiness", "kill\n");
+        true <- stage(root, "kill attestation after sealing changed inputs", false, 1, 0);
+        true <- same(root, "target/quality/release-readiness-attestation-report.json", previous);
+        true <- same(root, "target/calls", "seal\nattest-existing\nseal\nattest-existing\n");
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/kill-readiness"));
+        true <- stage(root, "resume only interrupted attestation", true, 1, 1);
+        true <-
+            same(
+                root,
+                "target/calls",
+                "seal\nattest-existing\nseal\nattest-existing\nattest-existing\n",
+            );
+        true <- stage(root, "reuse recovered candidate", true, 0, 2)
+    } else {
+        _ -> fail("interrupted graph")
+    };
+    true.
+
+invalidated(root: String): Bool ->
+    let {
+        Ok(before) <- File.read_text(OwnerStorage.child(root, "target/calls"));
+        Ok(_generated) <- Directory.create_all(OwnerStorage.child(root, "std/generated"));
+        true <- write(root, "std/generated/input.terli", "generated component\n");
+        true <- stage(root, "added ignored component invalidates both owners", true, 2, 0);
+        true <- same(root, "target/calls", append(before, "seal\nattest-existing\n"));
+        true <- stage(root, "reuse generated component", true, 0, 2);
+        true <- write(root, "target/quality/release-readiness-attestation-report.json", "corrupt");
+        true <- stage(root, "repair only corrupt attestation", true, 1, 1);
+        true <- same(root, "target/calls", append(before, "seal\nattest-existing\nattest-existing\n"))
+    } else {
+        _ -> fail("invalidated graph")
+    };
+    true.
+
+/**
+ * Executes the actual graph;
+ * constructed reports are not release certification.
+ */
+inventory_scale(origin: String): Bool ->
+    let {
+        Ok(source) <-
+            OwnerTools.run(
+                origin,
+                "git",
+                ["ls-files"],
+                PreparationEnvironment.selected(["PATH", "HOME"]),
+            );
+        true <- source != ""
+    } else {
+        Err(reason) -> fail(concat(["inventory scale: ", reason]));
+        _ -> fail("inventory scale")
+    };
+    (let paths = split(source, "\n");
+let valid = CandidateFiles.merge_self_test(paths);
+let _printed =
+    Console.println(
+        append("[readiness rehearsal] merging tracked paths: ", to_string(length(paths))),
+    );
+valid).
+
+/**
+ * Executes the actual graph; constructed reports are not release certification.
+ */
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-readiness-owner-") else {
+        _ -> fail("temporary fixture directory")
+    };
+    (let valid =
+    inventory_scale(origin)
+        and fixture(root, origin, vm, image)
+        and cold_and_warm(root)
+        and interrupted(root)
+        and invalidated(root);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        Err(_reason) -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "readiness owner rehearsal passed";
+            true -> "readiness owner rehearsal failed"
+        },
+    );
+valid and removed).

@@ -17,6 +17,9 @@ use super::{
     NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
+#[path = "collection_values/structural_maps.rs"]
+mod structural_maps;
+
 /// Lowers one collection-valued native function body from its checked result type.
 pub(super) fn lower_boundary_collection_value(
     body: &CoreExpr,
@@ -30,6 +33,13 @@ pub(super) fn lower_boundary_collection_value(
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if let Some(ty) = native_type(Some(expected), &expected.contract_text()) {
+        if let Some(value) =
+            super::constructors::lower_zero_field_managed_variant(body, ty, constructors)?
+        {
+            return Ok(Some(value));
+        }
+    }
     if let CoreExpr::Cast { expr, target_type } = body {
         let expected_native = native_type(Some(expected), &expected.contract_text());
         let target_native = native_type(Some(target_type), &target_type.contract_text());
@@ -44,6 +54,19 @@ pub(super) fn lower_boundary_collection_value(
                 constructors,
             );
         }
+    }
+    if let (CoreExpr::Map(fields), CoreType::Map(field_types)) = (body, expected) {
+        return structural_maps::lower(
+            fields,
+            field_types,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map(Some)
+        .map_err(String::from);
     }
     if let (CoreExpr::Tuple(items), CoreType::Union(variants)) = (body, expected) {
         let Some(CoreExpr::Atom(tag)) = items.first() else {

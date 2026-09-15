@@ -6,6 +6,76 @@ use crate::terlan_typeck::{
 };
 
 #[test]
+fn inferred_list_operands_visit_every_element_and_remain_idempotent() {
+    let mut expression = CoreExpr::List(vec![
+        CoreExpr::Int(1),
+        CoreExpr::Index {
+            base: Box::new(CoreExpr::Var("values".to_string())),
+            index: Box::new(CoreExpr::Int(0)),
+        },
+    ]);
+    let variables = HashMap::from([(
+        "values".to_string(),
+        CoreType::List(Box::new(CoreType::Int)),
+    )]);
+    let functions = HashMap::new();
+    let infer = |expression: &mut CoreExpr| {
+        super::collection_intrinsic_specialization::specialize_expr(
+            expression, &variables, &functions, "app.Test",
+        )
+    };
+    assert_eq!(
+        infer(&mut expression),
+        Some(CoreType::List(Box::new(CoreType::Int)))
+    );
+    let CoreExpr::List(items) = &expression else {
+        panic!("list literal changed shape");
+    };
+    assert!(matches!(&items[1], CoreExpr::Intrinsic(call)
+        if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListGet)));
+    let once = expression.clone();
+    infer(&mut expression);
+    assert_eq!(expression, once, "repeated specialization must be stable");
+}
+
+#[test]
+fn positional_collections_specialize_later_elements() {
+    for constructor in ["std.collections.List.List", "std.collections.Set.Set"] {
+        let mut expression = CoreExpr::ConstructorCall {
+            constructor: constructor.to_string(),
+            constructor_identity: Some(constructor.to_string()),
+            args: vec![
+                CoreExpr::Int(1),
+                CoreExpr::Index {
+                    base: Box::new(CoreExpr::Var("values".to_string())),
+                    index: Box::new(CoreExpr::Int(0)),
+                },
+            ],
+        };
+        let variables = HashMap::from([(
+            "values".to_string(),
+            CoreType::List(Box::new(CoreType::Int)),
+        )]);
+        super::collection_intrinsic_specialization::specialize_expr(
+            &mut expression,
+            &variables,
+            &HashMap::new(),
+            "app.Test",
+        );
+        let list = match &expression {
+            CoreExpr::Cast { expr, .. } => expr.as_ref(),
+            CoreExpr::Intrinsic(call) => &call.args[0],
+            other => panic!("unexpected positional collection: {other:?}"),
+        };
+        let CoreExpr::List(items) = list else {
+            panic!("positional elements were not retained");
+        };
+        assert!(matches!(&items[1], CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListGet)));
+    }
+}
+
+#[test]
 fn expected_option_retargets_an_inferred_variant_cast() {
     let variant = CoreType::Tuple(vec![
         crate::terlan_typeck::CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".to_string())),
@@ -186,6 +256,64 @@ fn typed_string_variable_receiver_becomes_indexed_utf8_intrinsic() {
         call.args,
         vec![CoreExpr::Var("value".to_string()), CoreExpr::Int(1)]
     );
+}
+
+/// List destructuring must preserve the types used to resolve element receiver calls.
+#[test]
+fn list_pattern_element_receiver_keeps_its_intrinsic_identity() {
+    for list_type in [
+        CoreType::List(Box::new(CoreType::String)),
+        CoreType::Apply {
+            constructor: "std.collections.List.List".to_string(),
+            args: vec![CoreType::String],
+        },
+    ] {
+        for pattern in [
+            CorePattern::List(vec![CorePattern::Var("value".to_string())]),
+            CorePattern::ListCons {
+                head: Box::new(CorePattern::Var("value".to_string())),
+                tail: Box::new(CorePattern::Var("rest".to_string())),
+            },
+        ] {
+            let mut expression = CoreExpr::Case {
+                scrutinee: Box::new(CoreExpr::Var("values".to_string())),
+                clauses: vec![crate::terlan_typeck::CoreCaseClause {
+                    pattern,
+                    guard: None,
+                    body: CoreExpr::RemoteCall {
+                        module: "app.__receiver__".to_string(),
+                        function: "utf8_slice".to_string(),
+                        args: vec![
+                            CoreExpr::Var("value".to_string()),
+                            CoreExpr::Int(1),
+                            CoreExpr::Int(2),
+                        ],
+                    },
+                }],
+            };
+            let variables = HashMap::from([("values".to_string(), list_type.clone())]);
+            let result = super::collection_intrinsic_specialization::specialize_expr(
+                &mut expression,
+                &variables,
+                &HashMap::new(),
+                "app",
+            );
+            assert_eq!(result, Some(CoreType::String));
+            let CoreExpr::Case { clauses, .. } = expression else {
+                panic!("expected case expression");
+            };
+            let CoreExpr::Intrinsic(call) = &clauses[0].body else {
+                panic!(
+                    "list element receiver remains unresolved: {:?}",
+                    clauses[0].body
+                );
+            };
+            assert_eq!(
+                call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8Slice)
+            );
+        }
+    }
 }
 
 #[test]

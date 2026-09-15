@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{CoreExpr, CoreFunction, CorePattern, CoreType};
 
+use super::type_support::type_excludes_pattern;
 use super::{
     bind_values, bool_and, core_expr_type, extend_bindings, pattern_plan, validate_bindings,
 };
@@ -257,6 +258,41 @@ fn lower_case(
             clauses.len()
         ));
     }
+    // A literal empty list has no element witness. Decide its shape without
+    // inventing a runtime element type or lowering unreachable head bindings.
+    // Guards on matching clauses still run in source order.
+    if matches!(scrutinee, CoreExpr::List(items) if items.is_empty())
+        && clauses.iter().all(|clause| {
+            matches!(
+                clause.pattern,
+                CorePattern::List(_) | CorePattern::ListCons { .. } | CorePattern::Wildcard
+            )
+        })
+    {
+        let mut selected = Vec::new();
+        for clause in clauses {
+            let matches = match &clause.pattern {
+                CorePattern::List(items) => items.is_empty(),
+                CorePattern::Wildcard => true,
+                _ => false,
+            };
+            if !matches {
+                continue;
+            }
+            let condition = clause
+                .guard
+                .as_ref()
+                .map(|guard| lower_child(guard, params, param_types, core_types, environment))
+                .transpose()?
+                .unwrap_or(NativeExpr::Bool(true));
+            let body = lower_child(&clause.body, params, param_types, core_types, environment)?;
+            selected.push((condition, body));
+            if clause.guard.is_none() {
+                break;
+            }
+        }
+        return Ok(NativeExpr::If { clauses: selected });
+    }
     if let Some((items, item_core_types)) =
         tuple_scrutinee(scrutinee, core_types, function_core_types)
     {
@@ -313,6 +349,9 @@ fn lower_case(
 
     let mut native_clauses = Vec::with_capacity(clauses.len());
     for clause in clauses {
+        if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
+            continue;
+        }
         let plan = pattern_plan(
             &clause.pattern,
             scrutinee_value.clone(),
@@ -592,7 +631,7 @@ pub(super) fn lower_plain(
         function_core_types,
         constructors,
     } = environment;
-    if matches!(expr, CoreExpr::Tuple(_)) {
+    if matches!(expr, CoreExpr::Tuple(_) | CoreExpr::List(_)) {
         if let Some(core_type) = core_expr_type(expr, core_types, function_core_types) {
             if let Some(lowered) =
                 crate::compiler::native_ir::collection_values::lower_boundary_collection_value(
@@ -718,6 +757,10 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
                         function_types,
                         constructors,
                     )
+                    .or_else(|| {
+                        core_expr_type(&binding.value, &local_core_types, function_core_types)
+                            .and_then(|ty| super::super::native_type(Some(&ty), &ty.contract_text()))
+                    })
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.structured_case_result_type]: cannot infer binding `{name}`"
@@ -752,6 +795,9 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
             let scrutinee_core = core_expr_type(scrutinee, core_types, function_core_types);
             let mut result = None;
             for clause in clauses {
+                if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
+                    continue;
+                }
                 let plan = pattern_plan(
                     &clause.pattern,
                     NativeExpr::Param(0),

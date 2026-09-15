@@ -1,0 +1,123 @@
+/**
+ * Linux publication checkpoint for installed smoke and rollback verification.
+ * Candidate verification and prerequisite correctness gates remain mandatory.
+ */
+module release_promotion.PrepareStagedDistribution.
+
+import release_promotion.{EvidenceReports, OwnerStorage, OwnerTools, PreparationContext, PreparationOwner}.
+import std.core.Option.Some.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, File}.
+import std.system.Process.
+
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+import type std.system.Process.EnvironmentEntry.
+
+pub output(): String -> "target/quality/release-staged-distribution-verification-report.json".
+
+private_environment(entries: List[EnvironmentEntry], scratch: String): List[EnvironmentEntry] ->
+    case entries {
+        [] ->
+            [
+                Process.environment_entry("HOME", scratch),
+                Process.environment_entry("TMPDIR", scratch),
+            ];
+        [entry | rest] ->
+            if {
+                entry.key == "HOME" -> private_environment(rest, scratch);
+                true -> [entry | private_environment(rest, scratch)]
+            }
+    }.
+
+binding_holds(root: String): Bool ->
+    let {
+        Ok(candidate) <- OwnerStorage.read_json(OwnerStorage.child(root, "dist/release-candidate.json"));
+        Ok(seal) <- candidate.get("seal");
+        Some(digest) <- OwnerStorage.text(seal, "digest");
+        Ok(readiness) <-
+            File.read_text(
+                OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json"),
+            )
+    } else {
+        _ -> false
+    };
+    EvidenceReports.seal_matches(readiness, "terlan.release-readiness-attestation.v1", digest).
+
+pub declare(root: String, vm: String, image: String): Result[Owner, String] ->
+    let true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+        _ -> Err("preparation tools must be inside target/")
+    };
+    (let {
+    Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+    true <- binding_holds(root);
+    Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment);
+    Ok(tools) <- OwnerTools.installer_identity(root, context.environment, context.runtime_tools)
+} else {
+    Err(reason) -> Err(reason);
+    _ -> Err("staged distribution requires passing readiness for the sealed candidate")
+};
+(let scratch =
+    OwnerStorage.child(
+        root,
+        String.concat(
+            ["target/quality/preparation/", context.revision, "/staged-distribution.work"],
+        ),
+    );
+Ok(
+    PreparationOwner.owner(
+        "staged-distribution",
+        context.revision,
+        "x86_64-unknown-linux-gnu",
+        "installed-distribution",
+        String.concat([version, "\n", tools]),
+        context.sources,
+        [
+            vm,
+            image,
+            "dist/release-candidate.json",
+            "dist/terlan-release.json",
+            "dist/terlc-linux-x86_64.tar.gz",
+            "dist/terlc-linux-x86_64.tar.gz.sha256",
+            "target/quality/release-readiness-attestation-report.json",
+        ],
+        OwnerStorage.child(root, vm),
+        [
+            "run",
+            OwnerStorage.child(root, image),
+            "--script-eval",
+            "--",
+            "release-staged-distribution",
+        ],
+        private_environment(context.environment, scratch),
+        output(),
+        "TERLAN_STAGED_DISTRIBUTION_OUTPUT",
+        "terlan.release-staged-distribution-verification.v1",
+        "Staged distribution verification passed",
+        1800000,
+    ),
+))).
+
+pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
+    let Ok(owner) <- declare(root, vm, image) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(PreparationOwner.run_locked(root, owner)).
+
+pub run_locked(root: String, vm: String, image: String): Bool ->
+    case prepare(root, vm, image) {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            let _printed =
+                Console.println(
+                    if {
+                        not result.valid -> result.message;
+                        result.reused -> "[preparation] staged distribution reused: zero installer replay";
+                        true -> "[preparation] staged distribution completed and checkpointed"
+                    },
+                );
+            result.valid
+    }.

@@ -2,15 +2,12 @@
 
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
-use std::sync::{OnceLock, RwLock};
+use std::sync::OnceLock;
 
-use crate::terlan_hir::{
-    load_interfaces_from_dir, syntax_module_output_to_interface, ModuleInterface,
-};
+use crate::terlan_hir::{load_interfaces_from_dir, parse_interface_text, ModuleInterface};
 use crate::terlan_syntax::{
-    parse_interface_module_as_syntax_output, syntax_module_import_identities,
-    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxImportKind,
-    SyntaxModuleOutput, SyntaxParamOutput,
+    syntax_module_import_identities, SyntaxDeclarationPayload, SyntaxExprOutput,
+    SyntaxFunctionClauseOutput, SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput,
 };
 
 use super::EMBEDDED_STD_INTERFACE_SUMMARIES;
@@ -230,30 +227,9 @@ fn embedded_summary_module_name(summary: &str) -> Option<&str> {
     })
 }
 
-/// Parses one embedded interface through the canonical syntax and HIR path.
-fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterface)> {
-    let parsed = parse_interface_module_as_syntax_output(summary).ok()?;
-    let module_name = parsed.module_name.clone();
-    Some((module_name, syntax_module_output_to_interface(&parsed)))
-}
-
-/// Parses each embedded summary at most once while allowing source-scoped
-/// callers to clone only their admitted interface subset.
+/// Uses the same content-keyed, synchronized parsing as file-backed interfaces.
 fn cached_embedded_std_interface(summary: &'static str) -> Option<(String, ModuleInterface)> {
-    static CACHE: OnceLock<RwLock<HashMap<&'static str, ModuleInterface>>> = OnceLock::new();
-    let module_name = embedded_summary_module_name(summary)?;
-    let cache = CACHE.get_or_init(|| RwLock::new(HashMap::new()));
-    if let Ok(interfaces) = cache.read() {
-        if let Some(interface) = interfaces.get(module_name) {
-            return Some((module_name.to_string(), interface.clone()));
-        }
-    }
-    let (_, parsed) = parse_embedded_std_interface(summary)?;
-    let interface = match cache.write() {
-        Ok(mut interfaces) => interfaces.entry(module_name).or_insert(parsed).clone(),
-        Err(_) => parsed,
-    };
-    Some((module_name.to_string(), interface))
+    parse_interface_text(summary)
 }
 
 #[cfg(test)]

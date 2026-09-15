@@ -5,3 +5,6 @@ version = "0.0.7"
 [build]
 source_roots = ["src"]
 artifact = "library"
+
+[dependencies]
+rust_quality = { path = "../rust_quality" }

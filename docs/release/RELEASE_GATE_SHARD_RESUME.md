@@ -1,6 +1,6 @@
 # Release Gate Shard Resume
 
-This document is the contract for making release gates shardable, resumable, and non-redundant in 0.0.7.
+This document is the contract for making release gates shardable, resumable, and non-redundant.
 
 The release gate manifest must record every check, inputs, output artifacts,
 dependency gates, expected reports, estimated cost, shard assignment, and
@@ -17,6 +17,12 @@ Evidence refresh and preflight are separate commands:
 `make release-preflight` performs candidate-bound composition and final
 integration validation, and preflight never executes completed gates. A late
 failure therefore cannot replay the entire successful prefix.
+
+The canonical check enters its validation graph through the live Rust coverage
+owner, which verifies exact completed selections against current inputs. A
+caller-supplied "suite already ran" flag is not evidence. Release refresh exports
+its release scope into that same graph; composition uses shared prerequisites
+instead of a second recursive Make traversal.
 
 `make release-check` is the version-neutral end-to-end entry point and resolves
 the candidate version from workspace metadata.
@@ -62,7 +68,8 @@ The adversarial matrix must include:
 
 ## Report Evidence
 
-The executable gate persists release-gate-shard-resume-report.json with:
+The static contract gate persists release-gate-shard-resume-report.json describing
+the requirements for:
 
 - gate DAG
 - cache keys
@@ -73,6 +80,9 @@ The executable gate persists release-gate-shard-resume-report.json with:
 - first-failure decision
 - collect-all decision
 
-The report is release evidence that resumed and sharded release runs preserve
-the same pass/fail result, diagnostics, report contents, benchmark inclusion,
-and support-bundle paths as the canonical serial run.
+This report checks the documented contract and selected Make wiring. Its fields
+describe requirements, not observed launches, timings, cache hits or recovery.
+It is not evidence that an interrupted candidate actually resumed successfully.
+That claim requires preparation-owner records and executed cold/warm/interrupted
+acceptance demonstrating the same pass/fail result, diagnostics, report contents,
+benchmark inclusion and support-bundle paths as the canonical serial run.

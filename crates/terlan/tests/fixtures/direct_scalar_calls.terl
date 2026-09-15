@@ -1,0 +1,28 @@
+module direct_scalar_calls.
+
+import std.vm.Process.
+
+pub add(x: Int, y: Int): Int ->
+    x + y.
+
+pub branch_yield(flag: Bool): Int ->
+    if {
+        flag -> (Process.yield_now(); 41);
+        true -> 7
+    }.
+
+pub branch_yield_local(flag: Bool, value: Int): Int ->
+    if {
+        flag -> let next = value + 1;
+        Process.yield_now();
+        next + 1;
+        true -> value
+    }.
+
+pub yielded_add(value: Int): Int ->
+    Process.yield_now();
+    value + 1.
+
+pub yielded_bool(flag: Bool): Bool ->
+    Process.yield_now();
+    flag.

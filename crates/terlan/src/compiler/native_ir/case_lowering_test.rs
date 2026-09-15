@@ -20,6 +20,281 @@ fn core(source: &str) -> CoreModule {
     lower_syntax_module_output_to_core(&module, &resolved)
 }
 
+#[test]
+fn structured_lambda_arguments_retain_aggregate_types() {
+    let module = core(
+        r#"
+module structured_lambda_arguments.
+pub type Pair = {Atom["pair"], Int, Int}.
+pub answer(): Int ->
+    let add = (({left, right}) -> left + right);
+    let head_plus_tail = (([head | tail]) ->
+        case tail { [next] -> head + next; _ -> 0 });
+    let score = ((Pair(_id, size)) -> size * 10);
+    let Pair(_id, bonus) = Pair(0, 2);
+    add({4, 5}) + head_plus_tail([3, 4]) + score(Pair(7, 3)) + bonus.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower aggregate lambdas");
+    let object = emit_native_application_object("aggregate-lambdas", &modules)
+        .expect("emit aggregate lambdas");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("lambda export")
+        .export_id;
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "aggregate-lambdas",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(48),
+        }],
+    );
+}
+
+#[test]
+fn ordered_function_heads_specialize_patterns_and_keep_guard_scope() {
+    let module = core(
+        "module native_function_heads.\n\
+         pair_or_scalar[T](value: T): Int.\n\
+         pair_or_scalar({left, right}) -> left + right;\n\
+         pair_or_scalar(_) -> 0.\n\
+         choose(value: Int): Int.\n\
+         choose(value) where value >= 0 -> 10;\n\
+         choose(1) -> 20;\n\
+         choose(_) -> 30.\n\
+         combine(left: Int, right: Int): Int.\n\
+         combine(x, y) where x > y -> x - y;\n\
+         combine(_, y) -> y.\n\
+         zero(): Int.\n\
+         zero() where false -> 100;\n\
+         zero() -> 0.\n\
+         pub answer(value: Int): Int ->\n\
+             pair_or_scalar({value, 5}) + pair_or_scalar(value)\n\
+             + choose(value) + combine(value, 2) + zero().\n",
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower function heads");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("answer export")
+        .export_id;
+    let object = emit_native_application_object("function-heads", &modules).expect("emit heads");
+    let invocations = [(4, 21), (-1, 36), (1, 18)].map(|(argument, expected)| {
+        super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![argument],
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "function-heads",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
+#[test]
+fn function_head_clause_budget_is_checked_before_normalization() {
+    let mut module = core("module heads_budget.\nf(value: Int): Int -> value.\n");
+    let clause = module.functions[0].clauses[0].clone();
+    module.functions[0].clauses = vec![clause; 257];
+    let error = lower_scalar_cases(&mut module).expect_err("reject excessive head clauses");
+    assert!(
+        error.starts_with("error[native_ir.function_head_budget]"),
+        "{error}"
+    );
+}
+
+#[test]
+fn constant_empty_list_cases_keep_guards_and_skip_unreachable_heads() {
+    let module = core(
+        r#"
+module native_empty_case.
+pub choose(guard: Bool): Int ->
+    case [] {
+        [head | _tail] -> head;
+        [] where guard -> 1;
+        [] -> 2
+    }.
+pub missing(): Int -> case [] { [_head] -> 3 }.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower empty list cases");
+    let object =
+        emit_native_application_object("empty-list-case", &modules).expect("emit empty case");
+    let mut invocations = Vec::new();
+    for (name, arguments, expected_status, expected_result) in [
+        ("choose", vec![1], super::status::OK, Some(1)),
+        ("choose", vec![0], super::status::OK, Some(2)),
+        ("missing", vec![], super::status::NO_MATCHING_BRANCH, None),
+    ] {
+        let export_id = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("empty-case export")
+            .export_id;
+        invocations.push(super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments,
+            expected_status,
+            expected_result,
+        });
+    }
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "empty-list-case",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
+/// Builds retained structured control with a scalar result for operand tests.
+fn structured_operand() -> CoreExpr {
+    CoreExpr::Case {
+        scrutinee: Box::new(CoreExpr::Tuple(vec![CoreExpr::Int(42)])),
+        clauses: vec![CoreCaseClause {
+            pattern: CorePattern::Tuple(vec![CorePattern::Var("selected".into())]),
+            guard: None,
+            body: CoreExpr::Var("selected".into()),
+        }],
+    }
+}
+
+/// Verifies scalar siblings retain their order around an eager control operand.
+#[test]
+fn eager_case_operands_capture_scalar_siblings_in_source_order() {
+    for binary in [false, true] {
+        let mut module = core("module eager_case.\npub answer(): Int -> 0.\n");
+        let first = CoreExpr::Call {
+            function: "first".into(),
+            args: vec![],
+        };
+        *function_body_mut(&mut module, "answer") = if binary {
+            CoreExpr::BinaryOp {
+                operator: "+".into(),
+                left: Box::new(first),
+                right: Box::new(structured_operand()),
+            }
+        } else {
+            CoreExpr::Call {
+                function: "consume".into(),
+                args: vec![
+                    first,
+                    structured_operand(),
+                    CoreExpr::Call {
+                        function: "last".into(),
+                        args: vec![],
+                    },
+                ],
+            }
+        };
+        lower_scalar_cases(&mut module).expect("normalize eager operands");
+        let CoreExpr::Let { bindings, .. } = function_body_mut(&mut module, "answer") else {
+            panic!("eager operands require ordered owners");
+        };
+        assert_eq!(bindings.len(), if binary { 2 } else { 3 });
+        assert!(
+            matches!(&bindings[0].value, CoreExpr::Call { function, .. } if function == "first")
+        );
+        assert!(matches!(&bindings[1].value, CoreExpr::Case { .. }));
+        if !binary {
+            assert!(
+                matches!(&bindings[2].value, CoreExpr::Call { function, .. } if function == "last")
+            );
+        }
+    }
+}
+
+/// Verifies normalization does not evaluate a short-circuit branch eagerly.
+#[test]
+fn eager_case_operands_stay_inside_short_circuit_branch() {
+    let mut module = core("module lazy_case.\npub answer(): Bool -> false.\n");
+    *function_body_mut(&mut module, "answer") = CoreExpr::BinaryOp {
+        operator: "and".into(),
+        left: Box::new(CoreExpr::Atom("false".into())),
+        right: Box::new(CoreExpr::Call {
+            function: "consume".into(),
+            args: vec![structured_operand()],
+        }),
+    };
+    lower_scalar_cases(&mut module).expect("normalize lazy operands");
+    let CoreExpr::If { clauses } = function_body_mut(&mut module, "answer") else {
+        panic!("short circuit must retain branch ownership");
+    };
+    assert!(matches!(&clauses[0].condition, CoreExpr::Atom(value) if value == "false"));
+    assert!(matches!(&clauses[0].body, CoreExpr::Let { .. }));
+    assert!(matches!(&clauses[1].body, CoreExpr::Atom(value) if value == "false"));
+}
+
+/// Verifies a structured case call argument reaches linked native execution.
+#[test]
+fn eager_structured_case_call_argument_executes_native_object() {
+    let module = core(
+        "module eager_native_case.\n\
+         identity(value: Int): Int -> value.\n\
+         pub answer(): Int -> identity(case {40, 2} { {left, right} -> left + right }).\n",
+    );
+    let modules = NativeModule::lower_application(&[&module]).expect("lower eager structured case");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("answer export")
+        .export_id;
+    let object = emit_native_application_object("eager_native_case", &modules)
+        .expect("emit eager structured case object");
+    assert_native_object_result("eager-native-case", &object, export_id, &[], 42);
+}
+
+/// Verifies a later control condition is not lifted before an earlier branch.
+#[test]
+fn eager_case_condition_keeps_preceding_branch_lazy() {
+    use crate::terlan_typeck::CoreIfClause;
+    let mut module = core("module conditional_case.\npub answer(): Int -> 0.\n");
+    *function_body_mut(&mut module, "answer") = CoreExpr::If {
+        clauses: vec![
+            CoreIfClause {
+                condition: CoreExpr::Atom("true".into()),
+                body: CoreExpr::Int(7),
+            },
+            CoreIfClause {
+                condition: structured_operand(),
+                body: CoreExpr::Int(8),
+            },
+            CoreIfClause {
+                condition: CoreExpr::Atom("true".into()),
+                body: CoreExpr::Int(9),
+            },
+        ],
+    };
+    lower_scalar_cases(&mut module).expect("normalize conditional owners");
+    let CoreExpr::If { clauses } = function_body_mut(&mut module, "answer") else {
+        panic!("the preceding branch must stay outside the new owner");
+    };
+    assert_eq!(clauses.len(), 2);
+    assert!(matches!(clauses[0].body, CoreExpr::Int(7)));
+    let CoreExpr::Let { bindings, body } = &clauses[1].body else {
+        panic!("the later condition belongs to the fallback branch");
+    };
+    assert_eq!(bindings.len(), 1);
+    assert!(matches!(bindings[0].value, CoreExpr::Case { .. }));
+    let CoreExpr::If { clauses } = body.as_ref() else {
+        panic!("resumed condition")
+    };
+    assert!(matches!(clauses[0].body, CoreExpr::Int(8)));
+    assert!(matches!(clauses[1].body, CoreExpr::Int(9)));
+}
+
 /// Returns the mutable body of a named single-clause function fixture.
 fn function_body_mut<'a>(core: &'a mut CoreModule, name: &str) -> &'a mut CoreExpr {
     core.functions

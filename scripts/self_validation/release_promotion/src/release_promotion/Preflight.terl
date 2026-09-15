@@ -3,7 +3,7 @@
  */
 module release_promotion.Preflight.
 
-import release_promotion.PreflightReport.
+import release_promotion.{EvidenceReports, PreflightReport}.
 import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
@@ -20,26 +20,8 @@ child(parent: String, relative: String): String ->
     }.
 
 @pure
-outcome_reports(): List[String] ->
-    [
-        "target/quality/release-example-projects-report.json",
-        "target/quality/release-project-upgrade-matrix-report.json",
-        "target/quality/release-reference-app-suite-report.json",
-        "target/quality/release-diagnostic-catalog-report.json",
-        "target/quality/release-compatibility-baseline-report.json",
-        "target/quality/release-notes-accuracy-report.json",
-        "target/quality/release-supply-chain-provenance-report.json",
-        "target/quality/release-security-hardening-report.json",
-        "target/quality/release-support-bundle-report.json",
-        "target/quality/release-performance-baseline-report.json",
-        "target/quality/release-adversarial-corpus-report.json",
-        "target/quality/release-mutation-check-report.json",
-        "target/quality/release-fault-injection-report.json",
-        "target/quality/vm-release-artifact-matrix-report.json",
-        "target/quality/vm-multicore-release-closeout.json",
-        "target/quality/release-readiness-attestation-report.json",
-        "target/quality/release-staged-distribution-verification-report.json",
-    ].
+outcome_reports(): List[{String, String}] ->
+    EvidenceReports.preflight_reports().
 
 @pure
 loaded_text(files: List[TextFile], relative: String): String ->
@@ -52,26 +34,13 @@ loaded_text(files: List[TextFile], relative: String): String ->
             }
     }.
 
-@pure
-reports_pass(files: List[TextFile], paths: List[String]): Bool ->
+reports_pass(files: List[TextFile], paths: List[{String, String}]): Bool ->
     case paths {
         [] -> true;
-        [path | rest] ->
+        [{path, schema} | rest] ->
             let source = loaded_text(files, path);
-            source != ""
-                and String.contains(source, "\"decision\": \"pass\"")
-                and reports_pass(files, rest)
+            EvidenceReports.passes(source, schema) and reports_pass(files, rest)
     }.
-
-@pure
-platforms_hold(source: String): Bool ->
-    String.contains(source, "\"target_count\": 6")
-        and String.contains(source, "x86_64-unknown-linux-gnu")
-        and String.contains(source, "aarch64-unknown-linux-gnu")
-        and String.contains(source, "x86_64-apple-darwin")
-        and String.contains(source, "aarch64-apple-darwin")
-        and String.contains(source, "x86_64-pc-windows-msvc")
-        and String.contains(source, "aarch64-pc-windows-msvc").
 
 @pure
 recipe_is_offline(makefile: String): Bool ->
@@ -101,10 +70,10 @@ recipe_is_composition_only(makefile: String): Bool ->
         and not String.contains(recipe, "terlc build").
 
 @pure
-absolute_paths(root: String, paths: List[String], output: List[String]): List[String] ->
+absolute_paths(root: String, paths: List[{String, String}], output: List[String]): List[String] ->
     case paths {
         [] -> reverse_strings(output, []);
-        [path | rest] -> absolute_paths(root, rest, [child(root, path) | output])
+        [{path, _schema} | rest] -> absolute_paths(root, rest, [child(root, path) | output])
     }.
 
 @pure
@@ -134,23 +103,27 @@ validate_loaded(
             "candidate",
             "candidate seal is missing; run `make release-readiness-attestation-check`",
         );
-        not String.contains(
+        not EvidenceReports.seal_matches(
     loaded_text(files, "target/quality/release-readiness-attestation-report.json"),
+    "terlan.release-readiness-attestation.v1",
     candidate_seal,
 ) -> failure(
             "candidate",
             "readiness evidence belongs to another candidate; run `make release-readiness-attestation-check`",
         );
-        not String.contains(
+        not EvidenceReports.seal_matches(
     loaded_text(files, "target/quality/release-staged-distribution-verification-report.json"),
+    "terlan.release-staged-distribution-verification.v1",
     candidate_seal,
 ) -> failure(
             "candidate",
             "staged evidence belongs to another candidate; run `make release-staged-distribution-verification-check`",
         );
-        not platforms_hold(loaded_text(files, "target/quality/vm-release-artifact-matrix-report.json")) -> failure(
+        not EvidenceReports.platforms_hold(
+    loaded_text(files, "target/quality/vm-release-artifact-matrix-report.json"),
+) -> failure(
             "platform",
-            "six platform attestations are incomplete; run `make vm-release-artifact-matrix-check`",
+            "six unique platform contract rows are required; run `make vm-release-artifact-matrix-check`",
         );
         not recipe_is_offline(makefile) -> failure(
             "offline",
@@ -180,10 +153,7 @@ pub run(root: String, version: String, candidate_seal: String): Bool ->
  * Exercises every fail-closed preflight policy without external state.
  */
 pub self_test(): Bool ->
-    let platform = "{\"target_count\": 6,\"targets\":[\"x86_64-unknown-linux-gnu\",\"aarch64-unknown-linux-gnu\",\"x86_64-apple-darwin\",\"aarch64-apple-darwin\",\"x86_64-pc-windows-msvc\",\"aarch64-pc-windows-msvc\"]}";
-    platforms_hold(platform)
-        and not platforms_hold(String.replace(platform, "aarch64-pc-windows-msvc", "unsupported"))
-        and not reports_pass([], outcome_reports())
+    not reports_pass([], outcome_reports())
         and recipe_is_offline("release-preflight:\n\tlocal-check\n\n")
         and not recipe_is_offline("release-preflight:\n\tcurl example.invalid\n\n")
         and not recipe_is_offline("release-preflight:\n\tsecond seal\n\n")

@@ -65,7 +65,8 @@ impl VmSystemProfileSnapshot {
         processes: &[VmProcessSnapshot],
         cursor: VmSystemProfileCursor,
     ) -> Result<Self, String> {
-        let transition_count = scheduler.queue_transitions.len();
+        let transitions = scheduler.queue_transitions();
+        let transition_count = transitions.len();
         if cursor.transition_index > transition_count {
             return Err(format!(
                 "VM system profile cursor {} exceeds transition count {transition_count}",
@@ -76,7 +77,7 @@ impl VmSystemProfileSnapshot {
             .iter()
             .map(|process| (process.pid.as_u64(), process))
             .collect::<BTreeMap<_, _>>();
-        let events = scheduler.queue_transitions[cursor.transition_index..]
+        let events = transitions[cursor.transition_index..]
             .iter()
             .enumerate()
             .map(|(offset, transition)| {

@@ -35,7 +35,7 @@ impl Backend {
     ///   before typechecker diagnostics for parseable documents.
     pub(in super::super) async fn publish_document_diagnostics(
         &self,
-        uri: Url,
+        uri: Uri,
         version: i32,
         parse_error: Option<ParserError>,
         document: &OpenDocument,
@@ -279,7 +279,7 @@ impl Backend {
     /// - Parses syntax output and generated summaries to expose the reserved
     ///   shape surface to editors without enabling semantic expansion.
     pub(in super::super) fn completion_items_for_position(
-        uri: &Url,
+        uri: &Uri,
         document: &OpenDocument,
         position: Position,
     ) -> Vec<CompletionItem> {
@@ -585,7 +585,7 @@ impl Backend {
     ///   imported public struct-field and receiver-method metadata into LSP
     ///   member completions.
     pub(in super::super) fn receiver_member_completion_items(
-        uri: &Url,
+        uri: &Uri,
         module: &SyntaxModuleOutput,
         document: &OpenDocument,
         byte_offset: usize,

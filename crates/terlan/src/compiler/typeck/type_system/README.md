@@ -15,6 +15,7 @@ loading and lookup support from the general type model.
 
 - `interface`: helpers for interface and summary-backed type information.
 - `map_fields`: structural map field subtype and unification helpers.
+- `return_type`: directional return-union checking with atomic substitutions.
 - `special`: Unit and template HTML equivalence predicates.
 - `substitution`: alias expansion, type-variable substitution, and
   existential alpha-equivalence.
@@ -37,6 +38,8 @@ Important invariants:
 - Type names and constructor names remain distinct where the language requires.
 - Backend-only capabilities must be represented as target validation, not core
   type-system shortcuts.
+- Return annotations admit every inferred branch; pattern-union overlap alone
+  cannot establish return compatibility.
 
 ## Integration Points
 
@@ -57,6 +60,9 @@ Important invariants:
 
 `map_fields`
 : Structural map field subtype and unification behavior.
+
+`return_type`
+: Checks every return alternative while retaining complete generic union types.
 
 `special`
 : Unit and template HTML special-case type equivalence.

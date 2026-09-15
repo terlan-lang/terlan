@@ -1,7 +1,7 @@
 module=std.core.GuardResult
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=6483787231669407222
 interface_hash=8512841369673612566
 interface_doc_hash=798045049042709775

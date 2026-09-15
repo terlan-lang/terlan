@@ -77,7 +77,7 @@ fn parse_float(
     let text = heap
         .read_string(super::reference_word(text)?.cast::<ManagedString>())?
         .to_owned();
-    let parsed = text.parse::<f64>().ok().filter(|value| value.is_finite());
+    let parsed = parse_float_text(&text);
     let (variant, fields) = match parsed {
         Some(value) => ("Some", vec![ManagedFieldValue::Float(value)]),
         None => ("None", Vec::new()),
@@ -85,6 +85,10 @@ fn parse_float(
     let layout = super::option_layout(layouts, semantic, variant, fields.len())?;
     heap.allocate_aggregate_ref(layout, &fields)
         .map(|value| value.erase().encoded_abi_word())
+}
+
+pub(super) fn parse_float_text(text: &str) -> Option<f64> {
+    text.parse::<f64>().ok().filter(|value| value.is_finite())
 }
 
 fn finite_float(word: i64) -> Result<f64, ManagedMemoryError> {

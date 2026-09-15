@@ -1,0 +1,152 @@
+/**
+ * Recoverable proof-track execution after fresh, content-bound tool admission.
+ */
+module release_promotion.PrepareProofTrack.
+
+import release_promotion.{CandidateFiles, OwnerArtifacts, OwnerStorage, OwnerTools, PreparationContext, PreparationOwner, ProofInputs}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.io.{Console, Directory}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+pub declare(
+    root: String,
+    quality: String,
+    context: Context,
+    inputs: List[String],
+    admission: String,
+    digest: String,
+): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "proof-track",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-replay",
+            String.concat([context.runtime_tools, "\n", digest]),
+            CandidateFiles.merge_unique(context.sources, inputs),
+            [quality, admission],
+            OwnerStorage.child(root, quality),
+            ["lean-proof-track"],
+            List.concat(
+                context.environment,
+                [
+                    environment_entry(
+                        "TERLAN_PROOF_TOOL_ADMISSION",
+                        OwnerStorage.child(root, admission),
+                    ),
+                    environment_entry("TERLAN_PROOF_TOOL_ADMISSION_SHA256", digest),
+                ],
+            ),
+            "target/quality/proof-artifacts/lean-proof-repro-report.json",
+            "TERLAN_PROOF_REPRO_OUTPUT",
+            "terlan.lean-proof-repro.v1",
+            "[lean-proof-track]",
+            1800000,
+        ),
+        [
+            OwnerArtifacts.declare_artifact(
+                "target/quality/proof-artifacts/lean-proof-track.json",
+                "TERLAN_PROOF_TRACK_OUTPUT",
+                "terlan.lean-proof-track.v1",
+            ),
+            OwnerArtifacts.declare_tsv(
+                "target/quality/proof-artifacts/lean-proof-baseline.tsv",
+                "TERLAN_PROOF_BASELINE_OUTPUT",
+                "feature_class\texpected_status\tlast_confirmed_hash",
+            ),
+        ],
+    ).
+
+pub admit_tools(
+    root: String,
+    quality: String,
+    context: Context,
+    workspace: String,
+): Result[String, String] ->
+    let admission = String.append(workspace, "/tools.json");
+    let {
+        true <- OwnerStorage.clean_workspace(root, workspace);
+        Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, workspace))
+    } else {
+        _ -> Err("cannot reserve proof tool admission workspace")
+    };
+    (let Ok(digest) <-
+    OwnerTools.run(
+        root,
+        OwnerStorage.child(root, quality),
+        ["lean-proof-tool-admission", OwnerStorage.child(root, admission)],
+        context.environment,
+    ) else {
+    Err(reason) -> Err(reason)
+};
+(let {
+    Ok(actual) <- Hash.sha256_file(OwnerStorage.child(root, admission));
+    true <- digest == String.append("sha256:", actual)
+} else {
+    _ -> Err("proof tool admission failed integrity validation")
+};
+Ok(digest))).
+
+admit(
+    root: String,
+    quality: String,
+    context: Context,
+    inputs: List[String],
+    workspace: String,
+): Result[Decision, String] ->
+    let Ok(digest) <- admit_tools(root, quality, context, workspace) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        PreparationOwner.run_locked(
+            root,
+            declare(root, quality, context, inputs, String.append(workspace, "/tools.json"), digest),
+        ),
+    ).
+
+/**
+ * The enclosing Make preparation graph holds its exclusive flock throughout.
+ * Warm reuse still admits current tool bytes but launches no proof producer.
+ */
+pub prepare(root: String, quality: String): Result[Decision, String] ->
+    let {
+        true <- PreparationContext.tool_path(quality);
+        Ok(context) <-
+            PreparationContext.capture(
+                root,
+                ["PATH", "HOME", "ELAN_HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
+            );
+        Ok(inputs) <- ProofInputs.replay(root)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("proof quality executable must be inside target/")
+    };
+    (let workspace = String.concat(["target/quality/preparation/", context.revision, "/proof-tools.work"]);
+let result = admit(root, quality, context, inputs, workspace);
+if {
+    OwnerStorage.clean_workspace(root, workspace) -> result;
+    true -> Err("proof tool admission workspace cleanup failed")
+}).
+
+pub run_locked(root: String, quality: String): Bool ->
+    let Ok(result) <- prepare(root, quality) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        if {
+            not result.valid -> result.message;
+            result.reused -> "[preparation] proof track reused: zero proof producer launches";
+            true -> "[preparation] proof track completed and checkpointed"
+        },
+    );
+result.valid).

@@ -1,0 +1,120 @@
+/**
+ * Mutation checks inside the promotion verifier's disposable sealed fixture.
+ */
+module release_promotion.CandidateEvidenceTest.
+
+import release_promotion.{CandidateEvidence, OwnerStorage}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{append}.
+import std.io.{Directory, File}.
+
+write(root: String, path: String, contents: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), contents) {
+        Ok(_written) -> true;
+        Err(_reason) -> false
+    }.
+
+remove(root: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(_deleted) <- File.delete(OwnerStorage.child(root, path)) else {
+                _ -> false
+            };
+            remove(root, rest)
+    }.
+
+create_bookkeeping(root: String): Bool ->
+    let {
+        Ok(_owner) <-
+            Directory.create_all(
+                OwnerStorage.child(root, "target/quality/preparation/candidate/owner.work"),
+            );
+        true <-
+            write(
+                root,
+                "target/quality/preparation/candidate/owner.json",
+                "{\"outcome\":\"running\"}\n",
+            );
+        true <-
+            write(
+                root,
+                "target/quality/preparation/candidate/owner.work/output.json",
+                "partial scratch",
+            );
+        true <- write(root, "target/quality/rust-cargo-metadata.json", "{\"packages\":[]}\n");
+        true <-
+            write(
+                root,
+                "target/quality/rust-cargo-metadata.json.attempt.json",
+                "{\"outcome\":\"running\"}\n",
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+bookkeeping(root: String, original: List[String]): Bool ->
+    let {
+        true <- create_bookkeeping(root);
+        Ok(created) <- CandidateEvidence.paths(root);
+        true <- created == original;
+        true <-
+            write(
+                root,
+                "target/quality/preparation/candidate/owner.json",
+                "{\"outcome\":\"pass\"}\n",
+            );
+        true <-
+            write(
+                root,
+                "target/quality/rust-cargo-metadata.json.attempt.json",
+                "{\"outcome\":\"failed\"}\n",
+            );
+        Ok(changed) <- CandidateEvidence.paths(root)
+    } else {
+        _ -> false
+    };
+    changed == original.
+
+genuine_reports(root: String, original: List[String]): Bool ->
+    let genuine =
+        [
+            "target/quality/preparation-report.json",
+            "target/quality/rust-cargo-metadata-report.json",
+            "target/quality/nested/rust-cargo-metadata.json",
+            "target/quality/nested/preparation/evidence.json",
+        ];
+    let {
+        Ok(_nested) <- Directory.create_all(OwnerStorage.child(root, "target/quality/nested/preparation"));
+        true <- write(root, "target/quality/preparation-report.json", "{}\n");
+        true <- write(root, "target/quality/rust-cargo-metadata-report.json", "{}\n");
+        true <- write(root, "target/quality/nested/rust-cargo-metadata.json", "{}\n");
+        true <- write(root, "target/quality/nested/preparation/evidence.json", "{}\n");
+        Ok(added) <- CandidateEvidence.paths(root);
+        true <- List.length(added) == List.length(original) + List.length(genuine);
+        true <- List.subtract(genuine, added) == [];
+        true <- remove(root, genuine);
+        Ok(restored) <- CandidateEvidence.paths(root)
+    } else {
+        _ -> false
+    };
+    restored == original.
+
+/**
+ * Leaves only excluded bookkeeping beside the original evidence. The caller
+ * then verifies the original candidate seal using the real payload builder.
+ */
+pub self_test(root: String): Bool ->
+    let {
+        true <- CandidateEvidence.relative_root_self_test();
+        Ok(original) <- CandidateEvidence.paths(root);
+        true <- original == ["target/quality/self-test-report.json"];
+        Ok(trailing_slash) <- CandidateEvidence.paths(append(root, "/"));
+        true <- trailing_slash == original;
+        Err(_missing) <- CandidateEvidence.paths(OwnerStorage.child(root, "missing"))
+    } else {
+        _ -> false
+    };
+    bookkeeping(root, original) and genuine_reports(root, original).

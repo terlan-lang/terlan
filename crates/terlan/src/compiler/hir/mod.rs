@@ -11,6 +11,7 @@ mod imported_type_refs;
 mod imports;
 mod interface_conversion;
 mod interface_loading;
+mod interface_parse_cache;
 mod interface_render;
 mod model;
 mod naming;
@@ -29,6 +30,7 @@ pub use interface_loading::{
     load_interfaces_from_dir, load_interfaces_from_file_set, parse_interface_dependency_entries,
     parse_interface_file,
 };
+pub(crate) use interface_parse_cache::{interface_parse_counts, parse_interface_text};
 pub use model::{
     ConstFunctionSignature, ConstantSignature, ConstructorSignature, Diagnostic,
     ExpressionMacroSignature, FunctionSignature, FunctionSymbol, ImportedItem, ModuleInterface,

@@ -1,8 +1,9 @@
 use std::fs;
 use std::io::{self as std_io, ErrorKind};
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tower_lsp::lsp_types::{CompletionItemKind, HoverContents, MarkupKind, Position, Url};
+use tower_lsp_server::ls_types::{CompletionItemKind, HoverContents, MarkupKind, Position, Uri};
 
 use super::{hover_for_position, Backend};
 use crate::terlan_lsp::document::{DocumentKind, OpenDocument};
@@ -21,7 +22,7 @@ use crate::terlan_lsp::document::{DocumentKind, OpenDocument};
 ///   syntax-output docs are packaged into editor hover content.
 #[test]
 fn hover_returns_same_document_function_docs() {
-    let uri = Url::parse("file:///tmp/hover_local.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_local.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -59,7 +60,7 @@ pub caller(): Int ->
 /// Verifies implication evidence remains visible in local editor hover.
 #[test]
 fn hover_preserves_local_structural_implication_signature() {
-    let uri = Url::parse("file:///tmp/hover_implication_local.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_implication_local.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -117,8 +118,8 @@ module provider.
 pub display_name[T => {name: String}](value: T): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -163,7 +164,7 @@ pub caller(): Unit ->
 
 #[test]
 fn hover_does_not_mark_inferred_effectful_function_pure() {
-    let uri = Url::parse("file:///tmp/hover_impure_local.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_impure_local.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -189,7 +190,7 @@ fn hover_does_not_mark_inferred_effectful_function_pure() {
 
 #[test]
 fn value_lifecycle_hover_exposes_typed_constant_metadata() {
-    let uri = Url::parse("file:///tmp/hover_constant.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_constant.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -218,7 +219,7 @@ fn value_lifecycle_hover_exposes_typed_constant_metadata() {
 
 #[test]
 fn hover_returns_same_document_pure_trait_method_contract() {
-    let uri = Url::parse("file:///tmp/hover_trait_pure.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_trait_pure.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -252,7 +253,7 @@ pub trait Show[T] {
 /// Verifies local type hover exposes negative trait facts.
 #[test]
 fn hover_returns_same_document_negative_trait_impls() {
-    let uri = Url::parse("file:///tmp/hover_negative_trait.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_negative_trait.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -304,7 +305,7 @@ pub impl not Log[SecretKey].
 ///   editor documentation matches the Terlan source the user wrote.
 #[test]
 fn hover_renders_function_head_pattern_parameter_docs() {
-    let uri = Url::parse("file:///tmp/hover_function_head_pattern.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_function_head_pattern.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -358,7 +359,7 @@ pub caller(): Int ->
 ///   implemented by treating raw shape declarations as documentable syntax.
 #[test]
 fn hover_returns_same_document_raw_shape_docs() {
-    let uri = Url::parse("file:///tmp/hover_shape.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/hover_shape.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -429,8 +430,8 @@ module provider.
 pub to_string(value: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -492,8 +493,8 @@ pub impl not Log[SecretKey].
 impl not Compare[SecretKey].
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -560,8 +561,8 @@ pub shape UserAsset(id, file) =
   \"users/${id: Int}/assets/${file}\".
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),

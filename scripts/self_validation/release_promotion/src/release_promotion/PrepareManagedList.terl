@@ -1,0 +1,119 @@
+/**
+ * Publication owner for the release-profile managed-list evidence producer.
+ * No timing threshold or quiet-host requirement is used for publication.
+ */
+module release_promotion.PrepareManagedList.
+
+import release_promotion.{OwnerTools, PreparationContext, PreparationOwner}.
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.
+
+import type release_promotion.OwnerTools.BuildIdentity.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+
+source_inputs(paths: List[String]): List[String] ->
+    source_inputs_at(paths, List.new[String]()).
+
+/**
+ * Stable reverse source order; large inventories use constant caller space.
+ */
+source_inputs_at(paths: List[String], selected: List[String]): List[String] ->
+    case paths {
+        [] -> selected;
+        [path | rest] ->
+            if {
+                String.starts_with(path, "crates/")
+                    or String.starts_with(path, "std/")
+                    or String.starts_with(path, ".cargo/")
+                    or String.starts_with(path, "scripts/self_validation/release_promotion/")
+                    or path == "Cargo.toml"
+                    or path == "Cargo.lock"
+                    or path == "rust-toolchain.toml" -> source_inputs_at(rest, [path | selected]);
+                true -> source_inputs_at(rest, selected)
+            }
+    }.
+
+/**
+ * Invoked only under the Make entry point's preparation flock.
+ */
+require(condition: Bool, message: String): Result[Bool, String] ->
+    if {
+        condition -> Ok(true);
+        true -> Err(message)
+    }.
+
+pub declare(root: String, context: Context): Result[Owner, String] ->
+    let Ok(tools) <- OwnerTools.build_identity(root, context.environment, context.runtime_tools) else {
+        Err(reason) -> Err(reason)
+    };
+    declare_with_tools(context, tools).
+
+/**
+ * Uses the enclosing graph's build-tool inspection without another subprocess.
+ */
+pub declare_with_tools(context: Context, tools: BuildIdentity): Result[Owner, String] ->
+    let env = context.environment;
+    let Ok(_host) <-
+        require(
+            String.contains(tools.rustc, "host: x86_64-unknown-linux-gnu"),
+            "Rust host must be Linux x86_64",
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        PreparationOwner.owner(
+            "managed-list-profile",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "release",
+            String.concat([tools.rustc, "\n", tools.cargo, "\n", tools.digest]),
+            source_inputs(context.sources),
+            ["target/quality/hosted-candidate-validation.json"],
+            "cargo",
+            [
+                "test",
+                "--locked",
+                "--release",
+                "-p",
+                "terlan",
+                "--lib",
+                "runtime::native_image::managed::lists::managed_list_profile_benchmark_test::managed_list_profiles_emit_stable_benchmark_report",
+                "--",
+                "--exact",
+                "--nocapture",
+            ],
+            env,
+            "target/quality/tvm-managed-list-profile.json",
+            "TERLAN_MANAGED_LIST_PROFILE_OUTPUT",
+            "terlan.tvm.managed-list-profile.v1",
+            "running 1 test",
+            1800000,
+        ),
+    ).
+
+pub run_locked(root: String): Bool ->
+    let {
+        Ok(context) <-
+            PreparationContext.capture(
+                root,
+                ["PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
+            );
+        Ok(owner) <- declare(root, context)
+    } else {
+        Err(reason) ->
+            let _printed = Console.eprintln(String.append("managed-list preparation preflight: ", reason));
+            false
+    };
+    (let result = PreparationOwner.run_locked(root, owner);
+let message =
+    if {
+        not result.valid -> result.message;
+        result.reused -> "[preparation] managed-list-profile reused: zero Cargo/test launches";
+        true -> "[preparation] managed-list-profile completed and checkpointed"
+    };
+let _printed = Console.println(message);
+result.valid).

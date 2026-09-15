@@ -1,0 +1,267 @@
+/**
+ * Owns one complete native-boundary evidence generation. Hosted execution
+ * consumes admitted proofs and Rust coverage, never replaying missing tests.
+ */
+module release_promotion.PrepareProofNativeBoundary.
+
+import release_promotion.{CandidateFiles, OwnerArtifacts, OwnerDirectoryContract, OwnerStorage, OwnerTools, PreparationContext, PreparationGraph, PreparationOwner, PrepareProofTrack, ProofInputs}.
+import std.collections.List.{concat}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.{parse}.
+import std.io.{Console, Directory}.
+import std.system.Environment.{get}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.OwnerArtifacts.Artifact.
+import type release_promotion.OwnerDirectoryContract.Member.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.Summary.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+import type std.system.Process.EnvironmentEntry.
+
+/**
+ * Canonical published generation, never passed directly to the producer.
+ */
+pub output(): String -> "target/quality/proof-artifacts/native_boundaries".
+
+selected(prefix: String, paths: List[String], names: List[String]): Result[List[String], String] ->
+    case paths {
+        [] -> Ok(CandidateFiles.sort_unique(names));
+        [path | rest] ->
+            let true <- String.starts_with(path, prefix) else {
+                _ -> Err("native-boundary manifest inventory escaped its root")
+            };
+            (let name = path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+if {
+    String.ends_with(name, ".native_boundary.json") -> selected(prefix, rest, [name | names]);
+    true -> selected(prefix, rest, names)
+})
+    }.
+
+/**
+ * Includes untracked/ignored generated manifests actually read by the proof.
+ */
+pub manifests(root: String): Result[List[String], String] ->
+    let directory = OwnerStorage.child(root, "std/summaries");
+    let Ok(paths) <- Directory.entries(directory) else {
+        _ -> Err("native-boundary source manifest inventory is unavailable")
+    };
+    selected(String.append(directory, "/"), paths, []).
+
+manifest_members(names: List[String]): List[Member] ->
+    case names {
+        [] -> [];
+        [name | rest] ->
+            [OwnerDirectoryContract.declare_member(name, "terlan.native-boundary-proof-manifest.v1") | manifest_members(rest)]
+    }.
+
+manifest_inputs(names: List[String]): List[String] ->
+    case names {
+        [] -> [];
+        [name | rest] -> [String.append("std/summaries/", name) | manifest_inputs(rest)]
+    }.
+
+producer_environment(
+    root: String,
+    context: Context,
+    admission: String,
+    digest: String,
+): List[EnvironmentEntry] ->
+    concat(
+        context.environment,
+        [
+            environment_entry("TERLAN_LEAN_PROOF_ROOT", root),
+            environment_entry("TERLAN_NATIVE_BOUNDARY_PROOF_MODE", "cached"),
+            environment_entry("TERLAN_PROOF_TOOL_ADMISSION", OwnerStorage.child(root, admission)),
+            environment_entry("TERLAN_PROOF_TOOL_ADMISSION_SHA256", digest),
+        ],
+    ).
+
+generation(names: List[String]): Artifact ->
+    OwnerArtifacts.declare_directory(
+        output(),
+        "TERLAN_NATIVE_BOUNDARY_OUTPUT",
+        concat(
+            manifest_members(names),
+            [
+                OwnerDirectoryContract.declare_member(
+                    "proof-manifest-binding.json",
+                    "terlan.native-boundary-proof-binding.v1",
+                ),
+                OwnerDirectoryContract.declare_member(
+                    "runtime-oracle-signatures.json",
+                    "terlan.native-boundary-proof-runtime-oracles.v1",
+                ),
+            ],
+        ),
+    ).
+
+/**
+ * Bind source selection, tool admission, coverage endpoint and exact outputs.
+ */
+pub declare(
+    root: String,
+    compiler: String,
+    context: Context,
+    inputs: List[String],
+    names: List[String],
+    admission: String,
+    digest: String,
+): Owner ->
+    PreparationOwner.with_output(
+        PreparationOwner.owner(
+            "proof-native-boundary",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-native-boundary-consumer",
+            String.concat([context.runtime_tools, "\n", digest]),
+            CandidateFiles.merge_unique(context.sources, concat(inputs, manifest_inputs(names))),
+            [
+                compiler,
+                "target/debug/terlan-quality",
+                "target/validation-tools/terlan-test-orchestrator",
+                admission,
+                "target/quality/proof-artifacts/lean-proof-track.json",
+            ],
+            OwnerStorage.child(root, compiler),
+            ["test", "--incremental", "scripts/self_validation/LeanProofNativeBoundaryTest.terl"],
+            producer_environment(root, context, admission, digest),
+            output(),
+            "TERLAN_NATIVE_BOUNDARY_OUTPUT",
+            "directory",
+            "Lean NativeBoundary proof passed:",
+            1800000,
+        ),
+        generation(names),
+    ).
+
+valid_tools(source: String): Bool ->
+    let {
+        Ok(identity) <- parse(source);
+        Some("terlan.native-toolchain-identity.v1") <- OwnerStorage.text(identity, "schema");
+        Some("x86_64-unknown-linux-gnu") <- OwnerStorage.text(identity, "target")
+    } else {
+        _ -> false
+    };
+    true.
+
+native_context(root: String, compiler: String, context: Context): Result[Context, String] ->
+    let {
+        Ok(native) <-
+            OwnerTools.run(
+                root,
+                OwnerStorage.child(root, compiler),
+                ["build", "--print-toolchain-identity"],
+                context.environment,
+            );
+        true <- valid_tools(native)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("native-boundary compiler identity is invalid")
+    };
+    Ok(
+        PreparationContext.from_parts(
+            context.revision,
+            context.sources,
+            context.environment,
+            String.concat([context.runtime_tools, "\n", native]),
+        ),
+    ).
+
+admit(
+    root: String,
+    compiler: String,
+    context: Context,
+    workspace: String,
+): Result[Summary, String] ->
+    let {
+        Ok(names) <- manifests(root);
+        true <- names != [] and OwnerDirectoryContract.valid(manifest_members(names));
+        Ok(inputs) <- ProofInputs.replay(root);
+        Ok(bound_context) <- native_context(root, compiler, context);
+        Ok(digest) <- PrepareProofTrack.admit_tools(root, "target/debug/terlan-quality", context, workspace)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("native-boundary manifest identity is invalid")
+    };
+    (let bound_owner =
+    declare(
+        root,
+        compiler,
+        bound_context,
+        inputs,
+        names,
+        String.append(workspace, "/tools.json"),
+        digest,
+    );
+if {
+    PreparationOwner.valid_declaration(bound_owner) -> Ok(
+        PreparationGraph.run_locked(
+            root,
+            "proof-native-boundary",
+            [PreparationGraph.declare_node(bound_owner, [])],
+        ),
+    );
+    true -> Err("native-boundary owner declaration is invalid")
+}).
+
+/**
+ * Admit only clean hosted candidates and retain their shared coverage context.
+ */
+pub prepare(root: String, compiler: String): Result[Summary, String] ->
+    let {
+        true <- PreparationContext.tool_path(compiler);
+        Some("hosted-source") <- get("TERLAN_RUST_COVERAGE_SCOPE");
+        Some(endpoint) <- get("TERLAN_RUST_COVERAGE_CONTEXT");
+        true <- endpoint != "";
+        Ok(context) <-
+            PreparationContext.capture(
+                root,
+                [
+                    "PATH",
+                    "HOME",
+                    "ELAN_HOME",
+                    "CARGO_HOME",
+                    "RUSTUP_HOME",
+                    "RUSTUP_TOOLCHAIN",
+                    "TERLAN_RUST_COVERAGE_CONTEXT",
+                    "TERLAN_RUST_COVERAGE_SCOPE",
+                ],
+            )
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("native-boundary preparation requires a target compiler and live hosted coverage")
+    };
+    (let workspace = String.concat(["target/quality/preparation/", context.revision, "/native-boundary-tools.work"]);
+let result = admit(root, compiler, context, workspace);
+if {
+    OwnerStorage.clean_workspace(root, workspace) -> result;
+    true -> Err("native-boundary admission workspace cleanup failed")
+}).
+
+/**
+ * The enclosing preparation command holds the kernel publication lease.
+ */
+pub run_locked(root: String, compiler: String): Bool ->
+    let Ok(result) <- prepare(root, compiler) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[preparation] native boundary: completed=",
+                Int.to_string(result.completed),
+                " reused=",
+                Int.to_string(result.reused),
+                " ",
+                result.message,
+            ],
+        ),
+    );
+result.valid).

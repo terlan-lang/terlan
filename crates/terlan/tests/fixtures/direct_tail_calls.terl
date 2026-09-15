@@ -1,0 +1,35 @@
+module direct_tail_calls.
+
+import std.vm.Process.
+
+pub call_yielding(flag: Bool): Int ->
+    branch_yield(flag).
+
+pub tail_yielding_local(flag: Bool, value: Int): Int ->
+    branch_yield_local(flag, value).
+
+pub tail_yielding_branch(which: Bool, flag: Bool): Int ->
+    if {
+        which -> branch_yield(flag);
+        true -> yielded_add(41)
+    }.
+
+pub tail_yielding_chain(flag: Bool): Int ->
+    call_yielding(flag).
+
+pub tail_yielding_bool(flag: Bool): Bool ->
+    yielded_bool(flag).
+
+pub tail_yielding_prefix(flag: Bool, value: Int): Int ->
+    if {
+        flag -> let next = value + 1;
+        yielded_add(next);
+        true -> value
+    }.
+
+pub tail_yielding_checked(flag: Bool, divisor: Int): Int ->
+    if {
+        flag -> let checked = 1 div divisor;
+        yielded_add(checked);
+        true -> 7
+    }.

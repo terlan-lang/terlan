@@ -45,6 +45,7 @@ pub(crate) fn core_const_function_termination_evidence(
                 span: declaration.span,
             };
             Some(CoreFunction {
+                source: None,
                 name: name.clone(),
                 arity: params.len(),
                 public: *is_public,

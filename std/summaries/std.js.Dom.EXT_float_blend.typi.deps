@@ -1,7 +1,7 @@
 module=std.js.Dom.EXT_float_blend
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
+syntax_contract_fingerprint=fnv1a64:eadfc8d7c5c2271b
 source_hash=2163192269706850719
 interface_hash=14416708695023361775
 interface_doc_hash=14416708695023361775

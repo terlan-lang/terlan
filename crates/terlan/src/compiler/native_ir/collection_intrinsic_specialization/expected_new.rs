@@ -46,6 +46,25 @@ pub(super) fn specialize_expected_collection_new(
                 annotate_expected_structural_constructors(item, element);
             }
         }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } if matches!(expected, CoreType::Struct { name, fields }
+            if fields.len() == args.len()
+                && constructor_identity.as_deref().map_or_else(
+                    || constructor == name || format!("{module}.{constructor}") == *name,
+                    |identity| identity == name || format!("{module}.{identity}") == *name)) =>
+        {
+            if let CoreType::Struct { fields, .. } = expected {
+                // Specialize before call composition lifts earlier arguments
+                // into locals across a later suspending constructor argument.
+                for (argument, field) in args.iter_mut().zip(fields) {
+                    specialize_expected_collection_new(argument, &field.ty, functions, module);
+                    annotate_expected_structural_constructors(argument, &field.ty);
+                }
+            }
+        }
         CoreExpr::Tuple(items) => {
             let element_types = contextual_tuple_elements(items, expected);
             if let Some(element_types) = element_types {
@@ -135,6 +154,10 @@ pub(super) fn specialize_expected_collection_new(
         _ => {}
     }
 }
+
+#[cfg(test)]
+#[path = "expected_new_test.rs"]
+mod tests;
 
 fn contextualize_call_arguments(
     args: &mut [CoreExpr],

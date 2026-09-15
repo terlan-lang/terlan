@@ -138,6 +138,19 @@ impl PureNativeExecutionRuntime {
         self.continuations.len()
     }
 
+    /// Inspects actual actor-owned caller frames without exposing a runtime ABI.
+    #[cfg(test)]
+    pub(super) fn pending_completion_frames_for_test(
+        &self,
+        owner_id: u64,
+    ) -> &[PendingNativeCompletionFrame] {
+        &self
+            .continuations
+            .get(&owner_id)
+            .expect("parked test actor")
+            .completions
+    }
+
     /// Retains one independently spawned actor at its scheduler-visible park point.
     pub(crate) fn park_resident_suspension(
         &mut self,

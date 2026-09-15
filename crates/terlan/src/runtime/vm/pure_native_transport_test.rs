@@ -118,7 +118,7 @@ impl NativeImageBackend for TypedMailboxBackend {
 }
 
 /// Builds the canonical typed mailbox boundary used by suspension tests.
-fn typed_mailbox_boundary() -> PureNativeBoundary {
+pub(super) fn typed_mailbox_boundary() -> PureNativeBoundary {
     PureNativeBoundary {
         artifact: Some(ResolvedPureArtifact {
             image_identity: "transport-image".to_string(),
@@ -142,7 +142,8 @@ fn typed_mailbox_boundary() -> PureNativeBoundary {
                     parameters: vec![TvmBoundaryType::String],
                     results: vec![TvmBoundaryType::String],
                 },
-            ],
+            ]
+            .into(),
         }),
         backend: Some(Box::new(TypedMailboxBackend)),
         call_cache: None,
@@ -516,7 +517,8 @@ fn managed_mailbox_full_cycle_preserves_native_graph_identity() {
                     parameters: vec![boundary_type.clone()],
                     results: vec![boundary_type],
                 },
-            ],
+            ]
+            .into(),
         }),
         backend: Some(Box::new(backend)),
         call_cache: None,
@@ -574,7 +576,8 @@ fn managed_mailbox_rejection_rolls_back_receiver_heap_and_retains_lease() {
                 id: 911,
                 parameters: Vec::new(),
                 results: vec![boundary_type],
-            }],
+            }]
+            .into(),
         }),
         backend: Some(Box::new(backend)),
         call_cache: None,

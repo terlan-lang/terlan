@@ -281,6 +281,42 @@ fn expand_type_aliases_preserves_recursive_cycle_reference() {
     );
 }
 
+/// Nested applications are not recursive alias definitions, qualified or local.
+#[test]
+fn expand_type_aliases_expands_nested_generic_arguments_before_cycle_guard() {
+    for module in [None, Some("fixture")] {
+        let named = |argument| Type::Named {
+            module: module.map(str::to_owned),
+            name: "Wrap".to_owned(),
+            args: vec![argument],
+        };
+        let key = module.map_or_else(|| "Wrap".to_owned(), |module| format!("{module}.Wrap"));
+        let mut alias = TypeAlias {
+            params: vec![0],
+            param_variance: vec![],
+            bounds: vec![],
+            body: Type::Tuple(vec![Type::LiteralAtom("wrap".to_owned()), Type::Var(0)]),
+            constructor_param_names: vec![],
+            is_opaque: false,
+        };
+        let aliases = HashMap::from([(key.clone(), alias.clone())]);
+        assert_eq!(
+            expand_type_aliases(&named(named(Type::Bool)), &aliases),
+            Type::Tuple(vec![
+                Type::LiteralAtom("wrap".to_owned()),
+                Type::Tuple(vec![Type::LiteralAtom("wrap".to_owned()), Type::Bool])
+            ])
+        );
+        // A definition that grows its own argument must still stop at the body cycle.
+        alias.body = named(Type::List(Box::new(Type::Var(0))));
+        let recursive = HashMap::from([(key, alias)]);
+        assert_eq!(
+            expand_type_aliases(&named(Type::Bool), &recursive),
+            named(Type::List(Box::new(Type::Bool)))
+        );
+    }
+}
+
 /// Verifies inference substitution rewrites higher-kinded applications.
 ///
 /// Inputs:

@@ -243,6 +243,11 @@ where
                 let mut resumed_items = items.clone();
                 let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
                 for (index, earlier) in items[..call_index].iter().enumerate() {
+                    // Literal tags have no evaluation effects and carry the
+                    // variant identity needed by typed union construction.
+                    if matches!(earlier, CoreExpr::Atom(_)) {
+                        continue;
+                    }
                     let name = unique_prefix_name(
                         &format!("$native_sequence_item_{index}"),
                         &region,
@@ -316,6 +321,25 @@ where
             }
             None
         }
+        CoreExpr::FieldAccess { base, field } => {
+            let region =
+                composed_call_region_at(base, suspending, is_composable, result_name, reserved)?;
+            Some(map_region_resumes(region, |resume| CoreExpr::FieldAccess {
+                base: Box::new(resume),
+                field: field.clone(),
+            }))
+        }
+        CoreExpr::RecordAccess { base, name, field } => {
+            let region =
+                composed_call_region_at(base, suspending, is_composable, result_name, reserved)?;
+            Some(map_region_resumes(region, |resume| {
+                CoreExpr::RecordAccess {
+                    base: Box::new(resume),
+                    name: name.clone(),
+                    field: field.clone(),
+                }
+            }))
+        }
         CoreExpr::UnaryOp { operator, operand } => {
             let region =
                 composed_call_region_at(operand, suspending, is_composable, result_name, reserved)?;
@@ -379,6 +403,12 @@ where
             let mut region =
                 composed_call_region_at(right, suspending, is_composable, result_name, reserved)?;
             if matches!(operator.as_str(), "and" | "or") {
+                // A join belongs to the expression that produced it. An
+                // outer bypass must not feed that inner result slot. Keep
+                // this branch boundary for structured-control lowering.
+                if region.join.is_some() {
+                    return None;
+                }
                 let gated_prefix = std::mem::take(&mut region.prefix);
                 let call_when_true = operator == "and";
                 let bypass_resume =
@@ -457,6 +487,9 @@ where
                         return Some(region);
                     }
                 }
+                if region.join.is_some() {
+                    return None;
+                }
                 let gated_prefix = std::mem::take(&mut region.prefix);
                 region.gates.insert(
                     0,
@@ -487,6 +520,9 @@ where
                 result_name,
                 reserved,
             )?;
+            if region.join.is_some() {
+                return None;
+            }
             let gated_prefix = std::mem::take(&mut region.prefix);
             region.gates.insert(
                 0,

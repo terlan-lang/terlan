@@ -14,20 +14,30 @@ use crate::terlan_typeck::{CoreExpr, CorePattern, CoreTupleTypeElem, CoreType};
 use super::constructors::{managed_field_projection, NativeConstructorLayout};
 use super::{NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType};
 
+mod atom;
 #[path = "structured_case/binary.rs"]
 mod binary;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
+mod string;
 #[path = "structured_case/suspending.rs"]
 mod suspending;
+mod tagged_union;
 #[path = "structured_case/type_support.rs"]
 mod type_support;
+#[cfg(test)]
+#[path = "structured_case/type_support_test.rs"]
+mod type_support_test;
 use binary::binary_plan;
 pub(super) use lowering::{
     contains_case, lower_lexical_expr, lower_structured_case, structured_result_type,
     StructuredCaseEnvironment,
 };
 pub(super) use suspending::lower_suspending_case;
+use tagged_union::{
+    tagged_union_by_atom, tagged_union_constructor, tagged_union_constructor_plan,
+    TaggedUnionPattern,
+};
 use type_support::{
     list_element_type, map_key, map_types, native_core_type, option_element_type,
     struct_field_type, tuple_element_type,
@@ -86,9 +96,7 @@ pub(super) fn pattern_plan(
     }
     match pattern {
         CorePattern::Wildcard => Ok(always()),
-        CorePattern::Var(name)
-            if !matches!(name.as_str(), "true" | "false" | "Unit" | "unit") =>
-        {
+        CorePattern::Var(name) if !matches!(name.as_str(), "true" | "false" | "Unit" | "unit") => {
             Ok(PatternPlan {
                 predicate: NativeExpr::Bool(true),
                 bindings: vec![PatternBinding {
@@ -109,11 +117,10 @@ pub(super) fn pattern_plan(
             };
             Ok(equality(value, literal, value_type))
         }
-        CorePattern::Atom(name) => Ok(equality(
-            value,
-            NativeExpr::AtomLiteral(Arc::from(name.as_str())),
-            value_type,
-        )),
+        CorePattern::Atom(name) => {
+            atom::atom_plan(name, value, value_type, core_type, constructors, depth)
+                .map_err(String::from)
+        }
         CorePattern::Var(name) => Ok(PatternPlan {
             predicate: NativeExpr::Bool(true),
             bindings: vec![PatternBinding {
@@ -123,11 +130,9 @@ pub(super) fn pattern_plan(
                 core_ty: core_type.cloned(),
             }],
         }),
-        CorePattern::Int(expected) => Ok(equality(
-            value,
-            NativeExpr::Int(*expected),
-            NativeType::Int,
-        )),
+        CorePattern::Int(expected) => {
+            Ok(equality(value, NativeExpr::Int(*expected), NativeType::Int))
+        }
         CorePattern::Float(expected) => {
             let expected = expected.parse::<f64>().map_err(|error| {
                 format!("error[native_ir.structured_float]: invalid float pattern: {error}")
@@ -144,7 +149,12 @@ pub(super) fn pattern_plan(
             Ok(PatternPlan {
                 predicate: NativeExpr::ManagedOperation {
                     encoded: Arc::from(encode_string_equal_operation()),
-                    args: vec![value, NativeExpr::ManagedLiteral { encoded: encoded.into() }],
+                    args: vec![
+                        value,
+                        NativeExpr::ManagedLiteral {
+                            encoded: encoded.into(),
+                        },
+                    ],
                 },
                 bindings: vec![],
             })
@@ -215,22 +225,12 @@ pub(super) fn pattern_plan(
             }
             merge(plans)
         }
-        CorePattern::Tuple(patterns) => tuple_plan(
-            patterns,
-            value,
-            value_type,
-            core_type,
-            constructors,
-            depth,
-        ),
-        CorePattern::List(patterns) => list_plan(
-            patterns,
-            value,
-            value_type,
-            core_type,
-            constructors,
-            depth,
-        ),
+        CorePattern::Tuple(patterns) => {
+            tuple_plan(patterns, value, value_type, core_type, constructors, depth)
+        }
+        CorePattern::List(patterns) => {
+            list_plan(patterns, value, value_type, core_type, constructors, depth)
+        }
         CorePattern::ListCons { head, tail } => list_cons_plan(
             head,
             tail,
@@ -241,14 +241,7 @@ pub(super) fn pattern_plan(
             depth,
         ),
         CorePattern::Map(fields) if matches!(core_type, Some(CoreType::Map(_))) => {
-            structural_map_plan(
-                fields,
-                value,
-                value_type,
-                core_type,
-                constructors,
-                depth,
-            )
+            structural_map_plan(fields, value, value_type, core_type, constructors, depth)
         }
         CorePattern::Map(fields) => {
             map_plan(fields, value, value_type, core_type, constructors, depth)
@@ -256,8 +249,8 @@ pub(super) fn pattern_plan(
         CorePattern::BinaryLayout { endian, fields } => {
             binary_plan(*endian, fields, value, value_type)
         }
-        CorePattern::StringPattern(_) => {
-            Err("error[native_ir.structured_pattern_family]: pattern family needs a dedicated bounded matcher".to_string())
+        CorePattern::StringPattern(segments) => {
+            string::string_plan(segments, value, value_type).map_err(String::from)
         }
     }
 }
@@ -369,109 +362,6 @@ fn result_element_types(core_type: Option<&CoreType>) -> Option<(&CoreType, &Cor
         _ => None,
     }
 }
-struct TaggedUnionPattern<'a> {
-    name: &'a str,
-    fields: &'a [CorePattern],
-    discriminant: u32,
-    field_types: &'a [CoreType],
-}
-
-fn tagged_union_constructor_plan(
-    pattern: TaggedUnionPattern<'_>,
-    value: NativeExpr,
-    value_type: NativeType,
-    constructors: &NativeConstructorLayouts,
-    depth: usize,
-) -> Result<PatternPlan, String> {
-    let TaggedUnionPattern {
-        name,
-        fields: patterns,
-        discriminant,
-        field_types: fields,
-    } = pattern;
-    if patterns.len() != fields.len() {
-        return Err(format!(
-            "error[native_ir.union_pattern_arity]: `{name}` expects {} fields",
-            fields.len()
-        ));
-    }
-    let semantic = managed_semantic(value_type)?;
-    let mut plans = vec![PatternPlan {
-        predicate: NativeExpr::ManagedOperation {
-            encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
-            args: vec![value.clone()],
-        },
-        bindings: Vec::new(),
-    }];
-    for (index, (pattern, field)) in patterns.iter().zip(fields).enumerate() {
-        let field_type = native_core_type(field)?;
-        plans.push(pattern_plan(
-            pattern,
-            project(value.clone(), semantic, index, field_type)?,
-            field_type,
-            Some(field),
-            constructors,
-            depth + 1,
-        )?);
-    }
-    merge(plans)
-}
-
-fn tagged_union_constructor(
-    name: &str,
-    core_type: Option<&CoreType>,
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    let CoreType::Union(variants) = core_type? else {
-        return None;
-    };
-    let expected = match name.rsplit('.').next()? {
-        "Err" => "error",
-        other => return tagged_union_by_constructor_name(other, variants),
-    };
-    tagged_union_by_atom(expected, variants)
-}
-
-fn tagged_union_by_constructor_name(
-    name: &str,
-    variants: &[CoreType],
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    let mut chars = name.chars();
-    let expected = chars
-        .next()?
-        .to_lowercase()
-        .chain(chars)
-        .collect::<String>();
-    tagged_union_by_atom(&expected, variants)
-}
-
-fn tagged_union_by_atom(
-    expected: &str,
-    variants: &[CoreType],
-) -> Option<(u32, u32, Vec<CoreType>)> {
-    variants.iter().enumerate().find_map(|(index, variant)| {
-        let CoreType::Tuple(elements) = variant else {
-            return None;
-        };
-        let (first, fields) = elements.split_first()?;
-        let atom = match first {
-            CoreTupleTypeElem::Type(CoreType::AtomLiteral(atom))
-            | CoreTupleTypeElem::Field {
-                ty: CoreType::AtomLiteral(atom),
-                ..
-            } => atom,
-            _ => return None,
-        };
-        if atom != expected {
-            return None;
-        }
-        Some((
-            u32::try_from(index).ok()?,
-            u32::try_from(variants.len()).ok()?,
-            fields.iter().map(tuple_element_type).cloned().collect(),
-        ))
-    })
-}
-
 fn option_constructor_plan(
     name: &str,
     patterns: &[CorePattern],

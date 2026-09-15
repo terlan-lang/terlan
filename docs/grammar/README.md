@@ -348,6 +348,13 @@ and lambda positions. A `where` guard may constrain captured values. Every pair
 of adjacent captures must have a non-empty literal delimiter; otherwise the
 capture boundary is ambiguous and parsing fails.
 
+Matching covers the entire string. An intermediate delimiter ends a capture at
+its first occurrence; a trailing literal is an anchored suffix, and a final
+capture consumes the remainder. String captures may be empty. Native typed
+captures support `String`, `Int`, finite `Float`, and `Bool`; failed conversion
+makes that clause fail before its guard runs. Other capture annotations produce
+a compile-time conversion diagnostic rather than an interpreted fallback.
+
 ## Shape Synonyms
 
 Shape synonyms are the reserved source form for reusable compile-time match

@@ -1,0 +1,107 @@
+module direct_condition_expr.
+
+import std.vm.Process.
+
+pub yield_only(): Unit ->
+    Process.yield_now().
+
+pub unit_identity(value: Unit): Unit ->
+    value.
+
+pub yield_unit_capture(value: Unit): Unit ->
+    Process.yield_now();
+    value.
+
+pub yield_unit_then_int(value: Int): Int ->
+    let ignored = yield_only();
+    value + 1.
+
+pub tail_yield_only(): Unit ->
+    yield_only().
+
+pub two_unit_effects(value: Int): Int ->
+    let first = yield_only();
+    let second = yield_only();
+    value.
+
+pub eight_unit_effects(value: Int): Int ->
+    let first = yield_only();
+    let second = yield_only();
+    let third = yield_only();
+    let fourth = yield_only();
+    let fifth = yield_only();
+    let sixth = yield_only();
+    let seventh = yield_only();
+    let eighth = yield_only();
+    value.
+
+pub yield_comparison_condition(value: Int): Int ->
+    if {
+        (Process.yield_now(); value) > 10 -> 51;
+        true -> 52
+    }.
+
+pub yield_not_condition(flag: Bool): Int ->
+    if {
+        not (Process.yield_now(); flag) -> 53;
+        true -> 54
+    }.
+
+pub yield_and_rhs(left: Bool, right: Bool): Int ->
+    if {
+        left and (Process.yield_now(); right) -> 55;
+        true -> 56
+    }.
+
+pub yield_or_rhs(left: Bool, right: Bool): Int ->
+    if {
+        left or (Process.yield_now(); right) -> 57;
+        true -> 58
+    }.
+
+pub yield_and_rhs_only(left: Bool, right: Bool): Int ->
+    if {
+        left and (Process.yield_now(); right) -> 59
+    }.
+
+pub yield_and_rhs_then_body(left: Bool, right: Bool): Int ->
+    if {
+        left and (Process.yield_now(); right) -> (Process.yield_now(); 60);
+        true -> 61
+    }.
+
+pub yield_or_rhs_then_body(left: Bool, right: Bool): Int ->
+    if {
+        left or (Process.yield_now(); right) -> (Process.yield_now(); 74);
+        true -> 75
+    }.
+
+pub yield_nested_and_rhs(first: Bool, second: Bool, third: Bool): Int ->
+    if {
+        first and (second and (Process.yield_now(); third)) -> 62;
+        true -> 63
+    }.
+
+pub checked_before_yield_rhs(divisor: Int, flag: Bool): Int ->
+    if {
+        1 div divisor > 0 and (Process.yield_now(); flag) -> 64;
+        true -> 65
+    }.
+
+pub yield_eager_right_condition(divisor: Int, value: Int): Int ->
+    if {
+        1 div divisor > (Process.yield_now(); value) -> 68;
+        true -> 69
+    }.
+
+pub yield_eager_value(divisor: Int, value: Int): Int ->
+    1 div divisor + (Process.yield_now(); value).
+
+pub yield_unary_value(value: Int): Int ->
+    -(Process.yield_now(); value).
+
+pub yield_second_call_argument(divisor: Int, value: Int): Int ->
+    add(1 div divisor, (Process.yield_now(); value)).
+
+pub yield_first_call_argument(value: Int, divisor: Int): Int ->
+    add((Process.yield_now(); value), 1 div divisor).

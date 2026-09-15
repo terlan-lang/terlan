@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "e631064d05cbad641748891cdba9d1bbe03cf4feda935077ea5d9d87897a367c",
+  "compilation_input_sha256": "328de617594e72ed8adbb8477e2fc1d05f3b1a2ce55da1ca697bf9c8bd870220",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 34,
@@ -138,7 +138,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 86,
+      "reference_sites": 87,
       "source_domains": [
         "commands",
         "compiler"
@@ -341,7 +341,7 @@
       "milestone": "0.0.9",
       "name": "bitflags",
       "owner": "dependency-health",
-      "rationale": "Foundations compatibility dependencies and current workspace crates select different bitflags APIs",
+      "rationale": "defmt retains bitflags 1 while current workspace and protocol crates use bitflags 2",
       "versions": "1.3.2,2.13.1"
     },
     {
@@ -441,6 +441,22 @@
       "versions": "1.9.3,2.14.0"
     },
     {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
+      "name": "itertools",
+      "owner": "dependency-health",
+      "rationale": "macOS libproc build-time bindgen requires itertools 0.13 while parser and editor tooling use 0.14",
+      "versions": "0.13.0,0.14.0"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
+      "name": "libloading",
+      "owner": "dependency-health",
+      "rationale": "macOS libproc build-time clang-sys requires libloading 0.8 while the AOT loader uses 0.9",
+      "versions": "0.8.9,0.9.0"
+    },
+    {
       "classification": "platform-compatibility",
       "milestone": "0.0.9",
       "name": "linux-raw-sys",
@@ -479,6 +495,14 @@
       "owner": "dependency-health",
       "rationale": "Foundations settings dependencies currently span two schema APIs",
       "versions": "0.9.0,1.2.2"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
+      "name": "shlex",
+      "owner": "dependency-health",
+      "rationale": "macOS libproc build-time bindgen requires shlex 1 while the pinned C compiler helper uses shlex 2",
+      "versions": "1.3.0,2.0.1"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -678,7 +702,7 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 15,
+      "reference_sites": 16,
       "to": "runtime"
     },
     {
@@ -720,17 +744,17 @@
     },
     {
       "name": "commands",
-      "physical_lines": 127051,
-      "rust_files": 334
+      "physical_lines": 127941,
+      "rust_files": 337
     },
     {
       "name": "compiler",
-      "physical_lines": 164641,
-      "rust_files": 416
+      "physical_lines": 167732,
+      "rust_files": 439
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 532,
+      "physical_lines": 508,
       "rust_files": 3
     },
     {
@@ -745,8 +769,8 @@
     },
     {
       "name": "lsp",
-      "physical_lines": 16331,
-      "rust_files": 27
+      "physical_lines": 16373,
+      "rust_files": 28
     },
     {
       "name": "native_worker",
@@ -760,8 +784,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 49052,
-      "rust_files": 145
+      "physical_lines": 50971,
+      "rust_files": 154
     },
     {
       "name": "root:accelerator_contract",
@@ -820,8 +844,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 139884,
-      "rust_files": 409
+      "physical_lines": 141062,
+      "rust_files": 419
     },
     {
       "name": "serve_runtime",
@@ -830,7 +854,7 @@
     },
     {
       "name": "support",
-      "physical_lines": 1030,
+      "physical_lines": 1105,
       "rust_files": 4
     },
     {
@@ -941,6 +965,20 @@
       ]
     },
     {
+      "name": "itertools",
+      "versions": [
+        "0.13.0",
+        "0.14.0"
+      ]
+    },
+    {
+      "name": "libloading",
+      "versions": [
+        "0.8.9",
+        "0.9.0"
+      ]
+    },
+    {
       "name": "linux-raw-sys",
       "versions": [
         "0.12.1",
@@ -973,6 +1011,13 @@
       "versions": [
         "0.9.0",
         "1.2.2"
+      ]
+    },
+    {
+      "name": "shlex",
+      "versions": [
+        "1.3.0",
+        "2.0.1"
       ]
     },
     {
@@ -1103,6 +1148,11 @@
     },
     {
       "from": "commands",
+      "reference_sites": 6,
+      "to": "support"
+    },
+    {
+      "from": "commands",
       "reference_sites": 4,
       "to": "validation"
     },
@@ -1110,6 +1160,16 @@
       "from": "compiler",
       "reference_sites": 11,
       "to": "runtime"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 2,
+      "to": "support"
+    },
+    {
+      "from": "quality",
+      "reference_sites": 1,
+      "to": "commands"
     },
     {
       "from": "runtime",
@@ -1135,13 +1195,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 38813,
-      "rust_files": 166
+      "physical_lines": 40011,
+      "rust_files": 172
     },
     {
       "name": "compiler",
-      "physical_lines": 38044,
-      "rust_files": 162
+      "physical_lines": 40934,
+      "rust_files": 174
     },
     {
       "name": "formal_pipeline",
@@ -1155,8 +1215,8 @@
     },
     {
       "name": "lsp",
-      "physical_lines": 992,
-      "rust_files": 6
+      "physical_lines": 1034,
+      "rust_files": 7
     },
     {
       "name": "native_worker",
@@ -1170,8 +1230,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 27322,
-      "rust_files": 122
+      "physical_lines": 28955,
+      "rust_files": 130
     },
     {
       "name": "root:database_schema_test",
@@ -1200,13 +1260,13 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 73202,
-      "rust_files": 302
+      "physical_lines": 75476,
+      "rust_files": 314
     },
     {
       "name": "support",
-      "physical_lines": 221,
-      "rust_files": 6
+      "physical_lines": 256,
+      "rust_files": 7
     },
     {
       "name": "tests",
@@ -1215,7 +1275,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 6960,
+      "physical_lines": 6962,
       "rust_files": 18
     },
     {
@@ -1284,6 +1344,15 @@
           ],
           "kind": "dev",
           "name": "ratatui",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "process"
+          ],
+          "kind": "dev",
+          "name": "rustix",
           "optional": false
         },
         {
@@ -1435,13 +1504,6 @@
           "features": [],
           "kind": "normal",
           "name": "http",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "http-body",
           "optional": false
         },
         {
@@ -1751,6 +1813,13 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "terlan-process-owner",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "terlan-runtime-abi",
           "optional": false
         },
@@ -1784,7 +1853,7 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
-          "name": "tower-lsp",
+          "name": "tower-lsp-server",
           "optional": true
         },
         {
@@ -1867,6 +1936,50 @@
         {
           "default_features": true,
           "features": [
+            "fs"
+          ],
+          "kind": "normal",
+          "name": "rustix",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-process-owner",
+          "optional": false
+        }
+      ],
+      "package": "terlan-build-cache"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
             "derive"
           ],
           "kind": "dev",
@@ -1940,6 +2053,43 @@
         }
       ],
       "package": "terlan-libpq"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "libproc",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "event",
+            "fs",
+            "process"
+          ],
+          "kind": "normal",
+          "name": "rustix",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        }
+      ],
+      "package": "terlan-process-owner"
     },
     {
       "dependencies": [],
@@ -2017,7 +2167,77 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "getrandom",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "home",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "openssl-probe",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "fs"
+          ],
+          "kind": "normal",
+          "name": "rustix",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "signal-hook",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-process-owner",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "parse",
+            "serde"
+          ],
+          "kind": "normal",
+          "name": "toml",
           "optional": false
         }
       ],
@@ -2037,6 +2257,7 @@
         "terl-docs",
         "terlan-archive",
         "terlan-libpq",
+        "terlan-process-owner",
         "terlan-runtime-abi",
         "terlan-service-foundation"
       ],
@@ -2052,6 +2273,13 @@
     },
     {
       "direct_dependencies": [
+        "terlan-process-owner"
+      ],
+      "name": "terlan-build-cache",
+      "reverse_dependents": []
+    },
+    {
+      "direct_dependencies": [
         "terlan-service-foundation"
       ],
       "name": "terlan-foundations-adapter",
@@ -2062,6 +2290,15 @@
       "name": "terlan-libpq",
       "reverse_dependents": [
         "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-process-owner",
+      "reverse_dependents": [
+        "terlan",
+        "terlan-build-cache",
+        "terlan-test-orchestrator"
       ]
     },
     {
@@ -2085,7 +2322,9 @@
       ]
     },
     {
-      "direct_dependencies": [],
+      "direct_dependencies": [
+        "terlan-process-owner"
+      ],
       "name": "terlan-test-orchestrator",
       "reverse_dependents": []
     }

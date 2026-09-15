@@ -3,7 +3,7 @@
  */
 module release_closeout.SupplyChain.
 
-import release_closeout.Support.
+import release_closeout.{SupplyChainMetadata, Support}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -13,25 +13,10 @@ import std.data.Json.
 import std.io.Console.println.
 import std.io.{Directory, File}.
 
+import type release_closeout.SupplyChainMetadata.Inventory.
+import type release_closeout.Support.Candidate.
 import type std.collections.List.
 import type std.core.Option.
-
-metadata_package_count(source: String): Int ->
-    let {
-        Ok(document) <- Json.parse(source);
-        Ok(packages) <- document.get("packages");
-        Ok(count) <- packages.length()
-    } else {
-        _ -> 0
-    };
-    count.
-
-metadata_valid(source: String): Bool ->
-    metadata_package_count(source) > 0
-        and String.contains(source, "\"license\":")
-        and not String.contains(source, "\"license\":null")
-        and String.contains(source, "\"workspace_members\":")
-        and String.contains(source, "\"resolve\":").
 
 unsafe_construct(source: String): Bool ->
     String.contains(source, "unsafe {")
@@ -103,49 +88,56 @@ checksums(root: String, artifact: String): Json ->
         .put("stdlib_manifest", Json.string(file_hash(root, "std/manifest.toml")))
         .put("installed_archive", Json.string(file_hash(root, String.append("dist/", artifact)))).
 
-checksums_valid(root: String, artifact: String): Bool ->
-    file_hash(root, "Cargo.toml") != ""
-        and file_hash(root, "Cargo.lock") != ""
-        and file_hash(root, "LICENSE") != ""
-        and file_hash(root, "std/manifest.toml") != ""
-        and file_hash(root, String.append("dist/", artifact)) != "".
+checksums_valid(values: Json): Bool ->
+    checksum_fields_valid(
+        values,
+        ["cargo_toml", "cargo_lock", "license", "stdlib_manifest", "installed_archive"],
+    ).
+
+checksum_fields_valid(values: Json, fields: List[String]): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] ->
+            let {
+                Ok(value) <- values.get(field);
+                Ok(digest) <- value.as_string();
+                true <- digest != ""
+            } else {
+                _ -> false
+            };
+            checksum_fields_valid(values, rest)
+    }.
 
 /**
  * Produces the locked Cargo SBOM, checksum set, license proof, and unsafe-file inventory.
  */
 pub provenance(root: String): Bool ->
-    let Some(candidate) <- Support.prepare(root, "supply-chain") else {
+    let {
+        Ok(inventory) <- SupplyChainMetadata.load(root);
+        Some(candidate) <- Support.prepare(root, "supply-chain")
+    } else {
+        Err(reason) ->
+            let _printed = println(reason);
+            false;
         _ -> false
     };
-    (let metadata_result =
-    Support.run(
-        candidate,
-        "cargo-metadata",
-        "cargo",
-        ["metadata", "--locked", "--offline", "--format-version", "1", "--no-deps"],
-        root,
-    );
-(let 0 <- metadata_result.status else {
-    _ ->
-        let _cleaned = Support.cleanup(candidate, true);
-        false
-};
-(let artifact_result = Support.release_artifact_name();
-(let Some(artifact) <- artifact_result else {
-    _ -> false
-};
-(let unsafe_result = discover_unsafe(root);
-(let Some(unsafe_files) <- unsafe_result else {
-    _ -> false
-};
-(let metadata = metadata_result.stdout;
-let package_count = metadata_package_count(metadata);
-let metadata_ok = metadata_valid(metadata);
-let checksum_ok = checksums_valid(root, artifact);
+    candidate_provenance(root, candidate, inventory).
+
+candidate_provenance(root: String, candidate: Candidate, inventory: Inventory): Bool ->
+    let {
+        Some(artifact) <- Support.release_artifact_name();
+        Some(unsafe_files) <- discover_unsafe(root)
+    } else {
+        _ ->
+            let _cleaned = Support.cleanup(candidate, true);
+            false
+    };
+    (let metadata = inventory.source;
+let checksum_values = checksums(root, artifact);
+let checksum_ok = checksums_valid(checksum_values);
 let unsafe_ok = not has_unclassified(unsafe_files);
 let adversarial =
-    not metadata_valid(String.replace(metadata, "\"license\":\"", "\"license\":null,\"removed\":\""))
-        and not metadata_valid("{}")
+    SupplyChainMetadata.self_test()
         and file_hash(root, "docs/release/MISSING") == ""
         and unsafe_classification("crates/new_unsafe_boundary.rs") == "";
 let sbom_written =
@@ -160,15 +152,7 @@ let unsafe_inventory =
         .put("paths", Support.string_array(unsafe_files));
 let unsafe_written = Support.write_report(root, "release-unsafe-inventory.json", unsafe_inventory);
 let cleaned = Support.cleanup(candidate, true);
-let passed =
-    metadata_ok
-        and checksum_ok
-        and package_count > 0
-        and unsafe_ok
-        and sbom_written
-        and unsafe_written
-        and adversarial
-        and cleaned;
+let passed = checksum_ok and unsafe_ok and sbom_written and unsafe_written and adversarial and cleaned;
 let report =
     Json.object()
         .put("schema", Json.string("terlan.release-supply-chain-provenance-report.v1"))
@@ -181,10 +165,10 @@ let report =
                 },
             ),
         )
-        .put("package_count", Json.int(package_count))
+        .put("package_count", Json.int(inventory.package_count))
         .put("unsafe_file_count", Json.int(List.length(unsafe_files)))
         .put("sbom_sha256", Json.string(Hash.sha256(metadata)))
-        .put("checksums", checksums(root, artifact))
+        .put("checksums", checksum_values)
         .put(
             "lockfile_policy",
             Json.string("Cargo.lock is the complete transitive dependency/checksum inventory"),
@@ -196,7 +180,13 @@ let report =
         .put(
             "adversarial_checks",
             Support.string_array(
-                ["undeclared-license-rejected", "missing-metadata-rejected", "stale-input-rejected"],
+                [
+                    "undeclared-license-rejected",
+                    "unsupported-license-rejected",
+                    "missing-metadata-rejected",
+                    "cross-workspace-metadata-rejected",
+                    "duplicate-workspace-member-rejected",
+                ],
             ),
         );
 let written = Support.write_report(root, "release-supply-chain-provenance-report.json", report);
@@ -204,7 +194,7 @@ if {
     passed and written -> let _printed = println("release supply-chain provenance passed");
     true;
     true -> false
-}))))))).
+}).
 
 evidence_report(root: String, relative: String, schema: String): Bool ->
     let path = Support.child(root, relative);

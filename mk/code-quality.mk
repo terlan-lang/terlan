@@ -34,7 +34,7 @@ rust-clippy-check:
 	$(CARGO) clippy --workspace --bins -- -D warnings
 	$(CARGO) clippy --workspace --bins --all-features -- -D warnings
 
-rust-lint-allowance-check: terlan-rust-quality-bootstrap
+rust-lint-allowance-check: rust-cargo-metadata-report terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) lint-allowance-self-test
 	@ulimit -v $(TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB); \
@@ -89,9 +89,18 @@ rust-boundary-audit-report: | terlan-quality-tools-bootstrap
 		--structural-input target/quality/rust-structural-input.json \
 		> target/quality/rust-boundary-ast.json
 
+TERLAN_RUST_ORCHESTRATOR ?= $(CURDIR)/target/validation-tools/terlan-test-orchestrator
+TERLAN_CARGO_METADATA_OWNER ?= $(TERLAN_RUST_ORCHESTRATOR)
+
+# Historical source tests cannot substitute for this checkout's Cargo metadata.
+ifneq ($(strip $(if $(filter hosted-source,$(TERLAN_RUST_COVERAGE_SCOPE)),,$(TERLAN_RUST_COVERAGE_CONTEXT))),)
 rust-cargo-metadata-report:
-	@mkdir -p target/quality
-	$(CARGO) metadata --format-version 1 > target/quality/rust-cargo-metadata.json
+	$(TERLAN_RUST_ORCHESTRATOR) --coverage-request --metadata
+else
+rust-cargo-metadata-report: terlan-compiler-bootstrap
+	$(TERLAN_CARGO_METADATA_OWNER) --cargo-metadata \
+		$(CURDIR)/target/quality/rust-cargo-metadata.json -- $(CARGO)
+endif
 
 rust-api-boundary-quality-check: \
 	rust-lint-allowance-check \
@@ -163,14 +172,14 @@ rust-dependency-impact-record: rust-boundary-audit-report rust-cargo-metadata-re
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) dependency-impact-record
 
-rust-module-structure-check: rust-module-structure-self-test
+rust-module-structure-check: rust-cargo-metadata-report rust-module-structure-self-test
 	@ulimit -v $(TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB); \
 		timeout $(TERLAN_RUST_QUALITY_TIMEOUT_SECONDS)s env \
 			MALLOC_ARENA_MAX=$(TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX) \
 			TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 			$(TERLAN_RUST_QUALITY) module-structure-check
 
-rust-file-headroom-check: terlan-rust-quality-bootstrap
+rust-file-headroom-check: rust-cargo-metadata-report terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) file-headroom-self-test
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \

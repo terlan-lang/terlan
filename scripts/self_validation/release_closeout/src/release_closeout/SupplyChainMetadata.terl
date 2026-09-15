@@ -1,0 +1,111 @@
+/**
+ * Typed workspace membership and license admission for release provenance.
+ * Dependency package licenses are not the workspace's Apache-2.0 policy.
+ */
+module release_closeout.SupplyChainMetadata.
+
+import rust_quality.CargoMetadata.{workspace_packages}.
+import rust_quality.CargoMetadataReceipt.{read}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{replace}.
+import std.data.Json.{parse, stringify}.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+
+/**
+ * One admitted Make-owned document supplies the SBOM bytes and license count.
+ * No private Cargo query or cross-cycle cache admission occurs here.
+ */
+pub struct Inventory {
+    source: String,
+    package_count: Int,
+}.
+
+/**
+ * Loads the fresh prerequisite's completed handoff before allocating a candidate.
+ */
+pub load(root: String): Result[Inventory, String] ->
+    let Ok(document) <- read(root) else {
+        Err(reason) -> Err(reason)
+    };
+    inventory_document(root, document).
+
+inventory_document(root: String, document: Json): Result[Inventory, String] ->
+    let {
+        Some(count) <- licensed_document(root, document);
+        Ok(source) <- stringify(document)
+    } else {
+        _ -> Err("Cargo metadata does not satisfy the release workspace license policy")
+    };
+    Ok(Inventory(source = source, package_count = count)).
+
+/**
+ * Returns the exact licensed workspace package count, or rejects the document.
+ * No text search or dependency package can supply another member's license.
+ */
+pub licensed_package_count(root: String, source: String): Option[Int] ->
+    let Ok(document) <- parse(source) else {
+        _ -> None
+    };
+    licensed_document(root, document).
+
+licensed_document(root: String, document: Json): Option[Int] ->
+    let {
+        Ok(workspace_root) <- document.get("workspace_root");
+        Ok(recorded_root) <- workspace_root.as_string();
+        true <- recorded_root == root;
+        Some(packages) <- workspace_packages(document);
+        Ok(count) <- packages.length();
+        true <- licensed_at(packages, count, 0)
+    } else {
+        _ -> None
+    };
+    Some(count).
+
+licensed_at(packages: Json, count: Int, index: Int): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Ok(package) <- packages.at(index);
+            Ok(name_value) <- package.get("name");
+            Ok(name) <- name_value.as_string();
+            true <- name != "";
+            Ok(license_value) <- package.get("license");
+            Ok("Apache-2.0") <- license_value.as_string()
+        } else {
+            _ -> false
+        };
+        licensed_at(packages, count, index + 1)
+    }.
+
+/**
+ * Stable adversarial fixtures also run within the provenance owner itself.
+ */
+pub self_test(): Bool ->
+    let root = "/workspace";
+    let source = "{\"version\":1,\"workspace_root\":\"/workspace\",\"workspace_members\":[\"b\",\"a\"],\"packages\":[{\"id\":\"a\",\"name\":\"first\",\"license\":\"Apache-2.0\"},{\"id\":\"dependency\",\"name\":\"dep\",\"license\":null},{\"id\":\"b\",\"name\":\"second\",\"license\":\"Apache-2.0\"}],\"resolve\":null}";
+    let {
+        Some(2) <- licensed_package_count(root, source);
+        Some(2) <- licensed_package_count(root, replace(source, ":", " : "));
+        None <- licensed_package_count("/another-workspace", source);
+        None <- licensed_package_count(root, "{}");
+        None <- licensed_package_count(root, replace(source, "Apache-2.0", "MIT"));
+        None <- licensed_package_count(root, replace(source, "\"Apache-2.0\"", "null"));
+        None <- licensed_package_count(root, replace(source, "\"Apache-2.0\"", "true"));
+        None <-
+            licensed_package_count(
+                root,
+                replace(source, "\"license\":\"Apache-2.0\"", "\"notes\":\"Apache-2.0\""),
+            );
+        None <- licensed_package_count(root, replace(source, "\"name\":\"second\"", "\"name\":\"\""));
+        None <- licensed_package_count(root, replace(source, "\"b\",\"a\"", "\"a\",\"a\""));
+        None <- licensed_package_count(root, replace(source, "\"b\",\"a\"", "\"a\",\"missing\""));
+        None <- licensed_package_count(root, replace(source, "\"id\":\"b\"", "\"id\":\"a\""));
+        None <- licensed_package_count(root, replace(source, "\"version\":1", "\"version\":2"));
+        None <- licensed_package_count(root, replace(source, "\"b\",\"a\"", ""))
+    } else {
+        _ -> false
+    };
+    true.

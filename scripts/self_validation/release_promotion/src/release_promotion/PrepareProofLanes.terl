@@ -1,0 +1,128 @@
+/**
+ * One producer seals lane and gate reports using immutable comparison history.
+ */
+module release_promotion.PrepareProofLanes.
+
+import release_promotion.{CandidateFiles, OwnerArtifacts, OwnerHistory, OwnerStorage, OwnerTools, PreparationContext, PreparationGraph, PreparationOwner, ProofInputs}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.Summary.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+
+pub declare(
+    root: String,
+    compiler: String,
+    context: Context,
+    history: String,
+    tools: String,
+    inputs: List[String],
+): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "proof-lanes",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-lanes",
+            String.concat([context.runtime_tools, "\n", tools]),
+            CandidateFiles.merge_unique(context.sources, inputs),
+            [
+                compiler,
+                history,
+                "target/quality/proof-artifacts/lean-proof-track.json",
+                "target/quality/proof-artifacts/lean-proof-repro-report.json",
+                "target/quality/proof-artifacts/lean-proof-smoke.json",
+                "target/quality/proof-artifacts/lean-proof-smoke-attempt.json",
+            ],
+            OwnerStorage.child(root, compiler),
+            ["test", "--incremental", "scripts/self_validation/LeanProofLanesTest.terl"],
+            List.concat(
+                context.environment,
+                [
+                    environment_entry("TERLAN_LEAN_PROOF_LANES_ROOT", root),
+                    environment_entry(
+                        "TERLAN_PROOF_LANES_HISTORY",
+                        OwnerStorage.child(root, history),
+                    ),
+                ],
+            ),
+            "target/quality/proof-artifacts/lean-proof-lanes.json",
+            "TERLAN_PROOF_LANES_OUTPUT",
+            "terlan.lean-proof-lanes.v1",
+            "Lean proof lanes passed: 8 ordered hard lanes sealed",
+            1800000,
+        ),
+        [
+            OwnerArtifacts.declare_artifact(
+                "target/quality/proof-artifacts/lean-proof-gate.json",
+                "TERLAN_PROOF_LANE_GATE_OUTPUT",
+                "terlan.lean-proof-gate.v1",
+            ),
+        ],
+    ).
+
+valid_identity(source: String): Bool ->
+    let {
+        Ok(identity) <- Json.parse(source);
+        Some("terlan.native-toolchain-identity.v1") <- OwnerStorage.text(identity, "schema");
+        Some("x86_64-unknown-linux-gnu") <- OwnerStorage.text(identity, "target")
+    } else {
+        _ -> false
+    };
+    true.
+
+pub prepare(root: String, compiler: String): Result[Summary, String] ->
+    let {
+        true <- PreparationContext.tool_path(compiler);
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(tools) <-
+            OwnerTools.run(
+                root,
+                OwnerStorage.child(root, compiler),
+                ["build", "--print-toolchain-identity"],
+                context.environment,
+            );
+        true <- valid_identity(tools);
+        Ok(inputs) <- ProofInputs.replay(root);
+        Ok(history) <-
+            OwnerHistory.capture(
+                root,
+                context.revision,
+                "proof-lanes",
+                "target/quality/proof-artifacts/lean-proof-lanes.json",
+            )
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("lane preparation requires a compiler inside target/")
+    };
+    (let owner = declare(root, compiler, context, history, tools, inputs); Ok(PreparationGraph.run_locked(root, "proof-lanes", [PreparationGraph.declare_node(owner, [])]))).
+
+pub run_locked(root: String, compiler: String): Bool ->
+    let Ok(result) <- prepare(root, compiler) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[preparation] proof lanes: completed=",
+                Int.to_string(result.completed),
+                " reused=",
+                Int.to_string(result.reused),
+            ],
+        ),
+    );
+if {
+    result.valid -> true;
+    true -> let _error = Console.eprintln(result.message);
+    false
+}).

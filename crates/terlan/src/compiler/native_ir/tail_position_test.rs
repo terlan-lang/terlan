@@ -1,19 +1,36 @@
 #[cfg(unix)]
+#[path = "tail_position_test/generated_reentry_test.rs"]
+mod generated_reentry_test;
+#[cfg(unix)]
+#[path = "tail_position_test/harnesses.rs"]
+mod harnesses;
+#[cfg(unix)]
+use harnesses::{
+    CANCELLING_TAIL_LOOP_HARNESS, DEEP_TAIL_LOOP_HARNESS, FAILING_TAIL_LOOP_HARNESS,
+    HETEROGENEOUS_TAIL_LOOP_HARNESS, MANAGED_AGGREGATE_TAIL_LOOP_HARNESS,
+    MANAGED_COLLECTION_TAIL_LOOP_HARNESS, MANAGED_PARALLEL_TAIL_LOOP_HARNESS,
+    MANAGED_TAIL_LOOP_HARNESS, SUSPENDING_TAIL_LOOP_HARNESS,
+};
+
+#[cfg(unix)]
 use super::native_object_test_support::with_dispatch_lookup_harness;
 use super::tail_position::{
     lower_recursive_tail_calls, mutual_tail_components, validate_recursive_tail_targets,
 };
+#[cfg(unix)]
+use super::NativeTransitionOperation;
 use super::{
-    NativeBinaryOperator, NativeContinuation, NativeExpr, NativeFunction, NativeModule,
-    NativeTransitionOperation, NativeType,
+    NativeBinaryOperator, NativeContinuation, NativeExpr, NativeFunction, NativeModule, NativeType,
 };
 use crate::runtime::native_image::managed::SemanticTypeId;
+#[cfg(unix)]
 use crate::runtime::native_image::managed::{
     encode_aggregate_layout, encode_collection_layout, encode_list_from_elements_operation,
     ManagedAggregateDescriptor, ManagedCollectionDescriptor, ManagedFieldType,
 };
 #[cfg(unix)]
 use std::fs;
+#[cfg(unix)]
 use std::sync::Arc;
 #[cfg(unix)]
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -73,6 +90,7 @@ fn increment_accumulator() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn deep_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -96,6 +114,7 @@ fn deep_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn deep_let_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -122,6 +141,7 @@ fn deep_let_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn suspending_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -150,6 +170,7 @@ fn suspending_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn failing_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -178,6 +199,7 @@ fn failing_countdown_body() -> NativeExpr {
     }
 }
 
+#[cfg(unix)]
 fn non_tail_countdown_body() -> NativeExpr {
     NativeExpr::If {
         clauses: vec![
@@ -244,6 +266,7 @@ fn mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn suspending_mutual_countdown_module() -> NativeModule {
     let body = |target| NativeExpr::If {
         clauses: vec![
@@ -287,6 +310,7 @@ fn suspending_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn cancelling_mutual_countdown_module() -> NativeModule {
     let body = |target| NativeExpr::If {
         clauses: vec![
@@ -345,6 +369,7 @@ fn cancelling_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn heterogeneous_mutual_countdown_module() -> NativeModule {
     let condition = || NativeExpr::Binary {
         operator: NativeBinaryOperator::Equal,
@@ -393,6 +418,7 @@ fn heterogeneous_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_mutual_countdown_module() -> NativeModule {
     let managed = NativeType::ManagedRef(
         SemanticTypeId::from_canonical("TailToken").expect("managed tail token identity"),
@@ -438,6 +464,7 @@ fn managed_mutual_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_parallel_swap_module() -> NativeModule {
     let managed = NativeType::ManagedRef(
         SemanticTypeId::from_canonical("TailToken").expect("managed tail token identity"),
@@ -476,6 +503,7 @@ fn managed_parallel_swap_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_aggregate_countdown_module() -> NativeModule {
     let canonical = "TailBox";
     let descriptor = Arc::new(
@@ -542,6 +570,7 @@ fn managed_aggregate_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn managed_collection_countdown_module() -> NativeModule {
     let descriptor = ManagedCollectionDescriptor::list("List[Int]", ManagedFieldType::Int)
         .expect("tail collection descriptor");
@@ -609,6 +638,7 @@ fn managed_collection_countdown_module() -> NativeModule {
     }
 }
 
+#[cfg(unix)]
 fn split_mutual_countdown_modules() -> Vec<NativeModule> {
     let combined = mutual_countdown_module();
     let mut functions = combined.functions.into_iter();
@@ -694,6 +724,61 @@ fn calls_followed_by_cleanup_are_not_tail_calls() {
         panic!("expected try expression");
     };
     assert_eq!(success.as_ref(), &call);
+}
+
+#[test]
+fn preclassified_recursive_tail_calls_receive_installed_reduction_yields() {
+    let mut modules = vec![module(NativeExpr::TailCall {
+        function: 0,
+        args: vec![decrement(), NativeExpr::Param(1)],
+        yield_continuation_id: None,
+    })];
+    super::tail_position::install_reduction_continuations(&mut modules)
+        .expect("install recursive reduction target");
+    let expected = super::identity::stable_reduction_continuation_id("app.Tail", "loop", 2);
+    for _ in 0..2 {
+        lower_recursive_tail_calls(&mut modules);
+        let NativeExpr::TailCall {
+            function,
+            args,
+            yield_continuation_id,
+        } = &modules[0].functions[0].body
+        else {
+            panic!("preserve preclassified tail call");
+        };
+        assert_eq!(*function, 0);
+        assert_eq!(args, &[decrement(), NativeExpr::Param(1)]);
+        assert_eq!(*yield_continuation_id, Some(expected));
+    }
+}
+
+#[test]
+fn generated_tail_reentry_yields_without_reyielding_the_reduction_resume() {
+    let tail = NativeExpr::TailCall {
+        function: 0,
+        args: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+        yield_continuation_id: None,
+    };
+    let mut modules = vec![module(tail.clone())];
+    super::tail_position::install_reduction_continuations(&mut modules)
+        .expect("recursive reduction entry");
+    let reduction_id = modules[0].continuations[0].id;
+    let mut ordinary = modules[0].continuations[0].clone();
+    ordinary.id = reduction_id ^ 1;
+    ordinary.body = tail.clone();
+    modules[0].continuations.push(ordinary);
+    for _ in 0..2 {
+        super::tail_position::attach_installed_reduction_yields(&mut modules);
+        assert_eq!(modules[0].continuations[0].body, tail);
+        assert_eq!(
+            modules[0].continuations[1].body,
+            NativeExpr::TailCall {
+                function: 0,
+                args: vec![NativeExpr::Param(0), NativeExpr::Param(1)],
+                yield_continuation_id: Some(reduction_id),
+            }
+        );
+    }
 }
 
 #[test]
@@ -1351,486 +1436,3 @@ fn split_module_units_embed_mutual_dispatch_without_cross_unit_recursive_calls()
     compile_and_run_many_with_small_stack(&objects, &harness_path, &executable_path);
     fs::remove_dir_all(root).expect("remove split mutual tail-loop fixture");
 }
-
-#[cfg(unix)]
-const DEEP_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    let arguments = [1_000_000_i64, 0_i64];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, 1_000_000);
-    assert_eq!(transition_len, 0);
-}
-"#;
-
-#[cfg(unix)]
-const SUSPENDING_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    let arguments = [1_000_000_i64, 0_i64];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 6);
-    assert_eq!(result, 91);
-    assert_eq!(transition_len, 1);
-    assert_eq!(transitions[0], 1_000_000);
-}
-"#;
-
-#[cfg(unix)]
-const HETEROGENEOUS_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    let arguments = [1_000_000_i64];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, 42);
-    assert_eq!(transition_len, 0);
-}
-"#;
-
-#[cfg(unix)]
-const MANAGED_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    const MANAGED_TOKEN: i64 = 0x5a5a_1234;
-    let arguments = [1_000_000_i64, MANAGED_TOKEN];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, MANAGED_TOKEN);
-    assert_eq!(transition_len, 0);
-}
-"#;
-
-#[cfg(unix)]
-const MANAGED_PARALLEL_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    const LEFT: i64 = 0x1111_2222;
-    const RIGHT: i64 = 0x3333_4444;
-    let arguments = [1_000_001_i64, LEFT, RIGHT];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, LEFT);
-    assert_eq!(transition_len, 0);
-}
-"#;
-
-#[cfg(unix)]
-const FAILING_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn main() {
-    let arguments = [1_000_000_i64, 0_i64];
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 4);
-    assert_eq!(transition_len, 0);
-}
-"#;
-
-#[cfg(unix)]
-const MANAGED_AGGREGATE_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-#[derive(Default)]
-struct Capture {
-    calls: usize,
-    fields: Vec<i64>,
-}
-
-unsafe extern "C" fn allocate(
-    context: *mut c_void,
-    layout: *const u8,
-    layout_len: u64,
-    fields: *const i64,
-    field_count: u64,
-    result: *mut u64,
-) -> i32 {
-    let capture = unsafe { &mut *context.cast::<Capture>() };
-    let layout = unsafe { std::slice::from_raw_parts(layout, layout_len as usize) };
-    assert_eq!(&layout[..4], b"TVMA");
-    capture.calls += 1;
-    capture.fields =
-        unsafe { std::slice::from_raw_parts(fields, field_count as usize).to_vec() };
-    unsafe { *result = 0x5a5a_1234 };
-    0
-}
-
-fn main() {
-    let arguments = [1_000_000_i64, 42_i64];
-    let mut capture = Capture::default();
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            (&mut capture as *mut Capture).cast(),
-            allocate as *const () as *const c_void,
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, 0x5a5a_1234);
-    assert_eq!(transition_len, 0);
-    assert_eq!(capture.calls, 1);
-    assert_eq!(capture.fields, [42]);
-}
-"#;
-
-#[cfg(unix)]
-const MANAGED_COLLECTION_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-#[derive(Default)]
-struct Capture {
-    calls: usize,
-    fields: Vec<i64>,
-}
-
-unsafe extern "C" fn allocate(
-    context: *mut c_void,
-    operation: *const u8,
-    operation_len: u64,
-    fields: *const i64,
-    field_count: u64,
-    result: *mut u64,
-) -> i32 {
-    let capture = unsafe { &mut *context.cast::<Capture>() };
-    let operation = unsafe { std::slice::from_raw_parts(operation, operation_len as usize) };
-    assert_eq!(&operation[..4], b"TVMC");
-    capture.calls += 1;
-    capture.fields =
-        unsafe { std::slice::from_raw_parts(fields, field_count as usize).to_vec() };
-    unsafe { *result = 0x6b6b_2345 };
-    0
-}
-
-fn main() {
-    let arguments = [1_000_000_i64, 1_i64, 2_i64, 3_i64];
-    let mut capture = Capture::default();
-    let mut result = -1_i64;
-    let mut transitions = [0_i64; 1];
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            (&mut capture as *mut Capture).cast(),
-            allocate as *const () as *const c_void,
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            7,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    assert_eq!(status, 0);
-    assert_eq!(result, 0x6b6b_2345);
-    assert_eq!(transition_len, 0);
-    assert_eq!(capture.calls, 1);
-    assert_eq!(capture.fields, [1, 2, 3]);
-}
-"#;
-
-#[cfg(unix)]
-const CANCELLING_TAIL_LOOP_HARNESS: &str = r#"
-use std::ffi::c_void;
-
-unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
-        context: *mut c_void,
-        allocator: *const c_void,
-        closure_resolver: *const c_void,
-        dispatch_lookup: *const c_void,
-        export_id: u64,
-        arguments: *const i64,
-        arity: u64,
-        result: *mut i64,
-        transitions: *mut i64,
-        transition_capacity: u64,
-        transition_len: *mut u64,
-    ) -> i32;
-}
-
-fn dispatch(export_id: u64, arguments: &[i64], transitions: &mut [i64]) -> (i32, i64, u64) {
-    let mut result = -1_i64;
-    let mut transition_len = 99_u64;
-    let status = unsafe {
-        terlan_native_dispatch_v3(
-            std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
-            dispatch_lookup as *const c_void,
-            export_id,
-            arguments.as_ptr(),
-            arguments.len() as u64,
-            &mut result,
-            transitions.as_mut_ptr(),
-            transitions.len() as u64,
-            &mut transition_len,
-        )
-    };
-    (status, result, transition_len)
-}
-
-fn main() {
-    let mut transitions = [0_i64; 2];
-    let (status, continuation, transition_len) =
-        dispatch(7, &[1_000_000, 0], &mut transitions);
-    assert_eq!(status, 15);
-    assert_eq!(continuation, 93);
-    assert_eq!(transition_len, 2);
-    assert_eq!(transitions, [123, 1_000_000]);
-
-    let captured = transitions[1];
-    let (status, result, transition_len) = dispatch(93, &[captured], &mut transitions);
-    assert_eq!(status, 0);
-    assert_eq!(result, 1_000_001);
-    assert_eq!(transition_len, 0);
-}
-"#;

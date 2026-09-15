@@ -1,0 +1,237 @@
+/**
+ * Explicit real-Cargo checkpoint rehearsal in a disposable Git project.
+ */
+module release_promotion.PreparationCandidateTest.
+
+import release_promotion.{OwnerNative, OwnerStorage, PreparationFixture, PrepareManagedList}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.vcs.Git.
+
+import type std.data.Json.
+
+pub fixture(root: String): Bool ->
+    let {
+        Ok(_source) <- Directory.create_all(OwnerStorage.child(root, "crates/terlan/src"));
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_ignore) <- File.write_text(OwnerStorage.child(root, ".gitignore"), "/target/\n");
+        Ok(_workspace) <-
+            File.write_text(
+                OwnerStorage.child(root, "Cargo.toml"),
+                "[workspace]\nmembers = [\"crates/terlan\"]\nresolver = \"2\"\n",
+            );
+        Ok(_manifest) <-
+            File.write_text(
+                OwnerStorage.child(root, "crates/terlan/Cargo.toml"),
+                "[package]\nname = \"terlan\"\nversion = \"0.0.0\"\nedition = \"2021\"\n",
+            );
+        Ok(_lock) <-
+            File.write_text(
+                OwnerStorage.child(root, "Cargo.lock"),
+                "version = 4\n\n[[package]]\nname = \"terlan\"\nversion = \"0.0.0\"\n",
+            );
+        Ok(_toolchain) <-
+            File.write_text(
+                OwnerStorage.child(root, "rust-toolchain.toml"),
+                "[toolchain]\nchannel = \"1.96.0\"\n",
+            );
+        Ok(_producer) <- File.write_text(OwnerStorage.child(root, "crates/terlan/src/lib.rs"), producer());
+        true <- PreparationFixture.commit(root);
+        Ok(_hosted) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/hosted-candidate-validation.json"),
+                "{\"schema\":\"fixture.hosted.v1\",\"attempt\":1}\n",
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+producer(): String ->
+    "#[cfg(test)]\nmod runtime { pub mod native_image { pub mod managed { pub mod lists { pub mod managed_list_profile_benchmark_test {\n#[test]\nfn managed_list_profiles_emit_stable_benchmark_report() {\nuse std::io::Write;\nlet mut calls = std::fs::OpenOptions::new().create(true).append(true).open(\"../../target/calls\").unwrap();\ncalls.write_all(b\"run\\n\").unwrap();\nif std::path::Path::new(\"../../target/interrupt\").exists() {\nstd::process::Command::new(\"/bin/kill\").arg(\"-KILL\").arg(std::process::id().to_string()).status().unwrap();\npanic!(\"kill did not terminate test\");\n}\nlet output = std::env::var(\"TERLAN_MANAGED_LIST_PROFILE_OUTPUT\").unwrap();\nstd::fs::write(output, \"{\\\"schema\\\":\\\"terlan.tvm.managed-list-profile.v1\\\",\\\"correctness_verified\\\":true}\\n\").unwrap();\n}\n} } } } }\n".
+
+stage(root: String, label: String): Bool ->
+    let _printed = Console.println(label);
+    PrepareManagedList.run_locked(root).
+
+count(root: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+        _ -> false
+    };
+    actual == expected.
+
+/**
+ * Validate the checkpoint's sealed bytes, not the number of files retained.
+ * Failed attempt logs remain evidence alongside the later successful receipt.
+ */
+checkpoint(root: String, outcome: String): Bool ->
+    let {
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(ledger) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(
+                    root,
+                    String.concat(
+                        [
+                            "target/quality/preparation/",
+                            Git.revision(identity),
+                            "/managed-list-profile.json",
+                        ],
+                    ),
+                ),
+            );
+        Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
+        Some("managed-list-profile") <- OwnerStorage.text(ledger, "owner");
+        Some(actual) <- OwnerStorage.text(ledger, "outcome");
+        true <- actual == outcome
+    } else {
+        _ -> false
+    };
+    (let native =
+    String.concat(
+        [
+            "target/quality/preparation/",
+            Git.revision(identity),
+            "/managed-list-profile",
+            if {
+                outcome == "pass" -> ".native.jsonl";
+                true -> ".failed-native.jsonl"
+            },
+        ],
+    );
+(let {
+    Ok(expected) <-
+        ledger
+            .get(
+                if {
+                    outcome == "pass" -> "outputs";
+                    true -> "native_outputs"
+                },
+            );
+    Ok(actual_files) <-
+        OwnerStorage.files(
+            root,
+            if {
+                outcome == "pass" -> ["target/quality/tvm-managed-list-profile.json", native];
+                true -> [native]
+            },
+        );
+    Ok(expected_hash) <- OwnerStorage.digest(expected);
+    Ok(actual_hash) <- OwnerStorage.digest(actual_files);
+    Ok(inventory) <- ledger.get("native_inventory");
+    Ok(inspected) <- OwnerNative.inspect_file(OwnerStorage.child(root, native));
+    Ok(expected_inventory) <- OwnerStorage.digest(inventory);
+    Ok(actual_inventory) <- OwnerStorage.digest(inspected)
+} else {
+    _ -> false
+};
+expected_hash == actual_hash
+    and expected_inventory == actual_inventory
+    and if {
+    outcome == "pass" -> successful_launch(ledger);
+    true -> true
+})).
+
+successful_launch(ledger: Json): Bool ->
+    let {
+        Ok(launch) <- ledger.get("subprocess");
+        Some("cargo") <- OwnerStorage.text(launch, "program");
+        Ok(status) <- launch.get("exit_status");
+        Ok(0) <- status.as_int()
+    } else {
+        _ -> false
+    };
+    true.
+
+tampered_evidence_is_rejected(root: String): Bool ->
+    let report = OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json");
+    let {
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(original) <- File.read_text(report);
+        Ok(_changed) <- File.write_text(report, "{}\n");
+        false <- checkpoint(root, "pass");
+        Ok(_restored) <- File.write_text(report, original)
+    } else {
+        _ -> false
+    };
+    (let native =
+    OwnerStorage.child(
+        root,
+        String.concat(
+            [
+                "target/quality/preparation/",
+                Git.revision(identity),
+                "/managed-list-profile.native.jsonl",
+            ],
+        ),
+    );
+(let {
+    Ok(original_native) <- File.read_text(native);
+    Ok(_changed_native) <- File.write_text(native, "corrupt native inventory\n");
+    false <- checkpoint(root, "pass");
+    Ok(_restored_native) <- File.write_text(native, original_native)
+} else {
+    _ -> false
+};
+checkpoint(root, "pass") and count(root, "run\nrun\nrun\nrun\n"))).
+
+exercise(root: String): Bool ->
+    let {
+        true <- fixture(root);
+        true <- stage(root, "[preparation rehearsal] cold execution");
+        true <- count(root, "run\n");
+        Ok(cold) <- File.read_text(OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json"));
+        true <- stage(root, "[preparation rehearsal] unchanged warm reuse");
+        true <- count(root, "run\n");
+        Ok(warm) <- File.read_text(OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json"));
+        true <- cold == warm;
+        Ok(_attempt) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/hosted-candidate-validation.json"),
+                "{\"schema\":\"fixture.hosted.v1\",\"attempt\":2}\n",
+            );
+        true <- stage(root, "[preparation rehearsal] changed dependency");
+        true <- count(root, "run\nrun\n");
+        Ok(changed) <- File.read_text(OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json"));
+        true <- cold == changed;
+        Ok(_interrupt) <- File.write_text(OwnerStorage.child(root, "target/interrupt"), "kill producer");
+        Ok(_new_attempt) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/hosted-candidate-validation.json"),
+                "{\"schema\":\"fixture.hosted.v1\",\"attempt\":3}\n",
+            );
+        false <- stage(root, "[preparation rehearsal] interrupted Cargo producer (expected failure)");
+        true <- count(root, "run\nrun\nrun\n");
+        true <- checkpoint(root, "failed");
+        Ok(preserved) <- File.read_text(OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json"));
+        true <- cold == preserved;
+        Ok(_cleared) <- File.delete(OwnerStorage.child(root, "target/interrupt"));
+        true <- stage(root, "[preparation rehearsal] resume interrupted producer");
+        true <- count(root, "run\nrun\nrun\nrun\n");
+        Ok(resumed) <- File.read_text(OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json"));
+        true <- cold == resumed
+    } else {
+        _ -> false
+    };
+    checkpoint(root, "pass") and tampered_evidence_is_rejected(root).
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-preparation-candidate-") else {
+        _ -> false
+    };
+    (let valid = exercise(root);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "preparation candidate rehearsal passed: cold, warm (zero Cargo replay), changed dependency, killed producer, resumed equivalent output";
+            true -> "preparation candidate rehearsal failed"
+        },
+    );
+valid and removed).

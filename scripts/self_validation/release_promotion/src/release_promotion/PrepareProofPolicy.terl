@@ -1,0 +1,154 @@
+/**
+ * Recoverable runtime, ownership and daily regression policy reports.
+ * Each independent report has one producer; correctness tests remain in Rust.
+ */
+module release_promotion.PrepareProofPolicy.
+
+import release_promotion.{OwnerStorage, PreparationContext, PreparationGraph, PreparationOwner}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.
+import std.system.Process.{environment_entry}.
+import std.time.Date.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.Summary.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+specification(command: String): List[String] ->
+    case command {
+        "lean-proof-runtime" ->
+            ["lean-proof-runtime-policy.json", "terlan.lean-proof-runtime-policy.v1"];
+        "lean-proof-pr" -> ["lean-proof-pr-report.json", "terlan.lean-proof-pr.v1"];
+        "lean-proof-regression" ->
+            ["lean-proof-regression.json", "terlan.lean-proof-regression.v1"];
+        _ -> []
+    }.
+
+pub declare(
+    root: String,
+    quality: String,
+    context: Context,
+    command: String,
+    day: String,
+): Result[Owner, String] ->
+    let {
+        true <- PreparationContext.tool_path(quality);
+        Some(_date) <- Date.parse_iso(day)
+    } else {
+        _ -> Err("invalid proof policy tool path or UTC date")
+    };
+    (let [filename, schema] <- specification(command) else {
+    _ -> Err("unknown proof policy producer")
+};
+(let environment =
+    if {
+        command == "lean-proof-regression" -> List.concat(context.environment, [environment_entry("TERLAN_PROOF_POLICY_DATE", day)]);
+        true -> context.environment
+    };
+Ok(
+    PreparationOwner.owner(
+        command,
+        context.revision,
+        "x86_64-unknown-linux-gnu",
+        "proof-policy",
+        context.runtime_tools,
+        context.sources,
+        [quality],
+        OwnerStorage.child(root, quality),
+        [command],
+        environment,
+        String.append("target/quality/proof-artifacts/", filename),
+        "TERLAN_PROOF_POLICY_OUTPUT",
+        schema,
+        String.concat(["[", command, "]"]),
+        60000,
+    ),
+))).
+
+/**
+ * The enclosing preparation graph holds its exclusive flock throughout.
+ */
+pub prepare(root: String, quality: String, command: String): Result[Decision, String] ->
+    let day = Date.to_iso(Date.today_utc());
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(owner) <- declare(root, quality, context, command, day)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (let decision = PreparationOwner.run_locked(root, owner);
+if {
+    command == "lean-proof-regression" and Date.to_iso(Date.today_utc()) != day -> Err("proof regression UTC date changed during preparation; retry with current date");
+    true -> Ok(decision)
+}).
+
+pub run_locked(root: String, quality: String, command: String): Bool ->
+    let Ok(result) <- prepare(root, quality, command) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        if {
+            not result.valid -> result.message;
+            result.reused -> String.append("[preparation] reused proof policy: ", command);
+            true -> String.append("[preparation] completed proof policy: ", command)
+        },
+    );
+result.valid).
+
+/**
+ * All three source-only policies share one clean-source/tool admission. Their
+ * independent receipts still permit selective reuse and failed-owner recovery.
+ */
+pub prepare_all(root: String, quality: String): Result[Summary, String] ->
+    let day = Date.to_iso(Date.today_utc());
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(runtime) <- declare(root, quality, context, "lean-proof-runtime", day);
+        Ok(ownership) <- declare(root, quality, context, "lean-proof-pr", day);
+        Ok(regression) <- declare(root, quality, context, "lean-proof-regression", day)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (let result =
+    PreparationGraph.run_locked(
+        root,
+        "proof-policies",
+        [
+            PreparationGraph.declare_node(runtime, []),
+            PreparationGraph.declare_node(ownership, []),
+            PreparationGraph.declare_node(regression, []),
+        ],
+    );
+if {
+    Date.to_iso(Date.today_utc()) != day -> Err("proof policy UTC date changed during preparation; retry with current date");
+    true -> Ok(result)
+}).
+
+pub run_all_locked(root: String, quality: String): Bool ->
+    let Ok(result) <- prepare_all(root, quality) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        if {
+            result.valid -> String.concat(
+                [
+                    "[preparation] proof policies: completed=",
+                    Int.to_string(result.completed),
+                    " reused=",
+                    Int.to_string(result.reused),
+                ],
+            );
+            true -> result.message
+        },
+    );
+result.valid).

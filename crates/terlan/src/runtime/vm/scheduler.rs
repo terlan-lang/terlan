@@ -10,7 +10,7 @@ use super::process::{VmExitReason, VmProcess};
 use super::process::{VmProcessId, VmProcessResumeState, VmProcessState, VmProcessTable};
 #[cfg(any(test, feature = "benchmark-tools"))]
 use contention::VmContentionTelemetry;
-pub(crate) use telemetry::{VmSchedulerMetrics, VmSchedulerQueueTransition};
+pub(crate) use telemetry::VmSchedulerMetrics;
 
 #[path = "scheduler/contention.rs"]
 #[cfg(any(test, feature = "benchmark-tools"))]
@@ -262,9 +262,7 @@ impl VmScheduler {
     pub(crate) fn reap_process_diagnostics(&mut self, pid: VmProcessId) {
         self.forget_process(pid);
         self.metrics.processes.remove(&pid.as_u64());
-        self.metrics
-            .queue_transitions
-            .retain(|transition| transition.pid != pid.as_u64());
+        self.metrics.reap_queue_transitions(pid.as_u64());
     }
 
     /// Returns cumulative deterministic scheduler accounting.
@@ -694,15 +692,7 @@ impl VmScheduler {
             self.queues[class.queue_index()].push_back(pid);
             self.enqueued_at.insert(pid, self.tick);
             self.metrics.max_queue_depth = self.metrics.max_queue_depth.max(self.queued_len());
-            self.metrics
-                .queue_transitions
-                .push(VmSchedulerQueueTransition {
-                    tick: self.tick,
-                    pid: pid.as_u64(),
-                    action: "enqueue",
-                    class,
-                    queue_len: self.queued_len(),
-                });
+            self.record_queue_transition(pid, "enqueue", class);
         }
         Ok(())
     }
@@ -718,15 +708,7 @@ impl VmScheduler {
             .unwrap_or(VmSchedulerClass::Normal);
         self.queues[class.queue_index()].retain(|queued_pid| *queued_pid != pid);
         self.enqueued_at.remove(&pid);
-        self.metrics
-            .queue_transitions
-            .push(VmSchedulerQueueTransition {
-                tick: self.tick,
-                pid: pid.as_u64(),
-                action,
-                class,
-                queue_len: self.queued_len(),
-            });
+        self.record_queue_transition(pid, action, class);
     }
 
     #[cfg(any(test, feature = "benchmark-tools"))]
@@ -740,15 +722,7 @@ impl VmScheduler {
             };
             self.queued.remove(&pid);
             let enqueued_tick = self.enqueued_at.remove(&pid).unwrap_or(self.tick);
-            self.metrics
-                .queue_transitions
-                .push(VmSchedulerQueueTransition {
-                    tick: self.tick,
-                    pid: pid.as_u64(),
-                    action: "dequeue",
-                    class,
-                    queue_len: self.queued_len(),
-                });
+            self.record_queue_transition(pid, "dequeue", class);
             return Some((pid, enqueued_tick));
         }
         None

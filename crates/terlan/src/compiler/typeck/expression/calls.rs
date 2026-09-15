@@ -659,9 +659,12 @@ fn infer_default_struct_constructor_call(
         }
     }
 
-    Some(Type::Named {
-        module: None,
-        name: function_name.to_string(),
-        args: Vec::new(),
-    })
+    Some(qualify_type_names(
+        &Type::Named {
+            module: None,
+            name: function_name.to_string(),
+            args: Vec::new(),
+        },
+        ctx.imported_type_names,
+    ))
 }

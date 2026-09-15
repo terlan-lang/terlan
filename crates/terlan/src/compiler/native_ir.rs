@@ -16,6 +16,10 @@ mod application_admission;
 #[cfg(test)]
 mod application_admission_test;
 mod application_calls;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod callable_descriptors;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use callable_descriptors::native_callable_descriptors;
 mod atom_alias_values;
 mod atom_inventory;
 #[cfg(test)]
@@ -76,6 +80,9 @@ mod constructor_chain;
 mod constructor_lowering_test;
 mod constructors;
 mod continuation_sharing;
+mod recursive_suspension;
+#[cfg(all(test, unix))]
+mod recursive_suspension_test;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use continuation_sharing::is_materialized_continuation_module;
 #[cfg(test)]

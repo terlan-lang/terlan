@@ -25,6 +25,16 @@ pub arithmetic_division_executes(): Bool ->
 pub arithmetic_div_keyword_executes(): Bool ->
     assert_equal(3, 7 div 2).
 
+pub remainder(left: Int, right: Int): Int ->
+    left rem right.
+
+@test
+pub arithmetic_remainder_executes(): Bool ->
+    assert_equal(1, remainder(7, 3))
+        and assert_equal(-1, remainder(-7, 3))
+        and assert_equal(1, remainder(7, -3))
+        and assert_equal(-1, remainder(-7, -3)).
+
 @test
 pub unary_negation_executes(): Bool ->
     assert_equal(-4, -4).
@@ -32,6 +42,13 @@ pub unary_negation_executes(): Bool ->
 @test
 pub unary_not_keyword_executes(): Bool ->
     assert_equal(false, not true).
+
+pub bang_not(value: Bool): Bool ->
+    !value.
+
+@test
+pub unary_bang_not_executes(): Bool ->
+    assert_equal(false, bang_not(true)) and assert_equal(true, bang_not(false)).
 
 @test
 pub boolean_and_keyword_executes(): Bool ->

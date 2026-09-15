@@ -1,0 +1,72 @@
+module direct_conditions.
+
+import std.vm.Process.
+
+pub yield_condition(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); flag) -> 31;
+        true -> 32
+    }.
+
+pub yield_later_condition(first: Bool, second: Bool): Int ->
+    if {
+        first -> 33;
+        (Process.yield_now(); second) -> 34;
+        true -> 35
+    }.
+
+pub yield_condition_capture(flag: Bool, left: Int, right: Int): Int ->
+    if {
+        (Process.yield_now(); flag) -> left + right;
+        true -> left - right
+    }.
+
+pub yield_condition_local(value: Int): Int ->
+    if {
+        (let adjusted = value + 1; let unused = value + 100; (Process.yield_now(); adjusted > 10)) -> value;
+        true -> 0
+    }.
+
+pub yield_condition_prefix_error(divisor: Int): Int ->
+    if {
+        (let checked = 1 div divisor; (Process.yield_now(); checked > 0)) -> 1;
+        true -> 0
+    }.
+
+pub yield_condition_twice(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); Process.yield_now(); flag) -> 36;
+        true -> 37
+    }.
+
+pub yield_condition_then_body(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); flag) -> (Process.yield_now(); 38);
+        true -> 39
+    }.
+
+pub nested_yield_condition(outer: Bool, inner: Bool): Int ->
+    if {
+        outer -> if {
+            (Process.yield_now(); inner) -> 40;
+            true -> 41
+        };
+        true -> 42
+    }.
+
+pub yield_short_circuit_left(left: Bool, right: Bool): Bool ->
+    (Process.yield_now(); left) and right.
+
+pub yield_short_circuit_or_left(left: Bool, right: Bool): Bool ->
+    (Process.yield_now(); left) or right.
+
+pub yield_short_circuit_left_guard(left: Bool): Bool ->
+    (Process.yield_now(); left) and 1 div 0 == 0.
+
+pub yield_short_circuit_or_guard(left: Bool): Bool ->
+    (Process.yield_now(); left) or 1 div 0 == 0.
+
+pub yield_condition_only(flag: Bool): Int ->
+    if {
+        (Process.yield_now(); flag) -> 43
+    }.

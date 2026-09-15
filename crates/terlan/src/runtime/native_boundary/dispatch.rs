@@ -5,15 +5,15 @@
 //! functions. The VM/native worker layer can call this module after it has
 //! decoded runtime terms into `NativeBoundaryValue`.
 
-use crate::terlan_native::{
-    base64, hash as native_hash, http, json, path, postgres, regex, toml, uri,
-};
-use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
+#[cfg(test)]
+use crate::terlan_native::json;
+use crate::terlan_native::{base64, hash as native_hash, http, path, postgres, regex, toml, uri};
 
 mod archive;
 mod args;
 mod arity;
 mod crypto;
+mod error;
 mod filesystem;
 mod git;
 #[path = "dispatch/hash.rs"]
@@ -25,7 +25,14 @@ mod package_registry;
 mod panic_boundary;
 mod platform_dispatch;
 mod process;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use process::{
+    capture_optional_tool_command, capture_tool_command, capture_tool_command_with_launch,
+    ToolCommandError,
+};
 mod resources;
+mod value;
+pub use value::{NativeBoundaryBridgeValue, NativeBoundaryValue};
 
 use args::{
     cookie_options_from_args, dispatch_base64_error, dispatch_http_error, dispatch_path_error,
@@ -49,185 +56,7 @@ pub use resources::{
     dispatch_with_resources_for_process_with_policy_and_cancellation,
 };
 
-/// Neutral value shape accepted and returned by NativeBoundary adapter dispatch.
-#[derive(Clone, Debug, PartialEq)]
-pub enum NativeBoundaryValue {
-    /// Terlan `Unit`.
-    Unit,
-    /// Terlan `String`.
-    Text(String),
-    /// Terlan VM-owned `Bytes`.
-    Bytes(Vec<u8>),
-    /// Terlan `Int`.
-    Int(i64),
-    /// Terlan `Float`.
-    Float(f64),
-    /// Terlan `Bool`.
-    Bool(bool),
-    /// Terlan atom identity without a host-language enum escape hatch.
-    Atom(String),
-    /// Descriptor-checked Terlan record/constructor value.
-    Record {
-        /// Constructor or record name.
-        name: String,
-        /// Ordered named fields.
-        fields: Vec<(String, NativeBoundaryValue)>,
-    },
-    /// Ordered recursively owned Terlan values.
-    List(Vec<NativeBoundaryValue>),
-    /// Opaque `std.data.Json.Json`.
-    Json(json::Json),
-    /// Opaque compiled `std.regex.Regex.Regex`.
-    Regex(regex::Regex),
-    /// Opaque `std.http.Request.Request`.
-    HttpRequest(http::Request),
-    /// Opaque `std.http.Response.Response`.
-    HttpResponse(http::Response),
-    /// Opaque `std.http.Cookies.Jar`.
-    HttpCookieJar(http::CookieJar),
-    /// Opaque `std.io.Path.Path`.
-    Path(path::Path),
-    /// Opaque `std.net.Uri.Uri`.
-    Uri(uri::Uri),
-    /// Opaque `std.db.Postgres.Config`.
-    PostgresConfig(postgres::Config),
-    /// Opaque `std.db.Postgres.Pool`.
-    PostgresPool(postgres::Pool),
-    /// Opaque `std.db.Postgres.Row`.
-    PostgresRow(postgres::Row),
-    /// `List[std.data.Json.Json]` used for Postgres parameter values.
-    JsonList(Vec<json::Json>),
-    /// `List[std.db.Postgres.Row]` returned by Postgres query operations.
-    PostgresRows(Vec<postgres::Row>),
-    /// `Option[std.db.Postgres.Row]` returned by single-row Postgres queries.
-    OptionalPostgresRow(Option<postgres::Row>),
-    /// `Option[String]` for string component accessors.
-    OptionalText(Option<String>),
-    /// `Option[Path]` for path component accessors.
-    OptionalPath(Option<path::Path>),
-}
-
-/// Bridge-facing value shape that carries opaque resources as handles.
-#[derive(Clone, Debug, PartialEq)]
-pub enum NativeBoundaryBridgeValue {
-    /// Terlan `Unit`.
-    Unit,
-    /// Terlan `String`.
-    Text(String),
-    /// Terlan VM-owned `Bytes`.
-    Bytes(Vec<u8>),
-    /// Terlan `Int`.
-    Int(i64),
-    /// Terlan `Float`.
-    Float(f64),
-    /// Terlan `Bool`.
-    Bool(bool),
-    /// Terlan atom identity.
-    Atom(String),
-    /// Recursively owned Terlan record/constructor value.
-    Record {
-        /// Constructor or record name.
-        name: String,
-        /// Ordered named fields.
-        fields: Vec<(String, NativeBoundaryBridgeValue)>,
-    },
-    /// Opaque resource handle for JSON, path, URI, or later native resources.
-    Handle(NativeBoundaryHandle),
-    /// Structured Postgres connection configuration for `connect`.
-    PostgresConfig(postgres::Config),
-    /// `Option[String]` for string component accessors.
-    OptionalText(Option<String>),
-    /// `Option[Handle]` for optional opaque resources such as path parents.
-    OptionalHandle(Option<NativeBoundaryHandle>),
-    /// Terlan list carrying bridge-facing values.
-    List(Vec<NativeBoundaryBridgeValue>),
-}
-
-/// Stable dispatcher error returned before crossing a runtime boundary.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DispatchError {
-    code: &'static str,
-    message: String,
-    offset: usize,
-    path: Option<String>,
-}
-
-impl DispatchError {
-    /// Builds a dispatcher error.
-    ///
-    /// Inputs:
-    /// - `code`: stable machine-readable error code.
-    /// - `message`: human-readable diagnostic text.
-    /// - `offset`: source/input byte offset when available, or `0`.
-    ///
-    /// Output:
-    /// - A `DispatchError` suitable for the NativeBoundary boundary.
-    ///
-    /// Transformation:
-    /// - Stores adapter-independent error metadata without exposing backend
-    ///   exception types.
-    pub fn new(code: &'static str, message: impl Into<String>, offset: usize) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            offset,
-            path: None,
-        }
-    }
-
-    /// Attaches structured filesystem path context to this error.
-    pub fn with_path(mut self, path: impl Into<String>) -> Self {
-        self.path = Some(path.into());
-        self
-    }
-
-    /// Returns the stable machine-readable error code.
-    ///
-    /// Inputs:
-    /// - `self`: dispatcher error.
-    ///
-    /// Output:
-    /// - Static error code string.
-    ///
-    /// Transformation:
-    /// - Reads the code field without allocation or mutation.
-    pub fn code(&self) -> &'static str {
-        self.code
-    }
-
-    /// Returns structured filesystem path context when the operation had one.
-    pub fn path(&self) -> Option<&str> {
-        self.path.as_deref()
-    }
-
-    /// Returns the human-readable error message.
-    ///
-    /// Inputs:
-    /// - `self`: dispatcher error.
-    ///
-    /// Output:
-    /// - Borrowed message text.
-    ///
-    /// Transformation:
-    /// - Reads the message field without allocation or mutation.
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// Returns the byte offset associated with the error.
-    ///
-    /// Inputs:
-    /// - `self`: dispatcher error.
-    ///
-    /// Output:
-    /// - Byte offset, or `0` when no adapter supplied one.
-    ///
-    /// Transformation:
-    /// - Reads the offset field without allocation or mutation.
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-}
+pub use error::DispatchError;
 
 /// Dispatches one compiler-native operation to a NativeBoundary adapter function.
 ///

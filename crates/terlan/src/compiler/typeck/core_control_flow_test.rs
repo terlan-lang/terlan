@@ -395,6 +395,7 @@ pub id_fun(): Term ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("x".to_string())],
             body: Box::new(CoreExpr::Var("x".to_string())),
         })
@@ -454,6 +455,7 @@ pub add_fun(): Term ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("x".to_string())],
             body: Box::new(CoreExpr::BinaryOp {
                 operator: "+".to_string(),

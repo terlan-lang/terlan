@@ -1,6 +1,9 @@
-use std::process::{Command, Output, Stdio};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::process::{Command, Output};
+use std::time::Duration;
+
+use crate::runtime::native_boundary::dispatch::capture_tool_command;
+
+const TOOL_OUTPUT_LIMIT: usize = 16 * 1024 * 1024;
 
 /// Runs a process with stdout/stderr capture and a hard timeout.
 ///
@@ -14,36 +17,17 @@ use std::time::{Duration, Instant};
 /// - `Err(message)` when spawning fails, waiting fails, or the child times out.
 ///
 /// Transformation:
-/// - Spawns the command with captured output, polls for completion, kills the
-///   child on timeout, and preserves normal `Command::output`-style results
-///   for successful waits.
+/// - Closes stdin and concurrently drains byte-bounded output through the shared
+///   process owner. Execution and pipe drainage share the same deadline.
 pub(crate) fn run_command_with_timeout(
     command: &mut Command,
     label: &str,
     timeout: Duration,
 ) -> Result<Output, String> {
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
-        .map_err(|err| format!("failed to run {label}: {err}"))?;
-    let started_at = Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(_status)) => {
-                return child
-                    .wait_with_output()
-                    .map_err(|err| format!("failed to collect {label} output: {err}"));
-            }
-            Ok(None) if started_at.elapsed() >= timeout => {
-                let _ = child.kill();
-                let _ = child.wait_with_output();
-                return Err(format!(
-                    "{label} timed out after {} milliseconds",
-                    timeout.as_millis()
-                ));
-            }
-            Ok(None) => thread::sleep(Duration::from_millis(10)),
-            Err(err) => return Err(format!("failed to wait for {label}: {err}")),
-        }
-    }
+    capture_tool_command(command, label, timeout, TOOL_OUTPUT_LIMIT)
+        .map_err(|error| error.to_string())
 }
+
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+#[path = "process_runner_test.rs"]
+mod tests;

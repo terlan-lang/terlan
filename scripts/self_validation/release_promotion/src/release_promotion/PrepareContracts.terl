@@ -1,0 +1,91 @@
+/**
+ * Independent checkpoints for the four publication contract self-test producers.
+ * No Boolean skip flag is evidence: every reuse verifies source, tool and bytes.
+ */
+module release_promotion.PrepareContracts.
+
+import release_promotion.{OwnerStorage, PreparationContext, PreparationOwner}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.
+import std.system.Arguments.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+pub commands(): List[String] ->
+    ["self-test", "tsan-self-test", "release-self-test", "multicore-release-self-test"].
+
+marker(command: String): String ->
+    case command {
+        "self-test" -> "TVM AOT platform matrix self-test passed";
+        "tsan-self-test" -> "TVM AOT ThreadSanitizer self-test passed";
+        "release-self-test" -> "TVM AOT local release closeout self-test passed";
+        "multicore-release-self-test" -> "VM multicore release composition self-test passed";
+        _ -> ""
+    }.
+
+pub declare(
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    command: String,
+): Result[Owner, String] ->
+    let expected = marker(command);
+    let true <- expected != "" and PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+        _ -> Err("invalid owned platform contract command or tool path")
+    };
+    (let name = String.append("platform-contract-", command);
+Ok(
+    PreparationOwner.owner(
+        name,
+        context.revision,
+        "x86_64-unknown-linux-gnu",
+        "validator-contract",
+        context.runtime_tools,
+        context.sources,
+        [vm, image],
+        OwnerStorage.child(root, vm),
+        ["run", OwnerStorage.child(root, image), "--script-eval", "--", command],
+        context.environment,
+        String.concat(["target/quality/", context.revision, "-", name, ".receipt.json"]),
+        "TERLAN_TVM_CONTRACT_OUTPUT",
+        "terlan.validator-contract-receipt.v1",
+        expected,
+        300000,
+    ),
+)).
+
+pub prepare(root: String, vm: String, image: String, command: String): Result[Decision, String] ->
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(owner) <- declare(root, vm, image, context, command)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(PreparationOwner.run_locked(root, owner)).
+
+pub run_locked(root: String, vm: String, image: String): Bool ->
+    let Some(command) <- Arguments.get(3) else {
+        _ ->
+            let _printed = Console.eprintln("owned platform contract requires its command");
+            false
+    };
+    case prepare(root, vm, image, command) {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false;
+        Ok(result) ->
+            let _printed =
+                Console.println(
+                    if {
+                        not result.valid -> result.message;
+                        result.reused -> String.append("[preparation] reused contract: ", command);
+                        true -> String.append("[preparation] completed contract: ", command)
+                    },
+                );
+            result.valid
+    }.

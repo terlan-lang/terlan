@@ -338,19 +338,20 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
             config_path.display()
         )
     })?;
-    let output = Command::new(&toolchain.rsbuild)
-        .arg("build")
-        .arg("--config")
-        .arg(&config_path)
-        .env("TERLAN_RSB_ENTRY", &entry)
-        .env("TERLAN_RSB_TEMPLATE", &template)
-        .env("TERLAN_RSB_WEB_ROOT", &web_root)
-        .env("TERLAN_RSB_BUILD_ROOT", &build_root)
-        .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
-        .env("NODE_PATH", toolchain.root.join("node_modules"))
-        .current_dir(project_root)
-        .output()
-        .map_err(|err| format!("error[web_rsbuild]: failed to start Rsbuild: {err}"))?;
+    let output = super::super::web_toolchain::run_managed_bundler(
+        Command::new(&toolchain.rsbuild)
+            .arg("build")
+            .arg("--config")
+            .arg(&config_path)
+            .env("TERLAN_RSB_ENTRY", &entry)
+            .env("TERLAN_RSB_TEMPLATE", &template)
+            .env("TERLAN_RSB_WEB_ROOT", &web_root)
+            .env("TERLAN_RSB_BUILD_ROOT", &build_root)
+            .env("TERLAN_WEB_TOOLCHAIN_ROOT", &toolchain.root)
+            .env("NODE_PATH", toolchain.root.join("node_modules"))
+            .current_dir(project_root),
+    )
+    .map_err(|error| error.to_string())?;
     if !output.status.success() {
         return Err(format!(
             "error[web_rsbuild]: Rsbuild failed for {}:\n{}{}",

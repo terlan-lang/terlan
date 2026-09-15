@@ -1,0 +1,32 @@
+import std.core.Option.{None, Some}.
+import std.io.Console.{println}.
+import std.system.Arguments.
+
+struct Outcome {
+    valid: Bool,
+}.
+
+record(value: String): String ->
+    let _line = println(value);
+    value.
+
+judge(values: List[String]): Outcome ->
+    case values {
+        [first, selected, last] ->
+            Outcome(valid = first == "first" and selected == "ok" and last == "last");
+        _ -> Outcome(valid = false)
+    }.
+
+assert(
+    judge(
+    [
+        record("first"),
+        case Arguments.get(0) {
+            Some(value) -> record(value);
+            None -> record("ok")
+        },
+        record("last"),
+    ],
+).valid,
+);
+Unit.

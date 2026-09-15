@@ -62,6 +62,7 @@ fn call_families_have_explicit_lowering_dispositions() {
 #[test]
 fn closures_have_explicit_native_lowering() {
     let closure = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::Var("value".to_string())),
     };

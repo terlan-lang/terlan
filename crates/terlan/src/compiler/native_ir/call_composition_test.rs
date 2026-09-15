@@ -534,7 +534,7 @@ fn composed_wrapper_identity_does_not_depend_on_profile_width() {
 }
 
 #[test]
-fn recursive_contract_requires_a_wrapper_for_non_tail_caller_frames() {
+fn recursive_contract_preserves_non_tail_caller_completion_frames() {
     let mut body = NativeExpr::CallThen {
         function: 4,
         args: vec![NativeExpr::Param(0)],
@@ -549,7 +549,11 @@ fn recursive_contract_requires_a_wrapper_for_non_tail_caller_frames() {
     let NativeExpr::CallThen { resumes, .. } = body else {
         panic!("call-then shape must be preserved");
     };
-    assert!(resumes.is_empty());
+    assert_eq!(resumes.len(), 1);
+    assert_eq!(resumes[0].callee_continuation_id, 20);
+    assert_eq!(resumes[0].callee_capture_count, 2);
+    assert_eq!(resumes[0].continuation_id, 90);
+    assert_eq!(resumes[0].caller_value_start, 0);
 }
 
 #[test]

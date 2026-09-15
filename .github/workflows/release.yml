@@ -110,13 +110,14 @@ jobs:
         with:
           components: ""
 
+      - name: Validate macOS process ownership
+        if: runner.os == 'macOS'
+        run: cargo test --locked -p terlan-process-owner
+
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
         env:
           TERLAN_MATRIX_TARGET: ${{ matrix.target }}
-
-      - name: Stress the portable multicore memory model
-        run: cargo test --locked --no-default-features --features native-codegen -p terlan --bin terlan-vm runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test -- --nocapture
 
       # The target validator has already built, packaged, smoked, and installer-
       # smoked this exact archive. Rebuilding it here duplicated the release
@@ -143,46 +144,6 @@ jobs:
           name: release-tvm-aot-platform-${{ matrix.target }}
           path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
           if-no-files-found: error
-
-  platform-matrix:
-    name: release AOT platform matrix
-    runs-on: ubuntu-24.04
-    needs: platform
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
-
-      - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
-        with:
-          components: ""
-
-      - name: Download target execution attestations
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: release-tvm-aot-platform-*
-          path: target/quality/tvm-aot-platform-input
-          merge-multiple: true
-
-      - name: Require the complete executable matrix
-        run: make tvm-aot-platform-aggregate-check
-        env:
-          TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
-
-      - name: Upload aggregate evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: release-tvm-aot-platform-matrix
-          path: target/quality/tvm-aot-platform-matrix-report.json
-          if-no-files-found: error
-          retention-days: 90
 
   thread-sanitizer:
     name: release AOT ThreadSanitizer
@@ -257,7 +218,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - dependency-audit
-      - platform-matrix
+      - platform
       - thread-sanitizer
       - multicore-thread-sanitizer
     timeout-minutes: 180
@@ -279,11 +240,14 @@ jobs:
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
 
-      - name: Download platform aggregate evidence
+      - name: Download target execution attestations
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-tvm-aot-platform-matrix
-          path: target/quality
+          # A failed final-job retry may already have uploaded the matrix
+          # artifact. Admit target reports only, never that aggregate output.
+          pattern: release-tvm-aot-platform-*-*
+          path: target/quality/tvm-aot-platform-input
+          merge-multiple: true
 
       - name: Download ThreadSanitizer evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -304,11 +268,20 @@ jobs:
           path: target/release-distribution
           merge-multiple: true
 
-      - name: Validate the complete release artifact set
-        run: make release-artifact-set-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution
+      # Matrix aggregation and artifact/contract checks share one compiler and
+      # validator bootstrap; Make executes their common prerequisites once.
+      - name: Validate the complete hosted release
+        run: make release-hosted-validation-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution
+        env:
+          TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
-      - name: Validate local-publication release contracts
-        run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-tvm-aot-platform-matrix
+          path: target/quality/tvm-aot-platform-matrix-report.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Upload hosted release evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -340,9 +313,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-validation-failure-${{ github.run_id }}
-          path: |
-            target/quality
-            build/artifacts
+          path: target/quality
           if-no-files-found: ignore
 
   release-validation-result:

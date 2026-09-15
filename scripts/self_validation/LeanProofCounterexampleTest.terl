@@ -9,7 +9,7 @@ import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
-import std.io.Directory.{entries}.
+import std.io.Directory.{create_all, entries}.
 import std.io.File.{exists, read_text_many, write_text}.
 import std.system.{Environment, Process}.
 
@@ -399,7 +399,13 @@ write_report(root: String, source: String, exit_code: Int): Bool ->
     }.
 
 persist_report(root: String, rendered: String): Bool ->
-    case write_text(root_path(root, "build/artifacts/lean-proof-counterexamples.json"), rendered) {
+    let Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts")) else {
+        _ -> fail("counterexample report directory could not be created")
+    };
+    case write_text(
+    root_path(root, "target/quality/proof-artifacts/lean-proof-counterexamples.json"),
+    rendered,
+) {
         Ok(Unit) ->
             let _printed =
                 println(

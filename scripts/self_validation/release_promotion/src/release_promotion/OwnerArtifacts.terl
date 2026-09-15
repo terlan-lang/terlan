@@ -1,0 +1,360 @@
+/**
+ * Bounded output contracts share staging, schema admission and graph identity.
+ */
+module release_promotion.OwnerArtifacts.
+
+import release_promotion.{OwnerCommit, OwnerDirectoryContract, OwnerStorage}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.File.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.OwnerCommit.Publication.
+import type release_promotion.OwnerDirectoryContract.Member.
+import type std.core.Option.
+import type std.data.Json.
+import type std.system.Process.EnvironmentEntry.
+
+/**
+ * A producer receives only its private staging path through this variable.
+ */
+pub struct Artifact {
+    path: String,
+    variable: String,
+    schema: String,
+    header: Option[String],
+    allow_empty_rows: Bool,
+    members: List[Member],
+}.
+
+/**
+ * Builds one explicit output declaration.
+ */
+pub declare_artifact(path: String, variable: String, schema: String): Artifact ->
+    Artifact(
+        path = path,
+        variable = variable,
+        schema = schema,
+        header = None,
+        allow_empty_rows = false,
+        members = [],
+    ).
+
+/**
+ * A bounded UTF-8 table has an exact header and the same column count in each row.
+ */
+pub declare_tsv(path: String, variable: String, header: String): Artifact ->
+    Artifact(
+        path = path,
+        variable = variable,
+        schema = "",
+        header = Some(header),
+        allow_empty_rows = false,
+        members = [],
+    ).
+
+/**
+ * An empty report still requires its exact header and terminating newline.
+ */
+pub declare_optional_rows_tsv(path: String, variable: String, header: String): Artifact ->
+    Artifact(
+        path = path,
+        variable = variable,
+        schema = "",
+        header = Some(header),
+        allow_empty_rows = true,
+        members = [],
+    ).
+
+/**
+ * Declare a complete generated directory rather than independent stale files.
+ */
+pub declare_directory(path: String, variable: String, members: List[Member]): Artifact ->
+    Artifact(
+        path = path,
+        variable = variable,
+        schema = "",
+        header = None,
+        allow_empty_rows = false,
+        members = members,
+    ).
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+overlaps(values: List[String], path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value == path
+                or String.starts_with(value, String.append(path, "/"))
+                or String.starts_with(path, String.append(value, "/"))
+                or overlaps(rest, path)
+    }.
+
+/**
+ * Files cannot share a destination or act as another output's directory.
+ */
+pub disjoint(left: List[String], right: List[String]): Bool ->
+    case left {
+        [] -> true;
+        [path | rest] -> not overlaps(right, path) and disjoint(rest, right)
+    }.
+
+safe_path(path: String): Bool ->
+    (String.starts_with(path, "target/quality/") or path == "dist/release-candidate.json")
+        and not String.starts_with(path, "target/quality/preparation/")
+        and canonical_path(path).
+
+canonical_path(path: String): Bool ->
+    not String.contains(path, "..")
+        and not String.contains(path, "\\")
+        and not String.ends_with(path, "/")
+        and not String.ends_with(path, "/.")
+        and not String.contains(path, "/./")
+        and not String.contains(path, "//").
+
+unreserved(environment: List[EnvironmentEntry], variables: List[String]): Bool ->
+    case environment {
+        [] -> true;
+        [value | rest] ->
+            value.key != ""
+                and not String.contains(value.key, "=")
+                and not contains(variables, value.key)
+                and unreserved(rest, variables)
+    }.
+
+/**
+ * Reject overlapping destinations/variables before launching any producer.
+ */
+pub valid(values: List[Artifact], environment: List[EnvironmentEntry]): Bool ->
+    case values {
+        [] -> false;
+        _ ->
+            valid_at(
+                values,
+                [],
+                ["TERLAN_BUILD_ACTIVITY_LOG", "TERLAN_PROCESS_ACTIVITY_LOG"],
+                environment,
+                16,
+            )
+    }.
+
+valid_at(
+    values: List[Artifact],
+    paths: List[String],
+    variables: List[String],
+    environment: List[EnvironmentEntry],
+    remaining: Int,
+): Bool ->
+    case values {
+        [] -> unreserved(environment, variables);
+        [value | rest] ->
+            remaining > 0
+                and valid_artifact(value)
+                and not overlaps(paths, value.path)
+                and not contains(variables, value.variable)
+                and valid_at(rest, [value.path | paths], [value.variable | variables], environment, remaining - 1)
+    }.
+
+valid_artifact(value: Artifact): Bool ->
+    safe_path(value.path)
+        and if {
+    value.members != [] -> value.schema == ""
+        and value.header == None
+        and not value.allow_empty_rows
+        and OwnerDirectoryContract.valid(value.members);
+    true -> case value.header {
+        None -> value.schema != "";
+        Some(header) -> value.schema == "" and valid_header(header)
+    }
+}
+        and value.variable != ""
+        and not String.contains(value.variable, "=").
+
+valid_header(header: String): Bool ->
+    header.byte_size() <= 4096
+        and String.contains(header, "\t")
+        and not String.contains(header, "\n")
+        and not String.contains(header, "\r")
+        and unique_columns(String.split(header, "\t"), [], 64).
+
+unique_columns(columns: List[String], seen: List[String], remaining: Int): Bool ->
+    case columns {
+        [] -> true;
+        [column | rest] ->
+            remaining > 0
+                and column != ""
+                and String.trim(column) == column
+                and not contains(seen, column)
+                and unique_columns(rest, [column | seen], remaining - 1)
+    }.
+
+/**
+ * Returns every final destination in declaration order.
+ */
+pub paths(values: List[Artifact]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [value.path | paths(rest)]
+    }.
+
+/**
+ * Directory ownership includes descendants, not only the directory's name.
+ */
+pub owns_path(values: List[Artifact], path: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value.path == path
+                or value.members != [] and String.starts_with(path, String.append(value.path, "/"))
+                or owns_path(rest, path)
+    }.
+
+/**
+ * Seals schemas and staging-variable assignments into the owner identity.
+ */
+pub describe(values: List[Artifact]): Json ->
+    describe_at(values, Json.array()).
+
+describe_at(values: List[Artifact], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] -> describe_at(rest, result.push(describe_artifact(value)))
+    }.
+
+describe_artifact(value: Artifact): Json ->
+    let identity =
+        Json.object()
+            .put("path", Json.string(value.path))
+            .put("variable", Json.string(value.variable));
+    if {
+        value.members != [] -> identity
+            .put("format", Json.string("flat-json-directory"))
+            .put("members", OwnerDirectoryContract.describe(value.members));
+        true -> case value.header {
+            None -> identity.put("schema", Json.string(value.schema));
+            Some(header) ->
+                identity
+                    .put("format", Json.string("tsv"))
+                    .put("header", Json.string(header))
+                    .put("allow_empty_rows", Json.bool(value.allow_empty_rows))
+        }
+    }.
+
+staged(workspace: String, index: Int): String ->
+    String.concat(
+        [
+            workspace,
+            "/output",
+            if {
+                index == 0 -> "";
+                true -> String.append("-", Int.to_string(index))
+            },
+            ".json",
+        ],
+    ).
+
+/**
+ * Assigns each declared variable its distinct private staging destination.
+ */
+pub environment(root: String, workspace: String, values: List[Artifact]): List[EnvironmentEntry] ->
+    environment_at(root, workspace, values, 0).
+
+environment_at(
+    root: String,
+    workspace: String,
+    values: List[Artifact],
+    index: Int,
+): List[EnvironmentEntry] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            [environment_entry(value.variable, OwnerStorage.child(root, staged(workspace, index))) | environment_at(root, workspace, rest, index + 1)]
+    }.
+
+/**
+ * Empty workspace selects final paths; otherwise only private staging is read.
+ */
+pub schemas(root: String, workspace: String, values: List[Artifact]): Bool ->
+    schemas_at(root, workspace, values, 0).
+
+schemas_at(root: String, workspace: String, values: List[Artifact], index: Int): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let path =
+                if {
+                    workspace == "" -> value.path;
+                    true -> staged(workspace, index)
+                };
+            validates(OwnerStorage.child(root, path), value)
+                and schemas_at(root, workspace, rest, index + 1)
+    }.
+
+validates(path: String, value: Artifact): Bool ->
+    if {
+        value.members != [] -> OwnerDirectoryContract.schemas(path, value.members);
+        true -> case value.header {
+            None ->
+                let {
+                    Ok(document) <- OwnerStorage.read_json(path);
+                    Some(schema) <- OwnerStorage.text(document, "schema")
+                } else {
+                    _ -> false
+                };
+                schema == value.schema;
+            Some(header) ->
+                let {
+                    Ok(size) <- File.size(path);
+                    true <- size > 0 and size <= 1048576;
+                    Ok(source) <- File.read_text(path);
+                    true <- source.byte_size() <= 1048576;
+                    [actual | rows] <- String.split(String.replace(source, "\r\n", "\n"), "\n")
+                } else {
+                    _ -> false
+                };
+                actual == header
+                    and table_rows(rows, String.split(header, "\t"), 0, value.allow_empty_rows)
+        }
+    }.
+
+same_width(columns: List[String], header: List[String]): Bool ->
+    case {columns, header} {
+        {[], []} -> true;
+        {[_column | rest], [_name | names]} -> same_width(rest, names);
+        _ -> false
+    }.
+
+table_rows(rows: List[String], columns: List[String], count: Int, allow_empty: Bool): Bool ->
+    case rows {
+        [] -> count > 0;
+        [""] -> count > 0 or allow_empty;
+        [row | rest] ->
+            count < 65536
+                and row.byte_size() <= 65536
+                and not String.contains(row, "\r")
+                and same_width(String.split(row, "\t"), columns)
+                and table_rows(rest, columns, count + 1, allow_empty)
+    }.
+
+/**
+ * Maps every staged report to its declaration-owned final destination.
+ */
+pub publications(workspace: String, values: List[Artifact]): List[Publication] ->
+    publications_at(workspace, values, 0).
+
+publications_at(workspace: String, values: List[Artifact], index: Int): List[Publication] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            [if {
+    value.members != [] -> OwnerCommit.declare_directory(staged(workspace, index), value.path);
+    true -> OwnerCommit.declare_publication(staged(workspace, index), value.path)
+} | publications_at(workspace, rest, index + 1)]
+    }.

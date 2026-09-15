@@ -1,4 +1,5 @@
 use super::support::*;
+use std::str::FromStr;
 
 /// Verifies signature parameter labels preserve full syntax-output metadata.
 ///
@@ -82,8 +83,8 @@ module pkg.generated.Math.
 pub generated_add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("inlays.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("inlays.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let source = "\
 module inlays.
 
@@ -387,7 +388,7 @@ pub(super) fn document_symbols_return_empty_for_parse_errors() {
 ///   symbols.
 #[test]
 pub(super) fn definition_locations_resolve_same_document_function() {
-    let uri = Url::parse("file:///tmp/definitions.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/definitions.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -452,7 +453,7 @@ pub caller(): Int -> target().
     );
     let call_position =
         OpenDocument::range_from_span(&formatted, &Span::new(call_start, call_start + 1)).start;
-    let uri = Url::parse("file:///tmp/formatter-definition-shift.terl")
+    let uri = Uri::from_str("file:///tmp/formatter-definition-shift.terl")
         .map_err(|err| std_io::Error::new(ErrorKind::InvalidInput, err))?;
     let document = OpenDocument {
         version: 1,
@@ -488,7 +489,7 @@ pub caller(): Int -> target().
 ///   compiler-backed definition provider used for function calls.
 #[test]
 pub(super) fn definition_locations_resolve_same_document_type_annotation() {
-    let uri = Url::parse("file:///tmp/type_definitions.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/type_definitions.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -533,7 +534,7 @@ pub score(value: Match): Match ->
 ///   the source position is a dotted receiver member reference.
 #[test]
 pub(super) fn definition_locations_resolve_same_document_impl_method_reference() {
-    let uri = Url::parse("file:///tmp/impl_method_definitions.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/impl_method_definitions.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -587,7 +588,7 @@ pub caller(value: User): String ->
 ///   receiver-method lookup to decline non-method dotted members.
 #[test]
 pub(super) fn definition_locations_resolve_same_document_field_reference() {
-    let uri = Url::parse("file:///tmp/field_definitions.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/field_definitions.terl").expect("uri");
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -653,10 +654,10 @@ module provider.
 pub to_string(value: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -722,10 +723,10 @@ module provider.
 pub to_string(value: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
-    let provider_uri = Url::from_file_path(provider_path)
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let provider_uri = crate::lsp::uri::from_file_path(provider_path)
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -796,8 +797,8 @@ module right.
 pub value(): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),

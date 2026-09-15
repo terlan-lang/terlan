@@ -1,0 +1,86 @@
+/**
+ * Retention must use exactly the bytes inspected, even after source replacement.
+ */
+module release_promotion.OwnerNativeTest.
+
+import release_promotion.{NativeActivityTest, OwnerNative, OwnerStorage}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+
+check(root: String, mode: String): Bool ->
+    let original =
+        if {
+            mode == "invalid" -> "invalid original\n";
+            true -> NativeActivityTest.object("original")
+        };
+    let source = OwnerStorage.child(root, "source.jsonl");
+    let {
+        Ok(_written) <- File.write_text(source, original);
+        Ok(snapshot) <- OwnerNative.read_snapshot(source);
+        true <-
+            if {
+                mode == "deleted" -> case File.delete(source) {
+                    Ok(_removed) -> true;
+                    Err(_reason) -> false
+                };
+                true -> case File.write_text(source, NativeActivityTest.object("replacement")) {
+                    Ok(_written) -> true;
+                    Err(_reason) -> false
+                }
+            };
+        Ok(report) <-
+            OwnerNative.retain(
+                root,
+                "retained.jsonl",
+                "ledger.json",
+                Json.object().put("outcome", Json.string("failed")),
+                Ok(snapshot),
+            );
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, "retained.jsonl"));
+        true <- retained == original;
+        Some(decision) <- OwnerStorage.text(report, "decision");
+        true <-
+            decision == if {
+    mode == "invalid" -> "invalid";
+    true -> "pass"
+};
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, "ledger.json"));
+        Ok(expected) <- ledger.get("native_outputs");
+        Ok(actual) <- OwnerStorage.files(root, ["retained.jsonl"]);
+        Ok(expected_hash) <- OwnerStorage.digest(expected);
+        Ok(actual_hash) <- OwnerStorage.digest(actual)
+    } else {
+        _ -> false
+    };
+    expected_hash == actual_hash.
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-native-snapshot-") else {
+        _ -> false
+    };
+    (let valid = check(root, mode);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        Err(_reason) -> false
+    };
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[native snapshot test] ",
+                mode,
+                if {
+                    valid and removed -> ": passed";
+                    true -> ": failed"
+                },
+            ],
+        ),
+    );
+valid and removed).
+
+pub self_test(): Bool ->
+    scenario("replaced") and scenario("deleted") and scenario("invalid").

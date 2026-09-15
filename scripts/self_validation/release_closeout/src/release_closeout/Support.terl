@@ -109,20 +109,27 @@ workspace_version(root: String): String ->
 pub prepare(root: String, label: String): Option[Candidate] ->
     let {
         Some({artifact_name, suffix, path_separator}) <- platform_artifact();
-        Ok(temporary) <- Directory.create_temporary(String.concat(["terlan-release-", label, "."]));
-        Ok(Unit) <-
-            Archive.extract(
-                child(root, String.append("dist/", artifact_name)),
-                child(temporary, "installed"),
-            );
-        Ok(Unit) <- Directory.create_all(child(temporary, "workspace"));
-        Ok(Unit) <- Directory.create_all(child(temporary, "home"))
+        Ok(temporary) <- Directory.create_temporary(String.concat(["terlan-release-", label, "."]))
     } else {
         _ ->
-            let _failed = fail("candidate", "cannot extract the current installed release candidate");
+            let _failed = fail("candidate", "cannot allocate the installed-candidate workspace");
             None
     };
-    (let installed = child(temporary, "installed");
+    (let {
+    Ok(Unit) <-
+        Archive.extract(
+            child(root, String.append("dist/", artifact_name)),
+            child(temporary, "installed"),
+        );
+    Ok(Unit) <- Directory.create_all(child(temporary, "workspace"));
+    Ok(Unit) <- Directory.create_all(child(temporary, "home"))
+} else {
+    _ ->
+        let _failed = fail("candidate", "cannot extract the current installed release candidate");
+        let _removed = Directory.remove_all(temporary);
+        None
+};
+(let installed = child(temporary, "installed");
 let compiler = child(installed, String.append("terlc", suffix));
 let vm = child(installed, String.append("terlan-vm", suffix));
 let worker = child(installed, String.append("terlan-native-worker", suffix));
@@ -154,7 +161,7 @@ if {
             process_path = String.append(installed, String.append(path_separator, inherited_path)),
         ),
     )
-}).
+})).
 
 environment(candidate: Candidate): List[EnvironmentEntry] ->
     [

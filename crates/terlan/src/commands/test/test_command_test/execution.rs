@@ -609,6 +609,48 @@ source_roots = ["src"]
     assert_eq!(exit_code, ExitCode::SUCCESS);
 }
 
+/// Tests inside a source root have one application owner, even with overlapping roots.
+#[test]
+fn run_project_test_inside_source_root_compiles_active_module_once() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_vm_test_source_owner_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos(),
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("source root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\", \"src/.\"]\n",
+    )
+    .expect("project manifest");
+    fs::write(
+        root.join("src/app/Math.terl"),
+        "module app.Math.\npub answer(): Int -> 42.\n",
+    )
+    .expect("support source");
+    let test = root.join("src/app/MathTest.terl");
+    fs::write(
+        &test,
+        "module app.MathTest.\nimport app.Math.\n@test\npub answer_is_correct(): Bool -> Math.answer() == 42.\n",
+    )
+    .expect("test source");
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![test.to_string_lossy().into_owned()],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            ..CliState::default()
+        },
+    );
+    fs::remove_dir_all(root).expect("remove private project and AOT workspace");
+    assert_eq!(result, ExitCode::SUCCESS);
+}
+
 /// Verifies project tests resolve local package dependencies through build semantics.
 ///
 /// Inputs:

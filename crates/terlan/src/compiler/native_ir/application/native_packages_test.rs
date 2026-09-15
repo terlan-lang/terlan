@@ -162,3 +162,47 @@ fn http_request_uses_compiler_managed_tuple_representation() {
         "Request must not acquire a native capability-handle layout"
     );
 }
+
+#[test]
+fn vm_tokens_keep_intrinsic_storage_without_exempting_package_namesakes() {
+    let declarations = "\
+        pub opaque type Process[T].\n\
+        pub opaque type Entry[T].\n\
+        pub opaque type Timer.\n\
+        pub opaque type Monitor[T].\n\
+        pub opaque type ResourceKind[T].\n\
+        pub opaque type Resource[T].\n\
+        pub opaque type ExitReason.\n\
+        pub opaque type SchedulingClass.\n";
+    for module in ["std.vm.Process", "package.Process"] {
+        let syntax = parse_module_as_syntax_output(&format!("module {module}.\n{declarations}"))
+            .expect("parse opaque token declarations");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+        assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+        let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        super::super::nominal_identity::qualify_local_nominal_types(&mut core);
+        let aliases = native_package_aliases(std::slice::from_ref(&core));
+        let layouts = native_handle_layouts(&core).expect("opaque token layouts");
+        if module == "std.vm.Process" {
+            assert!(
+                aliases.is_empty(),
+                "VM tokens must retain their intrinsic ABI"
+            );
+            assert!(
+                layouts.is_empty(),
+                "VM tokens are not worker resource handles"
+            );
+        } else {
+            assert_eq!(aliases.len(), 8);
+            assert_eq!(layouts.len(), 8);
+            for name in ["Timer", "ExitReason", "SchedulingClass"] {
+                assert!(matches!(
+                    &aliases[&format!("{module}.{name}")].1,
+                    CoreType::Struct { name: canonical, .. }
+                        if canonical == &format!("{module}.{name}")
+                ));
+            }
+        }
+    }
+}

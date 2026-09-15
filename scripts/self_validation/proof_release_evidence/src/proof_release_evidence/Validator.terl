@@ -514,7 +514,7 @@ compare_baseline(root: String, document: Json): Validation ->
                     )
                     .put("normalized_match", Json.bool(prior_digest == current_digest));
             if {
-                not Support.write_json(root, "build/artifacts/proof-release-evidence-diff.json", diff) -> reject("corrupt_artifact", "proof evidence diff could not be written");
+                not Support.write_json(root, "target/quality/proof-artifacts/proof-release-evidence-diff.json", diff) -> reject("corrupt_artifact", "proof evidence diff could not be written");
                 prior_digest != current_digest -> reject("baseline_mismatch", "proof evidence differs from its baseline");
                 true -> accept()
             };
@@ -545,13 +545,26 @@ pub check(root: String): Check ->
             true -> let baseline = compare_baseline(root, built.evidence);
             if {
                 not baseline.valid -> failed_check(baseline.code, baseline.message);
-                not Support.write_json(root, "build/artifacts/proof-release-evidence.json", built.evidence) -> failed_check("corrupt_artifact", "proof release evidence could not be written");
+                not Support.write_json(
+    root,
+    "target/quality/proof-artifacts/proof-release-evidence.json",
+    built.evidence,
+) -> failed_check("corrupt_artifact", "proof release evidence could not be written");
                 true -> passed_check(built.evidence)
             }
         }
     }.
 
 pub record_baseline(root: String): Check ->
+    write_baseline(root, "proofs/lean/release_evidence/baseline.json").
+
+/**
+ * Produces a reviewable proposal without modifying the accepted source baseline.
+ */
+pub propose_baseline(root: String): Check ->
+    write_baseline(root, "target/quality/proof-artifacts/proof-release-baseline-proposal.json").
+
+write_baseline(root: String, baseline_path: String): Check ->
     let built = Builder.build(root);
     if {
         not built.valid -> failed_check(built.code, built.message);
@@ -560,8 +573,12 @@ pub record_baseline(root: String): Check ->
             Some(baseline) ->
                 if {
                     not validation.valid -> failed_check(validation.code, validation.message);
-                    not Support.write_json(root, "proofs/lean/release_evidence/baseline.json", baseline) -> failed_check("corrupt_artifact", "baseline could not be written");
-                    not Support.write_json(root, "build/artifacts/proof-release-evidence.json", built.evidence) -> failed_check("corrupt_artifact", "evidence could not be written");
+                    not Support.write_json(root, baseline_path, baseline) -> failed_check("corrupt_artifact", "baseline could not be written");
+                    not Support.write_json(
+    root,
+    "target/quality/proof-artifacts/proof-release-evidence.json",
+    built.evidence,
+) -> failed_check("corrupt_artifact", "evidence could not be written");
                     true -> passed_check(built.evidence)
                 };
             None -> failed_check("corrupt_artifact", "baseline could not be constructed")

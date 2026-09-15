@@ -179,7 +179,7 @@ pub(super) fn candidate_parameter_targets(
 
 fn returned_lambda(expr: &CoreExpr) -> Option<(usize, &CoreExpr)> {
     match expr {
-        CoreExpr::Lam { params, body } => Some((params.len(), body)),
+        CoreExpr::Lam { params, body, .. } => Some((params.len(), body)),
         CoreExpr::Let { body, .. } | CoreExpr::Cast { expr: body, .. } => returned_lambda(body),
         CoreExpr::If { clauses } => clauses
             .iter()
@@ -283,30 +283,43 @@ fn collect_argument_targets(
     }
 }
 
+/// Visits ordinary calls using the same exhaustive traversal as admission.
 pub(in crate::compiler::native_ir) fn walk_calls(
     expr: &CoreExpr,
     visit: &mut impl FnMut(&str, &[CoreExpr]),
 ) {
-    if let CoreExpr::Call { function, args } = expr {
-        visit(function, args);
-    }
+    walk_expressions(expr, &mut |expression| {
+        if let CoreExpr::Call { function, args } = expression {
+            visit(function, args);
+        }
+    });
+}
+
+/// Visits every expression, including guards, casts, and callable references.
+pub(in crate::compiler::native_ir) fn walk_expressions(
+    expr: &CoreExpr,
+    visit: &mut impl FnMut(&CoreExpr),
+) {
+    visit(expr);
     match expr {
         CoreExpr::Call { args, .. }
         | CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            args.iter().for_each(|argument| walk_calls(argument, visit));
+            args.iter()
+                .for_each(|argument| walk_expressions(argument, visit));
         }
         CoreExpr::MutableReceiverCall { receiver, args, .. }
         | CoreExpr::FunctionCall {
             callee: receiver,
             args,
         } => {
-            walk_calls(receiver, visit);
-            args.iter().for_each(|argument| walk_calls(argument, visit));
+            walk_expressions(receiver, visit);
+            args.iter()
+                .for_each(|argument| walk_expressions(argument, visit));
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
-            items.iter().for_each(|item| walk_calls(item, visit));
+            items.iter().for_each(|item| walk_expressions(item, visit));
         }
         CoreExpr::ListCons { head, tail }
         | CoreExpr::Index {
@@ -318,50 +331,51 @@ pub(in crate::compiler::native_ir) fn walk_calls(
             right: tail,
             ..
         } => {
-            walk_calls(head, visit);
-            walk_calls(tail, visit);
+            walk_expressions(head, visit);
+            walk_expressions(tail, visit);
         }
         CoreExpr::Map(fields) => fields
             .iter()
-            .for_each(|field| walk_calls(&field.value, visit)),
+            .for_each(|field| walk_expressions(&field.value, visit)),
         CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
             fields
                 .iter()
-                .for_each(|field| walk_calls(&field.value, visit))
+                .for_each(|field| walk_expressions(&field.value, visit))
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            walk_calls(base, visit);
+            walk_expressions(base, visit);
             fields
                 .iter()
-                .for_each(|field| walk_calls(&field.value, visit));
+                .for_each(|field| walk_expressions(&field.value, visit));
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::Cast { expr: base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. } => walk_calls(base, visit),
+        | CoreExpr::UnaryOp { operand: base, .. } => walk_expressions(base, visit),
         CoreExpr::Let { bindings, body } => {
             bindings
                 .iter()
-                .for_each(|binding| walk_calls(&binding.value, visit));
-            walk_calls(body, visit);
+                .for_each(|binding| walk_expressions(&binding.value, visit));
+            walk_expressions(body, visit);
         }
         CoreExpr::If { clauses } => clauses.iter().for_each(|clause| {
-            walk_calls(&clause.condition, visit);
-            walk_calls(&clause.body, visit);
+            walk_expressions(&clause.condition, visit);
+            walk_expressions(&clause.body, visit);
         }),
         CoreExpr::Case { scrutinee, clauses } => {
-            walk_calls(scrutinee, visit);
+            walk_expressions(scrutinee, visit);
             clauses.iter().for_each(|clause| {
                 if let Some(guard) = &clause.guard {
-                    walk_calls(guard, visit);
+                    walk_expressions(guard, visit);
                 }
-                walk_calls(&clause.body, visit);
+                walk_expressions(&clause.body, visit);
             });
         }
-        CoreExpr::Lam { body, .. } => walk_calls(body, visit),
+        CoreExpr::Lam { body, .. } => walk_expressions(body, visit),
         CoreExpr::ConstructorChain { args, record, .. } => {
-            args.iter().for_each(|argument| walk_calls(argument, visit));
-            walk_calls(record, visit);
+            args.iter()
+                .for_each(|argument| walk_expressions(argument, visit));
+            walk_expressions(record, visit);
         }
         CoreExpr::ListComprehension {
             expr,
@@ -369,11 +383,13 @@ pub(in crate::compiler::native_ir) fn walk_calls(
             guards,
             ..
         } => {
-            walk_calls(expr, visit);
+            walk_expressions(expr, visit);
             generators
                 .iter()
-                .for_each(|generator| walk_calls(&generator.source, visit));
-            guards.iter().for_each(|guard| walk_calls(guard, visit));
+                .for_each(|generator| walk_expressions(&generator.source, visit));
+            guards
+                .iter()
+                .for_each(|guard| walk_expressions(guard, visit));
         }
         CoreExpr::Try {
             body,
@@ -381,21 +397,21 @@ pub(in crate::compiler::native_ir) fn walk_calls(
             catch_clauses,
             after_clause,
         } => {
-            walk_calls(body, visit);
+            walk_expressions(body, visit);
             of_clauses.iter().chain(catch_clauses).for_each(|clause| {
                 if let Some(guard) = &clause.guard {
-                    walk_calls(guard, visit);
+                    walk_expressions(guard, visit);
                 }
-                walk_calls(&clause.body, visit);
+                walk_expressions(&clause.body, visit);
             });
             if let Some(after) = after_clause {
-                walk_calls(&after.trigger, visit);
-                walk_calls(&after.body, visit);
+                walk_expressions(&after.trigger, visit);
+                walk_expressions(&after.body, visit);
             }
         }
         CoreExpr::SqlQuery { parameters, .. } => parameters
             .iter()
-            .for_each(|parameter| walk_calls(parameter, visit)),
+            .for_each(|parameter| walk_expressions(parameter, visit)),
         CoreExpr::Int(_)
         | CoreExpr::Float(_)
         | CoreExpr::Binary(_)

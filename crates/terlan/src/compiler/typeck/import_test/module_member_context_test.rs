@@ -8,7 +8,7 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 /// Verifies struct field context resolves imported module-member function values.
 ///
 /// Inputs:
-
+///
 /// - A provider interface for `provider.Users` with overloaded public
 ///   `index` functions.
 /// - A consumer config struct whose `list` field expects `(Int) -> Int`.

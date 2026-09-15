@@ -91,8 +91,10 @@ impl BuildTimings {
             return;
         }
         let now = Instant::now();
+        let (interface_requests, interface_parse_attempts) =
+            crate::terlan_hir::interface_parse_counts();
         eprintln!(
-            "terlc timing: {phase}: +{}ms total={}ms",
+            "terlc timing: {phase}: +{}ms total={}ms interface_requests={interface_requests} interface_parse_attempts={interface_parse_attempts}",
             now.duration_since(self.last).as_millis(),
             now.duration_since(self.started).as_millis()
         );
@@ -159,6 +161,12 @@ impl BuildOneError {
 /// - Parses build arguments and dispatches to the selected backend artifact
 ///   path: JavaScript, mobile planning, or the Terlan VM artifact envelope.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
+    if cmd.args.as_slice() == ["--print-toolchain-identity"] {
+        return match vm_artifact::native_image::print_toolchain_identity() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => error.into_exit_code(),
+        };
+    }
     let args = match parse_build_args(&cmd.args) {
         Ok(args) => args,
         Err(message) => {

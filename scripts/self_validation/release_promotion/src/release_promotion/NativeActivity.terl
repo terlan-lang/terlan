@@ -1,0 +1,285 @@
+/**
+ * Bounded single-pass validation of interleaved native and process observations.
+ */
+module release_promotion.NativeActivity.
+
+import release_promotion.ActivityField.{flag, hex, integer, nullable}.
+import release_promotion.{OwnerStorage, ProcessActivity}.
+import std.collections.Map.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, File}.
+
+import type release_promotion.ProcessActivity.ProcessInventory.
+import type std.collections.Map.
+import type std.core.Result.
+import type std.data.Json.
+
+struct Event {
+    attempt: String,
+    operation: String,
+    input: String,
+    owner: Int,
+    child: Int,
+    elapsed: Int,
+    bytes: Int,
+    phase: String,
+}.
+
+struct Inventory {
+    attempts: Map[String, Event],
+    work: Map[String, Bool],
+    pending: Int,
+    unresolved: Int,
+    events: Int,
+    spawns: Int,
+    completed: Int,
+    failed: Int,
+    bytes: Int,
+    completed_inputs: Json,
+}.
+
+empty(): Inventory ->
+    Inventory(
+        attempts = Map.new[String, Event](),
+        work = Map.new[String, Bool](),
+        pending = 0,
+        unresolved = 0,
+        events = 0,
+        spawns = 0,
+        completed = 0,
+        failed = 0,
+        bytes = 0,
+        completed_inputs = Json.array(),
+    ).
+
+parse(document: Json): Result[Event, String] ->
+    let {
+        Ok(field_count) <- document.object_length();
+        true <- field_count == 9;
+        Some(schema) <- OwnerStorage.text(document, "schema");
+        true <- schema == "terlan.native-build-activity.v1";
+        Some(attempt) <- OwnerStorage.text(document, "attempt");
+        true <- OwnerStorage.safe_name(attempt);
+        Some(operation) <- OwnerStorage.text(document, "operation");
+        true <-
+            operation == "module-object"
+                or operation == "application-object"
+                or operation == "native-link";
+        Some(input) <- OwnerStorage.text(document, "input_sha256");
+        true <- input.byte_size() == 64 and hex(input, 0);
+        Some(phase) <- OwnerStorage.text(document, "state");
+        Ok(owner) <- integer(document, "compiler_pid");
+        true <- owner > 0;
+        Ok(child) <- nullable(document, "child_pid");
+        Ok(elapsed) <- integer(document, "elapsed_micros");
+        Ok(bytes) <- nullable(document, "artifact_bytes")
+    } else {
+        _ -> Err("malformed native activity record")
+    };
+    Ok(
+        Event(
+            attempt = attempt,
+            operation = operation,
+            input = input,
+            owner = owner,
+            child = child,
+            elapsed = elapsed,
+            bytes = bytes,
+            phase = phase,
+        ),
+    ).
+
+key(event: Event): String ->
+    String.concat([event.operation, ":", event.input]).
+
+save(inventory: Inventory, event: Event, fresh: Bool, new_work: Bool): Inventory ->
+    let done = event.phase == "completed";
+    let failed = event.phase == "failed" or event.phase == "abandoned";
+    let attempts = inventory.attempts;
+    let _attempt = attempts.put(event.attempt, event);
+    let work = inventory.work;
+    let _work = work.put(key(event), done);
+    Inventory(
+        attempts = attempts,
+        work = work,
+        pending = inventory.pending + flag(fresh) - flag(done or failed),
+        unresolved = inventory.unresolved + flag(new_work) - flag(done),
+        events = inventory.events + 1,
+        spawns = inventory.spawns + flag(event.phase == "spawned"),
+        completed = inventory.completed + flag(done),
+        failed = inventory.failed + flag(failed),
+        completed_inputs = if {
+            done -> inventory.completed_inputs.push(Json.string(key(event)));
+            true -> inventory.completed_inputs
+        },
+        bytes = inventory.bytes + if {
+    done and event.bytes >= 0 -> event.bytes;
+    true -> 0
+},
+    ).
+
+compatible(previous: Event, event: Event): Bool ->
+    previous.operation == event.operation
+        and previous.input == event.input
+        and previous.owner == event.owner
+        and event.elapsed >= previous.elapsed.
+
+transition(previous: Event, event: Event): Bool ->
+    if {
+        previous.phase == "completed" or previous.phase == "failed" or previous.phase == "abandoned" -> false;
+        event.phase == "spawned" -> previous.phase == "started"
+            and event.operation == "native-link"
+            and event.child > 0
+            and event.bytes == -1;
+        event.phase == "completed" and event.operation == "native-link" -> previous.phase == "spawned" and event.child == previous.child and event.bytes == -1;
+        event.phase == "completed" -> previous.phase == "started" and event.child == -1 and event.bytes > 0;
+        event.phase == "failed" or event.phase == "abandoned" -> event.child == previous.child and event.bytes == -1;
+        true -> false
+    }.
+
+accept(inventory: Inventory, event: Event): Result[Inventory, String] ->
+    case inventory.work.get(key(event)) {
+        Some(done) ->
+            if {
+                done -> Err("completed native work was replayed");
+                true -> accept_attempt(inventory, event, false)
+            };
+        None -> accept_attempt(inventory, event, true)
+    }.
+
+accept_attempt(inventory: Inventory, event: Event, new_work: Bool): Result[Inventory, String] ->
+    case inventory.attempts.get(event.attempt) {
+        None ->
+            if {
+                event.phase == "started" and event.child == -1 and event.bytes == -1 -> Ok(save(inventory, event, true, new_work));
+                true -> Err("native activity lacks a valid start event")
+            };
+        Some(previous) ->
+            if {
+                compatible(previous, event) and transition(previous, event) -> Ok(save(inventory, event, false, false));
+                true -> Err("invalid native activity transition or changed attempt identity")
+            }
+    }.
+
+scan(
+    lines: List[String],
+    inventory: Inventory,
+    processes: ProcessInventory,
+): Result[Json, String] ->
+    case lines {
+        [] -> Ok(summary(inventory, processes));
+        [""] -> Ok(summary(inventory, processes));
+        [line | rest] ->
+            let {
+                true <- inventory.events + processes.events < 65536 and line.byte_size() <= 4096;
+                Ok(document) <- Json.parse(line);
+                Some(schema) <- OwnerStorage.text(document, "schema")
+            } else {
+                _ -> Err("malformed execution inventory or exceeded event budget")
+            };
+            consume(rest, inventory, processes, document, schema)
+    }.
+
+consume(
+    lines: List[String],
+    inventory: Inventory,
+    processes: ProcessInventory,
+    document: Json,
+    schema: String,
+): Result[Json, String] ->
+    if {
+        schema == "terlan.process-activity.v1" -> let Ok(next) <- ProcessActivity.accept(processes, document) else {
+            Err(reason) -> Err(reason)
+        };
+        scan(lines, inventory, next);
+        true -> let {
+            Ok(event) <- parse(document);
+            Ok(next) <- accept(inventory, event)
+        } else {
+            Err(reason) -> Err(reason)
+        };
+        scan(lines, next, processes)
+    }.
+
+/**
+ * Empty, explicitly owned logs represent no native work; missing logs do not.
+ */
+pub inspect(source: String): Result[Json, String] ->
+    let {
+        true <- source.byte_size() <= 16777216;
+        true <- source == "" or source.ends_with("\n");
+        Ok(report) <- scan(source.split("\n"), empty(), ProcessActivity.empty())
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("native inventory is truncated, oversized, or incomplete")
+    };
+    Ok(report).
+
+summary(inventory: Inventory, processes: ProcessInventory): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.execution-inventory.v1"))
+        .put(
+            "decision",
+            Json.string(
+                if {
+                    inventory.pending > 0 or not ProcessActivity.complete(processes) -> "interrupted";
+                    inventory.unresolved > 0 -> "failed";
+                    true -> "pass"
+                },
+            ),
+        )
+        .put("events", Json.int(inventory.events))
+        .put("attempts", Json.int(inventory.attempts.size()))
+        .put("native_link_launches", Json.int(inventory.spawns))
+        .put("completed_work", Json.int(inventory.completed))
+        .put("failed_attempts", Json.int(inventory.failed))
+        .put("pending_attempts", Json.int(inventory.pending))
+        .put("unresolved_work", Json.int(inventory.unresolved))
+        .put("completed_inputs", inventory.completed_inputs)
+        .put("emitted_object_bytes", Json.int(inventory.bytes))
+        .put("process_inventory", ProcessActivity.summary(processes)).
+
+/**
+ * Only fully resolved work can validate a successful owner output.
+ * Inspection of failed owners never relaxes this success contract.
+ */
+pub validate(source: String): Result[Json, String] ->
+    let {
+        Ok(report) <- inspect(source);
+        Some("pass") <- OwnerStorage.text(report, "decision")
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("native inventory is incomplete or contains unresolved work")
+    };
+    Ok(report).
+
+/**
+ * Validates a caller-owned inventory without compiling, repairing, or deleting it.
+ */
+pub read(path: String): Result[Json, String] ->
+    let {
+        Ok(size) <- File.size(path);
+        true <- size <= 16777216;
+        Ok(source) <- File.read_text(path)
+    } else {
+        _ -> Err("native activity log is missing, unreadable, or oversized")
+    };
+    validate(source).
+
+/**
+ * Prints the validation decision without modifying the caller-owned log.
+ */
+pub run(path: String): Bool ->
+    case read(path) {
+        Err(reason) ->
+            let _printed = Console.eprintln(String.append("native activity rejected: ", reason));
+            false;
+        Ok(report) ->
+            let Ok(output) <- Json.stringify(report) else {
+                _ -> false
+            };
+            (let _printed = Console.println(output); true)
+    }.

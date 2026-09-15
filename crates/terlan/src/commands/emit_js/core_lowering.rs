@@ -161,7 +161,7 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         CoreExpr::TemplateInstantiate { fields, .. } => core_template_expr_to_js(fields),
         CoreExpr::Case { scrutinee, clauses } => core_case_expr_to_js(scrutinee, clauses),
         CoreExpr::If { clauses } => core_if_expr_to_js(clauses),
-        CoreExpr::Lam { params, body } => core_lam_expr_to_js(params, body),
+        CoreExpr::Lam { params, body, .. } => core_lam_expr_to_js(params, body),
         CoreExpr::Call { function, args } => core_call_expr_to_js(function, args),
         CoreExpr::FunctionCall { callee, args } => core_function_call_expr_to_js(callee, args),
         CoreExpr::Cast { expr, target_type } => {

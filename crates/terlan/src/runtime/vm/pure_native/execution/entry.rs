@@ -98,8 +98,7 @@ impl PureNativeBoundary {
                     .as_ref()
                     .expect("resolved export installs its continuation cache")
                     .continuations
-                    .as_ref()
-                    .to_vec(),
+                    .clone(),
             );
         }
         let backend = self

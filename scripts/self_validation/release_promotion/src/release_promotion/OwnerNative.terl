@@ -1,0 +1,121 @@
+/**
+ * Retains failed owner logs before scratch cleanup. The caller holds its lock.
+ * An invalid log remains evidence, never a successful execution attestation.
+ */
+module release_promotion.OwnerNative.
+
+import release_promotion.{NativeActivity, OwnerStorage}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{append}.
+import std.data.Json.
+import std.io.File.
+import std.system.Environment.{get}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * One bounded byte snapshot and the inspection of precisely those bytes.
+ */
+pub struct Snapshot {
+    raw: String,
+    inventory: Result[Json, String],
+}.
+
+/**
+ * Preserve an enclosing observation scope across the producer's env -i boundary.
+ * The shared Rust owner validates, bounds, flattens and deduplicates these scopes.
+ */
+pub process_scope(path: String): Result[String, String] ->
+    case get("TERLAN_PROCESS_ACTIVITY_LOG") {
+        None -> Ok(path);
+        Some(enclosing) ->
+            let values = Json.array().push(Json.string(enclosing)).push(Json.string(path));
+            case Json.stringify(values) {
+                Ok(encoded) -> Ok(append("terlan-process-scopes-v1:", encoded));
+                Err(_reason) -> Err("cannot encode nested process observation scope")
+            }
+    }.
+
+pub read_snapshot(path: String): Result[Snapshot, String] ->
+    let {
+        Ok(size) <- File.size(path);
+        true <- size <= 16777216;
+        Ok(source) <- File.read_text(path);
+        true <- source.byte_size() <= 16777216
+    } else {
+        _ -> Err("native attempt log is missing, unreadable, or oversized")
+    };
+    Ok(Snapshot(raw = source, inventory = NativeActivity.inspect(source))).
+
+pub summary(snapshot: Result[Snapshot, String]): Result[Json, String] ->
+    case snapshot {
+        Err(reason) -> Err(reason);
+        Ok(value) -> value.inventory
+    }.
+
+pub inspect_file(path: String): Result[Json, String] ->
+    summary(read_snapshot(path)).
+
+/**
+ * A producer must have an observed OS launch and reap, even without native work.
+ */
+pub observed_process(report: Json): Bool ->
+    let {
+        Ok(processes) <- report.get("process_inventory");
+        Ok(launches) <- processes.get("launches");
+        Ok(count) <- launches.as_int();
+        Ok(reaped) <- processes.get("reaped");
+        Ok(completed) <- reaped.as_int()
+    } else {
+        _ -> false
+    };
+    count > 0 and completed > 0.
+
+/**
+ * Publishes the inspected bytes, never a second read of a mutable producer file.
+ */
+pub publish(root: String, retained: String, snapshot: Snapshot): Bool ->
+    let pending = append(retained, ".pending");
+    let {
+        true <- snapshot.raw.byte_size() <= 16777216;
+        Ok(_written) <- File.write_text(OwnerStorage.child(root, pending), snapshot.raw)
+    } else {
+        _ -> false
+    };
+    OwnerStorage.command(
+        root,
+        "/usr/bin/mv",
+        ["-f", "-T", "--", OwnerStorage.child(root, pending), OwnerStorage.child(root, retained)],
+    ).
+
+pub retain(
+    root: String,
+    retained: String,
+    ledger: String,
+    state: Json,
+    inspection: Result[Snapshot, String],
+): Result[Json, String] ->
+    let Ok(snapshot) <- inspection else {
+        Err(reason) -> Err(reason)
+    };
+    (let report =
+    case snapshot.inventory {
+        Ok(summary) -> summary;
+        Err(reason) ->
+            Json.object().put("decision", Json.string("invalid")).put("error", Json.string(reason))
+    };
+(let {
+    true <- publish(root, retained, snapshot);
+    Ok(outputs) <- OwnerStorage.files(root, [retained]);
+    true <-
+        OwnerStorage.atomic_json(
+            root,
+            ledger,
+            state.put("native_outputs", outputs).put("native_inventory", report),
+        )
+} else {
+    _ -> Err("cannot seal retained native attempt evidence; scratch preserved")
+};
+Ok(report))).

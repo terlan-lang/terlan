@@ -1,0 +1,66 @@
+/**
+ * Shared scalar contracts for bounded execution observations.
+ */
+module release_promotion.ActivityField.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Checks lowercase hexadecimal from a byte offset.
+ */
+pub hex(value: String, offset: Int): Bool ->
+    if {
+        offset == value.byte_size() -> true;
+        true -> String.contains("0123456789abcdef", value.utf8_slice(offset, 1)) and hex(value, offset + 1)
+    }.
+
+/**
+ * Reads a required nonnegative observation counter.
+ */
+pub integer(document: Json, name: String): Result[Int, String] ->
+    let {
+        Ok(value) <- document.get(name);
+        Ok(number) <- value.as_int();
+        true <- number >= 0
+    } else {
+        _ -> Err(String.append("invalid nonnegative inventory integer: ", name))
+    };
+    Ok(number).
+
+/**
+ * Uses -1 only for an explicitly null nonnegative field.
+ */
+pub nullable(document: Json, name: String): Result[Int, String] ->
+    let Ok(value) <- document.get(name) else {
+        _ -> Err(String.append("missing inventory field: ", name))
+    };
+    if {
+        value.is_null() -> Ok(-1);
+        true -> integer(document, name)
+    }.
+
+/**
+ * Converts an observed predicate into a counter increment.
+ */
+pub flag(value: Bool): Int ->
+    if {
+        value -> 1;
+        true -> 0
+    }.
+
+/**
+ * Appends a measured integer without nesting scalar encoding at every call site.
+ */
+pub put_count(report: Json, name: String, value: Int): Json ->
+    report.put(name, Json.int(value)).
+
+/**
+ * Appends a declared string field using the same typed builder convention.
+ */
+pub put_text(report: Json, name: String, value: String): Json ->
+    report.put(name, Json.string(value)).
