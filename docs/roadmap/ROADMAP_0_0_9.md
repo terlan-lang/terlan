@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-15. Baseline: 0.0.8 is published.
+Updated: 2026-09-16. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -26,10 +26,17 @@ two atom variants. The local normalization fix passes 485 NativeIR tests, both
 strict workspace-binary Clippy profiles, and actual rebuilds of the package
 consumer and Rust-quality validators. Package installation and invalid-command
 rejection, docs, API boundaries, module structure, headroom and dependency checks
-pass. The separate UnitTest probe stops at unresolved `Ordering.compare`;
-its trait test is required by `tests/std/RELEASE_API_TESTS.tsv` and is not waived.
-That lowering gap must be addressed before the next candidate verification.
-Evidence uses the `unit-result-`, `unit-package-consumer-` and `unit-rust-quality-`
+pass. The required `Ordering.compare` lowering gap now has a local correction:
+concrete implementation bodies retain canonical trait identities, and existing
+typed overload selection resolves their calls without a runtime dictionary.
+All 489 NativeIR tests and 38 Core-lowering tests pass; the Unit, Int, Float and
+Comparison suites pass 52 tests, including the previously failing Unit trait test.
+Bool and String release suites still fail: Boolean comparison has an unimplemented
+native intrinsic, and String receiver lookup leaves `byte_size` unresolved.
+These are required fixes, not waived tests. The rebuilt quality validator,
+canonical Clippy profiles, API boundaries, module structure, headroom, dependency
+report and documentation checks pass locally. No candidate-wide success is claimed.
+Evidence uses the `concrete-trait-`, `unit-result-`, `unit-package-consumer-` and `unit-rust-quality-`
 prefixes under `target/quality/release-diagnostics/`. All checklist items stay open.
 
 The coverage-anchor audit found stale operator and pattern source paths and

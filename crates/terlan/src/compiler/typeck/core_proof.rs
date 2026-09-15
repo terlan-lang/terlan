@@ -43,10 +43,12 @@ pub(crate) fn core_callable_signature_from_function(
     )
 }
 
+mod concrete_impl;
 mod evidence;
 mod module_facts;
 mod structural_impl;
 
+pub(crate) use concrete_impl::{core_syntax_concrete_impl_functions, rewrite_concrete_trait_calls};
 use evidence::{
     core_expr_checked_preservation_evidence, core_pattern_checked_preservation_evidence,
 };

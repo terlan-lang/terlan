@@ -215,6 +215,12 @@ impl CoreModule {
                 line.push_str(" native_operation=");
                 line.push_str(operation);
             }
+            if let Some(identity) = &function.trait_method {
+                line.push_str(" trait_method=");
+                line.push_str(&identity.trait_name);
+                line.push('.');
+                line.push_str(&identity.method);
+            }
             line
         }));
         lines.extend(self.functions.iter().flat_map(|function| {
