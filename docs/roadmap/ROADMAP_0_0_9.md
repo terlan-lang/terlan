@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-14. Baseline: 0.0.8 is published.
+Updated: 2026-09-15. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -19,6 +19,48 @@ tagging or publicly publishing it. The exact candidate and its artifacts must
 pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
+
+The coverage-anchor audit found stale operator and pattern source paths and
+executable AOT gaps. The local correction retains aggregate operand/scrutinee
+types, constructs structural maps in source evaluation order, normalizes ordered
+function heads, and implements bounded native String/Int/Float/Bool captures.
+Singleton aliases now match according to the scrutinee's representation rather
+than whether an unrelated union contains the alias. Concrete union construction
+supports zero-field atom variants beyond `None`. Transparent aliases are resolved
+in lambda, let, comprehension and try patterns; inlined aggregate lambda arguments
+retain the types needed by structured result inference. No evaluator or dynamic
+compatibility path is restored, and no coverage rows or assertions are dropped.
+
+The rebuilt compiler now passes all 57 PatternMatchingTest tests. The other
+affected source suites pass: language features 9, operators 12, comparisons 29,
+string-pattern long-tail 5, Option 17, Result 14 and Binary 72 (215 tests total).
+The current default-feature library harness passes 484 NativeIR tests and 39
+managed-operation ABI tests. Both configured workspace-binary Clippy profiles
+and the runtime-only binary profile pass, as do formatting, API boundaries
+(3,082 internal string-error sites), module structure, file headroom and the
+refreshed dependency-impact report, without increased budgets. All 26 affected
+coverage-validator tests and source-anchor inventories pass independently of the
+execution tests. Logs use `pattern-lambda-`, `pattern-final-` and `pattern-closeout-` prefixes
+under `target/quality/release-diagnostics/`.
+
+These are local correction results, not new committed-candidate CI or full-cycle
+acceptance. An additional noncanonical test-target Clippy probe failed on 467
+diagnostics outside the modified files; that broader audit is not claimed green.
+The pattern family remains partial for its separately inventoried unsupported
+contexts. V9-1 production acceptance, V9-2 and V9-3 remain unchecked.
+
+Candidate `d4b85fe4` passes the complete hosted release workflow in 67m01s,
+including all six platforms and distribution attestation. Compiler CI's owned
+Rust harnesses pass in 1,289.63 seconds, and the previously failing BinaryTest
+now passes. The next gate fails because the language-feature coverage matrix
+still references an obsolete lambda fragment. The correction points to the
+current syntax-to-Core lambda construction, preserving every feature row,
+test reference and coverage requirement. The repository coverage check and all
+nine language-feature execution tests pass locally; the unchanged five coverage
+validator tests already passed in CI. This metadata correction still requires
+committed-candidate verification. Evidence uses the `language-anchor-` prefix
+under `target/quality/release-diagnostics/`. V9-1 production acceptance, V9-2 and
+V9-3 remain open; no merge or publication is authorized by the green release run.
 
 Candidate `c68f80bb` passes the complete hosted release workflow in 71m29s,
 including all six native platforms, both sanitizer families, the dependency

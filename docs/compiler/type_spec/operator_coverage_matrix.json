@@ -24,7 +24,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Add",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Add",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"+\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Add,"
       ]
     },
     {
@@ -46,7 +46,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Sub",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Sub",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"-\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Subtract,"
       ]
     },
     {
@@ -68,7 +68,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Mul",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Mul",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"*\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Multiply,"
       ]
     },
     {
@@ -90,7 +90,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Div",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Div",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"/\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Divide,"
       ]
     },
     {
@@ -110,9 +110,9 @@
       ],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parser/expressions.rs::TokenKind::DivRem",
+        "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop::\"div\" => \"div\".to_string()",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::\"div\" | \"rem\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"div\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Divide,"
       ]
     },
     {
@@ -121,20 +121,23 @@
       "kind": "binary",
       "parse": "supported",
       "format": "supported",
-      "typecheck": "partial",
-      "core_ir": "partial",
-      "target_profile": "vm-gated",
-      "vm": "unsupported",
-      "js": "unsupported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "supported",
+      "diagnostic": null,
+      "positive_tests": [
+        "arithmetic_remainder_executes"
+      ],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_rem_operator_preserves_distinct_binary_op",
-        "crates/terlan/src/runtime/vm_test.rs::evaluator_executes_direct_coreir_call_and_control_flow_edges"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/literals_and_comprehensions.rs::formal_rem_operator_preserves_distinct_binary_op",
+        "crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs::small_suite_division_reconstructs_operands_and_reports_typed_failures"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Rem",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"div\" | \"rem\""
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"div\" | \"rem\"",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Remainder,"
       ]
     },
     {
@@ -162,7 +165,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::EqEq",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::EqEq",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"==\", left, right) => Ok(ReplValue::Bool(left == right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::Equal,"
       ]
     },
     {
@@ -190,7 +193,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::NotEq",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::NotEq",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"!=\", left, right) => Ok(ReplValue::Bool(left != right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::NotEqual,"
       ]
     },
     {
@@ -214,7 +217,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Lt",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Lt",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"<\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::LessThan,"
       ]
     },
     {
@@ -238,7 +241,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Gt",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::Gt",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\">\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::GreaterThan,"
       ]
     },
     {
@@ -261,7 +264,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::LtEq",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::LtEq",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"<=\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::LessThanOrEqual,"
       ]
     },
     {
@@ -285,7 +288,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::GtEq",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::GtEq",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\">=\", ReplValue::Int(left), ReplValue::Int(right))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::GreaterThanOrEqual,"
       ]
     },
     {
@@ -389,7 +392,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Neg",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::\"-\" =>",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"-\", ReplValue::Int(value))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeType::Int => Ok(NativeExpr::Neg(operand))"
       ]
     },
     {
@@ -411,7 +414,7 @@
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Not",
         "crates/terlan/src/compiler/typeck/expression/operators.rs::\"not\" | \"!\"",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::(\"not\", ReplValue::Bool(value))"
+        "crates/terlan/src/compiler/native_ir/expression.rs::Ok(NativeExpr::Not(Box::new(lower_expr_with_constructors("
       ]
     },
     {
@@ -420,20 +423,23 @@
       "kind": "unary",
       "parse": "supported",
       "format": "supported",
-      "typecheck": "partial",
-      "core_ir": "partial",
-      "target_profile": "vm-gated",
-      "vm": "unsupported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
       "js": "supported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
+      "diagnostic": null,
+      "positive_tests": [
+        "unary_bang_not_executes"
+      ],
       "adversarial_tests": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Bang",
-        "crates/terlan/src/runtime/vm_test.rs::evaluator_executes_direct_coreir_call_and_control_flow_edges"
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::if let Err(message) = unify(value, &Type::Bool, subst)"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::Bang",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"not\" | \"!\""
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"not\" | \"!\"",
+        "crates/terlan/src/compiler/native_ir/expression.rs::Ok(NativeExpr::Not(Box::new(lower_expr_with_constructors("
       ]
     },
     {
@@ -454,7 +460,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/typeck/expression/operators.rs::is_string_concat_pair",
-        "crates/terlan/src/runtime/vm/evaluation_helpers.rs::String"
+        "crates/terlan/src/compiler/native_ir/expression.rs::encoded: Arc::from(encode_string_append_operation())"
       ]
     },
     {
@@ -471,7 +477,7 @@
       "diagnostic": "unsupported_vm_feature",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/typeck/expression_test.rs::syntax_output_infers_pipe_forward_on_formal_path",
+        "crates/terlan/src/compiler/typeck/expression_test/assignment_templates_and_html.rs::syntax_output_infers_pipe_forward_on_formal_path",
         "crates/terlan/src/compiler/typeck/expression/calls/pipe.rs::right side of |> must be a function call"
       ],
       "source_fragments": [
@@ -537,10 +543,10 @@
       "diagnostic": "parse_error",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated equality operator '=:=', use '=='"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
       ]
     },
     {
@@ -557,10 +563,10 @@
       "diagnostic": "parse_error",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated inequality operator '/=', use '!='"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
       ]
     },
     {
@@ -577,11 +583,11 @@
       "diagnostic": "parse_error",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test.rs::formal_deprecated_equality_operators_are_rejected",
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected",
         "crates/terlan/src/compiler/syntax/lexer_test.rs::exact_inequality_is_one_token"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parser/expressions.rs::deprecated inequality operator '=/=', use '!='"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
       ]
     }
   ]

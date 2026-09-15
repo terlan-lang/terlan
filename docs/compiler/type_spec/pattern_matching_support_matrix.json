@@ -105,11 +105,11 @@
         "diagnostic": "target_profile_unsupported",
         "positive_tests": [
           "tests/pattern/ShapeSynonymTest.terl::route_shape_uses_ordinary_typed_pattern_matching",
-          "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body"
+          "crates/terlan/src/compiler/syntax/parser_decl_test/trait_declarations.rs::parses_shape_synonym_with_string_capture_body"
         ],
         "adversarial_tests": [
-          "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_adjacent_string_capture_patterns",
-          "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_unterminated_string_capture_patterns"
+          "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_adjacent_string_capture_patterns",
+          "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_unterminated_string_capture_patterns"
         ]
       },
       {
@@ -167,14 +167,14 @@
         "docs": "supported",
         "diagnostic": null,
         "positive_tests": [
-          "crates/terlan/src/compiler/syntax/formatter_test_part_002.rs::formatter_preserves_shape_synonym_raw_declarations",
+          "crates/terlan/src/compiler/syntax/formatter_test/structural_layout.rs::formatter_preserves_shape_synonym_raw_declarations",
           "tree-sitter-terlan/test/corpus/shape_synonyms.txt::shape synonym declarations and ordinary pattern uses",
-          "crates/terlan/src/lsp/lib_test_part_005.rs::lsp_document_accepts_shape_synonym_declarations",
+          "crates/terlan/src/lsp/lib_test/documents_and_shapes.rs::lsp_document_accepts_shape_synonym_declarations",
           "docs/grammar/README.md::shape OkResponse(body)"
         ],
         "adversarial_tests": [
-          "crates/terlan/src/compiler/syntax/parser_decl_test_part_003.rs::old_shape_fat_arrow_spelling_is_not_shape_synonym_surface",
-          "crates/terlan/src/compiler/syntax/parser_decl_test_part_003.rs::old_shape_runtime_arrow_spelling_is_not_shape_synonym_surface"
+          "crates/terlan/src/compiler/syntax/parser_decl_test/bindings_and_functions.rs::old_shape_fat_arrow_spelling_is_not_shape_synonym_surface",
+          "crates/terlan/src/compiler/syntax/parser_decl_test/bindings_and_functions.rs::old_shape_runtime_arrow_spelling_is_not_shape_synonym_surface"
         ]
       }
     ]
@@ -286,12 +286,12 @@
       ],
       "adversarial_tests": [
         "tests/pattern/PatternMatchingTest.terl::case_string_capture_falls_through_on_failed_conversion",
-        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_elixir_style_string_capture_pattern",
-        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_adjacent_string_capture_patterns",
-        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_unterminated_string_capture_patterns",
-        "crates/terlan/src/compiler/syntax/parser_expr_test_part_001.rs::rejects_empty_string_capture_patterns",
-        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_duplicate_capture_names",
-        "crates/terlan/src/compiler/typeck/pattern_test_part_001.rs::syntax_output_string_capture_pattern_rejects_invalid_capture_annotation"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_elixir_style_string_capture_pattern",
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_adjacent_string_capture_patterns",
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_unterminated_string_capture_patterns",
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::rejects_empty_string_capture_patterns",
+        "crates/terlan/src/compiler/typeck/pattern_test/binary_and_collection_patterns.rs::syntax_output_string_capture_pattern_rejects_duplicate_capture_names",
+        "crates/terlan/src/compiler/typeck/pattern_test/binary_and_collection_patterns.rs::syntax_output_string_capture_pattern_rejects_invalid_capture_annotation"
       ]
     },
     {
@@ -311,12 +311,12 @@
         "function_head_capture_clause_matches_route_shape",
         "function_head_capture_clause_falls_through",
         "lambda_capture_parameter_matches_path_shape",
-        "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body",
+        "crates/terlan/src/compiler/syntax/parser_decl_test/trait_declarations.rs::parses_shape_synonym_with_string_capture_body",
         "crates/terlan/src/compiler/syntax/syntax_output_pattern_test.rs::syntax_output_keeps_template_backed_string_capture_flow"
       ],
       "adversarial_tests": [
-        "crates/terlan/src/lsp/lib_test_part_005.rs::lsp_document_rejects_adjacent_string_capture_patterns",
-        "crates/terlan/src/validation/target_profile/target_profile_test/tests/direct_core_shape_test_part_002.rs::target_profile_rejects_string_capture_pattern_for_core_v0_profile"
+        "crates/terlan/src/lsp/lib_test/documents_and_shapes.rs::lsp_document_rejects_adjacent_string_capture_patterns",
+        "crates/terlan/src/validation/target_profile/target_profile_test/tests/direct_core_shape_test/field_and_record_shapes.rs::target_profile_rejects_string_capture_pattern_for_core_v0_profile"
       ],
       "contexts": [
         {
@@ -400,7 +400,7 @@
           "stdlib_test": "syntax-only",
           "diagnostic": "shape_synonym_expansion_required",
           "positive_tests": [
-            "crates/terlan/src/compiler/syntax/parser_decl_test_part_002.rs::parses_shape_synonym_with_string_capture_body",
+            "crates/terlan/src/compiler/syntax/parser_decl_test/trait_declarations.rs::parses_shape_synonym_with_string_capture_body",
             "tree-sitter-terlan/test/corpus/basic.txt::shape synonym declaration"
           ],
           "adversarial_tests": [
@@ -676,7 +676,7 @@
       "diagnostic": "unsupported_vm_feature",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/tests/check_target_profile_gate_test_part_001.rs::run_check_single_file_rejects_record_pattern_for_core_v0_target_profile"
+        "crates/terlan/src/tests/check_target_profile_gate_test/profile_inference_and_collections.rs::run_check_single_file_rejects_record_pattern_for_core_v0_target_profile"
       ]
     },
     {
@@ -692,7 +692,7 @@
       "diagnostic": "parse_error",
       "positive_tests": [],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test_part_003.rs::rejects_bodyless_let_expression"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs::rejects_bodyless_let_expression"
       ]
     }
   ]

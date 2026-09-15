@@ -258,6 +258,41 @@ fn lower_case(
             clauses.len()
         ));
     }
+    // A literal empty list has no element witness. Decide its shape without
+    // inventing a runtime element type or lowering unreachable head bindings.
+    // Guards on matching clauses still run in source order.
+    if matches!(scrutinee, CoreExpr::List(items) if items.is_empty())
+        && clauses.iter().all(|clause| {
+            matches!(
+                clause.pattern,
+                CorePattern::List(_) | CorePattern::ListCons { .. } | CorePattern::Wildcard
+            )
+        })
+    {
+        let mut selected = Vec::new();
+        for clause in clauses {
+            let matches = match &clause.pattern {
+                CorePattern::List(items) => items.is_empty(),
+                CorePattern::Wildcard => true,
+                _ => false,
+            };
+            if !matches {
+                continue;
+            }
+            let condition = clause
+                .guard
+                .as_ref()
+                .map(|guard| lower_child(guard, params, param_types, core_types, environment))
+                .transpose()?
+                .unwrap_or(NativeExpr::Bool(true));
+            let body = lower_child(&clause.body, params, param_types, core_types, environment)?;
+            selected.push((condition, body));
+            if clause.guard.is_none() {
+                break;
+            }
+        }
+        return Ok(NativeExpr::If { clauses: selected });
+    }
     if let Some((items, item_core_types)) =
         tuple_scrutinee(scrutinee, core_types, function_core_types)
     {
@@ -722,6 +757,10 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
                         function_types,
                         constructors,
                     )
+                    .or_else(|| {
+                        core_expr_type(&binding.value, &local_core_types, function_core_types)
+                            .and_then(|ty| super::super::native_type(Some(&ty), &ty.contract_text()))
+                    })
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.structured_case_result_type]: cannot infer binding `{name}`"

@@ -437,6 +437,7 @@ fn resolve_expr(
         } => {
             resolve_expr(expr, module, imports, aliases);
             for generator in generators {
+                resolve_pattern(&mut generator.pattern, module, imports, aliases);
                 resolve_expr(&mut generator.source, module, imports, aliases);
             }
             for guard in guards {
@@ -445,6 +446,7 @@ fn resolve_expr(
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
+                resolve_pattern(&mut binding.pattern, module, imports, aliases);
                 resolve_expr(&mut binding.value, module, imports, aliases);
             }
             resolve_expr(body, module, imports, aliases);
@@ -510,10 +512,13 @@ fn resolve_expr(
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::UnaryOp { operand: base, .. } => resolve_expr(base, module, imports, aliases),
         CoreExpr::Lam {
+            params,
             parameter_types,
             body,
-            ..
         } => {
+            for pattern in params {
+                resolve_pattern(pattern, module, imports, aliases);
+            }
             parameter_types
                 .iter_mut()
                 .flatten()
@@ -538,6 +543,7 @@ fn resolve_expr(
         } => {
             resolve_expr(body, module, imports, aliases);
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
+                resolve_pattern(&mut clause.pattern, module, imports, aliases);
                 if let Some(guard) = &mut clause.guard {
                     resolve_expr(guard, module, imports, aliases);
                 }

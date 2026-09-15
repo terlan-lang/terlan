@@ -15,6 +15,114 @@ fn lower(source: &str) -> Vec<NativeModule> {
 }
 
 #[test]
+fn aggregate_literal_equality_retains_operand_types_and_executes() {
+    let modules = lower(
+        "module aggregate_equality.\n\
+         identity(value: Int): Int -> value.\n\
+         pub maps(left: Int, right: Int): Bool ->\n\
+             true == ({name: \"Ada\", age: identity(left)} == {name: \"Ada\", age: right}).\n\
+         pub reordered(left: Int, right: Int): Bool ->\n\
+             {name: \"Ada\", age: left} != {age: right, name: \"Ada\"}.\n\
+         pub nested(left: Int, right: Int): Bool ->\n\
+             {item: {left, [1, 2]}} == {item: {right, [1, 2]}}.\n\
+         pub nested_records(left: Int, right: Int): Bool ->\n\
+             {item: {name: \"Ada\", age: left}, enabled: true}\n\
+             == {enabled: true, item: {age: right, name: \"Ada\"}}.\n\
+         pub from_case(left: Int, right: Int): Bool ->\n\
+             case {name: \"Ada\", age: left} {\n\
+                 {age: value} where value == right -> true;\n\
+                 _ -> false\n\
+             }.\n",
+    );
+    let object = super::emit_native_application_object("aggregate-equality", &modules)
+        .expect("emit aggregate comparisons");
+    let mut invocations = Vec::new();
+    for (name, equal, different) in [
+        ("maps", 1, 0),
+        ("reordered", 0, 1),
+        ("nested", 1, 0),
+        ("nested_records", 1, 0),
+        ("from_case", 1, 0),
+    ] {
+        let export_id = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("comparison export")
+            .export_id;
+        for (right, expected) in [(7, equal), (8, different)] {
+            invocations.push(super::native_object_test_support::NativeObjectInvocation {
+                export_id,
+                arguments: vec![7, right],
+                expected_status: super::status::OK,
+                expected_result: Some(expected),
+            });
+        }
+    }
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "aggregate-equality",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
+#[test]
+fn structural_map_layout_reordering_retains_source_call_order() {
+    use std::collections::HashMap;
+
+    use super::NativeType;
+    use crate::terlan_typeck::{CoreExpr, CoreMapExprField, CoreMapTypeField, CoreType};
+
+    let expected = CoreType::Map(
+        ["first", "second"]
+            .map(|key| CoreMapTypeField {
+                key: key.into(),
+                operator: ":".into(),
+                value: CoreType::Int,
+            })
+            .to_vec(),
+    );
+    let body = CoreExpr::Map(
+        [("second", 2), ("first", 1)]
+            .map(|(key, value)| CoreMapExprField {
+                key: key.into(),
+                required: true,
+                value: CoreExpr::Call {
+                    function: "mark".into(),
+                    args: vec![CoreExpr::Int(value)],
+                },
+            })
+            .to_vec(),
+    );
+    let lowered = super::collection_values::lower_boundary_collection_value(
+        &body,
+        Some(&expected),
+        &HashMap::new(),
+        &HashMap::new(),
+        &HashMap::from([(("mark".into(), 1), 7)]),
+        &HashMap::from([(("mark".into(), 1), NativeType::Int)]),
+        &HashMap::new(),
+    )
+    .expect("lower structural map")
+    .expect("record expression");
+    let NativeExpr::Let { bindings, body } = lowered else {
+        panic!("source-order bindings");
+    };
+    assert!(matches!(&bindings[..], [
+        NativeExpr::Call { function: 7, args: first },
+        NativeExpr::Call { function: 7, args: second },
+    ] if matches!(&first[..], [NativeExpr::Int(2)]) && matches!(&second[..], [NativeExpr::Int(1)])));
+    let NativeExpr::Construct { fields, .. } = *body else {
+        panic!("record construction");
+    };
+    assert!(matches!(
+        &fields[..],
+        [NativeExpr::Param(1), NativeExpr::Param(0)]
+    ));
+}
+
+#[test]
 fn inferred_record_list_operands_admit_their_collection_schema() {
     let modules = lower(
         "module native_record_list.\n\

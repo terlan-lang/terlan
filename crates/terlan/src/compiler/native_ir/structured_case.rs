@@ -14,10 +14,12 @@ use crate::terlan_typeck::{CoreExpr, CorePattern, CoreTupleTypeElem, CoreType};
 use super::constructors::{managed_field_projection, NativeConstructorLayout};
 use super::{NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType};
 
+mod atom;
 #[path = "structured_case/binary.rs"]
 mod binary;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
+mod string;
 #[path = "structured_case/suspending.rs"]
 mod suspending;
 mod tagged_union;
@@ -94,9 +96,7 @@ pub(super) fn pattern_plan(
     }
     match pattern {
         CorePattern::Wildcard => Ok(always()),
-        CorePattern::Var(name)
-            if !matches!(name.as_str(), "true" | "false" | "Unit" | "unit") =>
-        {
+        CorePattern::Var(name) if !matches!(name.as_str(), "true" | "false" | "Unit" | "unit") => {
             Ok(PatternPlan {
                 predicate: NativeExpr::Bool(true),
                 bindings: vec![PatternBinding {
@@ -117,11 +117,10 @@ pub(super) fn pattern_plan(
             };
             Ok(equality(value, literal, value_type))
         }
-        CorePattern::Atom(name) => Ok(equality(
-            value,
-            NativeExpr::AtomLiteral(Arc::from(name.as_str())),
-            value_type,
-        )),
+        CorePattern::Atom(name) => {
+            atom::atom_plan(name, value, value_type, core_type, constructors, depth)
+                .map_err(String::from)
+        }
         CorePattern::Var(name) => Ok(PatternPlan {
             predicate: NativeExpr::Bool(true),
             bindings: vec![PatternBinding {
@@ -131,11 +130,9 @@ pub(super) fn pattern_plan(
                 core_ty: core_type.cloned(),
             }],
         }),
-        CorePattern::Int(expected) => Ok(equality(
-            value,
-            NativeExpr::Int(*expected),
-            NativeType::Int,
-        )),
+        CorePattern::Int(expected) => {
+            Ok(equality(value, NativeExpr::Int(*expected), NativeType::Int))
+        }
         CorePattern::Float(expected) => {
             let expected = expected.parse::<f64>().map_err(|error| {
                 format!("error[native_ir.structured_float]: invalid float pattern: {error}")
@@ -152,7 +149,12 @@ pub(super) fn pattern_plan(
             Ok(PatternPlan {
                 predicate: NativeExpr::ManagedOperation {
                     encoded: Arc::from(encode_string_equal_operation()),
-                    args: vec![value, NativeExpr::ManagedLiteral { encoded: encoded.into() }],
+                    args: vec![
+                        value,
+                        NativeExpr::ManagedLiteral {
+                            encoded: encoded.into(),
+                        },
+                    ],
                 },
                 bindings: vec![],
             })
@@ -223,22 +225,12 @@ pub(super) fn pattern_plan(
             }
             merge(plans)
         }
-        CorePattern::Tuple(patterns) => tuple_plan(
-            patterns,
-            value,
-            value_type,
-            core_type,
-            constructors,
-            depth,
-        ),
-        CorePattern::List(patterns) => list_plan(
-            patterns,
-            value,
-            value_type,
-            core_type,
-            constructors,
-            depth,
-        ),
+        CorePattern::Tuple(patterns) => {
+            tuple_plan(patterns, value, value_type, core_type, constructors, depth)
+        }
+        CorePattern::List(patterns) => {
+            list_plan(patterns, value, value_type, core_type, constructors, depth)
+        }
         CorePattern::ListCons { head, tail } => list_cons_plan(
             head,
             tail,
@@ -249,14 +241,7 @@ pub(super) fn pattern_plan(
             depth,
         ),
         CorePattern::Map(fields) if matches!(core_type, Some(CoreType::Map(_))) => {
-            structural_map_plan(
-                fields,
-                value,
-                value_type,
-                core_type,
-                constructors,
-                depth,
-            )
+            structural_map_plan(fields, value, value_type, core_type, constructors, depth)
         }
         CorePattern::Map(fields) => {
             map_plan(fields, value, value_type, core_type, constructors, depth)
@@ -264,8 +249,8 @@ pub(super) fn pattern_plan(
         CorePattern::BinaryLayout { endian, fields } => {
             binary_plan(*endian, fields, value, value_type)
         }
-        CorePattern::StringPattern(_) => {
-            Err("error[native_ir.structured_pattern_family]: pattern family needs a dedicated bounded matcher".to_string())
+        CorePattern::StringPattern(segments) => {
+            string::string_plan(segments, value, value_type).map_err(String::from)
         }
     }
 }
