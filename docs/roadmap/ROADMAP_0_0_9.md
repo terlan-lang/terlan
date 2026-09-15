@@ -20,6 +20,18 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+Candidate `9e8a7be2` exposes a shared validator-bootstrap regression in hosted
+release and Docs CI: Unit expression/signature spellings incorrectly join as
+two atom variants. The local normalization fix passes 485 NativeIR tests, both
+strict workspace-binary Clippy profiles, and actual rebuilds of the package
+consumer and Rust-quality validators. Package installation and invalid-command
+rejection, docs, API boundaries, module structure, headroom and dependency checks
+pass. The separate UnitTest probe stops at unresolved `Ordering.compare`;
+its trait test is required by `tests/std/RELEASE_API_TESTS.tsv` and is not waived.
+That lowering gap must be addressed before the next candidate verification.
+Evidence uses the `unit-result-`, `unit-package-consumer-` and `unit-rust-quality-`
+prefixes under `target/quality/release-diagnostics/`. All checklist items stay open.
+
 The coverage-anchor audit found stale operator and pattern source paths and
 executable AOT gaps. The local correction retains aggregate operand/scrutinee
 types, constructs structural maps in source evaluation order, normalizes ordered
