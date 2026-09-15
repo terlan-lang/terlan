@@ -191,9 +191,9 @@ fn unresolved_application_call_has_stable_prelink_diagnostic() {
     );
 }
 
-/// Verifies concrete trait dispatch cannot fall back to runtime interpretation.
+/// Verifies concrete trait dispatch retains an executable implementation body.
 #[test]
-fn unresolved_trait_impl_dispatch_has_stable_prelink_diagnostic() {
+fn concrete_trait_impl_dispatch_lowers_to_native_code() {
     let module = core(
         "module app.TraitDispatch.\n\n\
          pub struct Profile { title: String }.\n\n\
@@ -204,10 +204,25 @@ fn unresolved_trait_impl_dispatch_has_stable_prelink_diagnostic() {
          pub run(): String -> Render.render(Profile {title: \"Engineer\"}).\n",
     );
 
-    assert_eq!(
-        NativeModule::lower_application(&[&module]).unwrap_err(),
-        "error[native_ir.unresolved_call]: `app.TraitDispatch.Render.render/1` has no function in the native application closure"
+    let native = NativeModule::lower_application(&[&module]).expect("static trait dispatch");
+    assert!(!emit_native_application_object("concrete_trait", &native)
+        .expect("compile implementation body")
+        .is_empty());
+}
+
+/// Missing trait bodies still fail before linking instead of using an evaluator.
+#[test]
+fn missing_trait_impl_dispatch_has_stable_prelink_diagnostic() {
+    let module = core(
+        "module app.MissingTrait. pub trait Render[T] { render(value: T): Int. }. \
+         pub run(): Int -> Render.render(1).",
     );
+    let error = NativeModule::lower_application(&[&module]).unwrap_err();
+    assert!(
+        error.contains("error[native_ir.unresolved_call]"),
+        "{error}"
+    );
+    assert!(error.contains("Render.render/1"), "{error}");
 }
 
 /// Verifies indexed assignment cannot fall back to runtime interpretation.

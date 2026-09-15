@@ -265,6 +265,7 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
         .iter()
         .flat_map(|((name, arity), signatures)| {
             signatures.iter().map(move |signature| CoreFunction {
+                trait_method: None,
                 source: None,
                 name: name.clone(),
                 arity: *arity,
@@ -291,6 +292,7 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
             .functions
             .iter()
             .map(|((name, arity), signature)| CoreFunction {
+                trait_method: None,
                 source: None,
                 name: name.clone(),
                 arity: *arity,

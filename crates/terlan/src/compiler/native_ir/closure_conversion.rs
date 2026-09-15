@@ -520,6 +520,7 @@ fn lower_escaping_lambda_at(
         );
     }
     let closure_contract = CoreFunction {
+        trait_method: None,
         source: None,
         name: format!("$closure_contract_{owner_name}_{owner_arity}"),
         arity: lambda_names.len(),

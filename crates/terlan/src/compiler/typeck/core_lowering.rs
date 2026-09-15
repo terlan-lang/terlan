@@ -149,6 +149,12 @@ pub fn lower_syntax_module_output_to_core(
             &receiver_methods,
             &template_prop_order,
         );
+    structural_impl_functions.extend(core_syntax_concrete_impl_functions(
+        module,
+        resolved,
+        &receiver_methods,
+        &template_prop_order,
+    ));
     for function in &mut structural_impl_functions {
         function_clauses.insert(
             core_callable_signature_from_function(function),
@@ -171,6 +177,7 @@ pub fn lower_syntax_module_output_to_core(
         function.native_operation = native_operations.get(&signature).cloned();
     }
     rewrite_structural_impl_calls(&mut core.functions, &structural_impl_dispatch);
+    rewrite_concrete_trait_calls(&mut core.functions, resolved);
     core.functions.sort_by(|left, right| {
         left.name
             .cmp(&right.name)
@@ -524,6 +531,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 is_macro: false,
                 ..
             } => Some(CoreFunction {
+                trait_method: None,
                 source: None,
                 name: name.clone(),
                 arity: params.len(),
@@ -548,6 +556,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 core_params.push(core_syntax_param(receiver));
                 core_params.extend(params.iter().map(core_syntax_param));
                 Some(CoreFunction {
+                    trait_method: None,
                     source: None,
                     name: name.clone(),
                     arity: core_params.len(),

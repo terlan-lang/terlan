@@ -107,3 +107,140 @@ fn duplicate_core_signature_is_left_for_application_admission() {
     assert_eq!(module.functions[0].name, "choose");
     assert_eq!(module.functions[1].name, "choose");
 }
+
+/// Concrete implementations select by checked parameters, not declaration order.
+#[test]
+fn concrete_trait_calls_select_distinct_typed_bodies() {
+    let mut modules = vec![core(
+        r#"
+module app.TraitChoice.
+pub trait Score[T] { score(value: T): Int. }.
+pub impl Score[Bool] for Bool { score(_value: Bool): Int -> 11. }.
+pub impl Score[Int] for Int { score(value: Int): Int -> value + 7. }.
+pub integer(value: Int): Int -> Score.score(value).
+pub boolean(value: Bool): Int -> Score.score(value).
+"#,
+    )];
+    let serialized = serde_json::to_string(&modules[0]).expect("serialize trait metadata");
+    modules[0] = serde_json::from_str(&serialized).expect("restore trait metadata");
+    let original = modules.clone();
+    assert!(modules[0]
+        .contract_text()
+        .contains("trait_method=app.TraitChoice.Score.score"));
+    resolve_typed_overloads(&mut modules).expect("select concrete trait bodies");
+    for (name, ty) in [("integer", CoreType::Int), ("boolean", CoreType::Bool)] {
+        let target = direct_call_target(&modules[0], name);
+        let implementation = modules[0]
+            .functions
+            .iter()
+            .find(|function| function.name == target)
+            .expect("selected implementation exists");
+        assert_eq!(implementation.params[0].core_ty.as_ref(), Some(&ty));
+    }
+    let native = NativeModule::lower_application(&original.iter().collect::<Vec<_>>())
+        .expect("lower typed trait dispatch through the complete application pipeline");
+    let object =
+        crate::compiler::native_ir::emit_native_application_object("trait_choice", &native)
+            .expect("emit trait dispatch object");
+    use crate::compiler::native_ir::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    let invocations =
+        [("integer", 35, 42), ("boolean", 1, 11)].map(|(name, argument, expected)| {
+            let export = native
+                .iter()
+                .flat_map(|module| &module.functions)
+                .find(|function| function.name == name)
+                .expect("native trait caller");
+            NativeObjectInvocation {
+                export_id: export.export_id,
+                arguments: vec![argument],
+                expected_status: crate::compiler::native_ir::status::OK,
+                expected_result: Some(expected),
+            }
+        });
+    assert_managed_native_object_invocations("trait-choice", &native, &object, &invocations);
+}
+
+/// Imported trait aliases preserve provider identity and public implementation visibility.
+#[test]
+fn imported_concrete_trait_alias_selects_its_owning_module() {
+    use crate::terlan_hir::resolve_syntax_module_output_with_interfaces;
+    let provider = core(
+        r#"
+module app.TraitProvider.
+pub trait Score[T] { score(value: T): Int. }.
+pub impl Score[Int] for Int { score(value: Int): Int -> value + 7. }.
+"#,
+    );
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module app.TraitConsumer.
+import app.TraitProvider.{Score as Rating}.
+pub run(value: Int): Int -> Rating.score(value).
+"#,
+    )
+    .expect("parse imported trait alias");
+    let interfaces = HashMap::from([(provider.module.clone(), provider.interface.clone())]);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    assert!(
+        resolved.diagnostics.is_empty(),
+        "{:?}",
+        resolved.diagnostics
+    );
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let consumer = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let mut private_provider = provider.clone();
+    for function in &mut private_provider.functions {
+        if function.trait_method.is_some() {
+            function.public = false;
+        }
+    }
+    let error = resolve_typed_overloads(&mut [private_provider, consumer.clone()])
+        .expect_err("private implementation must not cross module boundary");
+    assert!(error.contains("native_ir.overload_no_match"), "{error}");
+    let mut modules = vec![provider, consumer];
+    resolve_typed_overloads(&mut modules).expect("select imported implementation");
+    let implementation = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.trait_method.is_some())
+        .expect("provider implementation");
+    assert_eq!(
+        direct_call_target(&modules[1], "run"),
+        format!("app.TraitProvider.{}", implementation.name)
+    );
+}
+
+/// Incomplete or contradictory concrete implementation inventories are not guessed.
+#[test]
+fn concrete_trait_calls_reject_wrong_types_and_duplicate_candidates() {
+    let module = core(
+        r#"
+module app.TraitRejection.
+pub trait Score[T] { score(value: T): Int. }.
+pub impl Score[Int] for Int { score(value: Int): Int -> value. }.
+pub run(value: Bool): Int -> Score.score(value).
+"#,
+    );
+    let error = resolve_typed_overloads(&mut [module.clone()]).expect_err("wrong argument type");
+    assert!(error.contains("native_ir.overload_no_match"), "{error}");
+    let mut duplicate = module;
+    let mut implementation = duplicate
+        .functions
+        .iter()
+        .find(|function| function.trait_method.is_some())
+        .expect("implementation")
+        .clone();
+    implementation.name.push_str("_duplicate");
+    duplicate.functions.push(implementation);
+    let run = duplicate
+        .functions
+        .iter_mut()
+        .find(|function| function.name == "run")
+        .expect("caller");
+    run.params[0].core_ty = Some(CoreType::Int);
+    let error = resolve_typed_overloads(&mut [duplicate]).expect_err("ambiguous implementation");
+    assert!(error.contains("native_ir.overload_ambiguous"), "{error}");
+}

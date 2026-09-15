@@ -307,6 +307,7 @@ pub(super) fn module_with_core_body_and_evidence(
         exports: Vec::new(),
         types: Vec::new(),
         functions: vec![CoreFunction {
+            trait_method: None,
             source: None,
             name: "value".to_string(),
             arity: 1,

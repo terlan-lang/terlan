@@ -68,6 +68,7 @@ fn field(local: &str, name: &str) -> CoreExpr {
 /// Creates a zero-arity function around one test body.
 fn function(body: CoreExpr) -> CoreFunction {
     CoreFunction {
+        trait_method: None,
         source: None,
         name: "projected".to_owned(),
         arity: 0,

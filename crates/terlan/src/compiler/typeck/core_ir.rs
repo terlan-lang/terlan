@@ -191,6 +191,9 @@ pub struct CoreFunction {
     /// Source declaration retained independently of generated symbol spelling.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<CoreFunctionSource>,
+    /// Checked trait method implemented by this concrete callable body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trait_method: Option<CoreTraitMethodIdentity>,
     pub arity: usize,
     pub public: bool,
     /// Source-declared generic parameters retained for exact AOT monomorphization.
@@ -201,6 +204,13 @@ pub struct CoreFunction {
     pub return_type: String,
     pub core_return_type: Option<CoreType>,
     pub clauses: Vec<CoreFunctionClause>,
+}
+
+/// Canonical trait identity retained independently of generated function names.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreTraitMethodIdentity {
+    pub trait_name: String,
+    pub method: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

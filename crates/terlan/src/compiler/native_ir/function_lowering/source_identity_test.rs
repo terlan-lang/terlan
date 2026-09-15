@@ -4,6 +4,7 @@ use super::source_declaration_identity;
 
 fn function(name: &str, arity: usize) -> CoreFunction {
     CoreFunction {
+        trait_method: None,
         source: None,
         name: name.to_string(),
         arity,

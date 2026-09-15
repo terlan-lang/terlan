@@ -67,6 +67,7 @@ fn emit_core_module_to_rust_fails_closed_for_unsupported_body() {
     let module = core_module_with_functions(
         "rust_probe_reject_unsupported",
         vec![CoreFunction {
+            trait_method: None,
             source: None,
             name: "unsupported".to_string(),
             arity: 0,
@@ -111,6 +112,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
         "rust_core_surface_pipe",
         vec![
             CoreFunction {
+                trait_method: None,
                 source: None,
                 name: "add".to_string(),
                 arity: 2,
@@ -148,6 +150,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                 }],
             },
             CoreFunction {
+                trait_method: None,
                 source: None,
                 name: "piped".to_string(),
                 arity: 0,
@@ -199,6 +202,7 @@ fn emit_core_module_to_rust_handles_function_value_call() {
     let module = core_module_with_functions(
         "rust_callable_probe",
         vec![CoreFunction {
+            trait_method: None,
             source: None,
             name: "apply".to_string(),
             arity: 1,
@@ -252,6 +256,7 @@ fn emit_core_module_to_rust_escapes_binary_literals_portably() {
     let module = core_module_with_functions(
         "rust_core_surface_string_escape",
         vec![CoreFunction {
+            trait_method: None,
             source: None,
             name: "escaped".to_string(),
             arity: 0,

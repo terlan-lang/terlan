@@ -4,11 +4,13 @@ use super::super::QualifiedFunctionIdentity as OverloadKey;
 use super::*;
 use crate::terlan_typeck::{core_type_contract_text, CoreTupleTypeElem};
 
+mod trait_methods;
+
 #[derive(Clone)]
 /// One source overload and its deterministic NativeIR-facing identity.
 struct OverloadCandidate {
     module: String,
-    source_name: String,
+    private_trait_impl: bool,
     arity: usize,
     internal_name: String,
     parameters: Vec<CoreType>,
@@ -28,12 +30,13 @@ fn has_target_owned_overload_lowering(module: &str) -> bool {
 /// application closure instead receives a distinct name for every parameter
 /// vector so its compact `(name, arity)` resolver cannot merge overloads.
 pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), String> {
-    let groups = collect_overload_groups(cores)?;
+    let mut groups = collect_overload_groups(cores)?;
+    rename_overload_declarations(cores, &groups)?;
+    trait_methods::collect(cores, &mut groups);
     if groups.is_empty() {
         return Ok(());
     }
     let aliases = collect_alias_bodies(cores);
-    rename_overload_declarations(cores, &groups)?;
     let returns = collect_return_types(cores);
     for core in cores {
         for function in &mut core.functions {
@@ -148,7 +151,7 @@ fn collect_overload_groups(
             .enumerate()
             .map(|(index, (parameters, result))| OverloadCandidate {
                 module: module.clone(),
-                source_name: name.clone(),
+                private_trait_impl: false,
                 arity,
                 internal_name: format!("{name}__terlan_overload_{index}"),
                 parameters,
@@ -284,8 +287,18 @@ fn rewrite_expr(
             if let Some(candidates) =
                 local_overload_candidates(current_module, function, args.len(), groups)
             {
-                let selected = select_candidate(candidates, &argument_types, function, aliases)?;
-                function.clone_from(&selected.internal_name);
+                let selected = select_candidate(
+                    candidates,
+                    &argument_types,
+                    function,
+                    current_module,
+                    aliases,
+                )?;
+                *function = if selected.module == current_module {
+                    selected.internal_name.clone()
+                } else {
+                    format!("{}.{}", selected.module, selected.internal_name)
+                };
                 Some(selected.result.clone())
             } else {
                 lookup_call_return(current_module, function, args.len(), returns)
@@ -299,8 +312,15 @@ fn rewrite_expr(
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;
             if let Some(candidates) = groups.get(&(module.clone(), function.clone(), args.len())) {
-                let selected = select_candidate(candidates, &argument_types, function, aliases)?;
+                let selected = select_candidate(
+                    candidates,
+                    &argument_types,
+                    function,
+                    current_module,
+                    aliases,
+                )?;
                 function.clone_from(&selected.internal_name);
+                module.clone_from(&selected.module);
                 Some(selected.result.clone())
             } else {
                 returns
@@ -654,12 +674,12 @@ fn local_overload_candidates<'a>(
     {
         return Some(candidates);
     }
-    groups.values().find_map(|candidates| {
-        let candidate = candidates.first()?;
-        (candidate.arity == arity
-            && format!("{}.{}", candidate.module, candidate.source_name) == function)
-            .then_some(candidates.as_slice())
-    })
+    groups
+        .iter()
+        .find_map(|((module, name, candidate_arity), candidates)| {
+            (*candidate_arity == arity && format!("{module}.{name}") == function)
+                .then_some(candidates.as_slice())
+        })
 }
 
 /// Selects the unique most-specific candidate accepted by inferred arguments.
@@ -667,11 +687,15 @@ fn select_candidate<'a>(
     candidates: &'a [OverloadCandidate],
     arguments: &[Option<CoreType>],
     source_name: &str,
+    current_module: &str,
     aliases: &AliasBodies,
 ) -> Result<&'a OverloadCandidate, String> {
     let mut matches = candidates
         .iter()
         .filter_map(|candidate| {
+            if candidate.private_trait_impl && candidate.module != current_module {
+                return None;
+            }
             let mut score = 0usize;
             for (expected, actual) in candidate.parameters.iter().zip(arguments) {
                 let Some(actual) = actual else {
