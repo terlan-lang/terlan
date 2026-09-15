@@ -65,6 +65,7 @@ pub(super) fn core_expr_type(
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
+        CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
         CoreExpr::Var(name) => types.get(name).cloned(),
         CoreExpr::Call { function, args } => {
             functions.get(&(function.clone(), args.len())).cloned()
@@ -207,7 +208,7 @@ pub(super) fn core_expr_type(
         }
         _ => None,
     };
-    inferred.map(transparent_message_payload)
+    inferred.map(normalize_inferred_type)
 }
 
 /// Recovers a case result while adding the variables introduced by each
@@ -494,12 +495,21 @@ fn tagged_some_tuple(ty: &CoreType) -> bool {
     )
 }
 
-fn transparent_message_payload(ty: CoreType) -> CoreType {
-    match ty {
+fn normalize_inferred_type(ty: CoreType) -> CoreType {
+    let ty = match ty {
         CoreType::Apply {
             constructor,
             mut args,
         } if constructor.rsplit('.').next() == Some("Message") && args.len() == 1 => args.remove(0),
+        other => other,
+    };
+    // Source Unit expressions retain their native sentinel spelling, while
+    // transparent aliases and intrinsic signatures carry the lowercase atom.
+    // Both denote one zero-width result, never two variants of an atom union.
+    match ty {
+        CoreType::AtomLiteral(name) if matches!(name.as_str(), "Unit" | "unit") => {
+            CoreType::Named("Unit".into())
+        }
         other => other,
     }
 }

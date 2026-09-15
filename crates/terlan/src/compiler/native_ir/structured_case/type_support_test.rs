@@ -1,7 +1,8 @@
 //! Disjointness must prove every closed alternative impossible before pruning.
 
-use super::type_support::type_excludes_pattern;
-use crate::terlan_typeck::{CorePattern, CoreTupleTypeElem, CoreType};
+use super::type_support::{core_expr_type, type_excludes_pattern};
+use crate::terlan_typeck::{CoreExpr, CoreIfClause, CorePattern, CoreTupleTypeElem, CoreType};
+use std::collections::HashMap;
 
 fn tagged(tag: &str, value: CoreType) -> CoreType {
     CoreType::Tuple(vec![
@@ -78,4 +79,34 @@ fn singleton_atom_patterns_are_disjoint_from_products_but_not_unknowns() {
     ] {
         assert!(!type_excludes_pattern(&pattern, Some(&ty)));
     }
+}
+
+#[test]
+fn unit_expression_alias_and_call_results_share_one_control_join_type() {
+    let functions = HashMap::from([(("finish".into(), 0), CoreType::AtomLiteral("unit".into()))]);
+    for expression in [CoreExpr::Atom("Unit".into()), CoreExpr::Var("Unit".into())] {
+        let joined = CoreExpr::If {
+            clauses: vec![
+                CoreIfClause {
+                    condition: CoreExpr::Atom("true".into()),
+                    body: expression,
+                },
+                CoreIfClause {
+                    condition: CoreExpr::Atom("true".into()),
+                    body: CoreExpr::Call {
+                        function: "finish".into(),
+                        args: vec![],
+                    },
+                },
+            ],
+        };
+        assert_eq!(
+            core_expr_type(&joined, &HashMap::new(), &functions),
+            Some(CoreType::Named("Unit".into()))
+        );
+    }
+    assert_eq!(
+        core_expr_type(&CoreExpr::Atom("none".into()), &HashMap::new(), &functions),
+        Some(CoreType::AtomLiteral("none".into()))
+    );
 }
