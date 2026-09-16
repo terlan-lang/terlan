@@ -3,8 +3,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{
-    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreTupleTypeElem,
-    CoreType,
+    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreRecordExprField,
+    CoreTupleTypeElem, CoreType,
 };
 
 #[derive(Clone)]
@@ -184,6 +184,14 @@ fn resolve(
                 .map(|arg| resolve(arg, module, imports, aliases, visiting))
                 .collect::<Vec<_>>();
             if let Some((key, alias)) = find_alias(constructor, module, imports, aliases) {
+                // Nominal struct applications keep their type arguments in
+                // their managed identity; only transparent aliases erase them.
+                if matches!(alias.body, CoreType::Struct { .. }) && !alias.params.is_empty() {
+                    return CoreType::Apply {
+                        constructor: key,
+                        args,
+                    };
+                }
                 if alias.params.len() == args.len() && visiting.insert(key.clone()) {
                     let values = alias
                         .params
@@ -371,11 +379,13 @@ fn resolve_expr(
         CoreExpr::Cast { expr, target_type } => {
             resolve_type(target_type);
             if let CoreExpr::ConstructorCall {
+                type_args,
                 constructor,
                 constructor_identity,
                 args,
             } = expr.as_mut()
             {
+                type_args.iter_mut().for_each(&mut resolve_type);
                 for arg in args.iter_mut() {
                     resolve_expr(arg, module, imports, aliases);
                 }
@@ -469,21 +479,48 @@ fn resolve_expr(
             }
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => {
+            type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args.iter_mut() {
                 resolve_expr(arg, module, imports, aliases);
             }
             let identity = constructor_identity.as_deref().unwrap_or(constructor);
+            if let Some(record) =
+                explicit_struct_constructor(identity, type_args, args, module, imports, aliases)
+            {
+                *expr = record;
+                return;
+            }
             if let Some(tag) =
                 transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
             {
+                let target_type = (!type_args.is_empty()).then(|| {
+                    resolve(
+                        &CoreType::Apply {
+                            constructor: identity.to_string(),
+                            args: type_args.clone(),
+                        },
+                        module,
+                        imports,
+                        aliases,
+                        &mut HashSet::new(),
+                    )
+                });
                 let mut items = Vec::with_capacity(args.len().saturating_add(1));
                 items.push(CoreExpr::Atom(tag));
                 items.append(args);
-                *expr = CoreExpr::Tuple(items);
+                let tuple = CoreExpr::Tuple(items);
+                *expr = match target_type {
+                    Some(target_type) => CoreExpr::Cast {
+                        expr: Box::new(tuple),
+                        target_type,
+                    },
+                    None => tuple,
+                };
             }
         }
         CoreExpr::RemoteCall {
@@ -499,7 +536,13 @@ fn resolve_expr(
                 resolve_expr(arg, module, imports, aliases);
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args {
                 resolve_expr(arg, module, imports, aliases);
             }
@@ -586,6 +629,62 @@ fn resolve_expr(
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
     }
+}
+
+/// Materializes a generic struct with its nominal application and checked
+/// field witnesses, rather than the declaration's unresolved layout template.
+fn explicit_struct_constructor(
+    identity: &str,
+    type_args: &[CoreType],
+    args: &[CoreExpr],
+    module: &str,
+    imports: &[String],
+    aliases: &HashMap<String, Alias>,
+) -> Option<CoreExpr> {
+    if type_args.is_empty() {
+        return None;
+    }
+    let (canonical, alias) = find_alias(identity, module, imports, aliases)?;
+    let CoreType::Struct { fields, .. } = &alias.body else {
+        return None;
+    };
+    if fields.len() != args.len() || alias.params.len() != type_args.len() {
+        return None;
+    }
+    let values = alias
+        .params
+        .iter()
+        .cloned()
+        .zip(type_args.iter().cloned())
+        .collect();
+    let fields = fields
+        .iter()
+        .zip(args)
+        .map(|(field, value)| CoreRecordExprField {
+            key: field.name.clone(),
+            required: true,
+            value: CoreExpr::Cast {
+                expr: Box::new(value.clone()),
+                target_type: resolve(
+                    &substitute(&field.ty, &values),
+                    &alias.module,
+                    imports,
+                    aliases,
+                    &mut HashSet::new(),
+                ),
+            },
+        })
+        .collect();
+    Some(CoreExpr::Cast {
+        expr: Box::new(CoreExpr::RecordConstruct {
+            name: canonical.clone(),
+            fields,
+        }),
+        target_type: CoreType::Apply {
+            constructor: canonical,
+            args: type_args.to_vec(),
+        },
+    })
 }
 
 fn transparent_alias_constructor_tag(

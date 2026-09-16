@@ -58,6 +58,7 @@ pub(super) fn infer_type(
             constructor,
             constructor_identity,
             args,
+            ..
         } if super::super::collection_intrinsic_specialization::is_std_map_constructor(
             constructor,
             constructor_identity.as_deref(),
@@ -72,11 +73,12 @@ pub(super) fn infer_type(
         CoreExpr::ConstructorCall {
             constructor,
             constructor_identity,
+            type_args,
             args,
         } => infer_call_type(
             constructor_identity.as_deref().unwrap_or(constructor),
             args,
-            &[],
+            type_args,
             variables,
             templates,
             module,

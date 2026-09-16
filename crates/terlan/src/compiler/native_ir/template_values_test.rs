@@ -148,6 +148,7 @@ fn list_constructor_join_uses_the_same_literal_fragment_lowering() {
     *body(&mut core) = template_call(
         "join",
         vec![CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "std.collections.List.List".to_string(),
             constructor_identity: Some("std.collections.List.List/2".to_string()),
             args: vec![

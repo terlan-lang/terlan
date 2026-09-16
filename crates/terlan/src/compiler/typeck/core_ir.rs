@@ -341,6 +341,9 @@ pub enum CoreExpr {
     ConstructorChain {
         base: String,
         base_constructor_identity: Option<String>,
+        /// Explicit base-constructor arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
         record: Box<CoreExpr>,
     },
@@ -360,6 +363,9 @@ pub enum CoreExpr {
     ConstructorCall {
         constructor: String,
         constructor_identity: Option<String>,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     Call {

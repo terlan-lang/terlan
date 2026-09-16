@@ -3,6 +3,37 @@ use super::*;
 #[path = "empty_mutation.rs"]
 mod empty_mutation;
 
+/// Pushes a retained aggregate witness into its fields before projections can
+/// remove the aggregate. Empty payloads must keep their checked element types.
+pub(super) fn specialize_cast_contents(
+    expr: &mut Box<CoreExpr>,
+    target_type: &CoreType,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    specialize_expected_collection_new(expr, target_type, functions, module);
+    while matches!(expr.as_ref(), CoreExpr::Cast { target_type: inner, .. } if inner == target_type)
+    {
+        let CoreExpr::Cast { expr: inner, .. } =
+            std::mem::replace(expr.as_mut(), CoreExpr::Atom("Unit".to_string()))
+        else {
+            unreachable!("matched cast")
+        };
+        *expr = inner;
+    }
+    if let CoreExpr::List(items) = expr.as_mut() {
+        // The enclosing annotation already owns this list's schema.
+        specialize_elements(items, variables, functions, module);
+    } else if let CoreExpr::RecordConstruct { fields, .. } = expr.as_mut() {
+        for field in fields {
+            specialize_expr(&mut field.value, variables, functions, module);
+        }
+    } else {
+        specialize_expr(expr, variables, functions, module);
+    }
+}
+
 /// Only resolved parameter types may replace an argument's checked witness.
 /// Generic parameters are contextualized by the monomorphizer after unification;
 /// copying their declaration here would erase explicit types such as List[Binary].
@@ -30,7 +61,8 @@ pub(super) fn specialize_expected_collection_new(
     functions: &FunctionTypes,
     module: &str,
 ) {
-    let expected = nominal_type(functions, module, expected).unwrap_or(expected);
+    let resolved = nominal_type(functions, module, expected);
+    let expected = resolved.as_deref().unwrap_or(expected);
     match expr {
         CoreExpr::Binary(_) if matches!(expected, CoreType::Binary | CoreType::String) => {
             let literal = std::mem::replace(expr, CoreExpr::Binary("\"\"".to_string()));
@@ -58,6 +90,7 @@ pub(super) fn specialize_expected_collection_new(
             specialize_expected_collection_new(tail, expected, functions, module);
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -71,6 +104,7 @@ pub(super) fn specialize_expected_collection_new(
             }
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -151,11 +185,11 @@ pub(super) fn specialize_expected_collection_new(
                 {
                     specialize_expected_collection_new(
                         &mut field.value,
-                        expected_field,
+                        &expected_field,
                         functions,
                         module,
                     );
-                    annotate_expected_structural_constructors(&mut field.value, expected_field);
+                    annotate_expected_structural_constructors(&mut field.value, &expected_field);
                 }
             }
         }

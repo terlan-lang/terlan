@@ -119,14 +119,33 @@ pub(super) fn nominal_type<'a>(
     functions: &'a FunctionTypes,
     module: &str,
     ty: &CoreType,
-) -> Option<&'a CoreType> {
-    let CoreType::Named(name) = ty else {
-        return None;
+) -> Option<std::borrow::Cow<'a, CoreType>> {
+    let (name, args) = match ty {
+        CoreType::Named(name) => (name, &[][..]),
+        CoreType::Apply { constructor, args } => (constructor, args.as_slice()),
+        _ => return None,
     };
     let (owner, local) = name.rsplit_once('.').unwrap_or((module, name));
-    functions
-        .get(&(owner.to_string(), nominal_type_key(local), 0))
-        .map(|signature| &signature.result)
+    let signature = functions.get(&(owner.to_string(), nominal_type_key(local), 0))?;
+    if args.is_empty() {
+        return Some(std::borrow::Cow::Borrowed(&signature.result));
+    }
+    if args.len() != signature.generic_params.len() {
+        return None;
+    }
+    let values = signature
+        .generic_params
+        .iter()
+        .cloned()
+        .zip(args.iter().cloned())
+        .collect();
+    Some(std::borrow::Cow::Owned(
+        super::super::generic_specialization::substitute(
+            &signature.result,
+            &signature.generic_params,
+            &values,
+        ),
+    ))
 }
 
 pub(super) fn named_field_type_with_nominals<'a>(
@@ -134,9 +153,10 @@ pub(super) fn named_field_type_with_nominals<'a>(
     name: &str,
     functions: &'a FunctionTypes,
     module: &str,
-) -> Option<&'a CoreType> {
-    named_field_type(ty, name).or_else(|| {
-        nominal_type(functions, module, ty).and_then(|resolved| named_field_type(resolved, name))
+) -> Option<CoreType> {
+    named_field_type(ty, name).cloned().or_else(|| {
+        nominal_type(functions, module, ty)
+            .and_then(|resolved| named_field_type(&resolved, name).cloned())
     })
 }
 

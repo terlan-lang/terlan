@@ -84,7 +84,7 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                 function_types.insert(
                     (core.module.clone(), nominal_type_key(&declaration.name), 0),
                     FunctionSignature {
-                        generic_params: Vec::new(),
+                        generic_params: declaration.params.clone(),
                         params: Vec::new(),
                         result: body,
                     },
@@ -149,11 +149,13 @@ pub(super) fn specialize_expr(
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base_type = specialize_expr(base, variables, functions, module)?;
-            named_field_type_with_nominals(&base_type, field, functions, module).cloned()
+            named_field_type_with_nominals(&base_type, field, functions, module)
         }
         CoreExpr::RecordConstruct { name, fields } => {
             let nominal = CoreType::Named(name.clone());
-            let Some(record_type) = nominal_type(functions, module, &nominal).cloned() else {
+            let Some(record_type) =
+                nominal_type(functions, module, &nominal).map(|ty| ty.into_owned())
+            else {
                 for field in fields {
                     specialize_expr(&mut field.value, variables, functions, module);
                 }
@@ -203,6 +205,7 @@ pub(super) fn specialize_expr(
             module,
         ),
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -221,6 +224,7 @@ pub(super) fn specialize_expr(
             Some(list_type)
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -244,6 +248,7 @@ pub(super) fn specialize_expr(
             Some(set_type)
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -778,12 +783,7 @@ pub(super) fn specialize_expr(
             result
         }
         CoreExpr::Cast { expr, target_type } => {
-            if let CoreExpr::List(items) = expr.as_mut() {
-                // The enclosing annotation already owns this list's schema.
-                specialize_elements(items, variables, functions, module);
-            } else {
-                specialize_expr(expr, variables, functions, module);
-            }
+            expected_new::specialize_cast_contents(expr, target_type, variables, functions, module);
             Some(target_type.clone())
         }
         CoreExpr::UnaryOp { operand, .. } => specialize_expr(operand, variables, functions, module),

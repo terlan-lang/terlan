@@ -140,6 +140,7 @@ fn similarly_named_custom_mutators_cannot_retype_an_initializer() {
         pattern: CorePattern::Var("state".to_string()),
         value: CoreExpr::Cast {
             expr: Box::new(CoreExpr::ConstructorCall {
+                type_args: Vec::new(),
                 constructor: "Store".to_string(),
                 constructor_identity: Some("fixture.Store".to_string()),
                 args: vec![],

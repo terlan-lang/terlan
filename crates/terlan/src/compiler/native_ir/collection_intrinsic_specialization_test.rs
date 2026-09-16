@@ -124,6 +124,7 @@ fn inferred_list_operands_visit_every_element_and_remain_idempotent() {
 fn positional_collections_specialize_later_elements() {
     for constructor in ["std.collections.List.List", "std.collections.Set.Set"] {
         let mut expression = CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: constructor.to_string(),
             constructor_identity: Some(constructor.to_string()),
             args: vec![
@@ -169,6 +170,7 @@ fn expected_option_retargets_an_inferred_variant_cast() {
     };
     let mut expression = CoreExpr::Cast {
         expr: Box::new(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Some".to_string(),
             constructor_identity: Some("std.core.Option.Some".to_string()),
             args: vec![CoreExpr::Binary("value".to_string())],
@@ -202,6 +204,7 @@ fn expected_result_retargets_an_inferred_variant_cast_inside_if() {
             condition: CoreExpr::Atom("true".to_string()),
             body: CoreExpr::Cast {
                 expr: Box::new(CoreExpr::ConstructorCall {
+                    type_args: Vec::new(),
                     constructor: "Ok".to_string(),
                     constructor_identity: Some("std.core.Result.Ok".to_string()),
                     args: vec![CoreExpr::Int(1)],

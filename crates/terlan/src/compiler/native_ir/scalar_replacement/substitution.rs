@@ -96,10 +96,12 @@ fn substitute_expr(
             CoreExpr::Var(alias.clone())
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => CoreExpr::ConstructorCall {
+            type_args: type_args.clone(),
             constructor: constructor.clone(),
             constructor_identity: constructor_identity.clone(),
             args: substitute_args(args, target, named_aliases, indexed_aliases, outcome),

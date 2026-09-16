@@ -476,10 +476,12 @@ fn substitute_projection_parameter(
             })
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => Some(CoreExpr::ConstructorCall {
+            type_args: type_args.clone(),
             constructor: constructor.clone(),
             constructor_identity: constructor_identity.clone(),
             args: substitute_projection_args(args, target, replacement, projections)?,

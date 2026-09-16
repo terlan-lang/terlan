@@ -274,6 +274,13 @@ pub(super) fn infer_native_type_impl(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if matches!(expr.as_ref(), CoreExpr::RecordConstruct { .. }) {
+                return super::super::native_type_with_constructors(
+                    Some(target_type),
+                    &target_type.contract_text(),
+                    constructors?,
+                );
+            }
             if matches!(expr.as_ref(), CoreExpr::Binary(_))
                 && matches!(target_type, CoreType::Binary | CoreType::String)
             {

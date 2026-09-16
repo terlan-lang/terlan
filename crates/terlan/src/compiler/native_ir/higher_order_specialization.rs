@@ -150,10 +150,12 @@ impl HigherOrderSpecializer<'_> {
                 args: self.rewrite_many(args)?,
             }),
             CoreExpr::ConstructorCall {
+                type_args,
                 constructor,
                 constructor_identity,
                 args,
             } => Ok(CoreExpr::ConstructorCall {
+                type_args: type_args.clone(),
                 constructor: constructor.clone(),
                 constructor_identity: constructor_identity.clone(),
                 args: self.rewrite_many(args)?,

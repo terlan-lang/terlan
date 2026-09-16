@@ -20,7 +20,26 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The next local correction normalizes Unit's expanded singleton type inside
+The current constructor correction retains explicit type arguments through CoreIR,
+adapters, defaults, chains and specialization. Transparent tuple payloads keep
+their checked element types; concrete generic structs retain distinct registered
+layouts within the existing specialization budget. Local private type bodies and
+parameters are retained without exporting them through module interfaces.
+The final combined compiler/frontend/backend/artifact run passes 1,683 tests,
+including all 537 NativeIR tests; the existing release-scale std-contract test
+keeps its separate execution owner. Object, Shrink, Gen and Set source suites
+pass 62 tests. Both strict workspace-binary Clippy profiles, the rebuilt quality
+validator, API/module/headroom, fresh dependency-impact and documentation gates
+pass without increased budgets. Near-limit files decrease from 68 to 65, and the
+validator remains 12,003,336 bytes. Evidence uses `constructor-type-` and
+`constructor-private-` in `target/quality/release-diagnostics/`. All seven required
+source-suite failures listed below were rechecked and still fail; none is waived.
+The Range failure now has a minimal escaping-callback repro in
+`range-tail-before.log`: a suspending tail call retains a suspending ordinary call
+inside its arguments. These are local correction results, not candidate-wide
+acceptance; all three checklist items remain open.
+
+The preceding correction normalizes Unit's expanded singleton type inside
 native callback signatures and generic arguments. Collection inference reuses
 the existing closed-variant merge, and closed atom domains have a canonical
 order across alias expansion and inferred lists. All 530 NativeIR tests pass,
@@ -56,10 +75,9 @@ source-suite failures are RangeProperty (suspension composition), RandomProperty
 PropertyDistribution and Property (empty-generator inference), MapTest (empty-map
 receiver inference), IteratorTest (untyped-empty-list inference), and ListTest
 (ambiguous trait resolution). None is waived. All roadmap items remain open.
-Explicit constructor type arguments also still need to survive the Core
-expression boundary; argument/context-based inference is not evidence that this
-separate gap is fixed. The `explicit-constructor-type-before.log` probe reproduces
-the loss with `Items[Int]().length()` despite the explicit element type.
+The earlier explicit-constructor gap is now corrected: the original
+`Items[Int]().length()` source-file probe passes, and linked regressions verify
+distinct Int/String schemas, defaults, imported constructors and private types.
 
 The preceding local collection correction passes all 515 NativeIR tests and all 23
 GenTest tests. Intrinsic-only providers retain their type declarations; collection

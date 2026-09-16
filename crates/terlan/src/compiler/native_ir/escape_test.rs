@@ -79,6 +79,7 @@ fn layouts() -> NativeConstructorLayouts {
 /// Creates one fully resolved constructor call.
 fn constructor(name: &str, argument: CoreExpr) -> CoreExpr {
     CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: name.to_owned(),
         constructor_identity: Some(format!("escape.{name}")),
         args: vec![argument],

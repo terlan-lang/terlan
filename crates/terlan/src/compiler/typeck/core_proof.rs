@@ -576,6 +576,7 @@ fn resolve_constructor_identities_in_core_expr(
             resolve_constructor_identities_in_core_expr(base, constructor_identities);
         }
         CoreExpr::ConstructorChain {
+            type_args: _,
             base,
             base_constructor_identity,
             args,
@@ -590,6 +591,7 @@ fn resolve_constructor_identities_in_core_expr(
             resolve_constructor_identities_in_core_expr(record, constructor_identities);
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,

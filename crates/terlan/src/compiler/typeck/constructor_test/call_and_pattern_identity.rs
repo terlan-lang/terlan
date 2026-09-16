@@ -9,6 +9,52 @@ use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
 };
 
+#[test]
+fn explicit_constructor_arguments_survive_core_serialization_and_contract() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module explicit_constructor_contract.
+pub type Identity[T] = T.
+pub constructor Identity[T] { (value: T): Identity[T] -> value }.
+pub number(): Int -> Identity[Int](42).
+pub text(): String -> Identity[String]("value").
+"#,
+    )
+    .expect("parse explicit constructors");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    for (name, expected, contract) in [
+        ("number", CoreType::Int, "ConstructorCall(Identity[Int];"),
+        (
+            "text",
+            CoreType::String,
+            "ConstructorCall(Identity[String];",
+        ),
+    ] {
+        let body = core
+            .functions
+            .iter()
+            .find(|function| function.name == name)
+            .and_then(|function| function.clauses[0].body.core_expr.as_ref())
+            .expect("constructor body");
+        let CoreExpr::ConstructorCall { type_args, .. } = body else {
+            panic!("{body:?}")
+        };
+        assert_eq!(type_args, &[expected]);
+        let serialized = serde_json::to_string(body).expect("serialize typed constructor");
+        let restored: CoreExpr =
+            serde_json::from_str(&serialized).expect("deserialize typed constructor");
+        assert_eq!(&restored, body);
+        assert!(
+            core.contract_text().contains(contract),
+            "{}",
+            core.contract_text()
+        );
+    }
+}
+
 /// Verifies declared constructor calls carry resolved CoreIR identity.
 ///
 /// Inputs:
@@ -49,6 +95,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -150,6 +197,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("provider.Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -234,6 +282,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("provider.Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -305,6 +354,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -382,6 +432,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("provider.Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -455,6 +506,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: Some("provider.Ok".to_string()),
             args: vec![CoreExpr::Int(1)],
@@ -506,6 +558,7 @@ pub make(): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: None,
             args: vec![CoreExpr::Int(1)],

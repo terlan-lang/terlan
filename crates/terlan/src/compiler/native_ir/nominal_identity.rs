@@ -278,12 +278,14 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
                 .for_each(|field| qualify_expr(&mut field.value, scope));
         }
         CoreExpr::ConstructorChain {
+            type_args,
             base,
             base_constructor_identity,
             args,
             record,
         } => {
             qualify_name(base, scope);
+            type_args.iter_mut().for_each(|ty| qualify_type(ty, scope));
             if let Some(identity) = base_constructor_identity {
                 qualify_name(identity, scope);
             }
@@ -296,14 +298,14 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
         }
         | CoreExpr::Call {
             type_args, args, ..
+        }
+        | CoreExpr::ConstructorCall {
+            type_args, args, ..
         } => {
             type_args.iter_mut().for_each(|ty| qualify_type(ty, scope));
             args.iter_mut()
                 .for_each(|argument| qualify_expr(argument, scope));
         }
-        CoreExpr::ConstructorCall { args, .. } => args
-            .iter_mut()
-            .for_each(|argument| qualify_expr(argument, scope)),
         CoreExpr::MutableReceiverCall { receiver, args, .. } => {
             qualify_expr(receiver, scope);
             args.iter_mut()

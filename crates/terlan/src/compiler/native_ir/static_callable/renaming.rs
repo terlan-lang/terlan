@@ -85,10 +85,12 @@ pub(in super::super) fn rename_free_variables(
             args: rename_many(args, renames, bound),
         },
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => CoreExpr::ConstructorCall {
+            type_args: type_args.clone(),
             constructor: constructor.clone(),
             constructor_identity: constructor_identity.clone(),
             args: rename_many(args, renames, bound),
@@ -136,11 +138,13 @@ pub(in super::super) fn rename_free_variables(
             field: field.clone(),
         },
         CoreExpr::ConstructorChain {
+            type_args,
             base,
             base_constructor_identity,
             args,
             record,
         } => CoreExpr::ConstructorChain {
+            type_args: type_args.clone(),
             base: base.clone(),
             base_constructor_identity: base_constructor_identity.clone(),
             args: rename_many(args, renames, bound),

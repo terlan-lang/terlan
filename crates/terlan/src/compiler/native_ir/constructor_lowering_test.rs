@@ -151,6 +151,7 @@ fn fixed_constructor_calls_lower_to_canonical_managed_native_ir() {
     let modules = [("result", declarations.as_slice())];
     let layouts = native_constructor_layouts(&modules, "result").expect("constructor layouts");
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Ok".to_owned(),
         constructor_identity: Some("result.Ok".to_owned()),
         args: vec![CoreExpr::Int(42)],
@@ -300,6 +301,7 @@ fn unresolved_and_vararg_constructors_are_rejected_without_partial_lowering() {
     assert!(layouts.is_empty());
 
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Missing".to_owned(),
         constructor_identity: None,
         args: vec![CoreExpr::Int(1)],
@@ -322,6 +324,7 @@ fn constructor_lowering_rejects_a_field_that_disagrees_with_checked_layout() {
     let layouts = native_constructor_layouts(&[("result", declarations.as_slice())], "result")
         .expect("constructor layouts");
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Ok".to_owned(),
         constructor_identity: Some("result.Ok".to_owned()),
         args: vec![CoreExpr::Atom("true".to_owned())],

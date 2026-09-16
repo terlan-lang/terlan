@@ -52,6 +52,7 @@ fn layouts() -> NativeConstructorLayouts {
 /// Creates one resolved two-field constructor call.
 fn pair(left: CoreExpr, right: CoreExpr) -> CoreExpr {
     CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Pair".to_owned(),
         constructor_identity: Some("projection.Pair".to_owned()),
         args: vec![left, right],

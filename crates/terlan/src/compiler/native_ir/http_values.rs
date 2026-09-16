@@ -294,6 +294,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         }
         CoreExpr::Var(name) if features.router && name == "Continue" => {
             Ok(CoreExpr::ConstructorCall {
+                type_args: Vec::new(),
                 constructor: format!("{ROUTER_MODULE}.Continue"),
                 constructor_identity: Some(format!("{ROUTER_MODULE}.Continue")),
                 args: Vec::new(),
@@ -301,6 +302,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         }
         CoreExpr::Atom(tag) if features.router && tag == "continue" => {
             Ok(CoreExpr::ConstructorCall {
+                type_args: Vec::new(),
                 constructor: format!("{ROUTER_MODULE}.Continue"),
                 constructor_identity: Some(format!("{ROUTER_MODULE}.Continue")),
                 args: Vec::new(),
@@ -416,6 +418,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             response_call(&function, args)
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity: _,
             args,
@@ -427,6 +430,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         {
             let args = lower_security_constructor_args(args)?;
             Ok(CoreExpr::ConstructorCall {
+                type_args: type_args.clone(),
                 constructor: SECURITY_CONSTRUCTOR.to_string(),
                 constructor_identity: Some(SECURITY_CONSTRUCTOR.to_string()),
                 args,

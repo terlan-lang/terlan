@@ -276,6 +276,7 @@ pub unwrap(input: Dynamic): Dynamic ->\n\
 #[test]
 fn syntax_output_lowering_to_core_constructor_chain_policy_stays_partial_for_identity_states() {
     let unresolved_chain = CoreExpr::ConstructorChain {
+        type_args: Vec::new(),
         base: "User".to_string(),
         base_constructor_identity: None,
         args: vec![CoreExpr::Var("id".to_string())],
@@ -289,6 +290,7 @@ fn syntax_output_lowering_to_core_constructor_chain_policy_stays_partial_for_ide
         }),
     };
     let resolved_chain = CoreExpr::ConstructorChain {
+        type_args: Vec::new(),
         base: "User".to_string(),
         base_constructor_identity: Some("User".to_string()),
         args: vec![CoreExpr::Var("id".to_string())],
@@ -335,6 +337,7 @@ pub make(id: Int, name: Binary): Dynamic ->\n\
         .expect("core make function");
     assert_eq!(function.clauses.len(), 1);
     let Some(CoreExpr::ConstructorChain {
+        type_args: _,
         base,
         base_constructor_identity,
         args,

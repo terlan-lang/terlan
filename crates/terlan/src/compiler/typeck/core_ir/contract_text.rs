@@ -162,9 +162,11 @@ impl CoreExpr {
             CoreExpr::ConstructorChain {
                 base,
                 base_constructor_identity,
+                type_args,
                 args,
                 record,
             } => {
+                let base = format!("{base}{}", call_type_suffix(type_args));
                 let args = args
                     .iter()
                     .map(CoreExpr::contract_text)
@@ -201,8 +203,10 @@ impl CoreExpr {
             CoreExpr::ConstructorCall {
                 constructor,
                 constructor_identity,
+                type_args,
                 args,
             } => {
+                let constructor = format!("{constructor}{}", call_type_suffix(type_args));
                 let args = args
                     .iter()
                     .map(CoreExpr::contract_text)

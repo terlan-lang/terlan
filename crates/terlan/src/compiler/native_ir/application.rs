@@ -38,6 +38,7 @@ mod overloads;
 mod record_forwarders;
 mod remote_calls;
 mod source_constructors;
+mod struct_instances;
 mod structural_patterns;
 mod transparent_aliases;
 
@@ -245,6 +246,7 @@ impl NativeModule {
             super::constructor_chain::lower_constructor_chains(core);
             core.termination = crate::terlan_typeck::analyze_core_termination(core);
         }
+        struct_instances::retain(&mut normalized_cores, &mut specialization_budget)?;
         let ordered_cores = normalized_cores.iter().collect::<Vec<_>>();
         let constructor_modules = ordered_cores
             .iter()

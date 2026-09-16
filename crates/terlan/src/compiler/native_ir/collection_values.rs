@@ -12,10 +12,12 @@ use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePattern, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
+use super::native_type_with_constructors as native_type;
 use super::{
-    infer_native_type_with_constructors, lower_expr_with_constructors, native_type,
-    NativeConstructorLayouts, NativeExpr, NativeType,
+    infer_native_type_with_constructors, lower_expr_with_constructors, NativeConstructorLayouts,
+    NativeExpr, NativeType,
 };
+mod record_values;
 
 #[path = "collection_values/structural_maps.rs"]
 mod structural_maps;
@@ -33,7 +35,19 @@ pub(super) fn lower_boundary_collection_value(
     let Some(expected) = expected else {
         return Ok(None);
     };
-    if let Some(ty) = native_type(Some(expected), &expected.contract_text()) {
+    if matches!(body, CoreExpr::RecordConstruct { .. }) {
+        return record_values::lower(
+            body,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map_err(String::from);
+    }
+    if let Some(ty) = native_type(Some(expected), &expected.contract_text(), constructors) {
         if let Some(value) =
             super::constructors::lower_zero_field_managed_variant(body, ty, constructors)?
         {
@@ -41,8 +55,12 @@ pub(super) fn lower_boundary_collection_value(
         }
     }
     if let CoreExpr::Cast { expr, target_type } = body {
-        let expected_native = native_type(Some(expected), &expected.contract_text());
-        let target_native = native_type(Some(target_type), &target_type.contract_text());
+        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors);
+        let target_native = native_type(
+            Some(target_type),
+            &target_type.contract_text(),
+            constructors,
+        );
         if target_type == expected || expected_native == target_native {
             return lower_boundary_collection_value(
                 expr,
@@ -90,7 +108,7 @@ pub(super) fn lower_boundary_collection_value(
             .enumerate()
             .map(|(index, element)| {
                 let ty = tuple_element_type(element);
-                native_type(Some(ty), &ty.contract_text())
+                native_type(Some(ty), &ty.contract_text(), constructors)
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.union_value_type]: unsupported union field `{}`",
@@ -164,7 +182,7 @@ pub(super) fn lower_boundary_collection_value(
         let fields = element_types
             .iter()
             .map(|ty| {
-                native_type(Some(ty), &ty.contract_text())
+                native_type(Some(ty), &ty.contract_text(), constructors)
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.tuple_value_type]: unsupported tuple field `{}`",
@@ -479,8 +497,8 @@ pub(super) fn lower_typed_value(
         return Ok(lowered);
     }
     if is_general_control_value(value) {
-        let expected_native =
-            native_type(Some(expected), &expected.contract_text()).ok_or_else(|| {
+        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors)
+            .ok_or_else(|| {
                 format!(
                     "error[native_ir.collection_control_type]: `{}` is not native",
                     expected.contract_text()
@@ -543,8 +561,12 @@ pub(super) fn try_lower_typed_value(
         return Ok(None);
     }
     if let CoreExpr::Cast { expr, target_type } = value {
-        let expected_native = native_type(Some(expected), &expected.contract_text());
-        let target_native = native_type(Some(target_type), &target_type.contract_text());
+        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors);
+        let target_native = native_type(
+            Some(target_type),
+            &target_type.contract_text(),
+            constructors,
+        );
         if target_type == expected || expected_native == target_native {
             return try_lower_typed_value(
                 expr,
@@ -591,7 +613,7 @@ pub(super) fn try_lower_typed_value(
             let (binding_type, binding_value) = if let CoreExpr::Cast { target_type, .. } =
                 &binding.value
             {
-                let binding_type = native_type(Some(target_type), &target_type.contract_text())
+                let binding_type = native_type(Some(target_type), &target_type.contract_text(), constructors)
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.typed_let_type]: cast prefix `{name}` has unsupported type `{}`",
@@ -658,6 +680,7 @@ pub(super) fn try_lower_typed_value(
     }
     let none_constructor =
         is_none_option_value(value, expected).then(|| CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "None".to_string(),
             constructor_identity: Some("std.core.Option.None".to_string()),
             args: Vec::new(),
@@ -671,8 +694,8 @@ pub(super) fn try_lower_typed_value(
         structural_value,
         expected,
         |field, field_type| {
-            let ty =
-                native_type(Some(field_type), &field_type.contract_text()).ok_or_else(|| {
+            let ty = native_type(Some(field_type), &field_type.contract_text(), constructors)
+                .ok_or_else(|| {
                     format!(
                         "error[native_ir.collection_constructor_type]: `{}` is not a native field",
                         field_type.contract_text()
@@ -731,8 +754,8 @@ pub(super) fn try_lower_typed_value(
     )? {
         return Ok(Some(value));
     }
-    let expected_native =
-        native_type(Some(expected), &expected.contract_text()).ok_or_else(|| {
+    let expected_native = native_type(Some(expected), &expected.contract_text(), constructors)
+        .ok_or_else(|| {
             format!(
                 "error[native_ir.collection_type]: `{}` is not a native collection field",
                 expected.contract_text()
@@ -784,6 +807,7 @@ fn structural_tagged_tuple_constructor(value: &CoreExpr, expected: &CoreType) ->
         return None;
     };
     Some(CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: tagged_variant_name(tag)?,
         constructor_identity: None,
         args: items.iter().skip(1).cloned().collect(),

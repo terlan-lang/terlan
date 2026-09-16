@@ -517,6 +517,7 @@ fn collect_calls(
             collect_calls(record, caller, providers, calls);
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,

@@ -105,6 +105,7 @@ fn rewrite(
     let CoreExpr::ConstructorCall {
         constructor,
         constructor_identity,
+        type_args,
         args,
     } = expr
     else {
@@ -154,7 +155,7 @@ fn rewrite(
         } else {
             format!("{owner}.{name}")
         },
-        type_args: Vec::new(),
+        type_args: std::mem::take(type_args),
         args: std::mem::take(args),
     };
     Ok(())
@@ -190,7 +191,12 @@ fn adapter(
                 pattern: CorePattern::Var(parameter.name.clone()),
                 value: CoreExpr::Call {
                     function: default.clone(),
-                    type_args: Vec::new(),
+                    type_args: body
+                        .generic_params
+                        .iter()
+                        .cloned()
+                        .map(CoreType::Named)
+                        .collect(),
                     args: arguments.clone(),
                 },
             });
@@ -211,7 +217,12 @@ fn adapter(
     }
     let call = CoreExpr::Call {
         function: implementation.function.clone(),
-        type_args: Vec::new(),
+        type_args: body
+            .generic_params
+            .iter()
+            .cloned()
+            .map(CoreType::Named)
+            .collect(),
         args: arguments,
     };
     let expression = if bindings.is_empty() {

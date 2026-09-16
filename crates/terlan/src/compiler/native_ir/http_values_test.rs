@@ -119,6 +119,7 @@ fn middleware_continue_atom_lowers_to_the_compiler_owned_constructor() {
     assert_eq!(
         body(&mut core),
         &CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "std.http.Router.Continue".to_string(),
             constructor_identity: Some("std.http.Router.Continue".to_string()),
             args: Vec::new(),
@@ -797,6 +798,7 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
 
     let mut core = http_core();
     *body(&mut core) = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "std.http.Response.SecurityHeaders".to_string(),
         constructor_identity: None,
         args: vec![
@@ -822,6 +824,7 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
 fn typed_security_policy_rejects_unknown_marker() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "SecurityHeaders".to_string(),
         constructor_identity: None,
         args: vec![

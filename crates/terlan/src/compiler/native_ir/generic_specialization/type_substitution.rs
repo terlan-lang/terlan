@@ -68,13 +68,15 @@ fn substitute_expr_types(
         }
         | CoreExpr::Call {
             type_args, args, ..
+        }
+        | CoreExpr::ConstructorCall {
+            type_args, args, ..
         } => {
             for ty in type_args {
                 *ty = substitute(ty, parameters, values);
             }
             substitute_many(args, parameters, values);
         }
-        CoreExpr::ConstructorCall { args, .. } => substitute_many(args, parameters, values),
         CoreExpr::MutableReceiverCall { receiver, args, .. }
         | CoreExpr::FunctionCall {
             callee: receiver,
@@ -184,7 +186,15 @@ fn substitute_expr_types(
         CoreExpr::SqlQuery {
             parameters: query, ..
         } => substitute_many(query, parameters, values),
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            for ty in type_args {
+                *ty = substitute(ty, parameters, values);
+            }
             substitute_many(args, parameters, values);
             substitute_expr_types(record, parameters, values);
         }

@@ -18,6 +18,7 @@ fn rewrite(expr: &mut CoreExpr, ordinal: &mut usize) {
     let CoreExpr::ConstructorChain {
         base,
         base_constructor_identity,
+        type_args,
         args,
         record,
     } = expr
@@ -27,6 +28,7 @@ fn rewrite(expr: &mut CoreExpr, ordinal: &mut usize) {
     let base_value = CoreExpr::ConstructorCall {
         constructor: base.clone(),
         constructor_identity: base_constructor_identity.clone(),
+        type_args: std::mem::take(type_args),
         args: std::mem::take(args),
     };
     let binding = format!("$native_constructor_chain_{}", *ordinal);
