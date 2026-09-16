@@ -448,8 +448,10 @@ fn lower_escaping_lambda_at(
             "error[native_ir.closure_signature]: escaping lambda has an unsupported result"
                 .to_string()
         })?;
-    let suspending_tail = closure_tail_call(lambda_body)
-        .is_some_and(|(function, args)| suspending.contains(&(function.clone(), args.len())));
+    let suspending_tail = closure_tail_call(lambda_body).is_some_and(|(function, args)| {
+        suspending.contains(&(function.clone(), args.len()))
+            && super::application_calls::arguments_are_non_suspending(args, suspending)
+    });
     let needs_control = contains_process_yield(lambda_body)
         || (expr_calls_suspending(lambda_body, suspending) && !suspending_tail);
     if needs_control && yields.environment.is_none() {

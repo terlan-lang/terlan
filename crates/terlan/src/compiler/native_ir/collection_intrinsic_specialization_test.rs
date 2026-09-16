@@ -11,7 +11,7 @@ fn contextual_collection_receivers_execute_without_unqualified_method_fallback()
     let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
         r#"
 module collection_callback.
-import std.collections.{List, Map}.
+import std.collections.{List, Map, Set}.
 import std.core.Option.{Some, None}.
 apply[T](value: T, predicate: (T) -> Bool): Bool -> predicate(value).
 size(value: Int): Int -> value + 100.
@@ -38,6 +38,19 @@ pub take_callback(): Bool -> apply("key", (key) ->
     }).
 pub duplicate_callback(): Bool -> apply("key", (key) ->
     let state = Map({key, 1}, {key, 2}); state.size() == 1 and state.get(key) == Some(2)).
+pub from_entries(): Bool ->
+    let entries = List({"key", 1});
+    let state = Map.from_entries(entries);
+    state.size() == 1 and state.get("key") == Some(1).
+entries[T](value: T): List[T] -> [value].
+pub from_generic_entries(): Bool ->
+    let values = entries({"key", 1});
+    let state = Map.from_entries(values);
+    state.size() == 1 and state.get("key") == Some(1).
+pub set_from_generic_values(): Bool ->
+    let values = entries("key");
+    let state = Set.from_list(values);
+    state.size() == 1 and state.contains("key").
 "#,
     )
     .expect("parse collection receiver callbacks");
@@ -61,6 +74,9 @@ pub duplicate_callback(): Bool -> apply("key", (key) ->
         ("empty_mutation", 1),
         ("take_callback", 1),
         ("duplicate_callback", 1),
+        ("from_entries", 1),
+        ("from_generic_entries", 1),
+        ("set_from_generic_values", 1),
     ]
     .map(|(name, expected)| {
         let function = modules

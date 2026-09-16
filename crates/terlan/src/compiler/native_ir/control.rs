@@ -152,10 +152,7 @@ pub(super) fn lower_owned_expr_with_yields(
         let identity = (function.clone(), args.len());
         if suspending_functions.contains(&identity)
             && completion.is_none()
-            && args.iter().all(|argument| {
-                !expr_calls_suspending(argument, suspending_functions)
-                    && !contains_process_yield(argument)
-            })
+            && super::application_calls::arguments_are_non_suspending(args, suspending_functions)
         {
             let function = functions.get(&identity).copied().ok_or_else(|| {
                 format!(

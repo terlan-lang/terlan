@@ -117,6 +117,26 @@ pub(super) fn infer_type(
                 &receiver, "take", call.args.len(),
             ).map(|(_, result)| result)
         }
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(
+                    CorePrimitiveIntrinsic::MapFromEntries | CorePrimitiveIntrinsic::SetFromList
+                )
+            ) =>
+        {
+            let inferred = if let CoreIntrinsicId::Primitive(intrinsic) = &call.id {
+                call.args.first().and_then(|argument| {
+                    let operand = infer_type(argument, variables, templates, module)?;
+                    super::super::collection_intrinsic_specialization::receiver_intrinsics::collection_from_list_type(
+                        intrinsic, &operand,
+                    )
+                })
+            } else {
+                None
+            };
+            inferred.or_else(|| Some(call.return_type.clone()))
+        }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::RemoteCall {
             module: owner,

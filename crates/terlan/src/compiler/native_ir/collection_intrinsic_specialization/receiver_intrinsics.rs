@@ -1,5 +1,28 @@
 use super::*;
 
+/// Derives a bulk constructor's schema from its checked list operand, including
+/// lists returned by generic source callables rather than only list literals.
+pub(in crate::compiler::native_ir) fn collection_from_list_type(
+    intrinsic: &CorePrimitiveIntrinsic,
+    operand: &CoreType,
+) -> Option<CoreType> {
+    let element = list_element(operand)?;
+    match intrinsic {
+        CorePrimitiveIntrinsic::MapFromEntries => {
+            let (key, value) = tuple_elements(element)?;
+            Some(CoreType::Apply {
+                constructor: "Map".to_string(),
+                args: vec![key.clone(), value.clone()],
+            })
+        }
+        CorePrimitiveIntrinsic::SetFromList => Some(CoreType::Apply {
+            constructor: "Set".to_string(),
+            args: vec![element.clone()],
+        }),
+        _ => None,
+    }
+}
+
 /// Resolves a typed receiver through the same contracts in every specialization pass.
 pub(in crate::compiler::native_ir) fn typed_receiver_intrinsic(
     receiver: &CoreType,

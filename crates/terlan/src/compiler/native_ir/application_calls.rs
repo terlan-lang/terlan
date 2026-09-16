@@ -6,6 +6,17 @@ use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern};
 
 use super::{condition_yield_region_at_depth, expr_is_scalar, YieldRegion};
 
+/// Tail-call fast paths may lower arguments directly only when evaluating them
+/// cannot suspend. Otherwise their eager evaluation needs continuation lowering.
+pub(super) fn arguments_are_non_suspending(
+    args: &[CoreExpr],
+    suspending: &HashSet<(String, usize)>,
+) -> bool {
+    args.iter().all(|argument| {
+        !expr_calls_suspending(argument, suspending) && !super::contains_process_yield(argument)
+    })
+}
+
 /// Extracts the first suspending argument while preserving eager prefix order.
 pub(super) fn eager_argument_yield(
     args: &[CoreExpr],

@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-16. Baseline: 0.0.8 is published.
+Updated: 2026-09-17. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -20,7 +20,25 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The current constructor correction retains explicit type arguments through CoreIR,
+The current correction composes suspending arguments before an escaping callback's
+tail call, using the same fast-path predicate as ordinary call lowering. Linked
+execution covers nested calls and a managed list surviving multiple suspensions.
+Bulk Map/Set construction now derives its schema from a generic source callable's
+checked list result before receiver resolution; both specialization passes share
+that derivation. All 537 NativeIR tests pass. RangeProperty now passes both tests,
+and 12 Map tests, ten Set API/property tests and 23 Gen tests pass (47 source tests).
+Both strict workspace-binary Clippy profiles, API/module/headroom, refreshed
+dependency-impact and documentation checks pass with unchanged budgets. The rebuilt
+validator remains 12,003,336 bytes.
+The full Map suite still rejects its unconstrained-empty-map test. The six remaining
+required failures are RandomProperty (native adapter routing), PropertyDistribution
+and Property (empty-generator inference), MapTest (unconstrained-empty-map inference),
+IteratorTest (untyped-empty-list inference), and ListTest (ambiguous trait resolution).
+Logs use `range-tail-`, `map-generic-entries-` and `range-map-` under
+`target/quality/release-diagnostics/`. These are scoped local correction results,
+not candidate-wide acceptance; all three checklist items remain open.
+
+The preceding constructor correction retains explicit type arguments through CoreIR,
 adapters, defaults, chains and specialization. Transparent tuple payloads keep
 their checked element types; concrete generic structs retain distinct registered
 layouts within the existing specialization budget. Local private type bodies and
@@ -33,8 +51,8 @@ validator, API/module/headroom, fresh dependency-impact and documentation gates
 pass without increased budgets. Near-limit files decrease from 68 to 65, and the
 validator remains 12,003,336 bytes. Evidence uses `constructor-type-` and
 `constructor-private-` in `target/quality/release-diagnostics/`. All seven required
-source-suite failures listed below were rechecked and still fail; none is waived.
-The Range failure now has a minimal escaping-callback repro in
+source-suite failures listed below were rechecked at that checkpoint; none was waived.
+The Range failure had a minimal escaping-callback repro in
 `range-tail-before.log`: a suspending tail call retains a suspending ordinary call
 inside its arguments. These are local correction results, not candidate-wide
 acceptance; all three checklist items remain open.

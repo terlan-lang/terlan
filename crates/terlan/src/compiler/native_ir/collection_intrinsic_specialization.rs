@@ -635,19 +635,8 @@ pub(super) fn specialize_expr(
                             | CorePrimitiveIntrinsic::ListClear => list.clone(),
                             _ => call.return_type.clone(),
                         };
-                        if *intrinsic == CorePrimitiveIntrinsic::MapFromEntries {
-                            if let Some((key, value)) = tuple_elements(element) {
-                                call.return_type = CoreType::Apply {
-                                    constructor: "Map".to_string(),
-                                    args: vec![key.clone(), value.clone()],
-                                };
-                            }
-                        }
-                        if *intrinsic == CorePrimitiveIntrinsic::SetFromList {
-                            call.return_type = CoreType::Apply {
-                                constructor: "Set".to_string(),
-                                args: vec![element.clone()],
-                            };
+                        if let Some(result) = collection_from_list_type(intrinsic, list) {
+                            call.return_type = result;
                         }
                     }
                 }
