@@ -124,11 +124,12 @@ impl StaticCallableNormalizer<'_> {
                 })
             }
             CoreExpr::Map(fields) => Ok(CoreExpr::Map(self.rewrite_map_fields(fields, callables)?)),
-            CoreExpr::Call { function, args } if callables.contains_key(function) => {
+            CoreExpr::Call { function, args, .. } if callables.contains_key(function) => {
                 self.reserve_static_expansion()?;
                 self.rewrite_function_call(&CoreExpr::Var(function.clone()), args, callables)
             }
-            CoreExpr::Call { function, args } => Ok(CoreExpr::Call {
+            CoreExpr::Call { function, args, .. } => Ok(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: function.clone(),
                 args: self.rewrite_many(args, callables)?,
             }),
@@ -136,7 +137,9 @@ impl StaticCallableNormalizer<'_> {
                 module,
                 function,
                 args,
+                ..
             } => Ok(CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: module.clone(),
                 function: function.clone(),
                 args: self.rewrite_many(args, callables)?,
@@ -429,7 +432,11 @@ impl StaticCallableNormalizer<'_> {
                 if arity != args.len() {
                     return Err(static_arity_error(arity, args.len()));
                 }
-                Ok(CoreExpr::Call { function, args })
+                Ok(CoreExpr::Call {
+                    type_args: Vec::new(),
+                    function,
+                    args,
+                })
             }
             StaticCallable::Lambda { params, body, .. } => {
                 if params.len() != args.len() {

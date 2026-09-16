@@ -115,9 +115,11 @@ fn replace_nested(
                 }
             }
         }
-        CoreExpr::Call { function, args }
-            if function == "IndexGet.get_at" && matches!(args.as_slice(), [_, _]) =>
-        {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } if function == "IndexGet.get_at" && matches!(args.as_slice(), [_, _]) => {
             let base = replace_nested(&args[0], layouts, ordinal);
             let index = replace_nested(&args[1], layouts, ordinal);
             if direct_fixed_index(&base, &index).is_some() {
@@ -128,6 +130,7 @@ fn replace_nested(
                         value: base,
                     }],
                     CoreExpr::Call {
+                        type_args: type_args.clone(),
                         function: function.clone(),
                         args: vec![CoreExpr::Var(source), index],
                     },
@@ -136,12 +139,18 @@ fn replace_nested(
                 )
             } else {
                 CoreExpr::Call {
+                    type_args: type_args.clone(),
                     function: function.clone(),
                     args: vec![base, index],
                 }
             }
         }
-        CoreExpr::Call { function, args } => CoreExpr::Call {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => CoreExpr::Call {
+            type_args: type_args.clone(),
             function: function.clone(),
             args: args
                 .iter()

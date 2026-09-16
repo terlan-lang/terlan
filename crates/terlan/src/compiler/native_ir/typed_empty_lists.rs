@@ -82,7 +82,7 @@ pub(super) fn annotate_empty_list_arguments(cores: &mut [CoreModule]) {
 
 pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), Signature>) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             args.iter_mut().for_each(|arg| annotate(arg, resolver));
             if let Some(parameters) = resolver.get(&(function.clone(), args.len())) {
                 for (argument, expected) in args.iter_mut().zip(parameters) {

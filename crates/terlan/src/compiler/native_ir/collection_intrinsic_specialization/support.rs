@@ -1,5 +1,18 @@
 use super::*;
 
+/// Persist collection types inferred from callable signatures. The final schema
+/// inventory cannot reconstruct a list element's type from a call name alone.
+pub(super) fn preserve_inferred_list_type(
+    expr: &mut CoreExpr,
+    ty: &CoreType,
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    if super::super::collections::managed_collection_layouts([ty]).is_ok() {
+        specialize_expected_collection_new(expr, ty, functions, module);
+    }
+}
+
 /// Visits every checked homogeneous element while retaining its first type
 /// witness. Finding that witness must not skip normalization of later items.
 pub(super) fn specialize_elements(

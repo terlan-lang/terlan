@@ -176,6 +176,7 @@ fn eager_case_operands_capture_scalar_siblings_in_source_order() {
     for binary in [false, true] {
         let mut module = core("module eager_case.\npub answer(): Int -> 0.\n");
         let first = CoreExpr::Call {
+            type_args: Vec::new(),
             function: "first".into(),
             args: vec![],
         };
@@ -187,11 +188,13 @@ fn eager_case_operands_capture_scalar_siblings_in_source_order() {
             }
         } else {
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "consume".into(),
                 args: vec![
                     first,
                     structured_operand(),
                     CoreExpr::Call {
+                        type_args: Vec::new(),
                         function: "last".into(),
                         args: vec![],
                     },
@@ -223,6 +226,7 @@ fn eager_case_operands_stay_inside_short_circuit_branch() {
         operator: "and".into(),
         left: Box::new(CoreExpr::Atom("false".into())),
         right: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "consume".into(),
             args: vec![structured_operand()],
         }),
@@ -308,7 +312,7 @@ fn function_body_mut<'a>(core: &'a mut CoreModule, name: &str) -> &'a mut CoreEx
 /// Counts calls to one local function in the lowered scalar expression subset.
 fn count_calls(expr: &CoreExpr, expected: &str) -> usize {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             usize::from(function == expected)
                 + args
                     .iter()
@@ -343,6 +347,7 @@ fn contains_managed_call(expr: &CoreExpr, expected: &str) -> bool {
             module,
             function,
             args,
+            ..
         } => {
             (module == "$terlan.managed.http" && function == expected)
                 || args

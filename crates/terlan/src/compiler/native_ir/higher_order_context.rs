@@ -79,7 +79,7 @@ impl ContextSpecializer<'_> {
 
     fn rewrite(&mut self, expr: &mut CoreExpr) -> Result<(), BoundaryError> {
         match expr {
-            CoreExpr::Call { function, args } => {
+            CoreExpr::Call { function, args, .. } => {
                 for argument in args.iter_mut() {
                     self.rewrite(argument)?;
                 }

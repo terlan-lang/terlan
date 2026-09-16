@@ -26,11 +26,15 @@ where
     F: Fn(&str, usize) -> bool,
 {
     match expr {
-        CoreExpr::Call { function, args }
-            if is_composable(function, args.len())
-                && args.iter().all(|arg| {
-                    !expr_calls_suspending(arg, suspending) && !contains_process_yield(arg)
-                }) =>
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } if type_args.is_empty()
+            && is_composable(function, args.len())
+            && args.iter().all(|arg| {
+                !expr_calls_suspending(arg, suspending) && !contains_process_yield(arg)
+            }) =>
         {
             Some(CallRegion {
                 prefix: Vec::new(),
@@ -57,10 +61,13 @@ where
                 join: None,
             })
         }
-        CoreExpr::Call { function, args }
-            if (!suspending.contains(&(function.clone(), args.len()))
-                || is_composable(function, args.len()))
-                && !args.is_empty() =>
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } if (!suspending.contains(&(function.clone(), args.len()))
+            || is_composable(function, args.len()))
+            && !args.is_empty() =>
         {
             for (call_index, arg) in args.iter().enumerate() {
                 let Some(mut region) =
@@ -93,6 +100,7 @@ where
                     let mut args = resumed_args.clone();
                     args[call_index] = resume;
                     CoreExpr::Call {
+                        type_args: type_args.clone(),
                         function: function.clone(),
                         args,
                     }
@@ -104,6 +112,7 @@ where
             module,
             function,
             args,
+            type_args,
         } if !args.is_empty() => {
             for (call_index, arg) in args.iter().enumerate() {
                 let Some(mut region) =
@@ -136,6 +145,7 @@ where
                     let mut args = resumed_args.clone();
                     args[call_index] = resume;
                     CoreExpr::RemoteCall {
+                        type_args: type_args.clone(),
                         module: module.clone(),
                         function: function.clone(),
                         args,

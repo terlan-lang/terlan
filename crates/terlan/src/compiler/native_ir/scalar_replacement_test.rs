@@ -279,10 +279,12 @@ fn projected_fields_preserve_effectful_evaluation_once() {
             pattern: CorePattern::Var("pair".to_owned()),
             value: pair(
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "left_value".to_owned(),
                     args: Vec::new(),
                 },
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "right_value".to_owned(),
                     args: Vec::new(),
                 },
@@ -459,6 +461,7 @@ fn aggregate_use_before_destructuring_blocks_local_replacement() {
         CoreLetBinding {
             pattern: CorePattern::Var("observed".to_owned()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "observe".to_owned(),
                 args: vec![CoreExpr::Var("pair".to_owned())],
             },
@@ -530,6 +533,7 @@ fn tuple_wildcard_keeps_source_evaluation_order() {
             ]),
             value: CoreExpr::Tuple(vec![
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "observe_left".to_owned(),
                     args: Vec::new(),
                 },

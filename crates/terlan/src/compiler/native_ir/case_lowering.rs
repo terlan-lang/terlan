@@ -740,6 +740,7 @@ fn scalar_pattern_plan(
         }
         CorePattern::String(value) => Ok(ScalarPatternPlan {
             predicate: Some(CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "$terlan.managed.http".to_string(),
                 function: "string_equal".to_string(),
                 args: vec![

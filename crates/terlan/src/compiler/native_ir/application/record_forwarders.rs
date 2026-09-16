@@ -118,7 +118,7 @@ fn rewrite(
     forwarders: &HashMap<(String, String, usize), DirectForwarder>,
 ) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for arg in args.iter_mut() {
                 rewrite(arg, module, forwarders);
             }

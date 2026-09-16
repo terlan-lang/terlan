@@ -108,6 +108,7 @@ pub(super) fn infer_type(
             module: owner,
             function,
             args,
+            ..
         } if owner == "__receiver__" => {
             let receiver = infer_type(args.first()?, variables, templates, module)?;
             super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
@@ -140,7 +141,7 @@ pub(super) fn infer_type(
             infer_type(expr, variables, templates, module)
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function.rsplit('.').next() == Some("unwrap") && args.len() == 1 =>
         {
             match infer_type(&args[0], variables, templates, module)? {
@@ -152,7 +153,7 @@ pub(super) fn infer_type(
                 _ => None,
             }
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(variables.get(function), Some(CoreType::Arrow { .. })) =>
         {
             let CoreType::Arrow {
@@ -164,14 +165,20 @@ pub(super) fn infer_type(
             };
             (params.len() == args.len()).then(|| return_type.as_ref().clone())
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            type_args,
+            function,
+            args,
+        } => {
             let candidates = callable_templates(templates, module, function, args.len())?;
             let mut matched_return = None;
             for template in candidates {
-                let mut values = HashMap::new();
-                let Ok(argument_types) =
-                    infer_generic_argument_types(template, args, variables, templates, module)
-                else {
+                let Ok(mut values) = explicit_type_bindings(template, type_args) else {
+                    continue;
+                };
+                let Ok(argument_types) = infer_generic_argument_types(
+                    template, args, type_args, variables, templates, module,
+                ) else {
                     continue;
                 };
                 if template
@@ -327,11 +334,12 @@ fn infer_generic_argument_type(
 pub(super) fn infer_generic_argument_types(
     template: &CoreFunction,
     arguments: &[CoreExpr],
+    type_args: &[CoreType],
     variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
     module: &str,
 ) -> Result<Vec<CoreType>, String> {
-    let mut substitution = HashMap::new();
+    let mut substitution = explicit_type_bindings(template, type_args)?;
     let mut concrete = vec![None; arguments.len()];
 
     // Function values carry more type information than literals and
@@ -423,6 +431,31 @@ pub(super) fn infer_generic_argument_types(
         .into_iter()
         .collect::<Option<Vec<_>>>()
         .ok_or_else(|| "error[native_ir.generic_argument]: incomplete inference".to_string())
+}
+
+/// Binds declaration-order type arguments before contextual argument inference.
+pub(super) fn explicit_type_bindings(
+    template: &CoreFunction,
+    type_args: &[CoreType],
+) -> super::super::NativeIrResult<HashMap<String, CoreType>> {
+    if type_args.is_empty() {
+        return Ok(HashMap::new());
+    }
+    if type_args.len() != template.generic_params.len() {
+        return Err(format!(
+            "error[native_ir.generic_arity]: `{}` expects {} type arguments, found {}",
+            template.name,
+            template.generic_params.len(),
+            type_args.len(),
+        )
+        .into());
+    }
+    Ok(template
+        .generic_params
+        .iter()
+        .cloned()
+        .zip(type_args.iter().cloned())
+        .collect())
 }
 
 fn named_field_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {

@@ -141,7 +141,9 @@ fn validate_expr_calls(
             return;
         }
         result = match expression {
-            CoreExpr::Call { function, args } => validate_call(function, args.len(), caller, cores),
+            CoreExpr::Call { function, args, .. } => {
+                validate_call(function, args.len(), caller, cores)
+            }
             CoreExpr::RemoteFunRef {
                 module,
                 function,

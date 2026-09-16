@@ -13,6 +13,7 @@ fn completed_effect_guards_unwrap_succeed_and_preserve_pure_filters() {
     };
     let mut guards = vec![
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "std.core.Effect.succeed".to_string(),
             args: vec![CoreExpr::Atom("true".to_string())],
         },
@@ -30,6 +31,7 @@ fn completed_effect_guards_unwrap_succeed_and_preserve_pure_filters() {
 #[test]
 fn deferred_effect_guard_is_a_loud_native_boundary() {
     let mut guards = vec![CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.core.Effect.flat_map".to_string(),
         args: Vec::new(),
     }];
@@ -55,6 +57,7 @@ fn failed_and_cancelled_guards_keep_distinct_vm_diagnostics() {
         ),
     ] {
         let mut guards = vec![CoreExpr::Call {
+            type_args: Vec::new(),
             function: function.to_string(),
             args: Vec::new(),
         }];
@@ -100,10 +103,12 @@ fn completed_guard_results_lower_to_native_boolean_decisions() {
     };
     let mut guards = vec![
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "std.core.GuardResult.from_bool".to_string(),
             args: vec![decision.clone()],
         },
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "std.core.GuardResult.reject".to_string(),
             args: Vec::new(),
         },
@@ -117,13 +122,16 @@ fn completed_guard_results_lower_to_native_boolean_decisions() {
 #[test]
 fn completed_guard_result_combinators_preserve_boolean_structure() {
     let mut guards = vec![CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.core.GuardResult.both".to_string(),
         args: vec![
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "std.core.GuardResult.accept".to_string(),
                 args: Vec::new(),
             },
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "std.core.GuardResult.reject".to_string(),
                 args: Vec::new(),
             },

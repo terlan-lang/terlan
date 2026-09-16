@@ -138,6 +138,7 @@ fn resolve_expr(
                 let mut call_args = vec![receiver];
                 call_args.append(args);
                 *expr = CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: if target.module == module {
                         target.function.clone()
                     } else {
@@ -148,6 +149,7 @@ fn resolve_expr(
             }
         }
         CoreExpr::RemoteCall {
+            type_args,
             module: receiver_module,
             function,
             args,
@@ -163,6 +165,7 @@ fn resolve_expr(
                 });
             if let Some(target) = target {
                 *expr = CoreExpr::Call {
+                    type_args: std::mem::take(type_args),
                     function: callable_identity(target, module),
                     args: std::mem::take(args),
                 };
@@ -180,7 +183,7 @@ fn resolve_expr(
             }
             resolve_expr(body, module, &locals, functions, targets)?;
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for argument in args.iter_mut() {
                 resolve_expr(argument, module, variables, functions, targets)?;
             }
@@ -417,13 +420,14 @@ fn infer_core_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).cloned()
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } => functions
             .get(&(format!("{module}.{function}"), args.len()))
             .cloned(),

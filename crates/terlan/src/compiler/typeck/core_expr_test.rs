@@ -24,6 +24,7 @@ pub call_remote(): Int ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "math".to_string(),
             function: "inc".to_string(),
             args: vec![CoreExpr::Int(1)],
@@ -372,6 +373,7 @@ pub first(values: List[Int]): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "IndexGet.get_at".to_string(),
             args: vec![CoreExpr::Var("values".to_string()), CoreExpr::Int(0)],
         })
@@ -410,6 +412,7 @@ pub update(values: List[Int]): Dynamic ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "IndexSet.set_at".to_string(),
             args: vec![
                 CoreExpr::Var("values".to_string()),

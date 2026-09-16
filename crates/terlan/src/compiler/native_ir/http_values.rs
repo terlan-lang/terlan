@@ -36,7 +36,9 @@ use body_json::{
     body_json_layouts, body_json_operation_type, lower_body_json_case,
     lower_managed_body_json_operation,
 };
-use core_helpers::{bool_expr, core_string_runtime_value, managed_http_call};
+use core_helpers::{
+    bool_expr, core_string_runtime_value, managed_http_call, managed_string_concat,
+};
 use error::{error_call, error_method_arity, error_operation_type, lower_error_operation};
 use layout::{
     cookie_jar_descriptor, encoded_descriptor, http_error_descriptor, imports,
@@ -258,19 +260,23 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         } if operator == "+" && is_managed_string_expr(&left) && is_managed_string_expr(&right) => {
             Ok(managed_string_concat(*left, *right))
         }
-        CoreExpr::Call { function, args }
-            if function == "std.core.Option.with_default" && args.len() == 2 =>
-        {
+        CoreExpr::Call {
+            type_args,
+            function,
+            args,
+        } if function == "std.core.Option.with_default" && args.len() == 2 => {
             let mut args = args.into_iter();
             let option = args.next().expect("checked option argument");
             let default = args.next().expect("checked default argument");
             let lowered = lower_request_option_default(&option, default.clone())?;
             Ok(lowered.unwrap_or(CoreExpr::Call {
+                type_args,
                 function,
                 args: vec![option, default],
             }))
         }
         CoreExpr::RemoteCall {
+            type_args,
             module,
             function,
             args,
@@ -280,6 +286,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             let default = args.next().expect("checked default argument");
             let lowered = lower_request_option_default(&option, default.clone())?;
             Ok(lowered.unwrap_or(CoreExpr::RemoteCall {
+                type_args,
                 module,
                 function,
                 args: vec![option, default],
@@ -303,6 +310,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if module == "__receiver__" && jar_method_arity(&function, args.len(), &args) => {
             jar_receiver_call(&function, args)
         }
@@ -310,6 +318,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if module == "__receiver__" && response_method_arity(&function, args.len()) => {
             response_receiver_call(&function, args)
         }
@@ -317,6 +326,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if features.error
             && module == "__receiver__"
             && error_method_arity(&function, args.len()) =>
@@ -327,6 +337,7 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if module == "__receiver__"
             && matches!(
                 (function.as_str(), args.len()),
@@ -342,16 +353,19 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if features.request && module == "__receiver__" => request_accessor(&function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if features.request && module == REQUEST_MODULE => request_accessor(&function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == RESPONSE_MODULE && response_method_arity(&function, args.len()) => {
             response_receiver_call(&function, args)
         }
@@ -359,18 +373,21 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             module,
             function,
             args,
+            ..
         } if module == RESPONSE_MODULE => response_call(&function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == COOKIES_MODULE => cookie_call(&function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == ERROR_MODULE => error_call(&function, args),
-        CoreExpr::Call { function, args } if function.starts_with(RESPONSE_MODULE) => {
+        CoreExpr::Call { function, args, .. } if function.starts_with(RESPONSE_MODULE) => {
             let name = function
                 .strip_prefix(RESPONSE_MODULE)
                 .and_then(|value| value.strip_prefix('.'))
@@ -380,14 +397,14 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
             }
             response_call(name, args)
         }
-        CoreExpr::Call { function, args } if function.starts_with(REQUEST_MODULE) => {
+        CoreExpr::Call { function, args, .. } if function.starts_with(REQUEST_MODULE) => {
             let name = function
                 .strip_prefix(REQUEST_MODULE)
                 .and_then(|value| value.strip_prefix('.'))
                 .unwrap_or(&function);
             request_accessor(name, args)
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(
                 (function.as_str(), args.len()),
                 (
@@ -432,33 +449,6 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
 }
 
 /// Flattens associative managed-string append trees into one allocation.
-fn managed_string_concat(left: CoreExpr, right: CoreExpr) -> CoreExpr {
-    fn append_args(expr: CoreExpr, output: &mut Vec<CoreExpr>) {
-        match expr {
-            CoreExpr::RemoteCall {
-                module,
-                function,
-                args,
-            } if module == MANAGED_HTTP_MODULE
-                && matches!(function.as_str(), "string_append" | "string_concat") =>
-            {
-                output.extend(args);
-            }
-            expr => output.push(expr),
-        }
-    }
-
-    let mut args = Vec::new();
-    append_args(left, &mut args);
-    append_args(right, &mut args);
-    let function = if args.len() == 2 {
-        "string_append"
-    } else {
-        "string_concat"
-    };
-    managed_http_call(function, args)
-}
-
 /// Separates a receiver argument before applying normal response mutation lowering.
 fn response_receiver_call(method: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
     if args.is_empty() {
@@ -482,6 +472,7 @@ fn jar_receiver_call(method: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, 
     let receiver = args.remove(0);
     if method == "get" {
         return Ok(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: MANAGED_HTTP_MODULE.to_string(),
             function: "jar_get".to_string(),
             args: [vec![receiver], args].concat(),
@@ -514,12 +505,14 @@ fn request_accessor(function: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, Str
     );
     if !supported {
         return Ok(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: function.to_string(),
             args,
         });
     }
     Ok(CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_HTTP_MODULE.to_string(),
         function: function.to_string(),
         args,
@@ -535,6 +528,7 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return None;
@@ -594,6 +588,7 @@ pub(super) fn lower_managed_http_operation(
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return Ok(None);
@@ -657,6 +652,7 @@ pub(super) fn lower_managed_http_operation(
             module,
             function,
             args: projection_args,
+            ..
         } = &args[1]
         {
             if module == MANAGED_HTTP_MODULE

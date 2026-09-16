@@ -338,6 +338,7 @@ fn managed_content_equality_is_not_lowered_as_pointer_identity() {
 #[test]
 fn polymorphic_with_default_infers_the_checked_default_native_type() {
     let call = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.core.Option.with_default".to_owned(),
         args: vec![
             CoreExpr::Var("value".to_owned()),

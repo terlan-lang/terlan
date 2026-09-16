@@ -350,6 +350,9 @@ pub enum CoreExpr {
     RemoteCall {
         module: String,
         function: String,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     ConstructorCall {
@@ -359,6 +362,9 @@ pub enum CoreExpr {
     },
     Call {
         function: String,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     MutableReceiverCall {

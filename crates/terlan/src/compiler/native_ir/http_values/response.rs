@@ -26,6 +26,7 @@ pub(super) fn cookie_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, S
         "delete_header" => ("cookie_delete_header", cookie_delete_args(args)?),
         _ => {
             return Ok(CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: COOKIES_MODULE.to_string(),
                 function: name.to_string(),
                 args,
@@ -156,6 +157,7 @@ pub(super) fn response_mutation(
     };
     operation_args.append(&mut args);
     Ok(CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_HTTP_MODULE.to_string(),
         function: function.to_string(),
         args: operation_args,

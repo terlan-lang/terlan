@@ -57,6 +57,7 @@ fn canonical_public_receiver_targets_do_not_require_a_second_source_import() {
     ] {
         let mut caller = core("module app.Caller. pub main(): Int -> 1.");
         *body_mut(&mut caller, "main") = CoreExpr::Call {
+            type_args: Vec::new(),
             function: name.into(),
             args: vec![],
         };
@@ -77,6 +78,7 @@ fn canonical_public_receiver_targets_do_not_require_a_second_source_import() {
 fn nested_calls_and_references_share_exhaustive_admission() {
     use crate::terlan_typeck::{CoreCaseClause, CorePattern, CoreType};
     let missing = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "missing".into(),
         args: vec![],
     };
@@ -140,6 +142,7 @@ fn nested_calls_and_references_share_exhaustive_admission() {
 fn exhaustive_call_walk_preserves_each_guard_and_body_occurrence() {
     use crate::terlan_typeck::{CoreCaseClause, CorePattern, CoreType};
     let call = |name: &str| CoreExpr::Call {
+        type_args: Vec::new(),
         function: name.into(),
         args: vec![],
     };
@@ -181,6 +184,7 @@ fn continuation(id: u64) -> NativeContinuation {
 fn unresolved_application_call_has_stable_prelink_diagnostic() {
     let mut caller = core("module app.Caller.\n\npub main(): Int -> 1.\n");
     *body_mut(&mut caller, "main") = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "missing".to_string(),
         args: Vec::new(),
     };
@@ -230,6 +234,7 @@ fn missing_trait_impl_dispatch_has_stable_prelink_diagnostic() {
 fn unresolved_index_assignment_has_stable_prelink_diagnostic() {
     let mut module = core("module app.IndexAssignment.\n\npub run(): Unit -> Unit.\n");
     *body_mut(&mut module, "run") = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "IndexSet.set_at".to_string(),
         args: vec![
             CoreExpr::List(vec![CoreExpr::Int(1)]),
@@ -261,6 +266,7 @@ fn incompatible_imported_function_abis_are_rejected() {
         },
     ]);
     *body_mut(&mut caller, "main") = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "convert".to_string(),
         args: vec![CoreExpr::Int(1)],
     };
@@ -289,6 +295,7 @@ fn duplicate_compatible_imports_are_rejected_as_ambiguous() {
         },
     ]);
     *body_mut(&mut caller, "main") = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "convert".to_string(),
         args: vec![CoreExpr::Int(1)],
     };
@@ -743,6 +750,7 @@ fn receiver_call_prefers_explicitly_imported_provider() {
         kind: CoreImportKind::Module,
     });
     *body_mut(&mut caller, "run") = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "__receiver__".to_string(),
         function: "put".to_string(),
         args: vec![
@@ -788,7 +796,7 @@ fn mutable_receiver_call_prefers_explicitly_imported_provider() {
 
     assert!(matches!(
         body_mut(&mut modules[0], "run"),
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function == "app.Json.put"
                 && matches!(args.first(), Some(CoreExpr::Var(name)) if name == "value")
     ));

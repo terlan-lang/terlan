@@ -114,6 +114,7 @@ fn one_image_executes_closed_application_features_and_rejects_unbounded_peers() 
         .and_then(|clause| clause.body.core_expr.as_mut())
         .expect("imported body");
     *imported = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "imported_inc".to_string(),
         args: vec![CoreExpr::Var("value".to_string())],
     };
@@ -125,6 +126,7 @@ fn one_image_executes_closed_application_features_and_rejects_unbounded_peers() 
         .and_then(|clause| clause.body.core_expr.as_mut())
         .expect("remote body");
     *remote = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: provider.module.clone(),
         function: "imported_inc".to_string(),
         args: vec![CoreExpr::Var("value".to_string())],

@@ -169,6 +169,7 @@ fn lower_expr(
             let list_type = CoreType::List(Box::new(CoreType::Int));
             iterator_expr(
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: range_helper,
                     args: vec![
                         start,
@@ -187,6 +188,7 @@ fn lower_expr(
         };
         expanded = CoreExpr::Cast {
             expr: Box::new(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: helper_name.clone(),
                 args: vec![
                     iterator,
@@ -212,6 +214,7 @@ fn lower_expr(
     }
     *expr = if completed_effect {
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: EFFECT_SUCCEED.to_string(),
             args: vec![expanded],
         }
@@ -428,6 +431,7 @@ fn build_collector_helper(
         span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
     });
     let rest = CoreExpr::Call {
+        type_args: Vec::new(),
         function: name,
         args: vec![
             CoreExpr::Var("$rest".to_string()),
@@ -551,6 +555,7 @@ fn build_range_helper(owner: &CoreFunction, name: String) -> NativeIrResult<Core
         span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
     });
     let recurse = |operator: &str| CoreExpr::Call {
+        type_args: Vec::new(),
         function: name.clone(),
         args: vec![
             CoreExpr::BinaryOp {
@@ -615,6 +620,7 @@ fn iterator_expr(source: CoreExpr, ty: &CoreType, element: &CoreType) -> NativeI
     if is_range(ty) {
         return Ok(CoreExpr::Cast {
             expr: Box::new(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: RANGE_ITERATOR.to_string(),
                 args: vec![source],
             }),

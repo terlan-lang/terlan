@@ -94,6 +94,7 @@ fn unit_expression_alias_and_call_results_share_one_control_join_type() {
                 CoreIfClause {
                     condition: CoreExpr::Atom("true".into()),
                     body: CoreExpr::Call {
+                        type_args: Vec::new(),
                         function: "finish".into(),
                         args: vec![],
                     },

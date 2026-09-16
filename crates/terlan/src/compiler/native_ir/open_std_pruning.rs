@@ -373,7 +373,7 @@ fn collect_calls(
     calls: &mut HashSet<FunctionKey>,
 ) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             if let Some(target) = resolve_call(caller, function, args.len(), providers) {
                 calls.insert(target);
             }
@@ -383,6 +383,7 @@ fn collect_calls(
             module,
             function,
             args,
+            ..
         } => {
             let target = if module == "__receiver__" {
                 resolve_call(caller, function, args.len(), providers)

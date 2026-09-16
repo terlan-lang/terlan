@@ -89,6 +89,7 @@ fn structural_map_layout_reordering_retains_source_call_order() {
                 key: key.into(),
                 required: true,
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "mark".into(),
                     args: vec![CoreExpr::Int(value)],
                 },

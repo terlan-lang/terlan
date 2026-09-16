@@ -435,7 +435,7 @@ pub(super) fn expr_calls_selected(
     selected: &HashSet<usize>,
 ) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             resolver
                 .get(&(function.clone(), args.len()))
                 .is_some_and(|index| selected.contains(index))

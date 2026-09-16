@@ -121,13 +121,18 @@ impl HigherOrderSpecializer<'_> {
     /// Rewrites one expression and recursively specializes helper calls.
     fn rewrite(&mut self, expr: &CoreExpr) -> Result<CoreExpr, String> {
         match expr {
-            CoreExpr::Call { function, args } => {
+            CoreExpr::Call {
+                function,
+                args,
+                type_args,
+            } => {
                 let args = self.rewrite_many(args)?;
                 let identity = (function.clone(), args.len());
                 if let Some(helper) = self.helpers.get(&identity).cloned() {
                     self.inline_helper(helper, args)
                 } else {
                     Ok(CoreExpr::Call {
+                        type_args: type_args.clone(),
                         function: function.clone(),
                         args,
                     })
@@ -137,7 +142,9 @@ impl HigherOrderSpecializer<'_> {
                 module,
                 function,
                 args,
+                type_args,
             } => Ok(CoreExpr::RemoteCall {
+                type_args: type_args.clone(),
                 module: module.clone(),
                 function: function.clone(),
                 args: self.rewrite_many(args)?,
@@ -339,7 +346,7 @@ impl HigherOrderSpecializer<'_> {
                         .cloned()
                         .map(CorePattern::Var)
                         .collect(),
-                    body: Box::new(CoreExpr::Call {
+                    body: Box::new(CoreExpr::Call { type_args: Vec::new(),
                         function,
                         args: params.into_iter().map(CoreExpr::Var).collect(),
                     }),
@@ -424,7 +431,7 @@ fn function_parameter_arity(parameter: &CoreParam) -> Option<usize> {
 /// Reports whether an expression still refers to a removed helper identity.
 fn mentions_helper(expr: &CoreExpr, helpers: &HashSet<FunctionIdentity>) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             helpers.contains(&(function.clone(), args.len()))
                 || args.iter().any(|arg| mentions_helper(arg, helpers))
         }

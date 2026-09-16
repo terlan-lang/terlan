@@ -73,7 +73,7 @@ fn substitute_expr(
             outcome.projections = outcome.projections.saturating_add(1);
             CoreExpr::Var(alias.clone())
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function == "IndexGet.get_at"
                 && matches!(args.as_slice(), [CoreExpr::Var(name), _] if name == target) =>
         {
@@ -185,7 +185,12 @@ fn substitute_expr(
                 })
                 .collect(),
         },
-        CoreExpr::Call { function, args } => CoreExpr::Call {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => CoreExpr::Call {
+            type_args: type_args.clone(),
             function: function.clone(),
             args: substitute_args(args, target, named_aliases, indexed_aliases, outcome),
         },

@@ -1,3 +1,4 @@
+mod coverage;
 mod pattern_shape;
 mod shape;
 

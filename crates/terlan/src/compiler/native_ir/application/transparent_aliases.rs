@@ -485,7 +485,15 @@ fn resolve_expr(
                 *expr = CoreExpr::Tuple(items);
             }
         }
-        CoreExpr::RemoteCall { args, .. } | CoreExpr::Call { args, .. } => {
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                *ty = resolve(ty, module, imports, aliases, &mut HashSet::new());
+            }
             for arg in args {
                 resolve_expr(arg, module, imports, aliases);
             }

@@ -87,6 +87,7 @@ fn body(core: &mut CoreModule) -> &mut CoreExpr {
 fn response_builders_lower_to_fused_managed_operations() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Response".to_string(),
         function: "text".to_string(),
         args: vec![CoreExpr::Binary("\"hello\"".to_string())],
@@ -95,7 +96,7 @@ fn response_builders_lower_to_fused_managed_operations() {
 
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == "$terlan.managed.http"
                 && function == "response_build_0"
                 && args == &vec![
@@ -249,6 +250,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
             args.push(CoreExpr::Binary("\"key\"".to_string()));
         }
         *body(&mut core) = CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: method.to_string(),
             args,
@@ -272,6 +274,7 @@ fn request_accessors_lower_to_checked_managed_operations() {
 fn module_owned_request_accessor_lowers_to_checked_managed_operation() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Request".to_string(),
         function: "query_string".to_string(),
         args: vec![CoreExpr::Var("request".to_string())],
@@ -289,6 +292,7 @@ fn module_owned_request_accessor_lowers_to_checked_managed_operation() {
 fn linked_request_accessor_lowers_to_checked_managed_operation() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.http.Request.query_string".to_string(),
         args: vec![CoreExpr::Var("request".to_string())],
     };
@@ -309,6 +313,7 @@ fn literal_prefix_string_append_fuses_into_one_managed_operation() {
         operator: "+".to_string(),
         left: Box::new(CoreExpr::Binary("\"prefix:\\u03bb\"".to_string())),
         right: Box::new(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: "body_text".to_string(),
             args: vec![CoreExpr::Var("request".to_string())],
@@ -349,6 +354,7 @@ fn request_option_case_lowers_without_scalar_constructor_patterns() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Case {
         scrutinee: Box::new(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: "header".to_string(),
             args: vec![CoreExpr::Var("request".to_string()), string("x-deny")],
@@ -389,15 +395,18 @@ fn request_option_default_can_be_concatenated_after_managed_case_lowering() {
     *body(&mut core) = CoreExpr::BinaryOp {
         operator: "+".to_string(),
         left: Box::new(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: "method".to_string(),
             args: vec![CoreExpr::Var("request".to_string())],
         }),
         right: Box::new(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "std.core.Option".to_string(),
             function: "with_default".to_string(),
             args: vec![
                 CoreExpr::RemoteCall {
+                    type_args: Vec::new(),
                     module: "__receiver__".to_string(),
                     function: "header".to_string(),
                     args: vec![CoreExpr::Var("request".to_string()), string("accept")],
@@ -410,7 +419,7 @@ fn request_option_default_can_be_concatenated_after_managed_case_lowering() {
     lower_http_values(&mut core).expect("lower managed option concatenation");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == "$terlan.managed.http"
                 && function == "string_append"
                 && args.len() == 2
@@ -421,6 +430,7 @@ fn request_option_default_can_be_concatenated_after_managed_case_lowering() {
 #[test]
 fn managed_string_append_chain_flattens_into_one_operation() {
     let request_field = |function: &str| CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "__receiver__".to_string(),
         function: function.to_string(),
         args: vec![CoreExpr::Var("request".to_string())],
@@ -439,7 +449,7 @@ fn managed_string_append_chain_flattens_into_one_operation() {
     lower_http_values(&mut core).expect("lower managed string concat");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == "$terlan.managed.http"
                 && function == "string_concat"
                 && args.len() == 3
@@ -452,6 +462,7 @@ fn body_json_result_case_lowers_to_typed_managed_branches() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Case {
         scrutinee: Box::new(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: "body_json".to_string(),
             args: vec![CoreExpr::Var("request".to_string())],
@@ -474,6 +485,7 @@ fn body_json_result_case_lowers_to_typed_managed_branches() {
                 },
                 guard: None,
                 body: CoreExpr::RemoteCall {
+                    type_args: Vec::new(),
                     module: "__receiver__".to_string(),
                     function: "body_json".to_string(),
                     args: vec![CoreExpr::Var("request".to_string())],
@@ -502,6 +514,7 @@ fn body_json_result_case_lowers_to_typed_managed_branches() {
 fn unsupported_response_builder_is_rejected() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Response".to_string(),
         function: "stream".to_string(),
         args: Vec::new(),
@@ -516,6 +529,7 @@ fn unsupported_response_builder_is_rejected() {
 fn response_json_projects_the_canonical_managed_payload() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Response".to_string(),
         function: "json".to_string(),
         args: vec![CoreExpr::Var("json".to_string())],
@@ -587,6 +601,7 @@ fn response_status_headers_and_raw_cookies_lower_to_persistent_operations() {
 fn module_owned_response_method_lowers_to_persistent_operation() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.http.Response.with_status".to_string(),
         args: vec![CoreExpr::Var("response".to_string()), CoreExpr::Int(204)],
     };
@@ -605,6 +620,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
     let cases = [
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "std.http.Session".to_string(),
                 function: "current".to_string(),
                 args: vec![CoreExpr::Var("request".to_string())],
@@ -613,6 +629,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         ),
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "__receiver__".to_string(),
                 function: "get".to_string(),
                 args: vec![CoreExpr::Var("session".to_string()), string("key")],
@@ -632,6 +649,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         ),
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "std.http.Session".to_string(),
                 function: "delete".to_string(),
                 args: vec![CoreExpr::Var("session".to_string()), string("key")],
@@ -640,6 +658,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         ),
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "std.http.Session".to_string(),
                 function: "rotate".to_string(),
                 args: vec![CoreExpr::Var("session".to_string())],
@@ -648,6 +667,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         ),
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "std.http.Session".to_string(),
                 function: "expire".to_string(),
                 args: vec![CoreExpr::Var("session".to_string())],
@@ -656,6 +676,7 @@ fn session_calls_lower_to_vm_owned_managed_operations() {
         ),
         (
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "std.http.Session".to_string(),
                 function: "with_response".to_string(),
                 args: vec![
@@ -747,6 +768,7 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
     for (method, args, expected) in cases {
         let mut core = http_core();
         *body(&mut core) = CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: method.to_string(),
             args: [vec![CoreExpr::Var("response".to_string())], args].concat(),
@@ -761,6 +783,7 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
 
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Response".to_string(),
         function: "production_security_headers".to_string(),
         args: Vec::new(),
@@ -819,10 +842,12 @@ fn typed_security_policy_rejects_unknown_marker() {
 fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "__receiver__".to_string(),
         function: "set".to_string(),
         args: vec![
             CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "__receiver__".to_string(),
                 function: "cookies".to_string(),
                 args: vec![CoreExpr::Var("request".to_string())],
@@ -834,7 +859,7 @@ fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
     lower_http_values(&mut core).expect("lower jar chain");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == "$terlan.managed.http"
                 && function == "jar_append"
                 && args.len() == 2
@@ -845,6 +870,7 @@ fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
 fn typed_http_error_constructor_and_accessors_lower_to_managed_values() {
     let mut constructor_core = http_error_core();
     *body(&mut constructor_core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Error".to_string(),
         function: "new".to_string(),
         args: vec![
@@ -881,6 +907,7 @@ fn typed_http_error_constructor_and_accessors_lower_to_managed_values() {
     ] {
         let mut core = http_error_core();
         *body(&mut core) = CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "__receiver__".to_string(),
             function: method.to_string(),
             args: vec![CoreExpr::Var("error".to_string())],
@@ -905,6 +932,7 @@ fn typed_http_error_constructor_and_accessors_lower_to_managed_values() {
 fn typed_http_error_operations_reject_invalid_arities() {
     let mut core = http_error_core();
     *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.http.Error".to_string(),
         function: "new".to_string(),
         args: vec![CoreExpr::Var("code".to_string())],

@@ -214,7 +214,7 @@ fn collect_argument_targets(
         destination,
     } = context;
     match argument {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             if let Some(owner) = resolver.get(&(function.clone(), args.len())) {
                 if let Some(target) = closure_results.get(owner) {
                     concrete.insert(*target);
@@ -289,7 +289,7 @@ pub(in crate::compiler::native_ir) fn walk_calls(
     visit: &mut impl FnMut(&str, &[CoreExpr]),
 ) {
     walk_expressions(expr, &mut |expression| {
-        if let CoreExpr::Call { function, args } = expression {
+        if let CoreExpr::Call { function, args, .. } = expression {
             visit(function, args);
         }
     });

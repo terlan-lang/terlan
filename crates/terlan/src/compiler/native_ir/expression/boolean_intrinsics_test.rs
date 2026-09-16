@@ -23,6 +23,7 @@ fn boolean_intrinsics_bind_operands_once_and_rebase_nested_locals() {
         bindings: vec![CoreLetBinding {
             pattern: CorePattern::Var("temporary".to_string()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: function.to_string(),
                 args: vec![],
             },

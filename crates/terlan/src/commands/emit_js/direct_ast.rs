@@ -407,7 +407,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
                 core_expr_to_oxc_expression(ast, operand)?,
             ))
         }
-        crate::terlan_typeck::CoreExpr::Call { function, args }
+        crate::terlan_typeck::CoreExpr::Call { function, args, .. }
             if is_direct_oxc_js_identifier(function) =>
         {
             core_call_expr_to_oxc_expression(ast, function, args)
@@ -622,7 +622,7 @@ fn core_pipe_forward_to_oxc_expression<'a>(
     use oxc_span::SPAN;
 
     match right {
-        crate::terlan_typeck::CoreExpr::Call { function, args } => {
+        crate::terlan_typeck::CoreExpr::Call { function, args, .. } => {
             if !is_direct_oxc_js_identifier(function) {
                 return None;
             }

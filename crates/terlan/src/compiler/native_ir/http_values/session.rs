@@ -29,8 +29,9 @@ pub(super) fn rewrite_session_call(expr: &CoreExpr) -> Result<Option<CoreExpr>, 
             module,
             function,
             args,
+            ..
         } if module == SESSION_MODULE => session_call(function, args.clone())?,
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(
                 function.as_str(),
                 "current" | "get" | "set" | "delete" | "rotate" | "expire" | "with_response"
@@ -43,6 +44,7 @@ pub(super) fn rewrite_session_call(expr: &CoreExpr) -> Result<Option<CoreExpr>, 
             module,
             function,
             args,
+            ..
         } if module == "__receiver__"
             && matches!(
                 function.as_str(),
@@ -139,7 +141,7 @@ pub(super) fn lower_session_case(
         CoreExpr::Cast { expr, .. }
             if matches!(
                 &**expr,
-                CoreExpr::RemoteCall { module, function, args }
+                CoreExpr::RemoteCall { module, function, args, .. }
                     if module == MANAGED_HTTP_MODULE && function == "session_get" && args.len() == 2
             ) =>
         {
@@ -149,7 +151,7 @@ pub(super) fn lower_session_case(
     };
     if !matches!(
         scrutinee,
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == MANAGED_HTTP_MODULE && function == "session_get" && args.len() == 2
     ) {
         return Ok(None);
@@ -226,6 +228,7 @@ fn mutation_call(
 /// Builds one compiler-private managed session call.
 fn managed_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
     CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_HTTP_MODULE.to_string(),
         function: function.to_string(),
         args,

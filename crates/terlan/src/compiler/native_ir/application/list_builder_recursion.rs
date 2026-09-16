@@ -96,6 +96,7 @@ fn rewrite_result(
         if let CoreExpr::Call {
             function: target,
             args,
+            ..
         } = tail.as_ref()
         {
             if call_matches(target, function) && args.len() == arity {
@@ -113,6 +114,7 @@ fn rewrite_result(
                     tail: Box::new(CoreExpr::Var(accumulator.to_string())),
                 });
                 return Some(CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: worker.to_string(),
                     args: worker_args,
                 });
@@ -203,6 +205,7 @@ fn rewrite_result(
         }
         _ if contains_call(expression, function, arity) => None,
         _ => Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: reverse.to_string(),
             args: vec![CoreExpr::Var(accumulator.to_string()), expression.clone()],
         }),
@@ -237,6 +240,7 @@ fn apply_plan(
         .expect("list-builder plans require a typed return");
     let mut wrapper = function.clone();
     wrapper.clauses[0].body.core_expr = Some(CoreExpr::Call {
+        type_args: Vec::new(),
         function: plan.worker.clone(),
         args: function
             .params
@@ -311,6 +315,7 @@ fn apply_plan(
                         },
                         guard: None,
                         body: CoreExpr::Call {
+                            type_args: Vec::new(),
                             function: plan.reverse,
                             args: vec![
                                 CoreExpr::Var(rest.to_string()),

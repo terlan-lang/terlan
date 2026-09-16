@@ -142,7 +142,7 @@ fn rewrite(
         module,
         owner,
     } = environment;
-    if let CoreExpr::Call { function, args } = expr {
+    if let CoreExpr::Call { function, args, .. } = expr {
         if matches!(variables.get(function), Some(CoreType::Arrow { .. })) {
             *expr = CoreExpr::FunctionCall {
                 callee: Box::new(CoreExpr::Var(function.clone())),
@@ -170,6 +170,7 @@ fn rewrite(
         )?;
         generated.push(factory);
         *expr = CoreExpr::Call {
+            type_args: Vec::new(),
             function: name,
             args: captures.into_iter().map(CoreExpr::Var).collect(),
         };
@@ -177,7 +178,7 @@ fn rewrite(
     }
 
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let expected = signature(signatures, module, function, args.len())
                 .map(|signature| signature.0.clone());
             if args
@@ -551,7 +552,7 @@ fn infer(
         CoreExpr::Atom(_) => Some(CoreType::Atom),
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             signature(signatures, module, function, args.len()).map(|signature| signature.1.clone())
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),

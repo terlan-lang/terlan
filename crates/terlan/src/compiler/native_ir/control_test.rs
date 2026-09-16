@@ -29,6 +29,7 @@ fn mixed_result_constructors_preserve_checked_union_identity_in_both_orders() {
         ]),
     ]);
     let call = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "checked".to_owned(),
         args: Vec::new(),
     };

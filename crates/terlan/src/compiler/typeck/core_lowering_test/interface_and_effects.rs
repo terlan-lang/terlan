@@ -374,6 +374,7 @@ pub find_user(id: Int, active: Bool): Result[Option[UserRow], Error] ->\n\
         &vec![
             CoreExpr::Var("id".to_string()),
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "normalize_active".to_string(),
                 args: vec![CoreExpr::Var("active".to_string())]
             }

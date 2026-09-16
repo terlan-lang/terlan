@@ -152,6 +152,7 @@ fn imported_valued_union_defaults_lower_to_represented_core_values() {
     assert_eq!(
         run.clauses[0].body.core_expr,
         Some(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "sample.Layout".to_string(),
             function: "eye".to_string(),
             args: vec![CoreExpr::Int(3), CoreExpr::Int(0)],

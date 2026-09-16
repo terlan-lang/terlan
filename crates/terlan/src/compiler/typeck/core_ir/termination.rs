@@ -456,7 +456,7 @@ fn collect_expr(
     tail_position: bool,
 ) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for argument in args {
                 collect_expr(argument, caller, known, environment, facts, false);
             }

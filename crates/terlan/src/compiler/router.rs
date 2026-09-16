@@ -77,6 +77,7 @@ fn evaluate_router(
             module,
             function,
             args,
+            ..
         } if module == ROUTER_MODULE && function == "new" && args.is_empty() => {
             Ok(AotRouterPlan::default())
         }
@@ -84,6 +85,7 @@ fn evaluate_router(
             module,
             function,
             args,
+            ..
         } if matches!(module.as_str(), ROUTER_MODULE | "__receiver__") => {
             apply_router_call(core, function, args, environment)
         }
@@ -237,6 +239,7 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
         module,
         function,
         args,
+        ..
     } = expr
     {
         if matches!(module.as_str(), "std.http.Sse" | "Sse" | "__receiver__")
@@ -267,6 +270,7 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return Err(
@@ -311,6 +315,7 @@ fn websocket_endpoint(
         module,
         function,
         args,
+        ..
     } = expr
     {
         if matches!(
@@ -343,10 +348,11 @@ fn websocket_endpoint(
             module,
             function,
             args,
+            ..
         } if matches!(module.as_str(), "std.http.WebSocket" | "WebSocket") => {
             (function.as_str(), args.as_slice())
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(
                 function.as_str(),
                 "endpoint" | "std.http.WebSocket.endpoint"

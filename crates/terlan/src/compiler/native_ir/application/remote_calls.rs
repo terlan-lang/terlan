@@ -37,6 +37,7 @@ fn normalize_remote_expr(
 ) {
     match expr {
         CoreExpr::RemoteCall {
+            type_args,
             module,
             function,
             args,
@@ -60,6 +61,7 @@ fn normalize_remote_expr(
                     };
                     if let Some(target) = target {
                         *expr = CoreExpr::Call {
+                            type_args: std::mem::take(type_args),
                             function: target,
                             args: std::mem::take(args),
                         };
@@ -81,11 +83,12 @@ fn normalize_remote_expr(
                 return;
             }
             *expr = CoreExpr::Call {
+                type_args: std::mem::take(type_args),
                 function: format!("{module}.{function}"),
                 args: std::mem::take(args),
             };
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for arg in args.iter_mut() {
                 normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
@@ -202,6 +205,7 @@ fn normalize_remote_expr(
                     let mut call_args = vec![receiver];
                     call_args.append(args);
                     *expr = CoreExpr::Call {
+                        type_args: Vec::new(),
                         function: target,
                         args: call_args,
                     };

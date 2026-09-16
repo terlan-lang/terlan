@@ -134,6 +134,10 @@ mod generic_specialization;
 #[path = "native_ir/generic_specialization_test.rs"]
 #[cfg(test)]
 mod generic_specialization_test;
+
+#[cfg(test)]
+#[path = "native_ir/explicit_generic_test.rs"]
+mod explicit_generic_test;
 #[cfg(test)]
 #[path = "native_ir/guard_no_opt_suite_native_parity_test.rs"]
 #[cfg(test)]

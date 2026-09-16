@@ -71,7 +71,7 @@ pub(super) fn fold_completed_effect_runs(
                 *expr = replacement;
             }
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function == "std.core.Effect.run" && args.len() == 1 =>
         {
             fold_completed_effect_runs(&mut args[0], completed);
@@ -87,6 +87,7 @@ pub(super) fn fold_completed_effect_runs(
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "run" && args.len() == 1 => {
             fold_completed_effect_runs(&mut args[0], completed);
             let replacement = match &args[0] {
@@ -211,13 +212,14 @@ pub(super) fn fold_completed_effect_runs(
 
 fn completed_effect_value(expr: &CoreExpr) -> Option<CoreExpr> {
     match expr {
-        CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
+        CoreExpr::Call { function, args, .. } if function == EFFECT_SUCCEED && args.len() == 1 => {
             Some(args[0].clone())
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
             Some(args[0].clone())
         }
@@ -228,13 +230,14 @@ fn completed_effect_value(expr: &CoreExpr) -> Option<CoreExpr> {
 
 fn replace_completed_effect_value(expr: &mut CoreExpr, replacement: CoreExpr) {
     match expr {
-        CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
+        CoreExpr::Call { function, args, .. } if function == EFFECT_SUCCEED && args.len() == 1 => {
             args[0] = replacement;
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
             args[0] = replacement;
         }
@@ -247,13 +250,16 @@ fn replace_completed_effect_value(expr: &mut CoreExpr, replacement: CoreExpr) {
 pub(crate) fn lower_completed_effect_guards(guards: &mut [CoreExpr]) -> NativeIrResult<()> {
     for guard in guards {
         let completed = match guard {
-            CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
+            CoreExpr::Call { function, args, .. }
+                if function == EFFECT_SUCCEED && args.len() == 1 =>
+            {
                 Some(args[0].clone())
             }
             CoreExpr::RemoteCall {
                 module,
                 function,
                 args,
+                ..
             } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
                 Some(args[0].clone())
             }
@@ -320,11 +326,12 @@ pub(crate) fn lower_completed_guard_results(guards: &mut [CoreExpr]) {
 fn completed_guard_decision(expr: &CoreExpr) -> Option<CoreExpr> {
     match expr {
         CoreExpr::Cast { expr, .. } => completed_guard_decision(expr),
-        CoreExpr::Call { function, args } => guard_result_call(function, args),
+        CoreExpr::Call { function, args, .. } => guard_result_call(function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.GuardResult" => {
             guard_result_call(&format!("{module}.{function}"), args)
         }
