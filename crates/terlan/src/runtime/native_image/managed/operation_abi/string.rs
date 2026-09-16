@@ -33,8 +33,14 @@ const UTF8_SLICE: u8 = 18;
 const UTF8_FIND_ANY_BYTE: u8 = 19;
 const UPPERCASE: u8 = 20;
 const REVERSE: u8 = 21;
+const FROM_ATOM: u8 = 22;
 const SPLIT_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES;
 const SPLIT_ONCE_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
+
+/// Encodes canonical text lookup in the immutable image-local atom table.
+pub fn encode_atom_to_string_operation() -> Vec<u8> {
+    header(FROM_ATOM)
+}
 
 /// Encodes exact UTF-8 substring membership.
 pub fn encode_string_contains_operation() -> Vec<u8> {
@@ -167,6 +173,7 @@ pub(super) fn string_operation_result_is_reference(encoded: &[u8]) -> bool {
                 | CHARACTERS
                 | CODEPOINTS
                 | UTF8_SLICE
+                | FROM_ATOM
         )
     )
 }
@@ -179,6 +186,13 @@ pub(super) fn execute_string_operation(
 ) -> Result<u64, ManagedMemoryError> {
     validate_header(encoded)?;
     match (encoded[6], encoded.len(), words) {
+        (FROM_ATOM, HEADER_BYTES, [value]) if encoded[7] == 0 => {
+            let index = u32::try_from(*value)
+                .map(super::super::AtomIndex::from_runtime)
+                .map_err(|_| ManagedMemoryError::UnknownAtom)?;
+            heap.allocate_string(layouts.atom_identity(index)?)
+                .map(|value| value.erase().encoded_abi_word())
+        }
         (CONTAINS, HEADER_BYTES, [value, pattern]) if encoded[7] == 0 => {
             string_predicate(heap, *value, *pattern, |value, pattern| {
                 value.contains(pattern)
@@ -625,3 +639,7 @@ pub(super) fn transform_string(
     let transformed = transform(heap.read_string(reference_word(value)?.cast::<ManagedString>())?);
     heap.allocate_string(&transformed)
 }
+
+#[cfg(test)]
+#[path = "string_atom_test.rs"]
+mod atom_test;

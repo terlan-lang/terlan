@@ -103,17 +103,17 @@ use string::{
     transform_string,
 };
 pub use string::{
-    encode_string_byte_size_operation, encode_string_characters_operation,
-    encode_string_codepoints_operation, encode_string_compare_operation,
-    encode_string_contains_operation, encode_string_ends_with_operation,
-    encode_string_length_operation, encode_string_lowercase_operation,
-    encode_string_replace_operation, encode_string_reverse_operation,
-    encode_string_sha256_operation, encode_string_split_once_operation,
-    encode_string_split_operation, encode_string_starts_with_operation,
-    encode_string_trim_end_operation, encode_string_trim_operation,
-    encode_string_trim_start_operation, encode_string_uppercase_operation,
-    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
-    encode_string_utf8_slice_operation,
+    encode_atom_to_string_operation, encode_string_byte_size_operation,
+    encode_string_characters_operation, encode_string_codepoints_operation,
+    encode_string_compare_operation, encode_string_contains_operation,
+    encode_string_ends_with_operation, encode_string_length_operation,
+    encode_string_lowercase_operation, encode_string_replace_operation,
+    encode_string_reverse_operation, encode_string_sha256_operation,
+    encode_string_split_once_operation, encode_string_split_operation,
+    encode_string_starts_with_operation, encode_string_trim_end_operation,
+    encode_string_trim_operation, encode_string_trim_start_operation,
+    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
+    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use string_pattern::{

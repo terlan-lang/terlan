@@ -11,6 +11,7 @@ use crate::terlan_typeck::{
 use super::atom_inventory::{
     application_atom_identities, collect_expr, collect_pattern, collect_type,
     RUNTIME_BASE64_ERROR_ATOMS, RUNTIME_JSON_ERROR_ATOMS, RUNTIME_REGEX_ERROR_ATOMS,
+    RUNTIME_URI_ERROR_ATOMS,
 };
 
 /// Decoder errors are admitted only when the image includes the Base64 contract.
@@ -44,6 +45,30 @@ fn base64_error_atoms_follow_the_provider_or_import() {
         RUNTIME_BASE64_ERROR_ATOMS,
         &["base64.decode", "base64.utf8"]
     );
+}
+
+/// URI parse failures use a finite code only admitted with the URI provider.
+#[test]
+fn uri_error_atoms_follow_the_provider_or_import() {
+    for (source, expected) in [
+        ("module unrelated. pub value(): Int -> 1.", false),
+        ("module std.net.Uri. pub value(): Int -> 1.", true),
+        (
+            "module consumer. import std.net.Uri. pub value(): Int -> 1.",
+            true,
+        ),
+    ] {
+        let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source)
+            .expect("parse URI atom inventory");
+        let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+        let resolved =
+            crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+                .module;
+        let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+        let atoms = application_atom_identities(&[&core]);
+        assert_eq!(atoms.iter().any(|atom| atom == "uri.parse"), expected);
+    }
+    assert_eq!(RUNTIME_URI_ERROR_ATOMS, &["uri.parse"]);
 }
 
 /// Proves NativeBoundary JSON error identities remain a finite canonical set.
