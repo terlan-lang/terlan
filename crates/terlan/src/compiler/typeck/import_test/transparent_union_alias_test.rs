@@ -8,6 +8,16 @@ use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
 };
 
+/// A dependency's opaque generic identity survives an import-erased signature.
+#[test]
+fn imported_opaque_dependency_preserves_generic_identity() {
+    let dependency = "module fixture.Sequence. pub opaque type Cursor[T]. pub make(): Cursor[Int].";
+    let provider = "module fixture.Consumer. pub accept[T](value: Cursor[T]): T.";
+    let source = "module cursor_client. import fixture.Sequence. import fixture.Consumer.{accept}. pub read(): Int -> accept(Sequence.make()).";
+    let diagnostics = check_syntax_output_with_interfaces(source, &[dependency, provider]);
+    assert!(diagnostics.is_empty(), "opaque dependency: {diagnostics:?}");
+}
+
 /// Imported constructors and provider functions return the same nominal identity.
 #[test]
 fn imported_struct_constructor_and_function_return_share_provider_identity() {

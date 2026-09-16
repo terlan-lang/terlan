@@ -217,6 +217,19 @@ fn syntax_output_accepts_portable_test_report_contracts() {
     );
 }
 
+/// Imported iterator helpers accept concrete iterators without losing provider identity.
+#[test]
+fn syntax_output_accepts_portable_table_iterator_contracts() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        include_str!("../../../../../std/test/TableTest.terl"),
+        "std/test/TableTest.terl",
+    );
+    assert!(
+        diagnostics.is_empty(),
+        "portable table contracts: {diagnostics:?}"
+    );
+}
+
 /// Every optional metadata path must retain the response builder's return contract.
 #[test]
 fn syntax_output_accepts_response_security_builder_contracts() {
