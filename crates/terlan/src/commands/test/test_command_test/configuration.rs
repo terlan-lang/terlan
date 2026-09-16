@@ -75,8 +75,17 @@ fn intrinsic_only_std_test_import_keeps_type_declarations() {
         .find(|module| module.module == "std.core.Object")
         .expect("intrinsic-only provider remains part of the typed closure");
     assert!(
-        object.functions.is_empty(),
-        "intrinsic bodies must remain filtered"
+        !object.functions.is_empty()
+            && object
+                .functions
+                .iter()
+                .all(|function| object.constructors.iter().any(|constructor| {
+                    constructor
+                        .implementation
+                        .as_ref()
+                        .is_some_and(|implementation| implementation.function == function.name)
+                })),
+        "source constructor bodies must survive while intrinsic placeholders remain filtered"
     );
     assert!(object
         .types

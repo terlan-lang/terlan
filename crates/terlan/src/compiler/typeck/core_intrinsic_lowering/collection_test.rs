@@ -11,8 +11,10 @@ fn typed_collection_constructors_preserve_all_type_arguments() {
     let syntax = parse_module_as_syntax_output(
         "module typed_collection_constructors.\n\
          import std.collections.{List, Map, Set}.\n\
+         import std.core.Object.\n\
          pub list(): List[Int] -> List.new[Int]().\n\
          pub map(): Map[String, Int] -> Map.new[String, Int]().\n\
+         pub object(): Object[Int] -> Object.new[Int]().\n\
          pub set(): Set[String] -> Set.new[String]().\n",
     )
     .expect("typed constructor source");
@@ -22,6 +24,14 @@ fn typed_collection_constructors_preserve_all_type_arguments() {
     assert!(diagnostics.is_empty(), "{diagnostics:#?}");
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
     for (name, intrinsic, expected) in [
+        (
+            "object",
+            CorePrimitiveIntrinsic::MapNew,
+            CoreType::Apply {
+                constructor: "Map".into(),
+                args: vec![CoreType::String, CoreType::Int],
+            },
+        ),
         (
             "list",
             CorePrimitiveIntrinsic::ListNew,

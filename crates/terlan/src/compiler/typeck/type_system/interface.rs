@@ -355,7 +355,7 @@ pub(crate) fn parse_interface_constructor_schemes(
 
     let schemes = signatures
         .iter()
-        .filter(|signature| signature.public && signature.min_arity == signature.params.len())
+        .filter(|signature| signature.public)
         .map(|signature| {
             let mut vars = HashMap::new();
             let mut next_var: TypeVarId = 0;

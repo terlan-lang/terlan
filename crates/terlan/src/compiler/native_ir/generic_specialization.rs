@@ -11,6 +11,8 @@ const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
 /// Every callable candidate grouped by its qualified name and arity.
 type CallableTemplates = BTreeMap<(String, usize), Vec<CoreFunction>>;
 
+#[path = "generic_specialization/constructor_signatures.rs"]
+mod constructor_signatures;
 #[path = "generic_specialization/generic_unification.rs"]
 mod generic_unification;
 #[path = "generic_specialization/inference.rs"]
@@ -43,6 +45,7 @@ pub(super) fn specialize_application_generics_with_budget(
         }
     }
     let mut templates = BTreeMap::new();
+    constructor_signatures::collect(cores, &mut templates);
     for core in cores.iter() {
         let local = core
             .functions

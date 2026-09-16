@@ -160,15 +160,27 @@ fn function_source_span(
     syntax
         .declarations
         .iter()
-        .filter(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Function { name, params, .. } => {
-                name == function_name && params.len() == arity
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Function { name, params, .. }
+                if name == function_name && params.len() == arity =>
+            {
+                Some((declaration.span.start, declaration.span.end))
             }
-            SyntaxDeclarationPayload::Method { name, params, .. } => {
-                name == function_name && params.len() + 1 == arity
+            SyntaxDeclarationPayload::Method { name, params, .. }
+                if name == function_name && params.len() + 1 == arity =>
+            {
+                Some((declaration.span.start, declaration.span.end))
             }
-            _ => false,
+            SyntaxDeclarationPayload::Constructor { name, clauses, .. }
+                if name == function_name =>
+            {
+                clauses
+                    .iter()
+                    .filter(|clause| clause.params.len() == arity)
+                    .map(|clause| (clause.span.start, clause.span.end))
+                    .reduce(|left, right| (left.0.min(right.0), left.1.max(right.1)))
+            }
+            _ => None,
         })
-        .map(|declaration| (declaration.span.start, declaration.span.end))
         .reduce(|left, right| (left.0.min(right.0), left.1.max(right.1)))
 }

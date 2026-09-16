@@ -69,6 +69,18 @@ pub(super) fn infer_type(
                 .collect::<Option<Vec<_>>>()?;
             super::super::collection_intrinsic_specialization::positional_map_type(&entries)
         }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } => infer_call_type(
+            constructor_identity.as_deref().unwrap_or(constructor),
+            args,
+            &[],
+            variables,
+            templates,
+            module,
+        ),
         CoreExpr::Intrinsic(call)
             if matches!(
                 call.id,
@@ -169,48 +181,56 @@ pub(super) fn infer_type(
             type_args,
             function,
             args,
-        } => {
-            let candidates = callable_templates(templates, module, function, args.len())?;
-            let mut matched_return = None;
-            for template in candidates {
-                let Ok(mut values) = explicit_type_bindings(template, type_args) else {
-                    continue;
-                };
-                let Ok(argument_types) = infer_generic_argument_types(
-                    template, args, type_args, variables, templates, module,
-                ) else {
-                    continue;
-                };
-                if template
-                    .params
-                    .iter()
-                    .zip(&argument_types)
-                    .any(|(parameter, argument)| {
-                        parameter.core_ty.as_ref().is_none_or(|expected| {
-                            unify(expected, argument, &template.generic_params, &mut values)
-                                .is_err()
-                        })
-                    })
-                {
-                    continue;
-                }
-                let result = substitute(
-                    template.core_return_type.as_ref()?,
-                    &template.generic_params,
-                    &values,
-                );
-                if matched_return
-                    .as_ref()
-                    .is_some_and(|prior| prior != &result)
-                {
-                    return None;
-                }
-                matched_return = Some(result);
-            }
-            matched_return.or_else(|| common_concrete_return_type(candidates))
-        }
+        } => infer_call_type(function, args, type_args, variables, templates, module),
         _ => None,
     }
+}
+
+fn infer_call_type(
+    function: &str,
+    args: &[CoreExpr],
+    type_args: &[CoreType],
+    variables: &HashMap<String, CoreType>,
+    templates: &CallableTemplates,
+    module: &str,
+) -> Option<CoreType> {
+    let candidates = callable_templates(templates, module, function, args.len())?;
+    let mut matched_return = None;
+    for template in candidates {
+        let Ok(mut values) = explicit_type_bindings(template, type_args) else {
+            continue;
+        };
+        let Ok(argument_types) =
+            infer_generic_argument_types(template, args, type_args, variables, templates, module)
+        else {
+            continue;
+        };
+        if template
+            .params
+            .iter()
+            .zip(&argument_types)
+            .any(|(parameter, argument)| {
+                parameter.core_ty.as_ref().is_none_or(|expected| {
+                    unify(expected, argument, &template.generic_params, &mut values).is_err()
+                })
+            })
+        {
+            continue;
+        }
+        let result = substitute(
+            template.core_return_type.as_ref()?,
+            &template.generic_params,
+            &values,
+        );
+        if matched_return
+            .as_ref()
+            .is_some_and(|prior| prior != &result)
+        {
+            return None;
+        }
+        matched_return = Some(result);
+    }
+    matched_return.or_else(|| common_concrete_return_type(candidates))
 }
 
 /// Resolves a checked bare function value from its contextual arrow arity.

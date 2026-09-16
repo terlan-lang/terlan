@@ -5,8 +5,9 @@ use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{
     apply_subst, call_has_named_args, complete_defaulted_call_arg_types, expand_type_aliases,
-    infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, is_constructor_name,
-    next_constructor_type_var, normalize_union, reorder_named_call_arg_types, substitute_type_vars,
+    infer_syntax_expr, instantiate_constructor_scheme, instantiate_type, interface_type_aliases,
+    is_constructor_name, next_constructor_type_var, normalize_union,
+    parse_interface_constructor_schemes, reorder_named_call_arg_types, substitute_type_vars,
     supplied_named_parameter_slots, syntax_callee_name, unify, validate_named_call_args,
     ConstructorScheme, ExprInferContext, Type, TypeAlias, TypeVarId,
 };
@@ -39,6 +40,27 @@ pub(super) fn infer_constructor_call(
 ) -> Option<Type> {
     if let Some(schemes) = ctx.constructors.get(name) {
         return infer_constructor_schemes(name, schemes, args, arg_names, subst, errors);
+    }
+
+    // An imported explicit constructor owns construction authority before an
+    // imported transparent alias can suggest a physical initializer shape.
+    if let Some(imported) = ctx.constructor_aliases.get(name) {
+        if let Some(interface) = ctx.interface_map.get(&imported.module) {
+            if let Some(schemes) = parse_interface_constructor_schemes(
+                interface
+                    .constructors
+                    .get(&imported.name)
+                    .map(Vec::as_slice),
+                interface,
+            ) {
+                let constructed =
+                    infer_constructor_schemes(name, &schemes, args, arg_names, subst, errors)?;
+                return Some(expand_type_aliases(
+                    &constructed,
+                    &interface_type_aliases(interface),
+                ));
+            }
+        }
     }
 
     let schemes = alias_constructor_call_schemes(name, ctx.aliases)?;

@@ -70,6 +70,7 @@ fn router_result(core: Option<&CoreType>, source: &str) -> bool {
 pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&str]) {
     let providers = providers(std::slice::from_ref(core));
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(std::slice::from_ref(core), &mut edges);
     for function in &core.functions {
         let caller = (core.module.clone(), function.name.clone(), function.arity);
         let calls = collect_function_calls(function, core, &providers);
@@ -121,6 +122,7 @@ pub(crate) fn prune_application_to_function_roots(
         }
     }
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(cores, &mut edges);
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
@@ -166,6 +168,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         .collect::<HashSet<_>>();
     let providers = providers(cores);
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(cores, &mut edges);
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
@@ -259,8 +262,51 @@ fn providers(cores: &[CoreModule]) -> Vec<FunctionKey> {
             core.functions
                 .iter()
                 .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+                .chain(
+                    core.constructors
+                        .iter()
+                        .filter(|constructor| constructor.implementation.is_some())
+                        .map(|constructor| {
+                            (core.module.clone(), constructor_node(&constructor.name), 0)
+                        }),
+                )
         })
         .collect()
+}
+
+/// Constructor invocation is a graph node, not a physical-layout dependency.
+fn constructor_node(name: &str) -> String {
+    match name.rsplit_once('.') {
+        Some((module, name)) => format!("{module}.$constructor:{name}"),
+        None => format!("$constructor:{name}"),
+    }
+}
+
+fn add_constructor_edges(
+    cores: &[CoreModule],
+    edges: &mut HashMap<FunctionKey, HashSet<FunctionKey>>,
+) {
+    for core in cores {
+        for constructor in &core.constructors {
+            let Some(implementation) = &constructor.implementation else {
+                continue;
+            };
+            let calls = edges
+                .entry((core.module.clone(), constructor_node(&constructor.name), 0))
+                .or_default();
+            for function in &core.functions {
+                if function.name == implementation.function
+                    || implementation
+                        .defaults
+                        .iter()
+                        .flatten()
+                        .any(|default| *default == function.name)
+                {
+                    calls.insert((core.module.clone(), function.name.clone(), function.arity));
+                }
+            }
+        }
+    }
 }
 
 fn resolve_call(
@@ -452,11 +498,39 @@ fn collect_calls(
                 collect_calls(&field.value, caller, providers, calls);
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            base: constructor,
+            base_constructor_identity: constructor_identity,
+            args,
+            record,
+            ..
+        } => {
+            if let Some(target) = resolve_call(
+                caller,
+                &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
+                0,
+                providers,
+            ) {
+                calls.insert(target);
+            }
             collect_many(args, caller, providers, calls);
             collect_calls(record, caller, providers, calls);
         }
-        CoreExpr::ConstructorCall { args, .. } => collect_many(args, caller, providers, calls),
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } => {
+            if let Some(target) = resolve_call(
+                caller,
+                &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
+                0,
+                providers,
+            ) {
+                calls.insert(target);
+            }
+            collect_many(args, caller, providers, calls);
+        }
         CoreExpr::MutableReceiverCall {
             receiver,
             method,

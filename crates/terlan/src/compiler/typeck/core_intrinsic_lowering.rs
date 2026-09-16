@@ -252,6 +252,13 @@ fn core_typed_collection_intrinsic_expr_from_parts(
                 args: parameters,
             },
         ),
+        ("std.core.Object", [element]) => (
+            CorePrimitiveIntrinsic::MapNew,
+            CoreType::Apply {
+                constructor: "Map".into(),
+                args: vec![CoreType::String, element.clone()],
+            },
+        ),
         ("std.collections.Set", [_]) => (
             CorePrimitiveIntrinsic::SetNew,
             CoreType::Apply {

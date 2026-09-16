@@ -318,25 +318,6 @@ fn infer_syntax_call_with_arg_types(
 
         if let Some(imported) = ctx.constructor_aliases.get(function_name) {
             if let Some(interface) = ctx.interface_map.get(&imported.module) {
-                if let Some(schemes) = parse_interface_constructor_schemes(
-                    interface
-                        .constructors
-                        .get(&imported.name)
-                        .map(Vec::as_slice),
-                    interface,
-                ) {
-                    if let Some(constructed) = infer_constructor_schemes(
-                        function_name,
-                        &schemes,
-                        arg_types,
-                        &expr.arg_names,
-                        subst,
-                        errors,
-                    ) {
-                        let interface_aliases = interface_type_aliases(interface);
-                        return expand_type_aliases(&constructed, &interface_aliases);
-                    }
-                }
                 if interface.opaque_types.contains(&imported.name) {
                     errors.push(format!(
                         "cannot construct opaque type {}.{} outside defining module",

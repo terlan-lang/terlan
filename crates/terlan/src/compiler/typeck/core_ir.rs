@@ -6,6 +6,8 @@ mod patterns;
 mod proof_payloads;
 mod termination;
 mod types;
+mod visit;
+pub(crate) use visit::visit_core_expr_mut;
 
 pub use function_source::CoreFunctionSource;
 pub use intrinsics::{
@@ -504,8 +506,11 @@ pub struct CoreTryAfter {
 ///
 /// Inputs: resolved constructor declaration. Output: constructor signature.
 /// Transformation: records public flag, fixed params, optional vararg, return
-/// type, and typed return shape without backend constructor code.
+/// type, typed return shape, and ordinary callable identities for executable bodies.
 pub struct CoreConstructorDecl {
+    /// Checked source implementation; absent only for layout-only declarations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation: Option<CoreConstructorImplementation>,
     pub name: String,
     pub public: bool,
     pub min_arity: usize,
@@ -513,6 +518,19 @@ pub struct CoreConstructorDecl {
     pub vararg: Option<CoreParam>,
     pub return_type: String,
     pub core_return_type: Option<CoreType>,
+}
+
+/// Ordinary typed callable identities implementing a source constructor clause.
+///
+/// Bodies and default expressions live in CoreModule.functions so existing
+/// type substitution, proof evidence and effect analysis visit them normally.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreConstructorImplementation {
+    /// Provider-local callable receiving fixed arguments and one packed vararg list.
+    pub function: String,
+    /// Provider-local default callables, indexed by fixed parameter position.
+    /// Each receives the preceding parameters exactly once in declaration order.
+    pub defaults: Vec<Option<String>>,
 }
 
 /// Source category for a backend-neutral trait conformance fact.

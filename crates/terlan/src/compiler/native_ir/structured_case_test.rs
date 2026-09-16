@@ -202,14 +202,17 @@ fn record_and_constructor_patterns_lower_to_checked_aggregate_matchers() {
     let modules = lower(
         "module native_aggregate_patterns.\n\n\
          pub struct Point { x: Int, y: Int }.\n\n\
+         pub type Ok[T] = {Atom[\"ok\"], value: T}.\n\
+         pub type Error[E] = {Atom[\"error\"], reason: E}.\n\
+         pub type Result[T, E] = Ok[T] | Error[E].\n\n\
          pub constructor Point {\n\
              (x: Int, y: Int): Point -> Point { x: x, y: y }\n\
          }.\n\n\
          pub constructor Ok {\n\
-             (value: Int): Result[Int, Int] -> value\n\
+             (value: Int): Result[Int, Int] -> {Atom[\"ok\"], value}\n\
          }.\n\n\
          pub constructor Error {\n\
-             (reason: Int): Result[Int, Int] -> reason\n\
+             (reason: Int): Result[Int, Int] -> {Atom[\"error\"], reason}\n\
          }.\n\n\
          pub point_x(value: Point): Int ->\n\
              case value { Point { x: found } -> found; _ -> 0 }.\n\n\
