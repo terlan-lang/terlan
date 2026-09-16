@@ -22,7 +22,7 @@ pub append(left: List[T], right: List[T]): List[T].
 /// Output: `Err(value)` as `Result[T, E]`.
 /// Transformation: gives generic list construction an explicit result type.
 
-pub err_result_value(value: E): Result[T, E].
+pub err_result_value(value: E): std.core.Result.Result[T, E].
 
 /// Wraps error shrink candidates as `Err` result values.
 ///
@@ -31,7 +31,7 @@ pub err_result_value(value: E): Result[T, E].
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub err_result_values(values: List[E]): List[Result[T, E]].
+pub err_result_values(values: List[E]): List[std.core.Result.Result[T, E]].
 
 /// Removes shrink candidates equal to the original value.
 ///
@@ -58,7 +58,7 @@ pub limit(max: Int, candidates: List[T]): List[T].
 /// Output: `Ok(value)` as `Result[T, E]`.
 /// Transformation: gives generic list construction an explicit result type.
 
-pub ok_result_value(value: T): Result[T, E].
+pub ok_result_value(value: T): std.core.Result.Result[T, E].
 
 /// Wraps success shrink candidates as `Ok` result values.
 ///
@@ -67,7 +67,7 @@ pub ok_result_value(value: T): Result[T, E].
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub ok_result_values(values: List[T]): List[Result[T, E]].
+pub ok_result_values(values: List[T]): List[std.core.Result.Result[T, E]].
 
 /// Returns simpler boolean candidates.
 ///
@@ -145,7 +145,7 @@ pub shrink_object(value: T, empty_value: T): List[T].
 /// leaving payload-specific shrinking to later recursive shrinker work.
 
 @pure
-pub shrink_option(value: Option[T]): List[Option[T]].
+pub shrink_option(value: std.core.Option.Option[T]): List[std.core.Option.Option[T]].
 
 /// Returns simpler pair candidates.
 ///
@@ -167,7 +167,7 @@ pub shrink_pair(value: {A, B}, shrink_left: (A) -> List[A], shrink_right: (B) ->
 /// Transformation: keeps success and error channels explicit while delegating
 /// payload-specific shrinking to caller-provided deterministic shrinkers.
 
-pub shrink_result(value: Result[T, E], shrink_ok: (T) -> List[T], shrink_err: (E) -> List[E]): List[Result[T, E]].
+pub shrink_result(value: std.core.Result.Result[T, E], shrink_ok: (T) -> List[T], shrink_err: (E) -> List[E]): List[std.core.Result.Result[T, E]].
 
 /// Wraps right-side shrink candidates as pair candidates.
 ///

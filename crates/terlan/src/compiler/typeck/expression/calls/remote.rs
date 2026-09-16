@@ -88,6 +88,7 @@ pub(super) fn infer_syntax_remote_call(
         let lookup_key = TraitMethodLookupKey {
             trait_name: resolved_module_name.to_string(),
             method_name: function_name.to_string(),
+            explicit_target: explicit_trait_type_arg.clone(),
             arg_types: cached_lookup_arg_types,
         };
         let lookup_result = {

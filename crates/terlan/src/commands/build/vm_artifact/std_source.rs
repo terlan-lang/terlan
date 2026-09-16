@@ -114,6 +114,46 @@ mod tests {
     use super::*;
 
     #[test]
+    fn qualified_option_payload_keeps_buffer_receivers_in_source_closure() {
+        let state = CliState::default();
+        let root = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+            "qualified_option_bytes.terl",
+            r#"module qualified_option_bytes.
+import std.core.Option.{Some, None}.
+import std.vm.Bytes.
+import std.vm.BitString.
+make(): std.core.Option.Option[std.vm.Bytes.Bytes] -> Some(Bytes.from_list([1, 2])).
+bits(): std.core.Option.Option[std.vm.BitString.BitString] -> Some(BitString.from_int_be(3, 5)).
+pub check(): Bool -> (case make() { Some(value) -> value.length() == 2; None -> false })
+    and (case bits() { Some(value) -> value.bit_length() == 5; None -> false }).
+"#,
+            state.diagnostic_format,
+            None,
+            state.native_policy,
+            crate::validation::target_profile::TargetProfile::Vm,
+        )
+        .expect("compile qualified Option consumer")
+        .core;
+        let modules = compile_imported_std_source_modules(
+            &[&root],
+            Path::new("qualified_option_bytes.terl"),
+            &state,
+        )
+        .expect("load production source closure");
+        let mut cores = vec![root];
+        cores.extend(modules.into_iter().map(|module| module.compiled.core));
+        crate::compiler::native_ir::prune_application_to_function_roots(
+            &mut cores,
+            &[("qualified_option_bytes".into(), "check".into(), 0)],
+        )
+        .expect("retain check closure");
+        crate::compiler::native_ir::NativeModule::lower_application(
+            &cores.iter().collect::<Vec<_>>(),
+        )
+        .expect("lower qualified managed-buffer receivers through the production closure");
+    }
+
+    #[test]
     fn intrinsic_only_std_modules_keep_their_type_declarations() {
         let state = CliState::default();
         let root = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(

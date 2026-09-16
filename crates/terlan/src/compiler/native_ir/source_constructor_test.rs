@@ -12,6 +12,19 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
 
 #[test]
+fn qualified_option_payload_retains_managed_receiver_type() {
+    let source = r#"
+module qualified_option_payload.
+import std.core.Option.{Some, None}.
+import std.vm.Bytes.
+make(): std.core.Option.Option[std.vm.Bytes.Bytes] -> Some(Bytes.from_list([1, 2])).
+pub check(): Bool -> case make() { Some(value) -> value.length() == 2; None -> false }.
+"#;
+    check_sources(&[source]);
+    check_sources(&[source, include_str!("../../../../../std/core/Option.terl")]);
+}
+
+#[test]
 fn source_constructor_retains_explicit_empty_and_enclosing_type_arguments() {
     let modules = check_sources(&[r#"
 module constructor_explicit_empty.

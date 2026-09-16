@@ -130,7 +130,7 @@ stdlib-sync-check:
 	@$(TERLC) test std/sync
 
 stdlib-release-contracts-check:
-	@$(EXACT_CARGO_TEST) -p terlan --bin terlc compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
+	@$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
 
 stdlib-release-tests: | terlan-stdlib-validation-bootstrap
 	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \

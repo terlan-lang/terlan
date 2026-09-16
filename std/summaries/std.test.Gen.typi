@@ -203,7 +203,7 @@ pub elements(values: List[T]): Gen[T].
 /// Output: `Err(value)` as `Result[T, E]`.
 /// Transformation: gives generic list construction an explicit result type.
 
-pub err_value[T, E](value: E): Result[T, E].
+pub err_value[T, E](value: E): std.core.Result.Result[T, E].
 
 /// Wraps error samples as `Err` result values.
 ///
@@ -212,7 +212,7 @@ pub err_value[T, E](value: E): Result[T, E].
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub err_values(values: List[E]): List[Result[T, E]].
+pub err_values(values: List[E]): List[std.core.Result.Result[T, E]].
 
 /// Expects a property to fail.
 ///
@@ -386,7 +386,7 @@ pub map_values(values: List[A], mapper: (A) -> B): List[B].
 /// Transformation: gives generic list construction an explicit option type.
 
 @pure
-pub none_value(): Option[T].
+pub none_value(): std.core.Option.Option[T].
 
 /// Builds an object generator from string-key and value generators.
 ///
@@ -404,7 +404,7 @@ pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]].
 /// Output: `Ok(value)` as `Result[T, E]`.
 /// Transformation: gives generic list construction an explicit result type.
 
-pub ok_value[T, E](value: T): Result[T, E].
+pub ok_value[T, E](value: T): std.core.Result.Result[T, E].
 
 /// Wraps success samples as `Ok` result values.
 ///
@@ -413,7 +413,7 @@ pub ok_value[T, E](value: T): Result[T, E].
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub ok_values(values: List[T]): List[Result[T, E]].
+pub ok_values(values: List[T]): List[std.core.Result.Result[T, E]].
 
 /// Combines two deterministic generators.
 ///
@@ -432,7 +432,7 @@ pub one_of(left: Gen[T], right: Gen[T]): Gen[T].
 /// Transformation: provides deterministic option generation without hidden
 /// randomness.
 
-pub option_of(generator: Gen[T]): Gen[Option[T]].
+pub option_of(generator: Gen[T]): Gen[std.core.Option.Option[T]].
 
 /// Builds pairs for one left value and every right value.
 ///
@@ -538,7 +538,7 @@ pub reproduction_command(seed: Int): String.
 /// Transformation: provides deterministic Result generation without hidden
 /// randomness.
 
-pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, E]].
+pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[std.core.Result.Result[T, E]].
 
 /// Wraps success and error samples as one result list.
 ///
@@ -548,7 +548,7 @@ pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, 
 /// edge so AOT monomorphization never depends on an unconstrained result-only
 /// type parameter.
 
-pub result_values[T, E](ok_payloads: List[T], err_payloads: List[E]): List[Result[T, E]].
+pub result_values[T, E](ok_payloads: List[T], err_payloads: List[E]): List[std.core.Result.Result[T, E]].
 
 /// Runs a property and returns a stable report with case count.
 ///
@@ -622,7 +622,7 @@ pub sized(size: Int, builder: (Int) -> Gen[T]): Gen[T].
 /// Output: `Some(value)` as `Option[T]`.
 /// Transformation: gives generic list construction an explicit option type.
 
-pub some_value(value: T): Option[T].
+pub some_value(value: T): std.core.Option.Option[T].
 
 /// Wraps payload samples as `Some` option values.
 ///
@@ -631,7 +631,7 @@ pub some_value(value: T): Option[T].
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub some_values(values: List[T]): List[Option[T]].
+pub some_values(values: List[T]): List[std.core.Option.Option[T]].
 
 /// Runs a property with a deterministic step limit.
 ///
