@@ -34,6 +34,9 @@ pub(super) const RUNTIME_TOML_ERROR_ATOMS: &[&str] = &["toml.parse"];
 /// Closed error-code atoms emitted by the Rust-backed Base64 adapter.
 pub(super) const RUNTIME_BASE64_ERROR_ATOMS: &[&str] = &["base64.decode", "base64.utf8"];
 
+/// Closed error-code atoms emitted by the Rust-backed URI adapter.
+pub(super) const RUNTIME_URI_ERROR_ATOMS: &[&str] = &["uri.parse"];
+
 /// Collects every non-scalar atom identity visible in checked application CoreIR.
 pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> {
     let mut atoms = BTreeSet::new();
@@ -43,6 +46,7 @@ pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> 
             ("std.regex.Regex", RUNTIME_REGEX_ERROR_ATOMS),
             ("std.data.Toml", RUNTIME_TOML_ERROR_ATOMS),
             ("std.encoding.Base64", RUNTIME_BASE64_ERROR_ATOMS),
+            ("std.net.Uri", RUNTIME_URI_ERROR_ATOMS),
         ] {
             if core.module == module || core.imports.iter().any(|import| import.module == module) {
                 atoms.extend(errors.iter().map(|atom| (*atom).to_string()));

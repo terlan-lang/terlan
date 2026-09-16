@@ -65,9 +65,9 @@ pub(crate) use operation_abi::{
 pub use operation_abi::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,
     encode_aggregate_field_operation, encode_aggregate_replace_field_operation,
-    encode_aggregate_scalar_field_operation, encode_binary_pattern_extract_operation,
-    encode_binary_pattern_matches_operation, encode_bitstring_operation,
-    encode_bytes_concat_operation, encode_bytes_contains_operation,
+    encode_aggregate_scalar_field_operation, encode_atom_to_string_operation,
+    encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
+    encode_bitstring_operation, encode_bytes_concat_operation, encode_bytes_contains_operation,
     encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
     encode_bytes_length_operation, encode_bytes_read_int_be_operation,
     encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,

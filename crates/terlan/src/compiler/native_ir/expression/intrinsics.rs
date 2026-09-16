@@ -61,16 +61,16 @@ pub(super) fn lower_intrinsic(
         return lowered;
     }
     match &call.id {
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ValueToString) => {
-            value_intrinsics::lower_value_to_string(
-                call,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            )
-        }
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ValueToString | CorePrimitiveIntrinsic::AtomToString,
+        ) => value_intrinsics::lower_value_to_string(
+            call,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        ),
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::BoolEqual
             | CorePrimitiveIntrinsic::BoolCompare

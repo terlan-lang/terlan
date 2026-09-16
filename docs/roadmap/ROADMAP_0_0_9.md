@@ -73,6 +73,16 @@ Table's 12 tests still pass. The other property failures remain required baselin
 fixes, including Object and generator receiver resolution. Both strict Clippy
 profiles and the rebuilt API/module/headroom/dependency gates pass with unchanged
 budgets; evidence uses `collection-receivers-`. No candidate-wide success is claimed.
+The next correction lowers `Atom.to_string` and `String(atom)` through the
+managed-string ABI using the immutable image-local atom table. A linked test
+executes runtime-selected ASCII and Unicode atoms, and malformed-index/operation
+tests reject invalid inputs. Atom's three property and three API tests pass.
+URI's fixed `uri.parse` error code is now admitted with its provider, so all three
+URI properties and four API tests pass, including malformed input. The correction
+passes 541 additional NativeIR/runtime tests and eight atom-inventory tests;
+logs use `atom-text-`. Both strict Clippy profiles and the rebuilt
+API/module/headroom/dependency checks pass with unchanged budgets. The other
+required property failures and all three roadmap items remain open.
 No source assertions are removed and no failed suite is waived.
 Both strict Clippy profiles and the rebuilt
 API/module/headroom/dependency gates pass for the loader correction, with unchanged
