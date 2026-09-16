@@ -212,7 +212,27 @@ pub struct CoreFunction {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CoreTraitMethodIdentity {
     pub trait_name: String,
+    /// Checked implementation arguments, distinct from method-generic arguments.
+    pub type_args: Vec<CoreType>,
     pub method: String,
+}
+
+impl CoreTraitMethodIdentity {
+    /// Returns a deterministic dispatch owner for one explicit trait instance.
+    pub(crate) fn dispatch_owner(&self) -> String {
+        if self.type_args.is_empty() {
+            return self.trait_name.clone();
+        }
+        format!(
+            "{}[{}]",
+            self.trait_name,
+            self.type_args
+                .iter()
+                .map(CoreType::contract_text)
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -20,14 +20,18 @@ struct HigherOrderHelper {
     params: Vec<CoreParam>,
     /// Single direct-binding function body.
     body: CoreExpr,
+    /// Parameters passed or returned as values rather than only invoked.
+    value_parameters: HashSet<String>,
 }
 
 /// Stateful bounded module specialization pass.
 struct HigherOrderSpecializer<'a> {
     /// Module name used by generated direct function references.
     module: String,
-    /// Every local function available as a named callback value.
-    functions: HashMap<FunctionIdentity, CoreFunction>,
+    /// Local callable identities, excluding lexical values at each call site.
+    functions: HashSet<FunctionIdentity>,
+    /// Names bound in the current function, lambda, or pattern scope.
+    locals: HashSet<String>,
     /// Private higher-order specialization templates.
     helpers: HashMap<FunctionIdentity, HigherOrderHelper>,
     /// Active helper stack used to reject recursive expansion.
@@ -55,11 +59,6 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
     core: &mut CoreModule,
     budget: &mut super::specialization_budget::SpecializationBudget,
 ) -> Result<(), String> {
-    let functions = core
-        .functions
-        .iter()
-        .map(|function| ((function.name.clone(), function.arity), function.clone()))
-        .collect::<HashMap<_, _>>();
     let helpers = core
         .functions
         .iter()
@@ -77,7 +76,12 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
     let helper_identities = helpers.keys().cloned().collect::<HashSet<_>>();
     let mut specializer = HigherOrderSpecializer {
         module: core.module.clone(),
-        functions,
+        functions: core
+            .functions
+            .iter()
+            .map(|f| (f.name.clone(), f.arity))
+            .collect(),
+        locals: HashSet::new(),
         helpers,
         active: Vec::new(),
         expansions: 0,
@@ -89,6 +93,10 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
             continue;
         }
         for clause in &mut function.clauses {
+            specializer.locals = function.params.iter().map(|p| p.name.clone()).collect();
+            for pattern in clause.core_patterns.iter().flatten() {
+                specializer.bind_pattern(pattern);
+            }
             if let Some(body) = &mut clause.body.core_expr {
                 *body = specializer.rewrite(body)?;
             }
@@ -118,6 +126,12 @@ pub(super) fn specialize_higher_order_helpers_with_budget(
 }
 
 impl HigherOrderSpecializer<'_> {
+    /// Extends the current lexical scope with every name in a pattern.
+    fn bind_pattern(&mut self, pattern: &CorePattern) {
+        self.locals
+            .extend(super::expression::free_variable_analysis::pattern_bound_names(pattern));
+    }
+
     /// Rewrites one expression and recursively specializes helper calls.
     fn rewrite(&mut self, expr: &CoreExpr) -> Result<CoreExpr, String> {
         match expr {
@@ -173,11 +187,19 @@ impl HigherOrderSpecializer<'_> {
                 params,
                 parameter_types,
                 body,
-            } => Ok(CoreExpr::Lam {
-                params: params.clone(),
-                parameter_types: parameter_types.clone(),
-                body: Box::new(self.rewrite(body)?),
-            }),
+            } => {
+                let outer = self.locals.clone();
+                for pattern in params {
+                    self.bind_pattern(pattern);
+                }
+                let body = self.rewrite(body)?;
+                self.locals = outer;
+                Ok(CoreExpr::Lam {
+                    params: params.clone(),
+                    parameter_types: parameter_types.clone(),
+                    body: Box::new(body),
+                })
+            }
             CoreExpr::Cast { expr, target_type } => Ok(CoreExpr::Cast {
                 expr: Box::new(self.rewrite(expr)?),
                 target_type: target_type.clone(),
@@ -195,18 +217,24 @@ impl HigherOrderSpecializer<'_> {
                 left: Box::new(self.rewrite(left)?),
                 right: Box::new(self.rewrite(right)?),
             }),
-            CoreExpr::Let { bindings, body } => Ok(CoreExpr::Let {
-                bindings: bindings
-                    .iter()
-                    .map(|binding| {
-                        Ok(CoreLetBinding {
-                            pattern: binding.pattern.clone(),
-                            value: self.rewrite(&binding.value)?,
-                        })
-                    })
-                    .collect::<Result<Vec<_>, String>>()?,
-                body: Box::new(self.rewrite(body)?),
-            }),
+            CoreExpr::Let { bindings, body } => {
+                let outer = self.locals.clone();
+                let mut lowered = Vec::with_capacity(bindings.len());
+                for binding in bindings {
+                    let value = self.rewrite(&binding.value)?;
+                    self.bind_pattern(&binding.pattern);
+                    lowered.push(CoreLetBinding {
+                        pattern: binding.pattern.clone(),
+                        value,
+                    });
+                }
+                let body = self.rewrite(body)?;
+                self.locals = outer;
+                Ok(CoreExpr::Let {
+                    bindings: lowered,
+                    body: Box::new(body),
+                })
+            }
             CoreExpr::If { clauses } => {
                 let mut lowered = Vec::with_capacity(clauses.len());
                 for clause in clauses {
@@ -221,10 +249,13 @@ impl HigherOrderSpecializer<'_> {
                 let mut lowered = Vec::with_capacity(clauses.len());
                 for clause in clauses {
                     let mut clause = clause.clone();
+                    let outer = self.locals.clone();
+                    self.bind_pattern(&clause.pattern);
                     if let Some(guard) = &mut clause.guard {
                         *guard = self.rewrite(guard)?;
                     }
                     clause.body = self.rewrite(&clause.body)?;
+                    self.locals = outer;
                     lowered.push(clause);
                 }
                 Ok(CoreExpr::Case {
@@ -282,7 +313,16 @@ impl HigherOrderSpecializer<'_> {
         let mut temporaries = Vec::with_capacity(args.len());
         for (index, (parameter, argument)) in helper.params.iter().zip(args).enumerate() {
             let argument = if let Some(arity) = function_parameter_arity(parameter) {
-                self.resolve_callable_argument(argument, arity, specialization, index)?
+                let argument =
+                    self.resolve_callable_argument(argument, arity, specialization, index)?;
+                if helper.value_parameters.contains(&parameter.name) {
+                    CoreExpr::Cast {
+                        expr: Box::new(argument),
+                        target_type: parameter.core_ty.clone().expect("function parameter type"),
+                    }
+                } else {
+                    argument
+                }
             } else {
                 argument
             };
@@ -300,7 +340,10 @@ impl HigherOrderSpecializer<'_> {
             });
         }
         self.active.push(helper.identity.clone());
+        let outer = self.locals.clone();
+        self.locals = helper.params.iter().map(|p| p.name.clone()).collect();
         let body = self.rewrite(&helper.body);
+        self.locals = outer;
         self.active.pop();
         Ok(CoreExpr::Let {
             bindings,
@@ -308,7 +351,7 @@ impl HigherOrderSpecializer<'_> {
         })
     }
 
-    /// Resolves one callback argument into static callable CoreIR.
+    /// Checks explicit callback arity while preserving lexical name resolution.
     fn resolve_callable_argument(
         &self,
         argument: CoreExpr,
@@ -329,27 +372,16 @@ impl HigherOrderSpecializer<'_> {
                 function,
                 arity,
             }),
-            CoreExpr::Var(function)
-                if self
-                    .functions
-                    .contains_key(&(function.clone(), expected_arity)) =>
-            {
+            CoreExpr::Var(ref name) if self.locals.contains(name) => Ok(argument),
+            CoreExpr::Var(function) if self.functions.contains(&(function.clone(), expected_arity)) => {
                 let params = (0..expected_arity)
-                    .map(|index| {
-                        format!(
-                            "$native_hofn_{specialization}_callback_{argument_index}_{index}"
-                        )
-                    })
+                    .map(|index| format!("$native_hofn_{specialization}_callback_{argument_index}_{index}"))
                     .collect::<Vec<_>>();
                 Ok(CoreExpr::Lam {
                     parameter_types: Vec::new(),
-                    params: params
-                        .iter()
-                        .cloned()
-                        .map(CorePattern::Var)
-                        .collect(),
-                    body: Box::new(CoreExpr::Call { type_args: Vec::new(),
-                        function,
+                    params: params.iter().cloned().map(CorePattern::Var).collect(),
+                    body: Box::new(CoreExpr::Call {
+                        type_args: Vec::new(), function,
                         args: params.into_iter().map(CoreExpr::Var).collect(),
                     }),
                 })
@@ -394,12 +426,25 @@ fn higher_order_helper(
         .clone()
         .ok_or_else(|| helper_shape_error(function))?;
     let identity = (function.name.clone(), function.arity);
+    // Reuse lexical free-variable analysis, excluding invocation-only uses.
+    // A callback forwarded to another function must retain an owned value;
+    // a callback used only as a callee remains eligible for static inlining.
+    let mut value_uses = body.clone();
+    crate::terlan_typeck::visit_core_expr_mut(&mut value_uses, &mut |expr| {
+        if let CoreExpr::FunctionCall { callee, .. } = expr {
+            if matches!(callee.as_ref(), CoreExpr::Var(_)) {
+                **callee = CoreExpr::Atom("Unit".into());
+            }
+        }
+    });
+    let value_parameters = super::free_variables(&value_uses);
     Ok((
         identity.clone(),
         HigherOrderHelper {
             identity,
             params: function.params.clone(),
             body,
+            value_parameters,
         },
     ))
 }

@@ -299,7 +299,7 @@ fn contextualize_call_arguments(
     }
 }
 
-fn contextual_tuple_elements<'a>(
+pub(in crate::compiler::native_ir) fn contextual_tuple_elements<'a>(
     items: &[CoreExpr],
     expected: &'a CoreType,
 ) -> Option<Vec<&'a CoreType>> {

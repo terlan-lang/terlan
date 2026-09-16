@@ -162,6 +162,69 @@ pub boolean(value: Bool): Int -> Score.score(value).
     assert_managed_native_object_invocations("trait-choice", &native, &object, &invocations);
 }
 
+/// Explicit targets distinguish implementations even without value arguments.
+#[test]
+fn explicit_trait_targets_select_return_only_implementations_after_pruning() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module app.ExplicitTrait.
+pub trait Default[T] { value(): T. }.
+pub impl Default[Int] for Int { value(): Int -> 42. }.
+pub impl Default[Bool] for Bool { value(): Bool -> true. }.
+pub impl Default[Float] for Float { value(): Float -> 3.5. }.
+pub integer(): Int -> Default[Int].value().
+pub boolean(): Bool -> Default[Bool].value().
+"#,
+    )
+    .expect("parse explicit trait targets");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let module = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let serialized = serde_json::to_string(&module).expect("serialize explicit trait arguments");
+    let mut cores =
+        vec![serde_json::from_str(&serialized).expect("restore explicit trait arguments")];
+    crate::compiler::native_ir::prune_application_to_function_roots(
+        &mut cores,
+        &[
+            ("app.ExplicitTrait".into(), "integer".into(), 0),
+            ("app.ExplicitTrait".into(), "boolean".into(), 0),
+        ],
+    )
+    .expect("retain both explicit implementation closures");
+    assert_eq!(
+        cores[0]
+            .functions
+            .iter()
+            .filter(|function| function.trait_method.is_some())
+            .count(),
+        2,
+        "an unreachable third implementation must not become an image root"
+    );
+    let native = NativeModule::lower_application(&cores.iter().collect::<Vec<_>>())
+        .expect("lower explicit targets without value arguments");
+    let object =
+        crate::compiler::native_ir::emit_native_application_object("explicit-trait", &native)
+            .expect("emit explicit trait object");
+    use crate::compiler::native_ir::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    let invocations = [("integer", 42), ("boolean", 1)].map(|(name, expected)| {
+        let export = native
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("explicit caller");
+        NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments: vec![],
+            expected_status: crate::compiler::native_ir::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    assert_managed_native_object_invocations("explicit-trait", &native, &object, &invocations);
+}
+
 /// Imported trait aliases preserve provider identity and public implementation visibility.
 #[test]
 fn imported_concrete_trait_alias_selects_its_owning_module() {
@@ -178,6 +241,7 @@ pub impl Score[Int] for Int { score(value: Int): Int -> value + 7. }.
 module app.TraitConsumer.
 import app.TraitProvider.{Score as Rating}.
 pub run(value: Int): Int -> Rating.score(value).
+pub explicit(value: Int): Int -> Rating[Int].score(value).
 "#,
     )
     .expect("parse imported trait alias");
@@ -211,6 +275,62 @@ pub run(value: Int): Int -> Rating.score(value).
         direct_call_target(&modules[1], "run"),
         format!("app.TraitProvider.{}", implementation.name)
     );
+    assert_eq!(
+        direct_call_target(&modules[1], "explicit"),
+        direct_call_target(&modules[1], "run")
+    );
+}
+
+/// Selecting a trait template must not bypass its generic argument constraints.
+#[test]
+fn explicit_generic_trait_method_checks_arguments_during_specialization() {
+    let module = core(
+        r#"
+module app.GenericTrait.
+pub trait Pair[T] { first[A](left: A, right: A): A. }.
+pub impl Pair[Int] for Int { first(left: A, _right: A): A -> left. }.
+pub run(): Int -> Pair[Int].first[Int](42, 43).
+"#,
+    );
+    let native = NativeModule::lower_application(&[&module])
+        .expect("specialize a uniquely selected trait method");
+    let object =
+        crate::compiler::native_ir::emit_native_application_object("generic-trait", &native)
+            .expect("emit generic trait method");
+    use crate::compiler::native_ir::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    let export = native
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "run")
+        .expect("generic caller");
+    assert_managed_native_object_invocations(
+        "generic-trait",
+        &native,
+        &object,
+        &[NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments: vec![],
+            expected_status: crate::compiler::native_ir::status::OK,
+            expected_result: Some(42),
+        }],
+    );
+    let mut invalid = module;
+    let body = invalid
+        .functions
+        .iter_mut()
+        .find(|function| function.name == "run")
+        .and_then(|function| function.clauses.first_mut())
+        .and_then(|clause| clause.body.core_expr.as_mut())
+        .expect("generic call");
+    let CoreExpr::Call { args, .. } = body else {
+        panic!("expected direct trait call")
+    };
+    args[1] = CoreExpr::Atom("true".into());
+    let error = NativeModule::lower_application(&[&invalid])
+        .expect_err("inconsistent generic method arguments must fail closed");
+    assert!(error.contains("native_ir.generic_"), "{error}");
 }
 
 /// Incomplete or contradictory concrete implementation inventories are not guessed.

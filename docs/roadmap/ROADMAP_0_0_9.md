@@ -20,26 +20,34 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The current correction preserves qualified identities for selected imports whose
-type and module share a name; regenerated interfaces no longer treat Option/Result
-conformances as wildcard type variables. Trait-dispatch cache keys now include the
-explicit implementation target. A production-loader regression also exposed VM
-Bytes/BitString being rewritten as external native-worker handles. These buffers
-now retain their managed ABI, including through qualified Option payloads; package
-types with the same short names still require native-resource layouts. The shared
-late receiver resolver covers both buffer types. The original Bytes source probe,
-all 72 Binary tests, and eight Range/Option/Result properties pass. The release-scale
-stdlib contract gate now targets the library harness and executes its required test
-instead of selecting zero tests from the CLI wrapper. This is local correction
-evidence, not full-candidate acceptance. Both strict workspace-binary Clippy profiles,
-API/module/headroom, refreshed dependency-impact and documentation checks pass
-without increased budgets. The rebuilt validator remains 12,003,336 bytes. All 539
-NativeIR tests have passing evidence from the 538-test result plus the corrected
-linked fixture's focused rerun; the production-loader regression passes separately.
-Explicit AOT trait dispatch, empty collection
-inference and Random adapter routing remain required failures; no suite is waived.
-Logs use `list-trait-`, `qualified-receiver-` and `qualified-buffer-` in
-`target/quality/release-diagnostics/`. All three roadmap items remain open.
+The current correction retains explicit trait-instance arguments in serialized
+CoreIR and reachability, and selects generic implementation bodies before argument
+monomorphization. Linked regressions verify return-only trait selection, imported
+aliases, pruning and rejection of incompatible generic arguments. Named callbacks
+inside Option/List containers use the existing owned-closure ABI. Private-helper
+specialization respects lexical shadowing, preserves static invocation-only callbacks, and retains
+owned values when forwarding callbacks. Concrete and generic calls share contextual
+lambda typing. Generic arguments now use their instantiated parameter layout;
+Result literals no longer arrive as plain tuples at union-typed callees.
+
+The combined compiler run passes 706 tests, including all 543 NativeIR tests.
+Another 1,046 frontend/backend checks pass; the separately owned release-scale
+stdlib contract gate executes its one required test and passes. The actual compiler
+and VM pass all 12 Functional tests, three selected List trait tests, and 83
+Option/Result/List/Map/Gen/Shrink source tests. Both strict workspace-binary Clippy
+profiles, Rust documentation and language-feature coverage pass. A headroom failure
+prompted an unchanged extraction of structural type scoring: overloads.rs is now
+845 lines, and all eight affected tests pass after the split. API/module/headroom
+and refreshed dependency checks pass without increased budgets. The validator
+rebuilt by the final compiler remains 12,003,336 bytes. These runs do not replace
+the required exact-candidate release validation.
+The preceding qualified-import and managed-buffer correction is retained.
+Six required source suites still fail: List (each callback resolution), Map and
+Iterator (unconstrained empty collections), Property and PropertyDistribution
+(empty-generator inference), and RandomProperty (native adapter routing). All six
+were rerun on the current compiler; no assertion or suite was waived. Logs use
+`trait-callback-` under `target/quality/release-diagnostics/`. These are scoped local
+correction results, not full-candidate acceptance. All three roadmap items stay open.
 
 The preceding correction composes suspending arguments before an escaping callback's
 tail call, using the same fast-path predicate as ordinary call lowering. Linked

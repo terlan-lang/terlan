@@ -254,7 +254,7 @@ pub(super) fn tagged_union_tuple<'a>(
     })
 }
 
-pub(super) fn list_element(ty: &CoreType) -> Option<&CoreType> {
+pub(in crate::compiler::native_ir) fn list_element(ty: &CoreType) -> Option<&CoreType> {
     match ty {
         CoreType::List(element) => Some(element),
         CoreType::Apply { constructor, args }

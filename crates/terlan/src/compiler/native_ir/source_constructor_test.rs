@@ -25,6 +25,52 @@ pub check(): Bool -> case make() { Some(value) -> value.length() == 2; None -> f
 }
 
 #[test]
+fn wrapped_named_callable_retains_signature_and_lexical_shadowing() {
+    check_sources(&[
+        r#"
+module wrapped_named_callable.
+import std.core.Option.{Option, Some, None}.
+increment(value: Int): Int -> value + 1.
+use[A, B](value: A, transform: (A) -> B): B -> transform(value).
+wrapped[A, B](value: Option[(A) -> B], argument: A): Option[B] ->
+    case value { Some(transform) -> Some(transform(argument)); None -> None }.
+shadowed(increment: (String) -> Int): Int -> use("hello", increment).
+pub check(): Bool -> (case wrapped(Some(increment), 41) { Some(result) -> result == 42; None -> false })
+    and shadowed((value) -> value.byte_size()) == 5.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
+#[test]
+fn generic_result_callback_equality_retains_variant_layout() {
+    check_sources(&[
+        r#"
+module result_callback_equality.
+import std.core.Result.{Result, Ok, Err}.
+pub type Problem.
+pub trait Mapper[F[_, _]] {
+    map[A, B, E](value: F[A, E], transform: (A) -> B): F[B, E].
+    map_error[A, E, G](value: F[A, E], transform: (E) -> G): F[A, G].
+}.
+pub impl Mapper[Result] for Result {
+    map(value: Result[A, E], transform: (A) -> B): Result[B, E] ->
+        case value { Ok(x) -> Ok(transform(x)); Err(reason) -> Err(reason) }.
+    map_error(value: Result[A, E], transform: (E) -> G): Result[A, G] ->
+        case value { Ok(x) -> Ok(x); Err(reason) -> Err(transform(reason)) }.
+}.
+increment(value: Int): Int -> value + 1.
+error_text(_problem: Problem): String -> "problem".
+pub check(): Bool -> Mapper.map(Ok(1), increment) == Ok(2)
+    and Mapper.map(Ok(1), increment) != Ok(3)
+    and Mapper.map_error(Err(Problem), error_text) == Err("problem")
+    and Mapper.map_error(Err(Problem), error_text) != Err("different").
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn source_constructor_retains_explicit_empty_and_enclosing_type_arguments() {
     let modules = check_sources(&[r#"
 module constructor_explicit_empty.
