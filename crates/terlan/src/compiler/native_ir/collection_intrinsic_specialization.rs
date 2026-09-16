@@ -14,7 +14,10 @@ pub(super) use expected_constructors::annotate_expected_structural_constructors;
 mod comprehension;
 use comprehension::specialize_comprehension;
 mod expected_new;
-use expected_new::{specialize_collection_new_bindings, specialize_expected_collection_new};
+use expected_new::{
+    specialize_collection_new_bindings, specialize_expected_collection_new,
+    specialize_parameter_arguments,
+};
 pub(super) mod receiver_intrinsics;
 use receiver_intrinsics::*;
 mod type_helpers;
@@ -287,10 +290,7 @@ pub(super) fn specialize_expr(
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
-                for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected, functions, module);
-                    annotate_expected_structural_constructors(argument, expected);
-                }
+                specialize_parameter_arguments(args, signature, functions, module);
             }
             if function == "IndexGet.get_at" && args.len() == 2 {
                 if let Some(element) = argument_types
@@ -387,10 +387,7 @@ pub(super) fn specialize_expr(
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
-                for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected, functions, module);
-                    annotate_expected_structural_constructors(argument, expected);
-                }
+                specialize_parameter_arguments(args, signature, functions, module);
             }
             if owner.rsplit('.').next() == Some("__receiver__") {
                 if let Some(receiver) = argument_types.first().and_then(Option::as_ref) {

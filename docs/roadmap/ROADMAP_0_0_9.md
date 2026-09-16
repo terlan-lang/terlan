@@ -20,6 +20,23 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
+The latest local collection correction passes all 515 NativeIR tests and all 23
+GenTest tests. Intrinsic-only providers retain their type declarations; collection
+mutation inference follows lexical scope; returned entry lists, structural callback
+results and explicitly typed empty generators retain their checked schemas.
+Map/Set/iterator operations use the same canonical managed identities as registered
+layouts, including Option[String]. Option/Result/List/Map/Set property suites and
+SetTest pass another 23 source tests. Both strict workspace-binary Clippy profiles,
+the rebuilt quality validator, API boundary (3,082), module structure and file
+headroom (68 near-limit files, unchanged budgets) pass locally. The linked string
+lookup regression also exercises an explicitly expanded Option alias.
+Seven previously failing property modules remain open
+(Object, Ordering, Range, Random, PropertyDistribution, Property and Shrink).
+The broader source probe also exposes untyped empty-map and Iterator Unit-callback
+failures; these remain required fixes. Evidence uses `collection-witness-` under
+`target/quality/release-diagnostics/`. These are scoped local results, not full
+candidate acceptance; all roadmap items remain open.
+
 Candidate `9e8a7be2` exposes a shared validator-bootstrap regression in hosted
 release and Docs CI: Unit expression/signature spellings incorrectly join as
 two atom variants. The local normalization fix passes 485 NativeIR tests, both

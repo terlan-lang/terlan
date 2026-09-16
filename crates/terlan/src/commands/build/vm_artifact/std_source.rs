@@ -60,9 +60,9 @@ pub(super) fn compile_imported_std_source_modules(
                 .map(|import| import.module.clone()),
         );
         remove_compiler_intrinsic_functions(&mut compiled.compiled.core);
-        if !compiled.compiled.core.functions.is_empty() {
-            modules.push(compiled);
-        }
+        // Intrinsic-only modules still own aliases and constructor signatures
+        // needed by application-wide type normalization.
+        modules.push(compiled);
     }
     modules.sort_by(|left, right| left.compiled.core.module.cmp(&right.compiled.core.module));
     Ok(modules)
@@ -107,4 +107,45 @@ fn repository_root_from_std_path(path: &Path) -> Option<PathBuf> {
         current = directory.parent();
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn intrinsic_only_std_modules_keep_their_type_declarations() {
+        let state = CliState::default();
+        let root = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+            "alias_closure.terl",
+            "module alias_closure. import std.core.Object. pub value(): Int -> 7.",
+            state.diagnostic_format,
+            None,
+            state.native_policy,
+            crate::validation::target_profile::TargetProfile::Vm,
+        )
+        .expect("compile alias consumer")
+        .core;
+        let modules =
+            compile_imported_std_source_modules(&[&root], Path::new("alias_closure.terl"), &state)
+                .expect("load std implementation closure");
+        let object = &modules
+            .iter()
+            .find(|module| module.compiled.core.module == "std.core.Object")
+            .expect("intrinsic-only provider remains part of the typed closure")
+            .compiled
+            .core;
+        assert!(
+            object.functions.is_empty(),
+            "intrinsic bodies must remain filtered"
+        );
+        assert!(object
+            .types
+            .iter()
+            .any(|ty| ty.name == "Object" && ty.core_body.is_some()));
+        assert!(object
+            .constructors
+            .iter()
+            .any(|constructor| constructor.name == "Object"));
+    }
 }

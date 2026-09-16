@@ -69,6 +69,6 @@ fn option_element(ty: &CoreType) -> Result<&CoreType, String> {
 }
 
 fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(&ty.contract_text())
+    SemanticTypeId::from_canonical(&super::managed_semantic_contract(ty))
         .map_err(|error| format!("error[native_ir.iterator_intrinsic]: {error}"))
 }

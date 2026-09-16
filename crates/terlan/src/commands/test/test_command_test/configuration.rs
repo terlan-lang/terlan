@@ -59,6 +59,35 @@ pub to_string_base(value: Int, base: Int): Int -> value + base.
     assert_eq!(core.functions.len(), 2);
 }
 
+#[test]
+fn intrinsic_only_std_test_import_keeps_type_declarations() {
+    let root = compile_native_filter_fixture(
+        "module alias_closure. import std.core.Object. pub value(): Int -> 7.",
+    );
+    let modules = super::super::execution::compile_imported_std_source_core_modules(
+        &[&root],
+        std::path::Path::new("alias_closure.terl"),
+        &CliState::default(),
+    )
+    .expect("load std test closure");
+    let object = modules
+        .iter()
+        .find(|module| module.module == "std.core.Object")
+        .expect("intrinsic-only provider remains part of the typed closure");
+    assert!(
+        object.functions.is_empty(),
+        "intrinsic bodies must remain filtered"
+    );
+    assert!(object
+        .types
+        .iter()
+        .any(|ty| ty.name == "Object" && ty.core_body.is_some()));
+    assert!(object
+        .constructors
+        .iter()
+        .any(|constructor| constructor.name == "Object"));
+}
+
 fn compile_native_filter_fixture(source: &str) -> CoreModule {
     crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
         "native_filter_fixture.terl",

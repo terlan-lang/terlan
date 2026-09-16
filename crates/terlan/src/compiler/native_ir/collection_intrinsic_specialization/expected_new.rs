@@ -1,5 +1,29 @@
 use super::*;
 
+#[path = "empty_mutation.rs"]
+mod empty_mutation;
+
+/// Only resolved parameter types may replace an argument's checked witness.
+/// Generic parameters are contextualized by the monomorphizer after unification;
+/// copying their declaration here would erase explicit types such as List[Binary].
+pub(super) fn specialize_parameter_arguments(
+    args: &mut [CoreExpr],
+    signature: &FunctionSignature,
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    for (argument, expected) in args.iter_mut().zip(&signature.params) {
+        if super::super::generic_specialization::contains_generic_parameter(
+            expected,
+            &signature.generic_params,
+        ) {
+            continue;
+        }
+        specialize_expected_collection_new(argument, expected, functions, module);
+        annotate_expected_structural_constructors(argument, expected);
+    }
+}
+
 pub(super) fn specialize_expected_collection_new(
     expr: &mut CoreExpr,
     expected: &CoreType,
@@ -142,7 +166,9 @@ pub(super) fn specialize_expected_collection_new(
                     | CoreType::Apply { .. }
                     | CoreType::Tuple(_)
                     | CoreType::Union(_)
-            ) {
+            ) || (matches!(expected, CoreType::String | CoreType::Binary)
+                && contextual_text_literal(expr))
+            {
                 *target_type = expected.clone();
             }
             specialize_expected_collection_new(expr, expected, functions, module);
@@ -172,6 +198,19 @@ pub(super) fn specialize_expected_collection_new(
             }
         }
         _ => {}
+    }
+}
+
+/// Text literals can be materialized directly in their checked String/Binary
+/// context. Existing values must retain their representation instead.
+fn contextual_text_literal(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::Binary(_) => true,
+        CoreExpr::Cast {
+            expr,
+            target_type: CoreType::String | CoreType::Binary,
+        } => contextual_text_literal(expr),
+        _ => false,
     }
 }
 
@@ -360,90 +399,30 @@ pub(super) fn specialize_collection_new_bindings(
     functions: &FunctionTypes,
     module: &str,
 ) {
+    let mut variables = variables.clone();
     for index in 0..bindings.len() {
-        let CorePattern::Var(name) = &bindings[index].pattern else {
-            continue;
-        };
-        let name = name.clone();
-        let empty_list = is_empty_list_initializer(&bindings[index].value);
-        let infer_push = |expr: &CoreExpr| {
-            empty_list
-                .then(|| infer_list_push(&name, expr, variables, functions, module))
-                .flatten()
-        };
-        let inferred = bindings[index + 1..]
-            .iter()
-            .find_map(|binding| {
-                expected_call_argument_type(&name, &binding.value, functions, module)
-                    .or_else(|| infer_map_put(&name, &binding.value))
-                    .or_else(|| infer_set_add(&name, &binding.value))
-                    .or_else(|| infer_push(&binding.value))
-            })
-            .or_else(|| expected_call_argument_type(&name, body, functions, module))
-            .or_else(|| infer_map_put(&name, body))
-            .or_else(|| infer_set_add(&name, body))
-            .or_else(|| infer_push(body));
-        let Some(inferred) = inferred else {
-            continue;
-        };
-        specialize_expected_collection_new(
-            &mut bindings[index].value,
-            &inferred,
+        let inferred = empty_mutation::infer_binding_use(
+            &bindings[index],
+            &bindings[index + 1..],
+            body,
+            &variables,
             functions,
             module,
         );
-        annotate_expected_structural_constructors(&mut bindings[index].value, &inferred);
-    }
-}
-
-/// A similarly named custom receiver must not retarget a non-list initializer.
-fn is_empty_list_initializer(expr: &CoreExpr) -> bool {
-    match expr {
-        CoreExpr::List(items) => items.is_empty(),
-        CoreExpr::Intrinsic(call) => {
-            call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
+        let binding = &mut bindings[index];
+        if let Some(inferred) = inferred {
+            specialize_expected_collection_new(&mut binding.value, &inferred, functions, module);
+            annotate_expected_structural_constructors(&mut binding.value, &inferred);
         }
-        CoreExpr::Cast { expr, target_type } if list_element(target_type).is_some() => {
-            is_empty_list_initializer(expr)
-        }
-        _ => false,
-    }
-}
-
-/// Recovers an empty list's element from its checked first mutation operand.
-fn infer_list_push(
-    name: &str,
-    expr: &CoreExpr,
-    variables: &HashMap<String, CoreType>,
-    functions: &FunctionTypes,
-    module: &str,
-) -> Option<CoreType> {
-    match expr {
-        CoreExpr::MutableReceiverCall {
-            receiver,
-            method,
-            args,
-            ..
-        } if method == "push"
-            && matches!(receiver.as_ref(), CoreExpr::Var(receiver) if receiver == name)
-            && args.len() == 1 =>
+        let ty = specialize_expr(&mut binding.value.clone(), &variables, functions, module);
+        for name in
+            super::super::expression::free_variable_analysis::pattern_bound_names(&binding.pattern)
         {
-            specialize_expr(&mut args[0].clone(), variables, functions, module)
-                .map(|element| CoreType::List(Box::new(element)))
+            variables.remove(&name);
         }
-        CoreExpr::Let { bindings, body } => bindings
-            .iter()
-            .find_map(|binding| infer_list_push(name, &binding.value, variables, functions, module))
-            .or_else(|| infer_list_push(name, body, variables, functions, module)),
-        CoreExpr::Intrinsic(call)
-            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
-                && call.args.len() == 2
-                && matches!(&call.args[0], CoreExpr::Var(receiver) if receiver == name) =>
-        {
-            specialize_expr(&mut call.args[1].clone(), variables, functions, module)
-                .map(|element| CoreType::List(Box::new(element)))
+        if let Some(ty) = ty {
+            bind_pattern(&binding.pattern, &ty, &mut variables);
         }
-        _ => None,
     }
 }
 
@@ -476,7 +455,11 @@ fn expected_call_argument_type(
     args.iter()
         .zip(&signature.params)
         .find_map(|(argument, expected)| {
-            matches!(argument, CoreExpr::Var(argument) if argument == name)
-                .then(|| expected.clone())
+            (matches!(argument, CoreExpr::Var(argument) if argument == name)
+                && !super::super::generic_specialization::contains_generic_parameter(
+                    expected,
+                    &signature.generic_params,
+                ))
+            .then(|| expected.clone())
         })
 }

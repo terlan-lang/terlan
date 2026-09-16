@@ -29,69 +29,6 @@ pub(in crate::compiler::native_ir) fn typed_receiver_intrinsic(
     Some((intrinsic, result))
 }
 
-pub(super) fn infer_map_put(name: &str, expr: &CoreExpr) -> Option<CoreType> {
-    match expr {
-        CoreExpr::MutableReceiverCall {
-            receiver,
-            method,
-            args,
-            ..
-        } if method == "put"
-            && matches!(receiver.as_ref(), CoreExpr::Var(receiver) if receiver == name) =>
-        {
-            let [key, value] = args.as_slice() else {
-                return None;
-            };
-            Some(CoreType::Apply {
-                constructor: "Map".to_string(),
-                args: vec![literal_type(key)?, literal_type(value)?],
-            })
-        }
-        CoreExpr::Let { bindings, body } => bindings
-            .iter()
-            .find_map(|binding| infer_map_put(name, &binding.value))
-            .or_else(|| infer_map_put(name, body)),
-        _ => None,
-    }
-}
-
-pub(super) fn infer_set_add(name: &str, expr: &CoreExpr) -> Option<CoreType> {
-    match expr {
-        CoreExpr::MutableReceiverCall {
-            receiver,
-            method,
-            args,
-            ..
-        } if method == "add"
-            && matches!(receiver.as_ref(), CoreExpr::Var(receiver) if receiver == name) =>
-        {
-            let [element] = args.as_slice() else {
-                return None;
-            };
-            Some(CoreType::Apply {
-                constructor: "Set".to_string(),
-                args: vec![literal_type(element)?],
-            })
-        }
-        CoreExpr::Let { bindings, body } => bindings
-            .iter()
-            .find_map(|binding| infer_set_add(name, &binding.value))
-            .or_else(|| infer_set_add(name, body)),
-        _ => None,
-    }
-}
-
-fn literal_type(expr: &CoreExpr) -> Option<CoreType> {
-    match expr {
-        CoreExpr::Int(_) => Some(CoreType::Int),
-        CoreExpr::Float(_) => Some(CoreType::Float),
-        CoreExpr::Binary(_) => Some(CoreType::String),
-        CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(_) => Some(CoreType::Atom),
-        _ => None,
-    }
-}
-
 pub(super) fn map_receiver_intrinsic(method: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (method, arity) {
         ("is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),

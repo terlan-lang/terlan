@@ -86,9 +86,6 @@ pub(super) fn qualify_local_nominal_types(core: &mut CoreModule) {
 
 fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, String>) {
     let local = nominal_declarations(core, false);
-    if local.is_empty() && imported.is_empty() {
-        return;
-    }
     let module = core.module.clone();
     let scope = NominalScope {
         module: &module,
@@ -140,13 +137,20 @@ fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, Strin
 }
 
 fn qualify_name(name: &mut String, scope: &NominalScope<'_>) {
-    if name.contains('.') {
-        return;
+    if !name.contains('.') {
+        if scope.local.contains(name) {
+            *name = format!("{}.{}", scope.module, name);
+        } else if let Some(canonical) = scope.imported.get(name) {
+            *name = canonical.clone();
+        }
     }
-    if scope.local.contains(name) {
-        *name = format!("{}.{}", scope.module, name);
-    } else if let Some(canonical) = scope.imported.get(name) {
-        *name = canonical.clone();
+    // Compiler-owned collections have one established ABI spelling, whether
+    // their opaque declaration is loaded or only an intrinsic refers to them.
+    // User-defined types with the same suffix retain their qualified identity.
+    match name.as_str() {
+        "std.collections.Map.Map" => *name = "Map".to_string(),
+        "std.collections.Set.Set" => *name = "Set".to_string(),
+        _ => {}
     }
 }
 
