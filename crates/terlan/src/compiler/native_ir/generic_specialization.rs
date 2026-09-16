@@ -17,6 +17,8 @@ mod generic_unification;
 mod inference;
 #[path = "generic_specialization/pattern_types.rs"]
 mod pattern_types;
+#[path = "generic_specialization/primitive_receivers.rs"]
+mod primitive_receivers;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
 use generic_unification::{substitute, unify};
@@ -24,7 +26,7 @@ use inference::{
     common_concrete_parameter_types, contains_implicit_generic_type, infer_generic_argument_types,
     infer_type, needs_contextual_type,
 };
-pub(super) use pattern_types::{bind_pattern_types, structural_tuple_variant};
+pub(super) use pattern_types::{bind_pattern_types, lambda_type_scope, structural_tuple_variant};
 use type_substitution::substitute_function_types;
 
 pub(super) fn specialize_application_generics_with_budget(
@@ -136,6 +138,25 @@ fn rewrite_expr(
     } = expr
     {
         if receiver_module == "__receiver__" {
+            let intrinsic = args
+                .first()
+                .and_then(|receiver| infer_type(receiver, variables, templates, module))
+                .and_then(|receiver| {
+                    crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(
+                        &receiver,
+                        function,
+                        args.len(),
+                    )
+                });
+            if let Some(intrinsic) = intrinsic {
+                for argument in args.iter_mut() {
+                    rewrite_expr(
+                        argument, variables, templates, cache, generated, module, budget,
+                    )?;
+                }
+                *expr = primitive_receivers::intrinsic(intrinsic, std::mem::take(args));
+                return Ok(());
+            }
             let function = function.clone();
             let args = std::mem::take(args);
             *expr = CoreExpr::Call { function, args };
@@ -348,6 +369,20 @@ fn rewrite_expr(
                 }
             }
         }
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } if matches!(operator.as_str(), "<" | "<=" | ">" | ">=")
+            && infer_type(left, variables, templates, module) == Some(CoreType::String)
+            && infer_type(right, variables, templates, module) == Some(CoreType::String) =>
+        {
+            rewrite_expr(left, variables, templates, cache, generated, module, budget)?;
+            rewrite_expr(
+                right, variables, templates, cache, generated, module, budget,
+            )?;
+            *expr = primitive_receivers::string_ordering(operator, *left.clone(), *right.clone());
+        }
         CoreExpr::ListCons { head, tail }
         | CoreExpr::Index {
             base: head,
@@ -415,9 +450,16 @@ fn rewrite_expr(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => {
+        | CoreExpr::UnaryOp { operand: base, .. } => {
             rewrite_expr(base, variables, templates, cache, generated, module, budget)?;
+        }
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let locals = lambda_type_scope(params, parameter_types, variables);
+            rewrite_expr(body, &locals, templates, cache, generated, module, budget)?;
         }
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();

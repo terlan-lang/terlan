@@ -1,5 +1,22 @@
 use super::*;
 
+/// Resolves a primitive receiver from its checked type, never from a method
+/// spelling alone. Uses the same operation/arity registry as qualified calls.
+pub(crate) fn core_typed_receiver_intrinsic(
+    receiver: &CoreType,
+    function: &str,
+    arity: usize,
+) -> Option<CorePrimitiveIntrinsic> {
+    let module = match receiver {
+        CoreType::String => "std.core.String",
+        CoreType::Int => "std.core.Int",
+        CoreType::Float => "std.core.Float",
+        CoreType::Bool => "std.core.Bool",
+        _ => return None,
+    };
+    core_primitive_intrinsic(module, function, arity)
+}
+
 /// Resolves a `std.core` primitive operation name and arity to an intrinsic.
 ///
 /// Inputs:

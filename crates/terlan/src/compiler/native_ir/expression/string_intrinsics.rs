@@ -6,17 +6,19 @@ use crate::runtime::native_image::managed::{
     encode_string_append_operation, encode_string_byte_size_operation,
     encode_string_characters_operation, encode_string_codepoints_operation,
     encode_string_compare_operation, encode_string_contains_operation,
-    encode_string_ends_with_operation, encode_string_length_operation,
-    encode_string_list_join_operation, encode_string_lowercase_operation,
-    encode_string_replace_operation, encode_string_sha256_operation,
+    encode_string_ends_with_operation, encode_string_equal_operation,
+    encode_string_length_operation, encode_string_list_join_operation,
+    encode_string_lowercase_operation, encode_string_replace_operation,
+    encode_string_reverse_operation, encode_string_sha256_operation,
     encode_string_split_once_operation, encode_string_split_operation,
     encode_string_starts_with_operation, encode_string_trim_end_operation,
     encode_string_trim_operation, encode_string_trim_start_operation,
-    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
-    encode_string_utf8_slice_operation, SemanticTypeId,
+    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
+    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::{
-    CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
+    CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem,
+    CoreType,
 };
 
 use super::{
@@ -27,7 +29,8 @@ use super::{
 pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
     match call.id {
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringContains
+            CorePrimitiveIntrinsic::StringEqual
+            | CorePrimitiveIntrinsic::StringContains
             | CorePrimitiveIntrinsic::StringStartsWith
             | CorePrimitiveIntrinsic::StringEndsWith
             | CorePrimitiveIntrinsic::StringIsEmpty,
@@ -40,7 +43,8 @@ pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Na
         ) => Some(NativeType::Int),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCompare) => Some(NativeType::Atom),
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringSplit
+            CorePrimitiveIntrinsic::StringFromString
+            | CorePrimitiveIntrinsic::StringSplit
             | CorePrimitiveIntrinsic::StringSplitOnce
             | CorePrimitiveIntrinsic::StringCharacters
             | CorePrimitiveIntrinsic::StringCodepoints,
@@ -54,9 +58,12 @@ pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Na
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringConcat) => {
             Some(NativeType::StringRef)
         }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringLowercase) => {
-            Some(NativeType::StringRef)
-        }
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::StringLowercase
+            | CorePrimitiveIntrinsic::StringUppercase
+            | CorePrimitiveIntrinsic::StringReverse
+            | CorePrimitiveIntrinsic::StringToString,
+        ) => Some(NativeType::StringRef),
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::StringTrim
             | CorePrimitiveIntrinsic::StringTrimStart
@@ -85,6 +92,10 @@ pub(super) fn lower_string_intrinsic(
     };
     let expected_arity = match intrinsic {
         CorePrimitiveIntrinsic::StringLowercase
+        | CorePrimitiveIntrinsic::StringUppercase
+        | CorePrimitiveIntrinsic::StringReverse
+        | CorePrimitiveIntrinsic::StringToString
+        | CorePrimitiveIntrinsic::StringFromString
         | CorePrimitiveIntrinsic::StringTrim
         | CorePrimitiveIntrinsic::StringTrimStart
         | CorePrimitiveIntrinsic::StringTrimEnd
@@ -103,6 +114,21 @@ pub(super) fn lower_string_intrinsic(
     if call.args.len() != expected_arity {
         return Err("error[native_ir.string_intrinsic]: invalid intrinsic arity".into());
     }
+    if *intrinsic == CorePrimitiveIntrinsic::StringFromString {
+        return Ok(super::super::collection_values::lower_typed_value(
+            &CoreExpr::ConstructorCall {
+                constructor: "Some".into(),
+                constructor_identity: Some("std.core.Option.Some".into()),
+                args: call.args.clone(),
+            },
+            &call.return_type,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )?);
+    }
     let args = call
         .args
         .iter()
@@ -117,6 +143,9 @@ pub(super) fn lower_string_intrinsic(
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
+    if *intrinsic == CorePrimitiveIntrinsic::StringToString {
+        return Ok(args.into_iter().next().expect("validated unary intrinsic"));
+    }
     if *intrinsic == CorePrimitiveIntrinsic::StringIsEmpty {
         let [value] = args.as_slice() else {
             unreachable!("String.is_empty arity was validated above");
@@ -132,6 +161,7 @@ pub(super) fn lower_string_intrinsic(
         });
     }
     let encoded = match intrinsic {
+        CorePrimitiveIntrinsic::StringEqual => encode_string_equal_operation(),
         CorePrimitiveIntrinsic::StringContains => encode_string_contains_operation(),
         CorePrimitiveIntrinsic::StringCompare => encode_string_compare_operation(),
         CorePrimitiveIntrinsic::StringStartsWith => encode_string_starts_with_operation(),
@@ -139,6 +169,8 @@ pub(super) fn lower_string_intrinsic(
         CorePrimitiveIntrinsic::StringAppend => encode_string_append_operation(),
         CorePrimitiveIntrinsic::StringConcat => encode_string_list_join_operation(),
         CorePrimitiveIntrinsic::StringLowercase => encode_string_lowercase_operation(),
+        CorePrimitiveIntrinsic::StringUppercase => encode_string_uppercase_operation(),
+        CorePrimitiveIntrinsic::StringReverse => encode_string_reverse_operation(),
         CorePrimitiveIntrinsic::StringTrim => encode_string_trim_operation(),
         CorePrimitiveIntrinsic::StringTrimStart => encode_string_trim_start_operation(),
         CorePrimitiveIntrinsic::StringTrimEnd => encode_string_trim_end_operation(),

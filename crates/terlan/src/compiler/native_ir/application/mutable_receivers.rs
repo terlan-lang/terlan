@@ -242,9 +242,20 @@ fn resolve_expr(
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Cast { expr: base, .. }
-        | CoreExpr::Lam { body: base, .. } => {
+        | CoreExpr::Cast { expr: base, .. } => {
             resolve_expr(base, module, variables, functions, targets)?;
+        }
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let locals = super::super::generic_specialization::lambda_type_scope(
+                params,
+                parameter_types,
+                variables,
+            );
+            resolve_expr(body, module, &locals, functions, targets)?;
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {

@@ -617,8 +617,17 @@ fn rewrite_expr(
             )?;
             Some(result_core_type.clone())
         }
-        CoreExpr::Lam { body, .. } => {
-            rewrite_expr(body, current_module, environment, groups, returns, aliases)?;
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let mut locals = super::super::generic_specialization::lambda_type_scope(
+                params,
+                parameter_types,
+                environment,
+            );
+            rewrite_expr(body, current_module, &mut locals, groups, returns, aliases)?;
             None
         }
         CoreExpr::RemoteFunRef { .. } => None,

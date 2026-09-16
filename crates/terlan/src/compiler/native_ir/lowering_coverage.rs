@@ -370,6 +370,9 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatPi => LoweringCoverage::native("Intrinsic.core.float.pi"),
         P::FloatTau => LoweringCoverage::native("Intrinsic.core.float.tau"),
         P::BoolToString => LoweringCoverage::native("Intrinsic.core.bool.to_string"),
+        P::BoolEqual => LoweringCoverage::native("Intrinsic.core.bool.equal"),
+        P::BoolCompare => LoweringCoverage::native("Intrinsic.core.bool.compare"),
+        P::BoolFromString => LoweringCoverage::native("Intrinsic.core.bool.from_string"),
         P::ValueToString => LoweringCoverage::native("Intrinsic.core.value.to_string"),
         P::IntToString => LoweringCoverage::native("Intrinsic.core.int.to_string"),
         P::IntFromString => LoweringCoverage::native("Intrinsic.core.int.from_string"),
@@ -433,13 +436,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::VmBitStringToIntBe
         | P::VmBitStringToUintLe
         | P::VmBitStringToIntLe => LoweringCoverage::native("Intrinsic.vm.bitstring"),
-        P::TypeOf
-        | P::IsType
-        | P::BoolEqual
-        | P::BoolCompare
-        | P::BoolFromString
-        | P::AtomToString
-        | P::StringEqual
+        P::StringEqual
         | P::StringCompare
         | P::StringToString
         | P::StringFromString
@@ -464,7 +461,10 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::StringTrimEnd
         | P::StringReplace
         | P::StringSplit
-        | P::StringSplitOnce
+        | P::StringSplitOnce => LoweringCoverage::native("Intrinsic.core.string"),
+        P::TypeOf
+        | P::IsType
+        | P::AtomToString
         | P::CryptoSha256
         | P::ListConcat
         | P::ListSubtract

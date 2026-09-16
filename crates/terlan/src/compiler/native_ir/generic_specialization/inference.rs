@@ -81,6 +81,19 @@ pub(super) fn infer_type(
             infer_type(call.args.first()?, variables, templates, module)
         }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
+        CoreExpr::RemoteCall {
+            module: owner,
+            function,
+            args,
+        } if owner == "__receiver__" => {
+            let receiver = infer_type(args.first()?, variables, templates, module)?;
+            crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(
+                &receiver,
+                function,
+                args.len(),
+            )
+            .map(|intrinsic| crate::terlan_typeck::core_primitive_intrinsic_return_type(&intrinsic))
+        }
         CoreExpr::UnaryOp { operator, .. } if matches!(operator.as_str(), "not" | "!") => {
             Some(CoreType::Bool)
         }

@@ -24,6 +24,15 @@ pub(in crate::compiler::native_ir) fn free_variables_with_bindings<'a>(
     free
 }
 
+/// Returns every lexical name introduced by a checked binding pattern.
+pub(in crate::compiler::native_ir) fn pattern_bound_names(
+    pattern: &CorePattern,
+) -> HashSet<String> {
+    let mut names = HashSet::new();
+    bind_pattern(pattern, &mut names);
+    names
+}
+
 /// Traverses one expression while tracking lexical bindings and free reads.
 fn collect_free_variables(
     expr: &CoreExpr,

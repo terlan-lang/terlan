@@ -6,6 +6,113 @@ use crate::terlan_typeck::lower_syntax_module_output_to_core;
 
 use super::NativeModule;
 
+/// String relational operators must use UTF-8 content, not managed-reference
+/// words, and their runtime comparison atoms need no explicit source import.
+#[test]
+fn native_string_ordering_operators_use_utf8_semantics_without_imports() {
+    let syntax = parse_module_as_syntax_output(r#"
+module primitive_string_ordering.
+less(left: String, right: String): Bool -> left < right.
+less_equal(left: String, right: String): Bool -> left <= right.
+greater(left: String, right: String): Bool -> left > right.
+greater_equal(left: String, right: String): Bool -> left >= right.
+pub less_test(): Bool -> less("é", "🙂") and less("", "x") and not less("é", "é") and not less("z", "a").
+pub less_equal_test(): Bool -> less_equal("é", "🙂") and less_equal("é", "é") and not less_equal("z", "a").
+pub greater_test(): Bool -> greater("🙂", "é") and not greater("é", "é") and not greater("a", "z").
+pub greater_equal_test(): Bool -> greater_equal("🙂", "é") and greater_equal("é", "é") and not greater_equal("a", "z").
+"#).expect("parse string ordering operators");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).expect("lower string operators");
+    let object = super::emit_native_application_object("string-ordering", &modules)
+        .expect("emit string operators");
+    use super::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    let invocations = [
+        "less_test",
+        "less_equal_test",
+        "greater_test",
+        "greater_equal_test",
+    ]
+    .map(|name| {
+        let export = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("string operator export");
+        NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(1),
+        }
+    });
+    assert_managed_native_object_invocations("string-ordering", &modules, &object, &invocations);
+}
+
+/// Callback receivers retain contextual primitive types and cannot bind to an
+/// unrelated local function or a shadowed outer variable with the same name.
+#[test]
+fn generic_callback_primitive_receivers_keep_type_and_lexical_identity() {
+    use crate::terlan_hir::{
+        checked_in_std_interfaces_for_module, resolve_syntax_module_output_with_interfaces,
+    };
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module callback_primitive_receivers.
+apply[T, R](value: T, transform: (T) -> R): R -> transform(value).
+byte_size(value: Int): Int -> value + 100.
+pub direct(value: String): Int -> value.byte_size().
+pub callback(): Int -> apply("éx", (value) -> value.byte_size()).
+pub shadowed(value: Int): Int -> apply("éx", (value) -> value.byte_size()).
+pub ordinary(value: Int): Int -> byte_size(value).
+pub bool_callback(): String -> apply(true, (value) -> value.to_string()).
+pub float_callback(): String -> apply(1.5, (value) -> value.to_string()).
+pub int_callback(): String -> apply(42, (value) -> value.to_string()).
+"#,
+    )
+    .expect("parse contextual receiver source");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules =
+        NativeModule::lower_application(&[&core]).expect("lower contextual primitive receivers");
+    let object = super::emit_native_application_object("callback-primitive-receivers", &modules)
+        .expect("emit contextual receivers");
+    use super::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    let invocations = [
+        ("callback", vec![], 3),
+        ("shadowed", vec![17], 3),
+        ("ordinary", vec![17], 117),
+    ]
+    .map(|(name, arguments, expected)| {
+        let export = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("receiver export");
+        NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments,
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    assert_managed_native_object_invocations(
+        "callback-primitive-receivers",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
 #[test]
 fn private_generic_helper_is_replaced_by_concrete_native_specialization() {
     let syntax = parse_module_as_syntax_output(
