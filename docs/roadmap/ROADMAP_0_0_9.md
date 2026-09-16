@@ -42,9 +42,16 @@ module structure, file headroom, refreshed dependency impact and documentation
 checks pass for this correction, without increased budgets. Committed-candidate
 validation is still required; logs use the `primitive-family-`, `string-family-`,
 and `string-transforms-` prefixes. The subsequent table-suite probe passes the
-15 assertion and six lifecycle tests, but TableTest rejects an imported opaque
-Iterator type, while Base64/Md5 callbacks require non-tail suspension lowering.
-These remain required baseline fixes. No required tests are waived.
+15 assertion and six lifecycle tests. The TableTest Iterator mismatch is traced
+to the production embedded loader omitting transitive dependencies, unlike the
+test loader. A local correction follows the canonical dependency manifests,
+handles namespace indexes separately, and passes all 38 formal-pipeline tests,
+821 other type-checker tests and two dependency/type-contract probes. TableTest
+now reaches native lowering, where a higher-order tail call has no converged
+continuation profile; Base64/Md5 callbacks require non-tail suspension lowering.
+Those remain required baseline fixes. Both strict Clippy profiles and the rebuilt
+API/module/headroom/dependency gates pass for the loader correction, with unchanged
+budgets; evidence uses `embedded-dependencies-`. No required tests are waived.
 For the preceding trait correction, the rebuilt quality validator,
 canonical Clippy profiles, API boundaries, module structure, headroom, dependency
 report and documentation checks pass locally. No candidate-wide success is claimed.
