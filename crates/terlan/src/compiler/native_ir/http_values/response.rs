@@ -83,6 +83,7 @@ fn file_response(mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
         args.remove(0)
     };
     Ok(CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: response_constructor("file"),
         constructor_identity: Some(response_constructor("file")),
         args: vec![

@@ -494,14 +494,31 @@ fn canonicalize_native_package_expr(
                 canonicalize_native_package_expr(&mut field.value, module, imports, aliases)?;
             }
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => {
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::ConstructorCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                canonicalize(ty)?;
+            }
             for arg in args {
                 canonicalize_native_package_expr(arg, module, imports, aliases)?;
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            for ty in type_args {
+                canonicalize(ty)?;
+            }
             for arg in args {
                 canonicalize_native_package_expr(arg, module, imports, aliases)?;
             }

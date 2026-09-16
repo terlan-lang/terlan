@@ -90,6 +90,7 @@ pub(super) fn lower_boolean_intrinsic(
             let option = |value: Option<bool>| {
                 let constructor = if value.is_some() { "Some" } else { "None" };
                 let value = CoreExpr::ConstructorCall {
+                    type_args: Vec::new(),
                     constructor: constructor.to_string(),
                     constructor_identity: Some(format!("std.core.Option.{constructor}")),
                     args: value

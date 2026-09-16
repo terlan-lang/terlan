@@ -6,8 +6,8 @@ use super::*;
 #[path = "core_expr_lowering/calls.rs"]
 mod calls;
 use calls::{
-    core_function_call_expr_from_syntax, core_named_call_expr_from_syntax,
-    core_remote_call_expr_from_syntax,
+    core_constructor_chain_expr_from_syntax, core_function_call_expr_from_syntax,
+    core_named_call_expr_from_syntax, core_remote_call_expr_from_syntax,
 };
 
 #[path = "core_expr_lowering/name_case.rs"]
@@ -769,57 +769,6 @@ fn core_template_instantiate_expr_from_syntax(expr: &SyntaxExprOutput) -> Option
     Some(CoreExpr::TemplateInstantiate {
         name: expr.text.clone()?,
         fields: core_record_expr_fields_from_syntax(expr)?,
-    })
-}
-
-/// Converts a syntax-output constructor chain into typed Core.
-///
-/// Inputs:
-/// - `expr`: syntax-output constructor-chain expression with a base call child
-///   and a child record-construction expression.
-///
-/// Output:
-/// - `Some(CoreExpr::ConstructorChain)` when the base is a local named call,
-///   all base arguments lower into typed Core, and the right side lowers into
-///   typed `CoreExpr::RecordConstruct`.
-/// - `None` when the node is not constructor-chain syntax, has the wrong child
-///   shape, uses a non-name base call, has unsupported argument expressions,
-///   or has a non-record right side.
-///
-/// Transformation:
-/// - Preserves constructor-chain candidate identity as backend-neutral CoreIR
-///   without resolving includes/parent eligibility or rewriting the chain into
-///   backend record construction.
-fn core_constructor_chain_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
-    if !matches!(expr.kind, SyntaxExprKind::ConstructorChain) || expr.children.len() != 2 {
-        return None;
-    }
-
-    let base_call = &expr.children[0];
-    if !matches!(base_call.kind, SyntaxExprKind::Call) {
-        return None;
-    }
-
-    let (callee, args) = base_call.children.split_first()?;
-    let base = match callee.kind {
-        SyntaxExprKind::Var | SyntaxExprKind::Atom => callee.text.clone()?,
-        _ => return None,
-    };
-    let args = args
-        .iter()
-        .map(core_expr_from_syntax)
-        .collect::<Option<Vec<_>>>()?;
-
-    let record = core_expr_from_syntax(&expr.children[1])?;
-    if !matches!(record, CoreExpr::RecordConstruct { .. }) {
-        return None;
-    }
-
-    Some(CoreExpr::ConstructorChain {
-        base,
-        base_constructor_identity: None,
-        args,
-        record: Box::new(record),
     })
 }
 

@@ -145,10 +145,12 @@ impl StaticCallableNormalizer<'_> {
                 args: self.rewrite_many(args, callables)?,
             }),
             CoreExpr::ConstructorCall {
+                type_args,
                 constructor,
                 constructor_identity,
                 args,
             } => Ok(CoreExpr::ConstructorCall {
+                type_args: type_args.clone(),
                 constructor: constructor.clone(),
                 constructor_identity: constructor_identity.clone(),
                 args: self.rewrite_many(args, callables)?,
@@ -192,11 +194,13 @@ impl StaticCallableNormalizer<'_> {
                 field: field.clone(),
             }),
             CoreExpr::ConstructorChain {
+                type_args,
                 base,
                 base_constructor_identity,
                 args,
                 record,
             } => Ok(CoreExpr::ConstructorChain {
+                type_args: type_args.clone(),
                 base: base.clone(),
                 base_constructor_identity: base_constructor_identity.clone(),
                 args: self.rewrite_many(args, callables)?,

@@ -117,6 +117,7 @@ pub(super) fn lower_string_intrinsic(
     if *intrinsic == CorePrimitiveIntrinsic::StringFromString {
         return Ok(super::super::collection_values::lower_typed_value(
             &CoreExpr::ConstructorCall {
+                type_args: Vec::new(),
                 constructor: "Some".into(),
                 constructor_identity: Some("std.core.Option.Some".into()),
                 args: call.args.clone(),

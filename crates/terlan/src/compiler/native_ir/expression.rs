@@ -11,8 +11,8 @@ use super::{
     constructors::{
         constructor_result_core_type, constructor_result_type, lower_constructor_call,
         lower_record_construct, lower_record_update, lower_structural_constructor_call,
-        lower_structural_record_construct, managed_field_projection, record_construct_result_type,
-        record_update_result_type, NativeConstructorLayouts,
+        managed_field_projection, record_construct_result_type, record_update_result_type,
+        NativeConstructorLayouts,
     },
     escape::retained_managed_bindings,
     NativeBinaryOperator, NativeExpr, NativeType,
@@ -784,31 +784,8 @@ pub(super) fn lower_expr_with_constructors(
                     constructors,
                 );
             }
-            if let Some(lowered) = lower_structural_record_construct(
-                expr,
-                target_type,
-                constructors,
-                |field| {
-                    let ty = infer_native_type_for_lowering(
-                        field,
-                        param_types,
-                        function_types,
-                        constructors,
-                    )?
-                    .ok_or_else(|| {
-                        "error[native_ir.structural_record_field_type]: cannot infer field"
-                            .to_string()
-                    })?;
-                    let lowered = lower_expr_with_constructors(
-                        field,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?;
-                    Ok((lowered, ty))
-                },
+            if let Some(lowered) = super::collection_values::lower_boundary_collection_value(
+                expr, Some(target_type), params, param_types, functions, function_types, constructors,
             )? {
                 return Ok(lowered);
             }

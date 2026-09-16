@@ -740,6 +740,7 @@ pub(super) fn syntax_output_lowering_to_core_records_constructor_call_candidate(
     assert_eq!(
         core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: None,
             args: vec![CoreExpr::Int(1)],

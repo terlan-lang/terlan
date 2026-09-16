@@ -187,8 +187,9 @@ crates/terlan/src/compiler/native_ir/closure_invocation.rs	7	internal-helper	com
 crates/terlan/src/compiler/native_ir/collection_values.rs	6	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/collections.rs	11	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/composed_continuation.rs	2	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/constructors.rs	13	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/constructors.rs	11	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/field_types.rs	3	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/constructors/records.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/structural_registry.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/continuation_sharing.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/control.rs	2	internal-helper	compiler-errors	0.0.9

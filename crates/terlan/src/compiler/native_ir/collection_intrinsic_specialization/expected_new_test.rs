@@ -4,6 +4,38 @@ use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
 #[test]
+fn explicit_tuple_context_types_empty_payloads_idempotently() {
+    use crate::terlan_typeck::CoreTupleTypeElem;
+    let list = CoreType::List(Box::new(CoreType::String));
+    let mut expression = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Tuple(vec![
+            CoreExpr::Atom("wrapped".into()),
+            CoreExpr::List(vec![]),
+        ])),
+        target_type: CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("wrapped".into())),
+            CoreTupleTypeElem::Field {
+                name: "values".into(),
+                ty: list.clone(),
+            },
+        ]),
+    };
+    super::super::specialize_expr(&mut expression, &HashMap::new(), &HashMap::new(), "fixture");
+    let CoreExpr::Cast { expr, .. } = &expression else {
+        panic!("retain tuple type")
+    };
+    let CoreExpr::Tuple(items) = expr.as_ref() else {
+        panic!("retain tuple value")
+    };
+    assert!(matches!(&items[1], CoreExpr::Cast { target_type, .. } if target_type == &list));
+    let once = expression.clone();
+    for _ in 0..4 {
+        super::super::specialize_expr(&mut expression, &HashMap::new(), &HashMap::new(), "fixture");
+        assert_eq!(expression, once);
+    }
+}
+
+#[test]
 fn checked_text_literal_context_replaces_inferred_cast_without_retyping_values() {
     let mut literal = CoreExpr::Cast {
         expr: Box::new(CoreExpr::Binary("\"a\"".to_string())),
@@ -48,6 +80,7 @@ fn repeated_collection_context_is_idempotent() {
 fn push_inference_only_contextualizes_empty_list_initializers() {
     let custom = CoreExpr::Cast {
         expr: Box::new(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Buffer".to_string(),
             constructor_identity: Some("fixture.Buffer".to_string()),
             args: vec![],
@@ -112,6 +145,7 @@ fn struct_constructor_specializes_collection_arguments_without_widening_foreign_
         ("State", Some("other.State"), false),
     ] {
         let mut expression = CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: constructor.to_owned(),
             constructor_identity: identity.map(str::to_owned),
             args: vec![CoreExpr::Intrinsic(CoreIntrinsicCall {

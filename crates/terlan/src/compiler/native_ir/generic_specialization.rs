@@ -23,7 +23,8 @@ mod pattern_types;
 mod primitive_receivers;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
-use generic_unification::{substitute, unify};
+pub(super) use generic_unification::substitute;
+use generic_unification::unify;
 use inference::{
     common_concrete_parameter_types, contains_implicit_generic_type, infer_generic_argument_types,
     infer_type, needs_contextual_type,

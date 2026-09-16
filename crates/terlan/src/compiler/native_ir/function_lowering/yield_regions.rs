@@ -113,6 +113,7 @@ pub(in crate::compiler::native_ir) fn condition_yield_region_at_depth(
             })
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
@@ -120,6 +121,7 @@ pub(in crate::compiler::native_ir) fn condition_yield_region_at_depth(
             let (region, args) = eager_argument_yield(args, depth)?;
             Some(YieldRegion {
                 resume: CoreExpr::ConstructorCall {
+                    type_args: type_args.clone(),
                     constructor: constructor.clone(),
                     constructor_identity: constructor_identity.clone(),
                     args,

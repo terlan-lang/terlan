@@ -150,51 +150,19 @@ pub(crate) fn lower_core_types(interface: &ModuleInterface) -> Vec<CoreTypeDecl>
         .collect()
 }
 
-/// Builds typed CoreType bodies for local syntax-output struct declarations.
-///
-/// Inputs:
-/// - `module`: compiler-facing syntax module whose declarations may include
-///   local structs.
-///
-/// Output:
-/// - Map from struct name to typed `CoreType::Struct` payload for structs whose
-///   field annotations all lower into supported CoreType forms.
-///
-/// Transformation:
-/// - Scans local struct declarations, lowers each field annotation through the
-///   existing type-text CoreType converter, and keeps only fully typed
-///   structural bodies.
-pub(crate) fn core_syntax_struct_type_bodies(
+/// Retains local type representations without exporting private interface data.
+/// Private aliases and generic structs need the same checked bodies and type
+/// parameters as public declarations while compiling their owning module.
+pub(crate) fn core_syntax_type_representations(
     module: &SyntaxModuleOutput,
-) -> HashMap<String, CoreType> {
-    module
-        .declarations
-        .iter()
-        .filter_map(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Struct { name, fields, .. } => {
-                core_type_from_syntax_struct_fields(name, fields)
-            }
-            _ => None,
-        })
-        .collect()
-}
-
-/// Builds typed Core bodies for local opaque value aliases.
-///
-/// Bodyless opaque declarations remain native resource identities. Opaque
-/// declarations with a representation retain that private representation in
-/// CoreIR so native package values can cross result and collection boundaries
-/// without being mistaken for resource handles.
-pub(crate) fn core_syntax_opaque_type_bodies(
-    module: &SyntaxModuleOutput,
-) -> HashMap<String, CoreType> {
+) -> HashMap<String, (Vec<String>, Option<CoreType>)> {
     module
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {
             SyntaxDeclarationPayload::Type {
                 name,
-                is_opaque: true,
+                params,
                 variants,
                 ..
             } => {
@@ -202,7 +170,19 @@ pub(crate) fn core_syntax_opaque_type_bodies(
                     .iter()
                     .map(|variant| variant.text.clone())
                     .collect::<Vec<_>>();
-                core_type_from_body_variants(&variants).map(|body| (name.clone(), body))
+                Some((
+                    name.clone(),
+                    (params.clone(), core_type_from_body_variants(&variants)),
+                ))
+            }
+            SyntaxDeclarationPayload::Struct {
+                name,
+                generic_params,
+                fields,
+                ..
+            } => {
+                let body = core_type_from_syntax_struct_fields(name, fields).map(|(_, body)| body);
+                Some((name.clone(), (generic_params.clone(), body)))
             }
             _ => None,
         })

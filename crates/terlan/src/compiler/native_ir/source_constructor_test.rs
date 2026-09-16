@@ -12,6 +12,121 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
 
 #[test]
+fn source_constructor_retains_explicit_empty_and_enclosing_type_arguments() {
+    let modules = check_sources(&[r#"
+module constructor_explicit_empty.
+import std.collections.List.
+pub type Items[T] = List[T].
+pub constructor Items[T] {
+    (...values: T): Items[T] -> values
+}.
+empty[T](): Items[T] -> Items[T]().
+pub check(): Bool -> Items[Int]().length() == 0 and Items[String]().length() == 0
+    and empty[Int]().length() == 0 and empty[String]().length() == 0.
+"#]);
+    let collections = modules
+        .iter()
+        .flat_map(|module| &module.managed_collections)
+        .map(|encoded| {
+            crate::runtime::native_image::managed::decode_collection_layout(encoded)
+                .expect("decode retained collection type")
+                .canonical_type()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    for expected in ["List(Int)", "List(String)"] {
+        assert!(
+            collections.iter().any(|ty| ty == expected),
+            "{expected}: {collections:?}"
+        );
+    }
+}
+
+#[test]
+fn source_constructor_explicit_type_arguments_reach_default_arguments() {
+    check_source(
+        r#"
+module constructor_explicit_defaults.
+import std.collections.List.
+pub type Items[T] = List[T].
+pub constructor Items[T] {
+    (values: List[T] = []): Items[T] -> values
+}.
+pub check(): Bool -> Items[Int]().length() == 0 and Items[String]().length() == 0.
+"#,
+    );
+}
+
+#[test]
+fn imported_constructor_retains_explicit_provider_type_arguments() {
+    check_sources(&[
+        r#"
+module constructor_explicit_import.
+import std.collections.List.
+import sample.Provider.{Items, Element}.
+pub check(): Bool -> Items[Element]().length() == 0 and Items[String]().length() == 0.
+"#,
+        r#"
+module sample.Provider.
+import std.collections.List.
+pub struct Element { value: Int }.
+pub type Items[T] = List[T].
+pub constructor Items[T] {
+    (...values: T): Items[T] -> values
+}.
+"#,
+    ]);
+}
+
+#[test]
+fn transparent_constructor_retains_explicit_empty_payload_type() {
+    check_source(
+        r#"
+module constructor_explicit_alias.
+import std.collections.List.
+pub type Wrapped[T] = {Atom["wrapped"], values: List[T]}.
+empty[T](): Wrapped[T] -> Wrapped[T]([]).
+pub check(): Bool ->
+    (case Wrapped[Int]([]) { Wrapped(values) -> values.length() == 0 })
+    and (case Wrapped[String]([]) { Wrapped(values) -> values.length() == 0 })
+    and (case empty[String]() { Wrapped(values) -> values.length() == 0 }).
+"#,
+    );
+}
+
+#[test]
+fn struct_constructor_retains_explicit_empty_payload_type() {
+    let modules = check_sources(&[r#"
+module constructor_explicit_struct.
+import std.collections.List.
+pub struct Wrapped[T] { values: List[T] }.
+empty[T](): Wrapped[T] -> Wrapped[T](values = []).
+count[T](value: Wrapped[T]): Int -> value.values.length().
+pub check(): Bool -> Wrapped[Int](values = []).values.length() == 0
+    and count[Int](empty[Int]()) == 0 and count[String](empty[String]()) == 0.
+"#]);
+    let layouts = modules
+        .iter()
+        .flat_map(|module| &module.managed_layouts)
+        .map(|encoded| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(encoded)
+                .expect("decode concrete struct")
+                .canonical_type()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    for expected in [
+        "Apply(constructor_explicit_struct.Wrapped;Int)",
+        "Apply(constructor_explicit_struct.Wrapped;String)",
+    ] {
+        assert!(
+            layouts.iter().any(|ty| ty == expected),
+            "{expected}: {layouts:?}"
+        );
+    }
+}
+
+#[test]
 fn source_constructor_executes_its_body() {
     check_source(
         r#"
@@ -21,6 +136,23 @@ pub constructor Adjusted {
     (value: Int): Adjusted -> value + 2
 }.
 pub check(): Bool -> Adjusted(40) == 42.
+"#,
+    );
+}
+
+#[test]
+fn private_alias_and_struct_constructors_retain_local_representation() {
+    check_source(
+        r#"
+module private_constructor_representations.
+import std.collections.List.
+type Hidden = Int.
+constructor Hidden { (value: Int): Hidden -> value + 2 }.
+type Items[T] = List[T].
+constructor Items[T] { (...values: T): Items[T] -> values }.
+struct Boxed[T] { values: List[T] }.
+pub check(): Bool -> Hidden(40) == 42 and Items[String]().length() == 0
+    and Boxed[Int](values = []).values.length() == 0.
 "#,
     );
 }
@@ -209,7 +341,7 @@ pub check(): Bool -> length([10, 20, 30]) == 3.
     );
 }
 
-fn check_sources(sources: &[&str]) {
+fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     let syntaxes = sources
         .iter()
         .map(|source| parse_module_as_syntax_output(source).expect("parse source constructor"))
@@ -253,4 +385,5 @@ fn check_sources(sources: &[&str]) {
             expected_result: Some(1),
         }],
     );
+    modules
 }

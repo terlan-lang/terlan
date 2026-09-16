@@ -162,7 +162,7 @@ pub(super) fn unify(
     }
 }
 
-pub(super) fn substitute(
+pub(in crate::compiler::native_ir) fn substitute(
     ty: &CoreType,
     generic_params: &[String],
     values: &HashMap<String, CoreType>,

@@ -407,6 +407,7 @@ pub(super) fn target_profile_accepts_documented_core_v0_shape_matrix() {
                         CoreIfClause {
                             condition: CoreExpr::Atom("true".to_string()),
                             body: CoreExpr::ConstructorCall {
+                                type_args: Vec::new(),
                                 constructor: "Ok".to_string(),
                                 constructor_identity: Some("Ok/1".to_string()),
                                 args: vec![CoreExpr::Lam {

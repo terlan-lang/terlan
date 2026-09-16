@@ -197,6 +197,7 @@ where
             None
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
@@ -232,6 +233,7 @@ where
                     let mut args = resumed_args.clone();
                     args[call_index] = resume;
                     CoreExpr::ConstructorCall {
+                        type_args: type_args.clone(),
                         constructor: constructor.clone(),
                         constructor_identity: constructor_identity.clone(),
                         args,

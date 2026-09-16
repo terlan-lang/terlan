@@ -146,13 +146,13 @@ pub fn lower_syntax_module_output_to_core(
     );
     merge_core_imports(&mut core.imports, core_resolved_imported_modules(resolved));
     core.trait_conformances = core_syntax_trait_conformances(module);
-    let syntax_struct_bodies = core_syntax_struct_type_bodies(module);
-    let syntax_opaque_bodies = core_syntax_opaque_type_bodies(module);
+    let syntax_types = core_syntax_type_representations(module);
     for type_decl in &mut core.types {
-        if let Some(core_body) = syntax_struct_bodies.get(&type_decl.name) {
-            type_decl.core_body = Some(core_body.clone());
-        } else if let Some(core_body) = syntax_opaque_bodies.get(&type_decl.name) {
-            type_decl.core_body = Some(core_body.clone());
+        if let Some((params, core_body)) = syntax_types.get(&type_decl.name) {
+            type_decl.params = params.clone();
+            if let Some(core_body) = core_body {
+                type_decl.core_body = Some(core_body.clone());
+            }
         }
     }
 

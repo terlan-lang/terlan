@@ -45,10 +45,12 @@ fn replace_nested(
             }
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => CoreExpr::ConstructorCall {
+            type_args: type_args.clone(),
             constructor: constructor.clone(),
             constructor_identity: constructor_identity.clone(),
             args: args
@@ -395,6 +397,7 @@ fn projection_layout(
 ) -> Option<ProjectionLayout> {
     match expr {
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -495,6 +498,7 @@ fn flatten_fixed_pattern(
                 args: patterns,
             },
             CoreExpr::ConstructorCall {
+                type_args: _,
                 constructor,
                 constructor_identity: value_identity,
                 args: values,
