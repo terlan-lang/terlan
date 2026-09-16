@@ -16,6 +16,7 @@ use crate::terlan_native_boundary::resource::{ResourceKind, ResourceStore};
 pub(super) fn supports(operation: &str) -> bool {
     operation.starts_with("std.data.json.")
         || operation.starts_with("std.encoding.base64.")
+        || operation == "std.encoding.md5.digest"
         || operation == "std.data.toml.parse"
         || operation == "std.package.registry.parse_publish_request"
         || operation == "std.package.registry.parse_yank_request"

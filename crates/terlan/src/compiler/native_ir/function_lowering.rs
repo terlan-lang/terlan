@@ -10,8 +10,8 @@ use super::call_composition::{
     ComposedCallProfile,
 };
 use super::closure_conversion::{
-    lower_escaping_closure, lower_escaping_function_reference, ClosureLexicalScope,
-    ClosureLoweringEnvironment, ClosureOwner, NativeCallableShape,
+    lower_escaping_closure_with_yields, lower_escaping_function_reference, ClosureLexicalScope,
+    ClosureLoweringEnvironment, ClosureOwner, ClosureYieldState, NativeCallableShape,
 };
 use super::constructors::NativeConstructorLayouts;
 use super::control::{YieldLoweringEnvironment, YieldLoweringScope, YieldLoweringState};
@@ -309,7 +309,26 @@ pub(super) fn lower_native_function_with_callables(
         &params,
         callable_shapes,
     )?;
-    let escaping_lambda = lower_escaping_closure(
+    let yield_environment = YieldLoweringEnvironment {
+        functions: identities,
+        function_types,
+        function_core_types,
+        constructors,
+        suspending_functions,
+        terminal_profiles: call_profiles,
+        dynamic_profiles: dynamic_call_profiles,
+        module,
+        function: &function.name,
+        arity: function.arity,
+        return_type,
+    };
+    let mut closure_yields = ClosureYieldState {
+        environment: Some(yield_environment),
+        stable_ids,
+        continuations: Vec::new(),
+        lifted_ordinal: 0,
+    };
+    let escaping_lambda = lower_escaping_closure_with_yields(
         &core_body,
         function.core_return_type.as_ref(),
         ClosureLexicalScope {
@@ -328,7 +347,9 @@ pub(super) fn lower_native_function_with_callables(
             name: &function.name,
             arity: function.arity,
         },
+        &mut closure_yields,
     )?;
+    let closure_continuations = closure_yields.continuations;
     let (body, mut continuations) = if let Some(body) = collection_value {
         (body, Vec::new())
     } else if let Some(body) = structured_case {
@@ -349,7 +370,7 @@ pub(super) fn lower_native_function_with_callables(
             }
         }
         lifted_functions.extend(lifted);
-        (body, Vec::new())
+        (body, closure_continuations)
     } else {
         let mut continuation_ordinal = 0;
         control::lower_expr_with_yields(
@@ -361,19 +382,7 @@ pub(super) fn lower_native_function_with_callables(
                 param_core_types: &param_core_types,
                 completion: None,
             },
-            &YieldLoweringEnvironment {
-                functions: identities,
-                function_types,
-                function_core_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles: call_profiles,
-                dynamic_profiles: dynamic_call_profiles,
-                module,
-                function: &function.name,
-                arity: function.arity,
-                return_type,
-            },
+            &yield_environment,
             &mut YieldLoweringState {
                 ordinal: &mut continuation_ordinal,
                 stable_ids,
@@ -435,43 +444,8 @@ fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String
     let source = function.source_declaration(module);
     (source.module, source.function, source.arity)
 }
-/// type, while direct AOT needs that type to choose an exact managed semantic
-/// identity. Only tail constructions are annotated, so evaluation order and
-/// non-tail inference remain unchanged.
-fn contextualize_tail_construction(expr: &CoreExpr, target: &CoreType) -> CoreExpr {
-    match expr {
-        CoreExpr::ConstructorCall { .. } | CoreExpr::RecordConstruct { .. } => CoreExpr::Cast {
-            expr: Box::new(expr.clone()),
-            target_type: target.clone(),
-        },
-        CoreExpr::Let { bindings, body } => CoreExpr::Let {
-            bindings: bindings.clone(),
-            body: Box::new(contextualize_tail_construction(body, target)),
-        },
-        CoreExpr::If { clauses } => CoreExpr::If {
-            clauses: clauses
-                .iter()
-                .cloned()
-                .map(|mut clause| {
-                    clause.body = contextualize_tail_construction(&clause.body, target);
-                    clause
-                })
-                .collect(),
-        },
-        CoreExpr::Case { scrutinee, clauses } => CoreExpr::Case {
-            scrutinee: scrutinee.clone(),
-            clauses: clauses
-                .iter()
-                .cloned()
-                .map(|mut clause| {
-                    clause.body = contextualize_tail_construction(&clause.body, target);
-                    clause
-                })
-                .collect(),
-        },
-        _ => expr.clone(),
-    }
-}
+mod contextual_construction;
+use contextual_construction::contextualize_tail_construction;
 
 pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
     if is_process_transition(expr) {

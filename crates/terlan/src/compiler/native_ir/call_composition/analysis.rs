@@ -100,9 +100,34 @@ pub(in crate::compiler::native_ir) fn has_uncomposed_suspending_call(
 /// callee profile has not reached the current fixed-point phase. Only bodies
 /// with no transition node, indirect invocation, or call into the known
 /// suspending set may receive an explicit empty dynamic-call profile.
+#[cfg(test)]
 pub(in crate::compiler::native_ir) fn is_definitely_non_suspending(
     body: &NativeExpr,
     suspending: &HashSet<usize>,
+) -> bool {
+    non_suspending_with_targets(body, |function| !suspending.contains(function))
+}
+
+/// Refines conservative call-graph suspension only with an explicit empty
+/// callee profile. Missing profiles and real transition nodes remain unsafe.
+pub(in crate::compiler::native_ir) fn is_non_suspending_with_profiles(
+    body: &NativeExpr,
+    suspending: &HashSet<usize>,
+    profiles: &HashMap<usize, super::ComposedCallProfile>,
+) -> bool {
+    non_suspending_with_targets(body, |function| {
+        !suspending.contains(function)
+            || profiles.get(function).is_some_and(|profile| {
+                profile.continuations.is_empty()
+                    && profile.entries.is_empty()
+                    && profile.tail_entries.values().all(Vec::is_empty)
+            })
+    })
+}
+
+fn non_suspending_with_targets(
+    body: &NativeExpr,
+    target_is_non_suspending: impl Fn(&usize) -> bool,
 ) -> bool {
     let mut non_suspending = true;
     walk_native_expr(body, &mut |expr| match expr {
@@ -113,8 +138,12 @@ pub(in crate::compiler::native_ir) fn is_definitely_non_suspending(
         | NativeExpr::InvokeClosure { .. }
         | NativeExpr::InvokeClosureThen { .. }
         | NativeExpr::ContinuationTailCall { .. } => non_suspending = false,
+        NativeExpr::TailCall {
+            yield_continuation_id: Some(_),
+            ..
+        } => non_suspending = false,
         NativeExpr::Call { function, .. } | NativeExpr::TailCall { function, .. }
-            if suspending.contains(function) =>
+            if !target_is_non_suspending(function) =>
         {
             non_suspending = false;
         }

@@ -47,9 +47,25 @@ to the production embedded loader omitting transitive dependencies, unlike the
 test loader. A local correction follows the canonical dependency manifests,
 handles namespace indexes separately, and passes all 38 formal-pipeline tests,
 821 other type-checker tests and two dependency/type-contract probes. TableTest
-now reaches native lowering, where a higher-order tail call has no converged
-continuation profile; Base64/Md5 callbacks require non-tail suspension lowering.
-Those remain required baseline fixes. Both strict Clippy profiles and the rebuilt
+now passes all 12 tests after lexical tail-call profiles require explicit pure
+callee evidence. Escaping callbacks use the ordinary yield/continuation lowerer;
+continuation interning rewrites lifted roots as well as named-function roots.
+Linked execution covers captured values, non-tail calls, direct yields and both
+branches of a callback factory. All 497 NativeIR tests pass. Base64's closed
+error atoms are admitted with its provider, and the existing pure Rust MD5
+adapter uses the direct-safe std dispatcher. Base64 passes 11 tests, MD5 two,
+the other affected std suites 127, and the adapter/helper Rust suites 43.
+Both strict Clippy profiles, API/module/headroom and dependency gates pass for
+this correction without increased budgets; function_lowering.rs shrinks from
+937 to 911 lines and its no-growth ceiling decreases. Logs use `closure-codecs-` under
+`target/quality/release-diagnostics/`. These are local correction results, not
+candidate-wide acceptance. The subsequent required property-suite batch exposes
+collection receiver resolution, Atom conversion, contextual generic/union-layout
+and suspension-composition failures, plus URI error atoms and Random helper
+routing. It records 46 passing tests, seven runtime failures and 11 modules that
+fail before execution; those baseline failures still require fixes.
+No source assertions are removed and no failed suite is waived.
+Both strict Clippy profiles and the rebuilt
 API/module/headroom/dependency gates pass for the loader correction, with unchanged
 budgets; evidence uses `embedded-dependencies-`. No required tests are waived.
 For the preceding trait correction, the rebuilt quality validator,
