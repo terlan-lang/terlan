@@ -25,6 +25,29 @@ pub(super) fn collect(
             let Some(result) = function.core_return_type.clone() else {
                 continue;
             };
+            let candidate = OverloadCandidate {
+                module: core.module.clone(),
+                private_trait_impl: !function.public,
+                generic_trait_method:
+                    !crate::compiler::native_ir::generic_specialization::generic_parameters(
+                        function,
+                    )
+                    .is_empty(),
+                arity: function.arity,
+                internal_name: function.name.clone(),
+                parameters,
+                result,
+            };
+            if !identity.type_args.is_empty() {
+                groups
+                    .entry((
+                        identity.dispatch_owner(),
+                        identity.method.clone(),
+                        function.arity,
+                    ))
+                    .or_default()
+                    .push(candidate.clone());
+            }
             groups
                 .entry((
                     identity.trait_name.clone(),
@@ -32,14 +55,7 @@ pub(super) fn collect(
                     function.arity,
                 ))
                 .or_default()
-                .push(OverloadCandidate {
-                    module: core.module.clone(),
-                    private_trait_impl: !function.public,
-                    arity: function.arity,
-                    internal_name: function.name.clone(),
-                    parameters,
-                    result,
-                });
+                .push(candidate);
         }
     }
 }

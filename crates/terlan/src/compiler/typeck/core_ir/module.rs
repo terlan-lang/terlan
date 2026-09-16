@@ -220,6 +220,15 @@ impl CoreModule {
                 line.push_str(&identity.trait_name);
                 line.push('.');
                 line.push_str(&identity.method);
+                line.push_str(" trait_args=");
+                line.push_str(
+                    &identity
+                        .type_args
+                        .iter()
+                        .map(CoreType::contract_text)
+                        .collect::<Vec<_>>()
+                        .join(","),
+                );
             }
             line
         }));

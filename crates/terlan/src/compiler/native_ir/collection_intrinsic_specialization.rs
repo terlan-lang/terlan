@@ -14,6 +14,7 @@ pub(super) use expected_constructors::annotate_expected_structural_constructors;
 mod comprehension;
 use comprehension::specialize_comprehension;
 mod expected_new;
+pub(super) use expected_new::contextual_tuple_elements;
 use expected_new::{
     specialize_collection_new_bindings, specialize_expected_collection_new,
     specialize_parameter_arguments,
@@ -881,4 +882,5 @@ fn functionalize_collection_receiver_binding(
 
 mod support;
 
+pub(super) use support::list_element;
 use support::*;

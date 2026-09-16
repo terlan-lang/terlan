@@ -11,6 +11,7 @@ pub(crate) fn core_syntax_concrete_impl_functions(
     template_prop_order: &HashMap<String, Vec<String>>,
 ) -> Vec<CoreFunction> {
     let mut functions = Vec::new();
+    let type_refs = trait_type_refs(resolved);
     for (index, declaration) in module.declarations.iter().enumerate() {
         let SyntaxDeclarationPayload::TraitImpl {
             trait_ref,
@@ -26,6 +27,9 @@ pub(crate) fn core_syntax_concrete_impl_functions(
         if !generic_params.is_empty() {
             continue;
         }
+        let Some(type_args) = trait_type_arguments(&trait_ref.text, &type_refs) else {
+            continue;
+        };
         let head = trait_ref.text.split('[').next().unwrap_or_default().trim();
         let trait_name = resolved.imported_traits.get(head).map_or_else(
             || {
@@ -44,6 +48,7 @@ pub(crate) fn core_syntax_concrete_impl_functions(
                 source: None,
                 trait_method: Some(CoreTraitMethodIdentity {
                     trait_name: trait_name.clone(),
+                    type_args: type_args.clone(),
                     method: method.name.clone(),
                 }),
                 arity: method.params.len(),
@@ -85,39 +90,95 @@ pub(crate) fn rewrite_concrete_trait_calls(
     functions: &mut [CoreFunction],
     resolved: &ResolvedModule,
 ) {
-    let mut dispatch = HashMap::new();
-    let traits = resolved
+    let mut traits = resolved
         .interface
         .traits
-        .iter()
-        .map(|(name, signature)| {
+        .keys()
+        .map(|name| (name.clone(), format!("{}.{}", resolved.name, name)))
+        .chain(resolved.imported_traits.values().map(|imported| {
             (
-                name.clone(),
-                format!("{}.{}", resolved.name, name),
-                signature,
-            )
-        })
-        .chain(resolved.imported_traits.values().filter_map(|imported| {
-            let signature = resolved
-                .interface_map
-                .get(&imported.source_module)?
-                .traits
-                .get(&imported.source_name)?;
-            Some((
                 imported.local_name.clone(),
                 format!("{}.{}", imported.source_module, imported.source_name),
-                signature,
-            ))
-        }));
-    for (local, canonical, signature) in traits {
-        for (method, signature) in &signature.methods {
-            for name in [&local, &canonical] {
-                dispatch.insert(
-                    (name.clone(), method.clone(), signature.params.len()),
-                    format!("{canonical}.{method}"),
-                );
+            )
+        }))
+        .collect::<HashMap<_, _>>();
+    for canonical in traits.values().cloned().collect::<Vec<_>>() {
+        traits.insert(canonical.clone(), canonical);
+    }
+    let type_refs = trait_type_refs(resolved);
+    for function in functions {
+        for clause in &mut function.clauses {
+            if let Some(guard) = &mut clause.guard {
+                rewrite_trait_summary(guard, &traits, &type_refs);
             }
+            rewrite_trait_summary(&mut clause.body, &traits, &type_refs);
         }
     }
-    rewrite_structural_impl_calls(functions, &dispatch);
+}
+
+/// Uses resolver identities for both declaration and call-site trait arguments.
+fn trait_type_refs(resolved: &ResolvedModule) -> HashMap<String, String> {
+    let mut refs = imported_type_text_refs(&imported_type_names(resolved));
+    let primitives = primitive_type_names();
+    for name in resolved.local_type_names.keys() {
+        if !primitives.contains(name) {
+            refs.insert(name.clone(), format!("{}.{}", resolved.name, name));
+        }
+    }
+    refs
+}
+
+fn trait_type_arguments(reference: &str, refs: &HashMap<String, String>) -> Option<Vec<CoreType>> {
+    match core_type_from_text(&crate::terlan_hir::qualify_syntax_type_text(
+        reference, refs,
+    ))? {
+        CoreType::Apply { args, .. } => Some(args),
+        CoreType::Named(_) => Some(Vec::new()),
+        _ => None,
+    }
+}
+
+fn rewrite_trait_summary(
+    summary: &mut CoreExprSummary,
+    traits: &HashMap<String, String>,
+    refs: &HashMap<String, String>,
+) {
+    if let Some(expr) = &mut summary.core_expr {
+        let mut changed = false;
+        crate::terlan_typeck::visit_core_expr_mut(expr, &mut |expr| {
+            let CoreExpr::RemoteCall {
+                module,
+                function,
+                type_args,
+                args,
+            } = expr
+            else {
+                return;
+            };
+            let head = module.split('[').next().unwrap_or(module).trim();
+            let Some(trait_name) = traits.get(head) else {
+                return;
+            };
+            let Some(instance_args) = trait_type_arguments(module, refs) else {
+                return;
+            };
+            let identity = CoreTraitMethodIdentity {
+                trait_name: trait_name.clone(),
+                type_args: instance_args,
+                method: function.clone(),
+            };
+            *expr = CoreExpr::Call {
+                function: format!("{}.{}", identity.dispatch_owner(), identity.method),
+                type_args: std::mem::take(type_args),
+                args: std::mem::take(args),
+            };
+            changed = true;
+        });
+        if changed {
+            summary.remote = None;
+        }
+    }
+    for child in &mut summary.children {
+        rewrite_trait_summary(child, traits, refs);
+    }
 }

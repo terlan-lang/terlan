@@ -147,12 +147,7 @@ fn rewrite_expr(
                 .and_then(common_concrete_parameter_types);
             if let Some(parameter_types) = contextual_parameters {
                 for (argument, expected) in args.iter_mut().zip(parameter_types) {
-                    if needs_contextual_type(argument) {
-                        *argument = CoreExpr::Cast {
-                            expr: Box::new(argument.clone()),
-                            target_type: expected,
-                        };
-                    }
+                    apply_contextual_argument_type(argument, &expected);
                 }
             }
             let template = generic_template(templates, module, function, args.len());
@@ -234,6 +229,21 @@ fn rewrite_expr(
                     &template.generic_params,
                     &mut substitution,
                 )?;
+            }
+            // Arguments use the instantiated declaration's ABI, not the
+            // narrower literal type used to infer its parameters. In
+            // particular Ok/Err literals must carry the same union layout as
+            // their callee even when the unused variant has no type witness.
+            for (argument, parameter) in args.iter_mut().zip(&template.params) {
+                let expected = substitute(
+                    parameter
+                        .core_ty
+                        .as_ref()
+                        .expect("validated generic signature"),
+                    &template.generic_params,
+                    &substitution,
+                );
+                apply_contextual_argument_type(argument, &expected);
             }
             let key = (
                 template.name.clone(),
@@ -629,6 +639,12 @@ fn contextual_literal_type(argument: &CoreExpr, expected: &CoreType) -> Option<C
 }
 
 fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) {
+    if let CoreExpr::Cast { expr, target_type } = argument {
+        if needs_contextual_type(expr) || contextual_literal_type(expr, expected).is_some() {
+            *target_type = expected.clone();
+        }
+        return;
+    }
     if let (
         CoreExpr::Lam {
             params,
@@ -645,9 +661,6 @@ fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) 
             *parameter_types = expected_params.iter().cloned().map(Some).collect();
             apply_contextual_argument_type(body, return_type);
         }
-        return;
-    }
-    if matches!(argument, CoreExpr::Cast { target_type, .. } if target_type == expected) {
         return;
     }
     if needs_contextual_type(argument) || contextual_literal_type(argument, expected).is_some() {

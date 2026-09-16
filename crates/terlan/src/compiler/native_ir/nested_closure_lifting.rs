@@ -81,6 +81,14 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
             }
             for clause in &mut core.functions[cursor].clauses {
                 if let Some(body) = clause.body.core_expr.as_mut() {
+                    // Whole-result references already use the ordinary closure
+                    // lowerer; lifting a generated factory's result again would
+                    // manufacture an unbounded chain of identical factories.
+                    if matches!(owner.core_return_type, Some(CoreType::Arrow { .. }))
+                        && named_function_reference(body, &variables)
+                    {
+                        continue;
+                    }
                     if let (
                         CoreExpr::Lam { params, body, .. },
                         Some(CoreType::Arrow {
@@ -150,7 +158,9 @@ fn rewrite(
             };
         }
     }
-    if matches!(expr, CoreExpr::Lam { .. }) && matches!(expected, Some(CoreType::Arrow { .. })) {
+    if (matches!(expr, CoreExpr::Lam { .. }) || named_function_reference(expr, variables))
+        && matches!(expected, Some(CoreType::Arrow { .. }))
+    {
         let lambda = expr.clone();
         let mut captures = super::free_variables(&lambda)
             .into_iter()
@@ -165,7 +175,7 @@ fn rewrite(
             name.clone(),
             &captures,
             variables,
-            expected.expect("lambda expected type"),
+            expected.expect("callable expected type"),
             lambda,
         )?;
         generated.push(factory);
@@ -259,9 +269,26 @@ fn rewrite(
             }
             rewrite(body, None, &variables, environment, generated, ordinal)?;
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) => {
+            let types = expected.and_then(|ty| {
+                super::collection_intrinsic_specialization::contextual_tuple_elements(items, ty)
+            });
+            for (index, item) in items.iter_mut().enumerate() {
+                rewrite(
+                    item,
+                    types.as_ref().and_then(|types| types.get(index).copied()),
+                    variables,
+                    environment,
+                    generated,
+                    ordinal,
+                )?;
+            }
+        }
+        CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+            let element =
+                expected.and_then(super::collection_intrinsic_specialization::list_element);
             for item in items {
-                rewrite(item, None, variables, environment, generated, ordinal)?;
+                rewrite(item, element, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -278,8 +305,15 @@ fn rewrite(
             rewrite(tail, None, variables, environment, generated, ordinal)?;
         }
         CoreExpr::Intrinsic(call) => {
+            let expected = matches!(
+                call.id,
+                crate::terlan_typeck::CoreIntrinsicId::Primitive(
+                    crate::terlan_typeck::CorePrimitiveIntrinsic::ListNew
+                )
+            )
+            .then_some(&call.return_type);
             for arg in &mut call.args {
-                rewrite(arg, None, variables, environment, generated, ordinal)?;
+                rewrite(arg, expected, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
@@ -338,10 +372,17 @@ fn rewrite(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::Cast { expr: base, .. }
         | CoreExpr::UnaryOp { operand: base, .. } => {
             rewrite(base, None, variables, environment, generated, ordinal)?
         }
+        CoreExpr::Cast { expr, target_type } => rewrite(
+            expr,
+            Some(target_type),
+            variables,
+            environment,
+            generated,
+            ordinal,
+        )?,
         CoreExpr::Case { scrutinee, clauses } => {
             let scrutinee_type = infer(scrutinee, variables, signatures, module);
             rewrite(scrutinee, None, variables, environment, generated, ordinal)?;
@@ -428,6 +469,14 @@ fn rewrite(
     Ok(())
 }
 
+fn named_function_reference(expr: &CoreExpr, variables: &HashMap<String, CoreType>) -> bool {
+    match expr {
+        CoreExpr::Var(name) => !variables.contains_key(name),
+        CoreExpr::RemoteFunRef { .. } => true,
+        _ => false,
+    }
+}
+
 fn bind_pattern_variables(
     pattern: &CorePattern,
     ty: &CoreType,
@@ -479,6 +528,7 @@ fn closure_factory(
     factory.public = false;
     factory.generic_params.clear();
     factory.native_operation = None;
+    factory.trait_method = None;
     factory.params = captures
         .iter()
         .map(|name| {

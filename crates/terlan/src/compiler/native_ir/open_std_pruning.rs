@@ -10,6 +10,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use super::QualifiedFunctionIdentity as FunctionKey;
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule, CoreType};
 
+mod trait_methods;
+
 #[cfg(test)]
 #[path = "open_std_pruning_test.rs"]
 #[cfg(test)]
@@ -271,6 +273,7 @@ fn providers(cores: &[CoreModule]) -> Vec<FunctionKey> {
                         }),
                 )
         })
+        .chain(trait_methods::providers(cores))
         .collect()
 }
 
@@ -286,6 +289,7 @@ fn add_constructor_edges(
     cores: &[CoreModule],
     edges: &mut HashMap<FunctionKey, HashSet<FunctionKey>>,
 ) {
+    trait_methods::add_edges(cores, edges);
     for core in cores {
         for constructor in &core.constructors {
             let Some(implementation) = &constructor.implementation else {

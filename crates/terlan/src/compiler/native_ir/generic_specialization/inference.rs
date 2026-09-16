@@ -29,7 +29,10 @@ pub(super) fn infer_type(
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
-        CoreExpr::Var(name) => variables.get(name).cloned(),
+        CoreExpr::Var(name) => variables
+            .get(name)
+            .cloned()
+            .or_else(|| unambiguous_callable_type(name, templates, module)),
         CoreExpr::List(items) if !items.is_empty() => {
             super::super::expression::homogeneous_list_type(items, |item| {
                 infer_type(item, variables, templates, module)
@@ -259,6 +262,7 @@ fn infer_call_type(
 pub(super) fn named_callable_type(
     argument: &CoreExpr,
     expected: &CoreType,
+    variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
     module: &str,
 ) -> Option<CoreType> {
@@ -268,27 +272,56 @@ pub(super) fn named_callable_type(
     let CoreType::Arrow { params, .. } = expected else {
         return None;
     };
+    if let Some(ty) = variables.get(function) {
+        return matches!(ty, CoreType::Arrow { .. }).then(|| ty.clone());
+    }
     let candidates = callable_templates(templates, module, function, params.len())?;
-    let mut signatures = candidates.iter().filter_map(|candidate| {
-        let params = candidate
-            .params
-            .iter()
-            .map(|parameter| parameter.core_ty.clone())
-            .collect::<Option<Vec<_>>>()?;
-        let return_type = candidate.core_return_type.clone()?;
-        (!contains_generic_parameter(&return_type, &candidate.generic_params)
-            && params
-                .iter()
-                .all(|ty| !contains_generic_parameter(ty, &candidate.generic_params)))
-        .then(|| CoreType::Arrow {
-            params,
-            return_type: Box::new(return_type),
-        })
-    });
+    let mut signatures = candidates.iter().filter_map(concrete_callable_signature);
     let signature = signatures.next()?;
     signatures
         .all(|candidate| candidate == signature)
         .then_some(signature)
+}
+
+/// Recovers function values nested in aggregates only when their scoped name
+/// has one concrete signature; overloaded or open-generic values need context.
+fn unambiguous_callable_type(
+    function: &str,
+    templates: &CallableTemplates,
+    module: &str,
+) -> Option<CoreType> {
+    let name = if function.contains('.') {
+        function.to_string()
+    } else {
+        format!("{module}.{function}")
+    };
+    let mut candidates = templates
+        .range((name.clone(), 0)..=(name, usize::MAX))
+        .flat_map(|(_, candidates)| candidates);
+    let signature = concrete_callable_signature(candidates.next()?)?;
+    for candidate in candidates {
+        if concrete_callable_signature(candidate)? != signature {
+            return None;
+        }
+    }
+    Some(signature)
+}
+
+fn concrete_callable_signature(candidate: &CoreFunction) -> Option<CoreType> {
+    let params = candidate
+        .params
+        .iter()
+        .map(|parameter| parameter.core_ty.clone())
+        .collect::<Option<Vec<_>>>()?;
+    let return_type = candidate.core_return_type.clone()?;
+    (!contains_generic_parameter(&return_type, &candidate.generic_params)
+        && params
+            .iter()
+            .all(|ty| !contains_generic_parameter(ty, &candidate.generic_params)))
+    .then(|| CoreType::Arrow {
+        params,
+        return_type: Box::new(return_type),
+    })
 }
 
 fn contextual_lambda_type(
@@ -381,7 +414,8 @@ pub(super) fn infer_generic_argument_types(
         let expected = parameter.core_ty.as_ref().ok_or_else(|| {
             "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
         })?;
-        let Some(inferred) = named_callable_type(argument, expected, templates, module) else {
+        let Some(inferred) = named_callable_type(argument, expected, variables, templates, module)
+        else {
             continue;
         };
         unify(
