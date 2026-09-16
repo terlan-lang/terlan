@@ -354,27 +354,43 @@ pub(crate) fn lower_core_constructors(interface: &ModuleInterface) -> Vec<CoreCo
         .constructors
         .iter()
         .flat_map(|(name, signatures)| {
-            signatures.iter().map(move |signature| CoreConstructorDecl {
-                name: name.clone(),
-                public: signature.public,
-                min_arity: signature.min_arity,
-                params: signature
-                    .params
-                    .iter()
-                    .map(|param| CoreParam {
+            signatures
+                .iter()
+                .enumerate()
+                .map(move |(index, signature)| CoreConstructorDecl {
+                    implementation: Some(CoreConstructorImplementation {
+                        function: format!("$constructor_{name}_{index}"),
+                        defaults: signature
+                            .params
+                            .iter()
+                            .enumerate()
+                            .map(|(parameter, param)| {
+                                param.default.as_ref().map(|_| {
+                                    format!("$constructor_{name}_{index}_default_{parameter}")
+                                })
+                            })
+                            .collect(),
+                    }),
+                    name: name.clone(),
+                    public: signature.public,
+                    min_arity: signature.min_arity,
+                    params: signature
+                        .params
+                        .iter()
+                        .map(|param| CoreParam {
+                            name: param.name.clone(),
+                            ty: param.annotation.clone(),
+                            core_ty: core_type_from_text(&param.annotation),
+                        })
+                        .collect(),
+                    vararg: signature.vararg.as_ref().map(|param| CoreParam {
                         name: param.name.clone(),
                         ty: param.annotation.clone(),
                         core_ty: core_type_from_text(&param.annotation),
-                    })
-                    .collect(),
-                vararg: signature.vararg.as_ref().map(|param| CoreParam {
-                    name: param.name.clone(),
-                    ty: param.annotation.clone(),
-                    core_ty: core_type_from_text(&param.annotation),
-                }),
-                return_type: signature.return_type.clone(),
-                core_return_type: core_type_from_text(&signature.return_type),
-            })
+                    }),
+                    return_type: signature.return_type.clone(),
+                    core_return_type: core_type_from_text(&signature.return_type),
+                })
         })
         .collect::<Vec<_>>();
     constructors.sort_by(|left, right| {

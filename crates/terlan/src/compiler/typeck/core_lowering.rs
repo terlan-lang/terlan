@@ -1,6 +1,7 @@
 use super::*;
 use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 
+mod constructor_functions;
 #[path = "core_lowering/default_arguments.rs"]
 mod default_arguments;
 mod imported_atoms;
@@ -74,21 +75,42 @@ pub fn lower_syntax_module_output_to_core(
         &macro_expanded_module,
         &resolved.interface_map,
     );
-    let import_maps = super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    let mut core = lower_resolved_module_to_core(resolved);
+    constructor_functions::materialize(&mut prepared_module, &mut core.constructors);
+    let mut import_maps =
+        super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    for (name, arity) in resolved.interface.functions.keys() {
+        if super::core_intrinsic_lowering::core_primitive_intrinsic(&resolved.name, name, *arity)
+            .is_some()
+        {
+            import_maps.function_imports.insert(
+                name.clone(),
+                vec![ImportedFunctionTarget {
+                    module: resolved.name.clone(),
+                    function: name.clone(),
+                    span: Span { start: 0, end: 0 },
+                }],
+            );
+        }
+    }
     canonicalize_core_module_aliases(&mut prepared_module, &import_maps.module_aliases);
     canonicalize_core_selected_function_imports(
         &mut prepared_module,
         &import_maps.function_imports,
     );
-    default_arguments::materialize_default_call_arguments(&mut prepared_module, resolved);
+    default_arguments::materialize_default_call_arguments(
+        &mut prepared_module,
+        resolved,
+        &core.constructors,
+    );
     let (mut prepared_module, _) =
         super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
     let binding_identities = analyze_syntax_bindings(&prepared_module).evidence;
     imported_atoms::canonicalize(&mut prepared_module, resolved);
     let module = &prepared_module;
-    let mut core = lower_resolved_module_to_core(resolved);
     core.functions = core_syntax_functions(module);
+    constructor_functions::retain_sources(&mut core);
     let macro_functions = module
         .declarations
         .iter()

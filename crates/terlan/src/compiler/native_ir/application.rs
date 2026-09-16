@@ -37,6 +37,7 @@ mod normalization;
 mod overloads;
 mod record_forwarders;
 mod remote_calls;
+mod source_constructors;
 mod structural_patterns;
 mod transparent_aliases;
 
@@ -132,6 +133,12 @@ impl NativeModule {
             ));
         }
         super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
+        // Expose constructor-chain bases before resolving executable bodies or
+        // expanding transparent aliases, just as for direct constructor calls.
+        normalized_cores
+            .iter_mut()
+            .for_each(super::constructor_chain::lower_constructor_chains);
+        source_constructors::lower(&mut normalized_cores)?;
         for core in &mut normalized_cores {
             for function in &mut core.functions {
                 function.source = Some(function.source_declaration(&core.module));
@@ -148,13 +155,6 @@ impl NativeModule {
         canonicalize_native_package_types(&mut normalized_cores, &native_aliases)?;
         normalize_application_remote_calls(&mut normalized_cores, true);
         mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
-        // Constructor-chain bases can themselves be imported transparent
-        // aliases. Expose them as ordinary constructor calls before alias
-        // expansion so the same structural rewrite handles both direct calls
-        // and chain bases.
-        normalized_cores
-            .iter_mut()
-            .for_each(super::constructor_chain::lower_constructor_chains);
         normalized_cores.iter_mut().for_each(
             super::collection_intrinsic_specialization::annotate_function_result_constructors,
         );

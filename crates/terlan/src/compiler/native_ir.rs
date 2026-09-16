@@ -83,6 +83,9 @@ mod continuation_sharing;
 mod recursive_suspension;
 #[cfg(all(test, unix))]
 mod recursive_suspension_test;
+#[cfg(test)]
+#[path = "native_ir/source_constructor_test.rs"]
+mod source_constructor_test;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use continuation_sharing::is_materialized_continuation_module;
 #[cfg(test)]

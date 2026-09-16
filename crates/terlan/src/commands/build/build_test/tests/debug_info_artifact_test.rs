@@ -1,6 +1,78 @@
 use super::*;
 use object::{Object, ObjectSection};
 
+/// Constructor adapters, defaults and specializations retain their source clause.
+#[test]
+fn debug_info_artifact_covers_source_constructor_helpers() {
+    let dir = make_temp_dir("constructor_debug");
+    let source_path = dir.join("constructor_debug.terl");
+    let out_dir = dir.join("build");
+    let source = r#"module constructor_debug.
+pub type Adjusted = Int.
+pub constructor Adjusted {
+    (value: Int = 40, extra: Int = 2): Adjusted -> value + extra
+}.
+pub type Choice = Int.
+pub constructor Choice {
+    (value: Int): Choice -> value + 2;
+    (flag: Bool, extra: Int): Choice -> if { flag -> extra; true -> 0 }
+}.
+pub type Items[T] = List[T].
+pub constructor Items[T] {
+    (...values: T): Items[T] -> values
+}.
+pub main(): Int -> Adjusted() + Choice(40) + Choice(true, 42).
+pub values(): List[Int] -> Items(1, 2, 3).
+"#;
+    fs::write(&source_path, source).expect("write constructor debug fixture");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".into()),
+        args: vec![source_path.display().to_string()],
+    };
+    assert_eq!(run(cmd, state), ExitCode::SUCCESS);
+    let records = native_debug_records(&out_dir.join("vm/constructor_debug.tvm"));
+    for (origin, clause) in [
+        (
+            "Adjusted/2",
+            "(value: Int = 40, extra: Int = 2): Adjusted -> value + extra",
+        ),
+        ("Choice/1", "(value: Int): Choice -> value + 2"),
+        (
+            "Choice/2",
+            "(flag: Bool, extra: Int): Choice -> if { flag -> extra; true -> 0 }",
+        ),
+        ("Items/1", "(...values: T): Items[T] -> values"),
+    ] {
+        let expected = format!("generated:constructor_debug.{origin}");
+        let helpers = records
+            .iter()
+            .filter(|record| record.source_origin == expected)
+            .collect::<Vec<_>>();
+        assert!(!helpers.is_empty(), "missing constructor origin {expected}");
+        for record in helpers {
+            assert_eq!(record.source_file, source_path.display().to_string());
+            assert_eq!(source[record.span_start..record.span_end].trim(), clause);
+        }
+    }
+    for helper in [
+        "$constructor_Adjusted_0_default_0",
+        "$constructor_Adjusted_0_default_1",
+        "$constructor_call_Adjusted_2",
+        "$constructor_call_Items_3",
+    ] {
+        assert!(
+            records
+                .iter()
+                .any(|record| record.function.contains(helper)),
+            "missing generated helper {helper}"
+        );
+    }
+}
+
 /// Selected closure factories and lifted bodies keep their declaration spans.
 #[test]
 fn debug_info_artifact_covers_typed_conditional_closure_factories() {

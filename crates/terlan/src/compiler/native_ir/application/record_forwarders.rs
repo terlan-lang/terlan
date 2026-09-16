@@ -1,6 +1,6 @@
 //! Closed-image inlining for exact, evaluation-preserving forwarders.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreModule, CorePattern, CoreRecordExprField};
 
@@ -14,6 +14,7 @@ struct RecordForwarder {
 enum DirectForwarder {
     Identity,
     Record(RecordForwarder),
+    Call(String),
 }
 
 pub(super) fn inline_record_forwarders(cores: &mut [CoreModule]) {
@@ -28,6 +29,14 @@ pub(super) fn inline_record_forwarders(cores: &mut [CoreModule]) {
                     )
                 })
             })
+        })
+        .collect::<HashMap<_, _>>();
+    let forwarders = forwarders
+        .keys()
+        .filter_map(|target| {
+            resolved_forwarder(target.clone(), &forwarders)
+                .cloned()
+                .map(|resolved| (target.clone(), resolved))
         })
         .collect::<HashMap<_, _>>();
     for core in cores {
@@ -51,6 +60,53 @@ fn direct_forwarder(function: &CoreFunction) -> Option<DirectForwarder> {
     identity_forwarder(function)
         .then_some(DirectForwarder::Identity)
         .or_else(|| record_forwarder(function).map(DirectForwarder::Record))
+        .or_else(|| call_forwarder(function).map(DirectForwarder::Call))
+}
+
+/// Exact call forwarding evaluates every argument once, in declaration order.
+fn call_forwarder(function: &CoreFunction) -> Option<String> {
+    let [clause] = function.clauses.as_slice() else {
+        return None;
+    };
+    if clause.guard.is_some() || clause.core_patterns.len() != function.params.len()
+        || !clause.core_patterns.iter().zip(&function.params).all(|(pattern, param)| matches!(pattern, Some(CorePattern::Var(name)) if name == &param.name)) {
+        return None;
+    }
+    let CoreExpr::Call {
+        function: target,
+        args,
+        ..
+    } = clause.body.core_expr.as_ref()?
+    else {
+        return None;
+    };
+    (args.len() == function.params.len()
+        && args
+            .iter()
+            .zip(&function.params)
+            .all(|(arg, param)| matches!(arg, CoreExpr::Var(name) if name == &param.name)))
+    .then(|| target.clone())
+}
+
+fn resolved_forwarder(
+    mut target: (String, String, usize),
+    forwarders: &HashMap<(String, String, usize), DirectForwarder>,
+) -> Option<&DirectForwarder> {
+    let mut visited = HashSet::new();
+    loop {
+        if !visited.insert(target.clone()) {
+            return None;
+        }
+        match forwarders.get(&target)? {
+            DirectForwarder::Call(next) => {
+                let (module, name) = next
+                    .rsplit_once('.')
+                    .map_or((target.0.as_str(), next.as_str()), |pair| pair);
+                target = (module.to_string(), name.to_string(), target.2);
+            }
+            resolved => return Some(resolved),
+        }
+    }
 }
 
 /// An exact unary identity wrapper may be erased without changing argument
@@ -149,6 +205,7 @@ fn rewrite(
                         })
                         .collect(),
                 },
+                DirectForwarder::Call(_) => unreachable!("resolved forwarders terminate at values"),
             };
         }
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {

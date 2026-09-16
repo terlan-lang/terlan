@@ -20,7 +20,29 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The latest local collection correction passes all 515 NativeIR tests and all 23
+The current source-constructor correction retains checked bodies and constant
+defaults as ordinary typed callables, preserves their reachability, and reuses
+the existing generic and suspension pipeline. Generated bodies, default helpers,
+arity adapters and specializations retain original constructor-clause provenance.
+The artifact regression verifies exact debug spans for defaults, overloaded
+clauses and generic varargs. The latest combined NativeIR/Core-lowering/debug
+artifact run passes 572 tests; both strict workspace-binary Clippy profiles and
+the actual Rust-quality validator rebuild pass. The rebuilt image is 12,003,336
+bytes versus 11,977,424 previously. This is local correction evidence, not a
+candidate-wide pass. API boundaries (3,082), module structure, file headroom
+(68 near-limit files), refreshed dependency impact and documentation checks pass
+without increased budgets. Logs use `source-constructor-` under
+`target/quality/release-diagnostics/`.
+
+Object's API/property suites and Shrink now pass (29 tests combined); GenTest
+passes 23 and Set's API/property suites pass another ten. Remaining required
+failures are OrderingProperty (heterogeneous atom-list inference), RangeProperty
+(suspension composition), RandomProperty (native adapter routing),
+PropertyDistribution and Property (empty-generator inference), MapTest (empty-map
+receiver inference), IteratorTest (Unit callback identity), and ListTest
+(ambiguous trait resolution). None is waived. All roadmap items remain open.
+
+The preceding local collection correction passes all 515 NativeIR tests and all 23
 GenTest tests. Intrinsic-only providers retain their type declarations; collection
 mutation inference follows lexical scope; returned entry lists, structural callback
 results and explicitly typed empty generators retain their checked schemas.
@@ -30,10 +52,8 @@ SetTest pass another 23 source tests. Both strict workspace-binary Clippy profil
 the rebuilt quality validator, API boundary (3,082), module structure and file
 headroom (68 near-limit files, unchanged budgets) pass locally. The linked string
 lookup regression also exercises an explicitly expanded Option alias.
-Seven previously failing property modules remain open
-(Object, Ordering, Range, Random, PropertyDistribution, Property and Shrink).
-The broader source probe also exposes untyped empty-map and Iterator Unit-callback
-failures; these remain required fixes. Evidence uses `collection-witness-` under
+At that checkpoint, seven property modules plus MapTest and IteratorTest still
+failed; the updated outstanding inventory is above. Evidence uses `collection-witness-` under
 `target/quality/release-diagnostics/`. These are scoped local results, not full
 candidate acceptance; all roadmap items remain open.
 

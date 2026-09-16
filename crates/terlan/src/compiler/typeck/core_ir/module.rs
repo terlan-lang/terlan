@@ -280,15 +280,19 @@ impl CoreModule {
                 .as_ref()
                 .map(core_param_contract_text)
                 .unwrap_or_else(|| "none".to_string());
+            let implementation = constructor.implementation.as_ref().map(|implementation| {
+                format!(" implementation={} defaults={:?}", implementation.function, implementation.defaults)
+            }).unwrap_or_default();
             format!(
-                "constructor={} public={} min_arity={} params={} vararg={} return={} return_core={}",
+                "constructor={} public={} min_arity={} params={} vararg={} return={} return_core={}{}",
                 constructor.name,
                 constructor.public,
                 constructor.min_arity,
                 params,
                 vararg,
                 constructor.return_type,
-                core_type_contract_text(constructor.core_return_type.as_ref())
+                core_type_contract_text(constructor.core_return_type.as_ref()),
+                implementation
             )
         }));
         lines.extend(self.trait_conformances.iter().map(|conformance| {

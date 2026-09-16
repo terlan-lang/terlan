@@ -88,7 +88,7 @@ pub(super) fn native_constructor_layouts(
             let Some(result) = native_type(Some(return_core), &declaration.return_type) else {
                 continue;
             };
-            if !result.is_managed_reference() {
+            if declaration.implementation.is_some() || !result.is_managed_reference() {
                 continue;
             }
             // Transparent records are nominal managed values even though

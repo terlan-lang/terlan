@@ -31,6 +31,7 @@ fn layouts() -> NativeConstructorLayouts {
     let declarations = vec![
         CoreConstructorDecl {
             name: "Ok".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {
@@ -44,6 +45,7 @@ fn layouts() -> NativeConstructorLayouts {
         },
         CoreConstructorDecl {
             name: "Error".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {
@@ -57,6 +59,7 @@ fn layouts() -> NativeConstructorLayouts {
         },
         CoreConstructorDecl {
             name: "Some".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {

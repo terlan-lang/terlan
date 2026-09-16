@@ -78,7 +78,7 @@ fn imported_named_defaults_materialize_in_declaration_order() {
          pub run(): Int -> sample.Options.configure(third = 9).",
     )
     .expect("parse caller");
-    materialize_default_call_arguments(&mut module, &resolved_with_import());
+    materialize_default_call_arguments(&mut module, &resolved_with_import(), &[]);
     let SyntaxDeclarationPayload::Function { clauses, .. } = &module.declarations[0].payload else {
         panic!("function declaration");
     };
@@ -99,7 +99,7 @@ fn local_defaults_materialize_without_touching_unknown_calls() {
     )
     .expect("parse local functions");
     let resolved = empty_resolved("sample.Local");
-    materialize_default_call_arguments(&mut module, &resolved);
+    materialize_default_call_arguments(&mut module, &resolved, &[]);
     let SyntaxDeclarationPayload::Function { clauses, .. } = &module.declarations[1].payload else {
         panic!("function declaration");
     };
@@ -170,7 +170,7 @@ fn local_struct_fields_materialize_in_declaration_order() {
     .expect("parse local struct constructor");
     let resolved = empty_resolved("sample.StructFields");
 
-    materialize_default_call_arguments(&mut module, &resolved);
+    materialize_default_call_arguments(&mut module, &resolved, &[]);
 
     let SyntaxDeclarationPayload::Function { clauses, .. } = &module.declarations[1].payload else {
         panic!("function declaration");

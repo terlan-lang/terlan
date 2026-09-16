@@ -25,6 +25,7 @@ fn layouts() -> NativeConstructorLayouts {
         args: vec![CoreType::Int, CoreType::Int],
     };
     let declarations = vec![CoreConstructorDecl {
+        implementation: None,
         name: "Pair".to_owned(),
         public: true,
         min_arity: 2,
