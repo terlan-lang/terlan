@@ -18,7 +18,10 @@ pub(super) fn is_std_set_constructor(constructor: &str, identity: Option<&str>) 
         })
 }
 
-pub(super) fn is_std_map_constructor(constructor: &str, identity: Option<&str>) -> bool {
+pub(in crate::compiler::native_ir) fn is_std_map_constructor(
+    constructor: &str,
+    identity: Option<&str>,
+) -> bool {
     matches!(
         constructor,
         "std.collections.Map" | "std.collections.Map.Map"
@@ -30,7 +33,24 @@ pub(super) fn is_std_map_constructor(constructor: &str, identity: Option<&str>) 
     })
 }
 
-pub(super) fn option_element(ty: &CoreType) -> Option<&CoreType> {
+/// Shares the checked key/value witness used by map construction and monomorphization.
+pub(in crate::compiler::native_ir) fn positional_map_type(
+    entries: &[CoreType],
+) -> Option<CoreType> {
+    let (key, value) = entries.first().and_then(tuple_elements)?;
+    entries
+        .iter()
+        .all(|entry| {
+            tuple_elements(entry)
+                .is_some_and(|(entry_key, entry_value)| entry_key == key && entry_value == value)
+        })
+        .then(|| CoreType::Apply {
+            constructor: "Map".to_string(),
+            args: vec![key.clone(), value.clone()],
+        })
+}
+
+pub(in crate::compiler::native_ir) fn option_element(ty: &CoreType) -> Option<&CoreType> {
     match ty {
         CoreType::Apply { constructor, args }
             if constructor.rsplit('.').next() == Some("Option") && args.len() == 1 =>

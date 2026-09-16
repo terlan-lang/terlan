@@ -3,6 +3,50 @@
 use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
+/// A custom push method cannot overwrite a nominal constructor's checked type.
+#[test]
+fn push_inference_only_contextualizes_empty_list_initializers() {
+    let custom = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::ConstructorCall {
+            constructor: "Buffer".to_string(),
+            constructor_identity: Some("fixture.Buffer".to_string()),
+            args: vec![],
+        }),
+        target_type: CoreType::Named("fixture.Buffer".to_string()),
+    };
+    let mut bindings = vec![CoreLetBinding {
+        pattern: CorePattern::Var("state".to_string()),
+        value: custom.clone(),
+    }];
+    let body = CoreExpr::MutableReceiverCall {
+        receiver: Box::new(CoreExpr::Var("state".to_string())),
+        method: "push".to_string(),
+        args: vec![CoreExpr::Int(1)],
+        effects: CoreEffectSet {
+            effects: vec!["receiver_mutation".to_string()],
+        },
+    };
+    specialize_collection_new_bindings(
+        &mut bindings,
+        &body,
+        &HashMap::new(),
+        &HashMap::new(),
+        "fixture",
+    );
+    assert_eq!(bindings[0].value, custom);
+    bindings[0].value = CoreExpr::List(vec![]);
+    specialize_collection_new_bindings(
+        &mut bindings,
+        &body,
+        &HashMap::new(),
+        &HashMap::new(),
+        "fixture",
+    );
+    assert!(
+        matches!(&bindings[0].value, CoreExpr::Cast { target_type: CoreType::List(element), .. } if **element == CoreType::Int)
+    );
+}
+
 /// Qualified and local nominal constructors contextualize their collection fields.
 #[test]
 fn struct_constructor_specializes_collection_arguments_without_widening_foreign_names() {

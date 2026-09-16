@@ -289,6 +289,7 @@ fn substitute_context_type(ty: &CoreType, values: &HashMap<String, CoreType>) ->
 pub(super) fn specialize_collection_new_bindings(
     bindings: &mut [CoreLetBinding],
     body: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
 ) {
@@ -297,16 +298,24 @@ pub(super) fn specialize_collection_new_bindings(
             continue;
         };
         let name = name.clone();
+        let empty_list = is_empty_list_initializer(&bindings[index].value);
+        let infer_push = |expr: &CoreExpr| {
+            empty_list
+                .then(|| infer_list_push(&name, expr, variables, functions, module))
+                .flatten()
+        };
         let inferred = bindings[index + 1..]
             .iter()
             .find_map(|binding| {
                 expected_call_argument_type(&name, &binding.value, functions, module)
                     .or_else(|| infer_map_put(&name, &binding.value))
                     .or_else(|| infer_set_add(&name, &binding.value))
+                    .or_else(|| infer_push(&binding.value))
             })
             .or_else(|| expected_call_argument_type(&name, body, functions, module))
             .or_else(|| infer_map_put(&name, body))
-            .or_else(|| infer_set_add(&name, body));
+            .or_else(|| infer_set_add(&name, body))
+            .or_else(|| infer_push(body));
         let Some(inferred) = inferred else {
             continue;
         };
@@ -317,6 +326,57 @@ pub(super) fn specialize_collection_new_bindings(
             module,
         );
         annotate_expected_structural_constructors(&mut bindings[index].value, &inferred);
+    }
+}
+
+/// A similarly named custom receiver must not retarget a non-list initializer.
+fn is_empty_list_initializer(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::List(items) => items.is_empty(),
+        CoreExpr::Intrinsic(call) => {
+            call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
+        }
+        CoreExpr::Cast { expr, target_type } if list_element(target_type).is_some() => {
+            is_empty_list_initializer(expr)
+        }
+        _ => false,
+    }
+}
+
+/// Recovers an empty list's element from its checked first mutation operand.
+fn infer_list_push(
+    name: &str,
+    expr: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) -> Option<CoreType> {
+    match expr {
+        CoreExpr::MutableReceiverCall {
+            receiver,
+            method,
+            args,
+            ..
+        } if method == "push"
+            && matches!(receiver.as_ref(), CoreExpr::Var(receiver) if receiver == name)
+            && args.len() == 1 =>
+        {
+            specialize_expr(&mut args[0].clone(), variables, functions, module)
+                .map(|element| CoreType::List(Box::new(element)))
+        }
+        CoreExpr::Let { bindings, body } => bindings
+            .iter()
+            .find_map(|binding| infer_list_push(name, &binding.value, variables, functions, module))
+            .or_else(|| infer_list_push(name, body, variables, functions, module)),
+        CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
+                && call.args.len() == 2
+                && matches!(&call.args[0], CoreExpr::Var(receiver) if receiver == name) =>
+        {
+            specialize_expr(&mut call.args[1].clone(), variables, functions, module)
+                .map(|element| CoreType::List(Box::new(element)))
+        }
+        _ => None,
     }
 }
 
