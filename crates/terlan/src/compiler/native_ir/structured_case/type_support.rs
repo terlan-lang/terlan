@@ -364,7 +364,11 @@ fn control_result_type<'a>(
 
 /// Reconstructs a checked tagged union whose transparent constructors were
 /// lowered to distinct tuple or atom variants in CoreIR.
-fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> {
+/// Joins compatible values while retaining closed constructor variants and labels.
+pub(in crate::compiler::native_ir) fn merge_control_types(
+    expected: CoreType,
+    found: CoreType,
+) -> Option<CoreType> {
     if expected == found {
         return Some(expected);
     }
@@ -394,7 +398,21 @@ fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> 
             variants.push(variant);
         }
     }
-    Some(CoreType::Union(variants))
+    Some(CoreType::Union(canonical_atom_union(variants)))
+}
+
+/// Gives equivalent closed atom domains one order, without reordering payload layouts.
+pub(in crate::compiler::native_ir) fn canonical_atom_union(
+    mut variants: Vec<CoreType>,
+) -> Vec<CoreType> {
+    if variants
+        .iter()
+        .all(|ty| matches!(ty, CoreType::AtomLiteral(_)))
+    {
+        variants.sort_by_cached_key(CoreType::contract_text);
+        variants.dedup();
+    }
+    variants
 }
 
 fn union_covers(cover: &CoreType, candidate: &CoreType) -> bool {

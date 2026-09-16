@@ -38,10 +38,6 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
             })
         })
         .collect::<HashMap<_, _>>();
-    if aliases.is_empty() {
-        return;
-    }
-
     for core in cores {
         let module = core.module.clone();
         let imports = core
@@ -179,6 +175,9 @@ fn resolve(
     visiting: &mut HashSet<String>,
 ) -> CoreType {
     let rebuilt = match ty {
+        // Unit's public alias and source sentinel share one native storage type,
+        // including inside callback signatures and generic aggregate arguments.
+        CoreType::AtomLiteral(value) if value == "unit" => CoreType::Named("Unit".into()),
         CoreType::Apply { constructor, args } => {
             let args = args
                 .iter()
@@ -261,12 +260,14 @@ fn resolve(
                 .collect(),
             return_type: Box::new(resolve(return_type, module, imports, aliases, visiting)),
         },
-        CoreType::Union(types) => CoreType::Union(
-            types
-                .iter()
-                .map(|ty| resolve(ty, module, imports, aliases, visiting))
-                .collect(),
-        ),
+        CoreType::Union(types) => {
+            CoreType::Union(super::super::structured_case::canonical_atom_union(
+                types
+                    .iter()
+                    .map(|ty| resolve(ty, module, imports, aliases, visiting))
+                    .collect(),
+            ))
+        }
         _ => ty.clone(),
     };
     rebuilt

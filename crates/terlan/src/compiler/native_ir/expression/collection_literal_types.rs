@@ -45,14 +45,15 @@ pub(in crate::compiler::native_ir) fn homogeneous_list_type(
     infer: impl FnMut(&CoreExpr) -> Option<CoreType>,
 ) -> Option<CoreType> {
     let types = items.iter().map(infer).collect::<Vec<_>>();
-    let element = types.iter().find_map(Option::as_ref)?.clone();
+    let mut known = types.iter().flatten();
+    let first = known.next()?.clone();
+    let element = known.try_fold(first, |element, ty| {
+        super::super::structured_case::merge_control_types(element, ty.clone())
+    })?;
     items
         .iter()
         .zip(types)
-        .all(|(item, ty)| {
-            ty.as_ref() == Some(&element)
-                || (ty.is_none() && empty_list_shape_matches(item, &element))
-        })
+        .all(|(item, ty)| ty.is_some() || empty_list_shape_matches(item, &element))
         .then(|| CoreType::List(Box::new(element)))
 }
 
