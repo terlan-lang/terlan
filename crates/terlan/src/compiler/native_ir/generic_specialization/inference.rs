@@ -23,17 +23,17 @@ pub(super) fn infer_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".into())),
+        CoreExpr::Atom(value) if matches!(value.as_str(), "Unit" | "unit") => {
+            Some(CoreType::Named("Unit".into()))
+        }
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::List(items) if !items.is_empty() => {
-            let first = infer_type(&items[0], variables, templates, module)?;
-            items[1..]
-                .iter()
-                .all(|item| infer_type(item, variables, templates, module) == Some(first.clone()))
-                .then(|| CoreType::List(Box::new(first)))
+            super::super::expression::homogeneous_list_type(items, |item| {
+                infer_type(item, variables, templates, module)
+            })
         }
         CoreExpr::Tuple(items) => items
             .iter()
@@ -324,20 +324,9 @@ fn infer_generic_argument_type(
             infer_generic_argument_type(expr, generic_params, variables, templates, module)
         }
         CoreExpr::List(items) if !items.is_empty() => {
-            let first = infer_generic_argument_type(
-                &items[0],
-                generic_params,
-                variables,
-                templates,
-                module,
-            )?;
-            items[1..]
-                .iter()
-                .all(|item| {
-                    infer_generic_argument_type(item, generic_params, variables, templates, module)
-                        == Some(first.clone())
-                })
-                .then(|| CoreType::List(Box::new(first)))
+            super::super::expression::homogeneous_list_type(items, |item| {
+                infer_generic_argument_type(item, generic_params, variables, templates, module)
+            })
         }
         CoreExpr::Tuple(items) => items
             .iter()

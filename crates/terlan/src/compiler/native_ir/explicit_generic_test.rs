@@ -12,6 +12,48 @@ use super::native_object_test_support::{
 use super::{emit_native_application_object, status, NativeModule};
 
 #[test]
+fn generic_lists_retain_closed_atom_variants() {
+    check_generic_execution(
+        r#"
+module generic_atom_lists.
+import std.collections.List.
+pub type Left = Atom["left"].
+pub type Right = Atom["right"].
+pub type Choice = Left | Right.
+pub type Gen[T] = {Atom["gen"], List[T]}.
+elements[T](items: List[T]): Gen[T] -> {Atom["gen"], items}.
+accept_first[T](generator: Gen[T], predicate: (T) -> Bool): Bool ->
+    case generator { {_tag, [first | _rest]} -> predicate(first); _ -> false }.
+accepts(value: Choice): Bool -> value == Left or value == Right.
+pub mixed_atoms(): Bool -> accept_first(elements([Left, Right, Left]), (value) -> value == Left).
+pub reversed_atoms(): Bool -> accept_first(elements([Right, Left]), (value) -> value == Right).
+pub named_callback(): Bool -> accept_first(elements([Right, Left]), accepts).
+"#,
+        &["mixed_atoms", "reversed_atoms", "named_callback"],
+        false,
+    );
+}
+
+#[test]
+fn generic_unit_callbacks_accept_the_expanded_singleton_type() {
+    check_generic_execution(
+        r#"
+module generic_unit_callbacks.
+import std.core.Unit.
+pub type Finished = Atom["unit"].
+invoke[T](value: T, callback: (T) -> Finished): Finished -> callback(value).
+same[T](left: T, right: T): Bool -> left == right.
+finish(value: Int): Finished -> Unit.
+pub unit_callback(): Bool -> same(invoke(7, (_value) -> Unit), finish(7)).
+pub unit_identity(): Bool -> same(Unit, finish(7)) and same(finish(7), Unit).
+pub literal_identity(): Bool -> same(Atom["unit"], finish(7)).
+"#,
+        &["unit_callback", "unit_identity", "literal_identity"],
+        false,
+    );
+}
+
+#[test]
 fn explicit_generic_return_parameters_keep_distinct_union_layouts() {
     let source = r#"
 module explicit_generic_results.

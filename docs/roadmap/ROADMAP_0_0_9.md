@@ -20,7 +20,23 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The current source-constructor correction retains checked bodies and constant
+The next local correction normalizes Unit's expanded singleton type inside
+native callback signatures and generic arguments. Collection inference reuses
+the existing closed-variant merge, and closed atom domains have a canonical
+order across alias expansion and inferred lists. All 530 NativeIR tests pass,
+including linked Unit callbacks and mixed/reversed atom lists with a named
+callback. OrderingProperty's three source tests and a separate reversed-domain
+named-callback probe pass. Iterator's selected Unit callback test and all seven
+Unit tests pass; the full Iterator suite now reaches an untyped-empty-list
+inference failure. Another 81 affected collection/generator/table/atom/shrink
+source tests pass on the final atom-domain correction. Both strict workspace
+binary Clippy profiles, the rebuilt quality validator, API/module/headroom,
+refreshed dependency impact and documentation gates pass with unchanged budgets.
+The rebuilt validator remains 12,003,336 bytes. Logs use
+`unit-callback-`, `atom-list-` and `atom-domain-`; these are scoped local results,
+not candidate-wide acceptance.
+
+The preceding source-constructor correction retains checked bodies and constant
 defaults as ordinary typed callables, preserves their reachability, and reuses
 the existing generic and suspension pipeline. Generated bodies, default helpers,
 arity adapters and specializations retain original constructor-clause provenance.
@@ -36,11 +52,14 @@ without increased budgets. Logs use `source-constructor-` under
 
 Object's API/property suites and Shrink now pass (29 tests combined); GenTest
 passes 23 and Set's API/property suites pass another ten. Remaining required
-failures are OrderingProperty (heterogeneous atom-list inference), RangeProperty
-(suspension composition), RandomProperty (native adapter routing),
+source-suite failures are RangeProperty (suspension composition), RandomProperty (native adapter routing),
 PropertyDistribution and Property (empty-generator inference), MapTest (empty-map
-receiver inference), IteratorTest (Unit callback identity), and ListTest
+receiver inference), IteratorTest (untyped-empty-list inference), and ListTest
 (ambiguous trait resolution). None is waived. All roadmap items remain open.
+Explicit constructor type arguments also still need to survive the Core
+expression boundary; argument/context-based inference is not evidence that this
+separate gap is fixed. The `explicit-constructor-type-before.log` probe reproduces
+the loss with `Items[Int]().length()` despite the explicit element type.
 
 The preceding local collection correction passes all 515 NativeIR tests and all 23
 GenTest tests. Intrinsic-only providers retain their type declarations; collection
