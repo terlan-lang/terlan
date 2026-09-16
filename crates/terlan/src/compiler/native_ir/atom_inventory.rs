@@ -31,45 +31,22 @@ pub(super) const RUNTIME_REGEX_ERROR_ATOMS: &[&str] = &["regex.compile"];
 /// Closed error-code atoms emitted by the Rust-backed TOML adapter.
 pub(super) const RUNTIME_TOML_ERROR_ATOMS: &[&str] = &["toml.parse"];
 
+/// Closed error-code atoms emitted by the Rust-backed Base64 adapter.
+pub(super) const RUNTIME_BASE64_ERROR_ATOMS: &[&str] = &["base64.decode", "base64.utf8"];
+
 /// Collects every non-scalar atom identity visible in checked application CoreIR.
 pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> {
     let mut atoms = BTreeSet::new();
     for core in cores {
-        if core.module == "std.data.Json"
-            || core
-                .imports
-                .iter()
-                .any(|import| import.module == "std.data.Json")
-        {
-            atoms.extend(
-                RUNTIME_JSON_ERROR_ATOMS
-                    .iter()
-                    .map(|atom| (*atom).to_string()),
-            );
-        }
-        if core.module == "std.regex.Regex"
-            || core
-                .imports
-                .iter()
-                .any(|import| import.module == "std.regex.Regex")
-        {
-            atoms.extend(
-                RUNTIME_REGEX_ERROR_ATOMS
-                    .iter()
-                    .map(|atom| (*atom).to_string()),
-            );
-        }
-        if core.module == "std.data.Toml"
-            || core
-                .imports
-                .iter()
-                .any(|import| import.module == "std.data.Toml")
-        {
-            atoms.extend(
-                RUNTIME_TOML_ERROR_ATOMS
-                    .iter()
-                    .map(|atom| (*atom).to_string()),
-            );
+        for (module, errors) in [
+            ("std.data.Json", RUNTIME_JSON_ERROR_ATOMS),
+            ("std.regex.Regex", RUNTIME_REGEX_ERROR_ATOMS),
+            ("std.data.Toml", RUNTIME_TOML_ERROR_ATOMS),
+            ("std.encoding.Base64", RUNTIME_BASE64_ERROR_ATOMS),
+        ] {
+            if core.module == module || core.imports.iter().any(|import| import.module == module) {
+                atoms.extend(errors.iter().map(|atom| (*atom).to_string()));
+            }
         }
         if core
             .imports

@@ -343,6 +343,60 @@ fn missing_profile_is_pure_only_when_no_transition_edge_exists() {
     ));
 }
 
+/// Pure specialized tail targets remain pure below lexical prefixes; absent or
+/// genuinely suspending profiles must never be treated as empty evidence.
+#[test]
+fn lexical_tail_purity_requires_an_explicit_empty_target_profile() {
+    use super::call_composition::is_non_suspending_with_profiles;
+    let suspending = HashSet::from([3]);
+    let tail = NativeExpr::TailCall {
+        function: 3,
+        args: vec![NativeExpr::Param(0)],
+        yield_continuation_id: None,
+    };
+    let wrapped = NativeExpr::Let {
+        bindings: vec![NativeExpr::Int(1)],
+        body: Box::new(tail.clone()),
+    };
+    assert!(!is_non_suspending_with_profiles(
+        &wrapped,
+        &suspending,
+        &HashMap::new()
+    ));
+    let pure = HashMap::from([(3, ComposedCallProfile::pure())]);
+    assert!(is_non_suspending_with_profiles(
+        &wrapped,
+        &suspending,
+        &pure
+    ));
+    let mut outward = ComposedCallProfile::pure();
+    outward.entries.push(19);
+    assert!(!is_non_suspending_with_profiles(
+        &wrapped,
+        &suspending,
+        &HashMap::from([(3, outward)])
+    ));
+    let prefix_yield = NativeExpr::Let {
+        bindings: vec![suspend(19)],
+        body: Box::new(tail),
+    };
+    assert!(!is_non_suspending_with_profiles(
+        &prefix_yield,
+        &suspending,
+        &pure
+    ));
+    let reduction = NativeExpr::TailCall {
+        function: 3,
+        args: vec![],
+        yield_continuation_id: Some(19),
+    };
+    assert!(!is_non_suspending_with_profiles(
+        &reduction,
+        &suspending,
+        &pure
+    ));
+}
+
 #[test]
 fn profile_follows_continuation_identities_after_storage_reordering() {
     let continuations = vec![

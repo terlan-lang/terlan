@@ -10,7 +10,7 @@ use module_assembly::{
     assemble_native_module, finalize_native_application, ApplicationFinalizationContext,
     ModuleAssemblyContext,
 };
-use support::{forwarded_dynamic_profile, profile_widths, trace_native_aot, widest_profile_labels};
+use support::{callable_profile, profile_widths, trace_native_aot, widest_profile_labels};
 
 pub(super) fn lower_selected_application(
     cores: &[&CoreModule],
@@ -297,30 +297,22 @@ pub(super) fn lower_selected_application(
                         continue;
                     }
                 };
+                super::super::continuation_sharing::intern_function_continuations(
+                    &mut native.body,
+                    &mut profile_lifted,
+                    &mut continuations,
+                );
                 let mut dynamic_progress = false;
                 for lifted in &profile_lifted {
-                    let profile =
-                        ComposedCallProfile::new(&lifted.body, &continuations, profile_inputs)
-                            .or_else(|| {
-                                forwarded_dynamic_profile(&lifted.body, &candidate_dynamic_profiles)
-                            })
-                            .or_else(|| {
-                                let super::super::NativeExpr::TailCall { function, .. } =
-                                    &lifted.body
-                                else {
-                                    return None;
-                                };
-                                profile_inputs.get(function).cloned()
-                            });
+                    let profile = callable_profile(
+                        &lifted.body,
+                        &continuations,
+                        profile_inputs,
+                        &candidate_dynamic_profiles,
+                        &suspending_native,
+                    );
                     let profile = match profile {
                         Some(profile) => profile,
-                        None if super::super::call_composition::is_definitely_non_suspending(
-                            &lifted.body,
-                            &suspending,
-                        ) =>
-                        {
-                            ComposedCallProfile::pure()
-                        }
                         None => {
                             dynamic_profile_gaps.insert(
                                 lifted.export_id,
@@ -422,10 +414,6 @@ pub(super) fn lower_selected_application(
                     progress |= dynamic_progress;
                     continue;
                 }
-                super::super::continuation_sharing::intern_function_continuations(
-                    &mut native.body,
-                    &mut continuations,
-                );
                 if super::super::has_uncomposed_suspending_call(&native.body, &suspending_native)
                     || continuations.iter().any(|continuation| {
                         super::super::has_uncomposed_suspending_call(
@@ -490,25 +478,13 @@ pub(super) fn lower_selected_application(
                     phase_refreshed.insert(native_index);
                     continue;
                 }
-                let profile =
-                    ComposedCallProfile::new(&native.body, &continuations, profile_inputs)
-                        .or_else(|| {
-                            forwarded_dynamic_profile(&native.body, &candidate_dynamic_profiles)
-                        })
-                        .or_else(|| {
-                            let super::super::NativeExpr::TailCall { function, .. } = &native.body
-                            else {
-                                return None;
-                            };
-                            profile_inputs.get(function).cloned()
-                        })
-                        .or_else(|| {
-                            super::super::call_composition::is_definitely_non_suspending(
-                                &native.body,
-                                &suspending,
-                            )
-                            .then(ComposedCallProfile::pure)
-                        });
+                let profile = callable_profile(
+                    &native.body,
+                    &continuations,
+                    profile_inputs,
+                    &candidate_dynamic_profiles,
+                    &suspending_native,
+                );
                 if let Some(mut profile) = profile {
                     call_profile_gaps.remove(&native_index);
                     if recursive_seed {
@@ -741,6 +717,7 @@ pub(super) fn lower_selected_application(
             // functions, which have no profile entry, are still lowered once
             // during final emission.
             let cached_lowering = profile_lowerings.get(&native_index);
+            let lifted_start = lifted_functions.len();
             let reused_converged_lowering = cached_lowering.is_some();
             let (mut function, mut function_continuations) = if let Some((
                 function,
@@ -789,28 +766,19 @@ pub(super) fn lower_selected_application(
             if !reused_converged_lowering {
                 super::super::continuation_sharing::intern_function_continuations(
                     &mut function.body,
+                    &mut lifted_functions[lifted_start..],
                     &mut function_continuations,
                 );
             }
             if !reused_converged_lowering && !recursive_seed_profiles.contains(&native_index) {
                 if let Some(expected) = call_profiles.get(&native_index) {
-                    let emitted = ComposedCallProfile::new(
+                    let emitted = callable_profile(
                         &function.body,
                         &function_continuations,
                         &call_profiles,
+                        &candidate_dynamic_profiles,
+                        &suspending_native,
                     )
-                    .or_else(|| {
-                        forwarded_dynamic_profile(&function.body, &candidate_dynamic_profiles)
-                    })
-                    .or_else(|| {
-                        let super::super::NativeExpr::TailCall {
-                            function: target, ..
-                        } = &function.body
-                        else {
-                            return None;
-                        };
-                        call_profiles.get(target).cloned()
-                    })
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.profile_emission]: final lowering for `{}.{}/{}` has no suspension profile",

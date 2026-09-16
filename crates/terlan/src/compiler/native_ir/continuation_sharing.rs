@@ -192,13 +192,19 @@ pub(super) fn intern_equivalent_continuations(modules: &mut [NativeModule]) {
 /// continuation admission budget.
 pub(super) fn intern_function_continuations(
     body: &mut NativeExpr,
+    lifted: &mut [NativeFunction],
     continuations: &mut Vec<NativeContinuation>,
 ) {
     let roles = continuation_protocol_roles(
-        std::iter::once(&*body).chain(continuations.iter().map(|continuation| &continuation.body)),
+        std::iter::once(&*body)
+            .chain(lifted.iter().map(|function| &function.body))
+            .chain(continuations.iter().map(|continuation| &continuation.body)),
     );
     let aliases = intern_continuations(continuations, &roles);
     rewrite_continuation_ids(body, &aliases);
+    for function in lifted {
+        rewrite_continuation_ids(&mut function.body, &aliases);
+    }
     for continuation in continuations.iter_mut() {
         rewrite_continuation_ids(&mut continuation.body, &aliases);
     }

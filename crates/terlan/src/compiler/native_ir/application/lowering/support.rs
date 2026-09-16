@@ -3,8 +3,35 @@ use std::time::Instant;
 
 use super::super::super::{
     call_composition::{DynamicCallProfiles, DynamicCallSignature},
-    ComposedCallProfile, NativeExpr,
+    ComposedCallProfile, NativeContinuation, NativeExpr,
 };
+
+/// Uses one profile rule for ordinary functions and lifted closure targets.
+/// An empty profile requires positive evidence, including through lexical scopes.
+pub(super) fn callable_profile(
+    body: &NativeExpr,
+    continuations: &[NativeContinuation],
+    profiles: &HashMap<usize, ComposedCallProfile>,
+    dynamic: &DynamicCallProfiles,
+    suspending: &std::collections::HashSet<usize>,
+) -> Option<ComposedCallProfile> {
+    ComposedCallProfile::new(body, continuations, profiles)
+        .or_else(|| forwarded_dynamic_profile(body, dynamic))
+        .or_else(|| match body {
+            NativeExpr::TailCall {
+                function,
+                yield_continuation_id: None,
+                ..
+            } => profiles.get(function).cloned(),
+            _ => None,
+        })
+        .or_else(|| {
+            super::super::super::call_composition::is_non_suspending_with_profiles(
+                body, suspending, profiles,
+            )
+            .then(ComposedCallProfile::pure)
+        })
+}
 
 pub(super) fn trace_native_aot(started: Instant, phase: &str, detail: impl std::fmt::Display) {
     if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {

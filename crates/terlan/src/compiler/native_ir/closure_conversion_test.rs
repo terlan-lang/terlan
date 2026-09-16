@@ -6,8 +6,8 @@ use crate::terlan_typeck::{CoreExpr, CoreIfClause, CorePattern, CoreType};
 
 use super::{
     closure_conversion::{
-        lower_escaping_closure, lower_escaping_lambda, ClosureLexicalScope,
-        ClosureLoweringEnvironment, ClosureOwner, NativeCallableShape,
+        lower_escaping_closure_with_yields, lower_escaping_lambda, ClosureLexicalScope,
+        ClosureLoweringEnvironment, ClosureOwner, ClosureYieldState, NativeCallableShape,
     },
     NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType,
 };
@@ -17,6 +17,91 @@ fn arrow(arity: usize) -> CoreType {
         params: vec![CoreType::Int; arity],
         return_type: Box::new(CoreType::Int),
     }
+}
+
+/// Tests the conversion's explicit no-continuation context without production scaffolding.
+fn lower_escaping_closure(
+    body: &CoreExpr,
+    expected: Option<&CoreType>,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
+) -> Result<Option<(NativeExpr, Vec<super::NativeFunction>)>, String> {
+    lower_escaping_closure_with_yields(
+        body,
+        expected,
+        scope,
+        environment,
+        owner,
+        &mut ClosureYieldState {
+            environment: None,
+            stable_ids: &mut HashSet::new(),
+            continuations: Vec::new(),
+            lifted_ordinal: 0,
+        },
+    )
+}
+
+/// Lifted lambdas preserve captures and intermediate values across real yield/resume edges.
+#[test]
+fn escaping_callbacks_resume_non_tail_calls_and_direct_yields() {
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"
+module closure_resume.
+import std.vm.Process.
+park(value: Int): Int -> let _parked = Process.yield_now(); value.
+make(seed: Int): ((Int) -> Int) -> (value) -> park(seed + value) + park(2).
+make_direct(seed: Int): (() -> Int) -> () -> let _parked = Process.yield_now(); seed + 3.
+choose(flag: Bool, seed: Int): ((Int) -> Int) -> if {
+    flag -> ((value) -> park(seed + value) + 1);
+    true -> ((value) -> park(seed + value) + 1)
+}.
+pub composed(): Int -> let callback = make(10); callback(5).
+pub direct(): Int -> let callback = make_direct(20); callback().
+pub left_branch(): Int -> let callback = choose(true, 30); callback(2).
+pub right_branch(): Int -> let callback = choose(false, 40); callback(2).
+"#,
+    )
+    .expect("parse suspending callback source");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules =
+        super::NativeModule::lower_application(&[&core]).expect("lower resumable lambdas");
+    assert!(modules
+        .iter()
+        .any(|module| !module.continuations.is_empty()));
+    let object = super::emit_native_application_object("closure-resume", &modules)
+        .expect("emit resumable lambdas");
+    let invocations = [
+        ("composed", 17),
+        ("direct", 23),
+        ("left_branch", 33),
+        ("right_branch", 43),
+    ]
+    .map(|(name, expected)| {
+        let function = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("source callable export");
+        super::native_object_test_support::NativeObjectInvocation {
+            export_id: function.export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "closure-resume",
+        &modules,
+        &object,
+        &invocations,
+    );
 }
 
 fn lower(
