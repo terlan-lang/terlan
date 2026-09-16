@@ -56,18 +56,15 @@ pub(super) fn lower_map_intrinsic(
             CoreTupleTypeElem::Type(value.clone()),
         ]);
         let list = CoreType::List(Box::new(pair.clone()));
-        let entries = super::super::collection_values::lower_boundary_collection_value(
+        let entries = super::super::collection_values::lower_typed_value(
             &call.args[0],
-            Some(&list),
+            &list,
             params,
             param_types,
             functions,
             function_types,
             constructors,
-        )?
-        .ok_or_else(|| {
-            "error[native_ir.map_intrinsic]: from_entries requires a typed entry list".to_string()
-        })?;
+        )?;
         return Ok(NativeExpr::ManagedOperation {
             encoded: encode_map_from_entry_list_operation(
                 map_semantic,
@@ -188,7 +185,7 @@ fn managed_semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
 }
 
 fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(&ty.contract_text())
+    SemanticTypeId::from_canonical(&super::managed_semantic_contract(ty))
         .map_err(|error| format!("error[native_ir.map_intrinsic]: {error}"))
 }
 

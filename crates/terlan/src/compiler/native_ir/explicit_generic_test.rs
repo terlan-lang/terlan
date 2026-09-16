@@ -57,6 +57,45 @@ pub string_case(): Bool -> strings().length() == 1 and generic("text").length() 
 }
 
 #[test]
+fn typed_empty_collections_keep_their_witness_through_generic_calls() {
+    check_generic_execution(
+        r#"
+module empty_generic_arguments.
+import std.collections.List.
+pub type Gen[T] = {Atom["gen"], List[T]}.
+elements[T](values: List[T]): Gen[T] -> {Atom["gen"], values}.
+empty_binary(): Gen[Binary] -> elements(List.new[Binary]()).
+empty_integer(): Gen[Int] -> elements(List.new[Int]()).
+empty_binding(): Gen[Binary] -> let values = List.new[Binary](); elements(values).
+sample[T](generator: Gen[T]): List[T] -> case generator { {_tag, values} -> values }.
+pub check(): Bool -> sample(empty_binary()).length() == 0 and sample(empty_integer()).length() == 0 and sample(empty_binding()).length() == 0.
+"#,
+        &["check"],
+        false,
+    );
+}
+
+#[test]
+fn escaping_generic_callbacks_keep_structural_result_witnesses() {
+    check_generic_execution(
+        r#"
+module structural_generic_callbacks.
+import std.collections.List.
+map_values[T, U](values: List[T], transform: (T) -> U): List[U] ->
+    case values {
+        [] -> [];
+        [head | tail] -> [transform(head) | map_values(tail, transform)]
+    }.
+pub check(): Bool ->
+    map_values([1, 2], (age) -> {name: "user", age: age})
+        == [{name: "user", age: 1}, {name: "user", age: 2}].
+"#,
+        &["check"],
+        false,
+    );
+}
+
+#[test]
 fn inferred_list_of_call_results_retains_its_collection_schema() {
     check_generic_execution(
         r#"

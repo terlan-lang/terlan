@@ -571,9 +571,9 @@ pub(super) fn compile_imported_std_source_core_modules(
                 .map(|import| import.module.clone()),
         );
         remove_compiler_intrinsic_functions(&mut core);
-        if !core.functions.is_empty() {
-            modules.push(core);
-        }
+        // Executable intrinsics do not replace the provider's type aliases or
+        // constructor declarations, which later generic callers still need.
+        modules.push(core);
     }
     Ok(modules)
 }

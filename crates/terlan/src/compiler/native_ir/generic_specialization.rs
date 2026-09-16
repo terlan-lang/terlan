@@ -629,16 +629,17 @@ fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) 
         CoreExpr::Lam {
             params,
             parameter_types,
-            ..
+            body,
         },
         CoreType::Arrow {
             params: expected_params,
-            ..
+            return_type,
         },
     ) = (&mut *argument, expected)
     {
         if params.len() == expected_params.len() {
             *parameter_types = expected_params.iter().cloned().map(Some).collect();
+            apply_contextual_argument_type(body, return_type);
         }
         return;
     }

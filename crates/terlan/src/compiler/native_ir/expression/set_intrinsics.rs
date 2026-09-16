@@ -168,6 +168,8 @@ fn iterator_element(ty: &CoreType) -> super::super::NativeIrResult<&CoreType> {
 }
 
 fn semantic(ty: &CoreType) -> super::super::NativeIrResult<SemanticTypeId> {
-    Ok(SemanticTypeId::from_canonical(&ty.contract_text())
-        .map_err(|error| format!("error[native_ir.set_intrinsic]: {error}"))?)
+    Ok(
+        SemanticTypeId::from_canonical(&super::managed_semantic_contract(ty))
+            .map_err(|error| format!("error[native_ir.set_intrinsic]: {error}"))?,
+    )
 }

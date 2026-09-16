@@ -4,6 +4,32 @@ use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
 #[test]
+fn checked_text_literal_context_replaces_inferred_cast_without_retyping_values() {
+    let mut literal = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Binary("\"a\"".to_string())),
+        target_type: CoreType::String,
+    };
+    specialize_expected_collection_new(&mut literal, &CoreType::Binary, &HashMap::new(), "fixture");
+    assert_eq!(
+        literal,
+        CoreExpr::Cast {
+            expr: Box::new(CoreExpr::Binary("\"a\"".to_string())),
+            target_type: CoreType::Binary,
+        }
+    );
+    let mut value = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Var("text".to_string())),
+        target_type: CoreType::String,
+    };
+    let original = value.clone();
+    specialize_expected_collection_new(&mut value, &CoreType::Binary, &HashMap::new(), "fixture");
+    assert_eq!(
+        value, original,
+        "a checked existing value cannot be reinterpreted"
+    );
+}
+
+#[test]
 fn repeated_collection_context_is_idempotent() {
     let list_type = CoreType::List(Box::new(CoreType::Int));
     let mut expression = CoreExpr::List(vec![CoreExpr::Int(7)]);

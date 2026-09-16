@@ -7,6 +7,35 @@ use crate::terlan_typeck::{
 
 use super::qualify_application_nominal_types;
 
+#[test]
+fn compiler_collection_qualification_keeps_one_nested_abi_identity() {
+    for (name, expected) in [
+        ("std.collections.Map.Map", "Map"),
+        ("std.collections.Set.Set", "Set"),
+        ("package.Custom.Map", "package.Custom.Map"),
+        ("package.Custom.Set", "package.Custom.Set"),
+    ] {
+        let mut core = checked_core("module app.Collection. pub values(): List[Int] -> [].");
+        let args = if name.ends_with(".Map") {
+            vec![CoreType::String, CoreType::Int]
+        } else {
+            vec![CoreType::Int]
+        };
+        core.functions[0].core_return_type = Some(CoreType::List(Box::new(CoreType::Apply {
+            constructor: name.to_string(),
+            args: args.clone(),
+        })));
+        qualify_application_nominal_types(std::slice::from_mut(&mut core));
+        assert_eq!(
+            core.functions[0].core_return_type,
+            Some(CoreType::List(Box::new(CoreType::Apply {
+                constructor: expected.to_string(),
+                args,
+            })))
+        );
+    }
+}
+
 fn checked_core(source: &str) -> CoreModule {
     let syntax = parse_module_as_syntax_output(source).expect("parse module");
     let resolved = resolve_syntax_module_output(&syntax).module;
