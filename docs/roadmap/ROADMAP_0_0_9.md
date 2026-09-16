@@ -62,8 +62,17 @@ this correction without increased budgets; function_lowering.rs shrinks from
 candidate-wide acceptance. The subsequent required property-suite batch exposes
 collection receiver resolution, Atom conversion, contextual generic/union-layout
 and suspension-composition failures, plus URI error atoms and Random helper
-routing. It records 46 passing tests, seven runtime failures and 11 modules that
-fail before execution; those baseline failures still require fixes.
+routing. That batch records 46 passing tests, seven runtime failures and 11 modules
+that fail before execution. A follow-up retains contextual callback parameter and
+map-constructor types, reuses checked collection receiver contracts, and infers
+empty-list types from push operands. Late alias expansion and a shared Option
+payload matcher keep iterator layouts consistent. Empty-list inference excludes
+custom receiver initializers. All 499 NativeIR tests pass;
+the List and Map property suites now pass three and four tests respectively, and
+Table's 12 tests still pass. The other property failures remain required baseline
+fixes, including Object and generator receiver resolution. Both strict Clippy
+profiles and the rebuilt API/module/headroom/dependency gates pass with unchanged
+budgets; evidence uses `collection-receivers-`. No candidate-wide success is claimed.
 No source assertions are removed and no failed suite is waived.
 Both strict Clippy profiles and the rebuilt
 API/module/headroom/dependency gates pass for the loader correction, with unchanged

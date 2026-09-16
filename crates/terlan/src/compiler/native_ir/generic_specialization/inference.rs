@@ -54,6 +54,21 @@ pub(super) fn infer_type(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Map),
         CoreExpr::RecordConstruct { name, .. } => Some(CoreType::Named(name.clone())),
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } if super::super::collection_intrinsic_specialization::is_std_map_constructor(
+            constructor,
+            constructor_identity.as_deref(),
+        ) =>
+        {
+            let entries = args
+                .iter()
+                .map(|entry| infer_type(entry, variables, templates, module))
+                .collect::<Option<Vec<_>>>()?;
+            super::super::collection_intrinsic_specialization::positional_map_type(&entries)
+        }
         CoreExpr::Intrinsic(call)
             if matches!(
                 call.id,
@@ -80,6 +95,14 @@ pub(super) fn infer_type(
         {
             infer_type(call.args.first()?, variables, templates, module)
         }
+        CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapTake) =>
+        {
+            let receiver = infer_type(call.args.first()?, variables, templates, module)?;
+            super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+                &receiver, "take", call.args.len(),
+            ).map(|(_, result)| result)
+        }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::RemoteCall {
             module: owner,
@@ -87,12 +110,12 @@ pub(super) fn infer_type(
             args,
         } if owner == "__receiver__" => {
             let receiver = infer_type(args.first()?, variables, templates, module)?;
-            crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(
+            super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
                 &receiver,
                 function,
                 args.len(),
             )
-            .map(|intrinsic| crate::terlan_typeck::core_primitive_intrinsic_return_type(&intrinsic))
+            .map(|(_, result)| result)
         }
         CoreExpr::UnaryOp { operator, .. } if matches!(operator.as_str(), "not" | "!") => {
             Some(CoreType::Bool)

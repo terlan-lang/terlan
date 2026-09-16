@@ -1,5 +1,34 @@
 use super::*;
 
+/// Resolves a typed receiver through the same contracts in every specialization pass.
+pub(in crate::compiler::native_ir) fn typed_receiver_intrinsic(
+    receiver: &CoreType,
+    method: &str,
+    arity: usize,
+) -> Option<(CorePrimitiveIntrinsic, CoreType)> {
+    let (intrinsic, result) = if let Some(element) = list_element(receiver) {
+        let intrinsic = list_receiver_intrinsic(method, arity)?;
+        let result = list_intrinsic_return_type(element, &intrinsic);
+        (intrinsic, result)
+    } else if map_elements(receiver).is_some() {
+        let intrinsic = map_receiver_intrinsic(method, arity)?;
+        let result = map_intrinsic_return_type(&intrinsic, receiver);
+        (intrinsic, result)
+    } else if set_element(receiver).is_some() {
+        let intrinsic = set_receiver_intrinsic(method, arity)?;
+        let result = set_intrinsic_return_type(&intrinsic, receiver);
+        (intrinsic, result)
+    } else {
+        let intrinsic =
+            crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(
+                receiver, method, arity,
+            )?;
+        let result = core_primitive_intrinsic_return_type(&intrinsic);
+        (intrinsic, result)
+    };
+    Some((intrinsic, result))
+}
+
 pub(super) fn infer_map_put(name: &str, expr: &CoreExpr) -> Option<CoreType> {
     match expr {
         CoreExpr::MutableReceiverCall {
@@ -68,6 +97,7 @@ pub(super) fn map_receiver_intrinsic(method: &str, arity: usize) -> Option<CoreP
         ("is_empty", 1) => Some(CorePrimitiveIntrinsic::MapIsEmpty),
         ("size", 1) => Some(CorePrimitiveIntrinsic::MapSize),
         ("get", 2) => Some(CorePrimitiveIntrinsic::MapGet),
+        ("take", 2) => Some(CorePrimitiveIntrinsic::MapTake),
         ("contains_key", 2) => Some(CorePrimitiveIntrinsic::MapContainsKey),
         ("iterator", 1) => Some(CorePrimitiveIntrinsic::MapIterator),
         ("put", 3) => Some(CorePrimitiveIntrinsic::MapPut),
@@ -94,16 +124,12 @@ pub(super) fn list_receiver_intrinsic(
     method: &str,
     arity: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
-    match (method, arity) {
-        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::ListIsEmpty),
-        ("length", 1) => Some(CorePrimitiveIntrinsic::ListLength),
-        ("first", 1) => Some(CorePrimitiveIntrinsic::ListFirst),
-        ("rest", 1) => Some(CorePrimitiveIntrinsic::ListRest),
-        ("iterator", 1) => Some(CorePrimitiveIntrinsic::ListIterator),
-        ("push", 2) => Some(CorePrimitiveIntrinsic::ListPush),
-        ("clear", 1) => Some(CorePrimitiveIntrinsic::ListClear),
-        _ => None,
-    }
+    crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic(
+        "std.collections.List",
+        method,
+        arity,
+    )
+    .filter(|intrinsic| *intrinsic != CorePrimitiveIntrinsic::ListNew)
 }
 
 pub(super) fn bytes_receiver_intrinsic(
@@ -223,6 +249,10 @@ pub(super) fn map_intrinsic_return_type(
         }
         CorePrimitiveIntrinsic::MapSize => CoreType::Int,
         CorePrimitiveIntrinsic::MapGet => option(value.clone()),
+        CorePrimitiveIntrinsic::MapTake => CoreType::Tuple(vec![
+            crate::terlan_typeck::CoreTupleTypeElem::Type(option(value.clone())),
+            crate::terlan_typeck::CoreTupleTypeElem::Type(map.clone()),
+        ]),
         CorePrimitiveIntrinsic::MapIterator => CoreType::Apply {
             constructor: "Iterator".to_string(),
             args: vec![CoreType::Tuple(vec![

@@ -5,6 +5,84 @@ use crate::terlan_typeck::{
     CoreRecordExprField, CoreStructTypeField, CoreType,
 };
 
+/// Collection receivers retain their type and method identity through callback specialization.
+#[test]
+fn contextual_collection_receivers_execute_without_unqualified_method_fallback() {
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"
+module collection_callback.
+import std.collections.{List, Map}.
+import std.core.Option.{Some, None}.
+apply[T](value: T, predicate: (T) -> Bool): Bool -> predicate(value).
+size(value: Int): Int -> value + 100.
+pub ordinary(): Int -> size(2).
+pub persistent(): Bool ->
+    let source = [1, 1];
+    let joined = source.concat([2]);
+    let reduced = source.subtract([1]);
+    source.length() == 2 and joined.length() == 3 and reduced.length() == 1.
+pub map_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1}); state.contains_key(key) and state.size() == 1).
+pub list_callback(): Bool -> apply(3, (value) ->
+    let state = [value]; state.concat([value]).length() == 2).
+pub shadowed_callback(): Bool ->
+    let state = Map({"outer", 7});
+    apply([1], (state) -> state.length() == 1) and state.size() == 1.
+pub empty_mutation(): Bool ->
+    apply(3, (value) -> let state = []; state.push(value); state.clear(); state.is_empty()).
+pub take_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1});
+    case Map.take(state, key) {
+        {Some(value), rest} -> value == 1 and state.contains_key(key) and not rest.contains_key(key) and rest.size() == 0;
+        {None, _rest} -> false
+    }).
+pub duplicate_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1}, {key, 2}); state.size() == 1 and state.get(key) == Some(2)).
+"#,
+    )
+    .expect("parse collection receiver callbacks");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = super::NativeModule::lower_application(&[&core])
+        .expect("lower collection receiver callbacks");
+    let object = super::emit_native_application_object("collection-callback", &modules)
+        .expect("emit collection receiver callbacks");
+    let invocations = [
+        ("ordinary", 102),
+        ("persistent", 1),
+        ("map_callback", 1),
+        ("list_callback", 1),
+        ("shadowed_callback", 1),
+        ("empty_mutation", 1),
+        ("take_callback", 1),
+        ("duplicate_callback", 1),
+    ]
+    .map(|(name, expected)| {
+        let function = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("callback export");
+        super::native_object_test_support::NativeObjectInvocation {
+            export_id: function.export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "collection-callback",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
 #[test]
 fn inferred_list_operands_visit_every_element_and_remain_idempotent() {
     let mut expression = CoreExpr::List(vec![

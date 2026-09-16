@@ -142,19 +142,22 @@ fn rewrite_expr(
                 .first()
                 .and_then(|receiver| infer_type(receiver, variables, templates, module))
                 .and_then(|receiver| {
-                    crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(
+                    super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
                         &receiver,
                         function,
                         args.len(),
                     )
                 });
-            if let Some(intrinsic) = intrinsic {
+            if let Some((intrinsic, return_type)) = intrinsic {
                 for argument in args.iter_mut() {
                     rewrite_expr(
                         argument, variables, templates, cache, generated, module, budget,
                     )?;
                 }
                 *expr = primitive_receivers::intrinsic(intrinsic, std::mem::take(args));
+                if let CoreExpr::Intrinsic(call) = expr {
+                    call.return_type = return_type;
+                }
                 return Ok(());
             }
             let function = function.clone();
@@ -318,8 +321,19 @@ fn rewrite_expr(
             generated.push(specialized);
             *function = name;
         }
+        CoreExpr::ConstructorCall { args, .. } => {
+            for arg in args {
+                rewrite_expr(arg, variables, templates, cache, generated, module, budget)?;
+            }
+            if let Some(target_type) = infer_type(expr, variables, templates, module) {
+                let constructor = std::mem::replace(expr, CoreExpr::Atom("Unit".to_string()));
+                *expr = CoreExpr::Cast {
+                    expr: Box::new(constructor),
+                    target_type,
+                };
+            }
+        }
         CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
             for arg in args {
                 rewrite_expr(arg, variables, templates, cache, generated, module, budget)?;
@@ -635,6 +649,23 @@ fn contextual_literal_type(argument: &CoreExpr, expected: &CoreType) -> Option<C
 }
 
 fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) {
+    if let (
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            ..
+        },
+        CoreType::Arrow {
+            params: expected_params,
+            ..
+        },
+    ) = (&mut *argument, expected)
+    {
+        if params.len() == expected_params.len() {
+            *parameter_types = expected_params.iter().cloned().map(Some).collect();
+        }
+        return;
+    }
     if matches!(argument, CoreExpr::Cast { target_type, .. } if target_type == expected) {
         return;
     }

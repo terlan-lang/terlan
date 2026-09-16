@@ -232,6 +232,10 @@ impl NativeModule {
             &mut normalized_cores,
         );
         super::dynamic_return::close_application_returns(&mut normalized_cores);
+        // Late receiver specialization and contextual constructor annotations
+        // introduce fresh Option/collection aliases after generic expansion.
+        // Close those generated types before admitting managed image layouts.
+        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
         super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         for core in &mut normalized_cores {
             // Specialization may clone a typed constructor-chain expression

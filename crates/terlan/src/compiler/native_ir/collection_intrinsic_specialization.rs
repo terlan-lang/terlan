@@ -19,6 +19,7 @@ pub(super) mod receiver_intrinsics;
 use receiver_intrinsics::*;
 mod type_helpers;
 use type_helpers::*;
+pub(super) use type_helpers::{is_std_map_constructor, option_element, positional_map_type};
 
 #[derive(Clone)]
 pub(super) struct FunctionSignature {
@@ -240,21 +241,7 @@ pub(super) fn specialize_expr(
                 .iter_mut()
                 .map(|entry| specialize_expr(entry, variables, functions, module))
                 .collect::<Option<Vec<_>>>()?;
-            let (key, value) = entry_types
-                .first()
-                .and_then(tuple_elements)
-                .map(|(key, value)| (key.clone(), value.clone()))?;
-            if !entry_types.iter().all(|entry| {
-                tuple_elements(entry).is_some_and(|(entry_key, entry_value)| {
-                    entry_key == &key && entry_value == &value
-                })
-            }) {
-                return None;
-            }
-            let map_type = CoreType::Apply {
-                constructor: "Map".to_string(),
-                args: vec![key, value],
-            };
+            let map_type = positional_map_type(&entry_types)?;
             let constructor = std::mem::replace(expr, CoreExpr::Atom("Unit".to_string()));
             *expr = CoreExpr::Cast {
                 expr: Box::new(constructor),
@@ -716,7 +703,7 @@ pub(super) fn specialize_expr(
             Some(call.return_type.clone())
         }
         CoreExpr::Let { bindings, body } => {
-            specialize_collection_new_bindings(bindings, body, functions, module);
+            specialize_collection_new_bindings(bindings, body, variables, functions, module);
             let mut variables = variables.clone();
             let mut binding_index = 0;
             while binding_index < bindings.len() {

@@ -108,7 +108,18 @@ pub(super) fn visit_children(
                 visit(&mut after.body);
             }
         }
-        CoreExpr::Lam { body, .. } => visit(body),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let locals = super::super::generic_specialization::lambda_type_scope(
+                params,
+                parameter_types,
+                variables,
+            );
+            specialize_expr(body, &locals, functions, module);
+        }
         _ => {}
     }
 }

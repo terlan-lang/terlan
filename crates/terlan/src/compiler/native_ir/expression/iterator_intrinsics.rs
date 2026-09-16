@@ -63,14 +63,9 @@ pub(super) fn lower_iterator_intrinsic(
 }
 
 fn option_element(ty: &CoreType) -> Result<&CoreType, String> {
-    match ty {
-        CoreType::Apply { constructor, args }
-            if constructor.rsplit('.').next() == Some("Option") && args.len() == 1 =>
-        {
-            Ok(&args[0])
-        }
-        _ => Err("error[native_ir.iterator_intrinsic]: next result is not concrete".to_string()),
-    }
+    super::super::collection_intrinsic_specialization::option_element(ty).ok_or_else(|| {
+        "error[native_ir.iterator_intrinsic]: next result is not concrete".to_string()
+    })
 }
 
 fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
