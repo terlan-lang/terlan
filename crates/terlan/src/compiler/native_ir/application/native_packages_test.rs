@@ -164,6 +164,25 @@ fn http_request_uses_compiler_managed_tuple_representation() {
 }
 
 #[test]
+fn vm_buffers_keep_managed_storage_without_exempting_package_namesakes() {
+    for name in ["Bytes", "BitString"] {
+        for owner in ["std.vm", "package"] {
+            let module = format!("{owner}.{name}");
+            let syntax =
+                parse_module_as_syntax_output(&format!("module {module}. pub opaque type {name}."))
+                    .expect("parse opaque buffer declaration");
+            let resolved = resolve_syntax_module_output(&syntax).module;
+            let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+            let aliases = native_package_aliases(std::slice::from_ref(&core));
+            let layouts = native_handle_layouts(&core).expect("buffer layouts");
+            let expected_handles = usize::from(owner == "package");
+            assert_eq!(aliases.len(), expected_handles, "{module}");
+            assert_eq!(layouts.len(), expected_handles, "{module}");
+        }
+    }
+}
+
+#[test]
 fn vm_tokens_keep_intrinsic_storage_without_exempting_package_namesakes() {
     let declarations = "\
         pub opaque type Process[T].\n\

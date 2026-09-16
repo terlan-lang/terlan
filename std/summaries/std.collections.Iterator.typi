@@ -62,4 +62,4 @@ pub each(iterator: Iterator[T], cb: (T) -> Unit): Unit.
 /// than mutating the current value.
 
 @pure
-pub next(iterator: Iterator[T]): Option[Step[T]].
+pub next(iterator: Iterator[T]): std.core.Option.Option[Step[T]].

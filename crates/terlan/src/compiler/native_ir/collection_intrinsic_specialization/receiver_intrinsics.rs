@@ -41,6 +41,14 @@ pub(in crate::compiler::native_ir) fn typed_receiver_intrinsic(
         let intrinsic = set_receiver_intrinsic(method, arity)?;
         let result = set_intrinsic_return_type(&intrinsic, receiver);
         (intrinsic, result)
+    } else if is_bytes(receiver) {
+        let intrinsic = bytes_receiver_intrinsic(method, arity)?;
+        let result = bytes_intrinsic_return_type(&intrinsic);
+        (intrinsic, result)
+    } else if is_bitstring(receiver) {
+        let intrinsic = bitstring_receiver_intrinsic(method, arity)?;
+        let result = bitstring_intrinsic_return_type(&intrinsic);
+        (intrinsic, result)
     } else {
         let intrinsic =
             crate::terlan_typeck::core_intrinsic_lowering::core_typed_receiver_intrinsic(

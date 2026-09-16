@@ -20,7 +20,28 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The current correction composes suspending arguments before an escaping callback's
+The current correction preserves qualified identities for selected imports whose
+type and module share a name; regenerated interfaces no longer treat Option/Result
+conformances as wildcard type variables. Trait-dispatch cache keys now include the
+explicit implementation target. A production-loader regression also exposed VM
+Bytes/BitString being rewritten as external native-worker handles. These buffers
+now retain their managed ABI, including through qualified Option payloads; package
+types with the same short names still require native-resource layouts. The shared
+late receiver resolver covers both buffer types. The original Bytes source probe,
+all 72 Binary tests, and eight Range/Option/Result properties pass. The release-scale
+stdlib contract gate now targets the library harness and executes its required test
+instead of selecting zero tests from the CLI wrapper. This is local correction
+evidence, not full-candidate acceptance. Both strict workspace-binary Clippy profiles,
+API/module/headroom, refreshed dependency-impact and documentation checks pass
+without increased budgets. The rebuilt validator remains 12,003,336 bytes. All 539
+NativeIR tests have passing evidence from the 538-test result plus the corrected
+linked fixture's focused rerun; the production-loader regression passes separately.
+Explicit AOT trait dispatch, empty collection
+inference and Random adapter routing remain required failures; no suite is waived.
+Logs use `list-trait-`, `qualified-receiver-` and `qualified-buffer-` in
+`target/quality/release-diagnostics/`. All three roadmap items remain open.
+
+The preceding correction composes suspending arguments before an escaping callback's
 tail call, using the same fast-path predicate as ordinary call lowering. Linked
 execution covers nested calls and a managed list surviving multiple suspensions.
 Bulk Map/Set construction now derives its schema from a generic source callable's

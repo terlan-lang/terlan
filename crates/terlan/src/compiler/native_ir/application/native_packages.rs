@@ -128,12 +128,16 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 /// handle layout before that lowering runs.
 /// Process identities and lifecycle tokens likewise retain the scalar ABI
 /// owned by VM intrinsic lowering, not a native worker's resource layout.
+/// Byte and bit buffers retain their managed-buffer ABI even when their opaque
+/// declarations are loaded alongside an explicitly qualified container type.
 fn is_compiler_owned_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
         "std.template.Template.Html"
             | "std.http.Request.Request"
             | "std.http.Response.Response"
+            | "std.vm.Bytes.Bytes"
+            | "std.vm.BitString.BitString"
             | "std.vm.Process.Process"
             | "std.vm.Process.Entry"
             | "std.vm.Process.Timer"

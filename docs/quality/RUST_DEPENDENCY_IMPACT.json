@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "ebc0b9f726f283ef4ab79769f0253ecf83988b2dd49dad69bb5be7aa9e941211",
+  "compilation_input_sha256": "51bb09506dc11b3ffdbde90e89eb1e19525ea23e5aeae9c81145ab168fcff228",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 34,
@@ -34,14 +34,14 @@
     },
     {
       "domain": "compiler",
-      "reference_sites": 22,
+      "reference_sites": 24,
       "source_domains": [
         "commands"
       ]
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 48,
+      "reference_sites": 49,
       "source_domains": [
         "commands",
         "lsp",
@@ -160,7 +160,7 @@
     },
     {
       "domain": "validation",
-      "reference_sites": 13,
+      "reference_sites": 14,
       "source_domains": [
         "commands"
       ]
@@ -672,12 +672,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 22,
+      "reference_sites": 24,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 46,
+      "reference_sites": 47,
       "to": "formal_pipeline"
     },
     {
@@ -697,7 +697,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 13,
+      "reference_sites": 14,
       "to": "validation"
     },
     {
@@ -744,12 +744,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 128041,
+      "physical_lines": 128081,
       "rust_files": 337
     },
     {
       "name": "compiler",
-      "physical_lines": 170354,
+      "physical_lines": 170439,
       "rust_files": 455
     },
     {
@@ -1200,7 +1200,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 42925,
+      "physical_lines": 42962,
       "rust_files": 178
     },
     {

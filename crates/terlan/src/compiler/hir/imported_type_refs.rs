@@ -135,8 +135,7 @@ fn imported_type_ref_target(
             .chars()
             .next()
             .is_some_and(|first| first.is_ascii_uppercase());
-        (provider_is_module && provider_name != item_name)
-            .then(|| format!("{module_name}.{item_name}"))
+        provider_is_module.then(|| format!("{module_name}.{item_name}"))
     } else {
         Some(format!("{module_name}.{item_name}.{item_name}"))
     }

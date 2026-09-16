@@ -38,7 +38,7 @@ struct TraitBoundLookupKey {
 /// Cache key for a trait method dispatch lookup.
 ///
 /// Inputs:
-/// - Trait name, method name, and concrete call argument types.
+/// - Trait name, method name, explicit implementation target, and call argument types.
 ///
 /// Output:
 /// - Hashable key for trait method call lookup results.
@@ -50,6 +50,7 @@ struct TraitBoundLookupKey {
 pub(crate) struct TraitMethodLookupKey {
     pub(crate) trait_name: String,
     pub(crate) method_name: String,
+    pub(crate) explicit_target: Option<Type>,
     pub(crate) arg_types: Vec<Type>,
 }
 

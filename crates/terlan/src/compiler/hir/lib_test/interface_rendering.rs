@@ -1,5 +1,37 @@
 use super::*;
 
+/// Same-named selected types must remain nominal in exported conformance facts.
+#[test]
+fn selected_default_type_retains_qualified_interface_identity() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module selected_default_type.
+import sample.Box.{Box, Box as Alias}.
+pub trait Mark[T] { mark(value: T): Bool. }.
+pub impl Mark[Box] for Box { mark(value: Box): Bool -> true. }.
+pub echo(value: Alias): Box -> value.
+"#,
+    )
+    .expect("parse selected default type");
+    let interface = syntax_module_output_to_interface(&syntax);
+    assert_trait_conformance(
+        &interface,
+        "Mark[sample.Box.Box]",
+        "sample.Box.Box",
+        TraitConformanceSource::ExplicitImpl,
+        false,
+    );
+    let signature = &interface.functions[&("echo".to_string(), 1)];
+    assert_eq!(signature.return_type, "sample.Box.Box");
+    assert_eq!(signature.params[0].annotation, "sample.Box.Box");
+    let rendered = interface.to_terlan_interface_text();
+    let reparsed = parse_interface_module_as_syntax_output(&rendered).expect("parse summary");
+    assert_eq!(
+        syntax_module_output_to_interface(&reparsed).trait_conformances,
+        interface.trait_conformances
+    );
+}
+
 /// Verifies interface rendering preserves same-name same-arity overloads.
 ///
 /// Inputs:

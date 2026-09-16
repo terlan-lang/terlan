@@ -63,6 +63,7 @@ fn generic_callback_primitive_receivers_keep_type_and_lexical_identity() {
     let syntax = parse_module_as_syntax_output(
         r#"
 module callback_primitive_receivers.
+import std.vm.{Bytes, BitString}.
 apply[T, R](value: T, transform: (T) -> R): R -> transform(value).
 byte_size(value: Int): Int -> value + 100.
 pub direct(value: String): Int -> value.byte_size().
@@ -72,6 +73,8 @@ pub ordinary(value: Int): Int -> byte_size(value).
 pub bool_callback(): String -> apply(true, (value) -> value.to_string()).
 pub float_callback(): String -> apply(1.5, (value) -> value.to_string()).
 pub int_callback(): String -> apply(42, (value) -> value.to_string()).
+pub bytes_callback(): Int -> apply(Bytes.from_list([1, 2]), (value) -> value.length()).
+pub bits_callback(): Int -> apply(BitString.from_int_be(3, 5), (value) -> value.bit_length()).
 "#,
     )
     .expect("parse contextual receiver source");
@@ -91,6 +94,8 @@ pub int_callback(): String -> apply(42, (value) -> value.to_string()).
         ("callback", vec![], 3),
         ("shadowed", vec![17], 3),
         ("ordinary", vec![17], 117),
+        ("bytes_callback", vec![], 2),
+        ("bits_callback", vec![], 5),
     ]
     .map(|(name, arguments, expected)| {
         let export = modules
