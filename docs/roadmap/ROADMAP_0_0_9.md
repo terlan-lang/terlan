@@ -31,9 +31,21 @@ concrete implementation bodies retain canonical trait identities, and existing
 typed overload selection resolves their calls without a runtime dictionary.
 All 489 NativeIR tests and 38 Core-lowering tests pass; the Unit, Int, Float and
 Comparison suites pass 52 tests, including the previously failing Unit trait test.
-Bool and String release suites still fail: Boolean comparison has an unimplemented
-native intrinsic, and String receiver lookup leaves `byte_size` unresolved.
-These are required fixes, not waived tests. The rebuilt quality validator,
+The Boolean suite now passes all 17 tests. Typed primitive receivers retain their
+identity through contextual specialization, including shadowed callback parameters;
+string relational operators reuse checked UTF-8 comparison. Native string equality,
+conversions, Unicode uppercase and scalar reversal are wired through the managed
+ABI. The String suite passes all 46 tests, including two added Unicode/empty-value
+regressions. All 494 NativeIR tests and 27 managed-operation ABI tests pass locally.
+Both canonical Clippy profiles, the rebuilt quality validator, API boundaries,
+module structure, file headroom, refreshed dependency impact and documentation
+checks pass for this correction, without increased budgets. Committed-candidate
+validation is still required; logs use the `primitive-family-`, `string-family-`,
+and `string-transforms-` prefixes. The subsequent table-suite probe passes the
+15 assertion and six lifecycle tests, but TableTest rejects an imported opaque
+Iterator type, while Base64/Md5 callbacks require non-tail suspension lowering.
+These remain required baseline fixes. No required tests are waived.
+For the preceding trait correction, the rebuilt quality validator,
 canonical Clippy profiles, API boundaries, module structure, headroom, dependency
 report and documentation checks pass locally. No candidate-wide success is claimed.
 Evidence uses the `concrete-trait-`, `unit-result-`, `unit-package-consumer-` and `unit-rust-quality-`

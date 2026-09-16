@@ -2,9 +2,17 @@
 
 use super::*;
 
+/// Receiver identity outlives module-call normalization until types specialize.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum RemoteCallPhase {
+    Early,
+    BeforeSpecialization,
+    Final,
+}
+
 pub(super) fn normalize_remote_calls(
     core: &mut CoreModule,
-    preserve_receivers: bool,
+    phase: RemoteCallPhase,
     application_functions: &HashMap<(String, usize), Option<String>>,
 ) {
     let local_functions = core
@@ -15,12 +23,7 @@ pub(super) fn normalize_remote_calls(
     for function in &mut core.functions {
         for clause in &mut function.clauses {
             if let Some(body) = &mut clause.body.core_expr {
-                normalize_remote_expr(
-                    body,
-                    preserve_receivers,
-                    &local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(body, phase, &local_functions, application_functions);
             }
         }
     }
@@ -28,7 +31,7 @@ pub(super) fn normalize_remote_calls(
 
 fn normalize_remote_expr(
     expr: &mut CoreExpr,
-    preserve_receivers: bool,
+    phase: RemoteCallPhase,
     local_functions: &HashSet<(String, usize)>,
     application_functions: &HashMap<(String, usize), Option<String>>,
 ) {
@@ -39,12 +42,7 @@ fn normalize_remote_expr(
             args,
         } => {
             for arg in args.iter_mut() {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
             if module == "std.test.Test" {
                 if let Some(lowered) = test_assertion_expr(function, args) {
@@ -53,7 +51,7 @@ fn normalize_remote_expr(
                 }
             }
             if module == "__receiver__" {
-                if !preserve_receivers {
+                if phase == RemoteCallPhase::Final {
                     let identity = (function.clone(), args.len());
                     let target = if local_functions.contains(&identity) {
                         Some(function.clone())
@@ -69,7 +67,7 @@ fn normalize_remote_expr(
                 }
                 return;
             }
-            if preserve_receivers
+            if phase == RemoteCallPhase::Early
                 && matches!(
                     module.as_str(),
                     "std.collections.List" | "std.collections.Map"
@@ -89,12 +87,7 @@ fn normalize_remote_expr(
         }
         CoreExpr::Call { function, args } => {
             for arg in args.iter_mut() {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
             if let Some(function) = function.strip_prefix("std.test.Test.") {
                 if let Some(lowered) = test_assertion_expr(function, args) {
@@ -104,32 +97,17 @@ fn normalize_remote_expr(
         }
         CoreExpr::ConstructorCall { args, .. } => {
             for arg in args.iter_mut() {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
         }
         CoreExpr::Intrinsic(call) => {
             for arg in &mut call.args {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
             for item in items {
-                normalize_remote_expr(
-                    item,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(item, phase, local_functions, application_functions);
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -137,18 +115,8 @@ fn normalize_remote_expr(
             base: head,
             index: tail,
         } => {
-            normalize_remote_expr(
-                head,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
-            normalize_remote_expr(
-                tail,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(head, phase, local_functions, application_functions);
+            normalize_remote_expr(tail, phase, local_functions, application_functions);
         }
         CoreExpr::ListComprehension {
             expr,
@@ -156,34 +124,24 @@ fn normalize_remote_expr(
             guards,
             ..
         } => {
-            normalize_remote_expr(
-                expr,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(expr, phase, local_functions, application_functions);
             for generator in generators {
                 normalize_remote_expr(
                     &mut generator.source,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
             }
             for guard in guards {
-                normalize_remote_expr(
-                    guard,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(guard, phase, local_functions, application_functions);
             }
         }
         CoreExpr::Map(fields) => {
             for field in fields {
                 normalize_remote_expr(
                     &mut field.value,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
@@ -193,23 +151,18 @@ fn normalize_remote_expr(
             for field in fields {
                 normalize_remote_expr(
                     &mut field.value,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
             }
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            normalize_remote_expr(
-                base,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(base, phase, local_functions, application_functions);
             for field in fields {
                 normalize_remote_expr(
                     &mut field.value,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
@@ -217,27 +170,14 @@ fn normalize_remote_expr(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::Cast { expr: base, .. } => normalize_remote_expr(
-            base,
-            preserve_receivers,
-            local_functions,
-            application_functions,
-        ),
+        | CoreExpr::Cast { expr: base, .. } => {
+            normalize_remote_expr(base, phase, local_functions, application_functions)
+        }
         CoreExpr::ConstructorChain { args, record, .. } => {
             for arg in args.iter_mut() {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
-            normalize_remote_expr(
-                record,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(record, phase, local_functions, application_functions);
         }
         CoreExpr::MutableReceiverCall {
             receiver,
@@ -245,21 +185,11 @@ fn normalize_remote_expr(
             args,
             ..
         } => {
-            normalize_remote_expr(
-                receiver,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(receiver, phase, local_functions, application_functions);
             for arg in args.iter_mut() {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
-            if !preserve_receivers {
+            if phase == RemoteCallPhase::Final {
                 let identity = (method.clone(), args.len().saturating_add(1));
                 let target = if local_functions.contains(&identity) {
                     Some(method.clone())
@@ -279,102 +209,59 @@ fn normalize_remote_expr(
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
-            normalize_remote_expr(
-                callee,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(callee, phase, local_functions, application_functions);
             for arg in args {
-                normalize_remote_expr(
-                    arg,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
         }
         CoreExpr::SqlQuery { parameters, .. } => {
             for parameter in parameters {
-                normalize_remote_expr(
-                    parameter,
-                    preserve_receivers,
-                    local_functions,
-                    application_functions,
-                );
+                normalize_remote_expr(parameter, phase, local_functions, application_functions);
             }
         }
-        CoreExpr::UnaryOp { operand, .. } => normalize_remote_expr(
-            operand,
-            preserve_receivers,
-            local_functions,
-            application_functions,
-        ),
+        CoreExpr::UnaryOp { operand, .. } => {
+            normalize_remote_expr(operand, phase, local_functions, application_functions)
+        }
         CoreExpr::BinaryOp { left, right, .. } => {
-            normalize_remote_expr(
-                left,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
-            normalize_remote_expr(
-                right,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(left, phase, local_functions, application_functions);
+            normalize_remote_expr(right, phase, local_functions, application_functions);
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
                 normalize_remote_expr(
                     &mut binding.value,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
             }
-            normalize_remote_expr(
-                body,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(body, phase, local_functions, application_functions);
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
                 normalize_remote_expr(
                     &mut clause.condition,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
                 normalize_remote_expr(
                     &mut clause.body,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
             }
         }
         CoreExpr::Case { scrutinee, clauses } => {
-            normalize_remote_expr(
-                scrutinee,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(scrutinee, phase, local_functions, application_functions);
             for clause in clauses {
                 if let Some(guard) = &mut clause.guard {
-                    normalize_remote_expr(
-                        guard,
-                        preserve_receivers,
-                        local_functions,
-                        application_functions,
-                    );
+                    normalize_remote_expr(guard, phase, local_functions, application_functions);
                 }
                 normalize_remote_expr(
                     &mut clause.body,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
@@ -386,24 +273,14 @@ fn normalize_remote_expr(
             catch_clauses,
             after_clause,
         } => {
-            normalize_remote_expr(
-                body,
-                preserve_receivers,
-                local_functions,
-                application_functions,
-            );
+            normalize_remote_expr(body, phase, local_functions, application_functions);
             for clause in of_clauses.iter_mut().chain(catch_clauses.iter_mut()) {
                 if let Some(guard) = &mut clause.guard {
-                    normalize_remote_expr(
-                        guard,
-                        preserve_receivers,
-                        local_functions,
-                        application_functions,
-                    );
+                    normalize_remote_expr(guard, phase, local_functions, application_functions);
                 }
                 normalize_remote_expr(
                     &mut clause.body,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
@@ -411,24 +288,21 @@ fn normalize_remote_expr(
             if let Some(after) = after_clause {
                 normalize_remote_expr(
                     &mut after.trigger,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
                 normalize_remote_expr(
                     &mut after.body,
-                    preserve_receivers,
+                    phase,
                     local_functions,
                     application_functions,
                 );
             }
         }
-        CoreExpr::Lam { body, .. } => normalize_remote_expr(
-            body,
-            preserve_receivers,
-            local_functions,
-            application_functions,
-        ),
+        CoreExpr::Lam { body, .. } => {
+            normalize_remote_expr(body, phase, local_functions, application_functions)
+        }
         _ => {}
     }
 }

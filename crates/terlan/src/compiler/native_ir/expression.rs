@@ -33,7 +33,7 @@ mod field_access;
 #[path = "expression/float_intrinsics.rs"]
 mod float_intrinsics;
 #[path = "expression/free_variables.rs"]
-mod free_variable_analysis;
+pub(super) mod free_variable_analysis;
 #[cfg(test)]
 #[path = "expression/free_variables_test.rs"]
 #[cfg(test)]

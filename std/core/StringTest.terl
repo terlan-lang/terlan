@@ -125,6 +125,23 @@ pub lowercase_converts_ascii_text(): Bool ->
 pub uppercase_converts_ascii_text(): Bool ->
     assert_equal("HELLO", "hello".uppercase()).
 
+/**
+ * Uppercase conversion preserves UTF-8 and expands Unicode scalar mappings.
+ */
+@test
+pub uppercase_converts_unicode_text(): Bool ->
+    assert_equal("STRASSE É🙂", "straße é🙂".uppercase()).
+
+/**
+ * Empty strings remain valid across identity, parsing, and transformations.
+ */
+@test
+pub empty_conversion_contract(): Bool ->
+    assert_equal("", "".uppercase())
+        and assert_equal("", "".reverse())
+        and assert_equal("", "".to_string())
+        and assert_equal(Some(""), "".from_string()).
+
 @test
 pub reverse_reorders_text_units(): Bool ->
     assert_equal("olleh", "hello".reverse()).

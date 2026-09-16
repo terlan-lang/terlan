@@ -48,7 +48,7 @@ use native_packages::{
     native_package_aliases, native_transparent_record_layouts,
 };
 use normalization::{normalize_dynamic_callable_aliases, normalize_static_callables};
-use remote_calls::normalize_remote_calls;
+use remote_calls::{normalize_remote_calls, RemoteCallPhase};
 
 #[derive(Clone, Copy)]
 struct Candidate<'a> {
@@ -60,6 +60,17 @@ pub(super) fn normalize_application_remote_calls(
     cores: &mut [CoreModule],
     preserve_receivers: bool,
 ) {
+    normalize_application_calls(
+        cores,
+        if preserve_receivers {
+            RemoteCallPhase::Early
+        } else {
+            RemoteCallPhase::Final
+        },
+    );
+}
+
+fn normalize_application_calls(cores: &mut [CoreModule], phase: RemoteCallPhase) {
     let mut functions = HashMap::<(String, usize), Option<String>>::new();
     for core in cores.iter() {
         for function in &core.functions {
@@ -103,7 +114,7 @@ pub(super) fn normalize_application_remote_calls(
         })
         .collect::<Vec<_>>();
     for (core, visible) in cores.iter_mut().zip(&visible_functions) {
-        normalize_remote_calls(core, preserve_receivers, visible);
+        normalize_remote_calls(core, phase, visible);
     }
 }
 
@@ -158,7 +169,7 @@ impl NativeModule {
             super::template_values::lower_template_values(core)?;
             super::http_values::lower_http_values(core)?;
         }
-        normalize_application_remote_calls(&mut normalized_cores, false);
+        normalize_application_calls(&mut normalized_cores, RemoteCallPhase::BeforeSpecialization);
         // Monomorphization must observe typed constructor patterns before
         // scalar case lowering erases their payload types into managed words.
         super::generic_specialization::specialize_application_generics_with_budget(

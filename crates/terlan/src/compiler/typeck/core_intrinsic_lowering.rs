@@ -20,6 +20,7 @@ use process_intrinsics::{
 };
 pub(crate) use registry::core_primitive_intrinsic;
 use registry::core_runtime_capability;
+pub(crate) use registry::core_typed_receiver_intrinsic;
 use return_types::core_runtime_capability_return_type;
 
 /// Converts a syntax-output call into a compiler-owned intrinsic call when selected.

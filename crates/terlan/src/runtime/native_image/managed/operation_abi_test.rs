@@ -532,6 +532,53 @@ fn string_compare_returns_image_local_ordering_atoms() {
     }
 }
 
+/// Unicode transforms preserve scalar boundaries and enforce the checked ABI.
+#[test]
+fn string_case_and_reverse_operations_validate_unicode_and_inputs() {
+    use super::{
+        encode_string_lowercase_operation, encode_string_reverse_operation,
+        encode_string_uppercase_operation,
+    };
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    for (operation, input, expected) in [
+        (encode_string_lowercase_operation(), "ÉΣ", "éς"),
+        (
+            encode_string_uppercase_operation(),
+            "straße é🙂",
+            "STRASSE É🙂",
+        ),
+        (encode_string_reverse_operation(), "aé🙂\0", "\0🙂éa"),
+        (encode_string_reverse_operation(), "a\u{301}b", "b\u{301}a"),
+        (encode_string_reverse_operation(), "", ""),
+        (encode_string_uppercase_operation(), "", ""),
+    ] {
+        let value = heap.allocate_string(input).expect("input string");
+        let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(value)])
+            .expect("Unicode transform");
+        assert_eq!(
+            heap.read_string(reference(result).cast::<ManagedString>())
+                .expect("output"),
+            expected
+        );
+        assert_eq!(heap.read_string(value).expect("unchanged input"), input);
+        assert!(managed_abi_result_is_reference(&operation));
+        for words in [vec![], vec![word(value), word(value)], vec![0]] {
+            assert!(execute_managed_operation(&mut heap, &layouts, &operation, &words).is_err());
+        }
+        let mut malformed = operation.clone();
+        malformed[7] = 1;
+        assert!(
+            execute_managed_operation(&mut heap, &layouts, &malformed, &[word(value)]).is_err()
+        );
+        malformed = operation;
+        malformed.push(0);
+        assert!(
+            execute_managed_operation(&mut heap, &layouts, &malformed, &[word(value)]).is_err()
+        );
+    }
+}
+
 /// Schema-directed equality compares collection values instead of references.
 #[test]
 fn managed_value_equality_is_structural_and_checked() {
