@@ -49,8 +49,15 @@ fn escaping_callbacks_resume_non_tail_calls_and_direct_yields() {
         r#"
 module closure_resume.
 import std.vm.Process.
+import type std.collections.List.
 park(value: Int): Int -> let _parked = Process.yield_now(); value.
+park_values(value: Int): List[Int] -> let _parked = Process.yield_now(); [value].
+consume(values: List[Int], offset: Int): Int ->
+    let _parked = Process.yield_now();
+    case values { [first] -> first + offset; _ -> 0 }.
 make(seed: Int): ((Int) -> Int) -> (value) -> park(seed + value) + park(2).
+make_nested(seed: Int): ((Int) -> Int) -> (value) -> park(park(seed + value) + 1).
+make_list(seed: Int): ((Int) -> Int) -> (value) -> consume(park_values(seed + value), park(2)).
 make_direct(seed: Int): (() -> Int) -> () -> let _parked = Process.yield_now(); seed + 3.
 choose(flag: Bool, seed: Int): ((Int) -> Int) -> if {
     flag -> ((value) -> park(seed + value) + 1);
@@ -60,6 +67,8 @@ pub composed(): Int -> let callback = make(10); callback(5).
 pub direct(): Int -> let callback = make_direct(20); callback().
 pub left_branch(): Int -> let callback = choose(true, 30); callback(2).
 pub right_branch(): Int -> let callback = choose(false, 40); callback(2).
+pub nested_tail(): Int -> let callback = make_nested(30); callback(4).
+pub list_tail(): Int -> let callback = make_list(30); callback(5).
 "#,
     )
     .expect("parse suspending callback source");
@@ -82,6 +91,8 @@ pub right_branch(): Int -> let callback = choose(false, 40); callback(2).
         ("direct", 23),
         ("left_branch", 33),
         ("right_branch", 43),
+        ("nested_tail", 35),
+        ("list_tail", 37),
     ]
     .map(|(name, expected)| {
         let function = modules
