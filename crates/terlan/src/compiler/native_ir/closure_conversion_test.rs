@@ -257,6 +257,7 @@ fn non_closure_let_bypasses_closure_prefix_validation() {
         bindings: vec![crate::terlan_typeck::CoreLetBinding {
             pattern: CorePattern::Var("value".to_string()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "pause".to_string(),
                 args: Vec::new(),
             },
@@ -377,6 +378,7 @@ fn closure_branch_rejects_a_suspending_condition() {
     let expression = CoreExpr::If {
         clauses: vec![CoreIfClause {
             condition: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "pause".to_string(),
                 args: Vec::new(),
             },
@@ -602,6 +604,7 @@ fn escaping_lambda_tail_calls_one_admitted_suspending_target() {
         parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "pause".to_string(),
             args: Vec::new(),
         }),

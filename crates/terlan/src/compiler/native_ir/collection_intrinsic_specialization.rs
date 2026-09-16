@@ -23,6 +23,7 @@ pub(super) use type_helpers::{is_std_map_constructor, option_element, positional
 
 #[derive(Clone)]
 pub(super) struct FunctionSignature {
+    pub(super) generic_params: Vec<String>,
     pub(super) params: Vec<CoreType>,
     pub(super) result: CoreType,
 }
@@ -65,7 +66,11 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                     .collect::<Option<Vec<_>>>()?;
                 Some((
                     (core.module.clone(), function.name.clone(), function.arity),
-                    FunctionSignature { params, result },
+                    FunctionSignature {
+                        generic_params: super::generic_specialization::generic_parameters(function),
+                        params,
+                        result,
+                    },
                 ))
             })
         })
@@ -76,6 +81,7 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                 function_types.insert(
                     (core.module.clone(), nominal_type_key(&declaration.name), 0),
                     FunctionSignature {
+                        generic_params: Vec::new(),
                         params: Vec::new(),
                         result: body,
                     },
@@ -175,7 +181,9 @@ pub(super) fn specialize_expr(
         CoreExpr::List(items) => {
             let element = specialize_elements(items, variables, functions, module)
                 .unwrap_or(CoreType::Dynamic);
-            Some(CoreType::List(Box::new(element)))
+            let ty = CoreType::List(Box::new(element));
+            preserve_inferred_list_type(expr, &ty, functions, module);
+            Some(ty)
         }
         CoreExpr::ListComprehension {
             expr,
@@ -272,7 +280,7 @@ pub(super) fn specialize_expr(
             });
             Some(element)
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let signature = function_signature(functions, module, function, args.len()).cloned();
             let argument_types = args
                 .iter_mut()
@@ -369,6 +377,7 @@ pub(super) fn specialize_expr(
             module: owner,
             function,
             args,
+            ..
         } => {
             let signature = functions
                 .get(&(owner.clone(), function.clone(), args.len()))
@@ -772,7 +781,12 @@ pub(super) fn specialize_expr(
             result
         }
         CoreExpr::Cast { expr, target_type } => {
-            specialize_expr(expr, variables, functions, module);
+            if let CoreExpr::List(items) = expr.as_mut() {
+                // The enclosing annotation already owns this list's schema.
+                specialize_elements(items, variables, functions, module);
+            } else {
+                specialize_expr(expr, variables, functions, module);
+            }
             Some(target_type.clone())
         }
         CoreExpr::UnaryOp { operand, .. } => specialize_expr(operand, variables, functions, module),

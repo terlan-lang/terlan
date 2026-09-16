@@ -33,6 +33,7 @@ pub(super) fn error_call(function: &str, args: Vec<CoreExpr>) -> Result<CoreExpr
             "error[native_ir.http_error_arity]: HttpError.{function} received {count} arguments"
         )),
         _ => Ok(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: ERROR_MODULE.to_string(),
             function: function.to_string(),
             args,

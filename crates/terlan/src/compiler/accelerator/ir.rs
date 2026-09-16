@@ -5,9 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::compiler::typeck::{
-    CoreExpr, CoreExprSummary, CoreFunction, CoreModule, CorePattern, CoreType,
-};
+use crate::compiler::typeck::{CoreExpr, CoreExprSummary, CoreFunction, CoreModule, CorePattern};
 
 use super::AcceleratorScalarType;
 
@@ -17,6 +15,10 @@ pub use interpreter::{AcceleratorIrInterpreter, AcceleratorIrValue};
 
 #[path = "ir/verify.rs"]
 mod verify;
+
+#[path = "ir/types.rs"]
+mod types;
+use types::{buffer_element_type, lower_core_type, require_integer, require_same_type, scalar};
 
 /// Stable serialized AcceleratorIR schema.
 pub const ACCELERATOR_IR_SCHEMA: &str = "terlan.accelerator-ir.v1";
@@ -703,6 +705,7 @@ fn lower_expr(
             module,
             function,
             args,
+            ..
         } => {
             let operation = format!("{module}.{function}");
             if !selection.math_operations.contains(&operation) {
@@ -914,78 +917,6 @@ fn pattern_value(
         }
     };
     lower_expr(&expr, selection, &mut BTreeMap::new())
-}
-
-/// Maps scalar CoreIR types to the canonical accelerator dtype model.
-fn lower_core_type(ty: &CoreType) -> Result<AcceleratorIrType, AcceleratorIrError> {
-    match ty {
-        CoreType::Int => Ok(scalar(AcceleratorScalarType::I64)),
-        CoreType::Float | CoreType::Number => Ok(scalar(AcceleratorScalarType::F64)),
-        CoreType::Bool => Ok(AcceleratorIrType::Bool),
-        CoreType::Named(name) if name == "Unit" => Ok(AcceleratorIrType::Unit),
-        _ => Err(AcceleratorIrError::UnsupportedType(format!("{ty:?}"))),
-    }
-}
-
-/// Returns one canonical scalar IR type.
-fn scalar(dtype: AcceleratorScalarType) -> AcceleratorIrType {
-    AcceleratorIrType::Scalar { dtype }
-}
-
-/// Returns a buffer element type after validating mutation access.
-fn buffer_element_type(
-    ty: Option<&AcceleratorIrType>,
-    write: bool,
-    name: &str,
-) -> Result<AcceleratorIrType, AcceleratorIrError> {
-    let Some(AcceleratorIrType::Buffer { dtype, access, .. }) = ty else {
-        return Err(AcceleratorIrError::UnsupportedType(name.to_string()));
-    };
-    if write && *access == AcceleratorIrAccess::Read {
-        return Err(AcceleratorIrError::UnsupportedEffect(format!(
-            "write to read-only buffer `{name}`"
-        )));
-    }
-    if !write && *access == AcceleratorIrAccess::Write {
-        return Err(AcceleratorIrError::UnsupportedEffect(format!(
-            "read from write-only buffer `{name}`"
-        )));
-    }
-    Ok(scalar(*dtype))
-}
-
-/// Requires an integer index type.
-fn require_integer(ty: &AcceleratorIrType) -> Result<(), AcceleratorIrError> {
-    if matches!(
-        ty,
-        AcceleratorIrType::Scalar {
-            dtype: AcceleratorScalarType::I8
-                | AcceleratorScalarType::I16
-                | AcceleratorScalarType::I32
-                | AcceleratorScalarType::I64
-                | AcceleratorScalarType::U8
-                | AcceleratorScalarType::U16
-                | AcceleratorScalarType::U32
-                | AcceleratorScalarType::U64
-        }
-    ) {
-        Ok(())
-    } else {
-        Err(AcceleratorIrError::TypeMismatch("buffer index".to_string()))
-    }
-}
-
-/// Requires exact first-subset type equality.
-fn require_same_type(
-    left: &AcceleratorIrType,
-    right: &AcceleratorIrType,
-    context: &str,
-) -> Result<(), AcceleratorIrError> {
-    if left == right {
-        Ok(())
-    } else {
-        Err(AcceleratorIrError::TypeMismatch(context.to_string()))
-    }
 }
 
 #[cfg(test)]

@@ -106,8 +106,12 @@ fn inferred_list_operands_visit_every_element_and_remain_idempotent() {
         infer(&mut expression),
         Some(CoreType::List(Box::new(CoreType::Int)))
     );
-    let CoreExpr::List(items) = &expression else {
-        panic!("list literal changed shape");
+    let CoreExpr::Cast { expr, target_type } = &expression else {
+        panic!("inferred list schema was not retained");
+    };
+    assert_eq!(target_type, &CoreType::List(Box::new(CoreType::Int)));
+    let CoreExpr::List(items) = expr.as_ref() else {
+        panic!("annotated list literal changed shape");
     };
     assert!(matches!(&items[1], CoreExpr::Intrinsic(call)
         if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListGet)));
@@ -271,6 +275,7 @@ fn map_receiver_reached_through_struct_field_becomes_typed_intrinsic() {
         }],
     };
     let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "app.__receiver__".to_string(),
         function: "get".to_string(),
         args: vec![
@@ -309,6 +314,7 @@ fn map_receiver_reached_through_struct_field_becomes_typed_intrinsic() {
 #[test]
 fn typed_string_variable_receiver_becomes_indexed_utf8_intrinsic() {
     let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "app.__receiver__".to_string(),
         function: "utf8_byte_at".to_string(),
         args: vec![CoreExpr::Var("value".to_string()), CoreExpr::Int(1)],
@@ -359,6 +365,7 @@ fn list_pattern_element_receiver_keeps_its_intrinsic_identity() {
                     pattern,
                     guard: None,
                     body: CoreExpr::RemoteCall {
+                        type_args: Vec::new(),
                         module: "app.__receiver__".to_string(),
                         function: "utf8_slice".to_string(),
                         args: vec![
@@ -453,6 +460,7 @@ fn empty_collections_in_struct_binding_inherit_consumer_field_types() {
             },
         }],
         body: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "consume".to_string(),
             args: vec![CoreExpr::Var("index".to_string())],
         }),
@@ -460,6 +468,7 @@ fn empty_collections_in_struct_binding_inherit_consumer_field_types() {
     let functions = HashMap::from([(
         ("app".to_string(), "consume".to_string(), 1),
         super::collection_intrinsic_specialization::FunctionSignature {
+            generic_params: Vec::new(),
             params: vec![index_type.clone()],
             result: index_type.clone(),
         },
@@ -557,6 +566,7 @@ fn empty_list_binding_inherits_a_consumer_parameter_type() {
             CoreLetBinding {
                 pattern: CorePattern::Var("copied".to_string()),
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "copy".to_string(),
                     args: vec![CoreExpr::Var("output".to_string())],
                 },
@@ -569,6 +579,7 @@ fn empty_list_binding_inherits_a_consumer_parameter_type() {
     let functions = HashMap::from([(
         ("app.Test".to_string(), "copy".to_string(), 1),
         super::collection_intrinsic_specialization::FunctionSignature {
+            generic_params: Vec::new(),
             params: vec![list_type.clone()],
             result: list_type.clone(),
         },
@@ -635,6 +646,7 @@ fn set_receiver_call_becomes_a_typed_intrinsic() {
         args: vec![CoreType::String],
     };
     let mut expression = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "size".to_string(),
         args: vec![CoreExpr::Var("values".to_string())],
     };

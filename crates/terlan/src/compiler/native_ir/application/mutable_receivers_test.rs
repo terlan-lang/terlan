@@ -28,6 +28,7 @@ fn distinct_qualified_receiver_names_do_not_match_by_leaf() {
 #[test]
 fn unresolved_receiver_call_uses_checked_receiver_type() {
     let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "__receiver__".to_string(),
         function: "join".to_string(),
         args: vec![

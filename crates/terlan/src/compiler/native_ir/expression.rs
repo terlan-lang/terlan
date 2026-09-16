@@ -369,7 +369,7 @@ pub(super) fn lower_expr_with_constructors(
             function_types,
             constructors,
         ),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let index = functions
                 .get(&(function.clone(), args.len()))
                 .copied()

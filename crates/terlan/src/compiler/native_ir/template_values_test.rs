@@ -41,6 +41,7 @@ fn body(core: &mut CoreModule) -> &mut CoreExpr {
 /// Creates one public template module call.
 fn template_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
     CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "std.template.Template".to_string(),
         function: function.to_string(),
         args,
@@ -92,6 +93,20 @@ fn trusted_and_empty_fragments_lower_to_the_string_representation() {
     assert_eq!(body(&mut core), &CoreExpr::Binary("\"\"".to_string()));
 }
 
+/// Template rewriting must preserve instantiation of unrelated user functions.
+#[test]
+fn template_lowering_preserves_explicit_generic_call_arguments() {
+    let mut core = template_core();
+    let call = CoreExpr::Call {
+        function: "wrap".to_string(),
+        type_args: vec![CoreType::Int, CoreType::String],
+        args: vec![CoreExpr::Int(7)],
+    };
+    *body(&mut core) = call.clone();
+    lower_template_values(&mut core).expect("lower unrelated generic call");
+    assert_eq!(*body(&mut core), call);
+}
+
 #[test]
 fn literal_join_lowers_to_ordered_managed_appends_without_a_list_literal() {
     let mut core = template_core();
@@ -108,10 +123,12 @@ fn literal_join_lowers_to_ordered_managed_appends_without_a_list_literal() {
     assert_eq!(
         body(&mut core),
         &CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: "$terlan.managed.template".to_string(),
             function: "append".to_string(),
             args: vec![
                 CoreExpr::RemoteCall {
+                    type_args: Vec::new(),
                     module: "$terlan.managed.template".to_string(),
                     function: "append".to_string(),
                     args: vec![
@@ -142,7 +159,7 @@ fn list_constructor_join_uses_the_same_literal_fragment_lowering() {
     lower_template_values(&mut core).expect("lower list constructor join");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == "$terlan.managed.template" && function == "append" && args.len() == 2
     ));
 }

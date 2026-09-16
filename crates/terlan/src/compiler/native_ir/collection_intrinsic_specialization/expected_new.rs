@@ -79,18 +79,27 @@ pub(super) fn specialize_expected_collection_new(
                 };
             }
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => {
             if let Some(signature) = function_signature(functions, module, function, args.len()) {
-                contextualize_call_arguments(args, signature, expected, functions, module);
+                contextualize_call_arguments(
+                    args, type_args, signature, expected, functions, module,
+                );
             }
         }
         CoreExpr::RemoteCall {
             module: owner,
             function,
             args,
+            type_args,
         } => {
             if let Some(signature) = function_signature(functions, owner, function, args.len()) {
-                contextualize_call_arguments(args, signature, expected, functions, module);
+                contextualize_call_arguments(
+                    args, type_args, signature, expected, functions, module,
+                );
             }
         }
         CoreExpr::Intrinsic(call) => match call.id {
@@ -136,7 +145,18 @@ pub(super) fn specialize_expected_collection_new(
             ) {
                 *target_type = expected.clone();
             }
-            specialize_expected_collection_new(expr, expected, functions, module)
+            specialize_expected_collection_new(expr, expected, functions, module);
+            // This pass runs before and after instantiation. Reapplying the
+            // same checked context must not grow a stack of identical casts.
+            while matches!(expr.as_ref(), CoreExpr::Cast { target_type: inner, .. } if inner == target_type)
+            {
+                let CoreExpr::Cast { expr: inner, .. } =
+                    std::mem::replace(expr.as_mut(), CoreExpr::Atom("Unit".to_string()))
+                else {
+                    unreachable!("matched cast")
+                };
+                *expr = inner;
+            }
         }
         CoreExpr::Let { body, .. } => {
             specialize_expected_collection_new(body, expected, functions, module)
@@ -161,14 +181,43 @@ mod tests;
 
 fn contextualize_call_arguments(
     args: &mut [CoreExpr],
+    type_args: &mut Vec<CoreType>,
     signature: &FunctionSignature,
     expected: &CoreType,
     functions: &FunctionTypes,
     module: &str,
 ) {
     let mut values = HashMap::new();
-    if !match_context_type(&signature.result, expected, &mut values) {
+    if !match_context_type(
+        &signature.result,
+        expected,
+        &signature.generic_params,
+        &mut values,
+    ) {
         return;
+    }
+    // Return-only parameters have no runtime argument witness. Retain their
+    // checked context in declaration order, including symbolic contexts that
+    // are made concrete when an enclosing generic function is instantiated.
+    let return_only = signature.generic_params.iter().any(|parameter| {
+        !signature.params.iter().any(|ty| {
+            super::super::generic_specialization::contains_generic_parameter(
+                ty,
+                std::slice::from_ref(parameter),
+            )
+        })
+    });
+    // Argument-inferable parameters must be solved from their argument values,
+    // not from still-symbolic parameter names in an enclosing callee signature.
+    if type_args.is_empty() && return_only {
+        if let Some(inferred) = signature
+            .generic_params
+            .iter()
+            .map(|name| values.get(name).cloned())
+            .collect::<Option<Vec<_>>>()
+        {
+            *type_args = inferred;
+        }
     }
     for (argument, parameter) in args.iter_mut().zip(&signature.params) {
         let parameter = substitute_context_type(parameter, &values);
@@ -213,10 +262,11 @@ fn tuple_element_type(element: &crate::terlan_typeck::CoreTupleTypeElem) -> &Cor
 fn match_context_type(
     template: &CoreType,
     concrete: &CoreType,
+    generic_params: &[String],
     values: &mut HashMap<String, CoreType>,
 ) -> bool {
     if let CoreType::Named(name) = template {
-        if name.len() == 1 && name.as_bytes()[0].is_ascii_uppercase() {
+        if generic_params.contains(name) {
             return values.get(name).is_none_or(|prior| prior == concrete) && {
                 values.insert(name.clone(), concrete.clone());
                 true
@@ -224,7 +274,13 @@ fn match_context_type(
         }
     }
     match (template, concrete) {
-        (CoreType::List(left), CoreType::List(right)) => match_context_type(left, right, values),
+        (CoreType::List(left), CoreType::List(right)) => {
+            match_context_type(left, right, generic_params, values)
+        }
+        (CoreType::Union(left), CoreType::Union(right)) if left.len() == right.len() => left
+            .iter()
+            .zip(right)
+            .all(|(left, right)| match_context_type(left, right, generic_params, values)),
         (
             CoreType::Apply {
                 constructor: left,
@@ -240,11 +296,16 @@ fn match_context_type(
             left_args
                 .iter()
                 .zip(right_args)
-                .all(|(left, right)| match_context_type(left, right, values))
+                .all(|(left, right)| match_context_type(left, right, generic_params, values))
         }
         (CoreType::Tuple(left), CoreType::Tuple(right)) if left.len() == right.len() => {
             left.iter().zip(right).all(|(left, right)| {
-                match_context_type(tuple_element_type(left), tuple_element_type(right), values)
+                match_context_type(
+                    tuple_element_type(left),
+                    tuple_element_type(right),
+                    generic_params,
+                    values,
+                )
             })
         }
         _ => template == concrete,
@@ -257,6 +318,12 @@ fn substitute_context_type(ty: &CoreType, values: &HashMap<String, CoreType>) ->
         CoreType::List(element) => {
             CoreType::List(Box::new(substitute_context_type(element, values)))
         }
+        CoreType::Union(variants) => CoreType::Union(
+            variants
+                .iter()
+                .map(|ty| substitute_context_type(ty, values))
+                .collect(),
+        ),
         CoreType::Apply { constructor, args } => CoreType::Apply {
             constructor: constructor.clone(),
             args: args
@@ -387,7 +454,7 @@ fn expected_call_argument_type(
     module: &str,
 ) -> Option<CoreType> {
     let (signature, args) = match expr {
-        CoreExpr::Call { function, args } => (
+        CoreExpr::Call { function, args, .. } => (
             function_signature(functions, module, function, args.len()),
             args,
         ),
@@ -395,6 +462,7 @@ fn expected_call_argument_type(
             module: owner,
             function,
             args,
+            ..
         } => (
             functions.get(&(owner.clone(), function.clone(), args.len())),
             args,

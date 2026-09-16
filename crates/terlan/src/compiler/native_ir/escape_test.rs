@@ -204,6 +204,7 @@ fn constructor_with_unproven_field_effect_is_not_eliminated() {
             value: constructor(
                 "Ok",
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "observe".to_owned(),
                     args: Vec::new(),
                 },
@@ -367,6 +368,7 @@ fn constructor_fields_cannot_hide_suspending_calls_from_admission() {
     let expression = constructor(
         "Ok",
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "pause".to_owned(),
             args: Vec::new(),
         },

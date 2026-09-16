@@ -170,6 +170,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                         operator: "|>".to_string(),
                         left: Box::new(CoreExpr::Int(1)),
                         right: Box::new(CoreExpr::Call {
+                            type_args: Vec::new(),
                             function: "add".to_string(),
                             args: vec![CoreExpr::Int(2)],
                         }),

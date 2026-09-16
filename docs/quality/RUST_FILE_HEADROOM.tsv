@@ -18,14 +18,14 @@ crates/terlan/src/commands/serve/request_dispatch.rs	implementation	975	900	1000
 crates/terlan/src/commands/static_site/mod.rs	implementation	954	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/static_site/routes.rs	implementation	957	900	1000	commands-structure	0.0.9
 crates/terlan/src/compiler/accelerator.rs	implementation	910	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/accelerator/ir.rs	implementation	993	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/accelerator/ir.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/hir/interface_render.rs	implementation	936	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/call_composition.rs	implementation	903	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/constructors.rs	implementation	963	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/expression.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/function_lowering.rs	implementation	911	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/typeck/core_expr_lowering.rs	implementation	988	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/typeck/core_expr_lowering.rs	implementation	901	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/core_ir/termination.rs	implementation	980	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/core_ir/types.rs	implementation	928	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/declarations.rs	implementation	992	900	1000	compiler-structure	0.0.9
@@ -66,5 +66,4 @@ crates/terlan/src/runtime/vm/pure_native/execution.rs	implementation	930	900	100
 crates/terlan/src/runtime/vm/pure_native/execution_shard.rs	implementation	934	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/supervision.rs	implementation	917	900	1000	runtime-structure	0.0.9
 crates/terlan/src/validation/proof_baseline/manifests.rs	implementation	976	900	1000	validation-structure	0.0.9
-crates/terlan/src/validation/target_profile/profile/shape.rs	implementation	909	900	1000	validation-structure	0.0.9
 crates/terlan/src/validation/template_contract/mod.rs	implementation	985	900	1000	validation-structure	0.0.9

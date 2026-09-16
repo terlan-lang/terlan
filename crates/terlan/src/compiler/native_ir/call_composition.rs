@@ -33,7 +33,7 @@ pub(super) fn suspending_call_count(
     suspending: &HashSet<(String, usize)>,
 ) -> usize {
     let own = match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             usize::from(suspending.contains(&(function.clone(), args.len())))
         }
         CoreExpr::FunctionCall { .. } => 1,
@@ -339,7 +339,7 @@ fn suspending_calls_are_composable(
     suspending: &HashSet<(String, usize)>,
     composable: &HashSet<(String, usize)>,
 ) -> bool {
-    if let CoreExpr::Call { function, args } = expr {
+    if let CoreExpr::Call { function, args, .. } = expr {
         let identity = (function.clone(), args.len());
         if suspending.contains(&identity) && !composable.contains(&identity) {
             return false;

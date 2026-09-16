@@ -64,7 +64,12 @@ pub(in super::super) fn rename_free_variables(
                 })
                 .collect(),
         ),
-        CoreExpr::Call { function, args } => CoreExpr::Call {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => CoreExpr::Call {
+            type_args: type_args.clone(),
             function: function.clone(),
             args: rename_many(args, renames, bound),
         },
@@ -72,7 +77,9 @@ pub(in super::super) fn rename_free_variables(
             module,
             function,
             args,
+            type_args,
         } => CoreExpr::RemoteCall {
+            type_args: type_args.clone(),
             module: module.clone(),
             function: function.clone(),
             args: rename_many(args, renames, bound),

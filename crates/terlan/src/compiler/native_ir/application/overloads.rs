@@ -281,7 +281,7 @@ fn rewrite_expr(
                 args: vec![common_type(&item_types)],
             })
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;
             if let Some(candidates) =
@@ -308,6 +308,7 @@ fn rewrite_expr(
             module,
             function,
             args,
+            ..
         } => {
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;

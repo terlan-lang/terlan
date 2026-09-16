@@ -43,7 +43,7 @@ pub(super) fn eager_argument_yield(
 
 pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             identities
                 .iter()
                 .any(|(name, arity)| *name == function && *arity == args.len())
@@ -163,7 +163,7 @@ pub(super) fn expr_calls_suspending(
     suspending: &HashSet<(String, usize)>,
 ) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             suspending.contains(&(function.clone(), args.len()))
                 || args
                     .iter()

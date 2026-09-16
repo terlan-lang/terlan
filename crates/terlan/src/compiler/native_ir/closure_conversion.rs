@@ -669,7 +669,7 @@ fn lower_escaping_lambda_at(
 
 fn closure_tail_call(expr: &CoreExpr) -> Option<(&String, &Vec<CoreExpr>)> {
     match expr {
-        CoreExpr::Call { function, args } => Some((function, args)),
+        CoreExpr::Call { function, args, .. } => Some((function, args)),
         CoreExpr::Cast { expr, .. } => closure_tail_call(expr),
         _ => None,
     }

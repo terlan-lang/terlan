@@ -131,7 +131,7 @@ pub(super) fn infer_native_type_impl(
             matches!(ty, NativeType::ManagedRef(_)).then_some(ty)
         }
         CoreExpr::Var(name) => variables.get(name).copied(),
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(
                 function.as_str(),
                 "std.core.Option.with_default" | "std.core.Result.with_default"
@@ -143,7 +143,7 @@ pub(super) fn infer_native_type_impl(
             // each call site always supplies that specialization.
             infer_native_type_impl(&args[1], variables, functions, constructors)
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).copied()
         }
         CoreExpr::ConstructorCall { .. } => {

@@ -162,7 +162,7 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         CoreExpr::Case { scrutinee, clauses } => core_case_expr_to_js(scrutinee, clauses),
         CoreExpr::If { clauses } => core_if_expr_to_js(clauses),
         CoreExpr::Lam { params, body, .. } => core_lam_expr_to_js(params, body),
-        CoreExpr::Call { function, args } => core_call_expr_to_js(function, args),
+        CoreExpr::Call { function, args, .. } => core_call_expr_to_js(function, args),
         CoreExpr::FunctionCall { callee, args } => core_function_call_expr_to_js(callee, args),
         CoreExpr::Cast { expr, target_type } => {
             cast_can_lower_as_js_identity(expr, target_type).then(|| core_expr_to_js(expr))?
@@ -352,7 +352,7 @@ fn core_function_call_expr_to_js(callee: &CoreExpr, args: &[CoreExpr]) -> Option
 ///   into `(f)(left, extra)`.
 fn core_pipe_forward_expr_to_js(left: &CoreExpr, right: &CoreExpr) -> Option<String> {
     match right {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let mut piped_args = Vec::with_capacity(args.len() + 1);
             piped_args.push(core_expr_to_js(left)?);
             piped_args.extend(

@@ -51,6 +51,7 @@ fn dynamic_return_ignores_unreferenced_unknown_sequence_results() {
             CoreLetBinding {
                 pattern: CorePattern::Var("_script_effect".to_string()),
                 value: CoreExpr::RemoteCall {
+                    type_args: Vec::new(),
                     module: "std.vm.Process".to_string(),
                     function: "fail".to_string(),
                     args: vec![CoreExpr::Int(1)],
@@ -74,6 +75,7 @@ fn dynamic_return_rejects_unknown_shadowed_result() {
         bindings: vec![CoreLetBinding {
             pattern: CorePattern::Var("answer".to_string()),
             value: CoreExpr::RemoteCall {
+                type_args: Vec::new(),
                 module: "unknown.Module".to_string(),
                 function: "value".to_string(),
                 args: Vec::new(),
@@ -149,6 +151,7 @@ fn dynamic_return_resolves_qualified_managed_calls_without_rewriting_body() {
         .as_mut()
         .unwrap();
     *body = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "app.Library.answer".into(),
         args: vec![],
     };
@@ -172,6 +175,7 @@ fn dynamic_return_resolves_qualified_managed_calls_without_rewriting_body() {
     // Also exercise the source-IR entry, including its explicit import policy.
     dynamic_main(&mut cores[0]);
     cores[0].functions[0].clauses[0].body.core_expr = Some(CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "app.Library".into(),
         function: "answer".into(),
         args: vec![],
@@ -199,6 +203,7 @@ fn dynamic_return_does_not_guess_unknown_or_cyclic_call_results() {
             .find(|f| f.name == "main")
             .unwrap();
         main.clauses[0].body.core_expr = Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: name.into(),
             args,
         });
@@ -250,6 +255,7 @@ fn dynamic_return_rejects_incompatible_call_branches() {
             crate::terlan_typeck::CoreIfClause {
                 condition: CoreExpr::Var("true".into()),
                 body: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "answer".into(),
                     args: vec![],
                 },

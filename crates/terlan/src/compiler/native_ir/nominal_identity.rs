@@ -287,9 +287,17 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
                 .for_each(|argument| qualify_expr(argument, scope));
             qualify_expr(record, scope);
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => args
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            type_args.iter_mut().for_each(|ty| qualify_type(ty, scope));
+            args.iter_mut()
+                .for_each(|argument| qualify_expr(argument, scope));
+        }
+        CoreExpr::ConstructorCall { args, .. } => args
             .iter_mut()
             .for_each(|argument| qualify_expr(argument, scope)),
         CoreExpr::MutableReceiverCall { receiver, args, .. } => {

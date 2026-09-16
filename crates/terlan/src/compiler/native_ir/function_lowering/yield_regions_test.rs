@@ -23,6 +23,7 @@ fn unused_prefix_call_executes_without_becoming_a_continuation_capture() {
         prefix: vec![CoreLetBinding {
             pattern: CorePattern::Var("discarded".to_string()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "effect".to_string(),
                 args: Vec::new(),
             },
@@ -138,6 +139,7 @@ fn cast_wrapped_call_argument_transition_becomes_one_ordered_yield_region() {
     let target_type = CoreType::Union(vec![CoreType::Int, CoreType::Atom]);
     let expression = CoreExpr::Cast {
         expr: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "fixture.parse".to_string(),
             args: vec![native_operation(Span::new(31, 47))],
         }),
@@ -150,6 +152,7 @@ fn cast_wrapped_call_argument_transition_becomes_one_ordered_yield_region() {
         region.resume,
         CoreExpr::Cast {
             expr: Box::new(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "fixture.parse".to_string(),
                 args: vec![CoreExpr::Var("$native_transition_result".to_string())],
             }),

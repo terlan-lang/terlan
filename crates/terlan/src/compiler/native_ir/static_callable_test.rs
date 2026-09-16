@@ -111,6 +111,7 @@ fn remote_function_reference_invocation_becomes_direct_call() {
     assert_eq!(
         normalize_static_callables(&source).expect("remote function lowering"),
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "app.Math.double".to_string(),
             args: vec![CoreExpr::Int(21)],
         }

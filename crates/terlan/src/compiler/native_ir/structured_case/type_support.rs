@@ -67,7 +67,7 @@ pub(super) fn core_expr_type(
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
         CoreExpr::Var(name) => types.get(name).cloned(),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).cloned()
         }
         CoreExpr::FunctionCall { callee, args } => {

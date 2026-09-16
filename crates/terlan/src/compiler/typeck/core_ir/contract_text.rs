@@ -5,6 +5,22 @@ use super::{
     CoreTryAfter,
 };
 
+/// Preserves explicit type arguments in fingerprints without changing untyped calls.
+fn call_type_suffix(type_args: &[super::CoreType]) -> String {
+    if type_args.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "[{}]",
+            type_args
+                .iter()
+                .map(super::CoreType::contract_text)
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
 impl CoreExpr {
     /// Renders a typed Core expression as deterministic contract text.
     ///
@@ -170,12 +186,13 @@ impl CoreExpr {
                 function,
                 arity,
             } => format!("RemoteFunRef({module}:{function}/{arity})"),
-            CoreExpr::RemoteCall {
+        CoreExpr::RemoteCall { type_args,
                 module,
                 function,
                 args,
             } => format!(
-                "RemoteCall({module}:{function};{})",
+                "RemoteCall({module}:{function}{};{})",
+                call_type_suffix(type_args),
                 args.iter()
                     .map(CoreExpr::contract_text)
                     .collect::<Vec<_>>()
@@ -198,9 +215,10 @@ impl CoreExpr {
                     None => format!("ConstructorCall({constructor};{args})"),
                 }
             }
-            CoreExpr::Call { function, args } => format!(
-                "Call({};{})",
+            CoreExpr::Call { type_args, function, args } => format!(
+                "Call({}{};{})",
                 function,
+                call_type_suffix(type_args),
                 args.iter()
                     .map(CoreExpr::contract_text)
                     .collect::<Vec<_>>()

@@ -63,9 +63,18 @@ fn substitute_expr_types(
             *target_type = substitute(target_type, parameters, values);
             substitute_expr_types(expr, parameters, values);
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => substitute_many(args, parameters, values),
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                *ty = substitute(ty, parameters, values);
+            }
+            substitute_many(args, parameters, values);
+        }
+        CoreExpr::ConstructorCall { args, .. } => substitute_many(args, parameters, values),
         CoreExpr::MutableReceiverCall { receiver, args, .. }
         | CoreExpr::FunctionCall {
             callee: receiver,

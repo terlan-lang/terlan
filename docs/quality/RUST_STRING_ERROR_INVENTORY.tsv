@@ -227,9 +227,10 @@ crates/terlan/src/compiler/native_ir/expression/memory_intrinsics.rs	3	internal-
 crates/terlan/src/compiler/native_ir/expression/type_mapping.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/expression/value_intrinsics.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/function_lowering.rs	1	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/generic_specialization.rs	3	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/generic_specialization.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/generic_specialization/generic_unification.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/generic_specialization/inference.rs	1	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/generic_specialization/module.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/higher_order_specialization.rs	7	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/http_values.rs	9	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/http_values/body_json.rs	8	internal-helper	compiler-errors	0.0.9

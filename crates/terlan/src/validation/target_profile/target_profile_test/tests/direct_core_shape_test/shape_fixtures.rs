@@ -396,6 +396,7 @@ pub(super) fn target_profile_accepts_documented_core_v0_shape_matrix() {
                                 right: Box::new(CoreExpr::Int(0)),
                             },
                             body: CoreExpr::Call {
+                                type_args: Vec::new(),
                                 function: "identity".to_string(),
                                 args: vec![CoreExpr::ListCons {
                                     head: Box::new(CoreExpr::Int(1)),

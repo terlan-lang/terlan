@@ -241,6 +241,7 @@ pub call_it(): Int ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "identity".to_string(),
             args: vec![CoreExpr::Int(1)],
         })
@@ -771,6 +772,7 @@ pub(super) fn syntax_output_lowering_to_core_records_constructor_call_candidate(
 pub(super) fn syntax_output_lowering_to_core_remote_call_policy_switch_stays_proof_model_required()
 {
     let remote_call = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "Eq".to_string(),
         function: "equal".to_string(),
         args: vec![

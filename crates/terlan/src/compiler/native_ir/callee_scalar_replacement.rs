@@ -136,7 +136,7 @@ fn rewrite_calls(
     call_count: &mut usize,
 ) -> bool {
     match expr {
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if addresses_candidate(function, candidate) && args.len() == candidate.arity =>
         {
             let argument = args[0].clone();
@@ -339,7 +339,7 @@ fn module_uses_callee(module: &CoreModule, candidate: &ProjectionCallee) -> bool
 /// Reports whether an expression contains a direct call or reference to a helper.
 fn expr_uses_callee(expr: &CoreExpr, candidate: &ProjectionCallee) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             (addresses_candidate(function, candidate) && args.len() == candidate.arity)
                 || args.iter().any(|arg| expr_uses_callee(arg, candidate))
         }
@@ -484,7 +484,12 @@ fn substitute_projection_parameter(
             constructor_identity: constructor_identity.clone(),
             args: substitute_projection_args(args, target, replacement, projections)?,
         }),
-        CoreExpr::Call { function, args } => Some(CoreExpr::Call {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => Some(CoreExpr::Call {
+            type_args: type_args.clone(),
             function: function.clone(),
             args: substitute_projection_args(args, target, replacement, projections)?,
         }),

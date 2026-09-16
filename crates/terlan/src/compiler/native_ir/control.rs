@@ -148,7 +148,7 @@ pub(super) fn lower_owned_expr_with_yields(
             },
         )
     };
-    if let CoreExpr::Call { function, args } = expr {
+    if let CoreExpr::Call { function, args, .. } = expr {
         let identity = (function.clone(), args.len());
         if suspending_functions.contains(&identity)
             && completion.is_none()

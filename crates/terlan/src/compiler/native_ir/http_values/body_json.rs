@@ -36,6 +36,7 @@ pub(super) fn body_json_operation_type(expr: &CoreExpr) -> Option<NativeType> {
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return None;
@@ -158,7 +159,7 @@ pub(super) fn lower_body_json_case(
 ) -> Result<Option<CoreExpr>, String> {
     if !matches!(
         scrutinee,
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == MANAGED_HTTP_MODULE && function == "body_json" && args.len() == 1
     ) {
         return Ok(None);
@@ -313,6 +314,7 @@ fn bind_payload(binding: Option<&PayloadBinding>, body: CoreExpr) -> CoreExpr {
 /// Creates one compiler-private managed HTTP call.
 fn managed_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
     CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_HTTP_MODULE.to_string(),
         function: function.to_string(),
         args,

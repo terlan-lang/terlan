@@ -434,6 +434,7 @@ fn validate_core_expr(
             module,
             function,
             args,
+            ..
         } => {
             for policy in std_runtime_operation_policies(std_call_heads) {
                 validate_std_runtime_operation_support(

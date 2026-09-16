@@ -3,6 +3,20 @@
 use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
+#[test]
+fn repeated_collection_context_is_idempotent() {
+    let list_type = CoreType::List(Box::new(CoreType::Int));
+    let mut expression = CoreExpr::List(vec![CoreExpr::Int(7)]);
+    let functions = HashMap::new();
+    specialize_expected_collection_new(&mut expression, &list_type, &functions, "fixture");
+    let once = expression.clone();
+    for _ in 0..4 {
+        specialize_expected_collection_new(&mut expression, &list_type, &functions, "fixture");
+        super::super::specialize_expr(&mut expression, &HashMap::new(), &functions, "fixture");
+        assert_eq!(expression, once);
+    }
+}
+
 /// A custom push method cannot overwrite a nominal constructor's checked type.
 #[test]
 fn push_inference_only_contextualizes_empty_list_initializers() {

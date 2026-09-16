@@ -101,10 +101,11 @@ pub(in crate::compiler::native_ir) fn condition_yield_region_at_depth(
         return Some(region);
     }
     match expr {
-        CoreExpr::Call { function, args } if !args.is_empty() => {
+        CoreExpr::Call { function, args, .. } if !args.is_empty() => {
             let (region, args) = eager_argument_yield(args, depth)?;
             Some(YieldRegion {
                 resume: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: function.clone(),
                     args,
                 },

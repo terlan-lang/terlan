@@ -84,6 +84,25 @@ logs use `atom-text-`. Both strict Clippy profiles and the rebuilt
 API/module/headroom/dependency checks pass with unchanged budgets. The other
 required property failures and all three roadmap items remain open.
 No source assertions are removed and no failed suite is waived.
+The next local correction retains explicit call type arguments through CoreIR
+and generic specialization, including return-only parameters. Contextual
+return-only arguments retain their enclosing generic substitution; argument-owned
+inference is not replaced by unresolved callee type variables. Specialization
+keys include resolved type arguments. Inferred lists retain their checked runtime
+schemas, and repeated contextual passes no longer accumulate identical casts.
+All 506 NativeIR tests pass, including linked regressions for explicit and
+contextual generic returns and lists of function results. Option's two and
+Result's four property tests now pass. The affected frontend, accelerator,
+formal-pipeline, JS/Rust backend and target-profile checks pass 1,132 tests;
+the pre-existing release-scale std-contract test retains its separate execution
+owner. Both strict Clippy profiles and the rebuilt API/module/headroom/dependency
+gates pass without increased budgets. The string-error inventory only relocates
+one existing helper; its total stays 3,082. Near-limit source files decrease from
+69 to 68. Option/Result API and List/Map property regressions pass 38 more tests.
+The remaining eight property modules still fail and are not waived.
+Evidence uses `generic-context-final-`, `generic-schema-frontend-backends` and
+`generic-closeout-` under `target/quality/release-diagnostics/`. These results are
+scoped local evidence, not candidate-wide acceptance. All roadmap items stay open.
 Both strict Clippy profiles and the rebuilt
 API/module/headroom/dependency gates pass for the loader correction, with unchanged
 budgets; evidence uses `embedded-dependencies-`. No required tests are waived.

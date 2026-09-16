@@ -173,6 +173,7 @@ fn rewrite_structural_impl_expr(
             module,
             function,
             args,
+            ..
         } => {
             for arg in args.iter_mut() {
                 replaced |= rewrite_structural_impl_expr(arg, dispatch);
@@ -181,6 +182,7 @@ fn rewrite_structural_impl_expr(
             if let Some(local_function) = dispatch.get(&key) {
                 let args = std::mem::take(args);
                 *expr = CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: local_function.clone(),
                     args,
                 };

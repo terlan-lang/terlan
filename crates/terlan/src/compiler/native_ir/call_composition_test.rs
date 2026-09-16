@@ -26,6 +26,7 @@ fn suspend(continuation_id: u64) -> NativeExpr {
 fn tuple_contained_suspending_calls_participate_in_admission() {
     let identity = ("app.yielding".to_string(), 1);
     let body = CoreExpr::Tuple(vec![CoreExpr::Call {
+        type_args: Vec::new(),
         function: identity.0.clone(),
         args: vec![CoreExpr::Int(1)],
     }]);
@@ -51,6 +52,7 @@ fn process_transition_arguments_compose_before_the_transition() {
         args: vec![
             CoreExpr::Binary("artifact.txt".to_string()),
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: identity.0.clone(),
                 args: vec![CoreExpr::Var("rows".to_string())],
             },
@@ -86,6 +88,7 @@ fn generated_model_continuation_width_has_real_world_headroom() {
     let body = CoreExpr::Tuple(
         (0..1_826)
             .map(|_| CoreExpr::Call {
+                type_args: Vec::new(),
                 function: identity.0.clone(),
                 args: Vec::new(),
             })
@@ -111,6 +114,7 @@ fn pathological_continuation_width_remains_bounded() {
     let body = CoreExpr::Tuple(
         (0..16_385)
             .map(|_| CoreExpr::Call {
+                type_args: Vec::new(),
                 function: identity.0.clone(),
                 args: Vec::new(),
             })
@@ -150,8 +154,10 @@ fn nested_composable_suspending_call_arguments_are_sequenced() {
     let inner = ("package.inner".to_string(), 1);
     let outer = ("package.outer".to_string(), 1);
     let body = CoreExpr::Call {
+        type_args: Vec::new(),
         function: outer.0.clone(),
         args: vec![CoreExpr::Call {
+            type_args: Vec::new(),
             function: inner.0.clone(),
             args: vec![CoreExpr::Int(7)],
         }],
@@ -174,6 +180,7 @@ fn nested_composable_suspending_call_arguments_are_sequenced() {
     assert_eq!(
         region.resume,
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: outer.0,
             args: vec![CoreExpr::Var("$native_call_result".to_string())],
         }
@@ -191,6 +198,7 @@ fn record_constructor_fields_sequence_composable_calls_left_to_right() {
                 key: "left".to_string(),
                 required: true,
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: first.0.clone(),
                     args: Vec::new(),
                 },
@@ -199,6 +207,7 @@ fn record_constructor_fields_sequence_composable_calls_left_to_right() {
                 key: "right".to_string(),
                 required: true,
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: second.0.clone(),
                     args: Vec::new(),
                 },
@@ -236,6 +245,7 @@ fn later_record_field_call_captures_earlier_field_once() {
                 key: "left".to_string(),
                 required: true,
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "package.pure".to_string(),
                     args: Vec::new(),
                 },
@@ -244,6 +254,7 @@ fn later_record_field_call_captures_earlier_field_once() {
                 key: "right".to_string(),
                 required: true,
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: identity.0.clone(),
                     args: Vec::new(),
                 },
@@ -263,7 +274,7 @@ fn later_record_field_call_captures_earlier_field_once() {
     assert_eq!(region.prefix.len(), 1);
     assert!(matches!(
         &region.prefix[0].value,
-        CoreExpr::Call { function, args } if function == "package.pure" && args.is_empty()
+        CoreExpr::Call { function, args, .. } if function == "package.pure" && args.is_empty()
     ));
     assert!(matches!(
         region.resume,
@@ -279,11 +290,13 @@ fn later_record_field_call_captures_earlier_field_once() {
 fn compiler_remote_operation_sequences_a_nested_suspending_call() {
     let nested = ("app.recurse".to_string(), 1);
     let body = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "$terlan.managed.comprehension".to_string(),
         function: "prepend".to_string(),
         args: vec![
             CoreExpr::Int(7),
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: nested.0.clone(),
                 args: vec![CoreExpr::Int(1)],
             },
@@ -306,7 +319,7 @@ fn compiler_remote_operation_sequences_a_nested_suspending_call() {
     assert_eq!(region.prefix.len(), 1);
     assert!(matches!(
         region.resume,
-        CoreExpr::RemoteCall { ref module, ref function, ref args }
+        CoreExpr::RemoteCall { ref module, ref function, ref args, .. }
             if module == "$terlan.managed.comprehension"
                 && function == "prepend"
                 && args.len() == 2
@@ -716,6 +729,7 @@ fn rebasing_reaches_managed_operation_arguments() {
 #[test]
 fn gated_call_factors_the_surrounding_suffix_into_one_join() {
     let call = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "package.native_check".to_string(),
         args: Vec::new(),
     };
