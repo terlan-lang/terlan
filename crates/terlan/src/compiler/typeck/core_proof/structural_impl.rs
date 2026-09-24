@@ -157,6 +157,8 @@ fn rewrite_structural_impl_summary(
     if let Some(expr) = &mut summary.core_expr {
         if rewrite_structural_impl_expr(expr, dispatch) {
             summary.remote = None;
+            summary.checked_preservation_evidence =
+                super::core_expr_checked_preservation_evidence(expr);
         }
     }
     for child in &mut summary.children {

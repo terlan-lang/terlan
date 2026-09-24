@@ -157,6 +157,13 @@ pub(super) fn lower_body_json_case(
     scrutinee: &CoreExpr,
     clauses: &[CoreCaseClause],
 ) -> Result<Option<CoreExpr>, String> {
+    // Alias expansion annotates the source Result with its transparent union.
+    // This immediate match consumes the private HTTP representation directly;
+    // it must not cast that value into the public native-handle representation.
+    let scrutinee = match scrutinee {
+        CoreExpr::Cast { expr, target_type } if is_public_json_result(target_type) => expr,
+        _ => scrutinee,
+    };
     if !matches!(
         scrutinee,
         CoreExpr::RemoteCall { module, function, args, .. }
@@ -181,6 +188,31 @@ pub(super) fn lower_body_json_case(
         body: Box::new(CoreExpr::If { clauses: branches }),
     }))
 }
+
+/// Recognizes only the declared result of the standard request JSON decoder.
+fn is_public_json_result(ty: &CoreType) -> bool {
+    use crate::terlan_typeck::CoreTupleTypeElem;
+
+    let CoreType::Union(variants) = ty else {
+        return false;
+    };
+    let expected = [
+        ("ok", "value", "std.data.Json.Json"),
+        ("error", "reason", "std.core.Error.Error"),
+    ];
+    variants.len() == expected.len()
+        && variants.iter().zip(expected).all(|(variant, (tag, field, identity))| {
+            let CoreType::Tuple(elements) = variant else { return false };
+            matches!(elements.as_slice(), [
+                CoreTupleTypeElem::Type(CoreType::AtomLiteral(actual_tag)),
+                CoreTupleTypeElem::Field { name, ty: CoreType::Struct { name: actual_identity, .. } },
+            ] if actual_tag == tag && name == field && actual_identity == identity)
+        })
+}
+
+#[cfg(test)]
+#[path = "body_json_test.rs"]
+mod tests;
 
 /// Lowers one ordered result clause into a boolean branch and payload binding.
 fn lower_result_clause(clause: CoreCaseClause) -> Result<CoreIfClause, String> {
