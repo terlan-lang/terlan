@@ -869,3 +869,7 @@ fn native_status_error(status: i32) -> String {
 #[path = "pure_native_transport_test.rs"]
 #[cfg(test)]
 mod pure_native_transport_test;
+
+#[cfg(test)]
+#[path = "pure_native/effect_execution_test.rs"]
+mod effect_execution_test;

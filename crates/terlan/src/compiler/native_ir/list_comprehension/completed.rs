@@ -246,74 +246,6 @@ fn replace_completed_effect_value(expr: &mut CoreExpr, replacement: CoreExpr) {
     }
 }
 
-/// Converts completed `Effect.succeed(Bool)` filters back to pure decisions.
-pub(crate) fn lower_completed_effect_guards(guards: &mut [CoreExpr]) -> NativeIrResult<()> {
-    for guard in guards {
-        let completed = match guard {
-            CoreExpr::Call { function, args, .. }
-                if function == EFFECT_SUCCEED && args.len() == 1 =>
-            {
-                Some(args[0].clone())
-            }
-            CoreExpr::RemoteCall {
-                module,
-                function,
-                args,
-                ..
-            } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
-                Some(args[0].clone())
-            }
-            CoreExpr::Call { function, .. } if function == "std.core.Effect.fail" => {
-                return Err(
-                    "error[vm_comprehension_guard_failed]: a failed deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" && function == "fail" => {
-                return Err(
-                    "error[vm_comprehension_guard_failed]: a failed deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::Call { function, .. } if function == "std.core.Effect.cancelled" => {
-                return Err(
-                    "error[vm_comprehension_guard_cancelled]: a cancelled deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" && function == "cancelled" => {
-                return Err(
-                    "error[vm_comprehension_guard_cancelled]: a cancelled deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::Call { function, .. } if function.starts_with("std.core.Effect.") => {
-                return Err(format!(
-                    "error[native_ir.comprehension_effect]: deferred effect guard `{function}` requires scheduler continuation lowering"
-                )
-                .into());
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" => {
-                return Err(format!(
-                    "error[native_ir.comprehension_effect]: deferred effect guard `{module}.{function}` requires scheduler continuation lowering"
-                )
-                .into());
-            }
-            _ => None,
-        };
-        if let Some(completed) = completed {
-            *guard = completed;
-        }
-    }
-    Ok(())
-}
-
 /// Erases the zero-work `GuardResult.Completed` wrapper before a native branch.
 pub(crate) fn lower_completed_guard_results(guards: &mut [CoreExpr]) {
     for guard in guards {
@@ -340,7 +272,7 @@ fn completed_guard_decision(expr: &CoreExpr) -> Option<CoreExpr> {
 }
 
 fn guard_result_call(function: &str, args: &[CoreExpr]) -> Option<CoreExpr> {
-    let function = function.rsplit('.').next()?;
+    let function = function.strip_prefix("std.core.GuardResult.")?;
     match (function, args) {
         ("from_bool" | "value", [decision]) => completed_guard_decision(decision)
             .or_else(|| (function == "from_bool").then(|| decision.clone())),

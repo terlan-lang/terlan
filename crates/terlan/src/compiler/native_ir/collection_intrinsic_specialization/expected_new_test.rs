@@ -4,6 +4,103 @@ use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
 #[test]
+fn empty_map_schema_closes_only_unconstrained_standard_slots() {
+    for owner in ["Map", "std.collections.Map.Map", "package.Map"] {
+        for value in [CoreType::Dynamic, CoreType::Int] {
+            let declared = CoreType::Apply {
+                constructor: owner.into(),
+                args: vec![CoreType::String, value.clone()],
+            };
+            let mut call = CoreIntrinsicCall {
+                id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew),
+                args: vec![],
+                return_type: declared.clone(),
+                effects: CoreEffectSet { effects: vec![] },
+                span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
+            };
+            super::super::normalize_empty_collection_constructor(&mut call);
+            let expected = if owner != "package.Map" && value == CoreType::Dynamic {
+                CoreType::Apply {
+                    constructor: owner.into(),
+                    args: vec![CoreType::String, CoreType::Never],
+                }
+            } else {
+                declared
+            };
+            assert_eq!(call.return_type, expected);
+            super::super::normalize_empty_collection_constructor(&mut call);
+            assert_eq!(
+                call.return_type, expected,
+                "normalization must be idempotent"
+            );
+        }
+    }
+}
+
+#[test]
+fn collection_call_results_instantiate_declared_generics() {
+    let parameter = CoreType::Named("Element".into());
+    let signature = FunctionSignature {
+        generic_params: vec!["Element".into()],
+        params: vec![parameter.clone(), parameter.clone()],
+        result: CoreType::List(Box::new(parameter)),
+    };
+    let instantiate = |arguments: &[Option<CoreType>]| {
+        super::super::instantiated_result_type(&signature, &[], arguments)
+    };
+    assert_eq!(
+        instantiate(&[Some(CoreType::Int), Some(CoreType::Int)]),
+        Some(CoreType::List(Box::new(CoreType::Int)))
+    );
+    assert_eq!(instantiate(&[None, None]), Some(signature.result.clone()));
+    assert_eq!(
+        instantiate(&[Some(CoreType::Int), Some(CoreType::String)]),
+        None
+    );
+    assert_eq!(
+        super::super::instantiated_result_type(
+            &FunctionSignature {
+                params: vec![],
+                ..signature
+            },
+            &[CoreType::String],
+            &[],
+        ),
+        Some(CoreType::List(Box::new(CoreType::String)))
+    );
+}
+
+#[test]
+fn local_and_remote_calls_share_instantiated_collection_results() {
+    let generic = CoreType::Named("Item".into());
+    let signature = FunctionSignature {
+        generic_params: vec!["Item".into()],
+        params: vec![generic.clone()],
+        result: CoreType::List(Box::new(generic)),
+    };
+    let functions = HashMap::from([(("fixture".into(), "singleton".into(), 1), signature)]);
+    let mut calls = [
+        CoreExpr::Call {
+            function: "singleton".into(),
+            args: vec![CoreExpr::Int(42)],
+            type_args: vec![],
+        },
+        CoreExpr::RemoteCall {
+            module: "fixture".into(),
+            function: "singleton".into(),
+            args: vec![CoreExpr::Int(42)],
+            type_args: vec![],
+        },
+    ];
+    for call in &mut calls {
+        assert_eq!(
+            super::super::specialize_expr(call, &HashMap::new(), &functions, "fixture"),
+            Some(CoreType::List(Box::new(CoreType::Int)))
+        );
+    }
+}
+
+#[test]
 fn explicit_tuple_context_types_empty_payloads_idempotently() {
     use crate::terlan_typeck::CoreTupleTypeElem;
     let list = CoreType::List(Box::new(CoreType::String));
@@ -77,7 +174,7 @@ fn repeated_collection_context_is_idempotent() {
 
 /// A custom push method cannot overwrite a nominal constructor's checked type.
 #[test]
-fn push_inference_only_contextualizes_empty_list_initializers() {
+fn push_specialization_refines_empty_values_without_retyping_initializers() {
     let custom = CoreExpr::Cast {
         expr: Box::new(CoreExpr::ConstructorCall {
             type_args: Vec::new(),
@@ -115,9 +212,31 @@ fn push_inference_only_contextualizes_empty_list_initializers() {
         &HashMap::new(),
         "fixture",
     );
-    assert!(
-        matches!(&bindings[0].value, CoreExpr::Cast { target_type: CoreType::List(element), .. } if **element == CoreType::Int)
+    assert_eq!(bindings[0].value, CoreExpr::List(vec![]));
+    let mut mutation = body;
+    assert_eq!(
+        super::super::specialize_expr(
+            &mut mutation,
+            &HashMap::from([(
+                "state".to_string(),
+                CoreType::List(Box::new(CoreType::Never))
+            )]),
+            &HashMap::new(),
+            "fixture",
+        ),
+        Some(CoreType::List(Box::new(CoreType::Int)))
     );
+    let CoreExpr::Intrinsic(call) = mutation else {
+        panic!("expected concrete persistent push");
+    };
+    assert_eq!(
+        call.id,
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
+    );
+    assert!(
+        matches!(&call.args[0], CoreExpr::Cast { target_type: CoreType::List(element), .. } if **element == CoreType::Int)
+    );
+    assert_eq!(call.args[1], CoreExpr::Int(1));
 }
 
 /// Qualified and local nominal constructors contextualize their collection fields.

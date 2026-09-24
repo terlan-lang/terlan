@@ -291,6 +291,18 @@ fn add_constructor_edges(
 ) {
     trait_methods::add_edges(cores, edges);
     for core in cores {
+        // Receiver syntax is not a bare function import. Preserve declared
+        // candidates until checked receiver types select an exact callable.
+        for function in core
+            .functions
+            .iter()
+            .filter(|function| function.receiver_method)
+        {
+            edges
+                .entry(("__receiver__".into(), function.name.clone(), function.arity))
+                .or_default()
+                .insert((core.module.clone(), function.name.clone(), function.arity));
+        }
         for constructor in &core.constructors {
             let Some(implementation) = &constructor.implementation else {
                 continue;
@@ -426,6 +438,17 @@ fn collect_calls(
         CoreExpr::Call { function, args, .. } => {
             if let Some(target) = resolve_call(caller, function, args.len(), providers) {
                 calls.insert(target);
+            } else {
+                // Keep each explicitly selected provider until typed overload
+                // resolution chooses the callable. Ambiguity is not dead code.
+                for import in &caller.selected_function_imports {
+                    if import.local_name == *function {
+                        let target = (import.module.clone(), import.function.clone(), args.len());
+                        if providers.contains(&target) {
+                            calls.insert(target);
+                        }
+                    }
+                }
             }
             collect_many(args, caller, providers, calls);
         }
@@ -436,7 +459,13 @@ fn collect_calls(
             ..
         } => {
             let target = if module == "__receiver__" {
-                resolve_call(caller, function, args.len(), providers)
+                // Receiver syntax also supports explicitly imported free
+                // functions. Keep that scoped edge until normalization;
+                // declared receiver candidates alone do not include builders.
+                if let Some(provider) = resolve_call(caller, function, args.len(), providers) {
+                    calls.insert(provider);
+                }
+                Some((module.clone(), function.clone(), args.len()))
             } else {
                 resolve_remote(module, function, args.len(), providers)
             };
@@ -542,12 +571,7 @@ fn collect_calls(
             args,
             ..
         } => {
-            // Mutable receiver syntax still names an ordinary function. Keep
-            // that provider reachable until the type-directed receiver pass
-            // rewrites the call to its exact qualified target.
-            if let Some(target) = resolve_call(caller, method, args.len() + 1, providers) {
-                calls.insert(target);
-            }
+            calls.insert(("__receiver__".into(), method.clone(), args.len() + 1));
             collect_calls(receiver, caller, providers, calls);
             collect_many(args, caller, providers, calls);
         }

@@ -297,7 +297,10 @@ pub(super) fn infer_native_type_impl(
             }
             let source = infer_native_type_impl(expr, variables, functions, constructors)?;
             let target = native_type(Some(target_type), &target_type.contract_text())?;
-            (source == target).then_some(target)
+            let erased = crate::runtime::native_image::managed::managed_erased_value_semantic_id()
+                .ok()
+                .map(NativeType::ManagedRef);
+            (source == target || Some(source) == erased || Some(target) == erased).then_some(target)
         }
         _ => None,
     }

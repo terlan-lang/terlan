@@ -133,6 +133,7 @@ impl NativeModule {
                 &duplicate[0].module,
             ));
         }
+        overloads::resolve_selected_imports(&mut normalized_cores)?;
         super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
         // Expose constructor-chain bases before resolving executable bodies or
         // expanding transparent aliases, just as for direct constructor calls.
@@ -148,14 +149,16 @@ impl NativeModule {
         super::open_std_pruning::prune_compile_time_router_builders(&mut normalized_cores);
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        // Resolve source receiver names before overloads rename their declarations.
+        // Otherwise a method sharing a name with a free function loses its target.
+        normalize_application_remote_calls(&mut normalized_cores, true);
+        mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
         overloads::resolve_typed_overloads(&mut normalized_cores)?;
         let native_aliases = native_package_aliases(&normalized_cores);
         for core in &mut normalized_cores {
             lower_compiler_native_declarations(core)?;
         }
         canonicalize_native_package_types(&mut normalized_cores, &native_aliases)?;
-        normalize_application_remote_calls(&mut normalized_cores, true);
-        mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
         normalized_cores.iter_mut().for_each(
             super::collection_intrinsic_specialization::annotate_function_result_constructors,
         );
@@ -170,6 +173,10 @@ impl NativeModule {
             super::template_values::lower_template_values(core)?;
             super::http_values::lower_http_values(core)?;
         }
+        // Generated deferred collectors introduce checked Effect applications.
+        // Resolve those new witnesses before result-only generic inference;
+        // otherwise a no-argument producer can be specialized with an open T.
+        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
         normalize_application_calls(&mut normalized_cores, RemoteCallPhase::BeforeSpecialization);
         // Monomorphization must observe typed constructor patterns before
         // scalar case lowering erases their payload types into managed words.
@@ -182,6 +189,12 @@ impl NativeModule {
         // the idempotent resolver again so every generated mailbox boundary
         // and continuation uses the same concrete structural identity.
         transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        // Concrete producer signatures are available only after specialization;
+        // refresh dependent run results before choosing an Effect runner ABI.
+        super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
+            &mut normalized_cores,
+        );
+        super::effect_execution::lower(&mut normalized_cores, &mut specialization_budget)?;
         for core in &mut normalized_cores {
             super::higher_order_specialization::specialize_higher_order_helpers_with_budget(
                 core,
@@ -195,6 +208,11 @@ impl NativeModule {
         super::nested_closure_lifting::lift_nested_closure_arguments(&mut normalized_cores)?;
         list_builder_recursion::normalize_recursive_list_builders(&mut normalized_cores);
         record_forwarders::inline_record_forwarders(&mut normalized_cores);
+        // Specialization can introduce concrete trait adapters that are not
+        // reachable from any executable root. Remove those before requiring
+        // physical layouts for their signatures; reachable unsupported values
+        // must still fail normal native admission.
+        super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         structural_patterns::scalar_replace(&mut normalized_cores)?;
         for core in &mut normalized_cores {
             super::case_lowering::lower_scalar_cases(core)?;
@@ -208,6 +226,7 @@ impl NativeModule {
         super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
             &mut normalized_cores,
         );
+        super::task_values::lower(&mut normalized_cores)?;
         // Generic specialization can make collection receiver types concrete
         // only after the first target-owned normalization pass. Re-run the
         // idempotent HTTP/template lowerings so newly specialized Map/Option

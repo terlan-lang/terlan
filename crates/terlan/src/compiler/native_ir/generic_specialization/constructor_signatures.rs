@@ -17,6 +17,7 @@ pub(super) fn collect(cores: &[CoreModule], templates: &mut CallableTemplates) {
                 .push(CoreFunction {
                     name,
                     source: None,
+                    receiver_method: false,
                     trait_method: None,
                     arity: fields.len(),
                     public: false,

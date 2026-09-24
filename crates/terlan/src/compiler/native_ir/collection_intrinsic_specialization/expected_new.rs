@@ -64,6 +64,20 @@ pub(super) fn specialize_expected_collection_new(
     let resolved = nominal_type(functions, module, expected);
     let expected = resolved.as_deref().unwrap_or(expected);
     match expr {
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::TaskDone)
+            ) =>
+        {
+            if let (Some(payload), [argument]) = (
+                super::super::task_values::element(expected),
+                call.args.as_mut_slice(),
+            ) {
+                specialize_expected_collection_new(argument, payload, functions, module);
+                annotate_expected_structural_constructors(argument, payload);
+            }
+        }
         CoreExpr::Binary(_) if matches!(expected, CoreType::Binary | CoreType::String) => {
             let literal = std::mem::replace(expr, CoreExpr::Binary("\"\"".to_string()));
             *expr = CoreExpr::Cast {
@@ -146,6 +160,7 @@ pub(super) fn specialize_expected_collection_new(
                 contextualize_call_arguments(
                     args, type_args, signature, expected, functions, module,
                 );
+                super::super::empty_list_values::coerce(expr, &signature.result, expected);
             }
         }
         CoreExpr::RemoteCall {
@@ -158,6 +173,7 @@ pub(super) fn specialize_expected_collection_new(
                 contextualize_call_arguments(
                     args, type_args, signature, expected, functions, module,
                 );
+                super::super::empty_list_values::coerce(expr, &signature.result, expected);
             }
         }
         CoreExpr::Intrinsic(call) => match call.id {
@@ -463,37 +479,63 @@ pub(super) fn specialize_collection_new_bindings(
 fn expected_call_argument_type(
     name: &str,
     expr: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
 ) -> Option<CoreType> {
-    let (signature, args) = match expr {
-        CoreExpr::Call { function, args, .. } => (
+    let (signature, args, type_args) = match expr {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => (
             function_signature(functions, module, function, args.len()),
             args,
+            type_args,
         ),
         CoreExpr::RemoteCall {
             module: owner,
             function,
             args,
-            ..
+            type_args,
         } => (
             functions.get(&(owner.clone(), function.clone(), args.len())),
             args,
+            type_args,
         ),
         CoreExpr::Cast { expr, .. } => {
-            return expected_call_argument_type(name, expr, functions, module);
+            return expected_call_argument_type(name, expr, variables, functions, module);
         }
         _ => return None,
     };
     let signature = signature?;
+    let argument_types = args
+        .iter()
+        .map(|argument| {
+            // The fresh binding has no witness yet. Other arguments and explicit
+            // type arguments determine its instantiated parameter using the same
+            // unifier as call-result inference.
+            if matches!(argument, CoreExpr::Var(argument) if argument == name) {
+                None
+            } else {
+                specialize_expr(&mut argument.clone(), variables, functions, module)
+            }
+        })
+        .collect::<Vec<_>>();
     args.iter()
         .zip(&signature.params)
         .find_map(|(argument, expected)| {
-            (matches!(argument, CoreExpr::Var(argument) if argument == name)
-                && !super::super::generic_specialization::contains_generic_parameter(
-                    expected,
-                    &signature.generic_params,
-                ))
-            .then(|| expected.clone())
+            if !matches!(argument, CoreExpr::Var(argument) if argument == name) {
+                return None;
+            }
+            let mut parameter_signature = signature.clone();
+            parameter_signature.result = expected.clone();
+            let expected =
+                instantiated_result_type(&parameter_signature, type_args, &argument_types)?;
+            (!super::super::generic_specialization::contains_generic_parameter(
+                &expected,
+                &signature.generic_params,
+            ))
+            .then_some(expected)
         })
 }

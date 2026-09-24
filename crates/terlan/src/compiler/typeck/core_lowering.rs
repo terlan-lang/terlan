@@ -36,6 +36,7 @@ pub fn lower_resolved_module_to_core(resolved: &ResolvedModule) -> CoreModule {
             syntax_contract_fingerprint: None,
         },
         imports,
+        selected_function_imports: Vec::new(),
         exports,
         types,
         functions,
@@ -79,6 +80,19 @@ pub fn lower_syntax_module_output_to_core(
     constructor_functions::materialize(&mut prepared_module, &mut core.constructors);
     let mut import_maps =
         super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    core.selected_function_imports = import_maps
+        .function_imports
+        .iter()
+        .flat_map(|(local_name, targets)| {
+            targets.iter().map(|target| CoreSelectedFunctionImport {
+                local_name: local_name.clone(),
+                module: target.module.clone(),
+                function: target.function.clone(),
+            })
+        })
+        .collect();
+    core.selected_function_imports.sort();
+    core.selected_function_imports.dedup();
     for (name, arity) in resolved.interface.functions.keys() {
         if super::core_intrinsic_lowering::core_primitive_intrinsic(&resolved.name, name, *arity)
             .is_some()
@@ -553,6 +567,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 is_macro: false,
                 ..
             } => Some(CoreFunction {
+                receiver_method: false,
                 trait_method: None,
                 source: None,
                 name: name.clone(),
@@ -578,6 +593,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 core_params.push(core_syntax_param(receiver));
                 core_params.extend(params.iter().map(core_syntax_param));
                 Some(CoreFunction {
+                    receiver_method: true,
                     trait_method: None,
                     source: None,
                     name: name.clone(),

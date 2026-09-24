@@ -14,6 +14,35 @@ use super::atom_inventory::{
     RUNTIME_URI_ERROR_ATOMS,
 };
 
+#[test]
+fn random_error_atoms_follow_the_provider_or_import() {
+    use super::atom_inventory::RUNTIME_RANDOM_ERROR_ATOMS;
+    for (source, expected) in [
+        ("module unrelated. pub value(): Int -> 1.", false),
+        ("module std.random.Random. pub value(): Int -> 1.", true),
+        (
+            "module consumer. import std.random.Random. pub value(): Int -> 1.",
+            true,
+        ),
+    ] {
+        let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source).unwrap();
+        let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+        let resolved =
+            crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+                .module;
+        let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+        let atoms = application_atom_identities(&[&core]);
+        for code in RUNTIME_RANDOM_ERROR_ATOMS {
+            assert_eq!(
+                atoms.iter().any(|atom| atom == code),
+                expected,
+                "{source}: {code}"
+            );
+        }
+    }
+    assert_eq!(RUNTIME_RANDOM_ERROR_ATOMS.len(), 5);
+}
+
 /// Decoder errors are admitted only when the image includes the Base64 contract.
 #[test]
 fn base64_error_atoms_follow_the_provider_or_import() {

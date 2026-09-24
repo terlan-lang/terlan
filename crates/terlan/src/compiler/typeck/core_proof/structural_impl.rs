@@ -99,6 +99,7 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
             })
             .collect();
         functions.push(CoreFunction {
+            receiver_method: false,
             trait_method: None,
             source: None,
             name: function_name.clone(),

@@ -187,7 +187,17 @@ fn conflicting_call_diagnostic(
     cores: &[CoreModule],
 ) -> Option<String> {
     let providers = call_providers(name, arity, caller, cores);
-    (providers.len() > 1)
+    // A single module may own several typed overloads. Their identities are
+    // resolved by overload normalization, and exact duplicates remain subject
+    // to final application admission. Only different source modules are an
+    // import ambiguity at this early stage.
+    providers
+        .first()
+        .is_some_and(|first| {
+            providers
+                .iter()
+                .any(|provider| provider.module != first.module)
+        })
         .then(|| conflicting_call_diagnostic_from_providers(name, arity, caller, &providers))
 }
 
@@ -225,10 +235,16 @@ fn call_providers<'a>(
     caller: &'a CoreModule,
     cores: &'a [CoreModule],
 ) -> Vec<Provider<'a>> {
+    // Specialization qualifies captured local calls so they keep their source
+    // identity. A qualified same-module call retains local visibility.
+    let local_name = name
+        .strip_prefix(caller.module.as_str())
+        .and_then(|suffix| suffix.strip_prefix('.'))
+        .unwrap_or(name);
     if let Some(local) = caller
         .functions
         .iter()
-        .find(|function| function.name == name && function.arity == arity)
+        .find(|function| function.name == local_name && function.arity == arity)
     {
         return vec![Provider {
             module: &caller.module,

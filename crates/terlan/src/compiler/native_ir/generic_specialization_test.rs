@@ -118,6 +118,42 @@ pub bits_callback(): Int -> apply(BitString.from_int_be(3, 5), (value) -> value.
     );
 }
 
+/// Generic clones retain executable same-module helpers after qualification.
+#[test]
+fn generic_specialization_can_call_private_local_helpers() {
+    let syntax = parse_module_as_syntax_output(
+        "module generic_local_calls.\n\
+         offset(): Int -> 7.\n\
+         choose[T](value: T): Int -> offset() + 1.\n\
+         pub run(): Int -> choose(true).\n",
+    )
+    .expect("parse generic local call");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).expect("lower qualified local call");
+    let object = super::emit_native_application_object("generic-local-calls", &modules)
+        .expect("emit qualified local call");
+    let export = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "run")
+        .expect("run export");
+    use super::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    assert_managed_native_object_invocations(
+        "generic-local-calls",
+        &modules,
+        &object,
+        &[NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(8),
+        }],
+    );
+}
+
 #[test]
 fn private_generic_helper_is_replaced_by_concrete_native_specialization() {
     let syntax = parse_module_as_syntax_output(

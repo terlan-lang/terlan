@@ -121,6 +121,9 @@ pub(super) fn evaluate_script_result(value: ReplValue) -> Option<String> {
 
 pub(super) fn print_usage() {
     println!("terlan-vm run <file.tvm> [--entry <function>] [--test|--test-eval|--script-eval]");
+    println!(
+        "              [--storage NAME[@IDENTITY]=/absolute/private/durable-directory] [-- script-arguments]"
+    );
     println!("terlan-vm load <file.tvm>");
     println!("terlan-vm package-image-metadata <file.tvm> --entry <function> [--package-path <relative.tvm>]");
     println!("terlan-vm validate-package <archive-or-install-root>");

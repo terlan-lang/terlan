@@ -43,20 +43,16 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
     let mut pending = Vec::new();
     for core in cores.iter_mut() {
         for function in &mut core.functions {
-            let initializer = core
-                .constructors
-                .iter()
-                .find(|constructor| {
-                    constructor
-                        .implementation
-                        .as_ref()
-                        .is_some_and(|implementation| implementation.function == function.name)
-                        && core.types.iter().any(|ty| {
-                            ty.name == constructor.name
-                                && matches!(ty.core_body, Some(CoreType::Struct { .. }))
-                        })
-                })
-                .map(|constructor| constructor.name.as_str());
+            let initializer = core.constructors.iter().find(|constructor| {
+                constructor
+                    .implementation
+                    .as_ref()
+                    .is_some_and(|implementation| implementation.function == function.name)
+                    && core.types.iter().any(|ty| {
+                        ty.name == constructor.name
+                            && matches!(ty.core_body, Some(CoreType::Struct { .. }))
+                    })
+            });
             let mut result = Ok(());
             for clause in &mut function.clauses {
                 let expressions = clause
@@ -69,9 +65,9 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
                         if result.is_err() {
                             return;
                         }
-                        if matches!(expr, CoreExpr::ConstructorCall { constructor, constructor_identity, .. }
-                            if initializer == Some(constructor.as_str()) && constructor_identity.as_deref().is_none_or(|identity| identity == constructor || identity == format!("{}.{}", core.module, constructor)))
-                        {
+                        if initializer.is_some_and(|initializer| {
+                            retain_initializer_type(expr, initializer, &core.module)
+                        }) {
                             return;
                         }
                         result = rewrite(
@@ -92,6 +88,45 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
         cores[provider].functions.push(function);
     }
     Ok(())
+}
+
+/// An internal struct initializer has the enclosing constructor's nominal
+/// application, not a second anonymous structural layout with the same fields.
+fn retain_initializer_type(
+    expr: &mut CoreExpr,
+    initializer: &CoreConstructorDecl,
+    module: &str,
+) -> bool {
+    let (inner, annotation) = match expr {
+        CoreExpr::Cast { expr, target_type } => (expr.as_mut(), Some(target_type)),
+        expr => (expr, None),
+    };
+    let CoreExpr::ConstructorCall {
+        constructor,
+        constructor_identity,
+        type_args,
+        ..
+    } = inner
+    else {
+        return false;
+    };
+    let qualified = format!("{module}.{}", initializer.name);
+    let identity = constructor_identity.as_deref().unwrap_or(constructor);
+    if identity != initializer.name && identity != qualified {
+        return false;
+    }
+    if let Some(CoreType::Apply { args, .. }) = &initializer.core_return_type {
+        if type_args.is_empty() {
+            type_args.clone_from(args);
+        }
+        if let Some(annotation) = annotation {
+            *annotation = CoreType::Apply {
+                constructor: qualified,
+                args: type_args.clone(),
+            };
+        }
+    }
+    true
 }
 
 fn rewrite(

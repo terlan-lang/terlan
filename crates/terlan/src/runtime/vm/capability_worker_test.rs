@@ -1,9 +1,13 @@
 use std::io::{Cursor, Write};
+use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use super::*;
+#[cfg(target_os = "linux")]
+#[path = "capability_worker/storage_process_test.rs"]
+mod storage_process_test;
 use crate::runtime::vm::process::{VmProcessSource, VmProcessState};
 use crate::runtime::vm::scheduler::VmSchedulerConfig;
 use crate::runtime::vm::{
@@ -698,6 +702,7 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
         &PathBuf::from(executable),
         &capabilities,
         sandbox_dir.path(),
+        None,
     )
     .expect("sandbox command");
     let program = sandbox_command.get_program().to_os_string();

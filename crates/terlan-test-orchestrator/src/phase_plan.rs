@@ -19,6 +19,11 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
     if !coverage_owns_terlc {
         phases.insert(0, terlan_library_phase());
     }
+    #[cfg(target_os = "linux")]
+    {
+        phases.push(capability_storage_phase());
+        phases.push(public_storage_phase());
+    }
     phases
 }
 
@@ -159,6 +164,29 @@ fn capability_event_pump_phase() -> TestPhase {
             ("TERLAN_NATIVE_WORKER", native_worker_path()),
             ("TERLAN_TEST_AOT_CAPABILITY_PUMP", "1".to_string()),
             ("TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX", "1".to_string()),
+        ],
+    )
+}
+
+/// Runs durable storage through the real sandboxed worker, never a model executor.
+#[cfg(target_os = "linux")]
+fn capability_storage_phase() -> TestPhase {
+    ignored_native_phase(
+        "capability worker durable storage",
+        "runtime::vm::capability_worker::capability_worker_test::storage_process_test::capability_storage_worker_survives_restart_with_durable_checkpoint",
+        vec![("TERLAN_TEST_CAPABILITY_WORKER", native_worker_path())],
+    )
+}
+
+/// Proves the public source path across complete VM shutdown, using the shared build.
+#[cfg(target_os = "linux")]
+fn public_storage_phase() -> TestPhase {
+    ignored_native_phase(
+        "public durable storage AOT restart",
+        "vm::main_test::storage_lifecycle_test::public_storage_aot_survives_a_complete_vm_restart",
+        vec![
+            ("TERLAN_TEST_COMPILER", crate::prebuilt_binary_path("terlc")),
+            ("TERLAN_TEST_VM", crate::prebuilt_binary_path("terlan-vm")),
         ],
     )
 }

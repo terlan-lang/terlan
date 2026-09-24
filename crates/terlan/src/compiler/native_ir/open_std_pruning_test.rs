@@ -24,6 +24,36 @@ fn unqualified_call_resolves_only_through_the_callers_imports() {
     );
 }
 
+/// Free-function receiver syntax retains only an explicitly visible provider.
+#[test]
+fn receiver_builder_reachability_preserves_import_scope() {
+    let mut cores = [
+        "module app.Main. import std.builder.Visible. \
+         pub main(): Int -> let value = 41; value.bump().",
+        "module std.builder.Visible. pub bump(value: Int): Int -> value + 1.",
+        "module std.builder.Unrelated. pub bump(value: Int): Int -> value + 100.",
+    ]
+    .map(|source| {
+        let syntax = parse_module_as_syntax_output(source).expect("parse receiver graph");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        lower_syntax_module_output_to_core(&syntax, &resolved)
+    });
+    for imported in [true, false] {
+        if !imported {
+            cores[0].imports.clear();
+        }
+        let mut rooted = cores.clone();
+        prune_application_to_function_roots(&mut rooted, &[function("app.Main", "main", 0)])
+            .expect("prune imported builder closure");
+        assert_eq!(rooted[1].functions.len(), usize::from(imported));
+        assert!(rooted[2].functions.is_empty());
+        let mut open = cores.clone();
+        prune_unreachable_open_std_functions(&mut open);
+        assert_eq!(open[1].functions.len(), usize::from(imported));
+        assert!(open[2].functions.is_empty());
+    }
+}
+
 #[test]
 fn unqualified_call_resolves_through_a_symbol_import() {
     let providers = vec![

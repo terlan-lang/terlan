@@ -76,6 +76,11 @@ impl ManagedLayoutRegistry {
         })
     }
 
+    /// Borrows the finite compiler-declared atom vocabulary of this image.
+    pub(crate) fn atom_identities(&self) -> impl ExactSizeIterator<Item = &str> {
+        self.atoms.identities()
+    }
+
     /// Resolves public atom text into its compact image-local index.
     pub(crate) fn atom_index(&self, identity: &str) -> Result<AtomIndex, ManagedMemoryError> {
         self.atoms.index(identity)

@@ -5,6 +5,7 @@ use super::super::{ActorHeap, ManagedMemoryError, ManagedString, TvmRef};
 mod matching;
 
 #[cfg(test)]
+#[path = "string_pattern/string_pattern_test.rs"]
 mod tests;
 
 const MAGIC: &[u8; 4] = b"TVPS";

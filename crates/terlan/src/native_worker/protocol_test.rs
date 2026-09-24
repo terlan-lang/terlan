@@ -377,7 +377,7 @@ fn worker_delivers_cooperative_cancellation_during_adapter_execution() {
     let mut output = Vec::new();
 
     run_with_executor(
-        test_config(&["--credit-limit", "1"]),
+        test_config(&["--credit-limit", "1", "--allow", "postgres"]),
         Cursor::new(input),
         &mut output,
         executor,
@@ -422,7 +422,7 @@ fn worker_protocol_failure_cancels_active_adapter_before_returning() {
     }
 
     let error = run_with_executor(
-        test_config(&["--credit-limit", "1"]),
+        test_config(&["--credit-limit", "1", "--allow", "postgres"]),
         Cursor::new(input),
         Vec::new(),
         PollingExecutor {
@@ -521,6 +521,59 @@ fn test_config(args: &[&str]) -> CapabilityWorkerConfig {
     .map(OsString::from)
     .collect::<Vec<_>>();
     CapabilityWorkerConfig::parse(&args).expect("sandboxed worker config")
+}
+
+/// Storage RPC requires both explicit capability and a fixed durable binding.
+#[test]
+fn worker_requires_explicit_storage_binding_and_authority() {
+    for (args, expected) in [
+        (vec![], "native_boundary.capability_denied"),
+        (
+            vec!["--allow", "storage"],
+            "capability_worker.storage_denied",
+        ),
+    ] {
+        let output = run_frames(args, concat!(
+            "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
+            "\"capability\":\"storage\",\"operation\":\"runtime.storage.sequence\",\"arguments\":[]}\n",
+            "{\"type\":\"shutdown\",\"version\":3}\n"
+        ));
+        assert_eq!(first_reply(&output)["outcome"]["code"], expected);
+    }
+    let base = [
+        "--execution-profile",
+        "crash-isolated",
+        "--sandbox-profile",
+        LINUX_BWRAP_PROFILE,
+    ];
+    for suffix in [
+        vec!["--storage-database", "/host/arbitrary.sqlite"],
+        vec!["--storage-database", "/storage/checkpoints.sqlite"],
+        vec![
+            "--storage-database",
+            "/storage/checkpoints.sqlite",
+            "--allow",
+            "storage",
+        ],
+        vec![
+            "--storage-database",
+            "/storage/checkpoints.sqlite",
+            "--allow",
+            "storage",
+            "--allow",
+            "filesystem",
+            "--worker-class",
+            "blocking",
+        ],
+    ] {
+        let args = base
+            .iter()
+            .copied()
+            .chain(suffix)
+            .map(OsString::from)
+            .collect::<Vec<_>>();
+        assert!(CapabilityWorkerConfig::parse(&args).is_err());
+    }
 }
 
 /// Parses the first response frame as JSON.

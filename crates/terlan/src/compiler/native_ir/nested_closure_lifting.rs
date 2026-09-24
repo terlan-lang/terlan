@@ -226,12 +226,38 @@ fn rewrite(
         }
         CoreExpr::Let { bindings, body } => {
             let mut variables = variables.clone();
+            // Calls name their callee separately; a variable occurrence means
+            // a callable may be stored or passed onward. Conservatively retain
+            // an owned closure for those uses, while immediate calls can still
+            // use static beta reduction. This scan does not mutate the tree.
+            let mut value_uses = std::collections::HashSet::new();
+            let mut aliases = Vec::new();
+            for binding in bindings.iter_mut() {
+                if let (CorePattern::Var(name), CoreExpr::Var(source)) =
+                    (&binding.pattern, &binding.value)
+                {
+                    aliases.push((name.clone(), source.clone()));
+                } else {
+                    stored_callable_uses(&mut binding.value, &mut value_uses);
+                }
+            }
+            let terminal_alias = matches!((bindings.last(), body.as_ref()),
+                (Some(binding), CoreExpr::Var(name)) if matches!(&binding.pattern, CorePattern::Var(bound) if bound == name));
+            if !terminal_alias {
+                stored_callable_uses(body, &mut value_uses);
+            }
+            for (name, source) in aliases.into_iter().rev() {
+                if value_uses.contains(&name) {
+                    value_uses.insert(source);
+                }
+            }
             for binding in bindings {
                 let binding_type = infer(&binding.value, &variables, signatures, module);
-                // A syntactically known lambda remains eligible for static
-                // beta reduction (or the existing terminal escape path).
-                // Only a selected/computed value needs an owned factory here.
-                let expected_binding = if matches!(binding.value, CoreExpr::Lam { .. }) {
+                // A lambda used only as a callee stays eligible for static
+                // beta reduction; stored or passed values need an owned factory.
+                let expected_binding = if matches!(binding.value, CoreExpr::Lam { .. })
+                    && matches!(&binding.pattern, CorePattern::Var(name) if !value_uses.contains(name))
+                {
                     None
                 } else {
                     binding_type.as_ref()
@@ -244,12 +270,15 @@ fn rewrite(
                     generated,
                     ordinal,
                 )?;
-                if let CorePattern::Var(name) = &binding.pattern {
-                    if let Some(ty) = binding_type
-                        .or_else(|| infer(&binding.value, &variables, signatures, module))
-                    {
-                        variables.insert(name.clone(), ty);
-                    }
+                let ty =
+                    binding_type.or_else(|| infer(&binding.value, &variables, signatures, module));
+                for name in
+                    super::expression::free_variable_analysis::pattern_bound_names(&binding.pattern)
+                {
+                    variables.remove(&name);
+                }
+                if let Some(ty) = ty {
+                    bind_pattern_variables(&binding.pattern, &ty, &mut variables);
                 }
             }
             rewrite(body, expected, &variables, environment, generated, ordinal)?;
@@ -477,42 +506,29 @@ fn named_function_reference(expr: &CoreExpr, variables: &HashMap<String, CoreTyp
     }
 }
 
+/// Records value uses while leaving direct calls eligible for static lowering.
+fn stored_callable_uses(expr: &mut CoreExpr, names: &mut std::collections::HashSet<String>) {
+    match expr {
+        CoreExpr::Var(name) => {
+            names.insert(name.clone());
+        }
+        CoreExpr::FunctionCall { callee, args } if matches!(callee.as_ref(), CoreExpr::Var(_)) => {
+            for arg in args {
+                stored_callable_uses(arg, names);
+            }
+        }
+        _ => crate::terlan_typeck::visit_core_expr_children_mut(expr, &mut |child| {
+            stored_callable_uses(child, names);
+        }),
+    }
+}
+
 fn bind_pattern_variables(
     pattern: &CorePattern,
     ty: &CoreType,
     variables: &mut HashMap<String, CoreType>,
 ) {
-    match pattern {
-        CorePattern::Var(name) => {
-            variables.insert(name.clone(), ty.clone());
-        }
-        CorePattern::Alias { alias, pattern } => {
-            variables.insert(alias.clone(), ty.clone());
-            bind_pattern_variables(pattern, ty, variables);
-        }
-        CorePattern::Tuple(patterns) => {
-            let CoreType::Tuple(elements) = ty else {
-                return;
-            };
-            for (pattern, element) in patterns.iter().zip(elements) {
-                let element = match element {
-                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
-                };
-                bind_pattern_variables(pattern, element, variables);
-            }
-        }
-        CorePattern::Map(patterns) => {
-            let CoreType::Map(fields) = ty else {
-                return;
-            };
-            for pattern in patterns {
-                if let Some(field) = fields.iter().find(|field| field.key == pattern.key) {
-                    bind_pattern_variables(&pattern.value, &field.value, variables);
-                }
-            }
-        }
-        _ => {}
-    }
+    super::generic_specialization::bind_pattern_types(pattern, ty, variables);
 }
 
 fn closure_factory(
@@ -529,6 +545,7 @@ fn closure_factory(
     factory.generic_params.clear();
     factory.native_operation = None;
     factory.trait_method = None;
+    factory.receiver_method = false;
     factory.params = captures
         .iter()
         .map(|name| {

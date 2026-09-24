@@ -2271,9 +2271,11 @@ tvm-aot-capability-worker-check: tvm-aot-stale-epoch-check | terlan-native-worke
 	$(RUST_TEST) -p terlan --lib sandbox
 	$(RUST_TEST) -p terlan --lib capability_wire
 	$(RUST_TEST) -p terlan --lib protocol::protocol_test
+	$(RUST_TEST) -p terlan --lib native_worker::protocol::storage::tests
 	$(RUST_TEST) -p terlan --lib capability_worker
 	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_process_transport_runs_full_cycle -- --ignored --exact
 	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_sandbox_closes_inherited_descriptor -- --ignored --exact
+	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::storage_process_test::capability_storage_worker_survives_restart_with_durable_checkpoint -- --ignored --exact
 	@rg -q '#!\[deny\(unsafe_code\)\]' crates/terlan/src/native_worker/main.rs
 	@rg -q 'NativeBoundaryWorker::new' crates/terlan/src/native_worker/protocol/execution.rs
 	@rg -q 'call_for_process_with_policy_and_cancellation' crates/terlan/src/native_worker/protocol/execution.rs

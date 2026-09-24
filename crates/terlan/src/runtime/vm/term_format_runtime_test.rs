@@ -231,3 +231,36 @@ fn push_text(bytes: &mut Vec<u8>, value: &str) {
     );
     bytes.extend(value.as_bytes());
 }
+
+#[test]
+fn tetf_encoder_and_decoder_share_the_nesting_limit() {
+    let mut value = ReplValue::Int(1);
+    for _ in 1..super::MAX_NESTING_DEPTH {
+        value = ReplValue::List(vec![value]);
+    }
+    let bytes = encode_tetf(&value, &[]).expect("depth boundary");
+    assert_eq!(decode_tetf(&bytes, &[]).unwrap(), value);
+    value = ReplValue::List(vec![value]);
+    assert!(encode_tetf(&value, &[]).unwrap_err().contains("tetf_depth"));
+}
+
+#[test]
+fn tetf_rejects_actor_local_handles_on_both_wire_boundaries() {
+    let handle = ReplValue::Record {
+        name: "Profile".into(),
+        fields: vec![("$native_id".into(), ReplValue::Int(1))],
+    };
+    assert!(encode_tetf(&ReplValue::List(vec![handle]), &[])
+        .unwrap_err()
+        .contains("tetf_unsupported"));
+    let mut bytes = MAGIC.to_vec();
+    bytes.extend([VERSION, PROFILE_RUNTIME_TERM, TAG_RECORD]);
+    push_text(&mut bytes, "Profile");
+    bytes.extend(1_u32.to_be_bytes());
+    push_text(&mut bytes, "$native_id");
+    bytes.push(TAG_INT);
+    bytes.extend(1_i64.to_be_bytes());
+    assert!(decode_tetf(&bytes, &[])
+        .unwrap_err()
+        .contains("tetf_unsupported"));
+}

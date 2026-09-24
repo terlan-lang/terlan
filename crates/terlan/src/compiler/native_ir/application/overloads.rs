@@ -1,11 +1,14 @@
 //! Typed overload identity normalization before NativeIR admission.
 
+use super::super::NativeIrResult;
 use super::super::QualifiedFunctionIdentity as OverloadKey;
 use super::*;
 use crate::terlan_typeck::{core_type_contract_text, CoreTupleTypeElem};
 
+mod selected_imports;
 mod trait_methods;
 mod type_scoring;
+pub(super) use selected_imports::resolve as resolve_selected_imports;
 use type_scoring::type_match_score;
 
 #[derive(Clone)]
@@ -32,10 +35,18 @@ fn has_target_owned_overload_lowering(module: &str) -> bool {
 /// Source interfaces remain keyed by their public Terlan name. The native
 /// application closure instead receives a distinct name for every parameter
 /// vector so its compact `(name, arity)` resolver cannot merge overloads.
-pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), String> {
+pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> NativeIrResult<()> {
     let mut groups = collect_overload_groups(cores)?;
     rename_overload_declarations(cores, &groups)?;
     trait_methods::collect(cores, &mut groups);
+    rewrite_application(cores, &groups)
+}
+
+/// Resolves collected candidates using the same lexical type propagation.
+fn rewrite_application(
+    cores: &mut [CoreModule],
+    groups: &HashMap<OverloadKey, Vec<OverloadCandidate>>,
+) -> NativeIrResult<()> {
     if groups.is_empty() {
         return Ok(());
     }
@@ -68,7 +79,7 @@ pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), St
                             expr,
                             &core.module,
                             &mut clause_environment,
-                            &groups,
+                            groups,
                             &returns,
                             &aliases,
                         )?;
@@ -79,7 +90,7 @@ pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), St
                         expr,
                         &core.module,
                         &mut clause_environment,
-                        &groups,
+                        groups,
                         &returns,
                         &aliases,
                     )?;
@@ -298,12 +309,26 @@ fn rewrite_expr(
                     current_module,
                     aliases,
                 )?;
-                *function = if selected.module == current_module {
-                    selected.internal_name.clone()
+                let result = Some(selected.result.clone());
+                if crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic(
+                    &selected.module,
+                    &selected.internal_name,
+                    args.len(),
+                )
+                .is_some()
+                {
+                    *expr = crate::terlan_typeck::core_intrinsic_lowering::core_intrinsic_expr_from_parts(
+                        &selected.module, &selected.internal_name, std::mem::take(args),
+                        crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                    ).expect("registered selected primitive retains its lowering");
                 } else {
-                    format!("{}.{}", selected.module, selected.internal_name)
-                };
-                Some(selected.result.clone())
+                    *function = if selected.module == current_module {
+                        selected.internal_name.clone()
+                    } else {
+                        format!("{}.{}", selected.module, selected.internal_name)
+                    };
+                }
+                result
             } else {
                 lookup_call_return(current_module, function, args.len(), returns)
             }

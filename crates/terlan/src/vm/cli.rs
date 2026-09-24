@@ -12,6 +12,7 @@ pub(super) enum VmCommand {
         entry: String,
         result_mode: RunResultMode,
         program_arguments: Vec<String>,
+        storage_bindings: Vec<VmStorageBinding>,
     },
     Load {
         artifact: PathBuf,
@@ -209,6 +210,7 @@ pub(super) fn run() -> ExitCode {
             entry,
             result_mode,
             program_arguments,
+            storage_bindings,
         } => {
             let mut output = |line: &str| println!("{line}");
             match run_path(
@@ -216,6 +218,7 @@ pub(super) fn run() -> ExitCode {
                 &entry,
                 result_mode,
                 &program_arguments,
+                &storage_bindings,
                 &mut output,
             ) {
                 Ok(()) => ExitCode::SUCCESS,

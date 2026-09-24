@@ -327,6 +327,13 @@ pub(super) fn application_resolvers(
                 let identity = (candidate.function.name.clone(), candidate.function.arity);
                 local_identities.insert(identity.clone());
                 resolved.insert(identity, Some(index));
+                // Generic clones qualify local calls to preserve source identity.
+                let qualified = (
+                    format!("{}.{}", core.module, candidate.function.name),
+                    candidate.function.arity,
+                );
+                local_identities.insert(qualified.clone());
+                resolved.insert(qualified, Some(index));
             }
             for (index, candidate) in candidates.iter().enumerate() {
                 if !selected[index]

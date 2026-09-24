@@ -14,7 +14,18 @@ use crate::terlan_native_boundary::resource::{ResourceKind, ResourceStore};
 
 /// Returns whether an operation belongs to the closed direct-safe adapter set.
 pub(super) fn supports(operation: &str) -> bool {
-    operation.starts_with("std.data.json.")
+    matches!(
+        operation,
+        "std.random.random.seed"
+            | "std.random.random.entropy"
+            | "std.random.random.int"
+            | "std.random.random.bounded_int"
+            | "std.random.random.float"
+            | "std.random.random.bool"
+            | "std.random.random.choice"
+            | "std.random.random.shuffle"
+            | "std.random.random.sample"
+    ) || operation.starts_with("std.data.json.")
         || operation.starts_with("std.encoding.base64.")
         || operation == "std.encoding.md5.digest"
         || operation == "std.data.toml.parse"
@@ -104,6 +115,15 @@ pub(super) fn call(
 }
 
 fn typed_result_error_name(operation: &str) -> Option<&'static str> {
+    if matches!(
+        operation,
+        "std.random.random.seed"
+            | "std.random.random.bounded_int"
+            | "std.random.random.choice"
+            | "std.random.random.sample"
+    ) {
+        return Some("RandomError");
+    }
     if operation == "std.data.toml.parse" {
         return Some("TomlError");
     }
@@ -207,6 +227,7 @@ fn repl_to_bridge(
                     | ("std.http.Cookies.Jar", "Jar")
                     | ("std.net.Uri.Uri", "Uri")
                     | ("std.io.Path.Path", "Path")
+                    | ("std.random.Random.Generator", "Generator")
             ) {
                 return Err(format!(
                     "error[native_boundary.direct_std]: operation received unsupported handle type `{type_name}`"
@@ -223,6 +244,11 @@ fn repl_to_bridge(
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         }),
+        ReplValue::Tuple(values) => values
+            .iter()
+            .map(|value| repl_to_bridge(value, owner_process_id))
+            .collect::<Result<Vec<_>, _>>()
+            .map(NativeBoundaryBridgeValue::Tuple),
         ReplValue::List(values) => Ok(NativeBoundaryBridgeValue::List(
             values
                 .iter()
@@ -242,6 +268,11 @@ fn bridge_to_repl(
     value: NativeBoundaryBridgeValue,
 ) -> VmRuntimeResult<ReplValue> {
     match value {
+        NativeBoundaryBridgeValue::Tuple(values) => values
+            .into_iter()
+            .map(|value| bridge_to_repl(resources, owner_process_id, value))
+            .collect::<Result<Vec<_>, _>>()
+            .map(ReplValue::Tuple),
         NativeBoundaryBridgeValue::Unit => Ok(ReplValue::Unit),
         NativeBoundaryBridgeValue::Text(value) => Ok(ReplValue::String(value)),
         NativeBoundaryBridgeValue::Bytes(value) => Ok(ReplValue::Bytes(value.into())),
@@ -307,6 +338,7 @@ fn native_handle_from_store(
         .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))?
     {
         ResourceKind::Json => "std.data.Json.Json",
+        ResourceKind::RandomGenerator => "std.random.Random.Generator",
         ResourceKind::Regex => "std.regex.Regex.Regex",
         ResourceKind::Path => "std.io.Path.Path",
         ResourceKind::HttpRequest => "std.http.Request.Request",
@@ -323,9 +355,9 @@ fn native_handle_from_store(
     native_handle_value(owner_process_id, handle, type_name)
 }
 
-type ParsedNativeHandle<'a> = VmRuntimeResult<(NativeBoundaryHandle, &'a str, &'a str)>;
+pub(super) type ParsedNativeHandle<'a> = VmRuntimeResult<(NativeBoundaryHandle, &'a str, &'a str)>;
 
-fn native_handle(fields: &[(String, ReplValue)]) -> Option<ParsedNativeHandle<'_>> {
+pub(super) fn native_handle(fields: &[(String, ReplValue)]) -> Option<ParsedNativeHandle<'_>> {
     let owner = text_field(fields, "$native_owner")?;
     let id = int_field(fields, "$native_id")?;
     let generation = int_field(fields, "$native_generation")?;
@@ -364,7 +396,7 @@ fn int_field(fields: &[(String, ReplValue)], name: &str) -> Option<i64> {
     })
 }
 
-fn native_handle_value(
+pub(super) fn native_handle_value(
     owner_process_id: u64,
     handle: NativeBoundaryHandle,
     type_name: &str,

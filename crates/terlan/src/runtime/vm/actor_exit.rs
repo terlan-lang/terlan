@@ -128,6 +128,7 @@ fn abnormal_exit_cause(reason: &VmExitReason) -> Option<&'static str> {
     match reason {
         VmExitReason::Normal => None,
         VmExitReason::Error(_) => Some("actor.error"),
+        VmExitReason::TypedError { .. } => Some("actor.typed-error"),
         VmExitReason::Killed => Some("actor.killed"),
         VmExitReason::ShutdownTimeout { .. } => Some("actor.shutdown-timeout"),
         VmExitReason::MemoryLimitExceeded { .. } => Some("actor.memory-limit-exceeded"),

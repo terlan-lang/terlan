@@ -337,6 +337,7 @@ pub(super) fn lower_native_function_with_callables(
         ClosureLexicalScope {
             available: &params,
             available_types: &param_types,
+            available_core_types: &param_core_types,
         },
         &ClosureLoweringEnvironment {
             identities,
@@ -655,10 +656,13 @@ fn expr_is_native_condition_at_depth(expr: &CoreExpr, depth: usize) -> bool {
     if expr_is_scalar(expr) {
         return true;
     }
-    // Structured cases are expressions, including in Boolean conditions.
-    // Their calls use the same composition and lexical matcher as case-valued
-    // let bindings; admission must not require a source-level temporary.
-    if matches!(expr, CoreExpr::Case { .. })
+    // Case normalization hoists eager operands into lets and preserves Boolean
+    // short-circuiting with if expressions. All three shapes use the structured
+    // lowerer's lexical matcher; a normalized condition remains executable.
+    if matches!(
+        expr,
+        CoreExpr::Case { .. } | CoreExpr::Let { .. } | CoreExpr::If { .. }
+    ) && structured_case::contains_case(expr)
         && depth < MAX_NATIVE_CONDITION_COMPOSITION_DEPTH
         && expr_is_native_control(expr)
     {

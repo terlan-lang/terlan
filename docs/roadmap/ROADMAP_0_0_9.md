@@ -1,18 +1,39 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-17. Baseline: 0.0.8 is published.
+Updated: 2026-09-24. Baseline: 0.0.8 is published.
 
 ## Scope
 
 By explicit user decision, 0.0.9 is limited to build and release optimization,
 reliable validation, and verified publication. The self-hosted frontend slice,
-new native compatibility policy, runtime inspector, durable checkpoint/restore,
+new native compatibility policy, runtime inspector,
 HTTP/3, and accelerator follow-ups move to the
 [0.0.10 roadmap](ROADMAP_0_0_10.md). They are postponed, not completed.
+
+On 2026-09-24, after the user delegated the release-scope decision, unfinished
+replication, quorum writes, automatic failover, and interchangeable replication
+providers were moved to [0.0.10](ROADMAP_0_0_10.md#active-checklist). This supersedes
+the earlier requirement to implement replicated storage before publishing 0.0.9.
+Keep and verify the implemented local durability and logical checkpoint/restore
+work. Cluster capability queries must return false, and replication requests must
+return explicit unsupported outcomes without local-write fallback. Rejection
+tests are diagnostic evidence, never positive replication coverage. Other
+advertised capabilities and their existing verification obligations remain.
+Live actor heap, continuation, mailbox, and timer migration remain out of scope.
 
 Preserve existing compiler/runtime correctness and supported installed artifacts.
 Do not use this scope change to drop correctness tests, weaken evidence, or
 claim new features. CPU quietness is not a publication prerequisite.
+
+The user also requires immediate repair of discovered gaps in advertised
+capabilities, including baseline Effect execution. Such gaps remain release
+blockers; placeholder tests and unverified API declarations cannot prove support.
+
+Every advertised public API requires Terlan-source execution coverage on each
+target for which support is claimed. The existing `std-package-coverage-100`
+command checks manifest consistency only; its success is not 100% API coverage.
+Completing the declaration inventory and binding it to real target execution
+remain release requirements, not accomplished capabilities.
 
 Prepare the focused 0.0.9 release, but obtain explicit user authorization before
 tagging or publicly publishing it. The exact candidate and its artifacts must
@@ -20,7 +41,846 @@ pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
-The current correction retains explicit trait-instance arguments in serialized
+0.0.9 is not release-ready. Finish the supported local storage API audit and the
+existing build/release acceptance gates; do not start consensus or provider
+architecture work in this release. The former test-only cluster success claims
+now return explicit unsupported outcomes through production AOT. All 19 storage
+source tests and 20 focused Rust storage tests pass. The separate-process durable
+storage fixture also passes, including rejection of replication without changing
+the persisted sequence or creating a local snapshot. Evidence is recorded in
+`target/quality/release-diagnostics/storage-scope-{source-tests,unit-tests,source-restart}.log`.
+These rejection checks establish the unsupported boundary, not replication support.
+No release checkbox is closed by this scope decision, and no publication is
+authorized. The implementation history below records earlier requirements and
+evidence; its replication blockers are superseded by this scope and the active
+checklist, not silently counted as completed features.
+
+The current V9-1 rehearsal passes all 24 preparation/retry contract tests and
+49 process-containment tests. Rebuilding the production promotion validator
+exposed reachability pruning of imported free-function builder calls. The fix
+passes 75 focused compiler tests, both strict production Clippy configurations,
+and structural gates. The production validator now builds and seals; its real
+Cargo-backed cold/warm/invalidation/interruption/resume rehearsal passes, as do
+the owner and graph fault-injection suites. The affected download checkpoint
+fixture also executes successfully through the sealed image. These remain
+component/fixture results, not a complete current-candidate publication rehearsal;
+V9-1 stays open. See `target/quality/release-diagnostics/v9-builder-*.log` and
+`v9-current-{preparation-contract,process-containment,publication-plans,candidate-recovery,owner-recovery,graph-recovery}.log`.
+The readiness-owner rehearsal and all seven proof input/policy/kernel/track/
+native-boundary/smoke/lane recovery rehearsals also pass against that image
+(`v9-current-readiness-recovery.log` and `v9-current-preparation-proof-*-self-test.log`).
+The current checkout has neither staged distribution metadata nor hosted-candidate
+or proof-release evidence. A fresh isolated committed candidate and its verified
+artifact producers are still needed; fixture reports cannot replace them.
+
+## Implementation History
+
+The release API audit now passes through the core Task suite. All six real
+`std/core/TaskTest.terl` tests pass with the rebuilt compiler and VM. Only
+already-successful tasks (`done` and `result`) are supported; failed, deferred,
+spawned, mapped, chained and recovered Tasks remain explicitly unsupported by
+the VM target. Module documentation now states this exact scope. The next
+manifest suite, `std/vm/ClusterTest.terl`, now passes all nineteen tests through
+the rebuilt compiler and VM, including the connected session/frame operations
+and additional atom/aggregate payload cases. This proves in-memory transport
+execution, not peer discovery or socket connectivity. Map, Set, and Binary
+bitstring payloads now pass real source tests: VM-owned operations preserve
+typed values, and conversion to external-worker terms occurs only at an actual
+worker boundary. Unsupported external values still fail explicitly without
+echoing their contents. Evidence: `storage-typed-arguments-cluster-tests.log`
+and its result manifest. A generic source helper exposed a qualified-local-call
+lookup omission in admission and native lowering; both stages now resolve exact
+same-module identities without admitting another module's private functions.
+All 31 admission and 17 generic-specialization tests pass in
+`storage-qualified-calls-*-tests.log`.
+The remaining API audit and release closeout are still open.
+
+The `std/vm/DistributedStateTest.terl` AOT gap is repaired locally. All seven
+Terlan tests execute successfully, replacing the checkpoint placeholder with
+snapshot-content replay and isolation assertions. Native operations use the
+VM-owned conflict logic and actor-checked mutable stores; immutable entry,
+conflict, and snapshot views remain owner-scoped. `write[Value]` preserves the
+checked payload type rather than accepting an unlowerable `Dynamic` parameter.
+The added source test checks checkpoint/restore with Map, Set, and unaligned
+bitstring payloads, including exact replay and conflict rejection. Evidence:
+`storage-typed-arguments-state-tests.log` and its result manifest under the
+release diagnostics directory.
+This is in-memory state support, not persistence or replication.
+
+The next manifest suite, `std/vm/DistributedStorageTest.terl`, remains open.
+Public durable lifecycle, batch/CAS append, schema transitions, and compaction
+now execute through a real sandboxed SQLite worker and survive a complete VM
+restart; they do not use the old in-memory test model. Typed failures preserve
+transaction-observed conflict metadata. Receiver/free-function qualification
+and fully qualified same-module overload admission defects are fixed.
+The full suite now reaches the still-unbound `expected_entries/1` declaration and
+fails before execution (`storage-metadata-full-source-tests.log`).
+Remaining public contracts and real peer replication still block release.
+
+JavaScript compile-only test reports now have `not_executed` entries, zero
+passes, and a nonzero command exit. Eighteen test-command regressions pass,
+including a false JavaScript test body that cannot become a reported pass,
+and actual VM/Wasm execution cases. Evidence: `test-execution-honesty-tests.log`.
+This corrects false evidence; it does not supply a JavaScript test executor or
+complete the declaration-derived, exact-candidate API coverage gate.
+
+Scoped closeout for these changes: eleven state/runtime/interface tests,
+four shared-registry tests, eighteen test-command tests, and six real state
+source tests pass. Both strict workspace-bin Clippy profiles pass; API-boundary
+(3,082 existing string-error sites, no budget increase), file-headroom (56
+near-limit files), module-structure, Rust documentation, dormant-code inventory,
+and documentation checks pass. Evidence is in `distributed-state-*`,
+`execution-honesty-*`, and `state-honesty-*` release diagnostics. The standalone
+JS CLI probe confirms a nonzero exit and explicit non-execution JSON; it is a
+diagnostic test, not a supported-JS execution pass. Runtime tests have not been
+replayed for subsequent comment-only documentation corrections.
+
+Storage scope is resolved by explicit user approval: implement real storage in
+0.0.9 and keep publication blocked until verified. No coverage obligation has
+been removed, no release item has been checked off, and no tag or publication
+has been created.
+
+The first real persistence slice is `crates/terlan-storage`: an independent
+SQLite WAL engine with full synchronization, explicit database paths, bounded
+checkpoint/batch sizes, atomic append/CAS, exact replay, SHA-256 integrity,
+and compaction that preserves sequence history. The backend has eleven behavioral
+tests plus a subprocess fixture; all twelve harness cases pass, including
+abrupt child exit before/after commit, transaction rollback, competing writers,
+corruption, engine-level oversized-row rejection, and symlink rejection.
+Strict all-target Clippy and the dependency
+security audit pass. Evidence: `durable-storage-tests.log`,
+`durable-storage-clippy.log`, and `durable-storage-security-audit.log`.
+The next worker slice passes 21 protocol/storage cases, 29 VM transport/sandbox
+cases, and an explicitly executed real sandboxed-worker restart test. The VM
+binds a separate private durable directory; worker scratch cleanup cannot delete
+it. Requests cannot choose database paths or SQL. Capability grants, blocking
+admission, frame bounds, cancellation, and request/epoch fencing remain enforced.
+The restart test is now owned by the canonical Rust orchestrator, with no extra
+Cargo producer. Evidence: `storage-worker-resumed-protocol-tests.log`,
+`storage-worker-resumed-vm-tests.log`, and `storage-worker-restart-test.log`.
+
+Database format 2 now persists application schema CAS transitions and their
+checkpoint boundaries. Old payloads retain their schema, stale-schema writes
+fail, and failed batches/migrations roll back. All 18 backend harness cases
+(including two child fixtures) and backend all-target Clippy pass:
+`durable-storage-schema-tests.log` and `durable-storage-schema-clippy.log`.
+The expanded worker schema RPC/restart test now passes with a rebuilt worker
+and harness, including persisted schema CAS, stale-schema rejection, and replay
+of older-schema checkpoints after restart. Linux worker startup now admits only
+writable local ext-family, XFS, and Btrfs filesystems; memory, network, overlay,
+unknown, and read-only filesystems fail before launch. The check does not prove
+hardware persistence or power-loss safety. The 21 protocol cases, 32 VM cases,
+and explicitly executed worker restart pass in `storage-schema-*-tests.log` and
+`storage-schema-restart-test.log`.
+
+Explicit flush now uses SQLite FULL WAL checkpoint completion instead of a
+test-model counter. Reader/writer contention fails without claiming a flush
+proof or rolling back already committed appends. All 21 backend cases and strict
+backend all-target Clippy pass in `storage-flush-backend-tests.log` and
+`storage-flush-backend-clippy.log`. The rebuilt worker/harness also pass 22
+protocol cases, 32 VM cases, and the explicit schema/flush/restart test in
+`storage-flush-protocol-tests.log`, `storage-flush-vm-tests.log`, and
+`storage-flush-restart-test.log`. Formatting, API-boundary, file-headroom, module
+structure, and lightweight documentation checks pass without raised budgets.
+The dependency-impact inventory was refreshed for the changed compilation inputs;
+its check passes in `storage-flush-dependency-impact.log`. Both additional real
+worker lifecycle and inherited-descriptor isolation tests also pass.
+Both production workspace-bin Clippy profiles pass against the flush changes
+in `storage-flush-production-clippy.log` and
+`storage-flush-all-features-clippy.log`. The two specifically approved September
+14 incremental caches were removed, allowing validation to resume; no other
+caches were deleted.
+
+The shared TETF encoder now enforces byte limits before growing output and
+canonical-sort buffers, rather than rejecting an oversized payload only after
+allocation. Canonical wire bytes and exact-limit behavior are preserved,
+including duplicate Set entries. Fifteen codec tests, 38 coordination tests,
+15 Cluster adapter tests, and both production Clippy profiles pass in
+`storage-codec-*` evidence. API-boundary inventory is now 3,081 string-error
+sites, with no budget increase; headroom, module structure, documentation,
+and dependency-impact checks pass for that slice.
+
+The typed-argument bridge and qualified-call fixes also pass both production
+Clippy profiles, API-boundary, file-headroom, module-structure, documentation,
+dependency-impact, and Rust/Terlan formatting checks. Three argument-boundary
+tests, 46 package-helper tests, three protocol-owner tests, one capability
+completion-order test, and both explicitly executed real-worker dispatch tests
+pass. Evidence: `storage-typed-arguments-*` diagnostics. The worker binary is
+the existing storage-flush build; these are scoped dispatch regressions, not
+exact-candidate publication evidence. No zero-test invocation is counted as
+coverage. The next implementation remains the authorized, asynchronous public
+storage binding, followed by authenticated independent-peer replication.
+
+Logical checkpoint encoding and restore now execute through public AOT calls.
+`DistributedStorage.checkpoint` captures immutable canonical TETF bytes;
+`Snapshot.restore` decodes them into a new actor-owned state store. The added
+restore operation closes the missing source-level path from a loaded checkpoint
+back to usable state. Both new selected Terlan tests pass, including nested
+Map/Set/bitstring values, exact replay, conflicting replay, and independence from
+later mutations. Evidence: `storage-logical-checkpoint-source-tests.log` and
+`storage-logical-checkpoint-source-results.json`. These two tests are not a pass
+for the entire storage suite or its still-unbound adapter lifecycle APIs.
+
+The codec has explicit byte, entry, nesting, and total-value limits. Collection
+allocation reserves all children, including pending siblings, before allocating;
+compact wire tags cannot cause unbounded decoded allocations. It rejects
+undeclared atoms, native-handle metadata, invalid versions/policies, duplicate
+or unordered scopes, truncation, and trailing bytes. All 22 shared codec tests
+and 48 package-helper tests pass. The real worker restart test now stores this
+encoded logical state rather than a placeholder byte string, verifies restoration
+after schema transition/flush/restart, and rejects atoms not admitted by the
+restoring image. Evidence is in `storage-logical-checkpoint-*` diagnostics.
+This remains separate source-codec and worker integration evidence, not a claim
+that public durable append/flush or replication is already wired end to end.
+Both production workspace-bin Clippy profiles, all scoped Rust quality checks,
+dormant-runtime inventory, and Rust/Terlan formatting pass for this slice without
+raising budgets. Regenerated Cluster/DistributedStorage interface summaries and
+the release API test map include the implemented source contracts. The complete
+storage suite was retried and still stops at unresolved `policy_name/1` before
+execution (`storage-logical-checkpoint-full-source-tests.log`); unbound adapter
+operations have not been hidden, counted as passes, or replaced by the old model.
+
+A further source-level atom test exposed missing atom-manifest propagation to
+the two checkpoint operations. Its recorded failing run rejected the declared
+`checkpoint_ready` atom; the fixed path takes the vocabulary from the admitted
+image, never from checkpoint contents. The rebuilt compiler/VM pass all three
+selected checkpoint source tests in `storage-owner-lifecycle-source-tests.log`
+and its result manifest. Root helper resources now have a scope guard so every
+returned error and unwind revokes actor-owned checkpoint/state descriptors,
+including errors after native resume or result projection. All 50 package-helper
+tests pass in `storage-owner-lifecycle-tests.log`, including success, failure,
+unwind, and foreign-owner preservation. These latest changes have targeted
+execution and formatting evidence; broad closeout checks will be refreshed with
+the public durable-binding slice rather than counted as already rerun.
+The subsequent public durable-binding slice now passes four selected Terlan
+tests and a real AOT integration test that compiles once, denies an unbound
+program, writes/flushes/closes in one VM process, restores in another, and repeats
+the write/read to verify exact replay. Typed Map/Set/bitstring/atom contents survive.
+`--storage NAME=/absolute/private/directory` grants supervisor-selected authority;
+source policy flags cannot grant it. Bounded worker requests retain owner/epoch
+continuations, wake the VM owner, and fail conservatively on timeout or worker
+loss. The source test is owned once by the canonical Rust orchestrator, reusing
+its compiler/VM/worker build rather than adding a Cargo producer.
+Evidence: `storage-public-lifecycle-*` diagnostics, including 54 helper tests,
+35 application-lowering tests, 32 admission tests, five CLI argument tests,
+32 worker transport tests, both production Clippy configurations, orchestrator
+tests and strict Clippy, and the scoped Rust quality/formatting checks. No
+quality budgets were raised. Local-only mode, typed lifecycle failures,
+batch/CAS/schema/compaction/proof facades, additional VM entry points, complete
+API execution coverage, and authenticated independent-peer replication remain
+unfinished. No release item is closed.
+Process-exit tests are not power-failure testing, and local WAL recovery is not
+distributed replication.
+
+The transactional public slice now passes the expanded single-image AOT restart
+test: two adapters compete through durable CAS, a rejected batch leaves no
+partial writes, schema CAS survives restart, old checkpoint schema tags remain
+readable, and compaction preserves both the high-water mark and retained data.
+`checkpoint_with_schema` explicitly selects a positive application schema;
+`checkpoint_schema` exposes it without changing or implicitly migrating the
+logical codec. Five selected Terlan tests pass with execution manifests.
+Domain errors use a closed typed worker record, not parsed database messages;
+database errors fence the adapter pending reconciliation. A failed observation
+cannot return an Outcome where the source signature promises a proof.
+
+Evidence under `storage-transactions-*`: 21 backend harness cases, 55 helper
+tests, 31 admission tests, six storage protocol tests, fourteen overload tests,
+two failure-codec tests, 32 worker tests, and three explicitly executed real
+worker tests pass, alongside the public AOT restart test. Backend all-target
+Clippy and both production workspace-bin Clippy profiles pass. The regenerated
+embedded interface includes the new schema APIs. These are scoped local
+results, not an exact-candidate publication seal. Typed transport failures and
+invalid batch resource bounds, local-only mode, remaining proof/metadata APIs,
+other VM entry points, declaration-derived coverage, and authenticated
+independent-peer replication remain open. No release item is closed.
+
+The broad source-quality check also exposed six test-placement violations.
+Two inline modules were extracted and four test files adopted the established
+adjacent `_test.rs` naming; assertions and module identities are unchanged.
+The rebuilt library harness has the exact same 6,643-test inventory, and the
+backend still inventories 21 cases. No unchanged runtime test was replayed
+solely for these relocations. Rust source quality now reports zero oversized
+or inline-test files, and Rust documentation reports zero undocumented items.
+Both production Clippy profiles and backend all-target Clippy pass after the
+relocations. Refreshed AST-backed API-boundary, file-headroom, module-structure,
+documentation, and dependency-impact checks pass without increased budgets;
+Rust/Terlan formatting and whitespace checks pass. These scoped checks do not
+close the still-failing full storage suite or the release coverage obligations.
+
+The metadata/isolation slice now exposes checkpoint identity and checksum
+diagnostics from real operations, plus immutable snapshot-isolation observations
+read through the worker. Full SHA-256 comparison remains mandatory; displayed
+integer checksums are only diagnostic prefixes. The expanded AOT restart fixture
+corrupts the tail of a stored digest while leaving its prefix unchanged: the
+source program observes typed corruption, and missing/corrupt checkpoint proof
+requests fail. Previously issued observations survive compaction and closure.
+Evidence: `storage-metadata-*` includes 21 backend cases, 95 targeted runtime
+cases, three explicit real-worker tests, and this single-image AOT integration
+test. Backend and both production Clippy profiles pass. The complete storage
+source suite still fails before execution; no full-suite coverage is claimed.
+The subsequent metadata review also corrected successful schema migration's
+`actual_schema` projection: it now returns the acknowledged new version, not
+zero. The AOT fixture asserts this result, and all five storage projection/owner
+tests pass. The worker/backend and unrelated runtime tests were not replayed
+for this VM-only projection correction.
+Both strict production Clippy profiles pass after that correction. Fresh AST
+inputs confirm the API-boundary input is byte-identical; affected headroom,
+module-structure, and dependency-impact checks pass again in
+`storage-metadata-schema-quality.log`. Rust/Terlan formatting, source quality,
+Rust documentation, and dormant-module checks pass without budget changes.
+
+The next local-only slice adds a bounded pure-Rust volatile engine with explicit
+byte/count limits and no filesystem authority. Append/CAS/replay/schema decisions
+are shared with the durable SQLite engine; it does not reuse the old test model
+or advertise memory as persistence. All 27 backend cases pass, including failed
+quota admissions without partial writes, replay after schema changes, compaction,
+and isolation between independent stores; strict backend all-target Clippy passes
+(`storage-local-backend-*`). That backend-only evidence did not cover public
+local-only routing, aggregate owner budgets, or source execution.
+The shared-rule refactor also passes the rebuilt durable AOT restart/corruption
+fixture, three real-worker tests, and eleven storage protocol/projection tests.
+Both production Clippy profiles, source/documentation quality, AST-backed
+structural/dependency checks, and formatting pass without raised budgets
+(`storage-local-shared-*`). Existing workspace-support ownership covers the new
+backend cases; no additional release test producer was added.
+
+The follow-up local wiring now connects `force_local` and requested `local_only`
+policies directly to independent actor-owned stores, without worker RPC or host
+filesystem authority. Adapters reserve bounded capacity; all storage resources,
+loaded outcomes, and extracted snapshots share owner/runtime byte and count
+limits. Owner exit reclaims descriptors and reservations. Local flush remains a
+volatile barrier; durable-flush requirements are denied and durable proofs fail
+explicitly. Close/reopen retains the same adapter's memory, not process durability.
+All eighteen targeted storage/ownership/reply tests pass. The existing compiled
+Terlan restart/corruption fixture also passes with local lifecycle, CAS, batch
+rollback/replay, schema changes, compaction, retained views, restore, independent
+stores, and durability rejection added to the same image build
+(`storage-local-wiring-*`). Both strict production Clippy profiles, formatting,
+Rust source-size/documentation and dormant-code checks, plus AST-backed API,
+headroom, module-structure, and dependency-impact gates pass without raised budgets.
+This source evidence is Linux-only. Authenticated independent-peer replication,
+remaining API bindings, cross-target execution coverage, and release closeout
+remain required; no release checklist item is closed by this slice.
+
+The recovery-metadata follow-up binds `local_sequence`, `incoming_sequence`,
+`expected_entries`, and `persisted_entries`. Ordinary obsolete writes now report
+the backend-observed high-water mark and rejected checkpoint sequence separately
+from explicit CAS-token mismatches. Exact retained replay still succeeds;
+compacted replay is rejected without advancing state. Atomic local/SQLite
+outcomes have no partial-write counts, and unknown commits cannot be presented
+as known rollback or measured partial progress. Unsupported partial-write
+receipts fail explicitly rather than inventing counts.
+All thirteen storage-runtime tests and fifteen selected real Terlan source tests
+pass. The worker-backed restart/corruption fixture passes after correcting its
+obsolete CAS assertions for compacted replay; both failed diagnostic runs remain
+recorded alongside the passing final result (`storage-recovery-metadata-*`).
+The source tests no longer claim durability for local memory, and now distinguish
+invalid schema zero from a valid-but-stale schema version. Real durable proof
+coverage remains in the sandboxed worker fixture. Both strict Clippy profiles pass.
+Rust/Terlan formatting, source/documentation and dormant-code checks, and fresh
+AST-backed API/headroom/module/dependency gates also pass without raised budgets.
+The full eighteen-test standard suite still fails compilation at
+`missing_resource_handle/1`. Ten declarations remain unbound: eight resource
+custody/validation APIs and two replication APIs. The other three source tests
+are not waived or counted as passing. Registering an arbitrary string must not
+be presented as proof that a live VM-owned resource is available after restore.
+
+The custody/replication prerequisite now adds a persistent, non-authorizing store
+identity. Format 3 records OS-random identity bytes, while valid format-2 databases
+upgrade transactionally without losing checkpoint data or schema. Initialization
+is synchronized before committing metadata. Corrupt/missing/zero identities are
+rejected, never regenerated. A new internal open observation reads identity and
+the committed boundary together; the VM pins the identity and fences an existing
+adapter if reopening observes another store. Database copies retain logical
+identity, so this is neither authentication nor independent-replication evidence.
+Thirty backend tests passed initially; the one failed future-format assertion
+used the newly supported version 3 as its sentinel. It was changed to the maximum
+signed SQLite version and passed on its own, without replaying the thirty passing
+cases. Backend strict all-target Clippy and twenty-three storage worker/projection
+tests pass (`storage-identity-*`). The new harness is
+`terlan-98602fad98a5228f`. Read-only follow-up checks pass for formatting, Rust
+source/documentation quality, dormant-code inventory, and fresh AST-backed
+API/headroom/module/dependency gates (`storage-identity-quality.log`), without
+raised budgets. After explicit approval, only the two shared incremental caches
+`terlan-2sq45fapry09n` and `terlan-06x0wg9uhfijg` were deleted, reclaiming about
+3.4 GB without removing source, binaries, or test evidence. The compiler, VM, and
+native worker rebuild passed (`storage-identity-executable-build.log`). The real
+sandboxed-worker restart test passed with persistent identity and committed state
+(`storage-identity-worker-restart.log`); the compiled Terlan fixture also passed
+separate-VM restart, transactions, and corruption/proof rejection against those
+rebuilt executables (`storage-identity-source-restart.log`). Both strict production
+workspace-bin Clippy profiles passed (`storage-identity-production-clippy.log` and
+`storage-identity-all-features-clippy.log`). These checks validate the identity
+addition, not resource custody or replication, and do not close the release.
+The user approved supervisor-authorized resource-name bindings. Registration must
+resolve existing supervisor authority and reject unknown or unbound names; it
+must never create authority. Restore and restart must revalidate resource identity
+and explicitly reject stale or replaced resources. A persistent logical database
+identity alone is not proof of resource custody. Implementation and real-source
+validation remain pending; no string-only custody registry has been installed and
+all ten public declarations remain unbound.
+
+Supervisor identity continuity now works across complete VM restarts, not just
+reopening an existing adapter. The optional binding form
+`--storage NAME@IDENTITY=/absolute/private/directory` accepts exactly 64 lowercase
+hexadecimal digits for a nonzero identity supplied by trusted supervisor
+configuration. Every new durable adapter inherits that pin. A mismatching store
+is fenced before source mutations or proofs; retries and new adapters cannot
+silently learn a replacement identity. The unpinned provisioning form retains
+its explicitly documented adapter-lifetime-only guarantee. Copies sharing the
+same logical identity are still not independently authenticated replicas.
+Twenty-one targeted tests pass, including malformed/duplicate binding rejection
+and fresh-runtime identity checks. The rebuilt compiler/VM/worker pass the real
+Terlan AOT fixture with both a wrong supervisor pin and an independently created
+replacement database, unchanged replacement checkpoint state after denial, and
+successful recovery using the original pinned database. Both strict production
+Clippy profiles, Rust/Terlan formatting, source/documentation checks, dormant-code
+inventory, and fresh AST-backed API/headroom/module/dependency gates pass without
+raised budgets (`storage-supervisor-pin-*`). This closes the cross-VM identity-pin
+prerequisite only; the eight resource-validation and two replication declarations
+remain unbound, and no release checklist item is closed.
+
+The eight resource-validation declarations now execute through production AOT on
+Linux. The first concrete provider resolves `db.NAME` only to supervisor-configured
+storage binding `NAME` with an explicit identity pin. Registration and validation
+query the real worker asynchronously; unknown, unpinned, replaced, revoked, or
+unregistered resources cannot manufacture authority. At most sixteen unique names
+are checked, with fixed owner accounting and one deadline shared across all probe
+continuations. No registration or validation proof is advanced before every probe
+and receipt-capacity check succeeds. Proofs are immutable historical observations,
+not leases or cross-worker atomic snapshots. Empty validation records zero; actor
+exit releases registrations, and restart requires fresh registration against the
+supervisor's retained pin. Restored strings never restore resource authority.
+The old source test's assumption that an unconfigured local adapter can register
+an arbitrary string has been replaced by explicit unsupported behavior. Positive
+source assertions are in the real two-worker AOT fixture, including fresh-VM
+re-registration, replacement denial and recovery. Twenty-five targeted Rust tests,
+the rebuilt real AOT lifecycle fixture, both strict production Clippy profiles,
+formatting, source/documentation and dormant-code checks, and fresh AST-backed
+API/headroom/module/dependency gates pass (`storage-resource-*`). The first harness
+build exposed a missing typed-error conversion in the continuation failure path;
+it was corrected before the passing build and tests. Exactly two storage
+declarations remain unbound: `replicate_snapshot` and `require_cluster_replication`.
+Authenticated independent-peer replication, cross-target source execution, the
+declaration-derived release coverage gate, and overall release closeout remain open.
+
+Replication transport groundwork now reuses the production VM-owned Hyper/rustls
+adapter rather than depending on the `serve` command. Mutual TLS tests reject
+missing and untrusted client certificates before HTTP dispatch. The shared
+adapter now reports truncated TLS connections instead of treating a raw socket
+close as authenticated EOF, drains buffered plaintext before reporting closure,
+handles write backpressure without a successful zero-byte write, and bounds
+authentication with a 30-second VM-owner timer. Hyper still owns HTTP; no second
+scheduler or hand-written TLS/HTTP protocol was introduced. Ten focused tests and
+both strict production Clippy profiles pass (`storage-tls-*` diagnostics).
+The production check caught and corrected an initial extraction into a test-only
+HTTP module; the adapter is now `runtime::vm::hyper_tls`, included in production.
+These tests are transport evidence, not peer authorization, durable replication,
+or public `replicate_snapshot` execution evidence. Both replication declarations
+and release readiness remain open.
+
+The baseline Effect execution gap is repaired locally. All seven real
+`std.core.EffectTest` tests pass through the rebuilt compiler and VM. Their old
+unconditional `true` bodies did not prove execution; those placeholder passes
+remain withdrawn. The release manifest names the actual `Effect.run` API.
+
+The compiler now generates shared, concrete native runners for plans built with
+the typed combinators and checked direct `Mapped`/`FlatMap` constructors.
+Callback admission uses canonical descriptor storage and concrete signatures,
+not helper names. Checked actor-local envelopes preserve intermediate
+types and callback signatures. Ordinary VM-owned call/continuation lowering
+executes callbacks, including captured and suspending callbacks; no interpreter
+or worker-RPC execution fallback was introduced. Runtime plan depth does not
+generate additional runners and shares the existing specialization budget.
+Linked tests cover parameter-carried plans, lexical result inference, different
+callback input types sharing one output type, mixed-type flat-map, and a
+512-node runtime plan using scheduler-owned recursive continuations. Direct
+constructor tests cover named callbacks, captured suspending lambdas, and tuple
+and case bindings. Wrong callback arity, non-callable values, and flat-map
+callbacks without Effect results fail native admission before execution.
+
+Execution of supported failures preserves the typed value through actor exit,
+links, monitors and resource cleanup. Cancellation terminates the owning actor;
+later callbacks do not run. Compiled-image tests exercise String and Int
+failures and cancellation, including heap release. Type-query tests distinguish
+a legitimate type mismatch from invalid, foreign or stale envelopes. Forged
+and replayed failure authority is rejected before actor state is changed.
+
+These tests also exposed shared compiler defects: lexical run results needed
+refreshing after producer specialization; constructor-pattern bindings were
+missing from closure lifting; conditional callers lacked lifted callback-owned
+continuation metadata. The fixes reuse the existing type solver and pattern
+binder and retain shape-only external continuation records, not copied bodies.
+The direct-descriptor slice also repairs checked lambda inference and
+tuple-bound callable types. Stored callbacks become owned closures; immediate
+calls and their compiler-generated aliases retain static lowering. Existing
+static-call regressions remain enforced rather than being waived.
+
+Effectful comprehensions now construct deferred plans; mapped guards execute
+only at the VM boundary, retain generator order, and short-circuit later guards.
+Failure and cancellation are verified by executing the compiled source fixture
+and asserting the owning actor's terminal reason, replacing checks that merely
+expected compiler rejection. The two purity placeholders now execute real
+guard and deferred-plan assertions. A short-circuit test now contains an actual
+division-by-zero trap in its skipped branch.
+
+Nested suspending callbacks enter through a precise-root VM continuation rather
+than accumulating native frames behind the fixed indirect-call transition
+buffer. Named callbacks and lambdas share that scheduler-owned entry; pure
+callbacks retain their direct path. The buffer capacity was not increased.
+Generated Effect types are expanded before generic specialization. Checked
+range filters retain their normalization, and GuardResult folding no longer
+rewrites unrelated user functions based on a matching short name.
+
+Support is not advertised as unrestricted: arbitrary Dynamic execution is not
+supported, and executable functions or opaque resource handles are not
+supported failure payloads. The module and individual API documentation
+disclose these limits. Broader payload support and the remaining capability
+audit stay open; passing baseline tests are not proof that every expressible
+Effect plan is supported.
+
+Effect checkpoint evidence: 610 NativeIR tests (including all 15 Effect-runner
+tests), 35 source tests through the rebuilt CLI (21 comprehension, two purity,
+seven Effect, five GuardResult), and two compiled-image failure/cancellation
+tests pass. The previous checkpoint additionally passed
+150 managed-memory, 193 actor, 75 native-execution-boundary, 16 native-image,
+48 process and eight termination tests. Focused selections overlap the broader
+groups and are not additional unique-test totals. Both strict workspace-binary Clippy profiles, Rust
+documentation, formatting, API boundaries, module structure and file headroom
+pass. Refreshed dependency-impact verification retains 27 production domains,
+13 production coupling edges, 13 test coupling edges and 13 integration-test
+targets. Documentation checks cover 81 Markdown files.
+At that checkpoint string errors remained 3,082; their inventory only relocated the extracted
+dispatch function. Four newly affected large files were split without raising
+limits, leaving 59 near-limit files with no-growth schedules.
+
+Effect evidence is under `target/quality/release-diagnostics/effect-comprehension-*`;
+the preceding checkpoints use `effect-descriptor-*` and `effect-execution-*`;
+earlier runner-development evidence uses `effect-runner-*` and
+`effect-terminal-*`. Existing quality validators consume current Rust AST
+inputs and source files; their use is not a claim that the complete validation
+toolchain has been rebuilt and accepted with this compiler.
+
+The first source acceptance attempt failed on range-filter compilation; only
+the other 14 tests passed at that attempt. Its command correctly returned a
+nonzero exit status. The current 35-test result comes from the subsequent
+successful run, not from that failed attempt.
+
+The preceding source-manifest sweep passed 203 tests through Bool, Binary's
+typed empty-list correction, and GuardResult's five tests. Instant now imports
+Duration explicitly. Those corrections are preserved. The remaining manifest
+traversal, later HTTP placeholder-coverage audit, full compiler/script validation,
+and committed-candidate closeout remain required.
+All three release checklist items stay open. Changes remain local and
+uncommitted; no push, merge, tag or publication has occurred.
+
+### Cluster session execution checkpoint
+
+All twelve session/frame operations now dispatch on the VM execution thread,
+using the existing coordination state machine and TETF codec, without spawning
+native workers. Immutable snapshots retain exact frame identity for outbound
+acknowledgements, preventing independent sessions or sibling snapshots from
+acknowledging each other's same-numbered messages. Resource ownership, stored
+kind, generation checks, and actor cleanup share the existing typed registry.
+All five disconnect reasons remain distinct. Reconnect also checks application
+identity, non-regressing peer epochs, and monotonic reconnect ticks.
+
+The receiver's admitted AOT image supplies the atom vocabulary; incoming payloads
+cannot expand it. Portable transport rejects reserved native-handle fields and
+uses the same nesting limit for encoding and decoding. This is an in-memory
+frame API, not an implementation of cross-process networking.
+
+Executing the suite exposed and repaired shared ABI gaps: closed unions with
+nominal record variants now receive discriminated layouts and checked pattern
+projections; foreign nominal identities remain errors. Source record construction
+uses the same layout. Nullary public union values reuse the existing image-checked
+variant validator, and tuple capability arguments preserve their tuple shape.
+
+Local evidence in `target/quality/release-diagnostics/`:
+
+- `cluster-session-split-source-tests.log` and its result manifest: all **16**
+  real Terlan tests pass through the rebuilt compiler/VM; no validation-only rows.
+- NativeIR: **627** tests pass across the seven focused nominal-identity tests
+  and 620 remaining tests, including existing identity-rejection cases.
+- Native backend: **25** tests pass, including nullary atom admission, rejecting
+  unknown/payload-bearing variants, and allocation rollback.
+- Cluster adapters: **15** tests pass; TETF: **9** tests pass.
+
+Strict workspace binary Clippy passes with both default and all features,
+without new lint allowances. The refreshed API inventory passes with **3082**
+internal string-error sites and unchanged budgets. Rust documentation has zero
+undocumented items, and the dormant-runtime audit still reports four explicitly
+classified modules. These scoped results do not replace full candidate gates.
+
+The no-growth size gate also caught the managed-value bridge entering its
+headroom band. Shape selection/materialization now lives in a cohesive 159-line
+child module, leaving `managed_values.rs` at 773 lines. The 25 backend tests and
+all 16 Terlan tests pass after the extraction. File headroom, module structure,
+and dependency-impact gates pass with no raised limits or coupling budgets.
+
+This checkpoint does not close V9-3. Full declaration-derived API coverage,
+candidate-bound results on every advertised target, the remaining release API
+audit, and exact-candidate release verification are still required. The current
+manifest-consistency check is not that enforcement gate. No release checkbox,
+commit, tag, or publication is created by this checkpoint.
+
+### Earlier Cluster membership execution checkpoint
+
+All fourteen Membership operations now call the existing VM membership state
+machine directly, alongside the four Profile operations. The state machine is
+production code shared with its Rust tests, not a separate adapter algorithm.
+Source updates clone the view and retain the prior view; profiles and views
+share one typed, actor-owned resource registry. Relabelling a handle cannot
+alias another resource kind, and actor cleanup preserves other owners.
+
+The first nine-test source acceptance attempt exposed an unqualified nested
+record pattern in AOT lowering. A diagnostic seven-test selection then passed
+only the two profile tests: five membership tests failed because the adapter
+returned records where the boundary required atoms. Neither attempt counts as
+acceptance. Canonical identity qualification now traverses patterns at binding
+sites, and lifecycle/health values use their declared atom representation.
+After rebuilding, all nine source tests pass, with per-test runtime results in
+`target/quality/release-diagnostics/cluster-membership-final-source-results.json`.
+The full-suite retry still rejects the session `accept` placeholder.
+
+The final scoped Rust evidence is 625 NativeIR tests and 38 native-helper tests;
+the unchanged coordination and distributed-scheduler selections passed 38 and
+56 tests. Both strict workspace-bin Clippy profiles pass, as do API-boundary,
+module-structure, file-headroom and dependency-impact checks. String-error debt
+remains 3,081; extraction redistributed existing entries without raising the
+budget. Evidence is under `target/quality/release-diagnostics/cluster-membership-*`.
+These results do not establish session support or full release API coverage.
+
+The historical `std-package-coverage-100` check now identifies itself as
+manifest consistency only: its rows are not unique executed tests and it does
+not measure declaration completeness. Whole-release source execution coverage
+is required by V9-3, including existing APIs and shipped packages. The stronger
+inventory/execution gate remains to be implemented. JS validation-only reports
+must not satisfy it; the subsequent execution-honesty fix reports them as not
+executed and fails the test command. Nothing in this checkpoint closes a release item.
+
+### Earlier Cluster profile implementation checkpoint
+
+The four profile operations (`profile`, `node_id`, `epoch`, `next_epoch`) now
+use a direct VM-owned adapter and the existing coordination profile validation.
+Resource ownership uses a shared typed registry extracted from the native
+adapter store, retaining generation and actual-owner checks and actor cleanup.
+Unknown Cluster operations fail explicitly without starting an external worker.
+Profiles alone do not implement membership, transport sessions or networking;
+the module documentation states this limitation.
+
+Two source profile tests passed with the initial rebuilt CLI. Six focused Rust
+tests pass, including immutable epochs, overflow, forged handles, owner cleanup
+and rejection without worker fallback. Separate regression selections passed
+193 native-boundary, 38 coordination, 28 non-Cluster native-helper and 623
+NativeIR tests. These runtime results predate the subsequent helper-process
+extraction. File-headroom validation caught `package_native_helper.rs` growing
+from its 982-line baseline to 990 lines. Extracting the existing subprocess
+lifecycle and bounded request transport reduces it to 890 lines, with a
+114-line `helper_process.rs`; no allowance was raised or protocol changed.
+The final CLI rebuild, post-extraction runtime tests and strict Clippy profiles
+remain outstanding; the initial source test
+result predates the final epoch-overflow guard. Low disk space prevents safely
+starting another large build. Evidence is under
+`target/quality/release-diagnostics/cluster-*`. This is partial implementation,
+not acceptance of the full Cluster suite or release closeout.
+
+Post-extraction AST-based API-boundary and module-structure checks pass; Rust
+documentation reports zero undocumented items. The initial quality-consumer
+attempt failed with `error[tvm.image.seal_write]: No space left on device`.
+The subsequent scoped checks use `TMPDIR=/run/user/1000` for the same sealed
+validator image, preserving private image admission and avoiding shared-cache
+deletion. This temporary-directory change is not evidence that Cargo builds
+or full release validation can finish with the remaining disk space.
+
+### Completed Task execution checkpoint
+
+Completed tasks use compiler-owned, canonical managed storage on the owning
+actor, with no interpreter or worker-RPC fallback. Payloads survive aliases,
+repeated observations, suspension, nested tasks and typed empty collections.
+`result` preserves the standard Error identity even when a caller declares an
+unrelated Error type. General asynchronous Task scheduling is not implemented
+or advertised by this repair.
+
+The acceptance tests exposed and repaired four shared compiler issues:
+normalized case-valued Boolean conditions were rejected despite having native
+lowering; expected collection types were not propagated into completed tasks;
+fresh Result aliases lost their pattern-bound payload types; generic calls could
+narrow a declared union based on argument order. Build and test source closures
+also omitted type-only providers, giving declared and inferred Error payloads
+different managed identities. Both loaders now retain those schema dependencies;
+runtime semantic-type checks remain enforced.
+
+Scoped validation passes 623 NativeIR tests (including eight new regressions),
+three production source-closure tests, 827 typechecker tests, 38 formal-pipeline
+tests, six checked-cache tests and 136 target-profile tests. The one ignored
+typechecker test retains its separate closeout owner and is not counted as passed.
+The final source sweep passes 112 tests across Unit, Option, Result, Object,
+Error, Equal, Int, Float, Task and Effect. Both strict workspace-bin Clippy
+profiles, Rust documentation, API-boundary, module-structure and file-headroom
+checks pass without raising quality budgets. Evidence is under
+`target/quality/release-diagnostics/task-*`. This is local repair evidence, not
+committed-candidate, installed-artifact or publication acceptance.
+
+### Selected-function import checkpoint
+
+The next source sweep passed 99 tests across Unit (7), Option (17), Result (14),
+Object (4), Error (3), Equal (11), Int (19), and Float (24). Equal first failed
+native admission because checked selected imports were treated as ambiguous
+whole-module imports. CoreIR now retains sorted provider/function/alias
+provenance in serialization and contract fingerprints. Reachability preserves
+the selected candidates until typed resolution chooses the unique provider.
+Unrelated providers and private bodies are not admitted, and genuinely
+ambiguous imports retain loud errors. Intrinsic-only providers use their
+retained checked interface signatures and the shared intrinsic lowering.
+
+Scoped validation passes 615 NativeIR tests, 827 typechecker tests, 38 formal
+pipeline tests, six checked-cache tests and 136 target-profile tests. The one
+ignored typechecker test remains owned by `stdlib-release-contracts-check` and
+is not counted as passed. New regressions cover concrete Int/Float dispatch,
+import aliases, ambiguity rejection, serialization, and mixed intrinsic/source
+providers. String-error debt falls to 3,081 without a budget increase. The
+near-limit typechecker module remains at 950 lines.
+
+Evidence is under `target/quality/release-diagnostics/selected-import-*`, with
+the successful Equal source run in `selected-import-intrinsic-Equal.log`.
+The earlier failed attempts remain diagnostic evidence, not accepted runs.
+The original Task failure is recorded in `selected-import-core-Task.log` and is
+superseded by the completed Task checkpoint above. The completed
+import repair does not close V9-1, V9-2, V9-3, or the broader capability audit.
+
+### Random adapter checkpoint
+
+All nine Random operations now use the existing Rust RNG through the resource-owned
+standard dispatcher. Generator state stays immutable and process-owned; draws
+return a new generation-checked handle. Generic collection values retain their
+shape, tuple transport preserves ownership and term budgets, and resource-owner
+validation now descends into records as well as lists and tuples. Package helpers
+are not required for these safe standard operations.
+
+The current compiler passes all 16 Random API tests and both Random property tests.
+Scoped Rust validation passes 795 distinct tests, including the complete NativeIR
+selection and affected native-boundary/VM regressions. Both strict Clippy profiles,
+Rust documentation and formatting pass. The rebuilt quality validator passes
+documentation, API boundaries, module structure, file headroom and refreshed
+dependency-impact verification. Its size remains 12,003,336 bytes; near-limit source
+files decrease from 65 to 64 without raised limits. Evidence uses `random-bridge-` under
+`target/quality/release-diagnostics/`.
+
+At this checkpoint the next release-manifest check, BinaryTest, failed: 61 tests
+passed and 11 failed with
+a managed semantic-type mismatch in byte construction. A minimal probe passes
+`Bytes.from_list([42])` but rejects `Bytes.from_list([])` and its lexical alias.
+The required byte operand schema is not applied to the empty-list bottom layout.
+This was not waived or skipped. The earlier recorded Binary checkpoint passed all
+72 tests; these regressions are corrected in the current status above. The failed
+reports remain available as diagnostic evidence.
+
+### Captured-callback and empty-map checkpoint
+
+Captured callbacks now keep their checked function signatures through escaping
+closure conversion, lexical aliases and branches. Lambda parameters still shadow
+outer bindings. Linked execution covers callbacks that suspend and resume, and
+the full Property suite passes all 18 tests, including shrinking and replay.
+
+Standard List, Map, Set and Iterator declarations keep their compiler-owned
+collection storage rather than becoming native-package resource handles.
+Package-defined namesakes retain their resource boundary. Unconstrained empty Map
+slots receive an uninhabited Never schema; concrete consumer and mutation types
+remain intact. The full Map suite now passes all 13 tests.
+
+The final combined compiler passes all 572 NativeIR tests and 158 source tests
+across fourteen standard-library suites. RandomProperty was rechecked and still
+fails both tests: the standard random adapter is routed to a missing package helper.
+It is not waived. Both strict Clippy profiles, Rust documentation, formatting,
+API boundaries, module structure, file headroom and refreshed dependency-impact
+verification pass. The rebuilt quality validator remains 12,003,336 bytes.
+Evidence uses `callback-map-` under
+`target/quality/release-diagnostics/`, with focused repros under `captured-contract-`
+and `empty-map-`. These are local, uncommitted corrections, not exact-candidate
+release acceptance. All three roadmap items remain open; no push, merge, tag or
+publication has occurred.
+
+### Empty-list correction checkpoint
+
+The current local correction gives checked `List[Never]` values per-use layouts
+instead of permanently pinning a binding to its first consumer. One empty value
+can reach both Int and String consumers. A producer still executes exactly once;
+only its uninhabited result is adapted. Concrete and user-defined collections are
+not retyped. Generic `List.new()` retains its checked consumer constraints rather
+than acquiring new polymorphic semantics.
+
+Mutation refinement now happens at the write, not at the initial bottom binding:
+reading an empty list as String before pushing an Int no longer changes the earlier
+read's type. Mutation receivers survive generic callback instantiation, and unknown
+rebindings invalidate earlier witnesses. Generic inference now handles scoped let
+expressions, including the sequencing needed to retain producer effects. Runtime
+semantic checks stay enabled and Never is not replaced with Unit.
+
+All 567 NativeIR tests pass through non-overlapping final selections. The actual
+compiler and VM pass 127 standard-library source tests, including Iterator and
+PropertyDistribution, plus four source probes for reuse, effects, read-before-write
+and runtime filters. The effect probe records exactly two producer invocations:
+one bound producer reused twice and one direct call. Both strict workspace-binary
+Clippy profiles, Rust documentation, language coverage, formatting and whitespace
+checks pass. The final quality-validator rebuild and its documentation, API
+boundary, module structure, file headroom and dependency-impact gates pass. The
+rebuilt validator is 12,003,336 bytes. Evidence uses
+`empty-reuse-` under `target/quality/release-diagnostics/`.
+
+The preceding empty-literal and runtime-argument corrections remain: [] retains
+its checked bottom element; concrete nested siblings provide a shared layout;
+runtime string-list contracts refine bottom literal annotations without changing
+concrete casts or discarding effects. Their earlier validator passed API/module/
+headroom, dependency-impact and docs gates at 12,003,336 bytes. Completed work is
+rerun only for changed compiler inputs, not as an unchanged-input retry.
+
+Three required full source suites still fail on this compiler: Map (unconstrained
+empty-map inference), Property (a captured callback loses its closure type), and
+RandomProperty (the standard random adapter is routed to a missing package helper).
+All three were rechecked. Property's shrinking test reproduces its failure alone,
+independently of empty-generator input. None is waived. These are local, uncommitted
+corrections, not exact-candidate release acceptance; all three roadmap items remain
+open, with no push, merge, tag or publication.
+
+The previously failing `empty-bottom-reuse-probe.log` case now passes; the original
+failure and its passing `empty-reuse-final-` run are both retained. This does not
+close the unrelated empty-map or captured-callback failures above.
+
+### Previous correction checkpoints
+
+The current local correction preserves a constructor's already resolved provider
+through CoreIR identity annotation. A selected import must not be rebound by its
+bare name when another provider exports the same spelling. Module-style constructor
+facades still acquire their final type component. Calls, constructor chains and
+patterns share the same idempotent rule. Linked execution covers two distinct user
+records named List alongside the standard collection constructor, fixing the
+previously recorded imported-record alias failure.
+
+The final compiler selection passes 622 tests, including all 553 NativeIR tests.
+Another 875 frontend/backend tests pass; the separately owned release-scale stdlib
+contract test also passes: 1,498 distinct scoped Rust tests. The actual compiler
+and VM pass 110 List/Functional/Option/Result/Gen/Shrink and collection-property
+source tests. Both strict workspace-binary Clippy profiles, Rust documentation and
+language coverage pass. The validator rebuild succeeded on one bounded incremental
+retry after an unexplained SIGTERM; its artifact remains 12,003,336 bytes. Completed
+test owners were not replayed, and the terminated build is not counted as passing.
+Evidence uses `record-alias-` under
+`target/quality/release-diagnostics/`. These are scoped correction checks, not the
+canonical exact-candidate release campaign.
+
+The preceding collection correction is retained: call-result types use argument
+witnesses and the shared generic unifier without erasing symbolic constructor
+context; qualified standard List types share builtin storage. The preceding
+receiver-declaration, reachability and generic struct initializer fixes also remain.
+
+Five required full source suites still fail on the rebuilt compiler: Map and
+Iterator on unconstrained empty collections, Property and PropertyDistribution on
+empty-generator inference, and RandomProperty on native adapter routing. All five
+were rerun and none was waived. Changes remain local and uncommitted; there has
+been no push, merge, tag or publication. All three roadmap items remain open.
+
+The preceding correction retains explicit trait-instance arguments in serialized
 CoreIR and reachability, and selects generic implementation bodies before argument
 monomorphization. Linked regressions verify return-only trait selection, imported
 aliases, pruning and rejection of incompatible generic arguments. Named callbacks
@@ -991,6 +1851,68 @@ in order; close them only with passing implementation evidence.
     exact artifact identity, checksums, provenance, and failure/retry behavior.
   - Verify that baseline compiler/runtime behavior and CPU-only independence are
     preserved. Do not claim additional ABI, self-hosting, or accelerator support.
+  - Complete verification of supported local `DistributedStorage` execution;
+    replication is explicitly unsupported in this release by the scope decision
+    above, not simulated or counted as implemented:
+    - Use a maintained storage engine for transactional local persistence;
+      never treat in-memory `flush` counters as durable acknowledgement.
+      Keep database identity, payload schema, atomic batch/CAS boundaries,
+      compaction, corruption checks, and retry semantics explicit.
+    - Authorize configured local storage paths through VM-owned
+      capabilities. Blocking storage operations must run off shard owners;
+      preserve bounded admission, owner/epoch fencing, cancellation, and
+      indeterminate-commit handling when a worker dies or a reply is lost.
+    - Implement resource-name registration against supervisor-authorized live
+      bindings. Unknown names must fail without creating authority or advancing
+      validation proof metadata. Persist the expected resource identity where
+      required for recovery, and revalidate it against the authorized provider
+      after restart or restore. Reject missing, revoked, stale, or replaced
+      resources explicitly; a string registry or logical database UUID alone
+      is not custody evidence. Exercise these cases through production AOT,
+      including successful recovery with the original authorized resource.
+    - Document cluster replication, quorum writes, and automatic failover as
+      unsupported in 0.0.9. Verify false capability queries and typed rejection
+      of replication requests, including caller-supplied availability flags and
+      configured local backends. Rejection must not append, advance sequence or
+      proof metadata, or contact a peer. Retain the declarations and separately
+      report their negative execution evidence; do not imply positive coverage.
+    - Execute every supported storage operation from Terlan through production
+      AOT. Verify restart/restore, failed atomic batches, stale writers,
+      corrupted/incompatible checkpoints, and worker failure.
+      Capability booleans must reflect actual configured backends, not a caller
+      supplied `available=true` assertion. Keep all coverage obligations open
+      until the claimed local capabilities' execution and backend evidence pass.
+  - Require 100% Terlan-source execution coverage of advertised public APIs:
+    - Apply this to the entire current release candidate, including existing
+      APIs and shipped packages, not just changed code or newly introduced
+      APIs. Keep package-owned tests with their packages and consume their
+      candidate-bound results in the release report without duplicate runs.
+      Enforce the same completeness rule for subsequent release candidates.
+    - Derive the inventory from public declarations, including methods,
+      overloads, constructors and re-exports by canonical identity. Compare it
+      against supported-target claims; do not use only the existing handwritten
+      manifest as the denominator or silently omit uncovered APIs.
+    - Bind every supported API/target obligation to a Terlan test that compiles
+      through the production backend and executes observable assertions against
+      the API on that target. Cover documented success, error, boundary and
+      lifecycle contracts as applicable; Rust unit tests and interface checks
+      are complementary, not substitutes.
+    - Reconcile mapped tests with the exact candidate's execution results.
+      Missing, skipped, failed, declaration-only, placeholder or stale evidence
+      must fail acceptance. A manifest row or a passing unrelated test is not
+      execution proof. Reuse the canonical test run rather than rerunning tests
+      to produce coverage evidence; one test may satisfy several proven
+      obligations, with unique execution counts preserved.
+    - Report explicitly unsupported API/target pairs separately, backed by
+      diagnostic tests; never count rejection as positive capability coverage.
+      An existing advertised capability gap remains a defect to repair, not a
+      reason to shrink the coverage denominator or change the support claim
+      without review. Generated JS declarations likewise need real JS-target
+      execution evidence for any runtime support claim.
+    - Reject incomplete declaration inventories and uncovered added APIs in the
+      release gate. Report API execution coverage separately from Rust line or
+      branch coverage; 100% API coverage is not a claim that every behavior has
+      been proven.
   - Record measured cold, warm, and interrupted/resumed validation results.
     Distinguish focused measurements from full-cycle results; investigate
     regressions without requiring an idle host.

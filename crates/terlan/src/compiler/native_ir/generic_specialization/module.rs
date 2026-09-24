@@ -15,6 +15,7 @@ pub(super) fn specialize_core(
             continue;
         }
         let mut generated = Vec::new();
+        let expected_result = core.functions[cursor].core_return_type.clone();
         let parameter_types = core.functions[cursor]
             .params
             .iter()
@@ -42,6 +43,15 @@ pub(super) fn specialize_core(
                 )?;
             }
             if let Some(body) = clause.body.core_expr.as_mut() {
+                if let Some(expected) = &expected_result {
+                    contextual_result::seed(
+                        body,
+                        expected,
+                        &parameter_types,
+                        templates,
+                        &core.module,
+                    );
+                }
                 rewrite_expr(
                     body,
                     &parameter_types,

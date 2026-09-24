@@ -3,11 +3,13 @@
 mod aggregate_abi;
 mod aggregates;
 mod atoms;
+pub(crate) use operation_abi::immediate_variant;
 mod closure_abi;
 mod closure_dispatch;
 mod closures;
 mod collection_abi;
 mod core;
+mod erased_values;
 mod execution;
 mod heap;
 mod layout;
@@ -37,6 +39,7 @@ pub use collection_abi::{
     ManagedCollectionKind, MAX_MANAGED_COLLECTION_ABI_BYTES,
 };
 pub use core::{ActorId, ManagedMemoryError, TvmRef};
+pub use erased_values::{managed_erased_value_semantic_id, ManagedErasedValue};
 #[cfg(any(test, feature = "native-codegen"))]
 pub(crate) use execution::MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET;
 pub(crate) use execution::{ManagedActorTransfer, ManagedExecutionRuntime, PendingManagedCaptures};
@@ -73,7 +76,9 @@ pub use operation_abi::{
     encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
     encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
     encode_bytes_starts_with_operation, encode_bytes_to_list_operation,
-    encode_cookie_header_operation, encode_float_from_string_operation, encode_float_log_operation,
+    encode_cookie_header_operation, encode_erased_value_box_operation,
+    encode_erased_value_is_type_operation, encode_erased_value_unbox_operation,
+    encode_float_from_string_operation, encode_float_log_operation,
     encode_float_to_string_operation, encode_int_from_string_base_operation,
     encode_int_from_string_operation, encode_int_to_string_base_operation,
     encode_int_to_string_operation, encode_iterator_next_operation,

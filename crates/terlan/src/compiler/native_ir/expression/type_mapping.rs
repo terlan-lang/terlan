@@ -7,6 +7,13 @@ use super::{scalar_types, NativeType};
 
 pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeType> {
     match core {
+        // Compiler-owned existential carrier, not a source-level Dynamic cast.
+        // '$' cannot begin a user type name.
+        Some(CoreType::Named(name)) if name == super::super::effect_values::ERASED_VALUE_TYPE => {
+            crate::runtime::native_image::managed::managed_erased_value_semantic_id()
+                .ok()
+                .map(NativeType::ManagedRef)
+        }
         Some(CoreType::Named(name)) if name == "Unit" => Some(NativeType::Unit),
         Some(CoreType::AtomLiteral(name)) if matches!(name.as_str(), "Unit" | "unit") => {
             Some(NativeType::Unit)
@@ -44,6 +51,10 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
             managed_reference_type(&CoreType::Named("MiddlewareResult".to_string()))
         }
         Some(CoreType::Binary) => Some(NativeType::BinaryRef),
+        // Never has no value constructor or aggregate layout. Its reference
+        // carrier lets empty collections retain a distinct checked schema;
+        // it does not turn an uninhabited element into an ordinary Unit value.
+        Some(core @ CoreType::Never) => managed_reference_type(core),
         Some(CoreType::Arrow {
             params,
             return_type,

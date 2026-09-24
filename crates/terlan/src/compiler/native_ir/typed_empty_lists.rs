@@ -86,14 +86,7 @@ pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), 
             args.iter_mut().for_each(|arg| annotate(arg, resolver));
             if let Some(parameters) = resolver.get(&(function.clone(), args.len())) {
                 for (argument, expected) in args.iter_mut().zip(parameters) {
-                    if matches!(argument, CoreExpr::List(items) if items.is_empty())
-                        && is_list_type(expected)
-                    {
-                        *argument = CoreExpr::Cast {
-                            expr: Box::new(CoreExpr::List(Vec::new())),
-                            target_type: expected.clone(),
-                        };
-                    }
+                    annotate_empty_argument(argument, expected);
                 }
             }
         }
@@ -170,12 +163,7 @@ pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), 
             call.args.iter_mut().for_each(|arg| annotate(arg, resolver));
             for index in runtime_string_list_arguments(&call.id) {
                 if let Some(argument) = call.args.get_mut(*index) {
-                    if matches!(argument, CoreExpr::List(items) if items.is_empty()) {
-                        *argument = CoreExpr::Cast {
-                            expr: Box::new(CoreExpr::List(Vec::new())),
-                            target_type: CoreType::List(Box::new(CoreType::String)),
-                        };
-                    }
+                    annotate_empty_argument(argument, &CoreType::List(Box::new(CoreType::String)));
                 }
             }
         }
@@ -224,6 +212,29 @@ pub(super) fn annotate(expr: &mut CoreExpr, resolver: &HashMap<(String, usize), 
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
+    }
+}
+
+fn annotate_empty_argument(argument: &mut CoreExpr, expected: &CoreType) {
+    if !is_list_type(expected) {
+        return;
+    }
+    match argument {
+        CoreExpr::List(items) if items.is_empty() => {
+            *argument = CoreExpr::Cast {
+                expr: Box::new(CoreExpr::List(Vec::new())),
+                target_type: expected.clone(),
+            };
+        }
+        CoreExpr::Cast { expr, target_type }
+            if matches!(expr.as_ref(), CoreExpr::List(items) if items.is_empty())
+                && matches!(&*target_type, CoreType::List(element) if element.as_ref() == &CoreType::Never) =>
+        {
+            // Collection inference runs before this ABI-contract pass. Its
+            // bottom witness is refinable, unlike an explicit concrete cast.
+            *target_type = expected.clone();
+        }
+        _ => {}
     }
 }
 

@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "c12d7bd87fab2e4e6473c173f0b45091d4ea255a828c5704ff01620035305475",
+  "compilation_input_sha256": "354cecfd4082589f658255ff5c10ad31c66796c41b5be1ec0df524dd54f9c8d7",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 56,
     "maximum_resolved_duplicate_families": 34,
@@ -34,14 +34,14 @@
     },
     {
       "domain": "compiler",
-      "reference_sites": 24,
+      "reference_sites": 22,
       "source_domains": [
         "commands"
       ]
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 49,
+      "reference_sites": 47,
       "source_domains": [
         "commands",
         "lsp",
@@ -138,7 +138,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 87,
+      "reference_sites": 89,
       "source_domains": [
         "commands",
         "compiler"
@@ -160,7 +160,7 @@
     },
     {
       "domain": "validation",
-      "reference_sites": 14,
+      "reference_sites": 12,
       "source_domains": [
         "commands"
       ]
@@ -672,12 +672,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 24,
+      "reference_sites": 22,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 47,
+      "reference_sites": 45,
       "to": "formal_pipeline"
     },
     {
@@ -697,12 +697,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 14,
+      "reference_sites": 12,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 16,
+      "reference_sites": 18,
       "to": "runtime"
     },
     {
@@ -744,13 +744,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 128081,
-      "rust_files": 337
+      "physical_lines": 127850,
+      "rust_files": 336
     },
     {
       "name": "compiler",
-      "physical_lines": 170748,
-      "rust_files": 457
+      "physical_lines": 173341,
+      "rust_files": 473
     },
     {
       "name": "formal_pipeline",
@@ -774,8 +774,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1152,
-      "rust_files": 5
+      "physical_lines": 1511,
+      "rust_files": 6
     },
     {
       "name": "package_registry",
@@ -784,7 +784,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50971,
+      "physical_lines": 50972,
       "rust_files": 154
     },
     {
@@ -844,8 +844,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 141096,
-      "rust_files": 419
+      "physical_lines": 145933,
+      "rust_files": 454
     },
     {
       "name": "serve_runtime",
@@ -864,7 +864,7 @@
     },
     {
       "name": "vm",
-      "physical_lines": 3435,
+      "physical_lines": 3480,
       "rust_files": 12
     }
   ],
@@ -1128,12 +1128,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 2,
+      "reference_sites": 5,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 4,
+      "reference_sites": 7,
       "to": "formal_pipeline"
     },
     {
@@ -1143,7 +1143,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 44,
+      "reference_sites": 47,
       "to": "runtime"
     },
     {
@@ -1153,12 +1153,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 4,
+      "reference_sites": 7,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 13,
+      "reference_sites": 14,
       "to": "runtime"
     },
     {
@@ -1195,13 +1195,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 40089,
-      "rust_files": 172
+      "physical_lines": 40461,
+      "rust_files": 175
     },
     {
       "name": "compiler",
-      "physical_lines": 43128,
-      "rust_files": 178
+      "physical_lines": 45363,
+      "rust_files": 185
     },
     {
       "name": "formal_pipeline",
@@ -1220,8 +1220,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 846,
-      "rust_files": 4
+      "physical_lines": 1135,
+      "rust_files": 5
     },
     {
       "name": "package_registry",
@@ -1260,8 +1260,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 75620,
-      "rust_files": 315
+      "physical_lines": 80106,
+      "rust_files": 339
     },
     {
       "name": "support",
@@ -1275,13 +1275,13 @@
     },
     {
       "name": "validation",
-      "physical_lines": 6965,
+      "physical_lines": 6967,
       "rust_files": 18
     },
     {
       "name": "vm",
-      "physical_lines": 1454,
-      "rust_files": 7
+      "physical_lines": 1777,
+      "rust_files": 8
     }
   ],
   "workspace_cycles": [],

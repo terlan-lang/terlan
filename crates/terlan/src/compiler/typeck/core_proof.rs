@@ -63,6 +63,9 @@ pub(crate) use structural_impl::{
 pub(crate) mod metadata;
 pub(crate) use metadata::core_module_metadata;
 
+#[cfg(test)]
+mod constructor_identities_test;
+
 /// Collects CoreIR function clause summaries from syntax output.
 ///
 /// Inputs:
@@ -412,6 +415,24 @@ pub(crate) fn core_constructor_identities(
     identities
 }
 
+/// Fills unresolved constructor identities without rebinding a qualified target.
+/// A module-style constructor may still need its final type component appended,
+/// but a selected import's resolved provider outranks an unrelated short name.
+fn retain_constructor_identity(
+    name: &str,
+    resolved: &mut Option<String>,
+    identities: &HashMap<String, String>,
+) {
+    if let Some(identity) = identities.get(name) {
+        if resolved
+            .as_ref()
+            .is_none_or(|prior| identity == &format!("{prior}.{name}"))
+        {
+            *resolved = Some(identity.clone());
+        }
+    }
+}
+
 /// Annotates one Core expression summary tree with constructor identities.
 ///
 /// Inputs:
@@ -582,9 +603,7 @@ fn resolve_constructor_identities_in_core_expr(
             args,
             record,
         } => {
-            if let Some(identity) = constructor_identities.get(base) {
-                *base_constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(base, base_constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_expr(arg, constructor_identities);
             }
@@ -596,9 +615,7 @@ fn resolve_constructor_identities_in_core_expr(
             constructor_identity,
             args,
         } => {
-            if let Some(identity) = constructor_identities.get(constructor) {
-                *constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(constructor, constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_expr(arg, constructor_identities);
             }
@@ -735,9 +752,7 @@ fn resolve_constructor_identities_in_core_pattern(
             constructor_identity,
             args,
         } => {
-            if let Some(identity) = constructor_identities.get(name) {
-                *constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(name, constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_pattern(arg, constructor_identities);
             }

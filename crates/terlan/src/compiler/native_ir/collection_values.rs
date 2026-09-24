@@ -12,12 +12,36 @@ use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePattern, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
+use super::empty_list_values::at_boundary as adapt_empty_list;
 use super::native_type_with_constructors as native_type;
 use super::{
     infer_native_type_with_constructors, lower_expr_with_constructors, NativeConstructorLayouts,
     NativeExpr, NativeType,
 };
+mod nullary_options;
 mod record_values;
+fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
+    SemanticTypeId::from_canonical(&ty.contract_text())
+        .map_err(|error| format!("error[native_ir.collection_type]: {error}"))
+}
+
+fn map_key_expr(key: &str, ty: &CoreType) -> Result<CoreExpr, String> {
+    match ty {
+        CoreType::String => serde_json::to_string(key)
+            .map(CoreExpr::Binary)
+            .map_err(|error| format!("error[native_ir.map_key]: {error}")),
+        CoreType::Atom | CoreType::AtomLiteral(_) => Ok(CoreExpr::Atom(key.to_string())),
+        CoreType::Int => key
+            .parse::<i64>()
+            .map(CoreExpr::Int)
+            .map_err(|_| format!("error[native_ir.map_key]: `{key}` is not an Int key")),
+        _ => Err(format!(
+            "error[native_ir.map_key]: `{}` has no native literal-key semantics",
+            ty.contract_text()
+        )),
+    }
+}
+pub(super) use nullary_options::is_none_option_value;
 
 #[path = "collection_values/structural_maps.rs"]
 mod structural_maps;
@@ -35,6 +59,19 @@ pub(super) fn lower_boundary_collection_value(
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if let Some(adapted) =
+        adapt_empty_list(body, expected, param_types, function_types, constructors)
+    {
+        return try_lower_typed_value(
+            &adapted,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        );
+    }
     if matches!(body, CoreExpr::RecordConstruct { .. }) {
         return record_values::lower(
             body,
@@ -54,24 +91,22 @@ pub(super) fn lower_boundary_collection_value(
             return Ok(Some(value));
         }
     }
-    if let CoreExpr::Cast { expr, target_type } = body {
-        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors);
-        let target_native = native_type(
-            Some(target_type),
-            &target_type.contract_text(),
+    if let Some(expr) = super::expression::collection_cast_source(
+        body,
+        expected,
+        param_types,
+        function_types,
+        constructors,
+    ) {
+        return lower_boundary_collection_value(
+            expr,
+            Some(expected),
+            params,
+            param_types,
+            functions,
+            function_types,
             constructors,
         );
-        if target_type == expected || expected_native == target_native {
-            return lower_boundary_collection_value(
-                expr,
-                Some(expected),
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            );
-        }
     }
     if let (CoreExpr::Map(fields), CoreType::Map(field_types)) = (body, expected) {
         return structural_maps::lower(
@@ -554,30 +589,39 @@ pub(super) fn try_lower_typed_value(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    if let Some(boxed) = super::effect_values::boxed_field(value, expected) {
+        return lower_expr_with_constructors(
+            &boxed,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map(Some);
+    }
     if matches!(
         value,
         CoreExpr::Case { .. } | CoreExpr::If { .. } | CoreExpr::Try { .. }
     ) {
         return Ok(None);
     }
-    if let CoreExpr::Cast { expr, target_type } = value {
-        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors);
-        let target_native = native_type(
-            Some(target_type),
-            &target_type.contract_text(),
+    if let Some(expr) = super::expression::collection_cast_source(
+        value,
+        expected,
+        param_types,
+        function_types,
+        constructors,
+    ) {
+        return try_lower_typed_value(
+            expr,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
             constructors,
         );
-        if target_type == expected || expected_native == target_native {
-            return try_lower_typed_value(
-                expr,
-                expected,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            );
-        }
     }
     if let (CoreExpr::Binary(value), CoreType::Binary) = (value, expected) {
         let value = super::expression::core_string_runtime_value(value)?;
@@ -812,73 +856,4 @@ fn structural_tagged_tuple_constructor(value: &CoreExpr, expected: &CoreType) ->
         constructor_identity: None,
         args: items.iter().skip(1).cloned().collect(),
     })
-}
-
-/// Reports whether an atom-form `None` is being lowered as an `Option` value.
-pub(super) fn is_none_option_value(value: &CoreExpr, expected: &CoreType) -> bool {
-    is_nullary_none_value(value)
-        && match expected {
-            CoreType::Apply { constructor, args } => {
-                constructor.rsplit('.').next() == Some("Option") && args.len() == 1
-            }
-            CoreType::Union(variants) => variants.iter().any(|variant| {
-                matches!(variant, CoreType::AtomLiteral(name) if name == "none")
-                    || matches!(
-                        variant,
-                        CoreType::Named(name)
-                            if name.rsplit('.').next() == Some("None")
-                    )
-            }),
-            _ => false,
-        }
-}
-
-/// Recognizes control wrappers whose every selected value is the nullary
-/// `None` variant. Call-region construction may retain a one-clause `if`
-/// around a short-circuit bypass, so representation selection must inspect
-/// the terminal values rather than only the outer node.
-fn is_nullary_none_value(value: &CoreExpr) -> bool {
-    match value {
-        CoreExpr::Atom(name) | CoreExpr::Var(name) => name.eq_ignore_ascii_case("none"),
-        CoreExpr::ConstructorCall {
-            constructor, args, ..
-        } => args.is_empty() && constructor.rsplit('.').next() == Some("None"),
-        CoreExpr::Cast { expr, .. } => is_nullary_none_value(expr),
-        CoreExpr::Let { body, .. } => is_nullary_none_value(body),
-        CoreExpr::If { clauses } => {
-            !clauses.is_empty()
-                && clauses
-                    .iter()
-                    .all(|clause| is_nullary_none_value(&clause.body))
-        }
-        CoreExpr::Case { clauses, .. } => {
-            !clauses.is_empty()
-                && clauses
-                    .iter()
-                    .all(|clause| is_nullary_none_value(&clause.body))
-        }
-        _ => false,
-    }
-}
-
-fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(&ty.contract_text())
-        .map_err(|error| format!("error[native_ir.collection_type]: {error}"))
-}
-
-fn map_key_expr(key: &str, ty: &CoreType) -> Result<CoreExpr, String> {
-    match ty {
-        CoreType::String => serde_json::to_string(key)
-            .map(CoreExpr::Binary)
-            .map_err(|error| format!("error[native_ir.map_key]: {error}")),
-        CoreType::Atom | CoreType::AtomLiteral(_) => Ok(CoreExpr::Atom(key.to_string())),
-        CoreType::Int => key
-            .parse::<i64>()
-            .map(CoreExpr::Int)
-            .map_err(|_| format!("error[native_ir.map_key]: `{key}` is not an Int key")),
-        _ => Err(format!(
-            "error[native_ir.map_key]: `{}` has no native literal-key semantics",
-            ty.contract_text()
-        )),
-    }
 }

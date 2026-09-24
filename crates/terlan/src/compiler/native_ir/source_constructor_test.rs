@@ -12,6 +12,66 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
 
 #[test]
+fn completed_guard_values_do_not_admit_unreachable_effect_adapters() {
+    check_sources(&[
+        r#"
+module completed_guard_values.
+import std.core.GuardResult.{accept, reject, value}.
+pub check(): Bool ->
+    value(accept()) and not value(reject()).
+"#,
+        include_str!("../../../../../std/core/GuardResult.terl"),
+        include_str!("../../../../../std/core/Effect.terl"),
+    ]);
+}
+
+#[test]
+fn empty_byte_operands_adapt_without_losing_suspending_producers() {
+    check_sources(&[r#"
+module empty_byte_operands.
+import std.vm.{Bytes, Process}.
+pub produce(): List[Never] -> let _parked = Process.yield_now(); [].
+pub check(): Bool ->
+    let values = [];
+    Bytes.from_list([]).length() == 0
+        and Bytes.from_list(values).length() == 0
+        and Bytes.from_list(produce()).length() == 0
+        and Bytes.from_list([42]).length() == 1.
+"#]);
+}
+
+#[test]
+fn unconstrained_empty_maps_retain_uninhabited_slots() {
+    check_sources(&[
+        r#"
+module empty_map_bottom.
+import std.collections.Map.
+pub check(): Bool ->
+    let values = Map.new();
+    let alias = values;
+    alias.is_empty() and values.size() == 0.
+"#,
+        include_str!("../../../../../std/collections/Map.terl"),
+    ]);
+}
+
+#[test]
+fn empty_map_observation_preserves_later_mutation() {
+    check_sources(&[
+        r#"
+module empty_map_mutation.
+import std.collections.Map.
+pub check(): Bool ->
+    let values = Map.new();
+    let before = values.is_empty();
+    values.put("first", 42);
+    before and values.size() == 1 and values.contains_key("first").
+"#,
+        include_str!("../../../../../std/collections/Map.terl"),
+    ]);
+}
+
+#[test]
 fn qualified_option_payload_retains_managed_receiver_type() {
     let source = r#"
 module qualified_option_payload.
@@ -22,6 +82,167 @@ pub check(): Bool -> case make() { Some(value) -> value.length() == 2; None -> f
 "#;
     check_sources(&[source]);
     check_sources(&[source, include_str!("../../../../../std/core/Option.terl")]);
+}
+
+#[test]
+fn tuple_option_patterns_retain_scalar_payloads_in_boolean_bindings() {
+    check_sources(&[
+        r#"
+module tuple_option_payload.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+pub check(): Bool ->
+    let values = List(1, 2, 1, 3);
+    let result = values.subtract(List(1, 3));
+    case {result.first(), values.first()} {
+        {None, _} -> false;
+        {_, None} -> false;
+        {Some(result_first), Some(source_first)} ->
+            let result_is_expected = result.length() == 2 and result_first == 2;
+            let source_is_unchanged = values.length() == 4 and source_first == 1;
+            result_is_expected and source_is_unchanged
+    }.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/collections/List.terl"),
+    ]);
+}
+
+#[test]
+fn qualified_list_parameters_share_literal_and_rest_storage() {
+    check_sources(&[
+        r#"
+module qualified_list_storage.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+tail_starts_with_two(values: std.collections.List.List[Int]): Bool ->
+    case values.first() { Some(first) -> values.length() == 2 and first == 2; None -> false }.
+nested(values: std.collections.List.List[std.collections.List.List[Int]]): Bool ->
+    case values.first() { Some(first) -> tail_starts_with_two(first); None -> false }.
+pub check(): Bool ->
+    nested(List(List(2, 3))) and
+    (case List(1, 2, 3).rest() { Some(tail) -> tail_starts_with_two(tail); None -> false }).
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/collections/List.terl"),
+    ]);
+}
+
+#[test]
+fn imported_record_alias_retains_declared_layout_identity() {
+    check_sources(&[
+        r#"
+module record_alias.
+import std.collections.List.
+import app.Containers.{List as Renamed}.
+import app.Other.{List as OtherList}.
+pub check(): Bool ->
+    let boxed = Renamed(value = 42);
+    let other = OtherList(label = "safe");
+    boxed.value == 42 and other.label == "safe" and List(1, 2).length() == 2.
+"#,
+        r#"
+module app.Containers.
+pub struct List { value: Int }.
+"#,
+        r#"
+module app.Other.
+pub struct List { label: String }.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/collections/List.terl"),
+    ]);
+}
+
+#[test]
+fn unconstrained_empty_lists_retain_the_checked_bottom_type() {
+    check_sources(&[r#"
+module empty_list_bottom.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+observe[T](values: List[T], _predicate: (T) -> Bool): Bool -> values.is_empty().
+choose[T](values: List[T], value: T): T ->
+    case values.first() { Some(first) -> first; None -> value }.
+pub check(): Bool ->
+    let values = [];
+    values.length() == 0
+    and (case values.first() { None -> true; Some(_) -> false })
+    and observe([], (value) -> value == value)
+    and choose([], 42) == 42
+    and choose([], "value") == "value".
+"#]);
+}
+
+#[test]
+fn empty_binding_adopts_its_generic_consumer_and_later_mutation() {
+    check_sources(&[r#"
+module empty_binding_context.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+choose[T](values: List[T], value: T): T ->
+    case values.first() { Some(first) -> first; None -> value }.
+pub check(): Bool ->
+    let values = [];
+    let mutating = [];
+    let initial_size = mutating.length();
+    mutating.push(42);
+    choose(values, 42) == 42 and initial_size == 0 and mutating.length() == 1.
+"#]);
+}
+
+#[test]
+fn empty_list_values_retain_independent_consumer_layouts() {
+    check_sources(&[r#"
+module empty_bottom_reuse.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+choose[T](values: List[T], value: T): T ->
+    case values.first() { Some(first) -> first; None -> value }.
+pub returned(values: List[Never]): List[Int] -> values.
+pub produced(): List[Never] -> [].
+pub returned_expression(): List[String] -> produced().
+pub check(): Bool ->
+    let values = [];
+    let created = List.new();
+    let output = produced();
+    choose(values, 42) == 42
+    and choose(values, "value") == "value"
+    and choose(created, 42) == 42
+    and choose(output, 42) == 42
+    and choose(output, "value") == "value"
+    and choose(produced(), 42) == 42
+    and returned(values).is_empty()
+    and returned_expression().is_empty().
+"#]);
+}
+
+#[test]
+fn empty_list_read_before_mutation_keeps_its_original_type() {
+    check_sources(&[r#"
+module empty_reuse_flow.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+choose[T](values: List[T], value: T): T ->
+    case values.first() { Some(first) -> first; None -> value }.
+pub check(): Bool ->
+    let values = [];
+    let before = choose(values, "empty");
+    values.push(42);
+    before == "empty" and choose(values, 7) == 42.
+"#]);
+}
+
+#[test]
+fn nested_empty_literals_share_the_concrete_sibling_layout() {
+    check_sources(&[r#"
+module nested_empty_bottom.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+pub check(): Bool ->
+    let values = [[], [42]];
+    values[0].is_empty()
+    and (case values[1].first() { Some(value) -> value == 42; None -> false }).
+"#]);
 }
 
 #[test]
@@ -39,6 +260,34 @@ pub check(): Bool -> (case wrapped(Some(increment), 41) { Some(result) -> result
     and shadowed((value) -> value.byte_size()) == 5.
 "#,
         include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
+#[test]
+fn generic_receiver_callback_does_not_select_an_ordinary_function() {
+    check_sources(&[
+        r#"
+module receiver_callback.
+import app.Methods.{Box}.
+import app.Others.
+pub check(): Bool ->
+    let boxed = Box([1, 2]);
+    let strings = Box(["value"]);
+    boxed.visit((items) -> items.length()) == 2
+    and strings.visit((items) -> items.length()) == 1
+    and Others.visit(boxed, (_items) -> 0) == 99.
+"#,
+        r#"
+module app.Methods.
+pub struct Box[T] { values: List[T] }.
+pub constructor Box[T] { (items: List[T]): Box[T] -> Box(values = items) }.
+pub (boxed: Box[T]) visit(cb: (List[T]) -> Int): Int -> cb(boxed.values).
+"#,
+        r#"
+module app.Others.
+import app.Methods.{Box}.
+pub visit[T](boxed: Box[T], cb: (List[T]) -> Int): Int -> 99.
+"#,
     ]);
 }
 
@@ -400,7 +649,7 @@ pub check(): Bool -> length([10, 20, 30]) == 3.
     );
 }
 
-fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
+pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     let syntaxes = sources
         .iter()
         .map(|source| parse_module_as_syntax_output(source).expect("parse source constructor"))
@@ -426,7 +675,12 @@ fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     )
     .expect("retain source constructor dependencies");
     let modules = NativeModule::lower_application(&cores.iter().collect::<Vec<_>>())
-        .expect("lower constructor body");
+        .unwrap_or_else(|error| {
+            panic!(
+                "lower constructor body: {error}; source CoreIR: {}",
+                cores[0].contract_text()
+            )
+        });
     let object = emit_native_application_object(&root, &modules).expect("emit constructor body");
     let entry = modules
         .iter()

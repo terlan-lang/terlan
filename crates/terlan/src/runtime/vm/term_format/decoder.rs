@@ -2,14 +2,18 @@ use std::sync::Arc;
 
 use super::{
     validate_epoch, validate_text_field, validate_vm_ref, ReplValue, TetfDistributionEnvelope,
-    TetfVmRef, TetfVmRefKind, MAGIC, PROFILE_DISTRIBUTION_ENVELOPE, PROFILE_RUNTIME_TERM, TAG_ATOM,
+    TetfVmRef, TetfVmRefKind, MAGIC, MAX_NESTING_DEPTH, PROFILE_DISTRIBUTION_ENVELOPE, TAG_ATOM,
     TAG_BITSTRING, TAG_BYTES, TAG_DISTRIBUTION_ENVELOPE, TAG_FALSE, TAG_FLOAT_TEXT, TAG_INT,
-    TAG_LIST, TAG_MAP, TAG_RECORD, TAG_SET, TAG_STRING, TAG_TRUE, TAG_TUPLE, TAG_TYPE, TAG_UNIT,
-    TAG_VM_REF, VERSION,
+    TAG_LIST, TAG_MAP, TAG_RECORD, TAG_SET, TAG_STRING, TAG_TRUE, TAG_TUPLE, TAG_UNIT, TAG_VM_REF,
+    VERSION,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 
-const MAX_NESTING_DEPTH: usize = 128;
+mod checkpoint;
+pub(crate) use checkpoint::decode_tetf_checkpoint;
+
+#[cfg(test)]
+use super::{PROFILE_RUNTIME_TERM, TAG_TYPE};
 
 /// Decodes one complete Terlan-owned runtime value.
 ///
@@ -77,6 +81,7 @@ struct Decoder<'a> {
     bytes: &'a [u8],
     offset: usize,
     declared_atoms: &'a [String],
+    remaining_value_slots: usize,
 }
 
 impl<'a> Decoder<'a> {
@@ -85,6 +90,7 @@ impl<'a> Decoder<'a> {
             bytes,
             offset: 0,
             declared_atoms,
+            remaining_value_slots: usize::MAX,
         }
     }
 
@@ -136,6 +142,7 @@ impl<'a> Decoder<'a> {
             TAG_FLOAT_TEXT => Ok(ReplValue::Float(self.read_text()?)),
             TAG_STRING => Ok(ReplValue::String(self.read_text()?)),
             TAG_ATOM => self.decode_atom(),
+            #[cfg(test)]
             TAG_TYPE => Ok(ReplValue::Type(self.read_text()?)),
             TAG_TUPLE => Ok(ReplValue::Tuple(self.decode_sequence(depth)?)),
             TAG_LIST => Ok(ReplValue::List(self.decode_sequence(depth)?)),
@@ -167,6 +174,7 @@ impl<'a> Decoder<'a> {
     fn decode_sequence(&mut self, depth: usize) -> Result<Vec<ReplValue>, String> {
         let len = self.read_len()?;
         self.require_remaining_items(len, 1)?;
+        self.reserve_value_slots(len)?;
         let mut values = Vec::with_capacity(len);
         for _ in 0..len {
             values.push(self.decode_value(depth + 1)?);
@@ -177,6 +185,10 @@ impl<'a> Decoder<'a> {
     fn decode_map(&mut self, depth: usize) -> Result<ReplValue, String> {
         let len = self.read_len()?;
         self.require_remaining_items(len, 2)?;
+        self.reserve_value_slots(
+            len.checked_mul(2)
+                .ok_or("error[tetf_size]: map value count overflow")?,
+        )?;
         let mut entries = Vec::with_capacity(len);
         let mut previous_key = None::<Vec<u8>>;
         for _ in 0..len {
@@ -194,6 +206,7 @@ impl<'a> Decoder<'a> {
     fn decode_canonical_set(&mut self, depth: usize) -> Result<Vec<ReplValue>, String> {
         let len = self.read_len()?;
         self.require_remaining_items(len, 1)?;
+        self.reserve_value_slots(len)?;
         let mut values = Vec::with_capacity(len);
         let mut previous_item = None::<Vec<u8>>;
         for _ in 0..len {
@@ -212,11 +225,12 @@ impl<'a> Decoder<'a> {
         validate_text_field("record_name", &name)?;
         let len = self.read_len()?;
         self.require_remaining_items(len, 2)?;
+        self.reserve_value_slots(len)?;
         let mut fields = Vec::with_capacity(len);
         let mut previous_field = None::<String>;
         for _ in 0..len {
             let field = self.read_text()?;
-            validate_text_field("record_field", &field)?;
+            super::validate_record_field(&field)?;
             if previous_field
                 .as_ref()
                 .is_some_and(|previous| previous >= &field)
@@ -308,6 +322,15 @@ impl<'a> Decoder<'a> {
             return Ok(());
         }
         Err("error[tetf_size]: declared collection length exceeds remaining payload".to_string())
+    }
+
+    /// Claims all child slots before allocation, including not-yet-decoded siblings.
+    fn reserve_value_slots(&mut self, count: usize) -> crate::runtime::vm::VmRuntimeResult<()> {
+        self.remaining_value_slots = self
+            .remaining_value_slots
+            .checked_sub(count)
+            .ok_or("error[tetf_checkpoint.values]: too many logical values")?;
+        Ok(())
     }
 
     fn finish(self) -> Result<(), String> {

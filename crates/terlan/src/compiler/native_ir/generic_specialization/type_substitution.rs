@@ -35,6 +35,7 @@ fn substitute_expr_types(
             call.return_type = substitute(&call.return_type, parameters, values);
             match &mut call.id {
                 CoreIntrinsicId::MemoryLayoutOf(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
                 | CoreIntrinsicId::MemoryRetainedSize(ty)
                 | CoreIntrinsicId::VmProcessSendMessage(ty)
@@ -55,7 +56,9 @@ fn substitute_expr_types(
                         *ty = substitute(ty, parameters, values);
                     }
                 }
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
             substitute_many(&mut call.args, parameters, values);
         }

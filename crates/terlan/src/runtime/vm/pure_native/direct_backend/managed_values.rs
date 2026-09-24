@@ -7,13 +7,18 @@ use smallvec::SmallVec;
 
 use crate::runtime::native_image::managed::{
     managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id, ActorHeap,
-    ManagedAggregate, ManagedAggregateDescriptor, ManagedAggregateKind,
-    ManagedCollectionDescriptor, ManagedCollectionKind, ManagedFieldType, ManagedFieldValue,
-    ManagedKeySemantics, ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError,
-    ManagedScalarKeySemantics, ManagedSet, SemanticTypeId, TvmRef,
+    ManagedAggregate, ManagedCollectionDescriptor, ManagedCollectionKind, ManagedFieldType,
+    ManagedFieldValue, ManagedKeySemantics, ManagedLayoutRegistry, ManagedList, ManagedMap,
+    ManagedMemoryError, ManagedScalarKeySemantics, ManagedSet, SemanticTypeId, TvmRef,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
+
+#[path = "managed_values/public_shapes.rs"]
+mod public_shapes;
+#[cfg(test)]
+pub(super) use public_shapes::type_name_matches;
+use public_shapes::{public_aggregate, select_layout};
 
 const MAX_PUBLIC_MANAGED_DEPTH: usize = 256;
 const MAX_PUBLIC_MANAGED_VALUES: usize = 65_536;
@@ -380,114 +385,6 @@ fn allocate_reference(
     allocate_managed(heap, layouts, semantic, value, depth, budget, memo)
 }
 
-/// Selects exactly one admitted active layout and borrows its public fields.
-fn select_layout<'layout, 'value>(
-    layouts: &'layout ManagedLayoutRegistry,
-    semantic: SemanticTypeId,
-    value: &'value ReplValue,
-) -> Result<(&'layout ManagedAggregateDescriptor, PublicFields<'value>), String> {
-    let mut matched = None;
-    let mut match_count = 0;
-    for layout in layouts.layouts(semantic) {
-        if let Some(fields) = public_fields(layout, value) {
-            match_count += 1;
-            if matched.is_none() {
-                matched = Some((layout.as_ref(), fields));
-            }
-        }
-    }
-    match match_count {
-        1 => Ok(matched.expect("one checked layout")),
-        0 => {
-            let candidates = layouts
-                .layouts(semantic)
-                .iter()
-                .map(|layout| layout.canonical_type())
-                .collect::<Vec<_>>();
-            Err(format!(
-                "error[execution_shard.managed_layout]: no admitted fixed layout matches `{value:?}` for semantic {:?}; candidates {candidates:?}",
-                semantic.bytes()
-            ))
-        }
-        count => Err(format!(
-            "error[execution_shard.managed_layout]: public value ambiguously matches {count} admitted layouts"
-        )),
-    }
-}
-
-/// Borrowed aggregate fields without allocating a temporary reference vector.
-#[derive(Clone, Copy)]
-enum PublicFields<'a> {
-    Positional(&'a [ReplValue]),
-    Named(&'a [(String, ReplValue)]),
-}
-
-impl<'a> PublicFields<'a> {
-    fn len(self) -> usize {
-        match self {
-            Self::Positional(values) => values.len(),
-            Self::Named(fields) => fields.len(),
-        }
-    }
-
-    fn value(self, index: usize) -> &'a ReplValue {
-        match self {
-            Self::Positional(values) => &values[index],
-            Self::Named(fields) => &fields[index].1,
-        }
-    }
-}
-
-/// Matches one public aggregate shape against an admitted active descriptor.
-fn public_fields<'a>(
-    descriptor: &ManagedAggregateDescriptor,
-    value: &'a ReplValue,
-) -> Option<PublicFields<'a>> {
-    match (descriptor.kind(), value) {
-        (ManagedAggregateKind::Tuple, ReplValue::Tuple(values))
-        | (ManagedAggregateKind::FixedArray, ReplValue::List(values))
-            if values.len() == descriptor.fields().len() =>
-        {
-            Some(PublicFields::Positional(values))
-        }
-        (ManagedAggregateKind::Record, ReplValue::Record { name, fields })
-            if type_name_matches(descriptor.canonical_type(), name)
-                && named_fields_match(descriptor, fields) =>
-        {
-            Some(PublicFields::Named(fields))
-        }
-        (ManagedAggregateKind::Constructor, ReplValue::Record { name, fields })
-            if descriptor.variant_name() == Some(name.as_str())
-                && named_fields_match(descriptor, fields) =>
-        {
-            Some(PublicFields::Named(fields))
-        }
-        _ => None,
-    }
-}
-
-/// Reports whether named public fields exactly preserve descriptor order and identity.
-fn named_fields_match(
-    descriptor: &ManagedAggregateDescriptor,
-    fields: &[(String, ReplValue)],
-) -> bool {
-    fields.len() == descriptor.fields().len()
-        && descriptor
-            .fields()
-            .iter()
-            .zip(fields)
-            .all(|(expected, (actual, _))| expected.name() == Some(actual.as_str()))
-}
-
-/// Accepts a canonical record identity or its unqualified final segment.
-pub(super) fn type_name_matches(canonical: &str, public: &str) -> bool {
-    let nominal = canonical
-        .strip_prefix("Named(")
-        .and_then(|name| name.strip_suffix(')'))
-        .unwrap_or(canonical);
-    nominal == public || nominal.rsplit('.').next() == Some(public)
-}
-
 /// Recursively materializes one validated managed reference.
 fn materialize_managed(
     heap: &ActorHeap,
@@ -707,33 +604,6 @@ fn materialize_reference(
             .map_err(|error| format!("error[execution_shard.managed_binary]: {error}"));
     }
     materialize_managed(heap, layouts, semantic, reference, depth, budget, active)
-}
-
-/// Rebuilds one public aggregate while retaining source field identities.
-fn public_aggregate(descriptor: &ManagedAggregateDescriptor, values: Vec<ReplValue>) -> ReplValue {
-    match descriptor.kind() {
-        ManagedAggregateKind::Tuple => ReplValue::Tuple(values),
-        ManagedAggregateKind::FixedArray => ReplValue::List(values),
-        ManagedAggregateKind::Record | ManagedAggregateKind::Constructor => {
-            let name = descriptor
-                .variant_name()
-                .unwrap_or_else(|| {
-                    descriptor
-                        .canonical_type()
-                        .rsplit('.')
-                        .next()
-                        .expect("canonical aggregate identity is nonempty")
-                })
-                .to_string();
-            let fields = descriptor
-                .fields()
-                .iter()
-                .zip(values)
-                .map(|(field, value)| (field.name().unwrap_or("_").to_string(), value))
-                .collect();
-            ReplValue::Record { name, fields }
-        }
-    }
 }
 
 /// Structural key operations for scalar and reference-valued public collections.

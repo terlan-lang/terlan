@@ -218,6 +218,9 @@ use lowering_test_support::lower_native_function;
 #[path = "native_ir/capability_transition_test.rs"]
 #[cfg(test)]
 mod capability_transition_test;
+mod effect_execution;
+mod effect_values;
+mod empty_list_values;
 mod model;
 #[cfg(test)]
 #[path = "native_ir/native_object_test_support.rs"]
@@ -277,6 +280,7 @@ mod tail_position_source_test;
 #[path = "native_ir/tail_position_test.rs"]
 #[cfg(test)]
 mod tail_position_test;
+mod task_values;
 mod template_values;
 #[cfg(test)]
 #[path = "native_ir/template_values_test.rs"]

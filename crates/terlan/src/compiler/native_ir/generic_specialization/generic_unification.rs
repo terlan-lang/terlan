@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{CoreMapTypeField, CoreStructTypeField, CoreTupleTypeElem, CoreType};
 
-pub(super) fn unify(
+pub(in crate::compiler::native_ir) fn unify(
     template: &CoreType,
     concrete: &CoreType,
     generic_params: &[String],
@@ -16,6 +16,11 @@ pub(super) fn unify(
                 return Ok(());
             }
             return match substitution.get(name) {
+                Some(CoreType::Never) => {
+                    substitution.insert(name.clone(), concrete.clone());
+                    Ok(())
+                }
+                Some(_) if concrete == &CoreType::Never => Ok(()),
                 Some(previous) if previous != concrete => Err(format!(
                     "error[native_ir.generic_unification]: `{name}` has incompatible concrete types `{}` and `{}`",
                     previous.contract_text(),
@@ -30,6 +35,7 @@ pub(super) fn unify(
         }
     }
     match (template, concrete) {
+        (_, CoreType::Never) => Ok(()),
         (
             CoreType::Apply {
                 constructor: a,

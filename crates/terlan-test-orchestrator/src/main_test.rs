@@ -61,7 +61,10 @@ fn orchestrator_partitions_one_union_feature_harness_without_test_replay() {
     let terlan_library_phases = phases
         .iter()
         .filter(|phase| phase.executor == PhaseExecutor::TerlanHarness);
-    assert_eq!(terlan_library_phases.count(), 9);
+    assert_eq!(
+        terlan_library_phases.count(),
+        9 + 2 * usize::from(cfg!(target_os = "linux"))
+    );
 }
 
 #[test]
@@ -72,7 +75,24 @@ fn orchestrator_runs_ignored_contract_once_in_the_library() {
         .filter(|phase| phase.args.contains(&"--ignored"))
         .collect();
 
-    assert_eq!(ignored.len(), 7);
+    assert_eq!(
+        ignored.len(),
+        7 + 2 * usize::from(cfg!(target_os = "linux"))
+    );
+    assert_eq!(
+        ignored
+            .iter()
+            .filter(|phase| phase.name == "public durable storage AOT restart")
+            .count(),
+        usize::from(cfg!(target_os = "linux"))
+    );
+    assert_eq!(
+        ignored
+            .iter()
+            .filter(|phase| phase.name == "capability worker durable storage")
+            .count(),
+        usize::from(cfg!(target_os = "linux"))
+    );
     assert!(ignored
         .iter()
         .all(|phase| phase.executor == PhaseExecutor::TerlanHarness));
@@ -255,7 +275,7 @@ fn every_orchestrated_phase_has_one_known_tier() {
             .iter()
             .filter(|phase| phase.tier == ValidationTier::AotNativeLink)
             .count(),
-        5
+        5 + 2 * usize::from(cfg!(target_os = "linux"))
     );
 
     for tier in ValidationTier::ALL {

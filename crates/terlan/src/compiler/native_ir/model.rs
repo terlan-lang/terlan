@@ -203,6 +203,8 @@ pub(crate) enum NativeTransitionOperation {
     Resource,
     Cancellation,
     Failure,
+    /// Terminal failure carrying one checked existential error envelope.
+    FailureTyped,
     Scheduling,
     /// One declared asynchronous capability request serviced outside the shard.
     Capability,

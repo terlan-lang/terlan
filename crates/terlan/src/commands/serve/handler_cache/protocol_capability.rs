@@ -63,7 +63,7 @@ impl ProtocolCapabilityDispatcher {
         let expected = wait.worker_context()?;
         let request = wait.request();
         let operation = request.operation.to_string();
-        let arguments = request.arguments.clone();
+        let arguments = request.boundary_arguments()?.into_owned();
         let pump = self.ensure_pump()?;
         let assignment = pump
             .submit(

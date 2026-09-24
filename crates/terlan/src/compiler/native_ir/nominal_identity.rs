@@ -8,7 +8,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{
-    CoreExpr, CoreImportKind, CoreIntrinsicId, CoreModule, CoreType, CoreVisibility,
+    CoreExpr, CoreImportKind, CoreIntrinsicId, CoreModule, CorePattern, CoreType, CoreVisibility,
 };
 
 struct NominalScope<'a> {
@@ -122,6 +122,9 @@ fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, Strin
             qualify_type(ty, &scope);
         }
         for clause in &mut function.clauses {
+            for pattern in clause.core_patterns.iter_mut().flatten() {
+                qualify_pattern(pattern, &scope);
+            }
             if let Some(guard) = clause
                 .guard
                 .as_mut()
@@ -212,13 +215,16 @@ fn qualify_intrinsic_id(id: &mut CoreIntrinsicId, scope: &NominalScope<'_>) {
         | CoreIntrinsicId::VmProcessCancel(ty)
         | CoreIntrinsicId::MemoryLayoutOf(ty)
         | CoreIntrinsicId::MemoryShallowSize(ty)
-        | CoreIntrinsicId::MemoryRetainedSize(ty) => qualify_type(ty, scope),
+        | CoreIntrinsicId::MemoryRetainedSize(ty)
+        | CoreIntrinsicId::ErasedValueIs(ty) => qualify_type(ty, scope),
         CoreIntrinsicId::NativeOperation {
             parameter_types, ..
         } => parameter_types
             .iter_mut()
             .for_each(|ty| qualify_type(ty, scope)),
-        CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+        CoreIntrinsicId::Primitive(_)
+        | CoreIntrinsicId::Runtime(_)
+        | CoreIntrinsicId::VmEffectFail => {}
     }
 }
 
@@ -242,17 +248,19 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
             ..
         } => {
             qualify_expr(expr, scope);
-            generators
-                .iter_mut()
-                .for_each(|item| qualify_expr(&mut item.source, scope));
+            generators.iter_mut().for_each(|item| {
+                qualify_pattern(&mut item.pattern, scope);
+                qualify_expr(&mut item.source, scope);
+            });
             guards
                 .iter_mut()
                 .for_each(|guard| qualify_expr(guard, scope));
         }
         CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter_mut()
-                .for_each(|item| qualify_expr(&mut item.value, scope));
+            bindings.iter_mut().for_each(|item| {
+                qualify_pattern(&mut item.pattern, scope);
+                qualify_expr(&mut item.value, scope);
+            });
             qualify_expr(body, scope);
         }
         CoreExpr::Map(fields) => fields
@@ -333,6 +341,7 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
         CoreExpr::Case { scrutinee, clauses } => {
             qualify_expr(scrutinee, scope);
             for clause in clauses {
+                qualify_pattern(&mut clause.pattern, scope);
                 if let Some(guard) = &mut clause.guard {
                     qualify_expr(guard, scope);
                 }
@@ -347,6 +356,7 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
         } => {
             qualify_expr(body, scope);
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
+                qualify_pattern(&mut clause.pattern, scope);
                 if let Some(guard) = &mut clause.guard {
                     qualify_expr(guard, scope);
                 }
@@ -385,6 +395,51 @@ fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
         | CoreExpr::Atom(_)
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
+    }
+}
+
+fn qualify_pattern(pattern: &mut CorePattern, scope: &NominalScope<'_>) {
+    match pattern {
+        CorePattern::Record { name, fields } => {
+            qualify_name(name, scope);
+            fields
+                .iter_mut()
+                .for_each(|field| qualify_pattern(&mut field.value, scope));
+        }
+        CorePattern::Constructor {
+            name,
+            constructor_identity,
+            args,
+        } => {
+            qualify_name(name, scope);
+            if let Some(identity) = constructor_identity {
+                qualify_name(identity, scope);
+            }
+            args.iter_mut().for_each(|arg| qualify_pattern(arg, scope));
+        }
+        CorePattern::Tuple(items) | CorePattern::List(items) => {
+            items
+                .iter_mut()
+                .for_each(|item| qualify_pattern(item, scope));
+        }
+        CorePattern::Alias { pattern, .. } => qualify_pattern(pattern, scope),
+        CorePattern::ListCons { head, tail } => {
+            qualify_pattern(head, scope);
+            qualify_pattern(tail, scope);
+        }
+        CorePattern::Map(fields) => {
+            fields
+                .iter_mut()
+                .for_each(|field| qualify_pattern(&mut field.value, scope));
+        }
+        CorePattern::Wildcard
+        | CorePattern::Var(_)
+        | CorePattern::Int(_)
+        | CorePattern::Float(_)
+        | CorePattern::String(_)
+        | CorePattern::StringPattern(_)
+        | CorePattern::Atom(_)
+        | CorePattern::BinaryLayout { .. } => {}
     }
 }
 

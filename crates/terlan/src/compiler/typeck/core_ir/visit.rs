@@ -1,16 +1,25 @@
-//! Exhaustive post-order mutable traversal of checked expression children.
+//! Exhaustive mutable traversal of checked expression children.
 
 use super::CoreExpr;
 
 /// Visits each expression after its children, including guards and cleanup paths.
 pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&mut CoreExpr)) {
+    visit_core_expr_children_mut(expr, &mut |child| visit_core_expr_mut(child, visit));
+    visit(expr);
+}
+
+/// Visits immediate children once; scope-aware passes own the recursion.
+pub(crate) fn visit_core_expr_children_mut(
+    expr: &mut CoreExpr,
+    visit: &mut impl FnMut(&mut CoreExpr),
+) {
     match expr {
         CoreExpr::Call { args, .. }
         | CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(super::CoreIntrinsicCall { args, .. }) => {
             for arg in args {
-                visit_core_expr_mut(arg, visit);
+                visit(arg);
             }
         }
         CoreExpr::MutableReceiverCall { receiver, args, .. }
@@ -18,14 +27,14 @@ pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&m
             callee: receiver,
             args,
         } => {
-            visit_core_expr_mut(receiver, visit);
+            visit(receiver);
             for arg in args {
-                visit_core_expr_mut(arg, visit);
+                visit(arg);
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
             for item in items {
-                visit_core_expr_mut(item, visit);
+                visit(item);
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -38,56 +47,56 @@ pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&m
             right: tail,
             ..
         } => {
-            visit_core_expr_mut(head, visit);
-            visit_core_expr_mut(tail, visit);
+            visit(head);
+            visit(tail);
         }
         CoreExpr::Map(fields) => {
             for field in fields {
-                visit_core_expr_mut(&mut field.value, visit);
+                visit(&mut field.value);
             }
         }
         CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
             for field in fields {
-                visit_core_expr_mut(&mut field.value, visit);
+                visit(&mut field.value);
             }
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            visit_core_expr_mut(base, visit);
+            visit(base);
             for field in fields {
-                visit_core_expr_mut(&mut field.value, visit);
+                visit(&mut field.value);
             }
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::Cast { expr: base, .. }
         | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => visit_core_expr_mut(base, visit),
+        | CoreExpr::Lam { body: base, .. } => visit(base),
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
-                visit_core_expr_mut(&mut binding.value, visit);
+                visit(&mut binding.value);
             }
-            visit_core_expr_mut(body, visit);
+            visit(body);
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
-                visit_core_expr_mut(&mut clause.condition, visit);
-                visit_core_expr_mut(&mut clause.body, visit);
+                visit(&mut clause.condition);
+                visit(&mut clause.body);
             }
         }
         CoreExpr::Case { scrutinee, clauses } => {
-            visit_core_expr_mut(scrutinee, visit);
+            visit(scrutinee);
             for clause in clauses {
                 if let Some(guard) = &mut clause.guard {
-                    visit_core_expr_mut(guard, visit);
+                    visit(guard);
                 }
-                visit_core_expr_mut(&mut clause.body, visit);
+                visit(&mut clause.body);
             }
         }
         CoreExpr::ConstructorChain { args, record, .. } => {
             for arg in args {
-                visit_core_expr_mut(arg, visit);
+                visit(arg);
             }
-            visit_core_expr_mut(record, visit);
+            visit(record);
         }
         CoreExpr::ListComprehension {
             expr,
@@ -95,12 +104,12 @@ pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&m
             guards,
             ..
         } => {
-            visit_core_expr_mut(expr, visit);
+            visit(expr);
             for generator in generators {
-                visit_core_expr_mut(&mut generator.source, visit);
+                visit(&mut generator.source);
             }
             for guard in guards {
-                visit_core_expr_mut(guard, visit);
+                visit(guard);
             }
         }
         CoreExpr::Try {
@@ -109,21 +118,21 @@ pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&m
             catch_clauses,
             after_clause,
         } => {
-            visit_core_expr_mut(body, visit);
+            visit(body);
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
                 if let Some(guard) = &mut clause.guard {
-                    visit_core_expr_mut(guard, visit);
+                    visit(guard);
                 }
-                visit_core_expr_mut(&mut clause.body, visit);
+                visit(&mut clause.body);
             }
             if let Some(after) = after_clause {
-                visit_core_expr_mut(&mut after.trigger, visit);
-                visit_core_expr_mut(&mut after.body, visit);
+                visit(&mut after.trigger);
+                visit(&mut after.body);
             }
         }
         CoreExpr::SqlQuery { parameters, .. } => {
             for parameter in parameters {
-                visit_core_expr_mut(parameter, visit);
+                visit(parameter);
             }
         }
         CoreExpr::Int(_)
@@ -133,5 +142,4 @@ pub(crate) fn visit_core_expr_mut(expr: &mut CoreExpr, visit: &mut impl FnMut(&m
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
     }
-    visit(expr);
 }

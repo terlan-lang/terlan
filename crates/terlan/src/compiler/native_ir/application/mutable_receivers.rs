@@ -10,6 +10,7 @@ struct ReceiverTarget {
     function: String,
     receiver: CoreType,
     public: bool,
+    generic_params: Vec<String>,
 }
 
 /// Resolves mutable receiver syntax to one exact application callable.
@@ -67,6 +68,9 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
     let mut targets = HashMap::<(String, usize), Vec<ReceiverTarget>>::new();
     for core in cores {
         for function in &core.functions {
+            if !function.receiver_method {
+                continue;
+            }
             let Some(receiver) = function.params.first().and_then(|parameter| {
                 parameter
                     .core_ty
@@ -83,6 +87,9 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
                     function: function.name.clone(),
                     receiver,
                     public: function.public,
+                    generic_params: super::super::generic_specialization::generic_parameters(
+                        function,
+                    ),
                 });
         }
     }
@@ -187,7 +194,7 @@ fn resolve_expr(
             for argument in args.iter_mut() {
                 resolve_expr(argument, module, variables, functions, targets)?;
             }
-            if !function.contains('.') {
+            if !function.contains('.') && !functions.contains_key(&(function.clone(), args.len())) {
                 let target = args
                     .first()
                     .and_then(|receiver| infer_core_type(receiver, variables, functions))
@@ -354,7 +361,7 @@ fn receiver_target<'a>(
         .into_iter()
         .flatten()
         .filter(|target| {
-            receiver_types_match(&target.receiver, receiver_type)
+            receiver_matches(target, receiver_type)
                 && (target.public || target.module == caller_module)
         });
     if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
@@ -383,6 +390,27 @@ fn callable_identity(target: &ReceiverTarget, caller_module: &str) -> String {
     } else {
         format!("{}.{}", target.module, target.function)
     }
+}
+
+/// Instantiates only declared generic parameters, then checks the full receiver identity.
+fn receiver_matches(target: &ReceiverTarget, actual: &CoreType) -> bool {
+    use super::super::generic_specialization::{substitute, unify};
+
+    if receiver_types_match(&target.receiver, actual) {
+        return true;
+    }
+    let mut substitution = HashMap::new();
+    unify(
+        &target.receiver,
+        actual,
+        &target.generic_params,
+        &mut substitution,
+    )
+    .is_ok()
+        && receiver_types_match(
+            &substitute(&target.receiver, &target.generic_params, &substitution),
+            actual,
+        )
 }
 
 /// Compares receiver types after nominal qualification and opaque-type

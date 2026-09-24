@@ -42,10 +42,13 @@ pub(super) fn repl_value_to_boundary_term(value: ReplValue) -> VmRuntimeResult<N
                 .map(repl_value_to_boundary_term)
                 .collect::<Result<Vec<_>, _>>()?,
         )),
-        unsupported => Err(format!(
-            "error[pure_native_capability_argument]: unsupported managed value `{unsupported:?}`"
-        )
-        .into()),
+        ReplValue::Tuple(values) => Ok(NativeBoundaryTerm::Tuple(
+            values
+                .into_iter()
+                .map(repl_value_to_boundary_term)
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
+        _ => Err("error[pure_native_capability_argument]: unsupported managed value for external worker transport".into()),
     }
 }
 
@@ -54,6 +57,9 @@ pub(super) fn native_actor_exit_error(owner_id: u64, reason: &VmExitReason) -> S
         VmExitReason::Error(message) => {
             format!("error[pure_native_failure]: native actor {owner_id} failed: {message}")
         }
+        VmExitReason::TypedError { .. } => format!(
+            "error[pure_native_effect_failure]: native actor {owner_id} failed with a typed error"
+        ),
         other => format!(
             "error[pure_native_failure]: native actor {owner_id} exited before resume: {other:?}"
         ),

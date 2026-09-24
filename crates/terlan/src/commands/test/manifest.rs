@@ -34,6 +34,7 @@ struct TestResultManifest {
     target_profile: String,
     passed: usize,
     failed: usize,
+    not_executed: usize,
     tests: Vec<TestResultManifestEntry>,
 }
 
@@ -81,6 +82,7 @@ pub(super) struct TestRunResult {
 pub(super) enum TestRunStatus {
     Passed,
     Failed,
+    NotExecuted,
 }
 
 impl TestRunStatus {
@@ -98,6 +100,7 @@ impl TestRunStatus {
         match self {
             TestRunStatus::Passed => "passed",
             TestRunStatus::Failed => "failed",
+            TestRunStatus::NotExecuted => "not_executed",
         }
     }
 }
@@ -109,37 +112,43 @@ impl TestRunReport {
     /// - `self`: completed execution report.
     ///
     /// Output:
-    /// - `true` when no test failed.
+    /// - `true` only when every reported test actually passed.
     ///
     /// Transformation:
-    /// - Checks the aggregate failed count without inspecting stdout.
+    /// - Rejects validation-only entries as well as runtime failures.
     pub(super) fn is_success(&self) -> bool {
         self.failed == 0
+            && self.passed == self.results.len()
+            && self
+                .results
+                .iter()
+                .all(|result| result.status == TestRunStatus::Passed)
     }
 }
 
-/// Builds a validation-only pass report for JS tests.
+/// Builds a non-execution report for JS tests accepted by compilation.
 ///
 /// Inputs:
 /// - `tests`: discovered test metadata already accepted by test discovery.
 ///
 /// Output:
-/// - A `TestRunReport` with every test marked passed.
+/// - A `TestRunReport` with no runtime passes or failures, and explicit
+///   `NotExecuted` entries. Compilation cannot prove an assertion succeeded.
 ///
 /// Transformation:
 /// - Converts source-level test metadata into result entries with a stable
 ///   message that distinguishes compile/discovery validation from runtime
 ///   JavaScript execution.
-pub(super) fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport {
+pub(super) fn validation_report(tests: &[DiscoveredTest]) -> TestRunReport {
     TestRunReport {
-        passed: tests.len(),
+        passed: 0,
         failed: 0,
         results: tests
             .iter()
             .map(|test| TestRunResult {
                 name: test.name.clone(),
                 kind: test.kind,
-                status: TestRunStatus::Passed,
+                status: TestRunStatus::NotExecuted,
                 message: Some("validated without runtime execution".to_string()),
                 execution_nanoseconds: 0,
                 benchmark_samples: None,
@@ -162,21 +171,23 @@ pub(super) fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport 
 /// - Human-readable test status lines written to stdout.
 ///
 /// Transformation:
-/// - Renders the same compact shape as the Vm runner while adding
-///   `(validated)` to make the non-runtime status explicit.
-pub(super) fn print_validation_pass_report(report: &TestRunReport, style: TestOutputStyle) {
-    println!("running {} tests", report.results.len());
+/// - Makes the lack of target execution explicit without pass labels.
+pub(super) fn print_validation_report(report: &TestRunReport, style: TestOutputStyle) {
+    println!(
+        "validated {} test declarations; no tests executed",
+        report.results.len()
+    );
     for result in &report.results {
         println!(
-            "test {} ... {} (validated)",
+            "test {} ... {} (compile validation only)",
             result.name,
-            style.success("ok")
+            style.failure("NOT EXECUTED")
         );
     }
     println!(
-        "test result: {}. {} passed; 0 failed",
-        style.success("ok"),
-        report.passed
+        "test result: {}. 0 passed; 0 failed; {} not executed",
+        style.failure("INCOMPLETE"),
+        report.results.len()
     );
 }
 
@@ -286,6 +297,11 @@ pub(super) fn write_test_result_manifest(
         target_profile: target_profile.to_string(),
         passed: report.passed,
         failed: report.failed,
+        not_executed: report
+            .results
+            .iter()
+            .filter(|result| result.status == TestRunStatus::NotExecuted)
+            .count(),
         tests: report
             .results
             .iter()

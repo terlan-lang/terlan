@@ -10,7 +10,7 @@ const RELEASE_MANIFEST: &str = "std/RELEASE_MANIFEST.tsv";
 
 const UNCOVERED_RELEASE_MODULE_BASELINE: &[&str] = &[];
 
-/// Summary produced by the std package coverage gate.
+/// Manifest-consistency summary; this gate does not measure API execution coverage.
 ///
 /// Inputs:
 /// - `api_row_count`: number of release API manifest rows checked.
@@ -45,7 +45,7 @@ struct ReleaseApiTestRow {
     test_function: String,
 }
 
-/// Runs the std package coverage gate.
+/// Checks std package test-manifest consistency, without executing source tests.
 ///
 /// Inputs:
 /// - `root`: repository root containing `tests/std/RELEASE_API_TESTS.tsv`.
@@ -59,7 +59,8 @@ struct ReleaseApiTestRow {
 /// Transformation:
 /// - Promotes the release API manifest from a shell-only consistency check to a
 ///   permanent Rust quality gate. This is the first enforced slice of the full
-///   std package 100% coverage contract.
+///   std package coverage contract, not proof of 100% declaration or execution
+///   coverage. A matching `@test` declaration does not prove that the API runs.
 pub fn run_std_package_coverage_100(root: &Path) -> QualityResult<StdPackageCoverage100Summary> {
     let rows = read_release_api_tests(root)?;
     let release_modules = read_release_modules(root)?;

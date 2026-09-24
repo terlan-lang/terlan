@@ -82,6 +82,42 @@ pub(in crate::compiler::native_ir) fn lower_structural_record_construct(
     let CoreExpr::RecordConstruct { name, fields } = expr else {
         return Ok(None);
     };
+    if let CoreType::Union(variants) = target {
+        if !variants.iter().any(|variant| matches!(variant, CoreType::Struct { name: identity, .. } if identity == name)) {
+            return Err(format!("error[native_ir.record_identity]: `{name}` is not a declared record variant"));
+        }
+        let canonical = super::super::expression::managed_semantic_contract(target);
+        let short = name.rsplit('.').next().unwrap_or(name);
+        let key = (format!("$structural.{canonical}.{short}"), fields.len());
+        let template = layouts.get(&key).ok_or_else(|| {
+            format!(
+                "error[native_ir.structural_record_shape]: no admitted union layout for `{name}`"
+            )
+        })?;
+        let mut source = HashMap::new();
+        for field in fields {
+            if source.insert(field.key.as_str(), &field.value).is_some() {
+                return Err(format!(
+                    "error[native_ir.record_field_duplicate]: record `{name}` repeats field `{}`",
+                    field.key
+                ));
+            }
+        }
+        let lowered = template.descriptor.fields().iter().enumerate().map(|(index, field)| {
+            let value = field.name().and_then(|name| source.get(name)).ok_or_else(|| format!("error[native_ir.structural_record_field]: missing union record field in `{name}`"))?;
+            let expected = template.parameter_core_types[index].as_ref().ok_or("error[native_ir.structural_record_field_type]: missing union field type")?;
+            let (value, ty) = lower_field(value, expected)?;
+            if ty != template.parameters[index] {
+                return Err("error[native_ir.structural_record_field_type]: incompatible union record field".into());
+            }
+            Ok(value)
+        }).collect::<Result<Vec<_>, String>>()?;
+        return Ok(Some(NativeExpr::Construct {
+            descriptor: Arc::clone(&template.descriptor),
+            encoded_layout: Arc::clone(&template.encoded_layout),
+            fields: lowered,
+        }));
+    }
     let target_name = match target {
         CoreType::Apply { constructor, .. } | CoreType::Named(constructor) => constructor,
         CoreType::Struct { name, .. } => name,

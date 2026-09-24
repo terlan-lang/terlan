@@ -5,7 +5,7 @@ use crate::runtime::native_image::managed::{
     encode_list_prepend_operation, encode_managed_value_equal_operation,
     encode_string_append_operation, encode_string_literal,
 };
-use crate::terlan_typeck::{CoreExpr, CorePattern, CoreType};
+use crate::terlan_typeck::{CoreExpr, CorePattern};
 
 use super::{
     constructors::{
@@ -24,6 +24,8 @@ mod bitstring_intrinsics;
 mod boolean_intrinsics;
 #[path = "expression/bytes_intrinsics.rs"]
 mod bytes_intrinsics;
+#[path = "expression/casts.rs"]
+mod casts;
 #[path = "expression/collection_literal_types.rs"]
 mod collection_literal_types;
 #[path = "expression/equality.rs"]
@@ -65,6 +67,7 @@ mod type_mapping;
 #[path = "expression/value_intrinsics.rs"]
 mod value_intrinsics;
 
+pub(super) use casts::collection_cast_source;
 pub(super) use collection_literal_types::homogeneous_list_type;
 use equality::{lower_equality_operand, managed_equality_semantic};
 use field_access::lower_managed_field_access;
@@ -724,143 +727,9 @@ pub(super) fn lower_expr_with_constructors(
                 }
             })
         }
-        CoreExpr::Cast { expr, target_type } => {
-            if matches!(expr.as_ref(), CoreExpr::Binary(_))
-                && matches!(target_type, CoreType::Binary)
-            {
-                return super::collection_values::lower_typed_value(
-                    expr,
-                    target_type,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                );
-            }
-            if super::collection_values::is_none_option_value(expr, target_type) {
-                return super::collection_values::lower_typed_value(
-                    expr,
-                    target_type,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                );
-            }
-            if matches!(
-                expr.as_ref(),
-                CoreExpr::List(_) | CoreExpr::Tuple(_) | CoreExpr::Map(_)
-            ) {
-                return super::collection_values::lower_boundary_collection_value(
-                    expr,
-                    Some(target_type),
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.cast_collection]: cast target `{}` is not a concrete native collection",
-                        target_type.contract_text()
-                    )
-                });
-            }
-            if matches!(
-                expr.as_ref(),
-                CoreExpr::ConstructorCall { constructor, .. }
-                    if matches!(constructor.rsplit('.').next(), Some("List" | "Map"))
-            ) {
-                return super::collection_values::lower_typed_value(
-                    expr,
-                    target_type,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                );
-            }
-            if let Some(lowered) = super::collection_values::lower_boundary_collection_value(
-                expr, Some(target_type), params, param_types, functions, function_types, constructors,
-            )? {
-                return Ok(lowered);
-            }
-            if let Some(lowered) =
-                lower_structural_constructor_call(expr, target_type, |field, expected_core| {
-                    if let Some(lowered) =
-                        super::collection_values::lower_boundary_collection_value(
-                            field,
-                            Some(expected_core),
-                            params,
-                            param_types,
-                            functions,
-                            function_types,
-                            constructors,
-                        )?
-                    {
-                        let ty = native_type(
-                            Some(expected_core),
-                            &expected_core.contract_text(),
-                        )
-                        .ok_or_else(|| {
-                            "error[native_ir.structural_constructor_field_type]: expected field is not native"
-                                .to_string()
-                        })?;
-                        return Ok((lowered, ty));
-                    }
-                    let ty = infer_native_type_for_lowering(
-                        field,
-                        param_types,
-                        function_types,
-                        constructors,
-                    )?
-                    .ok_or_else(|| {
-                        "error[native_ir.structural_constructor_field_type]: cannot infer field"
-                            .to_string()
-                    })?;
-                    let lowered = lower_expr_with_constructors(
-                        field,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?;
-                    Ok((lowered, ty))
-                })?
-            {
-                return Ok(lowered);
-            }
-            let source = infer_native_type_for_lowering(
-                expr,
-                param_types,
-                function_types,
-                constructors,
-            )?
-            .ok_or_else(|| {
-                format!("error[native_ir.cast_source]: cannot infer cast source for {expr:?}")
-            })?;
-            let target = native_type(Some(target_type), &target_type.contract_text())
-                .ok_or_else(|| "error[native_ir.cast_target]: unsupported cast target".to_string())?;
-            if source != target {
-                return Err(format!(
-                    "error[native_ir.cast_check]: cast changes native representation from {source:?} to {target:?} for {expr:?} -> {}",
-                    target_type.contract_text()
-                ));
-            }
-            lower_expr_with_constructors(
-                expr,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            )
-        }
+        CoreExpr::Cast { expr, target_type } => casts::lower_cast(
+            expr, target_type, params, param_types, functions, function_types, constructors,
+        ).map_err(String::from),
         CoreExpr::Intrinsic(call) => intrinsics::lower_intrinsic(
             call,
             params,

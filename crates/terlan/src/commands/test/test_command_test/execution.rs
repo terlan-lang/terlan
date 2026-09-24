@@ -181,14 +181,14 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
 /// - Synthetic discovered test metadata.
 ///
 /// Output:
-/// - A pass-only report with explicit validation messages and original spans.
+/// - A not-executed report with validation messages and original spans.
 ///
 /// Transformation:
 /// - Converts discovered source tests into runner result entries without
 ///   executing target code.
 #[test]
-fn validation_pass_report_marks_all_tests_as_validated() {
-    let report = validation_pass_report(&[DiscoveredTest {
+fn validation_report_does_not_count_compilation_as_execution() {
+    let report = validation_report(&[DiscoveredTest {
         name: "smoke".to_string(),
         kind: TestKind::Test,
         span_start: 7,
@@ -196,10 +196,11 @@ fn validation_pass_report_marks_all_tests_as_validated() {
         literal_bool_result: Some(true),
     }]);
 
-    assert_eq!(report.passed, 1);
+    assert_eq!(report.passed, 0);
     assert_eq!(report.failed, 0);
+    assert!(!report.is_success());
     assert_eq!(report.results[0].name, "smoke");
-    assert_eq!(report.results[0].status, TestRunStatus::Passed);
+    assert_eq!(report.results[0].status, TestRunStatus::NotExecuted);
     assert_eq!(
         report.results[0].message.as_deref(),
         Some("validated without runtime execution")
@@ -291,13 +292,13 @@ fn select_tests_rejects_missing_test_name() {
 ///   output flags.
 ///
 /// Output:
-/// - Assertions over command success and decoded manifest fields.
+/// - A nonzero command exit and manifest entries marked not executed.
 ///
 /// Transformation:
 /// - Runs the public test command entry point with `--target js`, then checks
 ///   that validation-only metadata is serialized with the JS target identity.
 #[test]
-fn run_js_tests_writes_validation_manifests() {
+fn run_js_tests_writes_incomplete_manifests_and_fails_closed() {
     let root = std::env::temp_dir().join(format!(
         "terlan_js_test_manifest_{}_{}",
         std::process::id(),
@@ -312,7 +313,7 @@ fn run_js_tests_writes_validation_manifests() {
     let result_path = root.join("test-results.json");
     fs::write(
         &source_path,
-        "module tests.js.ManifestTest.\n\n@test\npub smoke(): Bool ->\n    true.\n",
+        "module tests.js.ManifestTest.\n\n@test\npub smoke(): Bool ->\n    false.\n",
     )
     .expect("write js validation test source");
 
@@ -334,7 +335,7 @@ fn run_js_tests_writes_validation_manifests() {
             ..CliState::default()
         },
     );
-    assert_eq!(exit_code, ExitCode::SUCCESS);
+    assert_eq!(exit_code, ExitCode::from(1));
 
     let manifest: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&manifest_path).expect("manifest text"))
@@ -350,9 +351,10 @@ fn run_js_tests_writes_validation_manifests() {
     assert_eq!(manifest["tests"][0]["name"], "smoke");
     assert_eq!(results["target"], "js");
     assert_eq!(results["target_profile"], "js.shared");
-    assert_eq!(results["passed"], 1);
+    assert_eq!(results["passed"], 0);
     assert_eq!(results["failed"], 0);
-    assert_eq!(results["tests"][0]["status"], "passed");
+    assert_eq!(results["not_executed"], 1);
+    assert_eq!(results["tests"][0]["status"], "not_executed");
     assert_eq!(
         results["tests"][0]["message"],
         "validated without runtime execution"

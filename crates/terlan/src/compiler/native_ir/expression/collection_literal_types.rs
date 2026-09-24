@@ -39,11 +39,14 @@ fn infer_collection(
 }
 
 /// Recover a homogeneous list from a concrete witness, regardless of its
-/// position. An empty literal contributes shape, never an invented type.
+/// position. Empty literals retain the typechecker's uninhabited element type.
 pub(in crate::compiler::native_ir) fn homogeneous_list_type(
     items: &[CoreExpr],
     infer: impl FnMut(&CoreExpr) -> Option<CoreType>,
 ) -> Option<CoreType> {
+    if items.is_empty() {
+        return Some(CoreType::List(Box::new(CoreType::Never)));
+    }
     let types = items.iter().map(infer).collect::<Vec<_>>();
     let mut known = types.iter().flatten();
     let first = known.next()?.clone();
