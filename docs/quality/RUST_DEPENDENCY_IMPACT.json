@@ -4,12 +4,12 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "354cecfd4082589f658255ff5c10ad31c66796c41b5be1ec0df524dd54f9c8d7",
+  "compilation_input_sha256": "2502b67fec2d23810be2da4122f4c3eda2d21b3f87f1d1379062fd7683871004",
   "dependency_fanout_policy": {
-    "maximum_non_optional_normal_dependencies": 56,
+    "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.9",
-    "non_optional_normal_dependencies": 56,
+    "non_optional_normal_dependencies": 58,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -749,7 +749,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 173341,
+      "physical_lines": 173380,
       "rust_files": 473
     },
     {
@@ -859,7 +859,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 9078,
+      "physical_lines": 9080,
       "rust_files": 24
     },
     {
@@ -1200,8 +1200,8 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 45363,
-      "rust_files": 185
+      "physical_lines": 45491,
+      "rust_files": 187
     },
     {
       "name": "formal_pipeline",
@@ -1275,7 +1275,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 6967,
+      "physical_lines": 6969,
       "rust_files": 18
     },
     {
@@ -1360,6 +1360,13 @@
           "features": [],
           "kind": "dev",
           "name": "tar",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "tempfile",
           "optional": false
         },
         {
@@ -1693,6 +1700,15 @@
         },
         {
           "default_features": true,
+          "features": [
+            "fs"
+          ],
+          "kind": "normal",
+          "name": "rustix",
+          "optional": false
+        },
+        {
+          "default_features": true,
           "features": [],
           "kind": "normal",
           "name": "rustls",
@@ -1829,6 +1845,13 @@
           "kind": "normal",
           "name": "terlan-service-foundation",
           "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-storage",
+          "optional": false
         },
         {
           "default_features": true,
@@ -2166,6 +2189,42 @@
         {
           "default_features": true,
           "features": [],
+          "kind": "dev",
+          "name": "tempfile",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "getrandom",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "bundled",
+            "limits"
+          ],
+          "kind": "normal",
+          "name": "rusqlite",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        }
+      ],
+      "package": "terlan-storage"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
           "kind": "normal",
           "name": "getrandom",
           "optional": false
@@ -2259,7 +2318,8 @@
         "terlan-libpq",
         "terlan-process-owner",
         "terlan-runtime-abi",
-        "terlan-service-foundation"
+        "terlan-service-foundation",
+        "terlan-storage"
       ],
       "name": "terlan",
       "reverse_dependents": []
@@ -2319,6 +2379,13 @@
       "reverse_dependents": [
         "terlan",
         "terlan-foundations-adapter"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-storage",
+      "reverse_dependents": [
+        "terlan"
       ]
     },
     {

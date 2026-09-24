@@ -202,6 +202,18 @@
       ]
     },
     {
+      "name": "terlan-storage",
+      "responsibility": "Own bounded volatile checkpoint storage and transactional SQLite durability without actor scheduling or replication.",
+      "top_level_feature_modules": [
+        "database",
+        "error",
+        "lib",
+        "local",
+        "snapshot",
+        "transaction"
+      ]
+    },
+    {
       "name": "terlan-test-orchestrator",
       "responsibility": "Own compiler-independent Rust test phases and durable direct-launch observations through shared process ownership.",
       "top_level_feature_modules": [
