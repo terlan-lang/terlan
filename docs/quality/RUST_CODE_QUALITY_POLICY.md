@@ -132,3 +132,10 @@ the reverse transitive change blast radius. The source-domain graph must remain
 acyclic. Checked ceilings for the main package's non-optional dependencies,
 resolved duplicate-version families, and blast radius prevent an evidence
 refresh from normalizing broader build or source coupling.
+
+On 2026-09-24, the user approved increasing the non-optional normal dependency
+ceiling from 56 to 58 for the implemented local-storage support: `terlan-storage`
+owns checkpoint persistence, and Linux `rustix` provides checked filesystem
+admission before starting its worker. Both additions remain visible in the
+inventory. The limit is fixed at 58; a further increase fails the gate and
+requires a new review. Other dependency and coupling budgets are unchanged.
