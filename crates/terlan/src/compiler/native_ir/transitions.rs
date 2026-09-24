@@ -25,6 +25,11 @@ pub(super) fn process_transition(
         return None;
     };
     match &call.id {
+        CoreIntrinsicId::VmEffectFail if call.args.len() == 1 => Some((
+            NativeTransitionOperation::FailureTyped,
+            call.args.clone(),
+            None,
+        )),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::VmDebuggerBreak)
             if call.args.is_empty() =>
         {

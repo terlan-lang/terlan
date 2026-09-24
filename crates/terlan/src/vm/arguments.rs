@@ -6,6 +6,7 @@ pub(super) fn parse_run_args(args: &[String]) -> VmCommand {
     let mut entry = "main".to_string();
     let mut result_mode = RunResultMode::Discard;
     let mut program_arguments = Vec::new();
+    let mut storage_bindings = Vec::new();
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -48,6 +49,16 @@ pub(super) fn parse_run_args(args: &[String]) -> VmCommand {
                 entry = value.clone();
                 index += 2;
             }
+            "--storage" => {
+                let Some(value) = args.get(index + 1) else {
+                    return VmCommand::Error("missing value for --storage".into());
+                };
+                match VmStorageBinding::parse(value) {
+                    Ok(binding) => storage_bindings.push(binding),
+                    Err(error) => return VmCommand::Error(error.into()),
+                }
+                index += 2;
+            }
             arg if arg.starts_with('-') => {
                 return VmCommand::Error(format!("unknown terlan-vm run option: {arg}"));
             }
@@ -71,6 +82,7 @@ pub(super) fn parse_run_args(args: &[String]) -> VmCommand {
         entry,
         result_mode,
         program_arguments,
+        storage_bindings,
     }
 }
 
@@ -743,10 +755,18 @@ pub(super) fn run_path(
     entry: &str,
     result_mode: RunResultMode,
     program_arguments: &[String],
+    storage_bindings: &[VmStorageBinding],
     output: &mut dyn FnMut(&str),
 ) -> Result<(), String> {
     if is_tvm_image_path(source) {
-        run_tvm_image(source, entry, result_mode, program_arguments, output)
+        run_tvm_image(
+            source,
+            entry,
+            result_mode,
+            program_arguments,
+            storage_bindings,
+            output,
+        )
     } else if is_vm_artifact_path(source) {
         Err(tvm_json_runtime_removed_error(source))
     } else {

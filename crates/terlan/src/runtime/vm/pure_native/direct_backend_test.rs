@@ -631,6 +631,53 @@ fn public_aggregate_depth_limit_and_atom_metadata_fail_closed() {
     assert_eq!(managed.heap_usage(96), Some((0, 0)));
 }
 
+#[test]
+fn public_nullary_union_values_require_exact_admitted_variant_and_atom() {
+    let ready =
+        ManagedAggregateDescriptor::constructor("app.State", "Ready", 0, 2, Vec::new()).unwrap();
+    let pending = ManagedAggregateDescriptor::constructor(
+        "app.State",
+        "Pending",
+        1,
+        2,
+        vec![(Some("count".into()), ManagedFieldType::Int)],
+    )
+    .unwrap();
+    let mut layouts = vec![admitted_layout(ready), admitted_layout(pending)];
+    layouts.sort_by(|left, right| left.encoded_layout.cmp(&right.encoded_layout));
+    let mut managed = ManagedExecutionRuntime::with_image_metadata(
+        &layouts,
+        &[],
+        &["ready".into(), "pending".into(), "other".into()],
+    )
+    .unwrap();
+    let boundary = TvmBoundaryType::Managed(semantic("app.State").bytes());
+    let word = encode_public_argument(
+        &mut managed,
+        95,
+        &boundary,
+        &ReplValue::Atom("ready".into()),
+    )
+    .unwrap();
+    assert_eq!(
+        decode_public_result(&managed, 95, &boundary, word).unwrap(),
+        ReplValue::Record {
+            name: "Ready".into(),
+            fields: Vec::new(),
+        }
+    );
+    for identity in ["pending", "other", "missing"] {
+        assert!(encode_public_argument(
+            &mut managed,
+            96,
+            &boundary,
+            &ReplValue::Atom(identity.into())
+        )
+        .is_err());
+        assert_eq!(managed.heap_usage(96), Some((0, 0)));
+    }
+}
+
 /// Round-trips standalone, aggregate, and collection atoms through one image table.
 #[test]
 fn public_atoms_round_trip_through_canonical_image_identity() {

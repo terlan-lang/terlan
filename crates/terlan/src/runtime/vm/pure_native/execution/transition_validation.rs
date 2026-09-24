@@ -10,6 +10,10 @@ pub(crate) fn validate_transition_arguments(
     arguments: &[i64],
 ) -> Result<(), String> {
     match operation {
+        TvmTransitionOperation::FailureTyped => match arguments {
+            [word] if u64::from_ne_bytes(word.to_ne_bytes()) >> 32 != 0 => Ok(()),
+            _ => Err("error[pure_native_effect_failure]: expected one managed error envelope".to_string()),
+        },
         TvmTransitionOperation::Debug if arguments.is_empty() => Ok(()),
         TvmTransitionOperation::Debug => Err(
             "error[pure_native_transition_arguments]: Debug expects no arguments".to_string(),

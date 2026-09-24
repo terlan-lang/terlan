@@ -738,12 +738,8 @@ comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
 	$(RUST_TEST) -p terlan --lib comprehension
 	$(RUST_TEST) -p terlan --lib --features editor-lsp comprehension
-	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_typed_guard_failure 2>&1); then \
-		echo "expected typed guard failure" >&2; exit 1; \
-	else echo "$$output" | grep -F 'error[vm_comprehension_guard_failed]'; fi
-	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_guard_cancellation 2>&1); then \
-		echo "expected guard cancellation" >&2; exit 1; \
-	else echo "$$output" | grep -F 'error[vm_comprehension_guard_cancelled]'; fi
+	# The comprehension Rust tier compiles the failure fixture and verifies the
+	# owning actor's terminal reason; a compiler rejection is not runtime evidence.
 
 flexible-shape-guards-check: compiler-purity-metadata-check pattern-matching-support-check
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_expr_test::literals_and_comprehensions::formal_keyword_exprs_preserve_clause_guards -- --exact

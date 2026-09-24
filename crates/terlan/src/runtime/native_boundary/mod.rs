@@ -29,6 +29,7 @@ pub mod request;
 pub mod resource;
 pub mod runtime;
 mod runtime_events;
+pub(crate) mod storage_reply;
 pub mod term;
 pub mod worker;
 mod worker_report;

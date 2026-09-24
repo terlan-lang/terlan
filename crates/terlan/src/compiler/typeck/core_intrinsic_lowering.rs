@@ -525,7 +525,7 @@ fn core_receiver_intrinsic_module(
 /// - Performs the final intrinsic registry lookup and packages the closed
 ///   intrinsic id, arguments, return type, pure effect set, and source span into
 ///   a backend-neutral CoreIR node.
-fn core_intrinsic_expr_from_parts(
+pub(crate) fn core_intrinsic_expr_from_parts(
     module: &str,
     function: &str,
     args: Vec<CoreExpr>,
@@ -727,7 +727,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             args: vec![CoreType::Dynamic],
         },
         CorePrimitiveIntrinsic::TaskDone => CoreType::Apply {
-            constructor: "Task".to_string(),
+            constructor: "std.core.Task.Task".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
         CorePrimitiveIntrinsic::TaskFailed => CoreType::Apply {

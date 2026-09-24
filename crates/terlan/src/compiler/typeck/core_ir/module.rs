@@ -2,6 +2,17 @@ use super::super::binding_identity::CoreBindingIdentityEvidence;
 use super::*;
 use crate::terlan_hir::ModuleInterface;
 
+/// Exact selected-function import provenance retained for typed call selection.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct CoreSelectedFunctionImport {
+    /// Caller-visible name, including an explicit import alias.
+    pub local_name: String,
+    /// Canonical provider module.
+    pub module: String,
+    /// Public function name in the provider module.
+    pub function: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Core module metadata and proof/readiness counters.
 ///
@@ -68,6 +79,8 @@ pub struct CoreModule {
     pub source: CoreSourceIdentity,
     /// Resolved module imports visible to this Core module.
     pub imports: Vec<CoreImport>,
+    /// Selected public functions, distinct from whole-module visibility.
+    pub selected_function_imports: Vec<CoreSelectedFunctionImport>,
     /// Public exports represented by this Core module.
     pub exports: Vec<CoreExport>,
     /// Resolved type declarations represented by this Core module.
@@ -155,6 +168,12 @@ impl CoreModule {
             CoreImportKind::Css => format!("import=css:{}", import.module),
             CoreImportKind::Markdown => format!("import=markdown:{}", import.module),
         }));
+        lines.extend(self.selected_function_imports.iter().map(|import| {
+            format!(
+                "selected_import={}={}.{}",
+                import.local_name, import.module, import.function
+            )
+        }));
         lines.extend(self.exports.iter().map(|export| {
             format!(
                 "export={}{}",
@@ -207,6 +226,9 @@ impl CoreModule {
                 function.return_type,
                 core_type_contract_text(function.core_return_type.as_ref())
             );
+            if function.receiver_method {
+                line.push_str(" receiver_method=true");
+            }
             if !function.generic_params.is_empty() {
                 line.push_str(" generics=");
                 line.push_str(&function.generic_params.join(","));

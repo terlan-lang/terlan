@@ -2,6 +2,40 @@ use std::io::Cursor;
 
 use super::*;
 
+#[test]
+fn capability_tuple_round_trip_keeps_ownership_and_term_bounds() {
+    let handle = CapabilityHandle {
+        id: 12,
+        generation: 3,
+    };
+    let value = CapabilityValue::Tuple(vec![
+        CapabilityValue::Record {
+            name: "Entry".into(),
+            fields: vec![("owner".into(), CapabilityValue::Handle(handle))],
+        },
+        CapabilityValue::List(vec![CapabilityValue::Int(5)]),
+    ]);
+    let mut bytes = Vec::new();
+    write_json_frame(&mut bytes, &value, 4096).unwrap();
+    let decoded: CapabilityValue = read_json_frame(&mut Cursor::new(bytes), 4096)
+        .unwrap()
+        .unwrap();
+    assert_eq!(decoded, value);
+    assert_eq!(decoded.owned_handles(), vec![handle]);
+    let term = decoded.into_term();
+    assert_eq!(CapabilityValue::from_term(term.clone()), value);
+    let bridge = crate::terlan_native_boundary::term::decode_bridge_value(&term);
+    assert_eq!(
+        crate::terlan_native_boundary::term::encode_bridge_value(bridge),
+        term
+    );
+    validate_capability_term_budget(std::slice::from_ref(&value)).unwrap();
+    let oversized = CapabilityValue::Tuple(vec![CapabilityValue::Unit; MAX_CAPABILITY_TERM_COUNT]);
+    assert!(validate_capability_term_budget(&[oversized])
+        .unwrap_err()
+        .contains("term_limit"));
+}
+
 /// Round-trips every owned recursive value through the shared codec.
 #[test]
 fn capability_wire_round_trips_shared_request_values() {

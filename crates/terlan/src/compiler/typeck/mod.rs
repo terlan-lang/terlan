@@ -601,7 +601,7 @@ fn type_check_prepared_syntax_module_output(
 mod core_const_termination;
 pub(crate) mod core_expr_lowering;
 mod core_expr_proof;
-mod core_interface;
+pub(crate) mod core_interface;
 pub(crate) mod core_intrinsic_lowering;
 mod core_lowering;
 mod core_pattern_lowering;

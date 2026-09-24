@@ -15,7 +15,7 @@ pub(super) fn callable_profile(
     dynamic: &DynamicCallProfiles,
     suspending: &std::collections::HashSet<usize>,
 ) -> Option<ComposedCallProfile> {
-    ComposedCallProfile::new(body, continuations, profiles)
+    ComposedCallProfile::with_dynamic_targets(body, continuations, profiles, dynamic)
         .or_else(|| forwarded_dynamic_profile(body, dynamic))
         .or_else(|| match body {
             NativeExpr::TailCall {

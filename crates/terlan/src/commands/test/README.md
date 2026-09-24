@@ -37,11 +37,14 @@ Test discovery happens after formal syntax parsing and before VM execution or
 target validation. The public runtime runner is the compiler-owned Terlan VM
 lane.
 
-The JS runner is validation-only in 0.0.4. It compiles the selected test module
+The JS path is currently validation-only. It compiles the selected test module
 through the JS target profile, validates `@test` declarations, and emits the
 same manifest/result artifact shape as runtime runners. It does not execute
-browser, worker, Node, or Oxc runtime code yet, and its output marks tests as
-`ok (validated)`.
+browser, worker, Node, or Oxc runtime code. Its output marks tests as
+`NOT EXECUTED`, records `not_executed` statuses and counts with zero passes,
+and exits nonzero with `error[test.js.execution_unavailable]`. Neither valid
+compilation nor a literal `true` body is execution evidence. Release validation
+must not count these entries as supported API coverage.
 
 The command accepts no path or one or more explicit test files and directories.
 With no path, `terlc test` uses the project `tests` directory. Each directory
@@ -76,8 +79,8 @@ Important invariants:
   Erlang/BEAM artifacts.
 - Unsupported targets fail before execution or validation with an explicit
   diagnostic.
-- `--target js` defaults to `js.shared` when no global JS profile is selected;
-  explicit `js.browser` and `js.worker` profiles are preserved.
+- `--target js` requires a compatible `--target-profile`: `js.shared`,
+  `js.browser`, or `js.worker`; the VM profile is not silently changed.
 - `--target wasm` selects `wasm.core`; missing hosted runtimes and unsupported
   ABI signatures fail rather than being recorded as validation-only passes.
 - The VM runner accepts public zero-argument tests and reports unsupported
@@ -92,7 +95,7 @@ Important invariants:
   target, selected target profile, discovered test names, and source spans. It
   is a compiler/runner artifact, not a replacement for normal test output.
 - The opt-in test result manifest records the same source/target identity plus
-  pass/fail counts, per-test statuses, failure messages, execution nanoseconds,
+  pass/fail/not-executed counts, per-test statuses, messages, execution nanoseconds,
   and source spans. Execution timing excludes compilation and image loading.
 
 ## Integration Points

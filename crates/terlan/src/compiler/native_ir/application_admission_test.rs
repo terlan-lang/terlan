@@ -73,6 +73,30 @@ fn canonical_public_receiver_targets_do_not_require_a_second_source_import() {
     }
 }
 
+/// Qualified local calls preserve private visibility without accepting other modules.
+#[test]
+fn qualified_local_calls_preserve_module_and_arity_identity() {
+    for (name, arity, accepted) in [
+        ("hidden", 0, true),
+        ("app.Local.hidden", 0, true),
+        ("app.Local.hidden", 1, false),
+        ("app.LocalOther.hidden", 0, false),
+        ("other.Local.hidden", 0, false),
+        ("app.Local.missing", 0, false),
+    ] {
+        let mut caller = core("module app.Local. hidden(): Int -> 7. pub main(): Int -> 1.");
+        *body_mut(&mut caller, "main") = CoreExpr::Call {
+            type_args: Vec::new(),
+            function: name.into(),
+            args: vec![CoreExpr::Int(1); arity],
+        };
+        let layouts =
+            std::collections::HashMap::from([(caller.module.clone(), Default::default())]);
+        let result = super::application_admission::validate_core_application(&[caller], &layouts);
+        assert_eq!(result.is_ok(), accepted, "{name}/{arity}: {result:?}");
+    }
+}
+
 /// Compound syntax must not hide unresolved calls from closed-image admission.
 #[test]
 fn nested_calls_and_references_share_exhaustive_admission() {

@@ -106,8 +106,37 @@ pub effectful_comprehension_guard_filters_false_in_source_order(): Bool ->
 @test
 pub effectful_comprehension_guard_short_circuits_later_pure_failure(): Bool ->
     let values = [1];
-    let planned = [value | value <- values, Effect.succeed(false), 1 div value - value == 0];
+    let planned = [value | value <- values, Effect.succeed(false), 1 div (value - value) == 0];
     assert_equal(0, length(Effect.run(planned))).
 
 is_visible(value: Int): Bool ->
     value > 0 and value < 10.
+
+@test
+pub effectful_comprehension_executes_mapped_guards(): Bool ->
+    let values = [1, 2, 3];
+    let planned = [value | value <- values, mapped_visible(value)];
+    assert_equal([2, 3], Effect.run(planned)).
+
+mapped_visible(value: Int): Effect[Bool] ->
+    Effect.map(Effect.succeed(value), (item: Int) -> item > 1).
+
+@test
+pub effectful_comprehension_construction_does_not_execute_guards(): Bool ->
+    let values = [1];
+    let _planned = [value | value <- values, Effect.fail("unexecuted guard")];
+    assert_equal(42, Effect.run(Effect.succeed(42))).
+
+@test
+pub effectful_comprehension_false_guard_skips_later_failure(): Bool ->
+    let values = [1, 2];
+    let planned = [value | value <- values, Effect.succeed(false), Effect.fail("skipped guard")];
+    assert_equal(0, length(Effect.run(planned))).
+
+@test
+pub effectful_comprehension_retains_nested_generator_order(): Bool ->
+    let left = [1, 2];
+    let right = [10, 20];
+    let planned = [{x, y} | x <- left, y <- right, mapped_visible(x)];
+    assert_equal([{2, 10}, {2, 20}], Effect.run(planned))
+        and assert_equal([{2, 10}, {2, 20}], Effect.run(planned)).

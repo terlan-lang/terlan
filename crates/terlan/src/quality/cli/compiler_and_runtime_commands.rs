@@ -307,7 +307,7 @@ pub(super) fn run_compiler_and_runtime_command(
         Some("std-package-coverage-100") => match run_std_package_coverage_100(Path::new(".")) {
             Ok(summary) => {
                 println!(
-                    "[std-package-coverage-100] {} release API rows checked: {} executable tests, {} generated contracts; {} release modules checked with {} baseline gaps.",
+                    "[std-package-coverage-100] manifest consistency only: {} API rows, {} @test-backed rows, {} generated-contract rows; {} modules with {} inventory gaps. Public API completeness and target execution are not measured.",
                     summary.api_row_count,
                     summary.executable_test_row_count,
                     summary.generated_contract_row_count,

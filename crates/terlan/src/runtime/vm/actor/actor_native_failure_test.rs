@@ -9,6 +9,84 @@ fn source(name: &str) -> VmProcessSource {
 }
 
 #[test]
+fn typed_effect_failure_preserves_value_and_rejects_foreign_or_replayed_authority() {
+    use crate::runtime::native_image::TvmBoundaryType;
+
+    let mut runtime = VmActorRuntime::default();
+    let owner = runtime.spawn_root(source("typed-effect"));
+    let linked = runtime.spawn_root(source("typed-linked"));
+    let watcher = runtime.spawn_root(source("typed-watcher"));
+    runtime
+        .park_native_continuation(owner.as_u64(), 301, 307)
+        .unwrap();
+    runtime
+        .service_native_resource(owner.as_u64(), 301, 307, 7)
+        .unwrap();
+    runtime.link_actors(owner, linked).unwrap();
+    let monitor = runtime.monitor_actor(watcher, owner).unwrap();
+    runtime
+        .park_native_continuation(owner.as_u64(), 311, 313)
+        .unwrap();
+    let value = ReplValue::String("typed failure payload".into());
+    for (actor, request, continuation) in [
+        (linked.as_u64(), 311, 313),
+        (owner.as_u64(), 317, 313),
+        (owner.as_u64(), 311, 317),
+    ] {
+        assert!(runtime
+            .service_native_typed_failure(
+                actor,
+                request,
+                continuation,
+                TvmBoundaryType::String,
+                value.clone(),
+            )
+            .is_err());
+        assert_eq!(runtime.pending_native_continuation_count(), 1);
+        assert_eq!(runtime.resource_snapshots().len(), 1);
+    }
+    assert_eq!(
+        runtime
+            .service_native_typed_failure(
+                owner.as_u64(),
+                311,
+                313,
+                TvmBoundaryType::String,
+                value.clone(),
+            )
+            .unwrap(),
+        ["resource:1"]
+    );
+    let reason = VmExitReason::TypedError {
+        boundary_type: TvmBoundaryType::String,
+        value: Box::new(value.clone()),
+    };
+    for actor in [owner, linked] {
+        assert_eq!(
+            runtime.processes().get(actor).unwrap().state,
+            VmProcessState::Exited(reason.clone())
+        );
+    }
+    assert!(runtime.resource_snapshots().is_empty());
+    assert_eq!(runtime.pending_native_continuation_count(), 0);
+    let VmActorReceive::Message(message) = runtime.receive_next_or_block(watcher).unwrap() else {
+        panic!("typed failure must notify its monitor");
+    };
+    assert_eq!(
+        message.payload,
+        ReplValue::Tuple(vec![
+            ReplValue::Atom("down".into()),
+            ReplValue::Int(monitor.as_u64() as i64),
+            ReplValue::Int(owner.as_u64() as i64),
+            ReplValue::Tuple(vec![ReplValue::Atom("error".into()), value.clone()]),
+        ])
+    );
+    assert!(runtime
+        .service_native_typed_failure(owner.as_u64(), 311, 313, TvmBoundaryType::String, value,)
+        .is_err());
+}
+
+#[test]
 fn native_failure_uses_vm_exit_propagation_monitoring_and_cleanup() {
     let mut runtime = VmActorRuntime::default();
     let owner = runtime.spawn_root(source("native-failure"));

@@ -1,7 +1,9 @@
 module std.vm.ClusterTest.
 
+import std.collections.{Map, Set}.
 import std.core.Option.{None, Some}.
 import std.test.Test.{assert_equal}.
+import std.vm.BitString.{from_uint_be}.
 import std.vm.Cluster.
 import std.vm.Cluster.{Accepted, Active, AlreadyConnected, AtMostOnce, Connected, Degraded, Disconnected, Duplicate, Fenced, Healthy, HeartbeatTimeout, Left, LocalClose, Missing, NeedsAck, Node, OutOfOrder, Reconnected, RemoteClose, SendAcrossNode, SessionFenced, TransportFailure, Unreachable}.
 
@@ -70,6 +72,12 @@ pub disconnect_reason_round_trips(reason: DisconnectReason, tick: Int): Bool ->
 @test
 pub profile_exposes_explicit_node_identity(): Bool ->
     assert_equal("node-a", local_profile().node_id()).
+
+@test
+pub profile_epoch_advances_without_mutating_the_original(): Bool ->
+    let original = local_profile();
+    let advanced = original.next_epoch();
+    original.epoch() == 1 and advanced.epoch() == 2 and advanced.node_id() == original.node_id().
 
 @test
 pub membership_join_records_peer_as_active(): Bool ->
@@ -297,3 +305,51 @@ pub session_disconnect_reasons_are_typed_and_lossless(): Bool ->
         and disconnect_reason_round_trips(TransportFailure, 3)
         and disconnect_reason_round_trips(HeartbeatTimeout, 4)
         and disconnect_reason_round_trips(SessionFenced, 5).
+
+@test
+pub typed_atom_payload_uses_the_admitted_image_vocabulary(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let outbound = Cluster.open(local, remote, 1024);
+    let inbound = Cluster.open(remote, local, 1024);
+    let sent = outbound.send("message", Active);
+    let received = inbound.accept(sent.frame);
+    is_accepted(received.outcome).
+
+@test
+pub aggregate_payloads_use_the_same_checked_transport(): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let outbound = Cluster.open(local, remote, 1024);
+    let inbound = Cluster.open(remote, local, 1024);
+    let first = outbound.send("message", {42, "payload", Active});
+    let after_first = first.session;
+    let second = after_first.send("message", [1, 2, 3]);
+    let first_received = inbound.accept(first.frame);
+    let after_received = first_received.session;
+    let second_received = after_received.accept(second.frame);
+    is_accepted(first_received.outcome)
+        and is_accepted(second_received.outcome)
+        and first.frame.message_id() == 1
+        and second.frame.message_id() == 2.
+
+pub portable_payload_is_accepted[Payload](payload: Payload): Bool ->
+    let local = local_profile();
+    let remote = remote_profile();
+    let outbound = Cluster.open(local, remote, 1024);
+    let inbound = Cluster.open(remote, local, 1024);
+    let sent = outbound.send("message", payload);
+    let received = inbound.accept(sent.frame);
+    is_accepted(received.outcome).
+
+@test
+pub map_payload_uses_direct_vm_transport(): Bool ->
+    portable_payload_is_accepted(Map({"quantity", 42}, {"other", 7})).
+
+@test
+pub set_payload_uses_direct_vm_transport(): Bool ->
+    portable_payload_is_accepted(Set(1, 2, 1)).
+
+@test
+pub unaligned_bitstring_payload_uses_direct_vm_transport(): Bool ->
+    portable_payload_is_accepted(from_uint_be(5, 3)).

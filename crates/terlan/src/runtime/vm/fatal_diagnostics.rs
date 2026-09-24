@@ -336,6 +336,7 @@ fn exit_reason_kind(reason: &VmExitReason) -> &'static str {
     match reason {
         VmExitReason::Normal => "normal",
         VmExitReason::Error(_) => "error",
+        VmExitReason::TypedError { .. } => "typed-error",
         VmExitReason::Killed => "killed",
         VmExitReason::ShutdownTimeout { .. } => "shutdown-timeout",
         VmExitReason::MemoryLimitExceeded { .. } => "memory-limit-exceeded",

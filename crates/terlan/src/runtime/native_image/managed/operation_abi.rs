@@ -20,12 +20,20 @@ mod bytes;
 mod collections;
 #[path = "operation_abi/equality.rs"]
 mod equality;
+#[path = "operation_abi/erased.rs"]
+mod erased;
+pub use erased::{
+    encode_erased_value_box_operation, encode_erased_value_is_type_operation,
+    encode_erased_value_unbox_operation,
+};
 #[path = "operation_abi/field.rs"]
 mod field;
 #[path = "operation_abi/float.rs"]
 mod float;
 #[path = "operation_abi/http.rs"]
 mod http;
+mod immediate_union;
+pub(crate) use immediate_union::immediate_variant;
 #[path = "operation_abi/integer.rs"]
 mod integer;
 #[path = "operation_abi/json.rs"]
@@ -159,6 +167,7 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
         || bytes::is_bytes_operation(encoded)
         || collections::is_collection_operation(encoded)
         || equality::is_equality_operation(encoded)
+        || erased::is_erased_operation(encoded)
         || float::is_float_operation(encoded)
         || http::is_http_operation(encoded)
         || integer::is_integer_operation(encoded)
@@ -172,6 +181,9 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
 /// Reports whether one admitted managed ABI payload returns an opaque reference.
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
+    if erased::is_erased_operation(encoded) {
+        return erased::result_is_reference(encoded);
+    }
     if super::is_closure_allocation(encoded) {
         return true;
     }
@@ -378,6 +390,9 @@ pub(crate) fn execute_managed_operation_with_context(
     // Select it from its authenticated magic once instead of probing every
     // specialized family before decoding the operation.
     if !encoded.starts_with(MAGIC) {
+        if erased::is_erased_operation(encoded) {
+            return erased::execute(heap, layouts, encoded, words);
+        }
         if http::is_http_operation(encoded) {
             return http::execute_http_operation(heap, layouts, encoded, words);
         }

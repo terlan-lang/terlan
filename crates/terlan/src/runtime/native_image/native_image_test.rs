@@ -106,6 +106,7 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
         TvmTransitionOperation::Resource,
         TvmTransitionOperation::Cancellation,
         TvmTransitionOperation::Failure,
+        TvmTransitionOperation::FailureTyped,
         TvmTransitionOperation::Scheduling,
         TvmTransitionOperation::Capability,
     ] {

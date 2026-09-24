@@ -99,6 +99,31 @@ pub string_case(): Bool -> strings().length() == 1 and generic("text").length() 
 }
 
 #[test]
+fn return_context_and_argument_types_jointly_close_generic_results() {
+    check_generic_execution(
+        r#"
+module mixed_generic_witnesses.
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Outcome[T, E] = Ok[T] | Err[E].
+reject[T, E](reason: E): Outcome[T, E] -> Err(reason).
+as_int(reason: String): Outcome[Int, String] -> reject(reason).
+as_bool(reason: String): Outcome[Bool, String] -> let message = reason; reject(message).
+choose(choice: Bool, reason: String): Outcome[Int, String] ->
+    if { choice -> reject(reason); true -> Ok(7) }.
+match_choice(choice: Bool, reason: String): Outcome[Int, String] ->
+    case choice { true -> reject(reason); false -> Ok(7) }.
+pub integer_case(): Bool -> case as_int("bad") { Err(reason) -> reason == "bad"; _ -> false }.
+pub boolean_case(): Bool -> case as_bool("other") { Err(reason) -> reason == "other"; _ -> false }.
+pub branch_case(): Bool -> case choose(true, "branch") { Err(reason) -> reason == "branch"; _ -> false }.
+pub match_case(): Bool -> case match_choice(true, "match") { Err(reason) -> reason == "match"; _ -> false }.
+"#,
+        &["integer_case", "boolean_case", "branch_case", "match_case"],
+        false,
+    );
+}
+
+#[test]
 fn typed_empty_collections_keep_their_witness_through_generic_calls() {
     check_generic_execution(
         r#"

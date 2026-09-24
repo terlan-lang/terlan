@@ -262,7 +262,10 @@ fn make_reuses_live_coverage_and_rejects_uncovered_or_changed_requests() {
     ])));
     assert!(run(&mut command(root, root.join("target/driver"))));
     let bodies = fs::read(root.join("target/bodies.txt")).unwrap();
-    assert_eq!(String::from_utf8_lossy(&bodies).lines().count(), 15);
+    assert_eq!(
+        String::from_utf8_lossy(&bodies).lines().count(),
+        15 + 2 * usize::from(cfg!(target_os = "linux"))
+    );
     let positive = coverage(root, "gates");
     assert_eq!(positive["decision"], "gates-covered");
     assert_eq!(positive["direct_cargo_launch_count"], 0);
@@ -436,7 +439,7 @@ hosted-change-source: normal
             .unwrap()
             .lines()
             .count(),
-        15
+        15 + 2 * usize::from(cfg!(target_os = "linux"))
     );
     assert_eq!(
         fs::read_to_string(root.join("target/gate-entries")).unwrap(),

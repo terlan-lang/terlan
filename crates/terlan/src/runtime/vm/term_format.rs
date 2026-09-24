@@ -1,6 +1,11 @@
 use super::ReplValue;
 
+mod buffer;
+mod checkpoint;
 mod decoder;
+use buffer::EncodingBuffer;
+pub(crate) use checkpoint::encode_tetf_checkpoint;
+pub(crate) use decoder::decode_tetf_checkpoint;
 
 pub(crate) use decoder::decode_tetf_distribution_envelope;
 
@@ -9,8 +14,11 @@ pub(crate) use decoder::decode_tetf;
 
 const MAGIC: &[u8; 4] = b"TETF";
 const VERSION: u8 = 1;
+const MAX_NESTING_DEPTH: usize = 128;
+#[cfg(test)]
 const PROFILE_RUNTIME_TERM: u8 = 1;
 const PROFILE_DISTRIBUTION_ENVELOPE: u8 = 2;
+const PROFILE_LOGICAL_CHECKPOINT: u8 = 3;
 
 const TAG_UNIT: u8 = 0x01;
 const TAG_FALSE: u8 = 0x02;
@@ -19,6 +27,7 @@ const TAG_INT: u8 = 0x04;
 const TAG_FLOAT_TEXT: u8 = 0x05;
 const TAG_STRING: u8 = 0x06;
 const TAG_ATOM: u8 = 0x07;
+#[cfg(test)]
 const TAG_TYPE: u8 = 0x08;
 const TAG_TUPLE: u8 = 0x09;
 const TAG_LIST: u8 = 0x0a;
@@ -123,12 +132,12 @@ impl TetfDistributionEnvelope {
 ///   is Terlan-owned and intentionally not Erlang ETF-compatible.
 #[cfg(test)]
 pub(crate) fn encode_tetf(value: &ReplValue, declared_atoms: &[String]) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(MAGIC);
-    bytes.push(VERSION);
-    bytes.push(PROFILE_RUNTIME_TERM);
-    encode_value(value, declared_atoms, &mut bytes)?;
-    Ok(bytes)
+    let mut bytes = EncodingBuffer::new(usize::MAX);
+    bytes.extend_from_slice(MAGIC)?;
+    bytes.push(VERSION)?;
+    bytes.push(PROFILE_RUNTIME_TERM)?;
+    encode_value(value, declared_atoms, &mut bytes, 0)?;
+    Ok(bytes.into_vec())
 }
 
 /// Encodes a VM reference as a standalone TETF control value.
@@ -143,12 +152,12 @@ pub(crate) fn encode_tetf(value: &ReplValue, declared_atoms: &[String]) -> Resul
 /// - Writes a Terlan-owned reference term. The format is not ETF-compatible.
 #[cfg(test)]
 pub(crate) fn encode_tetf_vm_ref(reference: &TetfVmRef) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(MAGIC);
-    bytes.push(VERSION);
-    bytes.push(PROFILE_DISTRIBUTION_ENVELOPE);
+    let mut bytes = EncodingBuffer::new(usize::MAX);
+    bytes.extend_from_slice(MAGIC)?;
+    bytes.push(VERSION)?;
+    bytes.push(PROFILE_DISTRIBUTION_ENVELOPE)?;
     encode_vm_ref(reference, &mut bytes)?;
-    Ok(bytes)
+    Ok(bytes.into_vec())
 }
 
 /// Encodes a distribution envelope as TETF control data.
@@ -163,69 +172,86 @@ pub(crate) fn encode_tetf_vm_ref(reference: &TetfVmRef) -> Result<Vec<u8>, Strin
 /// Transformation:
 /// - Writes metadata before the payload so transports can route, trace, and
 ///   reject stale epochs without decoding a Terlan value first.
+#[cfg(test)]
 pub(crate) fn encode_tetf_distribution_envelope(
     envelope: &TetfDistributionEnvelope,
     declared_atoms: &[String],
 ) -> Result<Vec<u8>, String> {
+    encode_tetf_distribution_envelope_bounded(envelope, declared_atoms, usize::MAX)
+        .map_err(String::from)
+}
+
+/// Encodes under the transport limit before allocating payload or canonical-sort buffers.
+pub(crate) fn encode_tetf_distribution_envelope_bounded(
+    envelope: &TetfDistributionEnvelope,
+    declared_atoms: &[String],
+    maximum: usize,
+) -> super::VmRuntimeResult<Vec<u8>> {
     validate_text_field("trace_id", &envelope.trace_id)?;
     validate_text_field("from_node_id", &envelope.from_node_id)?;
     validate_text_field("to_node_id", &envelope.to_node_id)?;
     validate_epoch(envelope.epoch)?;
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(MAGIC);
-    bytes.push(VERSION);
-    bytes.push(PROFILE_DISTRIBUTION_ENVELOPE);
-    bytes.push(TAG_DISTRIBUTION_ENVELOPE);
+    let mut bytes = EncodingBuffer::new(maximum);
+    bytes.extend_from_slice(MAGIC)?;
+    bytes.push(VERSION)?;
+    bytes.push(PROFILE_DISTRIBUTION_ENVELOPE)?;
+    bytes.push(TAG_DISTRIBUTION_ENVELOPE)?;
     write_text(&mut bytes, &envelope.trace_id)?;
     write_text(&mut bytes, &envelope.from_node_id)?;
     write_text(&mut bytes, &envelope.to_node_id)?;
-    write_u64(&mut bytes, envelope.epoch);
+    write_u64(&mut bytes, envelope.epoch)?;
     write_len(&mut bytes, envelope.refs.len())?;
     for reference in &envelope.refs {
         encode_vm_ref(reference, &mut bytes)?;
     }
-    encode_value(&envelope.payload, declared_atoms, &mut bytes)?;
-    Ok(bytes)
+    encode_value(&envelope.payload, declared_atoms, &mut bytes, 0)?;
+    Ok(bytes.into_vec())
 }
 
 /// Appends one recursive TETF value payload without writing the outer envelope.
 fn encode_value(
     value: &ReplValue,
     declared_atoms: &[String],
-    bytes: &mut Vec<u8>,
+    bytes: &mut EncodingBuffer,
+    depth: usize,
 ) -> Result<(), String> {
+    if depth >= MAX_NESTING_DEPTH {
+        return Err(format!(
+            "error[tetf_depth]: nesting exceeds {MAX_NESTING_DEPTH} levels"
+        ));
+    }
     match value {
-        ReplValue::Unit => bytes.push(TAG_UNIT),
-        ReplValue::Bool(false) => bytes.push(TAG_FALSE),
-        ReplValue::Bool(true) => bytes.push(TAG_TRUE),
+        ReplValue::Unit => bytes.push(TAG_UNIT)?,
+        ReplValue::Bool(false) => bytes.push(TAG_FALSE)?,
+        ReplValue::Bool(true) => bytes.push(TAG_TRUE)?,
         ReplValue::Int(value) => {
-            bytes.push(TAG_INT);
-            bytes.extend_from_slice(&value.to_be_bytes());
+            bytes.push(TAG_INT)?;
+            bytes.extend_from_slice(&value.to_be_bytes())?;
         }
         ReplValue::Float(value) => {
-            bytes.push(TAG_FLOAT_TEXT);
+            bytes.push(TAG_FLOAT_TEXT)?;
             write_text(bytes, value)?;
         }
         ReplValue::String(value) => {
-            bytes.push(TAG_STRING);
+            bytes.push(TAG_STRING)?;
             write_text(bytes, value)?;
         }
         ReplValue::StringBytes(value) => {
             let value = std::str::from_utf8(value)
                 .map_err(|error| format!("error[tetf_string_utf8]: {error}"))?;
-            bytes.push(TAG_STRING);
+            bytes.push(TAG_STRING)?;
             write_text(bytes, value)?;
         }
         ReplValue::Bytes(value) => {
-            bytes.push(TAG_BYTES);
+            bytes.push(TAG_BYTES)?;
             write_len(bytes, value.len())?;
-            bytes.extend_from_slice(value);
+            bytes.extend_from_slice(value)?;
         }
         ReplValue::BitString(value) => {
-            bytes.push(TAG_BITSTRING);
+            bytes.push(TAG_BITSTRING)?;
             write_len(bytes, value.bit_len())?;
             write_len(bytes, value.byte_len())?;
-            bytes.extend_from_slice(value.packed_bytes());
+            bytes.extend_from_slice(value.packed_bytes())?;
         }
         ReplValue::Atom(value) => {
             if !declared_atoms.iter().any(|atom| atom == value) {
@@ -233,110 +259,85 @@ fn encode_value(
                     "error[tetf_atom]: atom `{value}` is not in the declared atom manifest"
                 ));
             }
-            bytes.push(TAG_ATOM);
+            bytes.push(TAG_ATOM)?;
             write_text(bytes, value)?;
         }
+        #[cfg(test)]
         ReplValue::Type(value) => {
-            bytes.push(TAG_TYPE);
+            bytes.push(TAG_TYPE)?;
             write_text(bytes, value)?;
         }
         ReplValue::Tuple(items) => {
-            bytes.push(TAG_TUPLE);
+            bytes.push(TAG_TUPLE)?;
             write_len(bytes, items.len())?;
             for item in items {
-                encode_value(item, declared_atoms, bytes)?;
+                encode_value(item, declared_atoms, bytes, depth + 1)?;
             }
         }
         ReplValue::Record { name, fields } => {
             validate_text_field("record_name", name)?;
-            bytes.push(TAG_RECORD);
+            bytes.push(TAG_RECORD)?;
             write_text(bytes, name)?;
-            let mut encoded_fields = Vec::new();
-            for (field, value) in fields {
-                validate_text_field("record_field", field)?;
-                let mut encoded_value = Vec::new();
-                encode_value(value, declared_atoms, &mut encoded_value)?;
-                encoded_fields.push((field, encoded_value));
+            write_len(bytes, fields.len())?;
+            // Every valid field needs a length, a nonempty name, and a value tag.
+            if fields.len() > bytes.remaining() / 6 {
+                return Err("error[tetf_size]: record fields exceed byte limit".into());
             }
-            encoded_fields.sort_by(|left, right| left.0.cmp(right.0));
-            if let Some(duplicate) = encoded_fields
-                .windows(2)
-                .find(|pair| pair[0].0 == pair[1].0)
-            {
+            let mut ordered = fields.iter().collect::<Vec<_>>();
+            ordered.sort_by(|left, right| left.0.cmp(&right.0));
+            if let Some(pair) = ordered.windows(2).find(|pair| pair[0].0 == pair[1].0) {
                 return Err(format!(
                     "error[tetf_canonical]: duplicate record field `{}`",
-                    duplicate[0].0
+                    pair[0].0
                 ));
             }
-            write_len(bytes, encoded_fields.len())?;
-            for (field, value) in encoded_fields {
+            for (field, value) in ordered {
+                validate_record_field(field)?;
                 write_text(bytes, field)?;
-                bytes.extend_from_slice(&value);
+                encode_value(value, declared_atoms, bytes, depth + 1)?;
             }
         }
         ReplValue::List(items) => {
-            bytes.push(TAG_LIST);
+            bytes.push(TAG_LIST)?;
             write_len(bytes, items.len())?;
             for item in items {
-                encode_value(item, declared_atoms, bytes)?;
+                encode_value(item, declared_atoms, bytes, depth + 1)?;
             }
         }
-        ReplValue::Map(entries) => {
-            bytes.push(TAG_MAP);
-            let mut encoded_entries = Vec::new();
-            for (key, value) in entries {
-                let mut encoded_key = Vec::new();
-                let mut encoded_value = Vec::new();
-                encode_value(key, declared_atoms, &mut encoded_key)?;
-                encode_value(value, declared_atoms, &mut encoded_value)?;
-                encoded_entries.push((encoded_key, encoded_value));
-            }
-            encoded_entries.sort_by(|left, right| left.0.cmp(&right.0));
-            reject_duplicate_map_keys(&encoded_entries)?;
-            write_len(bytes, encoded_entries.len())?;
-            for (key, value) in encoded_entries {
-                bytes.extend_from_slice(&key);
-                bytes.extend_from_slice(&value);
-            }
-        }
-        ReplValue::MapIndexed(map) => {
-            bytes.push(TAG_MAP);
-            let mut encoded_entries = Vec::new();
-            for (key, value) in map.to_entries() {
-                let mut encoded_key = Vec::new();
-                let mut encoded_value = Vec::new();
-                encode_value(&key, declared_atoms, &mut encoded_key)?;
-                encode_value(&value, declared_atoms, &mut encoded_value)?;
-                encoded_entries.push((encoded_key, encoded_value));
-            }
-            encoded_entries.sort_by(|left, right| left.0.cmp(&right.0));
-            reject_duplicate_map_keys(&encoded_entries)?;
-            write_len(bytes, encoded_entries.len())?;
-            for (key, value) in encoded_entries {
-                bytes.extend_from_slice(&key);
-                bytes.extend_from_slice(&value);
-            }
-        }
+        ReplValue::Map(entries) => encode_map(entries, declared_atoms, bytes, depth)?,
+        #[cfg(test)]
+        ReplValue::MapIndexed(map) => encode_map(&map.to_entries(), declared_atoms, bytes, depth)?,
         ReplValue::Set(items) => {
-            bytes.push(TAG_SET);
-            let mut encoded_items = Vec::new();
+            bytes.push(TAG_SET)?;
+            bytes.require(4)?;
+            let maximum = bytes.remaining() - 4;
+            let mut remaining = maximum;
+            let mut ordered = std::collections::BTreeSet::new();
             for item in items {
-                let mut encoded = Vec::new();
-                encode_value(item, declared_atoms, &mut encoded)?;
-                encoded_items.push(encoded);
+                // Duplicates may use the entire original item budget, even when
+                // previous unique items have exhausted the remaining budget.
+                let mut encoded = EncodingBuffer::new(maximum);
+                encode_value(item, declared_atoms, &mut encoded, depth + 1)?;
+                let encoded = encoded.into_vec();
+                if !ordered.contains(&encoded) {
+                    remaining = remaining
+                        .checked_sub(encoded.len())
+                        .ok_or("error[tetf_size]: set items exceed byte limit")?;
+                    ordered.insert(encoded);
+                }
             }
-            encoded_items.sort();
-            encoded_items.dedup();
-            write_len(bytes, encoded_items.len())?;
-            for item in encoded_items {
-                bytes.extend_from_slice(&item);
+            write_len(bytes, ordered.len())?;
+            for item in ordered {
+                bytes.extend_from_slice(&item)?;
             }
         }
+        #[cfg(test)]
         ReplValue::RandomGenerator(_) => {
             return Err(
                 "error[tetf_unsupported]: random generator state has no TETF encoding".to_string(),
             );
         }
+        #[cfg(test)]
         ReplValue::Iterator { .. } => {
             return Err("error[tetf_unsupported]: iterator state has no TETF encoding".to_string());
         }
@@ -344,21 +345,33 @@ fn encode_value(
     Ok(())
 }
 
+/// Rejects reserved actor-local handle metadata in portable records.
+fn validate_record_field(field: &str) -> super::VmRuntimeResult<()> {
+    validate_text_field("record_field", field)?;
+    if field.starts_with("$native_") {
+        return Err(
+            "error[tetf_unsupported]: actor-local native handles cannot cross a node boundary"
+                .into(),
+        );
+    }
+    Ok(())
+}
+
 /// Writes a UTF-8 text field as a checked length followed by raw bytes.
-fn write_text(bytes: &mut Vec<u8>, value: &str) -> Result<(), String> {
+fn write_text(bytes: &mut EncodingBuffer, value: &str) -> Result<(), String> {
     write_len(bytes, value.len())?;
-    bytes.extend_from_slice(value.as_bytes());
+    bytes.extend_from_slice(value.as_bytes())?;
     Ok(())
 }
 
 /// Appends one VM reference payload.
-fn encode_vm_ref(reference: &TetfVmRef, bytes: &mut Vec<u8>) -> Result<(), String> {
+fn encode_vm_ref(reference: &TetfVmRef, bytes: &mut EncodingBuffer) -> Result<(), String> {
     validate_vm_ref(reference)?;
-    bytes.push(TAG_VM_REF);
-    bytes.push(reference.kind.tag());
+    bytes.push(TAG_VM_REF)?;
+    bytes.push(reference.kind.tag())?;
     write_text(bytes, &reference.node_id)?;
-    write_u64(bytes, reference.local_id);
-    write_u64(bytes, reference.epoch);
+    write_u64(bytes, reference.local_id)?;
+    write_u64(bytes, reference.epoch)?;
     Ok(())
 }
 
@@ -391,22 +404,46 @@ fn validate_epoch(epoch: u64) -> Result<(), String> {
 }
 
 /// Writes a u64 in stable big-endian order.
-fn write_u64(bytes: &mut Vec<u8>, value: u64) {
-    bytes.extend_from_slice(&value.to_be_bytes());
+fn write_u64(bytes: &mut EncodingBuffer, value: u64) -> super::VmRuntimeResult<()> {
+    bytes.extend_from_slice(&value.to_be_bytes())
 }
 
 /// Writes a TETF v1 length field after enforcing the u32 size limit.
-fn write_len(bytes: &mut Vec<u8>, len: usize) -> Result<(), String> {
+fn write_len(bytes: &mut EncodingBuffer, len: usize) -> Result<(), String> {
     let len = u32::try_from(len)
         .map_err(|_| "error[tetf_size]: term length exceeds TETF v1 u32 limit".to_string())?;
-    bytes.extend_from_slice(&len.to_be_bytes());
+    bytes.extend_from_slice(&len.to_be_bytes())?;
     Ok(())
 }
 
-/// Rejects duplicate canonical map keys before emitting a malleable payload.
-fn reject_duplicate_map_keys(entries: &[(Vec<u8>, Vec<u8>)]) -> Result<(), String> {
-    if entries.windows(2).any(|pair| pair[0].0 == pair[1].0) {
-        return Err("error[tetf_canonical]: duplicate map key".to_string());
+/// Buffers only canonical keys; values are emitted directly into bounded output.
+fn encode_map(
+    entries: &[(ReplValue, ReplValue)],
+    declared_atoms: &[String],
+    bytes: &mut EncodingBuffer,
+    depth: usize,
+) -> super::VmRuntimeResult<()> {
+    bytes.push(TAG_MAP)?;
+    write_len(bytes, entries.len())?;
+    if entries.len() > bytes.remaining() / 2 {
+        return Err("error[tetf_size]: map entries exceed byte limit".into());
+    }
+    let mut remaining = bytes.remaining();
+    let mut ordered = Vec::with_capacity(entries.len());
+    for (key, value) in entries {
+        let mut encoded = EncodingBuffer::new(remaining);
+        encode_value(key, declared_atoms, &mut encoded, depth + 1)?;
+        let encoded = encoded.into_vec();
+        remaining -= encoded.len();
+        ordered.push((encoded, value));
+    }
+    ordered.sort_by(|left, right| left.0.cmp(&right.0));
+    if ordered.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err("error[tetf_canonical]: duplicate map key".into());
+    }
+    for (key, value) in ordered {
+        bytes.extend_from_slice(&key)?;
+        encode_value(value, declared_atoms, bytes, depth + 1)?;
     }
     Ok(())
 }
@@ -415,3 +452,7 @@ fn reject_duplicate_map_keys(entries: &[(Vec<u8>, Vec<u8>)]) -> Result<(), Strin
 #[path = "term_format_runtime_test.rs"]
 #[cfg(test)]
 mod term_format_runtime_test;
+
+#[cfg(test)]
+#[path = "term_format/bounded_test.rs"]
+mod bounded_test;

@@ -22,7 +22,7 @@ pub(crate) enum VmHttpShutdownMode {
 }
 
 /// Typed VM HTTP lifecycle transition.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmHttpLifecycleEvent {
     WorkerStart {
         process: VmProcessId,

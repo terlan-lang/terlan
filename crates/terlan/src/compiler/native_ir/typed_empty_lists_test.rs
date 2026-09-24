@@ -8,6 +8,128 @@ use crate::terlan_typeck::{
 use super::typed_empty_lists::annotate;
 
 #[test]
+fn runtime_list_contracts_refine_preannotated_empty_bottom_literals() {
+    for (capability, indexes) in [
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::FileReadTextMany,
+            vec![0],
+        ),
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::FileReadTextTreeExcluding,
+            vec![1],
+        ),
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::DirectoryFilesRecursiveExcluding,
+            vec![1],
+        ),
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::DirectoryFindNamedRecursiveExcluding,
+            vec![2],
+        ),
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::DirectoryCopyTreeExcluding,
+            vec![2],
+        ),
+        (
+            crate::terlan_typeck::CoreRuntimeCapability::FileReadTextTreeMatching,
+            vec![1, 2, 3],
+        ),
+    ] {
+        let empty = CoreExpr::Cast {
+            expr: Box::new(CoreExpr::List(vec![])),
+            target_type: CoreType::List(Box::new(CoreType::Never)),
+        };
+        let mut expression = CoreExpr::Intrinsic(CoreIntrinsicCall {
+            id: CoreIntrinsicId::Runtime(capability),
+            args: vec![empty; 6],
+            return_type: CoreType::Dynamic,
+            effects: CoreEffectSet { effects: vec![] },
+            span: Span { start: 0, end: 0 },
+        });
+        annotate(&mut expression, &HashMap::new());
+        let once = expression.clone();
+        annotate(&mut expression, &HashMap::new());
+        assert_eq!(expression, once);
+        let CoreExpr::Intrinsic(call) = expression else {
+            unreachable!()
+        };
+        for (index, argument) in call.args.iter().enumerate() {
+            let expected = if indexes.contains(&index) {
+                CoreType::String
+            } else {
+                CoreType::Never
+            };
+            assert!(
+                matches!(argument, CoreExpr::Cast { target_type: CoreType::List(element), .. } if element.as_ref() == &expected)
+            );
+        }
+    }
+}
+
+#[test]
+fn checked_empty_argument_annotation_preserves_concrete_types_and_effects() {
+    let resolver = HashMap::from([(
+        ("consume".to_string(), 1),
+        vec![CoreType::List(Box::new(CoreType::String))],
+    )]);
+    for (inner, element, expected) in [
+        (CoreExpr::List(vec![]), CoreType::Never, CoreType::String),
+        (CoreExpr::List(vec![]), CoreType::Int, CoreType::Int),
+        (
+            CoreExpr::Call {
+                function: "produce".to_string(),
+                type_args: vec![],
+                args: vec![],
+            },
+            CoreType::Never,
+            CoreType::Never,
+        ),
+    ] {
+        let mut expression = CoreExpr::Call {
+            function: "consume".to_string(),
+            type_args: vec![],
+            args: vec![CoreExpr::Cast {
+                expr: Box::new(inner.clone()),
+                target_type: CoreType::List(Box::new(element)),
+            }],
+        };
+        annotate(&mut expression, &resolver);
+        let CoreExpr::Call { args, .. } = expression else {
+            unreachable!()
+        };
+        assert_eq!(
+            args,
+            vec![CoreExpr::Cast {
+                expr: Box::new(inner),
+                target_type: CoreType::List(Box::new(expected))
+            }]
+        );
+    }
+}
+
+#[test]
+fn entirely_empty_list_shapes_retain_never_elements() {
+    for (expression, expected) in [
+        (
+            CoreExpr::List(vec![]),
+            CoreType::List(Box::new(CoreType::Never)),
+        ),
+        (
+            CoreExpr::List(vec![CoreExpr::List(vec![]), CoreExpr::List(vec![])]),
+            CoreType::List(Box::new(CoreType::List(Box::new(CoreType::Never)))),
+        ),
+    ] {
+        assert_eq!(
+            super::structured_case::core_expr_type(&expression, &HashMap::new(), &HashMap::new()),
+            Some(expected)
+        );
+    }
+    let never = super::native_type(Some(&CoreType::Never), "Never").expect("Never carrier");
+    assert!(matches!(never, super::NativeType::ManagedRef(_)));
+    assert_ne!(never, super::NativeType::Unit);
+}
+
+#[test]
 fn nested_empty_lists_recover_the_checked_nonempty_witness() {
     let empty = CoreExpr::List(Vec::new());
     let value = CoreExpr::List(vec![CoreExpr::Int(7)]);
@@ -35,7 +157,6 @@ fn nested_list_witness_does_not_hide_unknown_or_incompatible_elements() {
     let empty = CoreExpr::List(Vec::new());
     for items in [
         vec![empty.clone(), CoreExpr::Int(7)],
-        vec![empty.clone(), empty.clone()],
         vec![integers.clone(), CoreExpr::Var("unknown".to_string())],
         vec![
             integers.clone(),

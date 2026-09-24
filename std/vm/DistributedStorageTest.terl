@@ -1,9 +1,85 @@
 module std.vm.DistributedStorageTest.
 
+import std.collections.{Map, Set}.
 import std.test.Test.{assert_equal, assert_true}.
+import std.vm.BitString.{from_uint_be}.
 import std.vm.{DistributedState, DistributedStorage}.
 
 import type std.vm.DistributedStorage.{Adapter, AtomicAppendProof, CompareAndSwapToken, DurableFlushProof, Mode, Outcome, Policy, ResourceHandleValidationProof, SchemaMigrationProof, Snapshot, SnapshotIsolationProof, TransactionalBatchProof}.
+
+@test
+pub encoded_checkpoint_restores_typed_state_and_isolates_later_writes(): Bool ->
+    let store = DistributedState.store();
+    let scope = DistributedState.scope("cart", "alice");
+    let version = DistributedState.version(1, "node-a");
+    let policy = DistributedState.policy("last_writer_wins");
+    let payload = {Map({"quantity", 42}), Set(1, 2), from_uint_be(5, 3)};
+    let changed = {Map({"quantity", 99}), Set(1, 2), from_uint_be(5, 3)};
+    let initial = store.write(scope, "node-a", payload, version, policy);
+    let checkpoint = DistributedStorage.checkpoint("typed-checkpoint", 1, store.export_snapshot());
+    let updated = store.write(scope, "node-a", changed, DistributedState.version(2, "node-a"), policy);
+    let restored = checkpoint.restore();
+    let replay = restored.write(scope, "node-a", payload, version, policy);
+    let conflict = restored.write(scope, "node-a", changed, version, policy);
+    assert_equal("applied", DistributedState.kind(initial))
+        and assert_equal("applied", DistributedState.kind(updated))
+        and assert_equal("replayed", DistributedState.kind(replay))
+        and assert_equal("conflict", DistributedState.kind(conflict)).
+
+@test
+pub encoded_empty_checkpoint_restores_an_independent_store(): Bool ->
+    let original = DistributedState.store();
+    let checkpoint = DistributedStorage.checkpoint("empty-checkpoint", 1, original.export_snapshot());
+    let restored = checkpoint.restore();
+    let scope = DistributedState.scope("empty", "first");
+    let version = DistributedState.version(1, "node-a");
+    let policy = DistributedState.policy("last_writer_wins");
+    let first = restored.write(scope, "node-a", 7, version, policy);
+    let separate = original.write(scope, "node-a", 8, version, policy);
+    assert_equal("applied", DistributedState.kind(first))
+        and assert_equal("applied", DistributedState.kind(separate)).
+
+pub type CheckpointReady.
+
+@test
+pub explicit_application_schema_does_not_change_the_logical_codec(): Bool ->
+    let store = DistributedState.store();
+    let scope = DistributedState.scope("schema", "value");
+    let version = DistributedState.version(1, "writer");
+    let policy = DistributedState.policy("last_writer_wins");
+    let written = store.write(scope, "writer", CheckpointReady, version, policy);
+    let checkpoint = DistributedStorage.checkpoint_with_schema("versioned", 1, 2, store.export_snapshot());
+    let restored = checkpoint.restore();
+    let replay = restored.write(scope, "writer", CheckpointReady, version, policy);
+    assert_equal("applied", DistributedState.kind(written))
+        and assert_equal(2, DistributedStorage.checkpoint_schema(checkpoint))
+        and assert_equal("replayed", DistributedState.kind(replay)).
+
+@test
+pub policy_request_does_not_grant_durable_or_cluster_authority(): Bool ->
+    let durable = DistributedStorage.policy("not_configured", DistributedStorage.durable(), true);
+    let cluster = DistributedStorage.policy("not_configured", DistributedStorage.cluster(), true);
+    let adapter = DistributedStorage.adapter(durable);
+    assert_equal("not_configured", DistributedStorage.policy_name(durable))
+        and assert_equal("durable", DistributedStorage.policy_mode_kind(durable))
+        and assert_equal(false, DistributedStorage.policy_available(durable))
+        and assert_equal(false, adapter.policy_available())
+        and assert_equal(false, DistributedStorage.policy_available(cluster))
+        and assert_equal(false, DistributedStorage.policy_can_cluster_replicate(cluster))
+        and assert_equal(false, adapter.can_cluster_replicate()).
+
+@test
+pub encoded_checkpoint_restores_atoms_from_the_admitted_image(): Bool ->
+    let store = DistributedState.store();
+    let scope = DistributedState.scope("status", "ready");
+    let version = DistributedState.version(1, "node-a");
+    let policy = DistributedState.policy("last_writer_wins");
+    let initial = store.write(scope, "node-a", CheckpointReady, version, policy);
+    let checkpoint = DistributedStorage.checkpoint("atom-checkpoint", 1, store.export_snapshot());
+    let restored = checkpoint.restore();
+    let replay = restored.write(scope, "node-a", CheckpointReady, version, policy);
+    assert_equal("applied", DistributedState.kind(initial))
+        and assert_equal("replayed", DistributedState.kind(replay)).
 
 pub state_checkpoint(): std.vm.DistributedState.Snapshot ->
     let store = DistributedState.store();
@@ -119,16 +195,34 @@ pub cluster_adapter_capability_is_explicit(): Bool ->
     let replicated_sequence = DistributedStorage.sequence(replicated);
     let replicated_operation = DistributedStorage.operation_kind(replicated);
     let loaded_kind = DistributedStorage.kind(loaded);
-    assert_equal(true, policy_cluster_capable)
-        and assert_equal(true, adapter_cluster_capable)
-        and assert_equal("opened", opened_kind)
-        and assert_equal("opened", replication_kind)
-        and assert_equal("appended", replicated_kind)
-        and assert_equal("cluster-checkpoint-a", replicated_checkpoint_id)
-        and assert_equal(1, replicated_sequence)
-        and assert_equal("", replicated_operation)
-        and assert_equal("flushed", DistributedStorage.kind(flushed))
-        and assert_equal("snapshot_loaded", loaded_kind).
+    assert_equal(false, policy_cluster_capable)
+        and assert_equal(false, adapter_cluster_capable)
+        and assert_equal("storage_unavailable", opened_kind)
+        and assert_equal("unsupported", replication_kind)
+        and assert_equal("unsupported", replicated_kind)
+        and assert_equal("", replicated_checkpoint_id)
+        and assert_equal(0, replicated_sequence)
+        and assert_equal("cluster_replicate", replicated_operation)
+        and assert_equal(true, DistributedStorage.is_failure(replicated))
+        and assert_equal(false, DistributedStorage.is_success(replicated))
+        and assert_equal("unsupported_operation", DistributedStorage.reason(replicated))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(flushed))
+        and assert_equal("storage_unavailable", loaded_kind).
+
+@test
+pub replication_rejection_does_not_append_to_local_storage(): Bool ->
+    let adapter = force_local_adapter();
+    let opened = adapter.open();
+    let snapshot = DistributedStorage.checkpoint("not-replicated", 1, state_checkpoint());
+    let rejected = adapter.replicate_snapshot(snapshot);
+    let missing = adapter.load_snapshot("not-replicated");
+    let boundary = adapter.atomic_append_proof();
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("unsupported", DistributedStorage.kind(rejected))
+        and assert_equal(true, DistributedStorage.is_failure(rejected))
+        and assert_equal(false, DistributedStorage.is_success(rejected))
+        and assert_equal("snapshot_missing", DistributedStorage.kind(missing))
+        and assert_equal(0, DistributedStorage.proof_sequence(boundary)).
 
 @test
 pub compare_and_swap_append_contract_is_source_visible(): Bool ->
@@ -146,7 +240,7 @@ pub compare_and_swap_append_contract_is_source_visible(): Bool ->
     let loaded_kind = DistributedStorage.kind(loaded);
     assert_equal("opened", DistributedStorage.kind(opened))
         and assert_equal("appended", appended_kind)
-        and assert_equal("", appended_operation)
+        and assert_equal("compare_and_swap_append", appended_operation)
         and assert_equal(1, appended_sequence)
         and assert_equal(0, expected_sequence)
         and assert_equal(0, actual_sequence)
@@ -202,19 +296,18 @@ pub durable_flush_contract_is_source_visible(): Bool ->
     let adapter = force_local_adapter();
     let opened = adapter.open();
     let required = adapter.require_durable_flush();
-    let proof = adapter.durable_flush_proof();
-    let proof_sequence = DistributedStorage.durable_flush_sequence(proof);
     let snapshot = DistributedStorage.checkpoint("checkpoint-durable", 1, state_checkpoint());
     let appended = adapter.append(snapshot);
     let flushed = adapter.flush();
-    let next_proof = adapter.durable_flush_proof();
-    let next_proof_sequence = DistributedStorage.durable_flush_sequence(next_proof);
+    let still_unsupported = adapter.require_durable_flush();
     assert_equal("opened", DistributedStorage.kind(opened))
-        and assert_equal("opened", DistributedStorage.kind(required))
-        and assert_equal(0, proof_sequence)
+        and assert_equal("unsupported", DistributedStorage.kind(required))
+        and assert_true(DistributedStorage.is_failure(required))
+        and assert_equal("durable_flush", DistributedStorage.operation_kind(required))
+        and assert_equal("local_only", DistributedStorage.mode_kind(required))
         and assert_equal("appended", DistributedStorage.kind(appended))
         and assert_equal("flushed", DistributedStorage.kind(flushed))
-        and assert_equal(1, next_proof_sequence).
+        and assert_equal("unsupported", DistributedStorage.kind(still_unsupported)).
 
 @test
 pub transactional_batch_contract_is_source_visible(): Bool ->
@@ -251,10 +344,11 @@ pub schema_migration_contract_is_source_visible(): Bool ->
     let proof = adapter.schema_migration_proof();
     let proof_version = DistributedStorage.schema_version(proof);
     let proof_sequence = DistributedStorage.schema_sequence(proof);
-    let stale = adapter.migrate_schema(0, 2);
+    let invalid = adapter.migrate_schema(0, 2);
     let next_proof = adapter.schema_migration_proof();
     let next_version = DistributedStorage.schema_version(next_proof);
     let migrated = adapter.migrate_schema(1, 2);
+    let stale = adapter.migrate_schema(1, 3);
     let migrated_proof = adapter.schema_migration_proof();
     let migrated_version = DistributedStorage.schema_version(migrated_proof);
     let migrated_sequence = DistributedStorage.schema_sequence(migrated_proof);
@@ -264,8 +358,9 @@ pub schema_migration_contract_is_source_visible(): Bool ->
         and assert_equal(0, proof_sequence)
         and assert_equal("schema_migration_mismatch", DistributedStorage.kind(stale))
         and assert_equal("schema_migration", DistributedStorage.operation_kind(stale))
-        and assert_equal(0, DistributedStorage.expected_schema(stale))
-        and assert_equal(1, DistributedStorage.actual_schema(stale))
+        and assert_equal("invalid_request", DistributedStorage.kind(invalid))
+        and assert_equal(1, DistributedStorage.expected_schema(stale))
+        and assert_equal(2, DistributedStorage.actual_schema(stale))
         and assert_equal("reload_schema", DistributedStorage.recovery_action(stale))
         and assert_equal(1, next_version)
         and assert_equal("schema_migrated", DistributedStorage.kind(migrated))
@@ -278,32 +373,18 @@ pub resource_handle_validation_contract_is_source_visible(): Bool ->
     let adapter = force_local_adapter();
     let opened = adapter.open();
     let required = adapter.require_resource_handle_validation();
-    let proof = adapter.resource_handle_validation_proof();
-    let proof_count = DistributedStorage.resource_handle_count(proof);
-    let proof_sequence = DistributedStorage.resource_handle_sequence(proof);
     let missing = adapter.validate_resource_handles(["db.primary"]);
-    let next_proof = adapter.resource_handle_validation_proof();
-    let next_count = DistributedStorage.resource_handle_count(next_proof);
     let registered = adapter.register_resource_handle("db.primary");
     let validated = adapter.validate_resource_handles(["db.primary"]);
-    let validated_proof = adapter.resource_handle_validation_proof();
-    let validated_count = DistributedStorage.resource_handle_count(validated_proof);
-    let validated_sequence = DistributedStorage.resource_handle_sequence(validated_proof);
     assert_equal("opened", DistributedStorage.kind(opened))
-        and assert_equal("opened", DistributedStorage.kind(required))
-        and assert_equal(0, proof_count)
-        and assert_equal(0, proof_sequence)
-        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(missing))
+        and assert_equal("unsupported", DistributedStorage.kind(required))
+        and assert_equal("unsupported", DistributedStorage.kind(missing))
         and assert_equal("resource_handle_validation", DistributedStorage.operation_kind(missing))
-        and assert_equal("db.primary", DistributedStorage.missing_resource_handle(missing))
-        and assert_equal("recover_resource_handle", DistributedStorage.recovery_action(missing))
-        and assert_equal(0, next_count)
-        and assert_equal("resource_handles_validated", DistributedStorage.kind(registered))
-        and assert_equal(1, DistributedStorage.validated_resource_count(registered))
-        and assert_equal("resource_handles_validated", DistributedStorage.kind(validated))
-        and assert_equal(1, DistributedStorage.validated_resource_count(validated))
-        and assert_equal(1, validated_count)
-        and assert_equal(0, validated_sequence).
+        and assert_equal("", DistributedStorage.missing_resource_handle(missing))
+        and assert_equal("unsupported", DistributedStorage.kind(registered))
+        and assert_equal(0, DistributedStorage.validated_resource_count(registered))
+        and assert_equal("unsupported", DistributedStorage.kind(validated))
+        and assert_equal(0, DistributedStorage.validated_resource_count(validated)).
 
 @test
 pub reopen_preserves_snapshots_and_sequence_watermark(): Bool ->

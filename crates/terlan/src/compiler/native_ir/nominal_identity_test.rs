@@ -8,6 +8,53 @@ use crate::terlan_typeck::{
 use super::qualify_application_nominal_types;
 
 #[test]
+fn nested_record_pattern_identity_follows_the_same_import_rules_as_its_type() {
+    use crate::terlan_typeck::{CoreCaseClause, CoreExpr, CorePattern};
+    for (imports, expected) in [
+        (vec!["package.Left"], "package.Left.Classification"),
+        (vec!["package.Left", "package.Right"], "Classification"),
+    ] {
+        let mut caller = consumer(&imports);
+        caller.functions[0].clauses[0].body.core_expr = Some(CoreExpr::Case {
+            scrutinee: Box::new(CoreExpr::List(vec![])),
+            clauses: vec![CoreCaseClause {
+                pattern: CorePattern::List(vec![CorePattern::Record {
+                    name: "Classification".into(),
+                    fields: vec![],
+                }]),
+                guard: None,
+                body: CoreExpr::Int(1),
+            }],
+        });
+        let mut cores = vec![provider("package.Left"), provider("package.Right"), caller];
+        qualify_application_nominal_types(&mut cores);
+        let Some(CoreExpr::Case { clauses, .. }) = &cores[2].functions[0].clauses[0].body.core_expr
+        else {
+            panic!("case expression");
+        };
+        assert_eq!(
+            clauses[0].pattern,
+            CorePattern::List(vec![CorePattern::Record {
+                name: expected.into(),
+                fields: vec![],
+            }])
+        );
+    }
+}
+
+#[test]
+fn local_record_patterns_lower_with_canonical_receiver_identity() {
+    let core = checked_core(
+        "module app.Records.
+         pub struct Item { name: String }.
+         pub read(items: List[Item]): String ->
+             case items { [Item {name: value}] -> value; _ -> \"none\" }.",
+    );
+    super::super::NativeModule::lower_application(&[&core])
+        .expect("nested record pattern identifies the same managed record as its input");
+}
+
+#[test]
 fn compiler_collection_qualification_keeps_one_nested_abi_identity() {
     for (name, expected) in [
         ("std.collections.Map.Map", "Map"),
@@ -34,6 +81,46 @@ fn compiler_collection_qualification_keeps_one_nested_abi_identity() {
             })))
         );
     }
+}
+
+#[test]
+fn record_union_patterns_and_construction_share_the_discriminated_layout() {
+    let core = checked_core(
+        "module app.RecordUnion.
+         pub type Empty.
+         pub struct Item { value: Int }.
+         pub type Outcome = Empty | Item.
+         pub read(item: Outcome): Int -> case item { Item {value: value} -> value; _ -> 0 }.
+         pub produce(): Outcome -> Item {value: 42}.
+         pub answer(): Int -> read(produce()).",
+    );
+    super::super::NativeModule::lower_application(&[&core])
+        .expect("named record variants must lower through the closed union layout");
+}
+
+#[test]
+fn record_union_pattern_rejects_a_foreign_nominal_identity() {
+    use crate::terlan_typeck::{CoreExpr, CorePattern};
+    let mut core = checked_core(
+        "module app.RecordUnion.
+         pub type Empty.
+         pub struct Item { value: Int }.
+         pub type Outcome = Empty | Item.
+         pub read(item: Outcome): Int -> case item { Item {value: value} -> value; _ -> 0 }.",
+    );
+    let Some(CoreExpr::Case { clauses, .. }) = &mut core.functions[0].clauses[0].body.core_expr
+    else {
+        panic!("case")
+    };
+    let CorePattern::Record { name, .. } = &mut clauses[0].pattern else {
+        panic!("record")
+    };
+    *name = "foreign.Item".into();
+    let error = super::super::NativeModule::lower_application(&[&core]).unwrap_err();
+    assert!(
+        error.to_string().contains("native_ir.record_identity"),
+        "{error}"
+    );
 }
 
 fn checked_core(source: &str) -> CoreModule {

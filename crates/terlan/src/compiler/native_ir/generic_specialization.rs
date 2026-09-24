@@ -13,6 +13,7 @@ type CallableTemplates = BTreeMap<(String, usize), Vec<CoreFunction>>;
 
 #[path = "generic_specialization/constructor_signatures.rs"]
 mod constructor_signatures;
+mod contextual_result;
 #[path = "generic_specialization/generic_unification.rs"]
 mod generic_unification;
 #[path = "generic_specialization/inference.rs"]
@@ -24,10 +25,11 @@ mod primitive_receivers;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
 pub(super) use generic_unification::substitute;
-use generic_unification::unify;
+pub(super) use generic_unification::unify;
+pub(super) use inference::infer_type;
 use inference::{
     common_concrete_parameter_types, contains_implicit_generic_type, infer_generic_argument_types,
-    infer_type, needs_contextual_type,
+    needs_contextual_type,
 };
 pub(super) use pattern_types::{bind_pattern_types, lambda_type_scope, structural_tuple_variant};
 use type_substitution::substitute_function_types;
@@ -147,6 +149,9 @@ fn rewrite_expr(
                 .and_then(common_concrete_parameter_types);
             if let Some(parameter_types) = contextual_parameters {
                 for (argument, expected) in args.iter_mut().zip(parameter_types) {
+                    if let Some(actual) = infer_type(argument, variables, templates, module) {
+                        super::empty_list_values::coerce(argument, &actual, &expected);
+                    }
                     apply_contextual_argument_type(argument, &expected);
                 }
             }
@@ -234,7 +239,9 @@ fn rewrite_expr(
             // narrower literal type used to infer its parameters. In
             // particular Ok/Err literals must carry the same union layout as
             // their callee even when the unused variant has no type witness.
-            for (argument, parameter) in args.iter_mut().zip(&template.params) {
+            for ((argument, parameter), actual) in
+                args.iter_mut().zip(&template.params).zip(&argument_types)
+            {
                 let expected = substitute(
                     parameter
                         .core_ty
@@ -243,6 +250,7 @@ fn rewrite_expr(
                     &template.generic_params,
                     &substitution,
                 );
+                super::empty_list_values::coerce(argument, actual, &expected);
                 apply_contextual_argument_type(argument, &expected);
             }
             let key = (
@@ -444,6 +452,7 @@ fn rewrite_expr(
             expr: base,
             target_type,
         } => {
+            contextual_result::seed(base, target_type, variables, templates, module);
             let concrete_target = contains_implicit_generic_type(target_type)
                 .then(|| infer_type(base, variables, templates, module))
                 .flatten();

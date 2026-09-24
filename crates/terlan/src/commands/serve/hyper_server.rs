@@ -32,7 +32,7 @@ use super::server_lifecycle::{
 use super::{channel_transport, handle_vm_stream_http1_exchange};
 
 mod http2;
-mod tls_io;
+use crate::runtime::vm::hyper_tls as tls_io;
 
 thread_local! {
     /// Immutable route root copied once onto each permanent protocol owner.
@@ -102,7 +102,9 @@ fn tls_factory(
                         route.scheduler.index()
                     )
                 })?;
-            let protocol = io.negotiated_protocol()?;
+            let protocol = io
+                .negotiated_protocol()
+                .map_err(|error| error.to_string())?;
             let service = service_fn(move |request| {
                 let web_root = Rc::clone(&web_root);
                 async move {

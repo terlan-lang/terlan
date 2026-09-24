@@ -1,6 +1,8 @@
 module std.vm.DistributedStateTest.
 
-import std.test.Test.{assert_equal, assert_true}.
+import std.collections.{Map, Set}.
+import std.test.Test.{assert_equal}.
+import std.vm.BitString.{from_uint_be}.
 import std.vm.DistributedState.
 
 import type std.vm.DistributedState.{Conflict, Entry, Outcome, Policy, Scope, Snapshot, Store, Version}.
@@ -10,6 +12,23 @@ pub cart_scope(): Scope ->
 
 pub explicit_policy(): Policy ->
     DistributedState.policy("explicit_user_resolution").
+
+@test
+pub checkpoint_restore_preserves_collection_and_bitstring_payloads(): Bool ->
+    let store = DistributedState.store();
+    let scope = cart_scope();
+    let version = DistributedState.version(1, "node-a");
+    let policy = explicit_policy();
+    let payload = {Map({"quantity", 42}), Set(1, 2), from_uint_be(5, 3)};
+    let first = store.write(scope, "node-a", payload, version, policy);
+    let snapshot = store.export_snapshot();
+    let restored = DistributedState.restore(snapshot);
+    let replay = restored.write(scope, "node-a", payload, version, policy);
+    let other = {Map({"quantity", 43}), Set(1, 2), from_uint_be(5, 3)};
+    let conflict = restored.write(scope, "node-a", other, version, policy);
+    assert_equal("applied", DistributedState.kind(first))
+        and assert_equal("replayed", DistributedState.kind(replay))
+        and assert_equal("conflict", DistributedState.kind(conflict)).
 
 @test
 pub write_outcomes_are_explicit_and_versioned(): Bool ->
@@ -53,7 +72,12 @@ pub conflict_and_policy_mismatch_are_typed(): Bool ->
                 DistributedState.policy("merge"),
             );
     assert_equal("conflict", DistributedState.kind(stale))
-        and assert_equal("policy_mismatch", DistributedState.kind(mismatch)).
+        and assert_equal("applied", DistributedState.kind(first))
+        and assert_equal("policy_mismatch", DistributedState.kind(mismatch))
+        and assert_equal(5, DistributedState.conflict_local_sequence(conflict))
+        and assert_equal(4, DistributedState.conflict_incoming_sequence(conflict))
+        and assert_equal("node-a", DistributedState.entry_owner(store.get(scope)))
+        and assert_equal(5, DistributedState.entry_sequence(store.get(scope))).
 
 @test
 pub checkpoint_restore_is_typed(): Bool ->
@@ -69,6 +93,81 @@ pub checkpoint_restore_is_typed(): Bool ->
                 DistributedState.policy("last_writer_wins"),
             );
     let snapshot = store.export_snapshot();
+    let changed =
+        store
+            .write(
+                scope,
+                "node-b",
+                "offline",
+                DistributedState.version(10, "node-b"),
+                DistributedState.policy("last_writer_wins"),
+            );
     let restored = DistributedState.restore(snapshot);
     let entry = restored.get(scope);
-    assert_true(true).
+    let replay =
+        restored
+            .write(
+                scope,
+                "node-a",
+                "online",
+                DistributedState.version(9, "node-a"),
+                DistributedState.policy("last_writer_wins"),
+            );
+    assert_equal("applied", DistributedState.kind(outcome))
+        and assert_equal("applied", DistributedState.kind(changed))
+        and assert_equal("replayed", DistributedState.kind(replay))
+        and assert_equal("node-a", DistributedState.entry_owner(entry))
+        and assert_equal(9, DistributedState.entry_sequence(entry))
+        and assert_equal(10, DistributedState.entry_sequence(store.get(scope))).
+
+@test
+pub typed_aggregate_values_replay_only_when_the_payload_matches(): Bool ->
+    let store = DistributedState.store();
+    let scope = cart_scope();
+    let version = DistributedState.version(1, "node-a");
+    let original = store.write(scope, "node-a", {42, "value"}, version, explicit_policy());
+    let replay = store.write(scope, "node-a", {42, "value"}, version, explicit_policy());
+    let mismatch = store.write(scope, "node-a", {43, "value"}, version, explicit_policy());
+    assert_equal("applied", DistributedState.kind(original))
+        and assert_equal("replayed", DistributedState.kind(replay))
+        and assert_equal("conflict", DistributedState.kind(mismatch)).
+
+@test
+pub last_writer_wins_uses_sequence_then_writer_identity(): Bool ->
+    let store = DistributedState.store();
+    let scope = cart_scope();
+    let policy = DistributedState.policy("last_writer_wins");
+    let first = store.write(scope, "node-a", 10, DistributedState.version(5, "node-a"), policy);
+    let winner = store.write(scope, "node-b", 20, DistributedState.version(5, "node-b"), policy);
+    let stale = store.write(scope, "node-c", 30, DistributedState.version(4, "node-c"), policy);
+    assert_equal("applied", DistributedState.kind(first))
+        and assert_equal("applied", DistributedState.kind(winner))
+        and assert_equal("conflict", DistributedState.kind(stale))
+        and assert_equal("node-b", DistributedState.entry_owner(store.get(scope))).
+
+@test
+pub winner_takes_all_and_merge_do_not_silently_overwrite_conflicts(): Bool ->
+    let store = DistributedState.store();
+    let scope = cart_scope();
+    let policy = DistributedState.policy("winner_takes_all");
+    let first = store.write(scope, "node-a", [1, 2], DistributedState.version(1, "node-a"), policy);
+    let second = store.write(scope, "node-b", [3, 4], DistributedState.version(2, "node-b"), policy);
+    let merge_scope = DistributedState.scope("cart", "bob");
+    let merge_policy = DistributedState.policy("merge");
+    let merge_first =
+        store
+            .write(merge_scope, "node-a", true, DistributedState.version(1, "node-a"), merge_policy);
+    let merge_second =
+        store
+            .write(
+                merge_scope,
+                "node-b",
+                false,
+                DistributedState.version(2, "node-b"),
+                merge_policy,
+            );
+    assert_equal("applied", DistributedState.kind(first))
+        and assert_equal("conflict", DistributedState.kind(second))
+        and assert_equal("applied", DistributedState.kind(merge_first))
+        and assert_equal("conflict", DistributedState.kind(merge_second))
+        and assert_equal("node-a", DistributedState.entry_owner(store.get(merge_scope))).

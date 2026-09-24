@@ -406,6 +406,23 @@ pub(super) fn structural_constructor_fields(
             }
         }
         CoreType::Union(variants) => variants.iter().enumerate().find_map(|(index, variant)| {
+            if let CoreType::Struct {
+                name: identity,
+                fields,
+            } = variant
+            {
+                if identity == name || identity.rsplit('.').next() == Some(name) {
+                    return Some((
+                        u32::try_from(index).ok()?,
+                        u32::try_from(variants.len()).ok()?,
+                        fields
+                            .iter()
+                            .map(|field| (Some(field.name.clone()), field.ty.clone()))
+                            .collect(),
+                    ));
+                }
+                return None;
+            }
             if matches!(variant, CoreType::AtomLiteral(atom) if name.eq_ignore_ascii_case(atom)) {
                 return Some((
                     u32::try_from(index).ok()?,

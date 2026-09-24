@@ -12,7 +12,11 @@ use super::{
     contextual_literal_type, substitute, unify, CallableTemplates,
 };
 
-pub(super) fn infer_type(
+#[cfg(test)]
+#[path = "inference_scope_test.rs"]
+mod scope_tests;
+
+pub(in crate::compiler::native_ir) fn infer_type(
     expr: &CoreExpr,
     variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
@@ -33,11 +37,50 @@ pub(super) fn infer_type(
             .get(name)
             .cloned()
             .or_else(|| unambiguous_callable_type(name, templates, module)),
-        CoreExpr::List(items) if !items.is_empty() => {
-            super::super::expression::homogeneous_list_type(items, |item| {
-                infer_type(item, variables, templates, module)
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            if params.len() != parameter_types.len() {
+                return None;
+            }
+            let types = parameter_types
+                .iter()
+                .cloned()
+                .collect::<Option<Vec<_>>>()?;
+            let mut locals = variables.clone();
+            for (pattern, ty) in params.iter().zip(&types) {
+                for name in
+                    super::super::expression::free_variable_analysis::pattern_bound_names(pattern)
+                {
+                    locals.remove(&name);
+                }
+                super::bind_pattern_types(pattern, ty, &mut locals);
+            }
+            Some(CoreType::Arrow {
+                params: types,
+                return_type: Box::new(infer_type(body, &locals, templates, module)?),
             })
         }
+        CoreExpr::Let { bindings, body } => {
+            let mut locals = variables.clone();
+            for binding in bindings {
+                let ty = infer_type(&binding.value, &locals, templates, module);
+                for name in super::super::expression::free_variable_analysis::pattern_bound_names(
+                    &binding.pattern,
+                ) {
+                    locals.remove(&name);
+                }
+                if let Some(ty) = ty {
+                    super::bind_pattern_types(&binding.pattern, &ty, &mut locals);
+                }
+            }
+            infer_type(body, &locals, templates, module)
+        }
+        CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
+            infer_type(item, variables, templates, module)
+        }),
         CoreExpr::Tuple(items) => items
             .iter()
             .map(|item| infer_type(item, variables, templates, module).map(CoreTupleTypeElem::Type))
@@ -406,8 +449,8 @@ pub(super) fn infer_generic_argument_types(
     let mut substitution = explicit_type_bindings(template, type_args)?;
     let mut concrete = vec![None; arguments.len()];
 
-    // Function values carry more type information than literals and
-    // aggregates. Apply their checked signatures first so generic inference
+    // Function values and declared unions carry more type information than
+    // constructor literals. Apply their checked signatures first so inference
     // does not depend on source argument order or narrow a union to the one
     // constructor visible in a literal row.
     for (index, (parameter, argument)) in template.params.iter().zip(arguments).enumerate() {
@@ -415,6 +458,12 @@ pub(super) fn infer_generic_argument_types(
             "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
         })?;
         let Some(inferred) = named_callable_type(argument, expected, variables, templates, module)
+            .or_else(|| {
+                infer_type(argument, variables, templates, module).filter(|ty| {
+                    matches!(ty, CoreType::Union(_))
+                        && !contains_generic_parameter(ty, &template.generic_params)
+                })
+            })
         else {
             continue;
         };

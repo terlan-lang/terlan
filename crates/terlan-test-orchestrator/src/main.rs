@@ -703,9 +703,13 @@ fn cargo_program() -> String {
 }
 
 fn native_worker_path() -> String {
+    prebuilt_binary_path("terlan-native-worker")
+}
+
+fn prebuilt_binary_path(name: &str) -> String {
     env::current_dir()
         .unwrap_or_default()
-        .join(prebuilt_binary("terlan-native-worker"))
+        .join(prebuilt_binary(name))
         .to_string_lossy()
         .into_owned()
 }

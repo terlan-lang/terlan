@@ -1,5 +1,4 @@
 use super::ReplValue;
-#[cfg(test)]
 use std::collections::BTreeMap;
 
 /// Conflict strategy attached to a VM-owned distributed state entry.
@@ -18,7 +17,6 @@ pub(crate) struct VmDistributedStateScope {
     pub(crate) key: String,
 }
 
-#[cfg(test)]
 impl VmDistributedStateScope {
     /// Builds a validated state scope from namespace and key text.
     pub(crate) fn new(
@@ -46,7 +44,6 @@ pub(crate) struct VmDistributedStateVersion {
     pub(crate) node_id: String,
 }
 
-#[cfg(test)]
 impl VmDistributedStateVersion {
     /// Builds a validated version from a sequence and writer node id.
     pub(crate) fn new(sequence: u64, node_id: impl Into<String>) -> Result<Self, String> {
@@ -77,7 +74,6 @@ pub(crate) struct VmDistributedStateEntry {
 
 /// Conflict metadata returned when a write cannot deterministically apply.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg(test)]
 pub(crate) struct VmDistributedStateConflict {
     pub(crate) scope: VmDistributedStateScope,
     pub(crate) local_version: VmDistributedStateVersion,
@@ -87,7 +83,6 @@ pub(crate) struct VmDistributedStateConflict {
 
 /// Outcome of applying one VM-owned distributed state write.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg(test)]
 pub(crate) enum VmDistributedStateWriteOutcome {
     Applied(VmDistributedStateEntry),
     Replayed(VmDistributedStateEntry),
@@ -101,12 +96,10 @@ pub(crate) enum VmDistributedStateWriteOutcome {
 
 /// In-memory VM distributed state table used by replication contracts.
 #[derive(Clone, Debug, Default, PartialEq)]
-#[cfg(test)]
 pub(crate) struct VmDistributedStateStore {
     entries: BTreeMap<VmDistributedStateScope, VmDistributedStateEntry>,
 }
 
-#[cfg(test)]
 impl VmDistributedStateStore {
     /// Creates an empty VM distributed state store.
     pub(crate) fn new() -> Self {
@@ -213,7 +206,6 @@ impl VmDistributedStateStore {
 }
 
 /// Returns whether an incoming write wins under the selected conflict policy.
-#[cfg(test)]
 fn should_apply_incoming_version(
     local: &VmDistributedStateVersion,
     incoming: &VmDistributedStateVersion,
@@ -226,5 +218,4 @@ fn should_apply_incoming_version(
 
 #[cfg(test)]
 #[path = "distributed_state_test.rs"]
-#[cfg(test)]
 mod distributed_state_test;

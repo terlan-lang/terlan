@@ -11,7 +11,7 @@ pub(crate) struct VmActorContext {
 }
 
 /// Correlated read-only state from one actor-runtime inspection boundary.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmActorObservationSnapshot {
     pub(crate) environment: VmRuntimeEnvironmentSnapshot,
     pub(crate) processes: Vec<VmProcessSnapshot>,

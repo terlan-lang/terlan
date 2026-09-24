@@ -11,7 +11,7 @@ use crate::runtime::vm::{
 
 const TIMER_OWNER_MODULE: &str = "runtime.SupervisionBackoff";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct VmPendingSupervisionRestart {
     supervisor_id: VmSupervisorId,
     child_id: String,
@@ -37,7 +37,7 @@ struct VmSupervisionRestartPlan {
 }
 
 /// Result of requesting a restart through the VM-owned backoff scheduler.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisionBackoffStart {
     Immediate(VmSupervisionRestart),
     Deferred {
@@ -46,7 +46,7 @@ pub(crate) enum VmSupervisionBackoffStart {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmSupervisionRestartRequest<'a> {
     pub(crate) supervisor_id: VmSupervisorId,
     pub(crate) child_id: &'a str,
@@ -71,7 +71,7 @@ impl<'a> VmSupervisionRestartRequest<'a> {
 }
 
 /// Terminal result for one scheduled supervision restart deadline.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisionBackoffCompletion {
     Restarted(VmSupervisionRestart),
     Cancelled {

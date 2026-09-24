@@ -355,7 +355,7 @@ fn closure_semantic_id(
     SemanticTypeId::from_canonical(&canonical)
 }
 
-fn managed_semantic_id(
+pub(super) fn managed_semantic_id(
     boundary_type: &TvmBoundaryType,
 ) -> Result<Option<SemanticTypeId>, ManagedMemoryError> {
     let canonical = match boundary_type {

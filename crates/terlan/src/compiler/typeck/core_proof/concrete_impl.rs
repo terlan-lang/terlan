@@ -46,6 +46,7 @@ pub(crate) fn core_syntax_concrete_impl_functions(
             functions.push(CoreFunction {
                 name: format!("__terlan_concrete_impl_{index}_{}", method.name),
                 source: None,
+                receiver_method: false,
                 trait_method: Some(CoreTraitMethodIdentity {
                     trait_name: trait_name.clone(),
                     type_args: type_args.clone(),

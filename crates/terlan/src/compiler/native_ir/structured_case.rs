@@ -19,6 +19,7 @@ mod atom;
 mod binary;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
+mod record;
 mod string;
 #[path = "structured_case/suspending.rs"]
 mod suspending;
@@ -199,6 +200,19 @@ pub(super) fn pattern_plan(
             depth,
         ),
         CorePattern::Record { name, fields } => {
+            if let Some(plan) = record::union_record_plan(
+                name,
+                fields,
+                PatternSubject {
+                    value: value.clone(),
+                    native_type: value_type,
+                    core_type,
+                },
+                constructors,
+                depth,
+            )? {
+                return Ok(plan);
+            }
             let NativeType::ManagedRef(semantic) = value_type else {
                 return Err("error[native_ir.record_pattern_type]: record is not managed".into());
             };

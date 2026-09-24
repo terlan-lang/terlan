@@ -29,13 +29,13 @@ pub(crate) struct VmScheduledSupervisionShutdown {
 }
 
 /// Result of requesting supervised child shutdown.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmInternalSupervisionShutdownStart {
     Immediate(VmSupervisionRestart),
     Waiting(VmScheduledSupervisionShutdown),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmSupervisionShutdownRequest<'a> {
     pub(crate) supervisor_id: VmSupervisorId,
     pub(crate) child_id: &'a str,
@@ -60,7 +60,7 @@ impl<'a> VmSupervisionShutdownRequest<'a> {
 }
 
 /// Terminal result for one supervised child shutdown deadline.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisionShutdownCompletion {
     Exited {
         timer_id: VmTimerId,
@@ -89,7 +89,7 @@ pub(crate) enum VmSupervisionShutdownCompletion {
 }
 
 /// Results from one scheduler-facing supervision shutdown clock advance.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmSupervisionShutdownAdvance {
     pub(crate) timer_events: Vec<VmTimerEvent>,
     pub(crate) completions: Vec<VmSupervisionShutdownCompletion>,

@@ -7,8 +7,20 @@ mod package_native_helper_test;
 
 #[path = "package_native_helper/capability.rs"]
 mod capability;
+#[path = "package_native_helper/cluster.rs"]
+mod cluster;
 #[path = "package_native_helper/direct_std.rs"]
 mod direct_std;
+#[path = "package_native_helper/distributed_state.rs"]
+mod distributed_state;
+mod distributed_storage;
+mod execution;
+mod storage_transport;
+pub(crate) use execution::execute_call;
+pub(crate) use storage_transport::VmStorageBinding;
+#[path = "package_native_helper/helper_process.rs"]
+mod helper_process;
+use helper_process::VmPackageNativeHelper;
 #[cfg(any(
     test,
     all(not(feature = "serve-runtime-bin"), feature = "postgres-libpq")
@@ -20,9 +32,6 @@ mod support;
 use support::*;
 
 use std::collections::{BTreeMap, HashSet};
-use std::ffi::OsStr;
-use std::io::{BufRead, BufReader, Read, Write};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -40,8 +49,6 @@ use super::pure_native::{
 };
 use super::{ReplValue, VmRuntimeError, VmRuntimeResult};
 
-const MAX_FRAME_BYTES: usize = 1_048_576;
-
 /// Package helpers isolated by compiler-native operation namespace.
 #[derive(Default)]
 pub(crate) struct VmPackageNativeHelpers {
@@ -49,19 +56,38 @@ pub(crate) struct VmPackageNativeHelpers {
     helper_paths: BTreeMap<String, std::ffi::OsString>,
     exchanges: NativeExchangeBroker,
     direct_std_resources: ResourceStore,
+    cluster: cluster::VmClusterRuntime,
+    distributed_state: distributed_state::VmDistributedStateRuntime,
+    distributed_storage: distributed_storage::VmDistributedStorageRuntime,
+    storage_workers: storage_transport::VmStorageWorkers,
     program_arguments: Vec<String>,
 }
 
 impl VmPackageNativeHelpers {
+    /// Starts explicitly authorized storage workers before entering generated code.
+    pub(crate) fn configure_storage(
+        &mut self,
+        bindings: &[VmStorageBinding],
+        worker: &std::path::Path,
+    ) -> VmRuntimeResult<()> {
+        if !self.storage_workers.is_empty() {
+            return Err(
+                "error[vm.distributed_storage.binding]: storage is already configured".into(),
+            );
+        }
+        self.storage_workers = storage_transport::VmStorageWorkers::start(bindings, worker)?;
+        self.distributed_storage.bind(
+            bindings
+                .iter()
+                .map(|binding| (binding.name.clone(), binding.expected_identity)),
+        );
+        Ok(())
+    }
     /// Builds one helper set with immutable arguments owned by this VM run.
     pub(crate) fn with_program_arguments(program_arguments: Vec<String>) -> Self {
-        Self {
-            helpers: BTreeMap::new(),
-            helper_paths: BTreeMap::new(),
-            exchanges: NativeExchangeBroker::default(),
-            direct_std_resources: ResourceStore::new(),
-            program_arguments,
-        }
+        let mut helpers = Self::default();
+        helpers.program_arguments = program_arguments;
+        helpers
     }
 
     #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
@@ -88,8 +114,25 @@ impl VmPackageNativeHelpers {
         &mut self,
         owner_process_id: u64,
         request: &PureNativeCapabilityRequest,
+        admitted_atoms: &[String],
     ) -> VmRuntimeResult<ReplValue> {
         let namespace = package_operation_namespace(&request.operation)?;
+        if request.operation.starts_with("std.vm.distributed_storage.") {
+            return self.distributed_storage.call(
+                owner_process_id,
+                request,
+                admitted_atoms,
+                &mut self.distributed_state,
+            );
+        }
+        if request.operation.starts_with("std.vm.distributed_state.") {
+            return self.distributed_state.call(owner_process_id, request);
+        }
+        if request.operation.starts_with("std.vm.cluster.") {
+            return self
+                .cluster
+                .call_with_atoms(owner_process_id, request, admitted_atoms);
+        }
         if direct_std::supports(&request.operation) {
             return direct_std::call(&mut self.direct_std_resources, owner_process_id, request);
         }
@@ -167,232 +210,18 @@ impl VmPackageNativeHelpers {
     }
 
     fn close_owner(&mut self, owner_process_id: u64) {
+        self.storage_workers.cancel_owner(owner_process_id);
         self.exchanges.close_owner(owner_process_id);
         self.direct_std_resources.dispose_owner(owner_process_id);
+        self.cluster.close_owner(owner_process_id);
+        self.distributed_state.close_owner(owner_process_id);
+        self.distributed_storage.close_owner(owner_process_id);
     }
 }
 
 impl Drop for VmPackageNativeHelpers {
     fn drop(&mut self) {
         self.exchanges.shutdown();
-    }
-}
-
-/// One live package helper with monotonic request correlation.
-struct VmPackageNativeHelper {
-    child: Child,
-    input: ChildStdin,
-    output: BufReader<ChildStdout>,
-    next_request_id: u64,
-}
-
-impl VmPackageNativeHelper {
-    /// Starts the helper selected by the package runtime environment.
-    fn from_environment(namespace: &str) -> VmRuntimeResult<Self> {
-        let env_name = package_helper_environment(namespace)?;
-        let path = std::env::var_os(&env_name).ok_or_else(|| {
-            format!(
-                "error[native_helper_unavailable]: {env_name} is not set for native package namespace `{namespace}`"
-            )
-        })?;
-        Self::spawn(path)
-    }
-
-    fn spawn(path: impl AsRef<OsStr>) -> VmRuntimeResult<Self> {
-        let mut child = Command::new(path)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .map_err(|error| format!("error[native_helper_unavailable]: {error}"))?;
-        let input = child.stdin.take().ok_or_else(|| {
-            "error[native_helper_unavailable]: helper stdin is closed".to_string()
-        })?;
-        let output = child.stdout.take().ok_or_else(|| {
-            "error[native_helper_unavailable]: helper stdout is closed".to_string()
-        })?;
-        Ok(Self {
-            child,
-            input,
-            output: BufReader::new(output),
-            next_request_id: 0,
-        })
-    }
-
-    /// Executes one compiler-native package request.
-    pub(crate) fn call(
-        &mut self,
-        request: &PureNativeCapabilityRequest,
-    ) -> VmRuntimeResult<ReplValue> {
-        let arguments = request.package_arguments.as_ref().ok_or_else(|| {
-            "error[native_helper_protocol]: built-in capability was sent to a package helper"
-                .to_string()
-        })?;
-        self.next_request_id = self
-            .next_request_id
-            .checked_add(1)
-            .ok_or_else(|| "error[native_helper_protocol]: request id overflow".to_string())?;
-        let mut fields = vec![
-            "call".to_string(),
-            self.next_request_id.to_string(),
-            STANDARD.encode(request.operation.as_bytes()),
-        ];
-        fields.extend(
-            arguments
-                .iter()
-                .map(encode_argument)
-                .collect::<Result<Vec<_>, _>>()?,
-        );
-        let line = fields.join(" ");
-        if line.len().saturating_add(1) > MAX_FRAME_BYTES {
-            return Err(
-                "error[native_helper_protocol]: package request exceeds one helper frame".into(),
-            );
-        }
-        writeln!(self.input, "{line}")
-            .and_then(|()| self.input.flush())
-            .map_err(|error| format!("error[native_helper_io]: {error}"))?;
-        let mut reply = String::new();
-        let read = self
-            .output
-            .by_ref()
-            .take((MAX_FRAME_BYTES + 1) as u64)
-            .read_line(&mut reply)
-            .map_err(|error| format!("error[native_helper_io]: {error}"))?;
-        if read == 0 {
-            return Err("error[native_helper_io]: helper exited without replying".into());
-        }
-        if reply.len() > MAX_FRAME_BYTES {
-            return Err("error[native_helper_protocol]: helper reply is oversized".into());
-        }
-        decode_reply(reply.trim_end_matches(['\r', '\n']), self.next_request_id)
-    }
-}
-
-impl Drop for VmPackageNativeHelper {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
-/// Executes one shard call while servicing package-native capabilities through
-/// one lazily started helper process.
-pub(crate) fn execute_call(
-    shard: &mut PureNativeExecutionShard,
-    helpers: &mut VmPackageNativeHelpers,
-    function: &str,
-    arguments: &[ReplValue],
-) -> VmRuntimeResult<ReplValue> {
-    let (owner, mut execution) = shard.begin_call(function, arguments)?;
-    loop {
-        if let Err(error) = service_resident_capability(shard, helpers) {
-            return cancel_with_error(shard, owner, error);
-        }
-        execution = match execution {
-            PureNativeExecution::Complete(value) => {
-                shard.finish_completed_call(owner)?;
-                helpers.close_owner(owner.as_u64());
-                return Ok(value);
-            }
-            PureNativeExecution::HttpResponse(_) => {
-                shard.cancel_call(owner, "package call returned an HTTP response")?;
-                helpers.close_owner(owner.as_u64());
-                return Err(
-                    "error[execution_shard.result_projection]: package call returned an HTTP response"
-                        .into(),
-                );
-            }
-            PureNativeExecution::Suspended(suspension)
-                if suspension.operation() == TvmTransitionOperation::Capability =>
-            {
-                let wait = match shard.begin_capability_call(owner, &suspension) {
-                    Ok(wait) => wait,
-                    Err(error) => return cancel_with_error(shard, owner, error),
-                };
-                if wait.request().package_arguments.is_none() {
-                    let reply = match dispatch_vm_capability_with_program_arguments(
-                        wait.request(),
-                        &helpers.program_arguments,
-                    ) {
-                        Ok(reply) => reply,
-                        Err(error) => return cancel_with_error(shard, owner, error),
-                    };
-                    shard.resume_capability_call(owner, *suspension, wait, reply)?
-                } else {
-                    let operation = wait.request().operation.clone();
-                    let value = match helpers.call(owner.as_u64(), wait.request()) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            helpers.close_owner(owner.as_u64());
-                            return cancel_with_error(shard, owner, error);
-                        }
-                    };
-                    let handles = match accelerator_resource_handles(&value) {
-                        Ok(handles) => handles,
-                        Err(error) => return cancel_with_error(shard, owner, error),
-                    };
-                    if let Err(error) = shard.register_accelerator_resources(owner, handles) {
-                        return cancel_with_error(shard, owner, error);
-                    }
-                    shard
-                        .resume_capability_value_call(owner, *suspension, wait, value)
-                        .map_err(|error| {
-                            format!(
-                                "{error}; error[native_helper_resume]: operation `{operation}` returned an incompatible value"
-                            )
-                        })?
-                }
-            }
-            PureNativeExecution::Suspended(suspension) => shard.resume_call(owner, *suspension)?,
-        };
-    }
-}
-
-/// Services one runnable capability wait owned by a spawned actor.
-fn service_resident_capability(
-    shard: &mut PureNativeExecutionShard,
-    helpers: &mut VmPackageNativeHelpers,
-) -> VmRuntimeResult<()> {
-    let Some((owner, suspension, wait)) = shard.take_resident_capability_call()? else {
-        return Ok(());
-    };
-    let completed = if wait.request().package_arguments.is_none() {
-        let reply = dispatch_vm_capability_with_program_arguments(
-            wait.request(),
-            &helpers.program_arguments,
-        )
-        .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?;
-        shard.resume_resident_capability_call(owner, suspension, wait, reply)?
-    } else {
-        let value = helpers
-            .call(owner.as_u64(), wait.request())
-            .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?;
-        let handles = accelerator_resource_handles(&value)
-            .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?;
-        shard
-            .register_accelerator_resources(owner, handles)
-            .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?;
-        shard.resume_resident_capability_value_call(owner, suspension, wait, value)?
-    };
-    if completed {
-        helpers.close_owner(owner.as_u64());
-    }
-    Ok(())
-}
-
-/// Closes helper state and commits a resident capability failure to actor exit.
-fn fail_resident_capability(
-    shard: &mut PureNativeExecutionShard,
-    helpers: &mut VmPackageNativeHelpers,
-    owner: crate::runtime::vm::process::VmProcessId,
-    error: impl Into<String>,
-) -> String {
-    let error = error.into();
-    helpers.close_owner(owner.as_u64());
-    match shard.cancel_call(owner, error.clone()) {
-        Ok(()) => error,
-        Err(cleanup) => format!("{error}; error[execution_shard.cleanup]: {cleanup}"),
     }
 }
 

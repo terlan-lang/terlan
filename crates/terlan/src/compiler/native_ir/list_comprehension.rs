@@ -11,12 +11,14 @@ use crate::terlan_typeck::{
 use super::NativeIrResult;
 
 mod completed;
+mod deferred;
+pub(super) use completed::completed_effect_list_type;
 use completed::fold_completed_effect_runs;
 pub(super) use completed::lower_completed_guard_results;
-pub(super) use completed::{completed_effect_list_type, lower_completed_effect_guards};
+#[cfg(test)]
+pub(super) use deferred::lower_guards;
 
 const EFFECT_CONTAINER: &str = "std.core.Effect.Effect";
-const EFFECT_SUCCEED: &str = "std.core.Effect.succeed";
 const RANGE_ITERATOR: &str = "std.range.Range.iterator";
 const MAX_COMPREHENSIONS_PER_MODULE: usize = 128;
 
@@ -73,7 +75,7 @@ fn lower_expr(
         .into());
     }
     if completed_effect {
-        lower_completed_effect_guards(guards)?;
+        deferred::lower_guards(guards);
     }
     lower_completed_guard_results(guards);
     for guard in guards.iter_mut() {
@@ -213,11 +215,7 @@ fn lower_expr(
         )?);
     }
     *expr = if completed_effect {
-        CoreExpr::Call {
-            type_args: Vec::new(),
-            function: EFFECT_SUCCEED.to_string(),
-            args: vec![expanded],
-        }
+        deferred::plan(expanded, output_type)
     } else {
         expanded
     };
@@ -659,6 +657,10 @@ fn range_bounds(source: &CoreExpr) -> NativeIrResult<(CoreExpr, CoreExpr)> {
 }
 
 fn lower_range_membership(expr: &mut CoreExpr) {
+    if let CoreExpr::Cast { expr, .. } = expr {
+        lower_range_membership(expr);
+        return;
+    }
     let CoreExpr::BinaryOp {
         operator,
         left,

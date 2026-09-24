@@ -29,6 +29,8 @@ pub enum NativeBoundaryValue {
     },
     /// Ordered recursively owned Terlan values.
     List(Vec<NativeBoundaryValue>),
+    /// Ordered fixed-arity Terlan tuple fields.
+    Tuple(Vec<NativeBoundaryValue>),
     /// Opaque `std.data.Json.Json`.
     Json(json::Json),
     /// Opaque compiled `std.regex.Regex.Regex`.
@@ -95,4 +97,6 @@ pub enum NativeBoundaryBridgeValue {
     OptionalHandle(Option<NativeBoundaryHandle>),
     /// Terlan list carrying bridge-facing values.
     List(Vec<NativeBoundaryBridgeValue>),
+    /// Ordered fixed-arity fields, including generation-tagged resource handles.
+    Tuple(Vec<NativeBoundaryBridgeValue>),
 }

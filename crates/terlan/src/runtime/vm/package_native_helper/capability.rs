@@ -22,6 +22,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
     if let Some(reply) = super::sql::dispatch(request) {
         return reply;
     }
+    let boundary_arguments = request.boundary_arguments()?;
     match request.operation.as_str() {
         "std.system.arguments.count" => {
             let count = i64::try_from(program_arguments.len()).map_err(|_| {
@@ -30,7 +31,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
             return Ok(NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Int(count)));
         }
         "std.system.arguments.get" => {
-            let Some(NativeBoundaryTerm::Int(index)) = request.arguments.first() else {
+            let Some(NativeBoundaryTerm::Int(index)) = boundary_arguments.first() else {
                 return Err("error[system.arguments.type]: argument index must be Int".into());
             };
             let value = usize::try_from(*index)
@@ -42,7 +43,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
             ));
         }
         "std.system.environment.get" => {
-            let Some(NativeBoundaryTerm::Text(key)) = request.arguments.first() else {
+            let Some(NativeBoundaryTerm::Text(key)) = boundary_arguments.first() else {
                 return Err(
                     "error[system.environment.type]: environment key must be String".into(),
                 );
@@ -53,8 +54,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
         }
         _ => {}
     }
-    let arguments = request
-        .arguments
+    let arguments = boundary_arguments
         .iter()
         .map(|argument| boundary_term_to_value(&request.operation, argument))
         .collect::<Result<Vec<_>, _>>()?;
@@ -413,6 +413,10 @@ fn boundary_term_to_value(
     term: &NativeBoundaryTerm,
 ) -> VmRuntimeResult<NativeBoundaryValue> {
     match term {
+        NativeBoundaryTerm::Tuple(values) => values.iter()
+            .map(|value| boundary_term_to_value(operation, value))
+            .collect::<Result<Vec<_>, _>>()
+            .map(NativeBoundaryValue::Tuple),
         NativeBoundaryTerm::Unit => Ok(NativeBoundaryValue::Unit),
         NativeBoundaryTerm::Text(value) => Ok(NativeBoundaryValue::Text(value.clone())),
         NativeBoundaryTerm::Bytes(value) => Ok(NativeBoundaryValue::Bytes(value.clone())),
@@ -446,6 +450,10 @@ fn boundary_value_to_term(
     value: NativeBoundaryValue,
 ) -> VmRuntimeResult<NativeBoundaryTerm> {
     match value {
+        NativeBoundaryValue::Tuple(values) => values.into_iter()
+            .map(|value| boundary_value_to_term(operation, value))
+            .collect::<Result<Vec<_>, _>>()
+            .map(NativeBoundaryTerm::Tuple),
         NativeBoundaryValue::Unit => Ok(NativeBoundaryTerm::Unit),
         NativeBoundaryValue::Text(value) => Ok(NativeBoundaryTerm::Text(value)),
         NativeBoundaryValue::Bytes(value) => Ok(NativeBoundaryTerm::Bytes(value)),

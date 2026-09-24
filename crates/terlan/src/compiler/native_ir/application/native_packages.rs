@@ -130,10 +130,17 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 /// owned by VM intrinsic lowering, not a native worker's resource layout.
 /// Byte and bit buffers retain their managed-buffer ABI even when their opaque
 /// declarations are loaded alongside an explicitly qualified container type.
+/// Standard collections likewise belong to image-local collection schemas,
+/// including fresh constructors whose generic slots are not yet inferred.
 fn is_compiler_owned_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
         "std.template.Template.Html"
+            | "std.core.Task.Task"
+            | "std.collections.List.List"
+            | "std.collections.Map.Map"
+            | "std.collections.Set.Set"
+            | "std.collections.Iterator.Iterator"
             | "std.http.Request.Request"
             | "std.http.Response.Response"
             | "std.vm.Bytes.Bytes"
@@ -433,7 +440,8 @@ fn canonicalize_native_package_expr(
                 | CoreIntrinsicId::VmProcessCancel(ty)
                 | CoreIntrinsicId::MemoryLayoutOf(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
-                | CoreIntrinsicId::MemoryRetainedSize(ty) => canonicalize(ty)?,
+                | CoreIntrinsicId::MemoryRetainedSize(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty) => canonicalize(ty)?,
                 CoreIntrinsicId::NativeOperation {
                     parameter_types, ..
                 } => {
@@ -441,7 +449,9 @@ fn canonicalize_native_package_expr(
                         canonicalize(ty)?;
                     }
                 }
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {

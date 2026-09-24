@@ -2,6 +2,107 @@
 
 use super::*;
 
+fn consumer_fixture() -> (CoreExpr, FunctionTypes) {
+    let call = CoreExpr::RemoteCall {
+        module: "consumer".to_string(),
+        function: "choose".to_string(),
+        type_args: vec![],
+        args: vec![
+            CoreExpr::Var("state".to_string()),
+            CoreExpr::Var("value".to_string()),
+        ],
+    };
+    let functions = HashMap::from([(
+        ("consumer".to_string(), "choose".to_string(), 2),
+        FunctionSignature {
+            generic_params: vec!["T".to_string()],
+            params: vec![
+                CoreType::List(Box::new(CoreType::Named("T".to_string()))),
+                CoreType::Named("T".to_string()),
+            ],
+            result: CoreType::Named("T".to_string()),
+        },
+    )]);
+    (call, functions)
+}
+
+#[test]
+fn generic_consumer_uses_other_operands_and_explicit_arguments() {
+    let (mut call, functions) = consumer_fixture();
+    let binding = CoreLetBinding {
+        pattern: CorePattern::Var("state".to_string()),
+        value: CoreExpr::Var("unknown_producer".to_string()),
+    };
+    for (variables, expected) in [
+        (HashMap::new(), None),
+        (
+            HashMap::from([("value".to_string(), CoreType::Int)]),
+            Some(CoreType::List(Box::new(CoreType::Int))),
+        ),
+    ] {
+        assert_eq!(
+            infer_binding_use(&binding, &[], &call, &variables, &functions, "fixture"),
+            expected
+        );
+    }
+    let CoreExpr::RemoteCall { type_args, .. } = &mut call else {
+        unreachable!()
+    };
+    type_args.push(CoreType::String);
+    assert_eq!(
+        infer_binding_use(&binding, &[], &call, &HashMap::new(), &functions, "fixture"),
+        Some(CoreType::List(Box::new(CoreType::String)))
+    );
+    assert_eq!(
+        infer_binding_use(
+            &binding,
+            &[],
+            &call,
+            &HashMap::from([("value".to_string(), CoreType::Int)]),
+            &functions,
+            "fixture"
+        ),
+        None
+    );
+}
+
+#[test]
+fn generic_consumer_respects_case_and_lambda_binding_scope() {
+    let (call, functions) = consumer_fixture();
+    let binding = CoreLetBinding {
+        pattern: CorePattern::Var("state".to_string()),
+        value: CoreExpr::Var("unknown_producer".to_string()),
+    };
+    let outer = HashMap::from([("value".to_string(), CoreType::String)]);
+    for (name, expected) in [
+        ("value", Some(CoreType::List(Box::new(CoreType::Int)))),
+        ("state", None),
+    ] {
+        let pattern = CorePattern::Var(name.to_string());
+        let expressions = [
+            CoreExpr::Lam {
+                params: vec![pattern.clone()],
+                parameter_types: vec![Some(CoreType::Int)],
+                body: Box::new(call.clone()),
+            },
+            CoreExpr::Case {
+                scrutinee: Box::new(CoreExpr::Int(1)),
+                clauses: vec![crate::terlan_typeck::CoreCaseClause {
+                    pattern,
+                    guard: None,
+                    body: call.clone(),
+                }],
+            },
+        ];
+        for expression in expressions {
+            assert_eq!(
+                infer_binding_use(&binding, &[], &expression, &outer, &functions, "fixture"),
+                expected
+            );
+        }
+    }
+}
+
 fn initializer(kind: CorePrimitiveIntrinsic) -> CoreLetBinding {
     CoreLetBinding {
         pattern: CorePattern::Var("state".to_string()),
@@ -13,6 +114,35 @@ fn initializer(kind: CorePrimitiveIntrinsic) -> CoreLetBinding {
             span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
         }),
     }
+}
+
+#[test]
+fn bottom_bindings_are_not_retyped_by_later_consumers_or_mutations() {
+    let (call, functions) = consumer_fixture();
+    let binding = CoreLetBinding {
+        pattern: CorePattern::Var("state".to_string()),
+        value: CoreExpr::List(vec![]),
+    };
+    let variables = HashMap::from([("value".to_string(), CoreType::Int)]);
+    assert_eq!(
+        infer_binding_use(&binding, &[], &call, &variables, &functions, "fixture"),
+        None
+    );
+    let later = [CoreLetBinding {
+        pattern: CorePattern::Var("read".to_string()),
+        value: call,
+    }];
+    assert_eq!(
+        infer_binding_use(
+            &binding,
+            &later,
+            &mutation("push", vec![CoreExpr::Int(7)]),
+            &variables,
+            &functions,
+            "fixture"
+        ),
+        None
+    );
 }
 
 fn mutation(method: &str, args: Vec<CoreExpr>) -> CoreExpr {

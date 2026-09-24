@@ -62,7 +62,7 @@ pub(crate) enum VmRestartPolicy {
 }
 
 /// Inspection-visible supervisor state.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisorState {
     Running,
     Failed {
@@ -85,7 +85,7 @@ pub(crate) enum VmSupervisorRestartHistoryOutcome {
 }
 
 /// Inspection-visible restart history entry.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmSupervisorRestartHistoryEntry {
     pub(crate) child_id: String,
     pub(crate) old_pid: VmProcessId,
@@ -186,7 +186,7 @@ pub(crate) struct VmSupervisionRestartEvent {
 }
 
 /// Restart result emitted by a supervisor.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisionRestart {
     Restarted {
         old_pid: VmProcessId,
@@ -210,7 +210,7 @@ pub(crate) enum VmSupervisionRestart {
 }
 
 /// Supervisor response to one VM-owned memory-pressure decision.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VmSupervisionMemoryPressure {
     Continue {
         pid: VmProcessId,
@@ -237,7 +237,7 @@ pub(crate) struct VmSupervisorChildSnapshot {
 }
 
 /// Read-only supervisor tree for runtime inspection.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmSupervisorSnapshot {
     pub(crate) id: VmSupervisorId,
     pub(crate) parent_id: Option<VmSupervisorId>,
@@ -257,7 +257,7 @@ struct VmSupervisorChild {
     last_shutdown_timeout_ms: Option<u64>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct VmSupervisor {
     id: VmSupervisorId,
     parent_id: Option<VmSupervisorId>,

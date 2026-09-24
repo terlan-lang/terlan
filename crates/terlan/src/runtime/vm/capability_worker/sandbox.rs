@@ -12,6 +12,10 @@ use crate::terlan_native_boundary::capability_sandbox::{
 };
 
 #[cfg(target_os = "linux")]
+#[path = "storage_filesystem.rs"]
+mod storage_filesystem;
+
+#[cfg(target_os = "linux")]
 const BUBBLEWRAP_PATH: &str = "/usr/bin/bwrap";
 #[cfg(target_os = "linux")]
 const PRLIMIT_PATH: &str = "/usr/bin/prlimit";
@@ -31,7 +35,7 @@ const MAX_SANDBOX_DIR_ATTEMPTS: u64 = 64;
 #[cfg(target_os = "linux")]
 static NEXT_SANDBOX_DIR: AtomicU64 = AtomicU64::new(1);
 
-/// Private host directory mounted as the worker's only writable persistent path.
+/// Private scratch directory removed after worker teardown, not durable storage.
 pub(super) struct VmCapabilityWorkerSandboxDir {
     path: PathBuf,
 }
@@ -94,10 +98,11 @@ pub(super) fn worker_command(
     executable: &Path,
     capabilities: &[String],
     work_dir: &Path,
+    storage_directory: Option<&Path>,
 ) -> Result<Command, String> {
     match profile {
         CapabilitySandboxProfile::LinuxBwrapV1 => {
-            linux_worker_command(executable, capabilities, work_dir)
+            linux_worker_command(executable, capabilities, work_dir, storage_directory)
         }
     }
 }
@@ -120,10 +125,11 @@ pub(super) fn linux_worker_command(
     executable: &Path,
     capabilities: &[String],
     work_dir: &Path,
+    storage_directory: Option<&Path>,
 ) -> Result<Command, String> {
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (executable, capabilities, work_dir);
+        let _ = (executable, capabilities, work_dir, storage_directory);
         return Err(
             "error[capability_worker.sandbox]: no supported sandbox backend for this platform"
                 .to_string(),
@@ -155,11 +161,47 @@ pub(super) fn linux_worker_command(
             .arg(BUBBLEWRAP_PATH);
         append_namespace_policy(&mut command, capabilities);
         append_filesystem_policy(&mut command, &executable, work_dir);
+        if let Some(directory) = storage_directory {
+            append_storage_binding(&mut command, capabilities, directory, work_dir)
+                .map_err(|error| format!("error[capability_worker.storage]: {error}"))?;
+        }
         command.arg("--").arg(PRLIMIT_PATH);
         append_resource_limits(&mut command, limits);
         command.arg("--").arg(SANDBOX_WORKER_PATH);
         Ok(command)
     }
+}
+
+/// Binds only a supervisor-selected private directory, never an actor-supplied path.
+#[cfg(target_os = "linux")]
+fn append_storage_binding(
+    command: &mut Command,
+    capabilities: &[String],
+    directory: &Path,
+    work_dir: &Path,
+) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    if capabilities != ["storage"] {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "durable storage requires a dedicated storage-only worker",
+        ));
+    }
+    let canonical = directory.canonicalize()?;
+    let metadata = std::fs::symlink_metadata(directory)?;
+    if !directory.is_absolute()
+        || canonical != directory
+        || !metadata.is_dir()
+        || metadata.permissions().mode() & 0o777 != 0o700
+        || canonical.starts_with(work_dir)
+        || work_dir.starts_with(&canonical)
+    {
+        return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied,
+            "durable directory must be canonical, private (0700), and separate from worker scratch space"));
+    }
+    storage_filesystem::require_local_filesystem(directory)?;
+    command.arg("--bind").arg(directory).arg("/storage");
+    Ok(())
 }
 
 /// Appends fixed hard resource bounds understood by `prlimit`.

@@ -1,8 +1,20 @@
 //! Terlan VM distributed storage adapter contract.
 //!
 //! `std.vm.DistributedStorage` exposes typed descriptors for VM-owned
-//! checkpoint storage adapters. The VM owns backend selection, write-ahead
-//! persistence, snapshot validation, compaction, and capability outcomes.
+//! checkpoint storage adapters. `checkpoint` and `Snapshot.restore` capture and
+//! restore bounded, versioned logical state. The standalone VM connects durable
+//! `open`, `append`, `flush`, `load_snapshot`, and `close` to a sandboxed SQLite
+//! worker through explicit `--storage name=/absolute/private/directory` bindings.
+//! Atomic batches, compare-and-swap append, schema transitions, and compaction
+//! use the same durable worker. Typed outcomes retain transaction-observed
+//! conflicts; proofs require acknowledged durable observations. Policy flags
+//! cannot grant host authority. Local-only adapters keep bounded volatile state
+//! and make no durability claim. Resource validation currently supports pinned,
+//! supervisor-authorized `db.NAME` bindings on the standalone Linux VM path.
+//! Replication, quorum writes, and automatic failover are unsupported in 0.0.9.
+//! Cluster capability queries return false; replication operations return an
+//! explicit unsupported outcome without performing a local write. A future
+//! storage service will own consensus, not the VM's core scheduling semantics.
 
 module std.vm.DistributedStorage.
 
@@ -192,8 +204,7 @@ pub batch_last_sequence(proof: TransactionalBatchProof): Int.
 /// Returns whether an adapter can perform cluster replication.
 ///
 /// Input: adapter receiver.
-/// Output: `true` when the selected mode supports cluster replication and the
-/// backend is available.
+/// Output: `false` in 0.0.9, including for configured durable adapters.
 /// Transformation: exposes deterministic capability checks before
 /// `require_cluster_replication`.
 
@@ -217,6 +228,25 @@ pub checkpoint(checkpoint_id: String, sequence: Int, state: std.vm.DistributedSt
 /// recovery without exposing snapshot internals.
 
 pub checkpoint_id(outcome: Outcome): String.
+
+/// Returns the application schema tag of a created or loaded checkpoint.
+///
+/// Input: a checkpoint owned by the calling actor.
+/// Output: its positive application schema version.
+/// Transformation: lets callers select application-level restore handling
+/// without conflating their schema with the VM's versioned logical encoding.
+
+pub checkpoint_schema(snapshot: Snapshot): Int.
+
+/// Builds a logical checkpoint with an explicit application schema version.
+///
+/// Input: checkpoint identity, nonzero sequence, positive schema, and state.
+/// Output: an immutable actor-owned storage checkpoint.
+/// Transformation: tags the existing logical encoding without transforming
+/// application data. The application owns schema meaning and migration; append
+/// rejects tags that differ from the durable backend's current schema.
+
+pub checkpoint_with_schema(checkpoint_id: String, sequence: Int, schema: Int, state: std.vm.DistributedState.Snapshot): Snapshot.
 
 /// Returns the checksum associated with a lifecycle outcome.
 ///
@@ -285,7 +315,8 @@ pub durable(): Mode.
 /// Input: adapter receiver.
 /// Output: durable flush proof descriptor.
 /// Transformation: captures the flushed sequence boundary that failed or timed
-/// out flush attempts must not advance.
+/// out flush attempts must not advance. Local-only adapters fail explicitly
+/// rather than issuing a persistence proof for volatile memory.
 
 pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof.
 
@@ -313,7 +344,9 @@ pub expected_checksum(outcome: Outcome): Int.
 /// Input: outcome descriptor.
 /// Output: expected entry count, or zero when the outcome is not partial-write.
 /// Transformation: exposes bounded recovery metadata without exposing the
-/// adapter log representation.
+/// adapter log representation. Atomic local/SQLite outcomes are not partial
+/// writes and return zero. An indeterminate commit is not a measured partial
+/// write; zero does not establish that an unacknowledged write rolled back.
 
 pub expected_entries(outcome: Outcome): Int.
 
@@ -342,7 +375,8 @@ pub expected_sequence(outcome: Outcome): Int.
 /// Input: adapter receiver.
 /// Output: flushed, finalize-failed, flush-timed-out, unavailable, or
 /// unsupported outcome descriptor.
-/// Transformation: makes fsync/finalize success, timeout, and failure explicit.
+/// Transformation: durable adapters acknowledge the real storage flush;
+/// local-only adapters establish an in-memory ordering barrier only.
 
 pub (adapter: Adapter) flush(): Outcome.
 
@@ -350,8 +384,9 @@ pub (adapter: Adapter) flush(): Outcome.
 ///
 /// Input: no runtime input.
 /// Output: local-only available policy.
-/// Transformation: gives VM tests and development flows a deterministic adapter
-/// that does not require external storage.
+/// Transformation: creates bounded actor-owned volatile storage without a
+/// filesystem binding. Separate adapters do not share state. Actor exit or VM
+/// shutdown loses its data; this policy does not support durable-flush proofs.
 
 pub force_local(): Policy.
 
@@ -507,15 +542,18 @@ pub operation_kind(outcome: Outcome): String.
 /// Input: outcome descriptor.
 /// Output: persisted entry count, or zero when the outcome is not partial-write.
 /// Transformation: exposes partial persistence progress as typed metadata for
-/// recovery and diagnostics.
+/// recovery and diagnostics. Atomic local/SQLite outcomes return zero rather
+/// than guessing partial progress. For indeterminate commits, reconcile stored
+/// checkpoint identities; this getter is not evidence of rollback.
 
 pub persisted_entries(outcome: Outcome): Int.
 
 /// Builds a storage policy descriptor.
 ///
-/// Input: policy name, backend mode, and availability flag.
+/// Input: policy name, backend mode, and a requested availability flag.
 /// Output: storage policy descriptor.
-/// Transformation: validates adapter selection before lifecycle operations.
+/// Transformation: durable availability additionally requires a matching
+/// supervisor-provided binding; source code cannot grant filesystem authority.
 
 pub policy(name: String, mode: Mode, available: Bool): Policy.
 
@@ -540,8 +578,7 @@ pub (adapter: Adapter) policy_available(): Bool.
 /// Returns whether a policy can perform cluster replication.
 ///
 /// Input: storage policy descriptor.
-/// Output: `true` when the selected mode supports cluster replication and the
-/// backend is available.
+/// Output: `false` in 0.0.9; no replication provider is supported.
 /// Transformation: exposes deterministic capability checks before adapter
 /// lifecycle calls.
 
@@ -612,23 +649,27 @@ pub reason(outcome: Outcome): String.
 
 pub recovery_action(outcome: Outcome): String.
 
-/// Registers a durable resource handle with the adapter.
+/// Registers a supervisor-authorized resource name with the adapter.
 ///
 /// Input: adapter receiver and durable resource handle id.
 /// Output: resource-handles-validated or resource-handle-validation-failed
 /// outcome descriptor.
-/// Transformation: keeps resource custody inside the storage adapter instead of
-/// allowing hidden restore-side handle assumptions.
+/// Transformation: db.NAME resolves only to the supervisor's identity-pinned
+/// storage binding NAME. The VM asynchronously checks the real worker identity
+/// before registering it. Unknown names cannot create authority. Registrations
+/// are actor-local and must be re-established and checked after restart; strings
+/// restored from a checkpoint never restore authority. Other providers are not
+/// currently supported. Volatile adapters do not gain storage durability.
 
 pub (adapter: Adapter) register_resource_handle(handle: String): Outcome.
 
-/// Replicates a storage snapshot through a cluster-capable adapter.
+/// Requests storage snapshot replication, unsupported in 0.0.9.
 ///
 /// Input: adapter receiver and snapshot descriptor.
-/// Output: appended, partial-write, stale, unavailable, checksum-mismatch, or
-/// unsupported outcome descriptor.
-/// Transformation: routes replicated checkpoint writes through the VM-owned
-/// cluster storage lane while preserving typed lifecycle metadata.
+/// Output: an unsupported outcome descriptor, never a successful write receipt.
+/// Transformation: validates actor-owned arguments and rejects replication
+/// without mutating storage. No local append or alternative provider is silently
+/// substituted. Rejection coverage is not replication capability coverage.
 
 pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome.
 
@@ -641,20 +682,21 @@ pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome.
 
 pub (adapter: Adapter) require_atomic_append(): Outcome.
 
-/// Requires cluster replication support.
+/// Checks for cluster replication support, unsupported in 0.0.9.
 ///
 /// Input: adapter receiver.
-/// Output: opened or unsupported outcome descriptor.
-/// Transformation: exposes deterministic capability checks without probing
-/// backend internals.
+/// Output: an unsupported outcome descriptor.
+/// Transformation: rejects the unsupported capability regardless of a caller's
+/// availability flag or whether a local durable backend has been configured.
 
 pub (adapter: Adapter) require_cluster_replication(): Outcome.
 
 /// Requires durable flush proof support.
 ///
 /// Input: adapter receiver.
-/// Output: opened or unavailable outcome descriptor.
-/// Transformation: exposes deterministic fsync/equivalent durability
+/// Output: opened, unavailable, or unsupported outcome descriptor.
+/// Transformation: local-only adapters report unsupported. Durable adapters
+/// expose fsync/equivalent durability
 /// capability checks before accepting a durable boundary proof.
 
 pub (adapter: Adapter) require_durable_flush(): Outcome.
@@ -663,8 +705,9 @@ pub (adapter: Adapter) require_durable_flush(): Outcome.
 ///
 /// Input: adapter receiver.
 /// Output: opened or unavailable outcome descriptor.
-/// Transformation: exposes deterministic durable resource handle validation
-/// capability checks before accepting restored or replayed handles.
+/// Transformation: requires an open adapter and supervisor-configured, identity-
+/// pinned database resources. Unconfigured providers return unsupported; this
+/// capability check does not itself validate a resource or confer authority.
 
 pub (adapter: Adapter) require_resource_handle_validation(): Outcome.
 
@@ -729,8 +772,19 @@ pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int.
 /// Output: resource handle validation proof descriptor.
 /// Transformation: captures the last validated handle count and storage
 /// sequence that missing-handle failures must not advance.
+/// Proofs are immutable historical observations, not leases or future liveness
+/// guarantees. Unsupported or closed adapters cannot issue these proofs.
 
 pub (adapter: Adapter) resource_handle_validation_proof(): ResourceHandleValidationProof.
+
+/// Restores checkpoint contents as a new actor-owned mutable state store.
+///
+/// Input: an immutable logical checkpoint belonging to the calling actor.
+/// Output: a new state store with the original scopes, versions, policies, and values.
+/// Transformation: decodes the versioned, bounded representation and validates
+/// the current image's atom vocabulary. This does not open a durable backend.
+
+pub (snapshot: Snapshot) restore(): std.vm.DistributedState.Store.
 
 /// Returns the retained snapshot count for compaction outcomes.
 ///
@@ -805,13 +859,16 @@ pub (adapter: Adapter) transactional_batch_append(snapshots: List[Snapshot]): Ou
 
 pub (adapter: Adapter) transactional_batch_proof(): TransactionalBatchProof.
 
-/// Validates that every durable resource handle is registered.
+/// Revalidates registered resource names against their authorized live workers.
 ///
 /// Input: adapter receiver and durable resource handle ids.
 /// Output: resource-handles-validated or resource-handle-validation-failed
 /// outcome descriptor.
-/// Transformation: prevents restored or replayed actor state from referencing
-/// missing VM-owned resources.
+/// Transformation: checks every resource identity again without blocking the
+/// actor owner. At most 16 unique names are accepted; duplicate or oversized
+/// lists are invalid. Empty validation succeeds with count zero. Failed checks
+/// do not advance the previous proof. Observations are sequential, not an atomic
+/// snapshot across resources, and all probes share one bounded deadline.
 
 pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome.
 

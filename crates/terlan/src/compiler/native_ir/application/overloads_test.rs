@@ -4,6 +4,148 @@ use crate::{
     terlan_typeck::lower_syntax_module_output_to_core,
 };
 
+/// Imported free-function receiver syntax keeps its provider through generic lowering.
+#[test]
+fn imported_builder_receiver_calls_keep_their_provider() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module builders.Caller.
+import builders.Library.
+pub check(): Bool ->
+    let command = if {
+        true -> Library.command(20).with_arguments(22);
+        false -> Library.command(1).with_arguments(2)
+    };
+    Library.value(command) == 42.
+"#,
+        r#"
+module builders.Library.
+pub struct Command { value: Int }.
+pub command(value: Int): Command -> Command { value: value }.
+pub with_arguments(command: Command, value: Int): Command ->
+    Command { value: command.value + value }.
+pub value(command: Command): Int -> command.value.
+"#,
+    ]);
+}
+
+/// Receiver qualification precedes renaming same-arity free-function overloads.
+#[test]
+fn method_and_free_function_overloads_keep_their_distinct_receiver_targets() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module methods.Caller.
+import methods.Library.
+pub check(): Bool ->
+    let adapter = Library.adapter();
+    let policy = Library.policy();
+    adapter.available()
+        and not Library.available(policy)
+        and not methods.Library.available(policy).
+"#,
+        r#"
+module methods.Library.
+pub struct Policy { enabled: Bool }.
+pub struct Adapter { enabled: Bool }.
+pub adapter(): Adapter -> Adapter { enabled: true }.
+pub policy(): Policy -> Policy { enabled: false }.
+pub available(policy: Policy): Bool -> policy.enabled.
+pub (adapter: Adapter) available(): Bool -> adapter.enabled.
+"#,
+    ]);
+}
+
+/// Explicit import families keep the ABI selected by argument types, including
+/// lexical bindings and typed parameters, rather than failing as module imports.
+#[test]
+fn selected_import_overloads_execute_with_their_concrete_provider() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module imports.Caller.
+import imports.Integer.{choose}.
+import imports.Floating.{choose}.
+integer(value: Int): Int -> let bound = value; choose(bound).
+floating(value: Float): Float -> choose(value).
+pub check(): Bool -> integer(41) == 42 and floating(40.0) == 42.0.
+"#,
+        "module imports.Integer. pub choose(value: Int): Int -> value + 1.",
+        "module imports.Floating. pub choose(value: Float): Float -> value + 2.0.",
+    ]);
+}
+
+/// Import aliases retain the different public names of their checked providers.
+#[test]
+fn selected_import_aliases_execute_without_losing_provider_names() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module imports.Aliases.
+import imports.Integer.{integer as choose}.
+import imports.Floating.{floating as choose}.
+pub check(): Bool -> choose(41) == 42 and choose(40.0) == 42.0.
+"#,
+        "module imports.Integer. pub integer(value: Int): Int -> value + 1.",
+        "module imports.Floating. pub floating(value: Float): Float -> value + 2.0.",
+    ]);
+}
+
+/// Compiler-cache serialization preserves selected names and aliases exactly.
+#[test]
+fn selected_import_provenance_survives_core_serialization() {
+    let caller = core(
+        "module imports.Caller. import imports.Integer.{integer as choose}. \
+         import imports.Floating.{floating as choose}. pub check(): Int -> choose(1).",
+    );
+    assert_eq!(caller.selected_function_imports.len(), 2);
+    let encoded = serde_json::to_vec(&caller).expect("serialize selected import provenance");
+    let restored: CoreModule = serde_json::from_slice(&encoded).expect("restore selected imports");
+    assert_eq!(
+        restored.selected_function_imports,
+        caller.selected_function_imports
+    );
+    assert_eq!(restored.contract_text(), caller.contract_text());
+}
+
+/// Equivalent selected signatures remain an error, independent of source order.
+#[test]
+fn selected_import_overloads_reject_indistinguishable_providers() {
+    let left = core("module imports.Left. pub choose(value: Int): Int -> value.");
+    let right = core("module imports.Right. pub choose(value: Int): Int -> value.");
+    let caller = core(
+        "module imports.Caller. import imports.Left.{choose}. \
+         import imports.Right.{choose}. pub check(): Int -> choose(1).",
+    );
+    for mut modules in [
+        vec![caller.clone(), left.clone(), right.clone()],
+        vec![right, left, caller],
+    ] {
+        let error = resolve_selected_imports(&mut modules).expect_err("ambiguous import");
+        assert!(error.contains("native_ir.overload_ambiguous"), "{error}");
+    }
+}
+
+/// Intrinsic-only providers retain checked signatures after body pruning.
+#[test]
+fn selected_imports_admit_primitive_and_source_backed_candidates_together() {
+    let mut boolean =
+        core("module std.core.Bool. pub equal(left: Bool, right: Bool): Bool -> left == right.");
+    boolean.functions.clear();
+    let integer =
+        core("module std.core.Int. pub equal(left: Int, right: Int): Bool -> left == right.");
+    let caller = core(
+        "module imports.Caller. import std.core.Bool.{equal}. \
+         import std.core.Int.{equal}. pub check(): Bool -> equal(true, true).",
+    );
+    let mut modules = vec![caller, boolean, integer];
+    resolve_selected_imports(&mut modules).expect("resolve selected intrinsic signature");
+    assert!(matches!(
+        modules[0].functions[0].clauses[0].body.core_expr.as_ref(),
+        Some(CoreExpr::Intrinsic(call))
+            if call.id == crate::terlan_typeck::CoreIntrinsicId::Primitive(
+                crate::terlan_typeck::CorePrimitiveIntrinsic::BoolEqual
+            )
+    ));
+}
+
 /// Lowers one source fixture into CoreIR without entering NativeIR.
 fn core(source: &str) -> CoreModule {
     let syntax = parse_module_as_syntax_output(source).expect("parse overload fixture");

@@ -16,6 +16,12 @@ use rustls::{ClientConfig, ClientConnection, RootCertStore, ServerConfig, Stream
 use crate::runtime::vm::protocol_task_executor::start_protocol_tasks_with_topology;
 use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 
+#[path = "hyper_server_mtls_test.rs"]
+mod mtls;
+
+#[path = "hyper_server_tls_transport_test.rs"]
+mod tls_transport;
+
 #[test]
 fn protocol_errors_are_hyper_responses() {
     let response = error_response(400, "bad request".to_string());
@@ -206,16 +212,7 @@ impl Read for BlockingTlsIo {
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => return Poll::Pending,
             Err(error) => return Poll::Ready(Err(error)),
         };
-        // SAFETY: the blocking read initialized `read` bytes and the cursor
-        // advertised at least that much remaining capacity.
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                cursor.as_mut().as_mut_ptr().cast::<u8>(),
-                read,
-            );
-            cursor.advance(read);
-        }
+        cursor.put_slice(&bytes[..read]);
         Poll::Ready(Ok(()))
     }
 }

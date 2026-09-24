@@ -298,6 +298,8 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::MemoryLayoutOf(_) => {
             LoweringCoverage::native("Intrinsic.memory.layout_of")
         }
+        CoreIntrinsicId::ErasedValueIs(_) => LoweringCoverage::native("Intrinsic.erased.is"),
+        CoreIntrinsicId::VmEffectFail => LoweringCoverage::native("Intrinsic.vm.effect.fail"),
         CoreIntrinsicId::MemoryShallowSize(_) => {
             LoweringCoverage::native("Intrinsic.memory.shallow_size")
         }
@@ -463,6 +465,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::StringReplace
         | P::StringSplit
         | P::StringSplitOnce => LoweringCoverage::native("Intrinsic.core.string"),
+        P::VmEffectRun => LoweringCoverage::rewritten("Intrinsic.vm.effect.run"),
         P::TypeOf
         | P::IsType
         | P::CryptoSha256
@@ -485,7 +488,6 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::TaskDone
         | P::TaskFailed
         | P::TaskResult
-        | P::VmEffectRun
         | P::VmNativeBridgeStart
         | P::VmNativeBridgeCall
         | P::VmNativeBridgeDispose

@@ -1,5 +1,140 @@
 use super::*;
 
+/// A receiver remains a lexical place until mutation is functionalized. Folding
+/// a bottom read here would lose the binding before a callback is instantiated.
+pub(super) fn specialize_receiver(
+    expr: &mut CoreExpr,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) -> Option<CoreType> {
+    match expr {
+        CoreExpr::Var(name) => variables.get(name).cloned(),
+        _ => specialize_expr(expr, variables, functions, module),
+    }
+}
+
+pub(super) fn specialize_intrinsic_arguments(
+    call: &mut CoreIntrinsicCall,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) -> Option<Vec<Option<CoreType>>> {
+    let mutating_list = matches!(
+        call.id,
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ListPush | CorePrimitiveIntrinsic::ListClear
+        )
+    );
+    let mut types = call
+        .args
+        .iter_mut()
+        .enumerate()
+        .map(|(index, argument)| {
+            if index == 0 && mutating_list {
+                specialize_receiver(argument, variables, functions, module)
+            } else {
+                specialize_expr(argument, variables, functions, module)
+            }
+        })
+        .collect::<Vec<_>>();
+    if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush) {
+        if let Some(receiver_type) = types.first().cloned().flatten() {
+            let refined = refine_mutating_receiver(
+                &mut call.args[0],
+                Some(receiver_type),
+                "push",
+                &types[1..],
+            )?;
+            types[0] = Some(refined);
+        }
+    }
+    Some(types)
+}
+
+/// A push changes the new collection value, never the earlier binding's type.
+pub(super) fn refine_mutating_receiver(
+    receiver: &mut CoreExpr,
+    receiver_type: Option<CoreType>,
+    method: &str,
+    argument_types: &[Option<CoreType>],
+) -> Option<CoreType> {
+    let ty = receiver_type?;
+    if method == "push" && super::super::empty_list_values::is_bottom_list(&ty) {
+        let element = argument_types.first()?.as_ref()?.clone();
+        let refined = CoreType::List(Box::new(element));
+        super::super::empty_list_values::coerce(receiver, &ty, &refined);
+        Some(refined)
+    } else {
+        Some(ty)
+    }
+}
+
+/// Unknown rebinding types invalidate earlier witnesses until instantiation.
+pub(super) fn replace_binding_type(
+    pattern: &CorePattern,
+    ty: Option<&CoreType>,
+    variables: &mut HashMap<String, CoreType>,
+) {
+    for name in super::super::expression::free_variable_analysis::pattern_bound_names(pattern) {
+        variables.remove(&name);
+    }
+    if let Some(ty) = ty {
+        bind_pattern(pattern, ty, variables);
+    }
+}
+
+/// A checked List[Never] can contain no values. Materialize its empty value at
+/// each read so independent consumers can supply independent concrete schemas.
+/// Only reads are replaced: the binding's producer still executes exactly once.
+pub(super) fn specialize_variable(
+    expr: &mut CoreExpr,
+    variables: &HashMap<String, CoreType>,
+) -> Option<CoreType> {
+    let CoreExpr::Var(name) = expr else {
+        return None;
+    };
+    let ty = variables.get(name)?.clone();
+    if super::super::empty_list_values::is_bottom_list(&ty) {
+        *expr = CoreExpr::Cast {
+            expr: Box::new(CoreExpr::List(Vec::new())),
+            target_type: ty.clone(),
+        };
+    }
+    Some(ty)
+}
+
+/// Empty constructors retain uninhabited slots when no consumer supplies a type.
+pub(super) fn normalize_empty_collection_constructor(call: &mut CoreIntrinsicCall) {
+    if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
+        && (is_dynamic_type(&call.return_type)
+            || list_element(&call.return_type).is_some_and(is_dynamic_type))
+    {
+        call.return_type = CoreType::List(Box::new(CoreType::Never));
+    }
+    if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew) {
+        match &mut call.return_type {
+            CoreType::Apply { constructor, args }
+                if matches!(constructor.as_str(), "Map" | "std.collections.Map.Map")
+                    && args.len() == 2 =>
+            {
+                for slot in args {
+                    if is_dynamic_type(slot) {
+                        *slot = CoreType::Never;
+                    }
+                }
+            }
+            CoreType::Named(name) if name == "Map" => {
+                call.return_type = CoreType::Apply {
+                    constructor: "Map".to_string(),
+                    args: vec![CoreType::Never, CoreType::Never],
+                };
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Persist collection types inferred from callable signatures. The final schema
 /// inventory cannot reconstruct a list element's type from a call name alone.
 pub(super) fn preserve_inferred_list_type(
@@ -13,19 +148,24 @@ pub(super) fn preserve_inferred_list_type(
     }
 }
 
-/// Visits every checked homogeneous element while retaining its first type
-/// witness. Finding that witness must not skip normalization of later items.
+/// Visits every checked homogeneous element and merges its type witnesses.
+/// Empty nested lists contribute Never, which concrete siblings can refine.
 pub(super) fn specialize_elements(
     items: &mut [CoreExpr],
     variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
 ) -> Option<CoreType> {
-    let mut witness = None;
+    let mut witness = items.is_empty().then_some(CoreType::Never);
+    let mut incompatible = false;
     for item in items {
         let inferred = specialize_expr(item, variables, functions, module);
-        if witness.is_none() {
-            witness = inferred;
+        if let Some(inferred) = inferred.filter(|_| !incompatible) {
+            witness = match witness {
+                Some(prior) => super::super::structured_case::merge_control_types(prior, inferred),
+                None => Some(inferred),
+            };
+            incompatible = witness.is_none();
         }
     }
     witness
@@ -153,6 +293,15 @@ pub(super) fn bind_pattern(
         CorePattern::List(_) | CorePattern::ListCons { .. } => {
             // Share lexical list binding with generic and receiver resolution;
             // dropping these bindings leaves element methods as raw calls.
+            super::super::generic_specialization::bind_pattern_types(pattern, ty, variables);
+        }
+        CorePattern::Constructor { .. } | CorePattern::Tuple(_)
+            if matches!(ty, CoreType::Apply { constructor, args }
+                if constructor == "std.core.Result.Result" && args.len() == 2) =>
+        {
+            // Intrinsic results can introduce the canonical alias after the
+            // expansion pass. Reuse checked Result payload binding before the
+            // next pass materializes its structural union.
             super::super::generic_specialization::bind_pattern_types(pattern, ty, variables);
         }
         CorePattern::Constructor { name, args, .. } if name == "Some" => {
@@ -304,13 +453,74 @@ pub(super) fn function_signature<'a>(
     matches.next().is_none().then_some(signature)
 }
 
-pub(super) fn function_return_type(
-    functions: &FunctionTypes,
-    module: &str,
-    function: &str,
-    arity: usize,
+/// Substitute available argument witnesses before retaining a call's result.
+/// Unresolved parameters remain symbolic context for structural constructors;
+/// the monomorphizer, not this early collection pass, owns complete inference.
+pub(super) fn instantiated_result_type(
+    signature: &FunctionSignature,
+    type_args: &[CoreType],
+    argument_types: &[Option<CoreType>],
 ) -> Option<CoreType> {
-    function_signature(functions, module, function, arity).map(|signature| signature.result.clone())
+    use super::super::generic_specialization::{contains_generic_parameter, substitute, unify};
+
+    if !contains_generic_parameter(&signature.result, &signature.generic_params) {
+        return Some(signature.result.clone());
+    }
+    if (!type_args.is_empty() && type_args.len() != signature.generic_params.len())
+        || argument_types.len() != signature.params.len()
+    {
+        return None;
+    }
+    let mut values = signature
+        .generic_params
+        .iter()
+        .cloned()
+        .zip(type_args.iter().cloned())
+        .collect();
+    for (parameter, argument) in signature.params.iter().zip(argument_types) {
+        if let Some(argument) = argument {
+            unify(parameter, argument, &signature.generic_params, &mut values).ok()?;
+        }
+    }
+    Some(substitute(
+        &signature.result,
+        &signature.generic_params,
+        &values,
+    ))
+}
+
+/// Retains the checked Effect result through intrinsic replacement and aliases.
+/// Reuses the declaration's generic constraints instead of guessing from fields,
+/// callback input types or an unrelated user-defined type named Effect.
+pub(super) fn specialize_declared_effect_result(
+    call: &mut CoreIntrinsicCall,
+    argument_types: &[Option<CoreType>],
+    functions: &FunctionTypes,
+) {
+    if call.id != CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::VmEffectRun)
+        || call.args.len() != 1
+        || !matches!(argument_types, [Some(_)])
+    {
+        return;
+    }
+    let Some(effect) =
+        functions.get(&("std.core.Effect".to_string(), nominal_type_key("Effect"), 0))
+    else {
+        return;
+    };
+    let [value] = effect.generic_params.as_slice() else {
+        return;
+    };
+    // Intrinsic calls do not keep the source `run` function reachable. The
+    // canonical type declaration survives executable-function pruning instead.
+    let signature = FunctionSignature {
+        generic_params: effect.generic_params.clone(),
+        params: vec![effect.result.clone()],
+        result: CoreType::Named(value.clone()),
+    };
+    if let Some(result) = instantiated_result_type(&signature, &[], argument_types) {
+        call.return_type = result;
+    }
 }
 
 pub(super) fn is_bytes(ty: &CoreType) -> bool {

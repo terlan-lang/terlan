@@ -9,6 +9,7 @@ mod tests;
 #[derive(Clone, Copy)]
 enum Collection {
     List,
+    BottomList,
     Map,
     Set,
 }
@@ -27,17 +28,29 @@ pub(super) fn infer_binding_use(
     };
     let inference = UseInference {
         name,
-        collection: empty_collection(&binding.value),
+        collection: empty_collection(&binding.value).or_else(|| {
+            specialize_expr(&mut binding.value.clone(), variables, functions, module)
+                .filter(super::super::super::empty_list_values::is_bottom_list)
+                .map(|_| Collection::BottomList)
+        }),
         functions,
         module,
     };
+    if matches!(inference.collection, Some(Collection::BottomList)) {
+        return None;
+    }
     inference.sequence(later, body, variables)
 }
 
 fn empty_collection(expr: &CoreExpr) -> Option<Collection> {
     match expr {
-        CoreExpr::List(items) if items.is_empty() => Some(Collection::List),
+        CoreExpr::List(items) if items.is_empty() => Some(Collection::BottomList),
         CoreExpr::Intrinsic(call) => match call.id {
+            CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew)
+                if super::super::super::empty_list_values::is_bottom_list(&call.return_type) =>
+            {
+                Some(Collection::BottomList)
+            }
             CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew) => Some(Collection::List),
             CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapNew) => Some(Collection::Map),
             CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::SetNew) => Some(Collection::Set),
@@ -101,13 +114,80 @@ impl UseInference<'_> {
         expr: &CoreExpr,
         variables: &HashMap<String, CoreType>,
     ) -> Option<CoreType> {
-        if let Some(ty) = expected_call_argument_type(self.name, expr, self.functions, self.module)
-        {
-            return Some(ty);
+        // A read-only list consumer must not pin a fresh empty value's layout:
+        // List[Never] can be used independently at multiple element types.
+        // Actual mutations still select the binding's concrete element type.
+        if !matches!(self.collection, Some(Collection::BottomList)) {
+            if let Some(ty) =
+                expected_call_argument_type(self.name, expr, variables, self.functions, self.module)
+            {
+                return Some(ty);
+            }
         }
         let (receiver, method, args) = match expr {
             CoreExpr::Let { bindings, body } => return self.sequence(bindings, body, variables),
             CoreExpr::Cast { expr, .. } => return self.expression(expr, variables),
+            CoreExpr::BinaryOp { left, right, .. } => {
+                return self
+                    .expression(left, variables)
+                    .or_else(|| self.expression(right, variables));
+            }
+            CoreExpr::UnaryOp { operand, .. } => return self.expression(operand, variables),
+            CoreExpr::Call { args, .. }
+            | CoreExpr::RemoteCall { args, .. }
+            | CoreExpr::Tuple(args)
+            | CoreExpr::List(args) => {
+                return args.iter().find_map(|arg| self.expression(arg, variables));
+            }
+            CoreExpr::If { clauses } => {
+                return clauses.iter().find_map(|clause| {
+                    self.expression(&clause.condition, variables)
+                        .or_else(|| self.expression(&clause.body, variables))
+                });
+            }
+            CoreExpr::Case { scrutinee, clauses } => {
+                if let Some(ty) = self.expression(scrutinee, variables) {
+                    return Some(ty);
+                }
+                let ty = specialize_expr(
+                    &mut scrutinee.as_ref().clone(),
+                    variables,
+                    self.functions,
+                    self.module,
+                );
+                return clauses.iter().find_map(|clause| {
+                    let names = super::super::super::expression::free_variable_analysis::pattern_bound_names(&clause.pattern);
+                    if names.iter().any(|name| name == self.name) {
+                        return None;
+                    }
+                    let mut locals = variables.clone();
+                    for name in names { locals.remove(&name); }
+                    if let Some(ty) = ty.as_ref() { bind_pattern(&clause.pattern, ty, &mut locals); }
+                    clause.guard.as_ref().and_then(|guard| self.expression(guard, &locals))
+                        .or_else(|| self.expression(&clause.body, &locals))
+                });
+            }
+            CoreExpr::Lam {
+                params,
+                parameter_types,
+                body,
+            } => {
+                if params.iter().any(|pattern| {
+                    super::super::super::expression::free_variable_analysis::pattern_bound_names(
+                        pattern,
+                    )
+                    .iter()
+                    .any(|name| name == self.name)
+                }) {
+                    return None;
+                }
+                let locals = super::super::super::generic_specialization::lambda_type_scope(
+                    params,
+                    parameter_types,
+                    variables,
+                );
+                return self.expression(body, &locals);
+            }
             CoreExpr::MutableReceiverCall {
                 receiver,
                 method,
@@ -133,7 +213,9 @@ impl UseInference<'_> {
             specialize_expr(&mut value.clone(), variables, self.functions, self.module)
         };
         match (self.collection?, method, args) {
-            (Collection::List, "push", [value]) => Some(CoreType::List(Box::new(infer(value)?))),
+            (Collection::List | Collection::BottomList, "push", [value]) => {
+                Some(CoreType::List(Box::new(infer(value)?)))
+            }
             (Collection::Map, "put", [key, value]) => Some(CoreType::Apply {
                 constructor: "Map".to_string(),
                 args: vec![infer(key)?, infer(value)?],

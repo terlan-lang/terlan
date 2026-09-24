@@ -304,9 +304,11 @@ pub(super) fn module_with_core_body_and_evidence(
             syntax_contract_fingerprint: None,
         },
         imports: Vec::new(),
+        selected_function_imports: Vec::new(),
         exports: Vec::new(),
         types: Vec::new(),
         functions: vec![CoreFunction {
+            receiver_method: false,
             trait_method: None,
             source: None,
             name: "value".to_string(),

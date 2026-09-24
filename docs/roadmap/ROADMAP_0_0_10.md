@@ -1,12 +1,15 @@
 # Terlan 0.0.10 Roadmap
 
-Updated: 2026-09-10.
+Updated: 2026-09-24.
 
 ## Scope And Order
 
 These requirements were explicitly postponed from 0.0.9 on 2026-09-10.
 0.0.9 is the focused build/release optimization release; finish and verify that
 release before starting this feature work. No postponed item is marked complete.
+On 2026-09-24, the user delegated a narrower release-scope decision: unfinished
+replicated storage also moves here, retaining quorum writes and automatic
+failover as requirements rather than replacing them with all-peer replication.
 
 Preserve the separate self-hosting checkout and integrate it deliberately.
 The [self-hosting plan](ROADMAP_SELF_HOSTING.md) owns compiler migration phases;
@@ -59,9 +62,48 @@ established by [0.0.9](ROADMAP_0_0_9.md); do not duplicate validation.
     stale identities, overload, and client disconnect. Inspection must not block
     shard owners or expose unsafe memory. Include CLI help and user examples.
 
-- [ ] V10-4: Deliver an explicit durable checkpoint/restore contract.
-  - Define persistence semantics before implementation: application-visible
-    state, mailbox/timer treatment, message delivery, snapshot consistency,
+- [ ] V10-R: Deliver replicated storage with a default Raft-backed provider.
+  - Provide an implementation-neutral storage service/package above the VM.
+    Raft is the default consensus implementation, not part of language or VM
+    core semantics. The VM supplies scheduling, timers, bounded asynchronous
+    I/O, supervision and capabilities; isolated workers perform persistence.
+    Use maintained consensus and protocol libraries, not handwritten protocols.
+  - Keep public operations independent of Raft terms and log indexes. Alternative
+    providers must satisfy the advertised consistency, durability and recovery
+    contract and its conformance suite. Weaker guarantees require explicit
+    selection; no silent substitution. Choose a provider when creating a group;
+    replacing it for existing data requires a verified migration, not hot reload.
+  - Implement majority-quorum commits and automatic leader election/failover.
+    Persist the algorithm's required term, vote, log and membership state before
+    the corresponding acknowledgements. Apply only committed operations; couple
+    durable application progress and retry deduplication to state changes.
+    A lost reply may leave an indeterminate commit, never an assumed rollback.
+  - Fence stale leaders and former members. Minority partitions cannot complete
+    successful writes; reads claiming linearizability require a verified leader
+    and applied commit barrier. Bind authenticated peers to authorized group and
+    member identities. Discovery cannot grant votes or shrink the quorum.
+    Membership changes must use the library's safe protocol or be explicitly
+    unsupported; do not rewrite the voter set during restart or configuration reload.
+  - Use independent peer processes and independent durable stores. Bound message,
+    log, snapshot and pending-request resources; validate snapshot installation,
+    log compaction and restart. Blocking persistence must stay off shard owners.
+    A local append, shared file, logical UUID, or TLS handshake is not replication.
+  - Acceptance: production Terlan/AOT tests cover quorum commits, leader crashes
+    before/after commit, reply loss and duplicate retries, majority/minority
+    partitions, stale leaders after healing, follower catch-up, snapshot recovery,
+    unauthorized peers, corruption, and full-cluster restart. Include three- and
+    five-voter configurations; failover requires a communicating majority and
+    makes no Byzantine-fault or arbitrary exactly-once-effect claim. Test-provider
+    models and passing rejection tests are not positive replication evidence.
+    Admit the pinned dependency graph through the normal security audit and run
+    the shared release gates without duplicate validation or weaker budgets.
+
+- [ ] V10-4: Build supervised actor recovery on verified logical checkpoints.
+  - Reuse the local persistence and logical-checkpoint contracts verified for
+    0.0.9. Distributed recovery additionally depends on V10-R; 0.0.9 does not
+    claim replication. This item owns actor/mailbox/timer recovery semantics.
+  - Extend the verified 0.0.9 logical-checkpoint contract with explicit actor
+    recovery semantics: mailbox/timer treatment, message delivery, snapshot consistency,
     schema evolution, crash recovery, and authorization.
   - Keep logical durable state distinct from live heaps and continuations.
     Do not serialize native pointers, open handles, or in-flight capability

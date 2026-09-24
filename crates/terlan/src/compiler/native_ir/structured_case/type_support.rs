@@ -108,11 +108,9 @@ pub(super) fn core_expr_type(
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
-        CoreExpr::List(items) if !items.is_empty() => {
-            super::super::expression::homogeneous_list_type(items, |item| {
-                core_expr_type(item, types, functions)
-            })
-        }
+        CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
+            core_expr_type(item, types, functions)
+        }),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base = core_expr_type(base, types, functions)?;
             let CoreType::Struct { fields, .. } = base else {
@@ -371,6 +369,16 @@ pub(in crate::compiler::native_ir) fn merge_control_types(
 ) -> Option<CoreType> {
     if expected == found {
         return Some(expected);
+    }
+    if expected == CoreType::Never {
+        return Some(found);
+    }
+    if found == CoreType::Never {
+        return Some(expected);
+    }
+    if let (CoreType::List(left), CoreType::List(right)) = (&expected, &found) {
+        return merge_control_types((**left).clone(), (**right).clone())
+            .map(|element| CoreType::List(Box::new(element)));
     }
     // Constructor expressions recover positional payloads, while checked
     // signatures retain payload labels. Prefer the covering signature's

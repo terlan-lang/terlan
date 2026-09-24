@@ -3,11 +3,11 @@
 use std::collections::HashSet;
 
 use super::super::{
-    ActorHeap, AtomIndex, ManagedAggregate, ManagedAggregateDescriptor, ManagedBinary,
-    ManagedBytes, ManagedCollectionKind, ManagedFieldType, ManagedFieldValue,
-    ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError, ManagedSet, ManagedString,
-    SemanticTypeId, TvmRef,
+    ActorHeap, ManagedAggregate, ManagedBinary, ManagedBytes, ManagedCollectionKind,
+    ManagedFieldType, ManagedFieldValue, ManagedLayoutRegistry, ManagedList, ManagedMap,
+    ManagedMemoryError, ManagedSet, ManagedString, SemanticTypeId, TvmRef,
 };
+use super::immediate_union::{immediate_variant, is_immediate_union_word};
 use super::reference_word;
 
 const MAGIC: &[u8; 4] = b"TVME";
@@ -70,41 +70,6 @@ pub(super) fn execute_equality_operation(
     let right = reference_word(*right)?;
     let mut visited = HashSet::new();
     references_equal(heap, layouts, semantic, left, right, &mut visited).map(u64::from)
-}
-
-/// Distinguishes zero-field union atoms from token-tagged managed references.
-///
-/// Equality reaches this ABI only after the compiler has proved a managed
-/// semantic type. Within that type, a word whose token half is zero is the
-/// compact atom representation of a zero-field variant. Managed references
-/// always carry a nonzero heap token in the upper 32 bits.
-fn is_immediate_union_word(word: i64) -> bool {
-    u64::from_ne_bytes(word.to_ne_bytes()) >> 32 == 0
-}
-
-/// Resolves an immediate variant through the owning image and exact union type.
-/// Compact atoms and allocated zero-field constructors denote the same value;
-/// arbitrary integers and atoms outside this union must not bypass validation.
-fn immediate_variant(
-    layouts: &ManagedLayoutRegistry,
-    semantic: SemanticTypeId,
-    word: i64,
-) -> Result<&ManagedAggregateDescriptor, ManagedMemoryError> {
-    let index = u32::try_from(word).map_err(|_| ManagedMemoryError::InvalidAggregateField)?;
-    let identity = layouts.atom_identity(AtomIndex::from_runtime(index))?;
-    let mut candidates = layouts.layouts(semantic).iter().filter(|layout| {
-        layout.fields().is_empty()
-            && layout
-                .variant_name()
-                .is_some_and(|name| name.eq_ignore_ascii_case(identity))
-    });
-    let candidate = candidates
-        .next()
-        .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
-    if candidates.any(|other| other.managed().fingerprint() != candidate.managed().fingerprint()) {
-        return Err(ManagedMemoryError::ManagedTypeMismatch);
-    }
-    Ok(candidate)
 }
 
 /// Decodes one exact structural equality operation.

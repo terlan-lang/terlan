@@ -80,12 +80,17 @@ pub(crate) enum CapabilityValue {
     PostgresConfig(postgres::Config),
     /// Ordered recursively bounded values.
     List(Vec<CapabilityValue>),
+    /// Ordered fixed-arity fields with the same recursive bounds as lists.
+    Tuple(Vec<CapabilityValue>),
 }
 
 impl CapabilityValue {
     /// Converts one bounded wire value into the adapter term contract.
     pub(crate) fn into_term(self) -> NativeBoundaryTerm {
         match self {
+            Self::Tuple(values) => {
+                NativeBoundaryTerm::Tuple(values.into_iter().map(Self::into_term).collect())
+            }
             Self::Unit => NativeBoundaryTerm::Unit,
             Self::Text(value) => NativeBoundaryTerm::Text(value),
             Self::Bytes(value) => NativeBoundaryTerm::Bytes(value),
@@ -118,6 +123,9 @@ impl CapabilityValue {
     /// Converts one adapter term into an owned wire value.
     pub(crate) fn from_term(value: NativeBoundaryTerm) -> Self {
         match value {
+            NativeBoundaryTerm::Tuple(values) => {
+                Self::Tuple(values.into_iter().map(Self::from_term).collect())
+            }
             NativeBoundaryTerm::Unit => Self::Unit,
             NativeBoundaryTerm::Text(value) => Self::Text(value),
             NativeBoundaryTerm::Bytes(value) => Self::Bytes(value),
@@ -161,7 +169,7 @@ impl CapabilityValue {
                 Self::Record { fields, .. } => {
                     pending.extend(fields.iter().map(|(_, value)| value));
                 }
-                Self::List(values) => pending.extend(values),
+                Self::List(values) | Self::Tuple(values) => pending.extend(values),
                 Self::Unit
                 | Self::Text(_)
                 | Self::Bytes(_)
@@ -351,7 +359,7 @@ pub(crate) fn validate_capability_term_budget(values: &[CapabilityValue]) -> Res
             ));
         }
         match value {
-            CapabilityValue::List(items) => pending.extend(items),
+            CapabilityValue::List(items) | CapabilityValue::Tuple(items) => pending.extend(items),
             CapabilityValue::Record { fields, .. } => {
                 pending.extend(fields.iter().map(|(_, value)| value));
             }

@@ -1,5 +1,6 @@
 use super::*;
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 /// Builds a JSON resource fixture.
 ///

@@ -6,6 +6,8 @@ runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::seede
 quality::multicore_tsan_harness_test::seeded_multicore_memory_model_child	concurrency-timeout	tvm-aot-thread-sanitizer-check	pinned-tsan-host
 runtime::vm::capability_worker::capability_worker_test::capability_worker_process_transport_runs_full_cycle	aot-native-link	terlan-test-orchestrator	prebuilt-native-worker
 runtime::vm::capability_worker::capability_worker_test::capability_worker_sandbox_closes_inherited_descriptor	aot-native-link	terlan-test-orchestrator	prebuilt-native-worker
+runtime::vm::capability_worker::capability_worker_test::storage_process_test::capability_storage_worker_survives_restart_with_durable_checkpoint	aot-native-link	terlan-test-orchestrator	prebuilt-native-worker
+vm::main_test::storage_lifecycle_test::public_storage_aot_survives_a_complete_vm_restart	aot-native-link	terlan-test-orchestrator	prebuilt-compiler-vm-native-worker
 commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_capability_worker_wakes_and_resumes_exact_actor	aot-native-link	terlan-test-orchestrator	prebuilt-native-worker
 commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle	aot-native-link	terlan-test-orchestrator	prebuilt-native-worker
 commands::bind::cpp_package_consumer_test::generated_cpp_git_package_executes_and_rejects_stale_handles	aot-native-link	terlan-test-orchestrator	serial-native-toolchain

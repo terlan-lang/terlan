@@ -20,7 +20,7 @@ pub(crate) struct VmProcessTableMetrics {
     pub(crate) resource_handles: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VmProcessSnapshot {
     pub(crate) pid: VmProcessId,
     pub(crate) parent: Option<VmProcessId>,

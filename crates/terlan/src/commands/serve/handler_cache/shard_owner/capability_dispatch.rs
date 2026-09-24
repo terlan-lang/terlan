@@ -93,7 +93,10 @@ impl GeneratedCapabilityDispatcher {
         };
         let request = pending.wait.request();
         let operation = request.operation.to_string();
-        let arguments = request.arguments.clone();
+        let arguments = match request.boundary_arguments() {
+            Ok(arguments) => arguments.into_owned(),
+            Err(error) => return Err((error.to_string(), Box::new(pending))),
+        };
         let route = pending.route;
         let owner = pending.owner;
         let pump = match self.ensure_pump() {

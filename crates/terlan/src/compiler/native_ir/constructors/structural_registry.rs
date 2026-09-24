@@ -28,6 +28,10 @@ pub(in crate::compiler::native_ir) fn install_structural_type_layouts<'a>(
 
 fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result<(), String> {
     if let Some(variants) = structural_variants(ty) {
+        let mut names = std::collections::HashSet::new();
+        if variants.iter().any(|name| !names.insert(name)) {
+            return Err("error[native_ir.structural_registry_variant]: ambiguous public union variant identity".into());
+        }
         let canonical = managed_semantic_contract(ty);
         let result = native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
             format!(
@@ -164,6 +168,7 @@ fn structural_variants(ty: &CoreType) -> Option<Vec<String>> {
 
 fn structural_variant_name(ty: &CoreType) -> Option<String> {
     let atom = match ty {
+        CoreType::Struct { name, .. } => return name.rsplit('.').next().map(str::to_owned),
         CoreType::AtomLiteral(atom) => atom,
         CoreType::Tuple(elements) => match elements.first()? {
             CoreTupleTypeElem::Type(CoreType::AtomLiteral(atom))

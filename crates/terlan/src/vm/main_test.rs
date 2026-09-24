@@ -4,6 +4,51 @@
 mod native_transition_test;
 
 use super::*;
+#[path = "main_test/storage_lifecycle_test.rs"]
+mod storage_lifecycle_test;
+
+#[test]
+fn run_arguments_storage_authority_is_explicit_and_separate_from_script_arguments() {
+    let args = [
+        "app.tvm",
+        "--storage",
+        "primary@0101010101010101010101010101010101010101010101010101010101010101=/srv/checkpoints",
+        "--",
+        "--storage",
+        "untrusted=/tmp/untrusted",
+    ]
+    .map(str::to_string);
+    let VmCommand::Run {
+        storage_bindings,
+        program_arguments,
+        ..
+    } = parse_run_args(&args)
+    else {
+        panic!("valid binding rejected")
+    };
+    assert_eq!(
+        storage_bindings,
+        vec![VmStorageBinding::parse("primary@0101010101010101010101010101010101010101010101010101010101010101=/srv/checkpoints").unwrap()]
+    );
+    assert_eq!(program_arguments, ["--storage", "untrusted=/tmp/untrusted"]);
+    for invalid in [
+        "primary=relative",
+        "= /tmp",
+        "Primary=/tmp",
+        "../primary=/tmp",
+        "primary",
+        "primary=",
+    ] {
+        assert!(matches!(
+            parse_run_args(&["app.tvm".into(), "--storage".into(), invalid.into()]),
+            VmCommand::Error(_)
+        ));
+    }
+    assert!(matches!(
+        parse_run_args(&["app.tvm".into(), "--storage".into()]),
+        VmCommand::Error(_)
+    ));
+}
 
 #[test]
 fn run_arguments_select_script_result_propagation() {

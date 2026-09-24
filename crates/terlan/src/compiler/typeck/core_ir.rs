@@ -7,14 +7,14 @@ mod proof_payloads;
 mod termination;
 mod types;
 mod visit;
-pub(crate) use visit::visit_core_expr_mut;
+pub(crate) use visit::{visit_core_expr_children_mut, visit_core_expr_mut};
 
 pub use function_source::CoreFunctionSource;
 pub use intrinsics::{
     CoreEffectSet, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic,
     CoreRuntimeCapability,
 };
-pub use module::{CoreModule, CoreModuleMetadata};
+pub use module::{CoreModule, CoreModuleMetadata, CoreSelectedFunctionImport};
 pub use patterns::{
     CoreBinaryPatternDescriptor, CoreBinaryPatternEndian, CoreBinaryPatternField,
     CoreMapPatternField, CorePattern, CoreRecordPatternField, CoreStringPatternCapture,
@@ -190,6 +190,8 @@ pub enum CoreVisibility {
 /// clause summaries in backend-neutral form.
 pub struct CoreFunction {
     pub name: String,
+    /// Whether this callable was declared with a receiver, not an ordinary first argument.
+    pub receiver_method: bool,
     /// Source declaration retained independently of generated symbol spelling.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<CoreFunctionSource>,

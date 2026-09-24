@@ -1,0 +1,20 @@
+[package]
+name = "terlan-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+getrandom.workspace = true
+rusqlite.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

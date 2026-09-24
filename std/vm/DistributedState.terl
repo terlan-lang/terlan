@@ -4,7 +4,11 @@
  * `std.vm.DistributedState` exposes typed descriptors for VM-owned state
  * scopes, monotonic versions, conflict policies, write outcomes, and
  * checkpoint snapshots. The VM owns deterministic conflict handling and
- * checkpoint replay.
+ * checkpoint replay within the execution shard. Stores are actor-owned and
+ * mutable; snapshots and entry/outcome descriptors are immutable views.
+ * This module does not replicate data to peers or persist checkpoints to disk.
+ * Only last-writer-wins replaces a conflicting entry automatically; other
+ * policies return a conflict for explicit resolution, including `merge`.
  */
 module std.vm.DistributedState.
 
@@ -104,6 +108,7 @@ pub opaque type Snapshot.
  * contract.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.scope}
 pub scope(namespace: String, key: String): Scope ->
     native.
 
@@ -116,6 +121,7 @@ pub scope(namespace: String, key: String): Scope ->
  * contract.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.version}
 pub version(sequence: Int, node_id: String): Version ->
     native.
 
@@ -128,6 +134,7 @@ pub version(sequence: Int, node_id: String): Version ->
  * strategies.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.policy}
 pub policy(name: String): Policy ->
     native.
 
@@ -140,22 +147,24 @@ pub policy(name: String): Policy ->
  * replication strategy.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.store}
 pub store(): Store ->
     native.
 
 /**
  * Writes one distributed state value.
  *
- * Input: store receiver, scope, owner node, dynamic value, version, and policy.
+ * Input: store receiver, scope, owner node, checked value, version, and policy.
  * Output: write outcome descriptor.
  * Transformation: delegates apply/replay/conflict/policy-mismatch behavior to
  * the VM distributed state lane.
  */
 @target.vm {process_mailbox: true}
-pub (store: Store) write(
+@compiler.native {std.vm.distributed_state.write}
+pub (store: Store) write[Value](
     scope: Scope,
     owner_node_id: String,
-    value: Dynamic,
+    value: Value,
     version: Version,
     policy: Policy,
 ): Outcome ->
@@ -170,6 +179,7 @@ pub (store: Store) write(
  * internals.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.get}
 pub (store: Store) get(scope: Scope): Entry ->
     native.
 
@@ -182,6 +192,7 @@ pub (store: Store) get(scope: Scope): Entry ->
  * resolution.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.conflict}
 pub conflict(outcome: Outcome): Conflict ->
     native.
 
@@ -193,6 +204,7 @@ pub conflict(outcome: Outcome): Conflict ->
  * Transformation: delegates stable ordering to the VM checkpoint lane.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.export_snapshot}
 pub (store: Store) export_snapshot(): Snapshot ->
     native.
 
@@ -205,6 +217,7 @@ pub (store: Store) export_snapshot(): Snapshot ->
  * checkpoint replay.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.restore}
 pub restore(snapshot: Snapshot): Store ->
     native.
 
@@ -217,5 +230,38 @@ pub restore(snapshot: Snapshot): Store ->
  * tooling without parsing diagnostics.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.kind}
 pub kind(outcome: Outcome): String ->
+    native.
+
+/**
+ * Returns the owner node recorded in an immutable entry view.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.entry_owner}
+pub entry_owner(entry: Entry): String ->
+    native.
+
+/**
+ * Returns the write sequence recorded in an immutable entry view.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.entry_sequence}
+pub entry_sequence(entry: Entry): Int ->
+    native.
+
+/**
+ * Returns the existing write sequence captured when a conflict occurred.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.conflict_local_sequence}
+pub conflict_local_sequence(conflict: Conflict): Int ->
+    native.
+
+/**
+ * Returns the rejected write sequence captured when a conflict occurred.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.distributed_state.conflict_incoming_sequence}
+pub conflict_incoming_sequence(conflict: Conflict): Int ->
     native.

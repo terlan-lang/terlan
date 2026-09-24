@@ -104,7 +104,7 @@ pub(crate) struct VmSchedulerSlice {
 }
 
 /// Decision returned by one process-slice execution.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) enum VmSchedulerDecision {
     Yield {

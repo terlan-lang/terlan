@@ -4,19 +4,21 @@
 mod event_pump;
 #[path = "capability_worker/parked.rs"]
 mod parked;
+#[path = "capability_worker/policy.rs"]
+mod policy;
 #[path = "capability_worker/pool.rs"]
 mod pool;
 #[path = "capability_worker/sandbox.rs"]
 mod sandbox;
 
 pub(crate) use event_pump::{VmCapabilityWorkerEventPump, VmCapabilityWorkerEventPumpEvent};
+pub(crate) use policy::VmCapabilityWorkerPolicy;
 pub(crate) use pool::{
     VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPool, VmCapabilityWorkerPoolSlot,
 };
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufReader, Read, Write};
-use std::path::PathBuf;
 use std::process::{Child, Stdio};
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError};
 use std::sync::{Arc, Mutex};
@@ -48,6 +50,7 @@ use crate::terlan_native_boundary::capability_wire::{
 use crate::terlan_native_boundary::capability_wire::{
     validate_capability_term_budget, validate_protocol_version, CapabilityValue,
 };
+#[cfg(test)]
 use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::request::{next_request_id, RequestId};
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
@@ -60,9 +63,7 @@ const DEFAULT_MAX_REQUESTS: u64 = 1_024;
 const DEFAULT_CREDIT_LIMIT: u64 = 64;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) struct VmCapabilityWorkerId(
-    String,
-);
+pub(crate) struct VmCapabilityWorkerId(String);
 
 impl VmCapabilityWorkerId {
     /// Creates a non-empty worker identity.
@@ -195,89 +196,6 @@ struct VmCapabilityRequestAdmission {
     now_tick: u64,
     timeout_ticks: u64,
     request: CapabilityRequest,
-}
-
-/// Closed process policy used when the VM starts a capability worker.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmCapabilityWorkerPolicy {
-    /// Absolute worker executable path.
-    executable: PathBuf,
-    /// Explicit reason this operation crosses a process boundary.
-    execution_profile: NativeBoundaryExecutionProfile,
-    /// Capabilities granted to the child process.
-    capabilities: Vec<String>,
-    /// Scheduler classes admitted for the child process.
-    worker_classes: Vec<String>,
-    /// Maximum bytes in one request or response frame.
-    max_payload_bytes: usize,
-    /// Maximum operations accepted during the child lifetime.
-    max_requests: u64,
-    /// Maximum concurrently parked requests.
-    credit_limit: u64,
-}
-
-impl VmCapabilityWorkerPolicy {
-    /// Creates an empty-authority policy for one explicit worker-only profile.
-    pub(crate) fn new(
-        executable: impl Into<PathBuf>,
-        execution_profile: NativeBoundaryExecutionProfile,
-    ) -> Result<Self, String> {
-        let executable = executable.into();
-        if !executable.is_absolute() {
-            return Err("capability-worker executable path must be absolute".to_string());
-        }
-        Ok(Self {
-            executable,
-            execution_profile,
-            capabilities: Vec::new(),
-            worker_classes: Vec::new(),
-            max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
-            max_requests: DEFAULT_MAX_REQUESTS,
-            credit_limit: DEFAULT_CREDIT_LIMIT,
-        })
-    }
-
-    /// Adds one explicit capability grant to the worker policy.
-    pub(crate) fn allow(mut self, capability: impl Into<String>) -> Self {
-        self.capabilities.push(capability.into());
-        self
-    }
-
-    /// Adds one explicit scheduler-class grant to the worker policy.
-    #[cfg(test)]
-    pub(crate) fn admit_worker_class(mut self, worker_class: impl Into<String>) -> Self {
-        self.worker_classes.push(worker_class.into());
-        self
-    }
-
-    /// Replaces the default frame-size limit with a positive bound.
-    #[cfg(test)]
-    pub(crate) fn with_max_payload_bytes(mut self, maximum: usize) -> Result<Self, String> {
-        if maximum == 0 {
-            return Err("capability-worker payload limit must be positive".to_string());
-        }
-        self.max_payload_bytes = maximum;
-        Ok(self)
-    }
-
-    /// Replaces the default lifetime request limit with a positive bound.
-    #[cfg(test)]
-    pub(crate) fn with_max_requests(mut self, maximum: u64) -> Result<Self, String> {
-        if maximum == 0 {
-            return Err("capability-worker request limit must be positive".to_string());
-        }
-        self.max_requests = maximum;
-        Ok(self)
-    }
-
-    /// Replaces the default concurrent request-credit limit.
-    pub(crate) fn with_credit_limit(mut self, limit: u64) -> Result<Self, String> {
-        if limit == 0 {
-            return Err("capability-worker credit limit must be positive".to_string());
-        }
-        self.credit_limit = limit;
-        Ok(self)
-    }
 }
 
 /// Borrowed VM tables required to park and wake capability callers.
@@ -444,6 +362,7 @@ impl VmCapabilityWorkerClient {
             &policy.executable,
             &policy.capabilities,
             sandbox_dir.path(),
+            policy.storage_directory.as_deref(),
         )?;
         command
             .env_clear()
@@ -453,6 +372,11 @@ impl VmCapabilityWorkerClient {
             .stderr(sandbox::worker_stderr());
         for capability in &policy.capabilities {
             command.arg("--allow").arg(capability);
+        }
+        if policy.storage_directory.is_some() {
+            command
+                .arg("--storage-database")
+                .arg("/storage/checkpoints.sqlite");
         }
         for worker_class in &policy.worker_classes {
             command.arg("--worker-class").arg(worker_class);

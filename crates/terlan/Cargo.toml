@@ -190,6 +190,7 @@ target-lexicon = "0.13.5"
 terlan-archive.workspace = true
 terl-docs.workspace = true
 terlan-runtime-abi.workspace = true
+terlan-storage.workspace = true
 terlan-process-owner.workspace = true
 terlan-service-foundation = { workspace = true, optional = true }
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
@@ -203,10 +204,14 @@ docker-compose-types = "0.24.0"
 wasm-encoder = "0.252.0"
 wasmparser = "0.252.0"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix = { version = "1.1.4", features = ["fs"] }
+
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dev-dependencies]
 rustix = { version = "1.1.4", features = ["process"] }
 
 [dev-dependencies]
+tempfile.workspace = true
 cxx.workspace = true
 cxx-build.workspace = true
 ratatui = { version = "0.30.2", default-features = false, features = ["std"] }

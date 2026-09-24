@@ -43,8 +43,8 @@ use local_resources::{
 use process_ids::VmProtocolProcessIds;
 pub(crate) use server::VmProtocolTaskServer;
 use server::{join_protocol_threads, stop_protocol_threads};
-pub(crate) use timers::protocol_sleep_until;
 use timers::{next_protocol_timer_timeout, wake_due_protocol_timers};
+pub(crate) use timers::{protocol_sleep_until, VmProtocolSleep};
 use transport::{render_io, VmReadyEvent};
 pub(crate) use transport::{VmProtocolTaskRoute, VmReadyTcpStream, VmSocketReadinessWake};
 #[cfg(test)]

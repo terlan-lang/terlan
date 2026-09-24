@@ -6,8 +6,8 @@ use std::process::ExitCode;
 use super::arguments::{parse_test_args, TestArgs, TestTarget, TEST_SOURCE_PATTERN_DESCRIPTION};
 use super::discovery::{discover_tests, select_tests, TestKind};
 use super::manifest::{
-    print_validation_pass_report, validation_pass_report, write_test_manifest,
-    write_test_result_manifest, TestRunReport, TestRunStatus,
+    print_validation_report, validation_report, write_test_manifest, write_test_result_manifest,
+    TestRunReport, TestRunStatus,
 };
 use super::project_context::{
     is_test_source_path, prepare_test_project_context, run_js_test_directory,
@@ -116,15 +116,15 @@ fn run_path(args: &TestArgs, state: CliState) -> ExitCode {
 ///   target-profile selection.
 ///
 /// Output:
-/// - `ExitCode::SUCCESS` when every selected test module compiles for a JS
-///   profile and contains valid `@test` functions.
-/// - `ExitCode::from(1)` when profile selection, file discovery, formal
-///   compilation, test discovery, or manifest writing fails.
+/// - `ExitCode::from(1)` for incomplete execution even if compilation succeeds.
+/// - Explicit not-executed result entries for successfully validated tests.
+/// - Diagnostics when profile selection, discovery, compilation, or manifest
+///   writing fails before a validation report can be produced.
 ///
 /// Transformation:
 /// - Compiles each test module through the formal pipeline with a JavaScript
 ///   target profile, validates source-level test declarations, and records a
-///   validation-only pass report without executing JavaScript runtime code.
+///   non-execution report without claiming JavaScript runtime test passes.
 pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
     let profile = match effective_js_test_profile(state.target_profile) {
         Ok(profile) => profile,
@@ -213,7 +213,7 @@ pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let report = validation_pass_report(&tests);
+    let report = validation_report(&tests);
     if let Some(result_manifest_path) = args.emit_test_result_manifest.as_deref() {
         if let Err(message) = write_test_result_manifest(
             result_manifest_path,
@@ -228,8 +228,9 @@ pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
         }
     }
     let output_style = TestOutputStyle::from_diagnostic_format(state.diagnostic_format);
-    print_validation_pass_report(&report, output_style);
-    ExitCode::SUCCESS
+    print_validation_report(&report, output_style);
+    eprintln!("error[test.js.execution_unavailable]: JavaScript test declarations compiled but were not executed; compilation is not a passing test run");
+    ExitCode::from(1)
 }
 
 /// Executes discovered tests through the compiler-owned Terlan VM.
@@ -523,10 +524,17 @@ pub(super) fn compile_imported_std_source_core_modules(
 ) -> Result<Vec<CoreModule>, ExitCode> {
     let mut modules = Vec::new();
     let mut seen = BTreeSet::new();
+    // Type-only imports own runtime layout identities even when no function
+    // from the provider is called (for example Task.result's Error payload).
     let mut pending = root_cores
         .iter()
         .flat_map(|core| &core.imports)
-        .filter(|import| import.kind == CoreImportKind::Module)
+        .filter(|import| {
+            matches!(
+                import.kind,
+                CoreImportKind::Module | CoreImportKind::TypeModule
+            )
+        })
         .map(|import| import.module.clone())
         .collect::<VecDeque<_>>();
     let active_file = fs::canonicalize(test_path).ok();
@@ -567,7 +575,12 @@ pub(super) fn compile_imported_std_source_core_modules(
         pending.extend(
             core.imports
                 .iter()
-                .filter(|import| import.kind == CoreImportKind::Module)
+                .filter(|import| {
+                    matches!(
+                        import.kind,
+                        CoreImportKind::Module | CoreImportKind::TypeModule
+                    )
+                })
                 .map(|import| import.module.clone()),
         );
         remove_compiler_intrinsic_functions(&mut core);
@@ -681,9 +694,12 @@ pub(super) fn print_runtime_test_report(report: &TestRunReport, style: TestOutpu
                     println!("  {message}");
                 }
             }
+            TestRunStatus::NotExecuted => {
+                println!("test {} ... {}", result.name, style.failure("NOT EXECUTED"));
+            }
         }
     }
-    if report.failed == 0 {
+    if report.is_success() {
         println!(
             "test result: {}. {} passed; 0 failed",
             style.success("ok"),
@@ -719,9 +735,16 @@ pub(super) fn print_benchmark_report(report: &TestRunReport, style: TestOutputSt
                     println!("  {message}");
                 }
             }
+            TestRunStatus::NotExecuted => {
+                println!(
+                    "benchmark {} ... {}",
+                    result.name,
+                    style.failure("NOT EXECUTED")
+                );
+            }
         }
     }
-    if report.failed == 0 {
+    if report.is_success() {
         println!(
             "benchmark result: {}. {} passed; 0 failed",
             style.success("ok"),

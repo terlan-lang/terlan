@@ -7,6 +7,10 @@ use crate::terlan_typeck::{
     CoreTupleTypeElem, CoreType,
 };
 
+#[cfg(test)]
+#[path = "transparent_aliases_test.rs"]
+mod tests;
+
 #[derive(Clone)]
 struct Alias {
     module: String,
@@ -19,20 +23,25 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
         .iter()
         .flat_map(|core| {
             core.types.iter().filter_map(move |declaration| {
-                let body = declaration.core_body.as_ref()?;
-                if matches!(
-                    declaration.visibility,
-                    crate::terlan_typeck::CoreVisibility::Opaque
-                ) {
+                let canonical = format!("{}.{}", core.module, declaration.name);
+                let task =
+                    super::super::task_values::declaration_storage(&canonical, &declaration.params);
+                let body = task.as_ref().or(declaration.core_body.as_ref())?;
+                if task.is_none()
+                    && matches!(
+                        declaration.visibility,
+                        crate::terlan_typeck::CoreVisibility::Opaque
+                    )
+                {
                     return None;
                 }
-                let canonical = format!("{}.{}", core.module, declaration.name);
+                let body = super::super::effect_values::storage_type(&canonical, body);
                 Some((
                     canonical,
                     Alias {
                         module: core.module.clone(),
                         params: declaration.params.clone(),
-                        body: body.clone(),
+                        body,
                     },
                 ))
             })
@@ -46,6 +55,14 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
             .map(|import| import.module.clone())
             .collect::<Vec<_>>();
         for declaration in &mut core.types {
+            // The Effect intrinsic survives pruning of its source `run`
+            // declaration. Retain the same expanded generic schema used by its
+            // operands so result inference can use the canonical type instead.
+            if module == "std.core.Effect" && declaration.name == "Effect" {
+                if let Some(body) = &mut declaration.core_body {
+                    *body = resolve(body, &module, &imports, &aliases, &mut HashSet::new());
+                }
+            }
             if let Some(CoreType::Struct { fields, .. }) = &mut declaration.core_body {
                 for field in fields {
                     field.ty = resolve(&field.ty, &module, &imports, &aliases, &mut HashSet::new());
@@ -183,6 +200,12 @@ fn resolve(
                 .iter()
                 .map(|arg| resolve(arg, module, imports, aliases, visiting))
                 .collect::<Vec<_>>();
+            // The standard opaque List owns the builtin list representation.
+            // Qualification must not introduce a second managed identity, and
+            // unrelated nominal types named List must remain distinct.
+            if constructor == "std.collections.List.List" && args.len() == 1 {
+                return CoreType::List(Box::new(args[0].clone()));
+            }
             if let Some((key, alias)) = find_alias(constructor, module, imports, aliases) {
                 // Nominal struct applications keep their type arguments in
                 // their managed identity; only transparent aliases erase them.
@@ -415,11 +438,14 @@ fn resolve_expr(
                 | CoreIntrinsicId::VmProcessCancel(ty)
                 | CoreIntrinsicId::MemoryLayoutOf(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
-                | CoreIntrinsicId::MemoryRetainedSize(ty) => resolve_type(ty),
+                | CoreIntrinsicId::MemoryRetainedSize(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty) => resolve_type(ty),
                 CoreIntrinsicId::NativeOperation {
                     parameter_types, ..
                 } => parameter_types.iter_mut().for_each(&mut resolve_type),
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
@@ -494,6 +520,35 @@ fn resolve_expr(
             {
                 *expr = record;
                 return;
+            }
+            if let Some((canonical, alias)) = find_alias(identity, module, imports, aliases) {
+                if matches!(
+                    canonical.as_str(),
+                    "std.core.Effect.Mapped" | "std.core.Effect.FlatMap"
+                ) {
+                    // Retain the canonical checked storage witness even for
+                    // these non-generic aliases. Effect callback admission must
+                    // not depend on which helper constructed the descriptor.
+                    let target_type = resolve(
+                        &alias.body,
+                        &alias.module,
+                        imports,
+                        aliases,
+                        &mut HashSet::new(),
+                    );
+                    let tag = if canonical == "std.core.Effect.Mapped" {
+                        "mapped"
+                    } else {
+                        "flat_map"
+                    };
+                    let mut items = vec![CoreExpr::Atom(tag.to_string())];
+                    items.append(args);
+                    *expr = CoreExpr::Cast {
+                        expr: Box::new(CoreExpr::Tuple(items)),
+                        target_type,
+                    };
+                    return;
+                }
             }
             if let Some(tag) =
                 transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
