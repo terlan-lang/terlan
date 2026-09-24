@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[cfg(test)]
+#[path = "concrete_impl_test.rs"]
+mod tests;
+
 /// Materializes checked, non-generic implementations as ordinary typed functions.
 /// The trait identity is metadata, never inferred from the generated symbol.
 pub(crate) fn core_syntax_concrete_impl_functions(
@@ -177,6 +181,7 @@ fn rewrite_trait_summary(
         });
         if changed {
             summary.remote = None;
+            summary.checked_preservation_evidence = core_expr_checked_preservation_evidence(expr);
         }
     }
     for child in &mut summary.children {
