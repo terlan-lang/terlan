@@ -8,6 +8,10 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+#[cfg(target_os = "linux")]
+#[path = "publish_preflight/publisher_lease.rs"]
+mod publisher_lease;
+
 struct Fixture {
     root: PathBuf,
     git: PathBuf,

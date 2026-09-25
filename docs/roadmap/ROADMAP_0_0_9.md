@@ -1806,6 +1806,11 @@ in order; close them only with passing implementation evidence.
     bytes. Preserve checkpoints across local failures; reject corrupt, stale,
     cross-target, or changed-attempt inputs. Reuse matching uploads and leave
     incomplete releases as drafts. Network failure must not imply absence.
+    The upload entry point now holds a repository-shared local publication
+    lease and the preparation/restoration leases through verification and
+    upload. Worktrees share the publication lease; separate clones or hosts
+    still require one coordinated publisher, not an assumed distributed lock.
+    Publication scratch is reserved and recoverable under these leases.
   - Check required tool versions and executable compatibility before expensive
     work. Isolate container build caches from incompatible host daemons.
   - Bound subprocesses, close undeclared interactive stdin, and attribute hangs.

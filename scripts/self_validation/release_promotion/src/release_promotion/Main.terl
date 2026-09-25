@@ -593,6 +593,12 @@ publication_entry(root: String, command: String): Bool ->
                 true;
                 true -> false
             };
+        "publication-self-test" ->
+            if {
+                PublicationChecks.self_test() -> let _printed = println("publication retry self-tests passed");
+                true;
+                true -> false
+            };
         "self-test" ->
             let report = argument(1) == "--report";
             let passed =
