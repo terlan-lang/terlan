@@ -4765,6 +4765,20 @@ Production-Make fixtures count launches across these cases, including recovery
 and output tampering; native owner tests also reject malformed Cargo evidence.
 These focused tests do not replace full candidate preparation or hosted CI.
 
+The same rehearsal exposed a separate input-binding defect: changing
+`RUSTFLAGS` reused the previous support receipt. Receipts now include a bounded,
+order-independent digest of the frozen producer environment. Compiler flags,
+encoded flags, profile/target overrides, tool selection, and arbitrary build
+script inputs invalidate reuse when changed, including absent versus empty
+values. Only explicit shell/Make job scheduling and display bookkeeping is
+excluded, so nested Make depth or job limits do not replay an equivalent build.
+Children receive the admitted snapshot; receipts and errors never print its
+values. Older receipts without this field require a successful producer before
+reuse. Environment binding complements the caller's source/tool fingerprints
+and output checks; it is not hosted provenance or a substitute for full
+candidate acceptance. Production-Make tests verify changed-input execution
+followed by unchanged warm reuse.
+
 The output audit additionally reproduced symlink-parent redirection of output
 and receipt paths (`/tmp/terlan-v9-owner-path-before.log`). The owner now rejects
 existing redirected/nonregular path components before launch and rechecks

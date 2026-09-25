@@ -113,6 +113,10 @@ if test "$SUPPORT_MODE" = changed; then printf '\n# mutated\n' >> Cargo.toml; fi
 }
 
 fn run(fixture: &Fixture, mode: &str) -> bool {
+    run_with_environment(fixture, mode, &[])
+}
+
+fn run_with_environment(fixture: &Fixture, mode: &str, entries: &[(&str, &str)]) -> bool {
     let mut command = Command::new("make");
     command.current_dir(&fixture.0).args([
         "--no-print-directory",
@@ -140,6 +144,7 @@ fn run(fixture: &Fixture, mode: &str) -> bool {
         "SUPPORT_OWNER_BINARY",
         env!("CARGO_BIN_EXE_terlan-build-cache"),
     );
+    command.envs(entries.iter().copied());
     let output = ProcessControl::new(Duration::from_secs(30))
         .capture_stdout_result(&mut command, 128 * 1024, |_| Ok(()))
         .unwrap();
@@ -234,4 +239,29 @@ fn dirty_source_is_uncached_and_a_new_commit_cannot_reuse_an_old_receipt() {
         fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
         "cargo\ncargo\ncargo\ncargo\n"
     );
+}
+
+#[test]
+fn changed_compiler_flags_profile_and_build_script_inputs_invalidate_reuse() {
+    for key in [
+        "RUSTFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+        "CARGO_PROFILE_DEV_DEBUG",
+        "RUSTC_WRAPPER",
+        "CUSTOM_BUILD_INPUT",
+    ] {
+        let fixture = fixture();
+        assert!(run_with_environment(&fixture, "success", &[(key, "one")]));
+        let before = fs::read(receipt(&fixture)).unwrap();
+        assert!(run_with_environment(&fixture, "success", &[(key, "two")]));
+        let after = fs::read(receipt(&fixture)).unwrap();
+        assert_ne!(before, after, "{key}");
+        assert!(run_with_environment(&fixture, "success", &[(key, "two")]));
+        assert_eq!(after, fs::read(receipt(&fixture)).unwrap());
+        assert_eq!(
+            fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+            "cargo\ncargo\n",
+            "{key}"
+        );
+    }
 }
