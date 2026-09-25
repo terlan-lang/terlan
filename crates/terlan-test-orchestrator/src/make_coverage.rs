@@ -9,6 +9,7 @@ use serde_json::json;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::Duration;
 use terlan_process_owner::ProcessControl;
 
 /// Requests coverage from a live parent; a dead endpoint or changed test environment fails.
@@ -44,9 +45,7 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
                 .next()
                 .ok_or_else(|| failure("missing suite report"))?,
         );
-        if arguments.next().as_deref() != Some(OsStr::new("--")) {
-            return Err(failure("expected -- before Make command"));
-        }
+        let graph_timeout = graph_timeout(&mut arguments)?;
         let program = arguments
             .next()
             .ok_or_else(|| failure("missing Make program"))?;
@@ -73,6 +72,7 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
         let shutdown = crate::shutdown::Shutdown::install().map_err(failure)?;
         let control = ProcessControl::new(crate::phase_timeout(&environment))
             .with_cancellation(shutdown.flag());
+        let graph_control = ProcessControl::new(graph_timeout).with_cancellation(shutdown.flag());
         let make = crate::executable_binding::resolve_program(
             program
                 .to_str()
@@ -136,11 +136,17 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
                             .test_command(&make_binding.verify_program("make", control)?);
                         command.args(&arguments).env(CONTEXT, bridge.endpoint());
                         let invocation = make_environment::invocation_identity(&command);
-                        let outcome = control
+                        eprintln!(
+                            "[rust-coverage] Make graph deadline={}s; phase deadline={}s",
+                            graph_timeout.as_secs(),
+                            crate::phase_timeout(&environment).as_secs()
+                        );
+                        let outcome = graph_control
                             .run(&mut command, launched)
                             .map_err(crate::process_failure);
                         let mut evidence = bridge.finish()?;
                         evidence["make_invocation_sha256"] = json!(invocation);
+                        evidence["graph_timeout_seconds"] = json!(graph_timeout.as_secs());
                         evidence["completed_suite_binding"] = suite_binding.clone();
                         evidence["producer_context"] = producer.clone();
                         *partial = Some(crate::test_execution::TestEvidence(evidence.clone()));
@@ -163,6 +169,24 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
     })())
 }
 
+// A graph contains many independently bounded phases. Its enclosing deadline
+// must not expire merely because those successful phases accumulate 30 minutes.
+fn graph_timeout(arguments: &mut impl Iterator<Item = OsString>) -> Result<Duration, PhaseFailure> {
+    let seconds = match arguments.next().as_deref() {
+        Some(value) if value == OsStr::new("--") => return Ok(Duration::from_secs(3600)),
+        Some(value) if value == OsStr::new("--graph-timeout-seconds") => arguments
+            .next()
+            .and_then(|value| value.to_str().and_then(|value| value.parse::<u64>().ok()))
+            .filter(|seconds| (1..=7200).contains(seconds))
+            .ok_or_else(|| failure("Make graph timeout must be between 1 and 7200 seconds"))?,
+        _ => return Err(failure("expected -- before Make command")),
+    };
+    if arguments.next().as_deref() != Some(OsStr::new("--")) {
+        return Err(failure("expected -- after Make graph timeout"));
+    }
+    Ok(Duration::from_secs(seconds))
+}
+
 fn finish(result: Result<(), PhaseFailure>) -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -172,3 +196,7 @@ fn finish(result: Result<(), PhaseFailure>) -> ExitCode {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "make_coverage_test.rs"]
+mod tests;
