@@ -5208,6 +5208,21 @@ ifeq ($(shell uname -s),Linux)
 	@mkdir -p target/quality
 	@$(TERLAN_BOOTSTRAP_LOCK) /bin/bash -eu -o pipefail -c ' \
 	build_command="$(CARGO) build -p terlan-test-orchestrator -p terlan-build-cache"; \
+	scratch="target/quality/support-bootstrap.pending"; \
+	cargo_log="$$scratch/cargo.jsonl"; \
+	clean_support_scratch() { \
+		test ! -L target && test ! -L target/quality || { echo "redirected support scratch parent" >&2; return 1; }; \
+		if test -e "$$scratch" || test -L "$$scratch"; then \
+			test -d "$$scratch" && test ! -L "$$scratch" || { echo "invalid support scratch directory" >&2; return 1; }; \
+			(shopt -s nullglob dotglob; for entry in "$$scratch"/*; do test "$$entry" = "$$cargo_log" || exit 1; done) || { echo "unrecognized support scratch contents" >&2; return 1; }; \
+			if test -e "$$cargo_log" || test -L "$$cargo_log"; then \
+				test -f "$$cargo_log" && test ! -L "$$cargo_log" || { echo "invalid support Cargo observation" >&2; return 1; }; \
+				rm -- "$$cargo_log"; \
+			fi; \
+			rmdir -- "$$scratch"; \
+		fi; \
+	}; \
+	clean_support_scratch; \
 	clean_source() { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git diff --quiet && git diff --cached --quiet && test -z "$$(git ls-files --others --exclude-standard)"; }; \
 	fingerprint() { { git rev-parse HEAD && sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan-build-cache/Cargo.toml crates/terlan-test-orchestrator/Cargo.toml && rustc --version && cargo --version && printf "%s\n" "$$build_command"; } | sha256sum | cut -d " " -f1; }; \
 	if clean_source; then \
@@ -5223,11 +5238,12 @@ ifeq ($(shell uname -s),Linux)
 			&& test "$$(timeout 5s "$(TERLAN_BUILD_CACHE)" owner-protocol 2>/dev/null)" = "terlan.build-owner.v3"; then \
 			"$(TERLAN_BUILD_CACHE)" "$$@" -- /bin/sh -c "$$build_command"; \
 		else \
-			cargo_log="$$(mktemp target/quality/support-cargo.XXXXXXXX.jsonl)"; \
+			mkdir -- "$$scratch"; \
+			trap clean_support_scratch EXIT; \
+			trap "exit 129" HUP; trap "exit 130" INT; trap "exit 143" TERM; \
 			timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command --message-format=json-render-diagnostics" </dev/null >"$$cargo_log"; \
 			clean_source && test "$$input" = "$$(fingerprint)" || { echo "support bootstrap inputs changed during build" >&2; exit 1; }; \
 			"$(TERLAN_BUILD_CACHE)" "$$@" --completed-cargo-log "$$cargo_log"; \
-			rm -- "$$cargo_log"; \
 		fi; \
 	else \
 		timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command" </dev/null; \

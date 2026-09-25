@@ -5,9 +5,9 @@
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use terlan_process_owner::ProcessControl;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use terlan_process_owner::{OwnedChild, ProcessControl};
 
 struct Fixture(PathBuf);
 
@@ -89,6 +89,7 @@ mkdir -p target/debug
 printf 'cargo\n' >> target/launches
 case "$SUPPORT_MODE" in
   timeout) sleep 300 ;;
+  held) printf 'started\n' > target/in-flight; sleep 300 ;;
   interrupted) kill -KILL $$ ;;
 esac
 cp "$SUPPORT_OWNER_BINARY" target/debug/owner.pending
@@ -117,7 +118,7 @@ fn run(fixture: &Fixture, mode: &str) -> bool {
     run_with_environment(fixture, mode, &[])
 }
 
-fn run_with_environment(fixture: &Fixture, mode: &str, entries: &[(&str, &str)]) -> bool {
+fn make_command(fixture: &Fixture, mode: &str, entries: &[(&str, &str)]) -> Command {
     let mut command = Command::new("make");
     command.current_dir(&fixture.0).args([
         "--no-print-directory",
@@ -146,6 +147,11 @@ fn run_with_environment(fixture: &Fixture, mode: &str, entries: &[(&str, &str)])
         env!("CARGO_BIN_EXE_terlan-build-cache"),
     );
     command.envs(entries.iter().copied());
+    command
+}
+
+fn run_with_environment(fixture: &Fixture, mode: &str, entries: &[(&str, &str)]) -> bool {
+    let mut command = make_command(fixture, mode, entries);
     let output = ProcessControl::new(Duration::from_secs(30))
         .capture_stdout_result(&mut command, 128 * 1024, |_| Ok(()))
         .unwrap();
@@ -162,6 +168,17 @@ fn receipt(fixture: &Fixture) -> PathBuf {
     ))
 }
 
+fn assert_no_support_scratch(fixture: &Fixture) {
+    for entry in fs::read_dir(fixture.0.join("target/quality")).unwrap() {
+        let name = entry.unwrap().file_name();
+        let name = name.to_string_lossy();
+        assert!(
+            !name.starts_with("support-cargo.") && name != "support-bootstrap.pending",
+            "unretired support scratch: {name}"
+        );
+    }
+}
+
 #[test]
 fn first_success_seals_and_identical_warm_build_launches_no_cargo() {
     let fixture = fixture();
@@ -173,6 +190,7 @@ fn first_success_seals_and_identical_warm_build_launches_no_cargo() {
         "cargo\n"
     );
     assert_eq!(first, fs::read(receipt(&fixture)).unwrap());
+    assert_no_support_scratch(&fixture);
     // Tampering with a declared output invalidates reuse and runs the producer.
     fs::write(
         fixture.0.join("target/debug/terlan-test-orchestrator"),
@@ -208,11 +226,33 @@ fn older_support_owner_is_rebuilt_once_before_using_the_new_receipt_protocol() {
 }
 
 #[test]
+fn stale_scratch_after_success_does_not_replay_a_verified_producer() {
+    let fixture = fixture();
+    assert!(run(&fixture, "success"));
+    let verified = fs::read(receipt(&fixture)).unwrap();
+    let scratch = fixture.0.join("target/quality/support-bootstrap.pending");
+    fs::create_dir(&scratch).unwrap();
+    fs::write(
+        scratch.join("cargo.jsonl"),
+        b"interrupted scratch retirement",
+    )
+    .unwrap();
+    assert!(run(&fixture, "success"));
+    assert_no_support_scratch(&fixture);
+    assert_eq!(verified, fs::read(receipt(&fixture)).unwrap());
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\n"
+    );
+}
+
+#[test]
 fn failed_incomplete_interrupted_or_changed_cold_builds_cannot_seal() {
     for mode in ["failure", "incomplete", "interrupted", "timeout", "changed"] {
         let fixture = fixture();
         assert!(!run(&fixture, mode), "{mode}");
         assert!(!receipt(&fixture).exists(), "{mode}");
+        assert_no_support_scratch(&fixture);
         if mode != "changed" {
             assert!(run(&fixture, "success"));
             assert!(receipt(&fixture).is_file());
@@ -339,4 +379,68 @@ fn warm_producer_rejects_configuration_mutation_and_preserves_previous_receipt()
         fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
         "cargo\ncargo\ncargo\n"
     );
+}
+
+#[test]
+fn killed_bootstrap_owner_leaves_no_reusable_receipt_and_resume_retires_its_scratch() {
+    let fixture = fixture();
+    let mut command = make_command(&fixture, "held", &[]);
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let mut child = OwnedChild::spawn(command).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while !fixture.0.join("target/in-flight").exists() {
+        assert!(child.try_wait().unwrap().is_none(), "producer exited early");
+        assert!(Instant::now() < deadline, "producer did not start");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    // SIGKILL cannot run shell traps. The next acquisition must wait for any
+    // bounded descendants still holding the bootstrap lease before retirement.
+    assert!(!child.finish().unwrap().success());
+    assert!(fixture
+        .0
+        .join("target/quality/support-bootstrap.pending/cargo.jsonl")
+        .is_file());
+    assert!(!receipt(&fixture).exists());
+    assert!(run(&fixture, "success"));
+    assert!(run(&fixture, "success"));
+    assert_no_support_scratch(&fixture);
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\n"
+    );
+}
+
+#[test]
+fn scratch_retirement_preserves_redirected_and_unrecognized_entries() {
+    use std::os::unix::fs::symlink;
+
+    for mode in ["directory-link", "file-link", "unexpected"] {
+        let fixture = fixture();
+        let outside = fixture.0.join("target/preserved");
+        fs::create_dir_all(&outside).unwrap();
+        let protected = outside.join("keep");
+        fs::write(&protected, b"not bootstrap scratch").unwrap();
+        let scratch = fixture.0.join("target/quality/support-bootstrap.pending");
+        fs::create_dir_all(scratch.parent().unwrap()).unwrap();
+        if mode == "directory-link" {
+            symlink(&outside, &scratch).unwrap();
+        } else {
+            fs::create_dir(&scratch).unwrap();
+            if mode == "file-link" {
+                symlink(&protected, scratch.join("cargo.jsonl")).unwrap();
+            } else {
+                fs::write(scratch.join("keep"), b"unrecognized").unwrap();
+            }
+        }
+        assert!(!run(&fixture, "invalid-scratch"), "{mode}");
+        assert!(!fixture.0.join("target/launches").exists(), "{mode}");
+        assert!(fs::symlink_metadata(&scratch).is_ok(), "{mode}");
+        assert_eq!(fs::read(&protected).unwrap(), b"not bootstrap scratch");
+        if mode == "unexpected" {
+            assert_eq!(fs::read(scratch.join("keep")).unwrap(), b"unrecognized");
+        }
+    }
 }
