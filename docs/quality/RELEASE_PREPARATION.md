@@ -4744,6 +4744,27 @@ tests verify a build outlasting a shorter lock deadline and an occupied lock
 rejecting work without launching a producer. Their final log is
 `/tmp/terlan-v9-bootstrap-deadlines-focused.log`.
 
+### First support-build receipt (2026-09-25)
+
+A clean cold bootstrap previously compiled both support tools without recording
+its successful output. The unchanged warm invocation consequently launched
+Cargo again. The Linux bootstrap now holds one acquisition-only lease across
+source identity checks, compilation, and receipt publication. Before the owner
+exists, Cargo emits its artifact/completion stream to a unique local log. Only
+after Cargo exits successfully and the clean input fingerprint still matches
+does the newly built owner finalize the receipt. It requires a bounded,
+well-formed log with both expected non-test binary artifacts and a terminal
+successful completion, then hashes the actual outputs. This is local reuse
+metadata, not hosted provenance or permission to adopt arbitrary binaries.
+
+An unchanged warm invocation uses the normal output-verified receipt without a
+Cargo build. Concurrent cold requests recheck after acquiring the same lease;
+dirty checkouts remain uncached. Failed, timed-out, interrupted, malformed,
+redirected, or source-mutating builds cannot publish a successful receipt.
+Production-Make fixtures count launches across these cases, including recovery
+and output tampering; native owner tests also reject malformed Cargo evidence.
+These focused tests do not replace full candidate preparation or hosted CI.
+
 The output audit additionally reproduced symlink-parent redirection of output
 and receipt paths (`/tmp/terlan-v9-owner-path-before.log`). The owner now rejects
 existing redirected/nonregular path components before launch and rechecks

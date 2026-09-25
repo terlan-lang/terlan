@@ -1,7 +1,7 @@
 use super::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-struct Fixture(PathBuf);
+pub(super) struct Fixture(pub(super) PathBuf);
 
 impl Drop for Fixture {
     fn drop(&mut self) {
@@ -9,7 +9,7 @@ impl Drop for Fixture {
     }
 }
 
-fn fixture() -> Fixture {
+pub(super) fn fixture() -> Fixture {
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()

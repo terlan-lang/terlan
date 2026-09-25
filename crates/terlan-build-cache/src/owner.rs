@@ -15,6 +15,9 @@ use std::process::Command;
 use std::time::Duration;
 use terlan_process_owner::ProcessControl;
 
+#[path = "owner_bootstrap.rs"]
+mod bootstrap;
+
 const SCHEMA: &str = "terlan.build-owner.v1";
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024 * 1024;
 
@@ -24,13 +27,14 @@ struct Options {
     input_sha256: String,
     timeout: Duration,
     outputs: Vec<PathBuf>,
-    command: Command,
+    command: Option<Command>,
+    completed_cargo_log: Option<PathBuf>,
 }
 
 /// Runs a receipt-backed producer, returning false only for a producer failure.
 pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
     let mut options = parse(root, args)?;
-    if reusable(&options)? {
+    if options.command.is_some() && reusable(&options)? {
         println!(
             "{}",
             json!({
@@ -43,13 +47,15 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
         return Ok(true);
     }
 
-    options.command.current_dir(root);
-    let status = match ProcessControl::new(options.timeout).run(&mut options.command, |_| Ok(())) {
-        Ok(()) => "pass",
-        Err(error) => {
+    let cargo_observation = if let Some(command) = options.command.as_mut() {
+        command.current_dir(root);
+        if let Err(error) = ProcessControl::new(options.timeout).run(command, |_| Ok(())) {
             eprintln!("error[build.owner.{}]: {}", error.kind, error.detail);
             return Ok(false);
         }
+        None
+    } else {
+        Some(bootstrap::validate(&options)?)
     };
     let outputs = match output_hashes(root, &options.outputs) {
         Ok(outputs) => outputs,
@@ -58,12 +64,15 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
             return Ok(false);
         }
     };
-    let receipt = json!({
+    let mut receipt = json!({
         "schema": SCHEMA,
-        "outcome": status,
+        "outcome": "pass",
         "input_sha256": options.input_sha256,
         "outputs": outputs,
     });
+    if let Some(observation) = cargo_observation {
+        receipt["bootstrap_cargo_log_sha256"] = observation.into();
+    }
     owned_file_path(root, &options.receipt)?;
     publish_receipt(&options.receipt, &receipt)?;
     println!("{}", receipt);
@@ -76,9 +85,10 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
     let mut input_sha256 = None;
     let mut timeout = None;
     let mut outputs: Vec<PathBuf> = Vec::new();
+    let mut completed_cargo_log = None;
     let command_start = loop {
         if index >= args.len() {
-            return Err(io::Error::other(usage()));
+            break None;
         }
         let flag = args[index].to_str().unwrap_or("");
         index += 1;
@@ -100,16 +110,27 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
                 timeout = Some(Duration::from_secs(seconds));
             }
             "--output" => outputs.push(next_value(args, &mut index, "--output")?.into()),
-            "--" => break index,
+            "--completed-cargo-log" => {
+                completed_cargo_log = Some(PathBuf::from(next_value(args, &mut index, flag)?));
+            }
+            "--" => break Some(index),
             _ => return Err(io::Error::other(usage())),
         }
     };
-    let program = args
-        .get(command_start)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| io::Error::other(usage()))?;
-    let mut command = Command::new(program);
-    command.args(&args[command_start + 1..]);
+    let command = if let Some(start) = command_start {
+        let program = args
+            .get(start)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| io::Error::other(usage()))?;
+        let mut command = Command::new(program);
+        command.args(&args[start + 1..]);
+        Some(command)
+    } else {
+        None
+    };
+    if command.is_some() == completed_cargo_log.is_some() {
+        return Err(io::Error::other(usage()));
+    }
     let receipt = receipt.ok_or_else(|| io::Error::other(usage()))?;
     let input_sha256 = input_sha256
         .and_then(|value| value.into_string().ok())
@@ -145,6 +166,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
         timeout: timeout.ok_or_else(|| io::Error::other(usage()))?,
         outputs,
         command,
+        completed_cargo_log,
     })
 }
 
@@ -159,7 +181,7 @@ fn next_value(args: &[OsString], index: &mut usize, flag: &str) -> io::Result<Os
 }
 
 fn usage() -> &'static str {
-    "usage: owner --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... -- <program> [args...]"
+    "usage: owner --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... (-- <program> [args...] | --completed-cargo-log <path>)"
 }
 
 /// Missing descendants are allowed for cold builds, but existing components

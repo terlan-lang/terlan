@@ -5200,28 +5200,31 @@ publish-preparation-admission: publish-preparation-lock-directory rust-build-res
 .PHONY: terlan-build-owner-bootstrap rust-build-cache-bootstrap rust-build-resource-admission rust-incremental-cache-audit rust-incremental-cache-prune
 terlan-build-owner-bootstrap:
 ifeq ($(shell uname -s),Linux)
-	@set -eu; \
-	if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
-	mkdir -p target/quality; \
-	build_command='$(CARGO) build -p terlan-test-orchestrator -p terlan-build-cache'; \
-	if test -x "$(TERLAN_BUILD_CACHE)" \
-		&& test -x "target/debug/terlan-test-orchestrator" \
-		&& git diff --quiet \
-		&& git diff --cached --quiet \
-		&& test -z "$$(git ls-files --others --exclude-standard)"; then \
-		input="$$( { git rev-parse HEAD; sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan-build-cache/Cargo.toml crates/terlan-test-orchestrator/Cargo.toml; rustc --version; cargo --version; printf '%s\n' cargo --locked build -p terlan-test-orchestrator -p terlan-build-cache; } | sha256sum | awk '{print $$1}')"; \
-		$(TERLAN_BOOTSTRAP_LOCK) \
-		"$(TERLAN_BUILD_CACHE)" owner \
+	@mkdir -p target/quality
+	@$(TERLAN_BOOTSTRAP_LOCK) /bin/bash -eu -o pipefail -c ' \
+	build_command="$(CARGO) build -p terlan-test-orchestrator -p terlan-build-cache"; \
+	clean_source() { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git diff --quiet && git diff --cached --quiet && test -z "$$(git ls-files --others --exclude-standard)"; }; \
+	fingerprint() { { git rev-parse HEAD && sha256sum Cargo.toml Cargo.lock rust-toolchain.toml crates/terlan-build-cache/Cargo.toml crates/terlan-test-orchestrator/Cargo.toml && rustc --version && cargo --version && printf "%s\n" "$$build_command"; } | sha256sum | cut -d " " -f1; }; \
+	if clean_source; then \
+		input="$$(fingerprint)"; \
+		set -- owner \
 			--receipt "target/quality/preparation/bootstrap/$$(git rev-parse HEAD)/support.json" \
 			--input-sha256 "$$input" \
 			--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
 			--output "$(TERLAN_BUILD_CACHE)" \
-			--output "target/debug/terlan-test-orchestrator" \
-			-- /bin/sh -c "$$build_command"; \
+			--output "target/debug/terlan-test-orchestrator"; \
+		if test -x "$(TERLAN_BUILD_CACHE)" && test -x "target/debug/terlan-test-orchestrator"; then \
+			"$(TERLAN_BUILD_CACHE)" "$$@" -- /bin/sh -c "$$build_command"; \
+		else \
+			cargo_log="$$(mktemp target/quality/support-cargo.XXXXXXXX.jsonl)"; \
+			timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command --message-format=json-render-diagnostics" </dev/null >"$$cargo_log"; \
+			clean_source && test "$$input" = "$$(fingerprint)" || { echo "support bootstrap inputs changed during build" >&2; exit 1; }; \
+			"$(TERLAN_BUILD_CACHE)" "$$@" --completed-cargo-log "$$cargo_log"; \
+			rm -- "$$cargo_log"; \
+		fi; \
 	else \
-		$(TERLAN_BOOTSTRAP_LOCK) \
-		timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command"; \
-	fi
+		timeout "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" env CARGO_BUILD_JOBS=1 /bin/sh -c "$$build_command" </dev/null; \
+	fi'
 else
 	CARGO_BUILD_JOBS=1 $(CARGO) build -p terlan-test-orchestrator
 endif
