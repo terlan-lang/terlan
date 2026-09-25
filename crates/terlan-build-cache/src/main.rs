@@ -9,6 +9,8 @@ mod incremental;
 mod layout;
 #[cfg(target_os = "linux")]
 mod owner;
+#[cfg(target_os = "linux")]
+mod support_cache;
 
 #[cfg(target_os = "linux")]
 fn main() -> std::process::ExitCode {
@@ -34,6 +36,9 @@ fn run() -> std::io::Result<bool> {
     }
     if args.first().is_some_and(|arg| arg == "owner") {
         return owner::run(&std::env::current_dir()?, &args[1..]);
+    }
+    if args.len() == 1 && args[0] == "support-cache-prune" {
+        return support_cache::run(&std::env::current_dir()?);
     }
     let [command] = args.as_slice() else {
         return Err(std::io::Error::other(
