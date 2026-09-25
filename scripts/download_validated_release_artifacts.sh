@@ -12,9 +12,43 @@ fi
 publication_inputs="target/publication-inputs/$revision"
 # One download/restore owner per worktree; concurrent writers share dist/.
 # Keep fd 9 intact: the enclosing preparation owner lends it to nested Make.
+[[ ! -L target && ( ! -e target || -d target ) ]] || exit 1
 mkdir -p target
+[[ ! -L target/publication-inputs.lock && ( ! -e target/publication-inputs.lock || -f target/publication-inputs.lock ) ]] || exit 1
 exec 8>target/publication-inputs.lock
 flock -n 8 || { echo "another publication input owner is running" >&2; exit 1; }
+[[ /dev/fd/8 -ef target/publication-inputs.lock ]] || exit 1
+[[ ! -L target/publication-downloads && ( ! -e target/publication-downloads || -d target/publication-downloads ) ]] || exit 1
+mkdir -p target/publication-downloads
+
+# Only this reserved namespace is disposable. The same lease protects initial
+# creation, normal cleanup, and retirement after SIGKILL on the next invocation.
+# Verified caches, publication inputs, dist/ and retained evidence are separate.
+# Keep staging on the cache filesystem so the final rename stays atomic. This
+# reserved six-character partial name is also recognized by cache retirement.
+scratch="$repo_root/target/publication-downloads/.partial.dlwork"
+retire_download_scratch() {
+  [[ ! -L target && -d target ]] || return 1
+  [[ ! -L target/publication-downloads && -d target/publication-downloads ]] || return 1
+  if [[ -e "$scratch" || -L "$scratch" ]]; then
+    [[ -d "$scratch" && ! -L "$scratch" ]] || {
+      echo "invalid publication download scratch directory" >&2; return 1;
+    }
+    (
+      shopt -s nullglob dotglob
+      for entry in "$scratch"/*; do
+        case "$entry" in
+          "$scratch/downloads"|"$scratch/extracted"|"$scratch/evidence"|"$scratch/cache")
+            [[ -d "$entry" && ! -L "$entry" ]] || exit 1 ;;
+          *) exit 1 ;;
+        esac
+      done
+    ) || { echo "unrecognized publication download scratch contents" >&2; return 1; }
+    rm -rf -- "$scratch/downloads" "$scratch/extracted" "$scratch/evidence" "$scratch/cache"
+    rmdir -- "$scratch"
+  fi
+}
+retire_download_scratch
 
 retire_previous_candidate() {
   if [[ -e dist/release-candidate.json || -L dist/release-candidate.json ]]; then
@@ -103,11 +137,15 @@ if [[ -z "$run_id" ]]; then
   exit 1
 fi
 
-download_dir="$(mktemp -d)"
-extract_dir="$(mktemp -d)"
-hosted_evidence_dir="$(mktemp -d)"
-cache_stage=""
-trap 'rm -rf "$download_dir" "$extract_dir" "$hosted_evidence_dir"; if [[ -n "$cache_stage" ]]; then rm -rf "$cache_stage"; fi' EXIT
+mkdir -m 700 -- "$scratch"
+trap retire_download_scratch EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+download_dir="$scratch/downloads"
+extract_dir="$scratch/extracted"
+hosted_evidence_dir="$scratch/evidence"
+mkdir -- "$download_dir" "$extract_dir" "$hosted_evidence_dir"
 
 run_json="$(gh api "repos/{owner}/{repo}/actions/runs/$run_id")"
 run_revision="$(jq -r '.head_sha // ""' <<<"$run_json")"
@@ -285,7 +323,8 @@ for required in terlc terlan-vm terlan-native-worker terlan-lsp terlan-release.j
 done
 (
   cd "$extract_dir"
-  checksum_paths="$(mktemp)"
+  checksum_paths="$hosted_evidence_dir/checksum-paths"
+  : > "$checksum_paths"
   trap 'rm -f "$checksum_paths"' EXIT
   while IFS= read -r row || [[ -n "$row" ]]; do
     if [[ ! "$row" =~ ^[0-9a-fA-F]{64}\ \ (.+)$ ]]; then
@@ -325,8 +364,10 @@ done
 
 # Commit a complete verified checkpoint before any local distribution checks.
 # An interrupted producer leaves no cache entry that another run could reuse.
+[[ ! -L target/publication-downloads && ( ! -e target/publication-downloads || -d target/publication-downloads ) ]] || exit 1
 mkdir -p target/publication-downloads
-cache_stage="$(mktemp -d target/publication-downloads/.partial.XXXXXX)"
+cache_stage="$scratch/cache"
+mkdir -- "$cache_stage"
 mkdir "$cache_stage/archives" "$cache_stage/extracted" "$cache_stage/evidence" "$cache_stage/coverage"
 cp -p "$coverage_dir/"* "$cache_stage/coverage/"
 cp -p "$download_dir/"* "$cache_stage/archives/"
@@ -341,7 +382,6 @@ printf '%s\n' "$cache_context" > "$cache_stage/context.json"
     | LC_ALL=C sort -z | xargs -0 sha256sum > verified-files.sha256
 )
 mv -T "$cache_stage" "$download_cache"
-cache_stage=""
 fi
 
 mkdir -p target/quality

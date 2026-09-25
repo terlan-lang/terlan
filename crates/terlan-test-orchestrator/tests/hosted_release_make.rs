@@ -8,6 +8,10 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+#[cfg(target_os = "linux")]
+#[path = "hosted_release_make/download_scratch.rs"]
+mod download_scratch;
+
 const GOALS: [&str; 8] = [
     "release-hosted-validation-check",
     "tvm-aot-platform-aggregate-check",
