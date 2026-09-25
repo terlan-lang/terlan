@@ -77,3 +77,15 @@ Local verification then passed all three smoke families and eight tests,
 including the real proof/runtime executions and the extracted-value signature
 regression. Every semantic lane remains at policy 100; no compatibility check
 was disabled.
+
+## Accepted feature-binding synchronization
+
+The user explicitly approved synchronizing the feature index and accepted
+snapshot with this review. Slices 22, 23, 25, 26, 27 and 28 now reference the
+reviewed CoreIR blocker `sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0`;
+slice 24 references the reviewed VM blocker
+`sha256:7937b585761e193f053eaffab67a2c2b66d8caf13d6f7abc616b6894a3af5948`.
+Their index descriptions now match the registry's reviewed reasons. All seven
+entries remain `slice_blocked`, with the same owners and September 30 expiry.
+No new proof coverage, signed policy exception or publication approval is
+implied. The previous accepted bytes remain in Git history.

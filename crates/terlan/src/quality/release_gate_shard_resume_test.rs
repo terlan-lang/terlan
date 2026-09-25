@@ -105,6 +105,44 @@ fn release_gate_shard_resume_accepts_repository_live_coverage_graph() {
     assert_eq!(validate_release_makefile(&makefile), Vec::<String>::new());
 }
 
+/// Supported deadline options cannot disconnect the report or bypass ownership.
+#[test]
+fn release_gate_shard_resume_validates_coverage_deadline_arguments() {
+    let source = complete_makefile();
+    for value in [
+        "1",
+        "3600",
+        "7200",
+        "\"$(TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS)\"",
+    ] {
+        let candidate = source.replace(
+            "rust-test-suite-report.json --",
+            &format!("rust-test-suite-report.json --graph-timeout-seconds {value} --"),
+        );
+        assert!(validate_release_makefile(&candidate).is_empty(), "{value}");
+    }
+    for arguments in [
+        "--graph-timeout-seconds 0 --",
+        "--graph-timeout-seconds 7201 --",
+        "--graph-timeout-seconds -1 --",
+        "--graph-timeout-seconds 18446744073709551616 --",
+        "--graph-timeout-seconds --",
+        "--graph-timeout-seconds 3600 --graph-timeout-seconds 3600 --",
+        "--unknown 3600 --",
+        "--graph-timeout-seconds 3600 ;",
+        "--graph-timeout-seconds 3600 -- sh",
+    ] {
+        let candidate = source.replace(
+            "rust-test-suite-report.json --",
+            &format!("rust-test-suite-report.json {arguments}"),
+        );
+        assert!(
+            !validate_release_makefile(&candidate).is_empty(),
+            "{arguments}"
+        );
+    }
+}
+
 /// Verifies final composition cannot acquire an expensive prerequisite graph.
 #[test]
 fn release_gate_shard_resume_rejects_preflight_replay() {

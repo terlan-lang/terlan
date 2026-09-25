@@ -101,6 +101,23 @@ environment_or(name: String, fallback: String): String ->
         None -> fallback
     }.
 
+report_path(root: String, name: String): String ->
+    let variable =
+        case name {
+            "lean-proof-binding-diff.json" -> "TERLAN_PROOF_BINDING_DIFF_OUTPUT";
+            "lean-proof-change-impact.json" -> "TERLAN_PROOF_BINDING_IMPACT_OUTPUT";
+            "lean-proof-binding-review.json" -> "TERLAN_PROOF_BINDING_REVIEW_OUTPUT";
+            _ -> ""
+        };
+    let fallback = root_path(root, String.append("target/quality/proof-artifacts/", name));
+    if {
+        variable == "" -> fallback;
+        true -> environment_or(variable, fallback)
+    }.
+
+snapshot_output(root: String, relative: String, name: String, variable: String): String ->
+    environment_or(variable, root_path(root, String.concat([relative, "/", name]))).
+
 sha256(source: String): String ->
     String.append("sha256:", Hash.sha256(source)).
 
@@ -1290,7 +1307,7 @@ impact_paths(root: String): List[String] ->
     [
         root_path(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
         root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
+        report_path(root, "lean-proof-binding-diff.json"),
     ].
 
 review_paths(root: String): List[String] ->
@@ -1299,8 +1316,8 @@ review_paths(root: String): List[String] ->
         root_path(root, "proofs/lean/feature_binding/lean-proof-accepted-snapshot.tsv"),
         root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
         root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-change-impact.json"),
+        report_path(root, "lean-proof-binding-diff.json"),
+        report_path(root, "lean-proof-change-impact.json"),
     ].
 
 snapshot_paths(root: String): List[String] ->
@@ -1310,9 +1327,9 @@ snapshot_paths(root: String): List[String] ->
         root_path(root, "proofs/lean/feature_binding/lean-proof-block-exceptions.json"),
         root_path(root, "docs/runtime/lean-proof-block-policy.toml"),
         root_path(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-change-impact.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-binding-review.json"),
+        report_path(root, "lean-proof-binding-diff.json"),
+        report_path(root, "lean-proof-change-impact.json"),
+        report_path(root, "lean-proof-binding-review.json"),
     ].
 
 inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
@@ -1384,11 +1401,11 @@ inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
         true -> None
     }.
 
-write_json(root: String, relative: String, value: Json): Bool ->
+write_json(root: String, name: String, value: Json): Bool ->
     let {
         Some(source) <- render(value);
         Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"));
-        Ok(Unit) <- write_text(root_path(root, relative), source)
+        Ok(Unit) <- write_text(report_path(root, name), source)
     } else {
         _ -> false
     };
@@ -1432,11 +1449,7 @@ diff_counts(diff: DiffData): String ->
 
 run_diff(root: String, diff: DiffData): Bool ->
     if {
-        write_json(
-            root,
-            "target/quality/proof-artifacts/lean-proof-binding-diff.json",
-            diff_json(diff),
-        ) -> let _printed = println(String.append("[lean-proof-snapshot] diff written: ", diff_counts(diff)));
+        write_json(root, "lean-proof-binding-diff.json", diff_json(diff)) -> let _printed = println(String.append("[lean-proof-snapshot] diff written: ", diff_counts(diff)));
         true;
         true -> fail("diff artifact could not be written")
     }.
@@ -1523,7 +1536,7 @@ run_impact(root: String, inputs: Inputs, diff: DiffData): Bool ->
     let impact_value = impact(diff);
     if {
         not json_equal_source(inputs.observed_diff, diff_value) -> fail("diff artifact is missing or stale");
-        not write_json(root, "target/quality/proof-artifacts/lean-proof-change-impact.json", impact_value.value) -> fail("impact artifact could not be written");
+        not write_json(root, "lean-proof-change-impact.json", impact_value.value) -> fail("impact artifact could not be written");
         true -> print_impact(impact_value, diff)
     }.
 
@@ -1550,7 +1563,7 @@ run_review(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
     if {
         not json_equal_source(inputs.observed_diff, diff_json(diff)) -> fail("diff artifact is missing or stale");
         not json_equal_source(inputs.observed_impact, impact_value.value) -> fail("impact artifact is missing or stale");
-        not write_json(root, "target/quality/proof-artifacts/lean-proof-binding-review.json", review) -> fail("review artifact could not be written");
+        not write_json(root, "lean-proof-binding-review.json", review) -> fail("review artifact could not be written");
         true -> print_review(review, impact_value.changed)
     }.
 
@@ -1642,22 +1655,30 @@ persist_snapshot(
     } else {
         _ -> fail("snapshot JSON could not be rendered")
     };
-    case create_all(root_path(root, relative)) {
-        Ok(Unit) ->
-            write_snapshot_files(
-                root,
-                relative,
-                inputs.matrix,
-                review,
-                impact.changed,
-                canonical_source,
-                diff_source,
-                impact_source,
-                review_source,
-                policy_source,
-            );
-        Err(_reason) -> fail("snapshot directory could not be created")
+    if {
+        snapshot_directory(root, relative) -> write_snapshot_files(
+            root,
+            relative,
+            inputs.matrix,
+            review,
+            impact.changed,
+            canonical_source,
+            diff_source,
+            impact_source,
+            review_source,
+            policy_source,
+        );
+        true -> fail("snapshot directory could not be created")
     }.
+
+snapshot_directory(root: String, relative: String): Bool ->
+    let {
+        None <- Environment.get("TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT");
+        Err(_reason) <- create_all(root_path(root, relative))
+    } else {
+        _ -> true
+    };
+    false.
 
 write_snapshot_files(
     root: String,
@@ -1674,18 +1695,59 @@ write_snapshot_files(
     let {
         Ok(Unit) <-
             write_text(
-                root_path(root, String.append(relative, "/canonical-index.json")),
+                snapshot_output(
+                    root,
+                    relative,
+                    "canonical-index.json",
+                    "TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT",
+                ),
                 canonical_source,
             );
-        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/diff.json")), diff_source);
-        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/impact.json")), impact_source);
-        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/review.json")), review_source);
         Ok(Unit) <-
             write_text(
-                root_path(root, String.append(relative, "/policy-result.json")),
+                snapshot_output(root, relative, "diff.json", "TERLAN_PROOF_SNAPSHOT_DIFF_OUTPUT"),
+                diff_source,
+            );
+        Ok(Unit) <-
+            write_text(
+                snapshot_output(
+                    root,
+                    relative,
+                    "impact.json",
+                    "TERLAN_PROOF_SNAPSHOT_IMPACT_OUTPUT",
+                ),
+                impact_source,
+            );
+        Ok(Unit) <-
+            write_text(
+                snapshot_output(
+                    root,
+                    relative,
+                    "review.json",
+                    "TERLAN_PROOF_SNAPSHOT_REVIEW_OUTPUT",
+                ),
+                review_source,
+            );
+        Ok(Unit) <-
+            write_text(
+                snapshot_output(
+                    root,
+                    relative,
+                    "policy-result.json",
+                    "TERLAN_PROOF_SNAPSHOT_POLICY_OUTPUT",
+                ),
                 policy_source,
             );
-        Ok(Unit) <- write_text(root_path(root, String.append(relative, "/coverage-matrix.tsv")), matrix)
+        Ok(Unit) <-
+            write_text(
+                snapshot_output(
+                    root,
+                    relative,
+                    "coverage-matrix.tsv",
+                    "TERLAN_PROOF_SNAPSHOT_MATRIX_OUTPUT",
+                ),
+                matrix,
+            )
     } else {
         _ -> false
     };
@@ -1700,8 +1762,20 @@ selected_task(): String ->
 
 repository_task_holds(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
-    let today = Date.to_iso(Date.today_utc());
+    let today = environment_or("TERLAN_PROOF_BINDING_DATE", Date.to_iso(Date.today_utc()));
     let task = selected_task();
+    let Some(_day) <- Date.parse_iso(today) else {
+        _ -> fail("snapshot UTC date is malformed")
+    };
+    if {
+        task == "all" -> repository_task(root, today, "diff")
+            and repository_task(root, today, "impact")
+            and repository_task(root, today, "review")
+            and repository_task(root, today, "snapshot");
+        true -> repository_task(root, today, task)
+    }.
+
+repository_task(root: String, today: String, task: String): Bool ->
     case read_text_many(task_paths(root, task)) {
         Ok(files) ->
             case inputs_from_task_files(task, files) {
