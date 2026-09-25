@@ -46,6 +46,7 @@ terlan-runtime-abi = { path = "crates/terlan-runtime-abi" }
 terlan-storage = { path = "crates/terlan-storage" }
 tempfile = "3"
 terlan-process-owner = { path = "crates/terlan-process-owner" }
+terlan-test-orchestrator = { path = "crates/terlan-test-orchestrator" }
 terlan-service-foundation = { path = "crates/terlan-service-foundation" }
 zstd = "0.13.3"
 

@@ -20,6 +20,13 @@ pub(super) struct ExecutionEnvironment {
 }
 
 impl ExecutionEnvironment {
+    /// Uses Cargo's inherited search path without the test-harness binary prefix.
+    pub(super) fn capture_direct() -> Result<Self, PhaseFailure> {
+        let mut snapshot = Self::capture()?;
+        snapshot.test_path = snapshot.value("PATH").unwrap_or_default();
+        Ok(snapshot)
+    }
+
     /// Captures before producer admission, preserving native OS string bytes.
     pub(super) fn capture() -> Result<Self, PhaseFailure> {
         // Resolve certificate auto-discovery once, before Cargo/Rustup can add

@@ -4779,6 +4779,30 @@ and output checks; it is not hosted provenance or a substitute for full
 candidate acceptance. Production-Make tests verify changed-input execution
 followed by unchanged warm reuse.
 
+The external-input audit also reproduced stale reuse after edits to Cargo-home
+configuration and same-path compiler wrappers. Cargo bootstrap owners now opt
+into the orchestrator's existing configuration/include and executable verifier.
+That implementation lives in a reusable library with a thin CLI, rather than
+being copied into the cache utility. Library test discovery preserves all 223
+original unit-test identities; the canonical workspace `--tests` tier includes
+the new library target and continues to own each test once.
+
+The receipt binds selected Cargo/compiler/wrapper entry-point bytes, Rustup
+proxy selection, and bounded Cargo/Rustup configuration (including includes).
+It rechecks inputs around normal producers and before reuse. Configuration
+values are not exposed in receipts or public errors. This is not a claim of
+arbitrary wrapper-internal or SDK dependency closure. The first tool bootstrap
+still finalizes after Cargo because its verifier does not exist beforehand;
+pre-build external-input binding at that initial boundary remains an open
+V9-1 audit requirement, not silently certified by the warm-owner tests.
+
+The support bootstrap probes the owner's protocol under its lease with a
+five-second deadline. Missing or older owners are rebuilt as one support batch
+before receiving new receipt options; matching warm owners reuse their verified
+outputs. Receipts bind the protocol revision too. A production-Make regression
+proves that an older binary upgrades once and the next invocation launches no
+Cargo build.
+
 The output audit additionally reproduced symlink-parent redirection of output
 and receipt paths (`/tmp/terlan-v9-owner-path-before.log`). The owner now rejects
 existing redirected/nonregular path components before launch and rechecks

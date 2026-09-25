@@ -42,7 +42,11 @@ pub(super) fn observe(
     )
 }
 
-fn parse(output: &[u8], root: &Path, home: Option<&Path>) -> Result<RustupSelection, PhaseFailure> {
+pub(super) fn parse(
+    output: &[u8],
+    root: &Path,
+    home: Option<&Path>,
+) -> Result<RustupSelection, PhaseFailure> {
     let output = std::str::from_utf8(output).map_err(failure)?;
     let line = output.strip_suffix('\n').unwrap_or(output);
     let line = line.strip_suffix('\r').unwrap_or(line);

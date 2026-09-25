@@ -4157,6 +4157,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "terlan-process-owner",
+ "terlan-test-orchestrator",
 ]
 
 [[package]]

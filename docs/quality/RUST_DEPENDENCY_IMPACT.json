@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "92d7fead60c13eac1dcdeacc059b44a65ce12b4c601d0dbdd202befa5e05d9bf",
+  "compilation_input_sha256": "dd07292c8c048ab1993d5ecea73d230068d1ee888e088c798fef26883d0d34b3",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -1994,6 +1994,13 @@
           "kind": "normal",
           "name": "terlan-process-owner",
           "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-test-orchestrator",
+          "optional": false
         }
       ],
       "package": "terlan-build-cache"
@@ -2333,7 +2340,8 @@
     },
     {
       "direct_dependencies": [
-        "terlan-process-owner"
+        "terlan-process-owner",
+        "terlan-test-orchestrator"
       ],
       "name": "terlan-build-cache",
       "reverse_dependents": []
@@ -2393,7 +2401,9 @@
         "terlan-process-owner"
       ],
       "name": "terlan-test-orchestrator",
-      "reverse_dependents": []
+      "reverse_dependents": [
+        "terlan-build-cache"
+      ]
     }
   ]
 }
