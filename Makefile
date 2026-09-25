@@ -3623,10 +3623,10 @@ vm-hello-suite-parity-check: \
 vm-small-suite-parity-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::small_suite_native_parity_test
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::scalar_replacement_index_test
-	@rg -q 'sadd_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
-	@rg -q 'ssub_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
-	@rg -q 'smul_overflow' crates/terlan/src/compiler/native_ir/cranelift.rs
-	@rg -q 'status::DIVISION_BY_ZERO' crates/terlan/src/compiler/native_ir/cranelift.rs
+	@rg -q 'sadd_overflow' crates/terlan/src/compiler/native_ir/cranelift/expression.rs
+	@rg -q 'ssub_overflow' crates/terlan/src/compiler/native_ir/cranelift/expression.rs
+	@rg -q 'smul_overflow' crates/terlan/src/compiler/native_ir/cranelift/expression.rs
+	@rg -q 'status::DIVISION_BY_ZERO' crates/terlan/src/compiler/native_ir/cranelift/expression.rs
 	@rg -q 'status::OVERFLOW' crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs
 
 vm-smoke-suite-parity-check:
