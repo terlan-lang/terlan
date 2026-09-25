@@ -109,6 +109,7 @@ pub(crate) fn validate_gap_transitions(
 
         let mut expected_previous = "none";
         let mut previous_date = None;
+        let mut previous_evidence = None;
         for transition in history {
             if transition.previous_status != expected_previous {
                 diagnostics.push(format!(
@@ -116,10 +117,22 @@ pub(crate) fn validate_gap_transitions(
                     gap.feature, expected_previous, transition.previous_status
                 ));
             }
-            if !is_successor(&transition.previous_status, &transition.next_status) {
+            let review =
+                transition.previous_status == "blocked" && transition.next_status == "blocked";
+            if !review && !is_successor(&transition.previous_status, &transition.next_status) {
                 diagnostics.push(format!(
                     "proof_gap[invalid-transition]: `{}` cannot move from `{}` to `{}`",
                     gap.feature, transition.previous_status, transition.next_status
+                ));
+            }
+            if review
+                && (previous_evidence == Some(transition.evidence_hash.as_str())
+                    || !transition.rationale.starts_with("Review: ")
+                    || transition.rationale.trim() == "Review:")
+            {
+                diagnostics.push(format!(
+                    "proof_gap[invalid-blocker-review]: `{}` requires new evidence and a Review: rationale",
+                    gap.feature
                 ));
             }
             match parse_date(&transition.changed_at) {
@@ -136,6 +149,12 @@ pub(crate) fn validate_gap_transitions(
                             gap.feature, transition.changed_at
                         ));
                     }
+                    if review && previous_date.is_some_and(|previous| changed_at <= previous) {
+                        diagnostics.push(format!(
+                            "proof_gap[invalid-review-date]: `{}` review must follow its prior entry",
+                            gap.feature
+                        ));
+                    }
                     previous_date = Some(changed_at);
                 }
                 Err(message) => diagnostics.push(format!(
@@ -144,6 +163,18 @@ pub(crate) fn validate_gap_transitions(
                 )),
             }
             expected_previous = transition.next_status.as_str();
+            previous_evidence = Some(transition.evidence_hash.as_str());
+        }
+
+        if history.last().is_some_and(|transition| {
+            transition.previous_status == "blocked"
+                && transition.next_status == "blocked"
+                && transition.changed_at != gap.blocker_updated_at
+        }) {
+            diagnostics.push(format!(
+                "proof_gap[review-date-drift]: `{}` latest review must match its blocker update date",
+                gap.feature
+            ));
         }
 
         if expected_previous != gap.lifecycle_status {

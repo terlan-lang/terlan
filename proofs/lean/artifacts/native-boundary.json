@@ -26,9 +26,9 @@
     "Terlan.NativeBoundary.typedVmDispatchAdmitted"
   ],
   "manifest_fingerprints": {
-    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:446d131865ad31a9285552adc93d99fd5242a03c7aa696c93aaa80d3992beef6",
+    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:dfa164d7f99485262d3b62b39e21e2c3131c9d39e50eb31c94da051eab17a955",
     "crates/terlan/src/runtime/native_boundary/dispatch/error.rs": "sha256:7f1dcd008575926d6d5965b73b43597fe6dd0e9c9ce75f9c883ae4433fd54e1b",
-    "crates/terlan/src/runtime/native_boundary/dispatch/value.rs": "sha256:e9c14f067bf485d74f825846c47bb7d1b6c70ad88326c64489a88a3d57a3b681",
+    "crates/terlan/src/runtime/native_boundary/dispatch/value.rs": "sha256:7a3de25dc93f31ce7ba2a09bb24126d2ea9c6afa134d86153700cfd301b78407",
     "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:845d662acd46e2783d4c6e10b621626aff0453a8c973b20a83f3532afb040242",
     "crates/terlan/src/runtime/native_boundary/runtime.rs": "sha256:ac5fc268b61a60dc09990e5951ac45b04c7d2e9600086a1cffa22850a9114c17",
     "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d",

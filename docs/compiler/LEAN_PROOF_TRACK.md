@@ -78,6 +78,11 @@ non-ignored test: a successful process with zero matching tests is not evidence.
   time, uses nondecreasing ISO dates and SHA-256 evidence, and must end at the
   status in the live gap manifest. Non-closed histories must end with the
   current blocker hash.
+- A blocked obligation may append a `blocked -> blocked` review without
+  rewriting its earlier history. It must have a later date, changed evidence,
+  and a non-empty `Review:` rationale; the latest review date must match the
+  blocker update date. Review is not remediation or closure and does not extend
+  an exception's expiry or the 30-day review policy.
 - A released exception uses `exception:<lane>@YYYY-MM-DD`, must name a fixed
   proof lane, must be approved by the remediation owner in the TOML record,
   and fails after its expiry while the gap is unresolved. The blocker update date
@@ -127,5 +132,5 @@ hygiene gate requires exactly one entry for every `closed` gap, verifies the
 digest against the current proof artifact inventory, and rejects entries for
 gaps that are not closed.
 
-- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary.
+- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:d5ef45a6ad1f4c5c40641f947a4e37aad5f4e573fd411e71ab0f443d17b31b18`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary. The September 25 review replayed the current artifact and synchronized this closure reference with the existing proof inventory.
 - Proof-gap closure: `native-boundary contracts` restored by `sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2`: executable theorems cover typed callsites, handle ownership and linearity, async policy, side-effect denial, and fail-closed usage, with row-level generated-manifest binding and VM runtime oracles.
