@@ -38,6 +38,7 @@ fn cold_refresh_plan_needs_no_prebuilt_executables() {
         "Makefile",
         "Cargo.toml",
         "mk/rust-coverage.mk",
+        "mk/hermetic-support.mk",
         "mk/code-quality.mk",
         "crates/terlan/cli.mk",
         "std/stdlib.mk",

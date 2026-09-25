@@ -51,6 +51,13 @@ fn fixture() -> Fixture {
         "[workspace.package]\nversion = \"0.0.8\"\n",
     )
     .unwrap();
+    // This fixture owns compiler admission/lifecycle. The separate support
+    // suite exercises the real hermetic bootstrap and its cold-build boundary.
+    fs::write(
+        fixture.0.join("mk/hermetic-support.mk"),
+        "TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS ?= 120\nhermetic-support-root:\n\tmkdir -p target/quality\n\tflock --exclusive --wait $(TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS) target/quality/bootstrap-owner.lock ./cargo build -p terlan-test-orchestrator -p terlan-build-cache </dev/null\n",
+    )
+    .unwrap();
     fs::create_dir_all(fixture.0.join("target/debug")).unwrap();
     fs::copy(
         env!("CARGO_BIN_EXE_terlan-test-orchestrator"),

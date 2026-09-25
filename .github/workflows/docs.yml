@@ -49,7 +49,9 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust

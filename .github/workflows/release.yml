@@ -158,7 +158,9 @@ jobs:
           persist-credentials: false
 
       - name: Install release utilities
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install workspace Rust toolchain
         uses: ./.github/actions/setup-rust
@@ -192,7 +194,9 @@ jobs:
           persist-credentials: false
 
       - name: Install release utilities
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install pinned Rust ThreadSanitizer target
         uses: ./.github/actions/setup-rust
@@ -235,7 +239,9 @@ jobs:
           persist-credentials: false
 
       - name: Install release utilities
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust

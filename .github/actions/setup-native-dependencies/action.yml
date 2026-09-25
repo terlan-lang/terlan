@@ -5,6 +5,10 @@ inputs:
   target:
     description: Terlan release platform identifier.
     required: true
+  lean:
+    description: Also install the Linux Lean toolchain manager.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -12,7 +16,18 @@ runs:
     - name: Install Linux native dependencies
       if: startsWith(inputs.target, 'linux-')
       shell: bash
-      run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+      env:
+        TERLAN_INSTALL_LEAN: ${{ inputs.lean }}
+      run: |
+        packages=(bubblewrap libpq-dev pkg-config ripgrep)
+        if [[ "$TERLAN_INSTALL_LEAN" == true ]]; then
+          packages+=(elan)
+        fi
+        sudo apt-get update
+        sudo apt-get install --yes "${packages[@]}"
+        # Hosted Ubuntu 24.04 requires this for the actual fail-closed sandbox,
+        # both at the validation-tool bootstrap and capability-worker boundary.
+        sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
 
     - name: Install macOS native dependencies
       if: startsWith(inputs.target, 'macos-')
