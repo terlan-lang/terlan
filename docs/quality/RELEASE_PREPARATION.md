@@ -4803,6 +4803,22 @@ outputs. Receipts bind the protocol revision too. A production-Make regression
 proves that an older binary upgrades once and the next invocation launches no
 Cargo build.
 
+The initial Cargo observation now lives in the bootstrap owner's reserved
+`target/quality/support-bootstrap.pending/cargo.jsonl` slot. The same exclusive
+bootstrap lease owns creation, receipt finalization and retirement. Shell exit
+traps remove this scratch after success, failure, timeout or catchable signals;
+a killed owner leaves identifiable residue which the next lease holder retires
+before considering any receipt. It waits for bounded descendants retaining the
+lease, rather than removing a live producer's scratch. Retirement rejects
+symlinked parents, redirected/nonregular observations and unexpected directory
+entries, preserving them for inspection. Completed receipts, test evidence and
+binaries are outside this reserved slot and are not removed.
+
+Production-Make fixtures cover successful cleanup, malformed/failed/interrupted
+builds, an actual SIGKILL of the bootstrap owner followed by resume and zero-build
+warm reuse, and preservation of unrecognized or symlinked paths. This cleanup
+does not resolve the separate first-build external-input admission requirement.
+
 The output audit additionally reproduced symlink-parent redirection of output
 and receipt paths (`/tmp/terlan-v9-owner-path-before.log`). The owner now rejects
 existing redirected/nonregular path components before launch and rechecks
