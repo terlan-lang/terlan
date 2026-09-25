@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "ed62db02760e811de54e0cffe8d680a9ce94fb3c22a564dc0098455d0a8a25b1",
+  "compilation_input_sha256": "ec8a8c1fa3d55dfdba25dfe25f840caf476cb4e9142e97b4169d6f48699a3147",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -844,7 +844,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 145933,
+      "physical_lines": 145959,
       "rust_files": 454
     },
     {
@@ -864,7 +864,7 @@
     },
     {
       "name": "vm",
-      "physical_lines": 3480,
+      "physical_lines": 3468,
       "rust_files": 12
     }
   ],
@@ -1260,7 +1260,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 80106,
+      "physical_lines": 80139,
       "rust_files": 339
     },
     {

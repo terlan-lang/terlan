@@ -68,14 +68,13 @@ impl VmPackageNativeHelpers {
     pub(crate) fn configure_storage(
         &mut self,
         bindings: &[VmStorageBinding],
-        worker: &std::path::Path,
     ) -> VmRuntimeResult<()> {
         if !self.storage_workers.is_empty() {
             return Err(
                 "error[vm.distributed_storage.binding]: storage is already configured".into(),
             );
         }
-        self.storage_workers = storage_transport::VmStorageWorkers::start(bindings, worker)?;
+        self.storage_workers = storage_transport::VmStorageWorkers::start_installed(bindings)?;
         self.distributed_storage.bind(
             bindings
                 .iter()
