@@ -26,21 +26,9 @@ pub(super) fn run_tvm_image(
 ) -> Result<(), String> {
     let mut shard = PureNativeExecutionShard::load_image(path)?;
     let mut helpers = VmPackageNativeHelpers::with_program_arguments(program_arguments.to_vec());
-    if !storage_bindings.is_empty() {
-        let executable = std::env::current_exe()
-            .map_err(|error| format!("error[vm.distributed_storage.executable]: {error}"))?;
-        let worker = executable
-            .parent()
-            .ok_or("error[vm.distributed_storage.executable]: missing executable directory")?
-            .join(if cfg!(windows) {
-                "terlan-native-worker.exe"
-            } else {
-                "terlan-native-worker"
-            });
-        helpers
-            .configure_storage(storage_bindings, &worker)
-            .map_err(String::from)?;
-    }
+    helpers
+        .configure_storage(storage_bindings)
+        .map_err(String::from)?;
     let result: Result<ReplValue, String> =
         execute_call(&mut shard, &mut helpers, entry, &[]).map_err(String::from);
     let shutdown = shard.shutdown();

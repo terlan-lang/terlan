@@ -2394,9 +2394,12 @@ tvm-aot-debugger-consumer-check: tvm-aot-consumer-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::native_debug_session_admits_built_image_and_resolves_breakpoint -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::native_debug_session_rejects_renamed_json_target -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::native_debug_session_rejects_stale_source_map -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::debug::debug_test::live_debugger_rejects_missing_process_and_frame_eval_with_stable_errors -- --exact
 	@rg -q 'PureNativeExecutionShard::load_image' crates/terlan/src/commands/debug/session.rs
 	@rg -q 'inspect_tvm_native_debug' crates/terlan/src/commands/debug/session.rs
-	@if rg -n 'struct TerlanVm|runtime::vm::TerlanVm|evaluate_[A-Za-z0-9_]*|apply_closure|\.tvm\.json|PureNativeWorker|Evaluator|evaluator' \
+# Pure debugger expressions use the production native REPL compilation path.
+# Reject retired runtime entry points, not the general verb "evaluate".
+	@if rg -n 'struct TerlanVm|runtime::vm::TerlanVm|evaluate_repl_function|apply_closure|\.tvm\.json|PureNativeWorker|Evaluator|evaluator' \
 		crates/terlan/src/commands/debug --glob '*.rs' --glob '!**/*test*'; then \
 		echo 'error[aot.debugger_consumer]: debugger admission must use a native image without evaluator or serialized-runtime fallback'; \
 		exit 1; \

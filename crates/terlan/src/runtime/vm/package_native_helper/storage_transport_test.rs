@@ -3,6 +3,39 @@
 use super::*;
 
 #[test]
+fn installed_storage_worker_is_selected_only_from_the_vm_directory() {
+    let root = tempfile::tempdir().unwrap();
+    let directory = root.path().canonicalize().unwrap().join("installed VM");
+    let executable = directory.join("terlan-vm");
+    let worker = installed_worker_path(&executable).unwrap();
+    assert_eq!(worker.parent(), Some(directory.as_path()));
+    assert_eq!(
+        worker.file_name().unwrap(),
+        if cfg!(windows) {
+            "terlan-native-worker.exe"
+        } else {
+            "terlan-native-worker"
+        }
+    );
+    for invalid in [
+        Path::new(""),
+        Path::new("terlan-vm"),
+        Path::new("relative/terlan-vm"),
+    ] {
+        assert!(installed_worker_path(invalid)
+            .unwrap_err()
+            .contains("absolute executable"));
+    }
+}
+
+#[test]
+fn unconfigured_actor_execution_does_not_require_an_installed_storage_worker() {
+    let mut helpers = super::super::VmPackageNativeHelpers::default();
+    helpers.configure_storage(&[]).unwrap();
+    assert!(helpers.storage_workers.is_empty());
+}
+
+#[test]
 fn storage_bindings_are_unique_and_bounded_before_worker_spawn() {
     let root = tempfile::tempdir().unwrap();
     let directory = root.path().canonicalize().unwrap();

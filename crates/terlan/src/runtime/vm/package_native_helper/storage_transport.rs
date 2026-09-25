@@ -12,6 +12,23 @@ use crate::runtime::vm::pure_native::{PureNativeCapabilityWait, PureNativeSuspen
 use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 
+/// Selects only the installed sibling worker; PATH and application input grant no authority.
+fn installed_worker_path(executable: &Path) -> VmRuntimeResult<PathBuf> {
+    if !executable.is_absolute() || executable.file_name().is_none() {
+        return Err(
+            "error[vm.distributed_storage.executable]: expected an absolute executable path".into(),
+        );
+    }
+    let directory = executable
+        .parent()
+        .ok_or("error[vm.distributed_storage.executable]: missing executable directory")?;
+    Ok(directory.join(if cfg!(windows) {
+        "terlan-native-worker.exe"
+    } else {
+        "terlan-native-worker"
+    }))
+}
+
 /// Explicit host authority, never constructed from an application's storage policy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VmStorageBinding {
@@ -100,6 +117,16 @@ pub(super) struct VmStorageWorkers {
 }
 
 impl VmStorageWorkers {
+    /// Resolves transport only for explicit authority, never for ordinary actor execution.
+    pub(super) fn start_installed(bindings: &[VmStorageBinding]) -> VmRuntimeResult<Self> {
+        if bindings.is_empty() {
+            return Ok(Self::default());
+        }
+        let executable = std::env::current_exe()
+            .map_err(|error| format!("error[vm.distributed_storage.executable]: {error}"))?;
+        Self::start(bindings, &installed_worker_path(&executable)?)
+    }
+
     /// Returns whether any supervisor-selected backend has been installed.
     pub(super) fn is_empty(&self) -> bool {
         self.backends.is_empty()
