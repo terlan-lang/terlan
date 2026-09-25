@@ -1812,6 +1812,11 @@ in order; close them only with passing implementation evidence.
     Register temporary outputs with their owner and clean them on success,
     failure, panic, timeout, cancellation, and signals. Interrupted residue
     must be identified before reuse. Never delete active evidence or source.
+    Hosted downloads now keep extraction, checksum, evidence-copy and cache
+    staging scratch in one reserved namespace under the download/restore
+    lease. Normal exits retire it; the next owner retires SIGKILL residue
+    before reuse. Unknown entries and redirected paths are rejected without
+    deleting their targets, and verified caches/evidence remain separate.
   - Apply byte/entry/age budgets and generation-safe cleanup to reusable caches;
     retain dependencies without accumulating obsolete candidate payloads.
   - Acceptance: cold preparation, unchanged warm preparation, and interrupted
