@@ -123,10 +123,7 @@ fn refresh_plan_counts_report_owner_and_rejects_missing_or_repeated_work() {
         .find("\npublish-evidence-refresh-plan-check:\n")
         .unwrap()
         + 1;
-    let end = source[start..]
-        .find("\npublish: publish-preflight")
-        .unwrap()
-        + start;
+    let end = source[start..].find("\npublish:\n").unwrap() + start;
     let producer = "$(MAKE) --no-print-directory -Bn publish-evidence-refresh";
     assert_eq!(source[start..end].matches(producer).count(), 1);
     let recipe = source[start..end].replace(producer, "$(FIXTURE_MAKE)");

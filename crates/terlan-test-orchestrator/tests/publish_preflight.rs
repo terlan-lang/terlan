@@ -254,29 +254,30 @@ fn interrupted_upload_retry_runs_no_preparation_work() {
     }
     let _cleanup = Cleanup(root.clone());
     fs::create_dir(root.join("bin")).unwrap();
+    fs::create_dir(root.join("scripts")).unwrap();
     executable(
-        &root.join("bin/git"),
+        &root.join("scripts/publish_release_from_dist.sh"),
         r#"#!/bin/sh
-printf 'git %s\n' "$*" >> "$PUBLISH_RETRY_LOG"
-if [ "$1" = rev-parse ]; then
+set -eu
+test "$1" = fixture && test "$2" = --promote
+if read value; then exit 91; fi
+printf 'verify\nupload\n' >> "$PUBLISH_RETRY_LOG"
+if [ ! -e "$PUBLISH_RETRY_FAILED" ]; then
+    : > "$PUBLISH_RETRY_FAILED"
     exit 1
 fi
-exit 0
+printf 'promotion\n' >> "$PUBLISH_RETRY_LOG"
 "#,
     );
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let begin = source.find("\npublish: publish-preflight\n").unwrap() + 1;
+    let begin = source.find("\npublish:\n").unwrap() + 1;
     let end = source[begin..]
         .find("\npublish-release-from-dist:")
         .unwrap()
         + begin;
     let mut makefile = String::from("SHELL := /bin/bash\nVERSION := fixture\n");
-    makefile.push_str(".PHONY: publish-preflight publish-release-from-dist publish\n");
-    makefile.push_str("publish-preflight:\n\t@printf 'verify\\n' >> \"$(PUBLISH_RETRY_LOG)\"\n");
-    makefile.push_str(
-        "publish-release-from-dist:\n\t@printf 'upload\\n' >> \"$(PUBLISH_RETRY_LOG)\"\n\t@if [ ! -e \"$(PUBLISH_RETRY_FAILED)\" ]; then : > \"$(PUBLISH_RETRY_FAILED)\"; exit 1; fi\n\t@printf 'promotion\\n' >> \"$(PUBLISH_RETRY_LOG)\"\n",
-    );
+    makefile.push_str(".PHONY: publish\n");
     makefile.push_str(&source[begin..end]);
     fs::write(root.join("Makefile"), makefile).unwrap();
     let log = root.join("operations");
@@ -306,7 +307,7 @@ exit 0
     );
     assert_eq!(
         fs::read_to_string(&log).unwrap(),
-        "verify\ngit rev-parse -q --verify refs/tags/vfixture\ngit tag --annotate vfixture --message Terlan vfixture\ngit push origin main\ngit push origin vfixture\nupload\nverify\ngit rev-parse -q --verify refs/tags/vfixture\ngit tag --annotate vfixture --message Terlan vfixture\ngit push origin main\ngit push origin vfixture\nupload\npromotion\n"
+        "verify\nupload\nverify\nupload\npromotion\n"
     );
 }
 
@@ -320,7 +321,8 @@ fn publication_asset_upload_has_outer_deadline() {
         .map(|(recipe, _)| recipe)
         .expect("publication target must define a recipe");
     assert!(
-        target.contains("timeout 900s bash scripts/publish_release_from_dist.sh"),
+        target.contains("timeout --kill-after=10s 900s bash scripts/publish_release_from_dist.sh")
+            && target.ends_with("</dev/null"),
         "publication asset upload must be bounded by an outer timeout"
     );
 }
@@ -330,7 +332,7 @@ fn publication_retry_path_contains_no_preparation_or_refresh_targets() {
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
     let start = source
-        .find("\npublish: publish-preflight\n")
+        .find("\npublish:\n")
         .expect("publish target must exist")
         + 1;
     let end = source[start..]
@@ -351,8 +353,16 @@ fn publication_retry_path_contains_no_preparation_or_refresh_targets() {
             "publication retry path must not replay {forbidden}"
         );
     }
-    assert!(target.contains("publish-preflight"));
-    assert!(target.contains("publish-release-from-dist"));
+    assert!(target.contains("scripts/publish_release_from_dist.sh"));
+    assert!(target.contains("timeout --kill-after=10s 1800s"));
+    assert!(target.contains("--promote </dev/null"));
+    let publisher = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../scripts/publish_release_from_dist.sh"),
+    )
+    .unwrap();
+    assert!(publisher.contains("make --no-print-directory publish-preflight"));
+    assert!(!publisher.contains("publish-prepare"));
+    assert!(!publisher.contains("publish-evidence-refresh"));
 }
 
 #[test]

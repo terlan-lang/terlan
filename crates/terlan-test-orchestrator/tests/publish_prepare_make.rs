@@ -416,19 +416,30 @@ fn full_candidate_rehearsal_covers_cold_warm_resume_and_upload_retry() {
     let fixture = fixture();
     let make_path = fixture.0.join("Makefile");
     let mut make = fs::read_to_string(&make_path).unwrap();
-    make.push_str(
-        r#"
-.PHONY: publish publish-preflight publish-release-from-dist
-publish: publish-preflight
-	@$(MAKE) --no-print-directory publish-release-from-dist
-publish-preflight:
-	@printf 'verify\n' >> "$(FIXTURE_PUBLISH_LOG)"
-publish-release-from-dist:
-	@printf 'upload\n' >> "$(FIXTURE_PUBLISH_LOG)"
-	@if [ ! -e "$(FIXTURE_UPLOAD_FAILED)" ]; then : > "$(FIXTURE_UPLOAD_FAILED)"; exit 1; fi
-	@printf 'promotion\n' >> "$(FIXTURE_PUBLISH_LOG)"
+    let source =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let start = source.find("\npublish:\n").unwrap();
+    let end = start
+        + source[start..]
+            .find("\npublish-release-from-dist:")
+            .unwrap();
+    make.push_str("\n.PHONY: publish\n");
+    make.push_str(&source[start..end]);
+    fs::create_dir_all(fixture.0.join("scripts")).unwrap();
+    fs::write(
+        fixture.0.join("scripts/publish_release_from_dist.sh"),
+        r#"#!/bin/sh
+set -eu
+test "$2" = --promote
+printf 'verify\nupload\n' >> "$FIXTURE_PUBLISH_LOG"
+if [ ! -e "$FIXTURE_UPLOAD_FAILED" ]; then
+    : > "$FIXTURE_UPLOAD_FAILED"
+    exit 1
+fi
+printf 'promotion\n' >> "$FIXTURE_PUBLISH_LOG"
 "#,
-    );
+    )
+    .unwrap();
     fs::write(&make_path, make).unwrap();
 
     let run_preparation = |fixture: &Fixture, mode: &str, fault: &str| {

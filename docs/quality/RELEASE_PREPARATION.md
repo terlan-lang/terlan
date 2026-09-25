@@ -360,6 +360,17 @@ formatting closeout gates passed in `target/v9-process-inventory-quality.log`.
 
 ## Publication tag discovery
 
+`make publish` enters the existing uploader in promotion mode, with an outer
+30-minute deadline and closed stdin. It acquires the repository-common publication
+lease plus preparation/restoration leases before invoking preflight, and retains
+them through tag handling and upload. Preflight borrows the preparation descriptor
+instead of reopening its lock. A failed preflight cannot create or push a tag.
+The upload-only entry point retains its 15-minute deadline and requires an existing
+exact annotated tag. Matching retries preserve the tag object and reuse verified
+uploads; neither path prepares or refreshes a candidate. Dry-run Make invocations
+do not acquire leases or perform Git operations. These locks coordinate linked
+worktrees, not independent clones or remote publishers.
+
 Publication source preflight reads checkout status once and stops before network
 access on failed inspection or uncommitted changes. It reads the remote tag
 object and peeled commit in one `git ls-remote` invocation. A failed query means unknown remote state, never
