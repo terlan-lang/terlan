@@ -5,6 +5,8 @@ set -euo pipefail
 #
 # Inputs:
 # - First argument: release version without leading v.
+# - Optional --promote: run publication preflight and tag/push under the same
+#   ownership scope. Without this flag the exact annotated tag must exist.
 # - dist/terlc-* artifacts downloaded from and smoke-tested by the exact
 #   successful release-validation workflow.
 # - CHANGELOG.md section matching the version.
@@ -31,11 +33,16 @@ if [[ "$version" == v* ]]; then
   echo "release version must not include leading v: $version" >&2
   exit 2
 fi
+mode="${2:-}"
+if [[ "$#" -gt 2 || ( -n "$mode" && "$mode" != --promote ) ]]; then
+  echo "usage: scripts/publish_release_from_dist.sh <version-without-v> [--promote]" >&2
+  exit 2
+fi
 
 tag="v$version"
 
 # Serialize local publishers across worktrees, then exclude preparation and
-# distribution restoration for the entire verification/upload interval. Other
+# distribution restoration for the entire preflight/tag/upload interval. Other
 # clones/hosts still require one coordinated publisher; this is not a remote
 # GitHub compare-and-swap or distributed lease.
 regular_lock() {
@@ -92,12 +99,24 @@ retire_publication_scratch() {
 }
 retire_publication_scratch
 
+if [[ "$mode" == --promote ]]; then
+  # All prerequisites remain read-only verification: never prepare or refresh
+  # a candidate during publication. Borrow fd 9 when a verifier needs its owner.
+  export TERLAN_PREPARATION_LOCK_HELD=1
+  make --no-print-directory publish-preflight VERSION="$version" </dev/null
+  if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+    git tag --annotate "$tag" --message "Terlan $tag"
+  fi
+  git push origin main
+  git push origin "$tag"
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "publish requires GitHub CLI: install gh and run gh auth login" >&2
   exit 127
 fi
 
-if ! gh auth status >/dev/null 2>&1; then
+if [[ "$mode" != --promote ]] && ! gh auth status >/dev/null 2>&1; then
   echo "publish requires authenticated GitHub CLI: run gh auth login" >&2
   exit 1
 fi

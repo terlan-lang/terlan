@@ -222,3 +222,131 @@ fn unknown_scratch_entries_are_preserved_without_contacting_github() {
     );
     assert!(!fixture.root.join("publisher-calls").exists());
 }
+
+fn promotion_fixture() -> Fixture {
+    let fixture = fixture();
+    fixture.git(&["tag", "-d", "vfixture"]);
+    let source =
+        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let start = source.find("\npublish:\n").unwrap() + 1;
+    let end = start
+        + source[start..]
+            .find("\npublish-release-from-dist:")
+            .unwrap();
+    let preflight = r#"
+.PHONY: publish publish-preflight
+publish-preflight:
+	@printf 'preflight\n' >> "$$PUBLICATION_CALLS"
+	@test "$$TERLAN_PREPARATION_LOCK_HELD" = 1
+	@test /dev/fd/7 -ef .git/terlan-publication.lock
+	@test /dev/fd/8 -ef target/publication-inputs.lock
+	@test /dev/fd/9 -ef target/quality/preparation.lock
+	@for lock in .git/terlan-publication.lock target/publication-inputs.lock target/quality/preparation.lock; do \
+		if flock --nonblock "$$lock" /bin/true; then exit 92; fi; \
+	done
+	@if read value; then exit 91; fi
+	@test "$$PUBLICATION_MODE" != preflight-failure
+"#;
+    fs::write(
+        fixture.root.join("checkout/Makefile"),
+        format!("SHELL := /bin/bash\n{}{preflight}", &source[start..end]),
+    )
+    .unwrap();
+    fixture
+}
+
+fn promote(fixture: &Fixture, mode: &str, dry_run: bool) -> Result<(), Failure> {
+    let mut shell = command(fixture, "checkout", mode);
+    for key in [
+        "MAKEFLAGS",
+        "MAKEOVERRIDES",
+        "MFLAGS",
+        "GNUMAKEFLAGS",
+        "MAKEFILES",
+    ] {
+        shell.env_remove(key);
+    }
+    shell.args([
+        "-ec",
+        if dry_run {
+            "exec make --no-print-directory -n publish VERSION=fixture"
+        } else {
+            "exec make --no-print-directory publish VERSION=fixture"
+        },
+    ]);
+    ProcessControl::new(Duration::from_secs(15)).run(&mut shell, |_| Ok(()))
+}
+
+fn remote_tag(fixture: &Fixture) -> Option<String> {
+    let output = fixture
+        .command()
+        .args([
+            "--git-dir=../remote.git",
+            "rev-parse",
+            "--verify",
+            "refs/tags/vfixture",
+        ])
+        .output()
+        .unwrap();
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8(output.stdout).unwrap())
+}
+
+#[test]
+fn make_publication_takes_all_owners_before_preflight_or_tagging() {
+    for lock in [
+        ".git/terlan-publication.lock",
+        "target/quality/preparation.lock",
+        "target/publication-inputs.lock",
+    ] {
+        let fixture = promotion_fixture();
+        let file = File::create(fixture.root.join("checkout").join(lock)).unwrap();
+        file.lock().unwrap();
+        assert!(promote(&fixture, "failure", false).is_err());
+        assert!(!fixture.root.join("publisher-calls").exists());
+        assert!(remote_tag(&fixture).is_none());
+    }
+}
+
+#[test]
+fn make_publication_preflight_failure_cannot_tag_or_upload() {
+    let fixture = promotion_fixture();
+    assert!(promote(&fixture, "preflight-failure", false).is_err());
+    assert_eq!(
+        fs::read_to_string(fixture.root.join("publisher-calls")).unwrap(),
+        "preflight\n"
+    );
+    assert!(remote_tag(&fixture).is_none());
+    assert!(!fixture
+        .root
+        .join("checkout/.git/refs/tags/vfixture")
+        .exists());
+}
+
+#[test]
+fn make_publication_keeps_tag_identity_on_retry_and_holds_preflight_leases() {
+    let fixture = promotion_fixture();
+    assert!(promote(&fixture, "failure", false).is_err());
+    let tag = remote_tag(&fixture).expect("fixture preflight admitted the tag");
+    assert!(promote(&fixture, "failure", false).is_err());
+    assert_eq!(remote_tag(&fixture).unwrap(), tag);
+    assert_eq!(
+        fs::read_to_string(fixture.root.join("publisher-calls")).unwrap(),
+        "preflight\ngh\nplan\npreflight\ngh\nplan\n"
+    );
+    assert!(!fixture.root.join("checkout").join(SCRATCH).exists());
+}
+
+#[test]
+fn make_publication_dry_run_never_takes_owners_or_creates_tags() {
+    let fixture = promotion_fixture();
+    promote(&fixture, "failure", true).unwrap();
+    assert!(!fixture.root.join("publisher-calls").exists());
+    assert!(remote_tag(&fixture).is_none());
+    assert!(!fixture
+        .root
+        .join("checkout/.git/terlan-publication.lock")
+        .exists());
+}

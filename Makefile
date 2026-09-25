@@ -5429,16 +5429,11 @@ publish-evidence-refresh-plan-check:
 	fi; \
 	echo "[publish-evidence-refresh-plan] cargo=$$cargo_count exact-isolated=$$exact_count duplicate-builds=0"
 
-publish: publish-preflight
-	@if ! git rev-parse -q --verify "refs/tags/v$(VERSION)" >/dev/null; then \
-		git tag --annotate "v$(VERSION)" --message "Terlan v$(VERSION)"; \
-	fi
-	git push origin main
-	git push origin "v$(VERSION)"
-	$(MAKE) publish-release-from-dist VERSION=$(VERSION)
+publish:
+	timeout --kill-after=10s 1800s bash scripts/publish_release_from_dist.sh "$(VERSION)" --promote </dev/null
 
 publish-release-from-dist:
-	timeout 900s bash scripts/publish_release_from_dist.sh "$(VERSION)"
+	timeout --kill-after=10s 900s bash scripts/publish_release_from_dist.sh "$(VERSION)" </dev/null
 
 release-promotion-pipeline-check: terlan-release-promotion-bootstrap release-preparation-contract-check
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
