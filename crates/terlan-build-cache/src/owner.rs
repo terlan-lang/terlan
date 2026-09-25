@@ -17,6 +17,8 @@ use terlan_process_owner::ProcessControl;
 
 #[path = "owner_bootstrap.rs"]
 mod bootstrap;
+#[path = "owner_environment.rs"]
+mod environment;
 
 const SCHEMA: &str = "terlan.build-owner.v1";
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024 * 1024;
@@ -29,6 +31,7 @@ struct Options {
     outputs: Vec<PathBuf>,
     command: Option<Command>,
     completed_cargo_log: Option<PathBuf>,
+    environment: environment::Snapshot,
 }
 
 /// Runs a receipt-backed producer, returning false only for a producer failure.
@@ -49,6 +52,7 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
 
     let cargo_observation = if let Some(command) = options.command.as_mut() {
         command.current_dir(root);
+        options.environment.configure(command);
         if let Err(error) = ProcessControl::new(options.timeout).run(command, |_| Ok(())) {
             eprintln!("error[build.owner.{}]: {}", error.kind, error.detail);
             return Ok(false);
@@ -68,6 +72,7 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
         "schema": SCHEMA,
         "outcome": "pass",
         "input_sha256": options.input_sha256,
+        "environment_sha256": options.environment.digest(),
         "outputs": outputs,
     });
     if let Some(observation) = cargo_observation {
@@ -167,6 +172,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
         outputs,
         command,
         completed_cargo_log,
+        environment: environment::Snapshot::capture()?,
     })
 }
 
@@ -240,6 +246,8 @@ fn reusable(options: &Options) -> io::Result<bool> {
     if document.get("schema").and_then(Value::as_str) != Some(SCHEMA)
         || document.get("outcome").and_then(Value::as_str) != Some("pass")
         || document.get("input_sha256").and_then(Value::as_str) != Some(&options.input_sha256)
+        || document.get("environment_sha256").and_then(Value::as_str)
+            != Some(options.environment.digest())
     {
         return Ok(false);
     }
