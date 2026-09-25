@@ -1577,31 +1577,33 @@ lean-proof-smoke-check: proof-repro-check lean-proof-native-boundary-check
 lean-proof-lanes-check: lean-proof-smoke-check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-semantic-kernels-check
 	$(TERLAN_PROOF_LANES_RUN)
 
+TERLAN_PROOF_BINDING_RUN = target/debug/terlc test --incremental scripts/self_validation/LeanProofFeatureBindingTest.terl
+TERLAN_PROOF_SNAPSHOT_RUN = target/debug/terlc test --incremental scripts/self_validation/LeanProofSnapshotTest.terl
+TERLAN_PROOF_SNAPSHOT_SELECTED_RUN = $(TERLAN_PROOF_SNAPSHOT_RUN) --name selected_snapshot_task_holds
+TERLAN_OWNED_PROOF_BINDING = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-proof-binding "target/debug/terlc"
+
 lean-proof-feature-binding-contract-check: lean-proof-lanes-check
-	target/debug/terlc test scripts/self_validation/LeanProofFeatureBindingTest.terl
+	$(TERLAN_PROOF_BINDING_RUN)
 
 lean-proof-feature-binding-check: lean-proof-feature-binding-contract-check
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_SNAPSHOT_TASK=diff \
-		target/debug/terlc test scripts/self_validation/LeanProofSnapshotTest.terl
+		$(TERLAN_PROOF_SNAPSHOT_RUN)
 
 lean-proof-change-impact-report: lean-proof-feature-binding-check
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_SNAPSHOT_TASK=impact \
-		target/debug/terlc test scripts/self_validation/LeanProofSnapshotTest.terl \
-			--name selected_snapshot_task_holds
+		$(TERLAN_PROOF_SNAPSHOT_SELECTED_RUN)
 
 lean-proof-feature-binding-review: lean-proof-change-impact-report
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_SNAPSHOT_TASK=review \
-		target/debug/terlc test scripts/self_validation/LeanProofSnapshotTest.terl \
-			--name selected_snapshot_task_holds
+		$(TERLAN_PROOF_SNAPSHOT_SELECTED_RUN)
 
 lean-proof-snapshot-consistency-check: lean-proof-feature-binding-review
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_SNAPSHOT_TASK=snapshot \
-		target/debug/terlc test scripts/self_validation/LeanProofSnapshotTest.terl \
-			--name selected_snapshot_task_holds
+		$(TERLAN_PROOF_SNAPSHOT_SELECTED_RUN)
 
 lean-proof-counterexample-check:
 	target/debug/terlc test scripts/self_validation/LeanProofCounterexampleTest.terl
@@ -1720,6 +1722,12 @@ release-preparation-proof-smoke-check: | terlan-release-promotion-bootstrap
 .PHONY: release-preparation-proof-lanes-check
 release-preparation-proof-lanes-check: | terlan-release-promotion-bootstrap
 	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-lanes-self-test
+
+.PHONY: release-preparation-proof-binding-check
+release-preparation-proof-binding-check: | terlan-release-promotion-bootstrap
+	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-binding-self-test
+
+release-preparation-proof-check: release-preparation-proof-binding-check
 
 lean-proof-track-gap-hygiene-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_gap_hygiene
@@ -5281,6 +5289,11 @@ lean-proof-native-boundary-check: TERLAN_PROOF_NATIVE_BOUNDARY_RUN = $(TERLAN_OW
 lean-proof-native-boundary-check: proof-repro-check
 lean-proof-native-boundary-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
 lean-proof-lanes-check: TERLAN_PROOF_LANES_RUN = $(TERLAN_OWNED_PROOF_LANES)
+lean-proof-feature-binding-contract-check: TERLAN_PROOF_BINDING_RUN = $(TERLAN_OWNED_PROOF_BINDING)
+lean-proof-feature-binding-contract-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
+# The binding owner executes and seals the entire ordered snapshot chain once.
+lean-proof-feature-binding-check: TERLAN_PROOF_SNAPSHOT_RUN =
+lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check: TERLAN_PROOF_SNAPSHOT_SELECTED_RUN =
 lean-proof-lanes-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
 lean-proof-track-runtime-check: publish-evidence-source-prerequisites
 lean-proof-smoke-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory

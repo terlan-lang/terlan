@@ -1,0 +1,230 @@
+/**
+ * One feature-matrix owner and one ordered, daily snapshot producer.
+ * Every output is staged by the existing preparation transaction protocol.
+ */
+module release_promotion.PrepareProofBinding.
+
+import release_promotion.{OwnerArtifacts, OwnerStorage, OwnerTools, PreparationContext, PreparationGraph, PreparationOwner}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.
+import std.system.Process.{environment_entry}.
+import std.time.Date.
+
+import type release_promotion.OwnerArtifacts.Artifact.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.{Node, Summary}.
+import type release_promotion.PreparationOwner.Owner.
+import type std.core.Result.
+
+pub matrix_header(): String ->
+    "slice_id\tfeature_class\tlane_id\tcoverage_status\towner\tproof_family_ids\tgap_ids\tblocker_hash".
+
+artifact_path(name: String): String ->
+    String.append("target/quality/proof-artifacts/", name).
+
+matrix_owner(root: String, compiler: String, context: Context): Owner ->
+    PreparationOwner.with_output(
+        PreparationOwner.owner(
+            "proof-feature-binding",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-feature-binding",
+            context.runtime_tools,
+            context.sources,
+            [
+                compiler,
+                artifact_path("lean-proof-gate.json"),
+                artifact_path("lean-proof-repro-report.json"),
+            ],
+            OwnerStorage.child(root, compiler),
+            ["test", "--incremental", "scripts/self_validation/LeanProofFeatureBindingTest.terl"],
+            List.concat(
+                context.environment,
+                [environment_entry("TERLAN_LEAN_FEATURE_BINDING_ROOT", root)],
+            ),
+            artifact_path("lean-proof-coverage-matrix.tsv"),
+            "TERLAN_PROOF_BINDING_MATRIX_OUTPUT",
+            "table",
+            "Lean proof feature binding passed:",
+            1800000,
+        ),
+        OwnerArtifacts.declare_tsv(
+            artifact_path("lean-proof-coverage-matrix.tsv"),
+            "TERLAN_PROOF_BINDING_MATRIX_OUTPUT",
+            matrix_header(),
+        ),
+    ).
+
+snapshot_file(day: String, name: String, variable: String, schema: String): Artifact ->
+    OwnerArtifacts.declare_artifact(
+        artifact_path(String.concat(["lean-proof-snapshots/", day, "/", name])),
+        variable,
+        schema,
+    ).
+
+snapshot_outputs(day: String): List[Artifact] ->
+    [
+        OwnerArtifacts.declare_artifact(
+            artifact_path("lean-proof-change-impact.json"),
+            "TERLAN_PROOF_BINDING_IMPACT_OUTPUT",
+            "terlan.lean-proof-change-impact.v1",
+        ),
+        OwnerArtifacts.declare_artifact(
+            artifact_path("lean-proof-binding-review.json"),
+            "TERLAN_PROOF_BINDING_REVIEW_OUTPUT",
+            "terlan.lean-proof-binding-review.v1",
+        ),
+        snapshot_file(
+            day,
+            "canonical-index.json",
+            "TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT",
+            "terlan.lean-proof-snapshot.v1",
+        ),
+        snapshot_file(
+            day,
+            "diff.json",
+            "TERLAN_PROOF_SNAPSHOT_DIFF_OUTPUT",
+            "terlan.lean-proof-binding-diff.v1",
+        ),
+        snapshot_file(
+            day,
+            "impact.json",
+            "TERLAN_PROOF_SNAPSHOT_IMPACT_OUTPUT",
+            "terlan.lean-proof-change-impact.v1",
+        ),
+        snapshot_file(
+            day,
+            "review.json",
+            "TERLAN_PROOF_SNAPSHOT_REVIEW_OUTPUT",
+            "terlan.lean-proof-binding-review.v1",
+        ),
+        snapshot_file(
+            day,
+            "policy-result.json",
+            "TERLAN_PROOF_SNAPSHOT_POLICY_OUTPUT",
+            "terlan.lean-proof-policy-result.v1",
+        ),
+        OwnerArtifacts.declare_tsv(
+            artifact_path(String.concat(["lean-proof-snapshots/", day, "/coverage-matrix.tsv"])),
+            "TERLAN_PROOF_SNAPSHOT_MATRIX_OUTPUT",
+            matrix_header(),
+        ),
+    ].
+
+snapshot_owner(root: String, compiler: String, context: Context, day: String): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "proof-binding-snapshot",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-binding-snapshot",
+            context.runtime_tools,
+            context.sources,
+            [compiler],
+            OwnerStorage.child(root, compiler),
+            ["test", "--incremental", "scripts/self_validation/LeanProofSnapshotTest.terl"],
+            List.concat(
+                context.environment,
+                [
+                    environment_entry("TERLAN_LEAN_PROOF_ROOT", root),
+                    environment_entry("TERLAN_LEAN_SNAPSHOT_TASK", "all"),
+                    environment_entry("TERLAN_PROOF_BINDING_DATE", day),
+                ],
+            ),
+            artifact_path("lean-proof-binding-diff.json"),
+            "TERLAN_PROOF_BINDING_DIFF_OUTPUT",
+            "terlan.lean-proof-binding-diff.v1",
+            "[lean-proof-snapshot] consistency passed:",
+            1800000,
+        ),
+        snapshot_outputs(day),
+    ).
+
+/**
+ * The matrix remains reusable across UTC-day changes; only daily policy
+ * review/snapshot output is invalidated. Parent receipts bind matrix changes.
+ */
+pub declare(
+    root: String,
+    compiler: String,
+    context: Context,
+    day: String,
+): Result[List[Node], String] ->
+    let {
+        true <- PreparationContext.tool_path(compiler);
+        Some(_date) <- Date.parse_iso(day)
+    } else {
+        _ -> Err("feature binding requires a target/ compiler and valid UTC day")
+    };
+    (let matrix = matrix_owner(root, compiler, context);
+let snapshot = snapshot_owner(root, compiler, context, day);
+Ok(
+    [
+        PreparationGraph.declare_node(matrix, []),
+        PreparationGraph.declare_node(snapshot, [matrix.name]),
+    ],
+)).
+
+valid_identity(source: String): Bool ->
+    let {
+        Ok(identity) <- Json.parse(source);
+        Some("terlan.native-toolchain-identity.v1") <- OwnerStorage.text(identity, "schema");
+        Some("x86_64-unknown-linux-gnu") <- OwnerStorage.text(identity, "target")
+    } else {
+        _ -> false
+    };
+    true.
+
+pub prepare(root: String, compiler: String): Result[Summary, String] ->
+    let day = Date.to_iso(Date.today_utc());
+    let {
+        true <- PreparationContext.tool_path(compiler);
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(tools) <-
+            OwnerTools.run(
+                root,
+                OwnerStorage.child(root, compiler),
+                ["build", "--print-toolchain-identity"],
+                context.environment,
+            );
+        true <- valid_identity(tools);
+        Ok(nodes) <-
+            declare(
+                root,
+                compiler,
+                PreparationContext.from_parts(
+                    context.revision,
+                    context.sources,
+                    context.environment,
+                    String.concat([context.runtime_tools, "\n", tools]),
+                ),
+                day,
+            )
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("feature binding compiler identity is invalid")
+    };
+    (let result = PreparationGraph.run_locked(root, "proof-binding", nodes);
+if {
+    Date.to_iso(Date.today_utc()) != day -> Err("feature binding UTC date changed during preparation; retry with current date");
+    true -> Ok(result)
+}).
+
+pub run_locked(root: String, compiler: String): Bool ->
+    let Ok(result) <- prepare(root, compiler) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let _printed =
+    Console.println(
+        if {
+            result.valid -> "[preparation] feature binding and daily snapshot verified";
+            true -> result.message
+        },
+    );
+result.valid).

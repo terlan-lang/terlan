@@ -367,20 +367,23 @@ pub repository_feature_binding_holds(): Bool ->
         Err(_reason) -> fail("feature binding inputs could not be read")
     }.
 
+matrix_output(root: String): String ->
+    environment_or(
+        "TERLAN_PROOF_BINDING_MATRIX_OUTPUT",
+        child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
+    ).
+
 write_matrix(root: String, gaps: String): Bool ->
     let Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts")) else {
         _ -> fail("coverage matrix directory could not be created")
     };
-    case write_text(
-    child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
-    current_expected_matrix(gaps),
-) {
+    case write_text(matrix_output(root), current_expected_matrix(gaps)) {
         Ok(Unit) -> report_success(root);
         Err(_reason) -> fail("coverage matrix could not be written")
     }.
 
 report_success(root: String): Bool ->
-    case Hash.sha256_file(child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv")) {
+    case Hash.sha256_file(matrix_output(root)) {
         Ok(digest) ->
             let _printed =
                 println(

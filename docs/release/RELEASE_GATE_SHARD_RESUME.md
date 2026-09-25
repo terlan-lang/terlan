@@ -86,3 +86,24 @@ It is not evidence that an interrupted candidate actually resumed successfully.
 That claim requires preparation-owner records and executed cold/warm/interrupted
 acceptance demonstrating the same pass/fail result, diagnostics, report contents,
 benchmark inclusion and support-bundle paths as the canonical serial run.
+
+## Proof-binding preparation
+
+Publication preparation assigns the feature matrix to `proof-feature-binding`
+and the ordered diff, impact, review and snapshot chain to
+`proof-binding-snapshot`. The latter depends on the matrix receipt and stages
+all nine JSON/TSV outputs before committing them. Failed production cannot
+replace the last successful snapshot. The compiler identity, source files,
+upstream reports and output contracts participate in reuse decisions.
+
+The snapshot owner binds the current UTC date so dated policy decisions are
+not reused on a later day; the matrix can still be reused. A UTC rollover
+during preparation rejects the invocation and requires a retry. The ordinary
+developer targets retain their individual commands, while the owned publication
+path executes the snapshot test module once with `TERLAN_LEAN_SNAPSHOT_TASK=all`.
+It does not replay that module for each dependent Make target.
+
+Run `make release-preparation-proof-binding-check` for isolated cold/warm,
+changed-input, day-change, partial-failure and corrupt-output recovery tests.
+These fixture checks do not approve changes to the accepted proof baseline
+and cannot substitute for current-candidate proof evidence.

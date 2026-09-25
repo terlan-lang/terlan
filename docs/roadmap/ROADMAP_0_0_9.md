@@ -50,6 +50,19 @@ path redirection. These component checks do not close V9-1 or authorize a releas
 Linux hosted jobs now share the sandbox prerequisites through native-dependency
 setup; local builds never change host namespace policy.
 
+The September 25 candidate's platform/security/sanitizer validation passed,
+but Compiler CI rejected the graph-timeout argument in a stale Make contract.
+The corrected contract passes its 12 focused tests without weakening live
+coverage ownership. The user-approved feature-binding synchronization retains
+all seven blocked entries and their September 30 expiry; the matrix/snapshot
+source tests and five counterexample tests pass locally. These results do not
+replace fresh exact-candidate CI or close any release checklist item.
+The matrix and daily snapshot producers now share the preparation-owner
+protocol. Their compiled recovery rehearsal verifies zero-launch warm reuse,
+day-scoped invalidation, preservation after partial failure and selective
+corruption repair. The publication Make path runs the snapshot module once;
+these focused checks do not constitute full-candidate recovery acceptance.
+
 0.0.9 is not release-ready. Finish the supported local storage API audit and the
 existing build/release acceptance gates; do not start consensus or provider
 architecture work in this release. The former test-only cluster success claims

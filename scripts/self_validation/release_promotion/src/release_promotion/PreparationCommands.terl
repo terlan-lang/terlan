@@ -3,13 +3,15 @@
  */
 module release_promotion.PreparationCommands.
 
-import release_promotion.{NativeActivity, OwnerDirectoryOwnerTest, OwnerDirectoryTest, PreparationAotTest, PreparationCandidateTest, PreparationContractTest, PreparationGraphTest, PreparationLocalReportsTest, PreparationMulticoreTest, PreparationOwnerTest, PreparationProofKernelsTest, PreparationProofLanesTest, PreparationProofNativeBoundaryTest, PreparationProofPolicyTest, PreparationProofTest, PreparationProofTrackTest, PreparationReadinessTest, PreparationReleaseReportsTest, PreparationStagedDistributionTest, PrepareAotRelease, PrepareContracts, PrepareLocalReports, PrepareManagedList, PrepareMulticoreRelease, PrepareProofKernels, PrepareProofLanes, PrepareProofNativeBoundary, PrepareProofPolicy, PrepareProofRelease, PrepareProofSmoke, PrepareProofTrack, PrepareReadiness, PrepareReleaseReports, PrepareStagedDistribution, ProcessActivityTest, ProofInputsTest, PublicationCache, PublicationCacheTest}.
+import release_promotion.{NativeActivity, OwnerDirectoryOwnerTest, OwnerDirectoryTest, PreparationAotTest, PreparationCandidateTest, PreparationContractTest, PreparationGraphTest, PreparationLocalReportsTest, PreparationMulticoreTest, PreparationOwnerTest, PreparationProofBindingTest, PreparationProofKernelsTest, PreparationProofLanesTest, PreparationProofNativeBoundaryTest, PreparationProofPolicyTest, PreparationProofTest, PreparationProofTrackTest, PreparationReadinessTest, PreparationReleaseReportsTest, PreparationStagedDistributionTest, PrepareAotRelease, PrepareContracts, PrepareLocalReports, PrepareManagedList, PrepareMulticoreRelease, PrepareProofBinding, PrepareProofKernels, PrepareProofLanes, PrepareProofNativeBoundary, PrepareProofPolicy, PrepareProofRelease, PrepareProofSmoke, PrepareProofTrack, PrepareReadiness, PrepareReleaseReports, PrepareStagedDistribution, ProcessActivityTest, ProofInputsTest, PublicationCache, PublicationCacheTest}.
 import std.core.Option.{None, Some}.
 
 import type std.core.Option.
 
 pub run(root: String, command: String, first: String, second: String, third: String): Option[Bool] ->
     case command {
+        "prepare-proof-binding" -> Some(PrepareProofBinding.run_locked(root, first));
+        "preparation-proof-binding-self-test" -> Some(PreparationProofBindingTest.self_test());
         "prepare-proof-native-boundary" -> Some(PrepareProofNativeBoundary.run_locked(root, first));
         "preparation-proof-native-boundary-self-test" ->
             Some(PreparationProofNativeBoundaryTest.self_test());

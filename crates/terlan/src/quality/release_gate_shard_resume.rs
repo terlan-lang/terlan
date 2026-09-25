@@ -275,6 +275,38 @@ fn make_recipe_invokes(commands: &[String], target: &str) -> bool {
     })
 }
 
+/// Validate the admitted invocation rather than adjacent formatting fragments.
+/// Runtime option parsing still owns resolution/bounds of the Make variable.
+fn live_coverage_invocation(command: &str) -> bool {
+    let words: Vec<_> = command.split_whitespace().collect();
+    let owners: Vec<_> = words
+        .iter()
+        .enumerate()
+        .filter(|(_, word)| **word == "$(TERLAN_RUST_ORCHESTRATOR)")
+        .map(|(index, _)| index)
+        .collect();
+    let [owner] = owners.as_slice() else {
+        return false;
+    };
+    let ["--with-cargo-coverage", "$(CURDIR)/target/quality/rust-test-suite-report.json", tail @ ..] =
+        &words[owner + 1..]
+    else {
+        return false;
+    };
+    match tail {
+        ["--", "$(MAKE)", ..] => true,
+        ["--graph-timeout-seconds", value, "--", "$(MAKE)", ..] => {
+            *value == "\"$(TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS)\""
+                || (!value.is_empty()
+                    && value.bytes().all(|byte| byte.is_ascii_digit())
+                    && value
+                        .parse::<u64>()
+                        .is_ok_and(|value| (1..=7200).contains(&value)))
+        }
+        _ => false,
+    }
+}
+
 fn validate_release_makefile(makefile: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
     for &(target_name, prerequisite) in RELEASE_GATE_CHAIN {
@@ -310,15 +342,10 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
         command.split_whitespace().any(|word| word == "$(MAKE)")
             && command.split_whitespace().any(|word| word == "check-gates")
     });
-    for required_fragment in [
-        "$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage",
-        "$(CURDIR)/target/quality/rust-test-suite-report.json -- $(MAKE)",
-    ] {
-        if !validation_command.is_some_and(|command| command.contains(required_fragment)) {
-            diagnostics.push(format!(
-                "{MAKEFILE}: `check` must propagate `{required_fragment}` to the owned validation cycle"
-            ));
-        }
+    if !validation_command.is_some_and(|command| live_coverage_invocation(command)) {
+        diagnostics.push(format!(
+            "{MAKEFILE}: `check` must pass its exact suite report and Make graph through live coverage admission, with only a supported graph deadline option"
+        ));
     }
     if validation_command.is_some_and(|command| command.contains("TERLAN_RUST_SUITE_ALREADY_RUN="))
     {
