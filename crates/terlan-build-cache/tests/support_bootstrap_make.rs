@@ -105,6 +105,10 @@ if test "$SUPPORT_MODE" != incomplete; then
 fi
 if test "$SUPPORT_MODE" = failure; then exit 7; fi
 if test "$SUPPORT_MODE" = changed; then printf '\n# mutated\n' >> Cargo.toml; fi
+if test "$SUPPORT_MODE" = staged; then printf '\n# staged mutation\n' >> Cargo.toml; git add Cargo.toml; fi
+if test "$SUPPORT_MODE" = hidden-source; then git update-index --assume-unchanged Cargo.toml; printf '\n# hidden mutation\n' >> Cargo.toml; fi
+if test "$SUPPORT_MODE" = untracked; then printf 'untracked\n' > unexpected-source; fi
+if test "$SUPPORT_MODE" = committed; then git -c user.name=Fixture -c user.email=fixture@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null commit --quiet --allow-empty -m fixture; fi
 if test "$SUPPORT_MODE" = config-changed; then printf '\n# changed during build\n' >> "$CARGO_HOME/config.toml"; fi
 "#,
     );
@@ -198,6 +202,36 @@ fn first_success_seals_and_identical_warm_build_launches_no_cargo() {
     )
     .unwrap();
     assert!(run(&fixture, "success"));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\n"
+    );
+}
+
+#[test]
+fn hidden_source_changes_invalidate_a_warm_receipt() {
+    let fixture = fixture();
+    assert!(run(&fixture, "success"));
+    let first = fs::read(receipt(&fixture)).unwrap();
+    // Outside the manifest fingerprint and selected executable, this input
+    // exercises the working-source digest even when Git status hides its edit.
+    git(
+        &fixture.0,
+        &["update-index", "--assume-unchanged", "std/stdlib.mk"],
+    );
+    let path = fixture.0.join("std/stdlib.mk");
+    let original = fs::read_to_string(&path).unwrap();
+    fs::write(&path, format!("{original}\n# hidden source edit\n")).unwrap();
+    assert!(git(&fixture.0, &["status", "--porcelain"]).is_empty());
+    assert!(run(&fixture, "success"));
+    let second = fs::read(receipt(&fixture)).unwrap();
+    assert_ne!(first, second);
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\n"
+    );
+    assert!(run(&fixture, "success"));
+    assert_eq!(second, fs::read(receipt(&fixture)).unwrap());
     assert_eq!(
         fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
         "cargo\ncargo\n"
@@ -379,6 +413,32 @@ fn warm_producer_rejects_configuration_mutation_and_preserves_previous_receipt()
         fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
         "cargo\ncargo\ncargo\n"
     );
+}
+
+#[test]
+fn warm_producer_rejects_source_mutation_and_preserves_previous_receipt() {
+    for mode in [
+        "changed",
+        "staged",
+        "hidden-source",
+        "untracked",
+        "committed",
+    ] {
+        let fixture = fixture();
+        assert!(run(&fixture, "success"));
+        let previous_path = receipt(&fixture);
+        let original = fs::read(&previous_path).unwrap();
+        assert!(!run(&fixture, mode), "{mode}");
+        assert_eq!(original, fs::read(previous_path).unwrap(), "{mode}");
+        if mode == "committed" {
+            assert!(!receipt(&fixture).exists());
+        }
+        assert_eq!(
+            fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+            "cargo\ncargo\n",
+            "{mode}"
+        );
+    }
 }
 
 #[test]
