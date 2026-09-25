@@ -12,6 +12,7 @@ TERLAN_SERVE_RUNTIME_REL_BIN := $(patsubst $(CURDIR)/%,%,$(TERLAN_SERVE_RUNTIME_
 TERLAN_SERVE_RUNTIME_BUILD := $(CARGO) build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS ?= 3600
+TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS ?= 3600
 TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS ?= 120
 # Only acquisition uses the lock deadline; each producer owns its execution bound.
 TERLAN_BOOTSTRAP_LOCK = flock --exclusive --wait $(TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS) target/quality/bootstrap-owner.lock
@@ -1028,7 +1029,8 @@ check: rust-test-suite
 		$(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),terlan-release-closeout-image-bootstrap)
 	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
 		$(TERLAN_RUST_ORCHESTRATOR) --with-cargo-coverage \
-		$(CURDIR)/target/quality/rust-test-suite-report.json -- \
+		$(CURDIR)/target/quality/rust-test-suite-report.json \
+		--graph-timeout-seconds "$(TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS)" -- \
 		$(MAKE) --no-print-directory \
 		check-gates $(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)
 

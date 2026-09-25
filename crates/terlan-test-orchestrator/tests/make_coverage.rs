@@ -296,6 +296,61 @@ fn make_reuses_live_coverage_and_rejects_uncovered_or_changed_requests() {
     assert_eq!(fs::read(root.join("target/bodies.txt")).unwrap(), bodies);
 }
 
+#[test]
+fn make_graph_deadline_is_reported_and_timeout_does_not_replay_test_bodies() {
+    let fixture = fixture();
+    let root = &fixture.0;
+    let makefile = fs::read_to_string(root.join("Makefile")).unwrap();
+    write(root, "Makefile", format!(
+        "{makefile}\ndelayed: normal\n\tsleep 1\nblocked: normal\n\tsleep 10\n\ttouch target/incorrectly-completed\n"
+    ));
+    bootstrap(root);
+    assert!(run(command(root, root.join("target/driver")).args([
+        "--cargo-metadata",
+        "target/quality/rust-cargo-metadata.json",
+        "--",
+        "cargo",
+    ])));
+    assert!(run(&mut command(root, root.join("target/driver"))));
+    let bodies = fs::read(root.join("target/bodies.txt")).unwrap();
+    for (gate, deadline, success) in [("delayed", "5", true), ("blocked", "1", false)] {
+        assert_eq!(
+            run(command(root, root.join("target/driver")).args([
+                "--with-cargo-coverage",
+                "target/quality/suite.json",
+                "--graph-timeout-seconds",
+                deadline,
+                "--",
+                "make",
+                "--no-print-directory",
+                gate,
+            ])),
+            success
+        );
+        let report: Value = serde_json::from_slice(
+            &fs::read(root.join("target/quality/suite.json.make-coverage.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(report["phase_timeout_seconds"], 1800);
+        let phase = report["phases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|phase| phase["executor"] == "make-covered-gates")
+            .unwrap();
+        assert_eq!(
+            phase["test_execution"]["graph_timeout_seconds"],
+            deadline.parse::<u64>().unwrap()
+        );
+        assert_eq!(
+            phase["outcome"],
+            if success { "passed" } else { "timed-out" }
+        );
+        assert_eq!(fs::read(root.join("target/bodies.txt")).unwrap(), bodies);
+    }
+    assert!(!root.join("target/incorrectly-completed").exists());
+}
+
 fn make_block<'a>(source: &'a str, first_line: &str, terminator: &str) -> &'a str {
     let start = source
         .find(first_line)
@@ -314,6 +369,10 @@ fn release_refresh_keeps_shared_gate_nodes_inside_one_live_make_graph() {
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
     let check = make_block(&source, "check: rust-test-suite\n", "\n\n");
+    let graph_timeout = source
+        .lines()
+        .find(|line| line.starts_with("TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS ?="))
+        .unwrap();
     let refresh = make_block(&source, "release-evidence-refresh: export", "\n\n");
     let publication = make_block(
         &source,
@@ -351,6 +410,7 @@ fn release_refresh_keeps_shared_gate_nodes_inside_one_live_make_graph() {
         format!(
             r#"{gates}
 CARGO := cargo --locked
+{graph_timeout}
 VM_MULTICORE_PUBLISH_LOCAL_GATES := normal native
 AOT_RELEASE_LOCAL_GATES := normal ignored
 AOT_RELEASE_CARGO_CHECK := test ! -s target/publication-source-failure && $(CARGO) check -p terlan

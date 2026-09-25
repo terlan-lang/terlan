@@ -261,6 +261,13 @@ including the generated C++ package proof, so later gates consume reports
 without replaying tests or accidentally suppressing their producers.
 Every orchestrated build or test phase receives closed stdin and a bounded deadline,
 preventing an accidental interactive read from stalling release validation.
+The encompassing `check-gates` Make graph has its own 3,600-second deadline,
+selected by `TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS`; individual Rust phase deadlines
+remain 1,800 seconds. The graph option accepts only 1–7,200 seconds and its actual
+value is recorded with the Make execution evidence. Cancellation still stops the
+owned process tree. This separates aggregate runtime from a single phase's limit:
+the September 25 hosted run exhausted 30 minutes after 115 coverage requests
+without a failing assertion, while processing the Lean proof gates.
 The orchestrator atomically seals `target/quality/rust-test-suite-report.json`
 with one explicit tier, ordered outcome, and wall time for every phase; a
 missing report is a gate failure.

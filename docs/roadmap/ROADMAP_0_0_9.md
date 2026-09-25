@@ -1796,10 +1796,12 @@ in order; close them only with passing implementation evidence.
     execution/reuse and before sealing;
     source changes invalidate reuse even when Git status hides the edit.
     These boundary observations require an exclusively owned checkout, not
-    adversarial transient-mutation protection. First-ever support compilation
-    still needs pre-build admission of source bytes and external Cargo
-    configuration/tool inputs; its post-build snapshot and shell-level
-    revision/manifest checks do not close that requirement.
+    adversarial transient-mutation protection. First-ever Linux support
+    compilation now uses the approved frozen-source, pinned-toolchain,
+    isolated-Cargo bootstrap. It admits inputs before building and rejects
+    source/tool changes before installation; ordinary compiler/runtime Cargo
+    configuration remains unchanged. Its 18 lifecycle cases pass, while the
+    full-candidate acceptance below remains required.
     Typed-AOT images retain their existing process-owner and atomic cache
     contract, and the default-feature AOT release check now records its Cargo
     launch through the shared process owner. Remaining report/proof producers
