@@ -1,9 +1,18 @@
 //! Core effect description type.
 //!
 //! `std.core.Effect` represents an effect description that can be composed as a
-//! value. Effect descriptions execute through an explicit VM-owned boundary;
-//! VM scheduling of pending or external effects is owned by later runtime
-//! integration.
+//! value. Execution is designed to cross an explicit VM-owned boundary.
+//!
+//! AOT execution supports concrete native plans built with `succeed`, `map`,
+//! `flat_map`, `fail`, and `cancelled`, and checked direct `Mapped` and `FlatMap`
+//! constructors. Callbacks execute on the owning VM actor and can suspend;
+//! constructing a description does not invoke them.
+//!
+//! Callbacks must have concrete checked signatures. Incorrect callback arity,
+//! non-callable values, and non-Effect flat-map results fail native admission.
+//! Failure payloads must be materializable VM values;
+//! executable functions and opaque resource handles are not supported as errors.
+//! These limits are not general Dynamic execution support.
 
 module std.core.Effect.
 
@@ -59,7 +68,10 @@ pub type Pure[T] =
 @pure
 pub cancelled(): Effect[T].
 
-/// Creates a deferred typed failure handled at the VM execution boundary.
+/// Creates an inert typed failure description.
+/// At `run`, a supported failure terminates the owning actor and preserves its
+/// value for VM exit propagation. Payloads must be materializable VM values;
+/// executable functions and opaque resource handles are not supported as errors.
 
 @pure
 pub fail(error: E): Effect[T].
@@ -84,13 +96,17 @@ pub flat_map(effect: Effect[A], next: (A) -> Effect[B]): Effect[B].
 @pure
 pub map(effect: Effect[A], mapper: (A) -> B): Effect[B].
 
-/// Executes an effect description.
+/// Declares the VM-owned execution boundary for an effect description.
 ///
 /// Input: one effect descriptor.
-/// Output: eventual value after crossing the VM execution boundary.
-/// Transformation: evaluates deferred maps and continuations in the VM. This
-/// operation is intentionally effectful so callers can distinguish inert
-/// planning from runtime execution.
+/// Output: the eventual value after executing a supported concrete native plan.
+/// Callbacks run on the owning VM actor and may suspend. Failure and cancellation
+/// terminate that actor without running later callbacks. This boundary is
+/// effectful, unlike inert description construction.
+///
+/// Typed combinators and checked direct constructors are supported; arbitrary
+/// Dynamic execution is not. Failure payloads must be materializable VM values,
+/// not executable functions or opaque resource handles.
 
 pub run(effect: Effect[T]): T.
 

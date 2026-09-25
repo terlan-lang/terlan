@@ -5,6 +5,11 @@
 //! Terlan; target profiles decide whether the contract lowers to VM processes,
 //! JavaScript promises, native worker commands, or an unsupported-target
 //! diagnostic.
+//!
+//! Native AOT currently supports only `done` and `result` for already-successful
+//! tasks. Values remain on the owning actor's managed heap and observing them
+//! does not start work. Failed, deferred, spawned, mapped, chained, and recovered
+//! tasks are not supported by the VM target and are rejected before emission.
 
 module std.core.Task.
 
