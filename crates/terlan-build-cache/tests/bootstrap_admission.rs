@@ -57,6 +57,13 @@ fn fixture() -> Fixture {
     )
     .unwrap();
     fs::write(fixture.0.join("Cargo.lock"), "# fixture lock\n").unwrap();
+    // Disk admission is the boundary under test here; hermetic support builds
+    // have their own production-Make lifecycle suite.
+    fs::write(
+        fixture.0.join("mk/hermetic-support.mk"),
+        "hermetic-support-root:\n\ttest -f target/support-ready || { ./cargo build -p terlan-test-orchestrator -p terlan-build-cache </dev/null && touch target/support-ready; }\n",
+    )
+    .unwrap();
     fs::write(
         fixture.0.join("rust-toolchain.toml"),
         "[toolchain]\nchannel = \"fixture\"\n",

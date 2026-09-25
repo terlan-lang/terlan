@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-24. Baseline: 0.0.8 is published.
+Updated: 2026-09-25. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -40,6 +40,15 @@ tagging or publicly publishing it. The exact candidate and its artifacts must
 pass verification first. This scope does not cover publishing 0.0.10.
 
 ## Current Status
+
+The first validation-tool bootstrap now follows the user-approved hermetic
+policy: frozen working-source bytes, the pinned Rust toolchain, and isolated
+Cargo configuration. Ordinary compiler/runtime builds retain their configured
+environment. Eighteen actual-sandbox lifecycle cases pass, including cold/warm
+reuse, concurrent ownership, interruption recovery, changed inputs, and rejected
+path redirection. These component checks do not close V9-1 or authorize a release.
+Linux hosted jobs now share the sandbox prerequisites through native-dependency
+setup; local builds never change host namespace policy.
 
 0.0.9 is not release-ready. Finish the supported local storage API audit and the
 existing build/release acceptance gates; do not start consensus or provider

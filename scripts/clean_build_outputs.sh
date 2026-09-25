@@ -25,6 +25,9 @@ fi
 
 partial_builds() {
   {
+    if [[ -e target/quality/hermetic-support.pending || -L target/quality/hermetic-support.pending ]]; then
+      printf '%s\n' "$repo_root/target/quality/hermetic-support.pending"
+    fi
     if [[ -d target/self-validation ]]; then
       find "$repo_root/target/self-validation" \
         \( \
@@ -85,6 +88,7 @@ inventory_tree() {
 for relative in \
   dist \
   _build \
+  target/hermetic-support \
   target/cloud-deploy-plan-v2-check \
   target/cloud-release-bundle-v1-a \
   target/cloud-release-bundle-v1-b \

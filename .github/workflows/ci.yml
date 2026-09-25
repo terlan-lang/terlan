@@ -158,7 +158,9 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes bubblewrap libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
@@ -198,7 +200,9 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes bubblewrap libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install pinned Rust ThreadSanitizer toolchain
         run: |
@@ -233,7 +237,9 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config ripgrep
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install pinned Rust ThreadSanitizer target
         uses: ./.github/actions/setup-rust
@@ -269,12 +275,10 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes bubblewrap elan libpq-dev pkg-config ripgrep
-          # Ubuntu 24.04 otherwise denies the unprivileged user namespace that
-          # the fail-closed bubblewrap capability-worker sandbox must create.
-          sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
+          lean: "true"
 
       - name: Install pinned Lean toolchain
         run: elan toolchain install "$(cat proofs/lean/lean-toolchain)"

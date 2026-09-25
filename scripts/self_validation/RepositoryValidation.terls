@@ -956,11 +956,20 @@ if {
         "actionlint-go1.25.0-v1.7.12",
     ],
 ) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
-    count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 1
-        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 1
+    count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 5
+        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 4
+        or count_occurrences(docs, "uses: ./.github/actions/setup-native-dependencies") != 1
+        or count_occurrences(pages, "uses: ./.github/actions/setup-native-dependencies") != 1
         or not contains_all(
     native_setup,
-    ["libpq:$triplet", "pkgconf:$triplet", "PKG_CONFIG=$pkgConfig", "$LASTEXITCODE -ne 0"],
+    [
+        "libpq:$triplet",
+        "pkgconf:$triplet",
+        "PKG_CONFIG=$pkgConfig",
+        "$LASTEXITCODE -ne 0",
+        "packages=(bubblewrap libpq-dev pkg-config ripgrep)",
+        "sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0",
+    ],
 )
         or String.contains(native_setup, "pkgconfiglite") -> failure(
         "build_release.native_setup",

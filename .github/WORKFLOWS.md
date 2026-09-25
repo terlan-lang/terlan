@@ -166,10 +166,29 @@ build/release contract are part of `release-candidate-check`; they are not run
 in preliminary steps that would build the compiler and typed validators only
 to discard them during the candidate's clean artifact measurement.
 
-The Ubuntu 24.04 compiler runner explicitly enables unprivileged user
-namespaces before the candidate gate. This is a host prerequisite for the real
-bubblewrap capability-worker test, not a sandbox bypass: worker launch remains
-fail-closed and still executes through the declared bubblewrap profile.
+The shared native-dependency action installs bubblewrap and enables unprivileged
+user namespaces on the ephemeral Ubuntu 24.04 runners. Both validation-tool
+bootstrap and capability-worker execution require the actual sandbox; failure
+to create it stops the build. Local Make never changes the host's namespace policy.
+
+On Linux, the first validation-tool build runs through
+`mk/hermetic-support.mk`: Git-listed working files are frozen into a read-only
+snapshot, the numeric workspace Rust toolchain is selected explicitly, and
+Cargo receives a fresh configuration home and a cleared environment. Checkout
+and ambient Cargo configuration, credentials, wrappers, and flags are not
+imported. Compiler/runtime builds continue using their normal configuration.
+Only locked registry/git caches and the dedicated `target/hermetic-support`
+output tree persist. Incremental compilation is disabled for these small tools.
+The sandbox uses the host's read-only system SDK, not a pinned OS image; selected
+compiler/linker executable identities are bound into the input digest.
+
+One bootstrap lease covers snapshot creation, Cargo, receipt verification, and
+installation. The first successful build seals its actual Cargo artifact log;
+unchanged retries validate output hashes without another Cargo invocation.
+Working-source bytes, including changes hidden from Git status, are checked
+again before installation. Failed/interrupted builds cannot install new tools.
+Reserved scratch is recovered under that same lease, and the lifecycle check
+reports any surviving scratch. No build receipt substitutes for release evidence.
 
 Non-AOT feature jobs remain paused during the hard AOT cutover.
 
