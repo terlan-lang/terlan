@@ -34,6 +34,64 @@ fi
 
 tag="v$version"
 
+# Serialize local publishers across worktrees, then exclude preparation and
+# distribution restoration for the entire verification/upload interval. Other
+# clones/hosts still require one coordinated publisher; this is not a remote
+# GitHub compare-and-swap or distributed lease.
+regular_lock() {
+  [[ ! -L "$1" && ( ! -e "$1" || -f "$1" ) ]] || {
+    echo "invalid publication lease path" >&2; return 1;
+  }
+}
+git_common="$(git rev-parse --path-format=absolute --git-common-dir)"
+[[ -d "$git_common" && ! -L "$git_common" ]] || exit 1
+regular_lock "$git_common/terlan-publication.lock"
+exec 7>>"$git_common/terlan-publication.lock"
+flock --exclusive --nonblock 7 || { echo "another publisher owns this repository" >&2; exit 1; }
+[[ /dev/fd/7 -ef "$git_common/terlan-publication.lock" ]] || exit 1
+[[ ! -L target && ( ! -e target || -d target ) ]] || exit 1
+mkdir -p target
+[[ ! -L target/quality && ( ! -e target/quality || -d target/quality ) ]] || exit 1
+mkdir -p target/quality
+regular_lock target/quality/preparation.lock
+case "${TERLAN_PREPARATION_LOCK_HELD:-}" in
+  1) [[ /dev/fd/9 -ef target/quality/preparation.lock ]] || exit 1 ;;
+  '') exec 9>>target/quality/preparation.lock ;;
+  *) echo "invalid preparation lease scope" >&2; exit 1 ;;
+esac
+flock --exclusive --nonblock 9 || { echo "candidate preparation is active" >&2; exit 1; }
+[[ /dev/fd/9 -ef target/quality/preparation.lock ]] || exit 1
+regular_lock target/publication-inputs.lock
+exec 8>>target/publication-inputs.lock
+flock --exclusive --nonblock 8 || { echo "distribution restoration is active" >&2; exit 1; }
+[[ /dev/fd/8 -ef target/publication-inputs.lock ]] || exit 1
+
+# All files in this reserved namespace are regenerable publication scratch.
+# Do not sweep unknown files or leave anonymous scratch behind after SIGKILL.
+work_dir="$repo_root/target/quality/publication.pending"
+retire_publication_scratch() {
+  [[ ! -L target && ! -L target/quality ]] || return 1
+  if [[ -e "$work_dir" || -L "$work_dir" ]]; then
+    [[ -d "$work_dir" && ! -L "$work_dir" ]] || return 1
+    (
+      shopt -s nullglob dotglob
+      for entry in "$work_dir"/*; do
+        case "${entry##*/}" in
+          publication-plan.json|notes.md|changelog.md|expected-assets.txt|actual-assets.txt|expected-asset-metadata.tsv|actual-asset-metadata.tsv|release.json|releases.json)
+            [[ -f "$entry" && ! -L "$entry" ]] || exit 1 ;;
+          *) exit 1 ;;
+        esac
+      done
+    ) || { echo "unrecognized publication scratch contents" >&2; return 1; }
+    rm -f -- "$work_dir/publication-plan.json" "$work_dir/notes.md" "$work_dir/changelog.md" \
+      "$work_dir/expected-assets.txt" "$work_dir/actual-assets.txt" \
+      "$work_dir/expected-asset-metadata.tsv" "$work_dir/actual-asset-metadata.tsv" \
+      "$work_dir/release.json" "$work_dir/releases.json"
+    rmdir -- "$work_dir"
+  fi
+}
+retire_publication_scratch
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "publish requires GitHub CLI: install gh and run gh auth login" >&2
   exit 127
@@ -76,7 +134,11 @@ release_promotion=(
   --script-eval --
 )
 
-work_dir="$(mktemp -d)"
+mkdir -m 700 -- "$work_dir"
+trap retire_publication_scratch EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 publication_plan="$work_dir/publication-plan.json"
 notes="$work_dir/notes.md"
 changelog_section="$work_dir/changelog.md"
@@ -84,7 +146,6 @@ expected_assets="$work_dir/expected-assets.txt"
 actual_assets="$work_dir/actual-assets.txt"
 expected_asset_metadata="$work_dir/expected-asset-metadata.tsv"
 actual_asset_metadata="$work_dir/actual-asset-metadata.tsv"
-trap 'rm -rf "$work_dir"' EXIT
 # One checked export owns verification, artifact inventory, sizes, and hashes.
 # A failing producer cannot be hidden by process-substitution exit semantics.
 TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" publication-plan --version "$version" > "$publication_plan"

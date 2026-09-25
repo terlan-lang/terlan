@@ -17,7 +17,7 @@ child(root: String, path: String): String ->
     String.concat([root, "/", path]).
 
 git_stub(): String ->
-    "#!/usr/bin/env bash\nset -eu\ncase $1 in\ncat-file) echo tag;;\nrev-parse) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;\n*) exit 91;;\nesac\n".
+    "#!/usr/bin/env bash\nset -eu\ncase \"$*\" in 'rev-parse --path-format=absolute --git-common-dir') printf '%s\\n' \"$PUBLICATION_FIXTURE/git-common\"; exit 0;; esac\ncase $1 in\ncat-file) echo tag;;\nrev-parse) echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;\n*) exit 91;;\nesac\n".
 
 vm_stub(): String ->
     "#!/usr/bin/env bash\nset -eu\ncase \"$*\" in *publication-plan*) ;; *) exit 92;; esac\necho plan >> \"$PUBLICATION_FIXTURE/calls\"\nif [ \"$PUBLICATION_MODE\" = producer-failure ]; then exit 23; fi\ncat \"$PUBLICATION_FIXTURE/plan.json\"\n".
@@ -31,8 +31,8 @@ gh_stub(): String ->
             "'repo view') echo fixture/repository;;\n",
             "'release view') case $PUBLICATION_MODE in lookup-failure|draft-lookup-failure) exit 1;; esac; cat \"$root/release.json\";;\n",
             "'api --paginate') if [ \"$PUBLICATION_MODE\" = lookup-failure ]; then exit 24; fi; jq '{tag_name: \"v0.0.8\", id: .databaseId, draft: .isDraft, body}' \"$root/release.json\";;\n",
-            "'release edit') case \"$*\" in *--draft=false*) echo publish >> \"$root/calls\";; *) test \"$5\" = 'Terlan 0.0.8'; cp \"$7\" \"$root/rendered-notes.md\";; esac;;\n",
-            "'release upload') echo upload >> \"$root/calls\"; cp \"$root/complete.json\" \"$root/remote.json\";;\n",
+            "'release edit') case \"$*\" in *--draft=false*) echo publish >> \"$root/calls\"; jq '.isDraft = false' \"$root/release.json\" > \"$root/release.pending\"; mv \"$root/release.pending\" \"$root/release.json\"; if [ \"$PUBLICATION_MODE\" = publish-unknown ]; then exit 28; fi;; *) test \"$5\" = 'Terlan 0.0.8'; cp \"$7\" \"$root/rendered-notes.md\";; esac;;\n",
+            "'release upload') echo upload >> \"$root/calls\"; name=${4##*/}; printf '%s\\n' \"$name\" >> \"$root/uploaded-names\"; jq --arg name \"$name\" --slurpfile complete \"$root/complete.json\" '.assets = ([.assets[] | select(.name != $name)] + [$complete[0].assets[] | select(.name == $name)])' \"$root/remote.json\" > \"$root/remote.pending\"; mv \"$root/remote.pending\" \"$root/remote.json\"; if [ \"$PUBLICATION_MODE\" = interrupted-upload ]; then exit 27; fi;;\n",
             "'api repos/fixture/repository/releases/42') jq -r \"${@: -1}\" \"$root/remote.json\";;\n",
             "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
         ],
@@ -83,7 +83,7 @@ prepare(root: String, mode: String): Bool ->
         if {
             mode == "partial" -> Json.object()
                 .put("assets", Json.array().push(remote_asset("terlc-linux-x86_64.tar.gz", digest)));
-            mode == "public-mismatch" -> Json.object().put("assets", Json.array());
+            mode == "public-mismatch" or mode == "interrupted-upload" -> Json.object().put("assets", Json.array());
             mode == "extra-asset" -> Json.object()
                 .put(
                     "assets",
@@ -101,6 +101,7 @@ prepare(root: String, mode: String): Bool ->
             .put("body", Json.string("Human-written release announcement.\n"));
     let {
         Ok(_scripts) <- Directory.create_all(child(root, "scripts"));
+        Ok(_git_common) <- Directory.create_all(child(root, "git-common"));
         Ok(_bin) <- Directory.create_all(child(root, "bin"));
         Ok(_debug) <- Directory.create_all(child(root, "target/debug"));
         Ok(_dist) <- Directory.create_all(child(root, "dist"));
@@ -134,8 +135,10 @@ prepare(root: String, mode: String): Bool ->
     Process.status(output) == 0.
 
 exercise(root: String, mode: String, status: Int, calls: String): Bool ->
+    prepare(root, mode) and invoke(root, mode, status, calls).
+
+invoke(root: String, mode: String, status: Int, calls: String): Bool ->
     let {
-        true <- prepare(root, mode);
         Some(path) <- Environment.get("PATH");
         Ok(output) <-
             Process.run(
@@ -189,6 +192,51 @@ failed_plan_stops_before_upload_or_publication(): Bool ->
 public_release_mismatch_is_never_mutated(): Bool ->
     scenario("public-mismatch", 1, "plan\n").
 
+draft_state(root: String, expected: Bool): Bool ->
+    let {
+        Ok(source) <- File.read_text(child(root, "release.json"));
+        Ok(release) <- Json.parse(source);
+        Ok(draft) <- Json.get(release, "isDraft");
+        Ok(actual) <- Json.as_bool(draft)
+    } else {
+        _ -> false
+    };
+    actual == expected.
+
+interrupted_upload_retry(root: String): Bool ->
+    let {
+        true <- prepare(root, "interrupted-upload");
+        true <- invoke(root, "interrupted-upload", 27, "plan\nupload\n");
+        true <- draft_state(root, true);
+        true <- invoke(root, "resume", 0, "plan\nupload\nplan\nupload\npublish\n");
+        true <- draft_state(root, false);
+        Ok(names) <- File.read_text(child(root, "uploaded-names"))
+    } else {
+        _ -> false
+    };
+    names == "terlc-linux-x86_64.tar.gz\nrelease-candidate.json\n".
+
+unknown_publication_retry(root: String): Bool ->
+    prepare(root, "publish-unknown")
+        and invoke(root, "publish-unknown", 28, "plan\npublish\n")
+        and draft_state(root, false)
+        and invoke(root, "public-matching", 0, "plan\npublish\nplan\n")
+        and not File.exists(child(root, "uploaded-names")).
+
+retry_scenario(upload: Bool): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-publication-resume-") else {
+        _ -> false
+    };
+    (let passed =
+    if {
+        upload -> interrupted_upload_retry(root);
+        true -> unknown_publication_retry(root)
+    };
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+passed)).
+
 /**
  * Covers retries and failure boundaries in the canonical promotion self-test.
  */
@@ -201,6 +249,8 @@ pub self_test(): Bool ->
         and scenario("extra-asset", 1, "plan\n")
         and scenario("lookup-failure", 24, "plan\n")
         and scenario("draft-lookup-failure", 0, "plan\npublish\n")
+        and retry_scenario(true)
+        and retry_scenario(false)
         and cache_scenario(false)
         and cache_scenario(true)
         and DownloadChecks.self_test().

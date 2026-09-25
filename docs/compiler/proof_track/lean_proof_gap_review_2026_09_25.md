@@ -54,3 +54,26 @@ After that replay, the parser closure note was synchronized with the existing
 artifact inventory and actual `ParserShape.lean` SHA-256
 `d5ef45a6ad1f4c5c40641f947a4e37aad5f4e573fd411e71ab0f443d17b31b18`.
 Its earlier closure history remains untouched.
+
+## Native semantic-smoke baseline review
+
+Compiler CI `36112805651` for `a985c758` passed native proof replay and its
+runtime oracle, but rejected the native-dispatch smoke signature. Independent
+reconstruction from `c760937e` reproduces the previous signature
+`b886ed58a4452a711cec610d0433d4b1cc92a2cf49eb8933f77ee55fe93eb0be`
+exactly. Reconstruction from current sources reproduces CI's signature
+`cb82e7a70a94545b314d3f057de3cc52b0a0ceccaaef4fb97c52481b6e64cd2f`.
+
+Only two bound sources changed: the typed-error re-export in `dispatch.rs`
+and the two recursively owned tuple variants in `dispatch/value.rs`, already
+reviewed above. The smoke manifest, NativeBoundary theorem source, error
+definition, runtime implementation and selected base64 oracle are unchanged.
+The semantic-chain and unsupported-fallback baselines are unchanged. The
+native-dispatch baseline now records these reviewed inputs; no test is skipped,
+drift assertion relaxed, or tuple refinement theorem claimed. The complete
+semantic smoke gate remains required before accepting this update.
+
+Local verification then passed all three smoke families and eight tests,
+including the real proof/runtime executions and the extracted-value signature
+regression. Every semantic lane remains at policy 100; no compatibility check
+was disabled.
