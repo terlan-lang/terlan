@@ -14,7 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 use terlan_process_owner::ProcessControl;
-use terlan_test_orchestrator::build_inputs::CargoInputFiles;
+use terlan_test_orchestrator::build_inputs::{CargoInputFiles, SourceInputs};
 
 #[path = "owner_bootstrap.rs"]
 mod bootstrap;
@@ -22,7 +22,7 @@ mod bootstrap;
 mod environment;
 
 const SCHEMA: &str = "terlan.build-owner.v1";
-pub(crate) const PROTOCOL: &str = "terlan.build-owner.v3";
+pub(crate) const PROTOCOL: &str = "terlan.build-owner.v4";
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024 * 1024;
 
 struct Options {
@@ -35,21 +35,35 @@ struct Options {
     completed_cargo_log: Option<PathBuf>,
     environment: environment::Snapshot,
     cargo: Option<PathBuf>,
+    source_revision: Option<String>,
 }
 
 /// Runs a receipt-backed producer, returning false only for a producer failure.
 pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
     let mut options = parse(root, args)?;
+    let admission_timeout = options.timeout.min(Duration::from_secs(30));
+    let mut source_inputs = options
+        .source_revision
+        .as_deref()
+        .map(|revision| SourceInputs::capture(root, revision, admission_timeout))
+        .transpose()?;
     let mut cargo_inputs = options
         .cargo
         .as_ref()
         .map(|cargo| CargoInputFiles::capture(cargo, options.timeout.min(Duration::from_secs(30))))
         .transpose()?;
     if options.command.is_some()
-        && reusable(&options, cargo_inputs.as_ref().map(CargoInputFiles::digest))?
+        && reusable(
+            &options,
+            cargo_inputs.as_ref().map(CargoInputFiles::digest),
+            source_inputs.as_ref().map(SourceInputs::digest),
+        )?
     {
         if let Some(inputs) = &mut cargo_inputs {
             inputs.verify(options.timeout.min(Duration::from_secs(30)))?;
+        }
+        if let Some(inputs) = &mut source_inputs {
+            inputs.verify(admission_timeout)?;
         }
         println!(
             "{}",
@@ -96,6 +110,11 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
         inputs.verify(options.timeout.min(Duration::from_secs(30)))?;
         receipt["cargo_inputs_sha256"] = inputs.digest().into();
     }
+    if let Some(inputs) = &mut source_inputs {
+        inputs.verify(admission_timeout)?;
+        receipt["source_sha256"] = inputs.digest().into();
+        receipt["source_revision"] = options.source_revision.clone().into();
+    }
     owned_file_path(root, &options.receipt)?;
     publish_receipt(&options.receipt, &receipt)?;
     println!("{}", receipt);
@@ -110,6 +129,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
     let mut outputs: Vec<PathBuf> = Vec::new();
     let mut completed_cargo_log = None;
     let mut cargo = None;
+    let mut source_revision = None;
     let command_start = loop {
         if index >= args.len() {
             break None;
@@ -135,6 +155,13 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
             }
             "--output" => outputs.push(next_value(args, &mut index, "--output")?.into()),
             "--cargo" => cargo = Some(PathBuf::from(next_value(args, &mut index, flag)?)),
+            "--source-revision" => {
+                source_revision = Some(
+                    next_value(args, &mut index, flag)?
+                        .into_string()
+                        .map_err(|_| io::Error::other("invalid source revision"))?,
+                );
+            }
             "--completed-cargo-log" => {
                 completed_cargo_log = Some(PathBuf::from(next_value(args, &mut index, flag)?));
             }
@@ -194,6 +221,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
         completed_cargo_log,
         environment: environment::Snapshot::capture()?,
         cargo,
+        source_revision,
     })
 }
 
@@ -208,7 +236,7 @@ fn next_value(args: &[OsString], index: &mut usize, flag: &str) -> io::Result<Os
 }
 
 fn usage() -> &'static str {
-    "usage: owner [--cargo <executable>] --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... (-- <program> [args...] | --completed-cargo-log <path>)"
+    "usage: owner [--cargo <executable>] [--source-revision <commit>] --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... (-- <program> [args...] | --completed-cargo-log <path>)"
 }
 
 /// Missing descendants are allowed for cold builds, but existing components
@@ -250,7 +278,11 @@ fn owned_file_path(root: &Path, path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn reusable(options: &Options, cargo_inputs: Option<&str>) -> io::Result<bool> {
+fn reusable(
+    options: &Options,
+    cargo_inputs: Option<&str>,
+    source_inputs: Option<&str>,
+) -> io::Result<bool> {
     owned_file_path(&options.root, &options.receipt)?;
     let source = match fs::read(&options.receipt) {
         Ok(source) => source,
@@ -271,6 +303,9 @@ fn reusable(options: &Options, cargo_inputs: Option<&str>) -> io::Result<bool> {
         || document.get("environment_sha256").and_then(Value::as_str)
             != Some(options.environment.digest())
         || document.get("cargo_inputs_sha256").and_then(Value::as_str) != cargo_inputs
+        || document.get("source_sha256").and_then(Value::as_str) != source_inputs
+        || document.get("source_revision").and_then(Value::as_str)
+            != options.source_revision.as_deref()
     {
         return Ok(false);
     }

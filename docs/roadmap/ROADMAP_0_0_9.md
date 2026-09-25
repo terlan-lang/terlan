@@ -1782,6 +1782,15 @@ in order; close them only with passing implementation evidence.
     The shared support, compiler, quality-tool, release-benchmark, HTTP
     benchmark, and serve-runtime Cargo bootstraps now use this receipt owner;
     each batch remains a single producer with all emitted outputs bound.
+    Once the support owner exists, clean-candidate Cargo owners additionally
+    bind actual Git-listed source bytes and the selected revision before
+    execution/reuse and before sealing;
+    source changes invalidate reuse even when Git status hides the edit.
+    These boundary observations require an exclusively owned checkout, not
+    adversarial transient-mutation protection. First-ever support compilation
+    still needs pre-build admission of source bytes and external Cargo
+    configuration/tool inputs; its post-build snapshot and shell-level
+    revision/manifest checks do not close that requirement.
     Typed-AOT images retain their existing process-owner and atomic cache
     contract, and the default-feature AOT release check now records its Cargo
     launch through the shared process owner. Remaining report/proof producers

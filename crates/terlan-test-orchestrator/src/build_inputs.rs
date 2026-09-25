@@ -15,6 +15,10 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use terlan_process_owner::ProcessControl;
 
+#[path = "build_source.rs"]
+mod source;
+pub use source::SourceInputs;
+
 /// A bounded input snapshot, verified again before publishing or reusing outputs.
 pub struct CargoInputFiles {
     configuration: ToolConfiguration,
