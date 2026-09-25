@@ -18,13 +18,14 @@ hermetic-support-root:
 	flock --exclusive --wait "$(TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS)" 6; \
 	test /dev/fd/6 -ef target/quality/bootstrap-owner.lock; \
 	$(TERLAN_HERMETIC_SUPPORT_ROOT)
+	timeout 120s target/debug/terlan-build-cache support-cache-prune
 
 # Keep the pre-tool mechanism limited to Git, archive/hash utilities, and the
 # OS sandbox. The native receipt owner takes over as soon as it exists.
 define TERLAN_HERMETIC_SUPPORT_ROOT
 root="$$(pwd -P)"; \
 scratch="$$root/target/quality/hermetic-support.pending"; \
-cache="$$root/target/hermetic-support"; \
+cache_root="$$root/target/hermetic-support"; \
 retire() { \
 	test ! -L target && test ! -L target/quality || return 1; \
 	if test -e "$$scratch" || test -L "$$scratch"; then \
@@ -32,12 +33,12 @@ retire() { \
 		(shopt -s nullglob dotglob; for entry in "$$scratch"/*; do \
 			case "$${entry##*/}" in \
 				source|install) test -d "$$entry" && test ! -L "$$entry" || exit 1 ;; \
-				source.tar|paths|present|resolved|after.tar) test -f "$$entry" && test ! -L "$$entry" || exit 1 ;; \
+				source.tar|paths|present|resolved|after.tar|active) test -f "$$entry" && test ! -L "$$entry" || exit 1 ;; \
 				*) exit 1 ;; \
 			esac; \
 		done) || { echo "unrecognized hermetic bootstrap scratch" >&2; return 1; }; \
 		rm -rf -- "$$scratch/source" "$$scratch/install"; \
-		rm -f -- "$$scratch/source.tar" "$$scratch/after.tar" "$$scratch/paths" "$$scratch/present" "$$scratch/resolved"; \
+		rm -f -- "$$scratch/source.tar" "$$scratch/after.tar" "$$scratch/paths" "$$scratch/present" "$$scratch/resolved" "$$scratch/active"; \
 		rmdir -- "$$scratch"; \
 	fi; \
 }; \
@@ -80,10 +81,12 @@ snapshot "$$scratch/source.tar"; \
 source_hash="$$(sha256sum "$$scratch/source.tar" | cut -d " " -f1)"; \
 tools_hash="$$(tool_identity | sha256sum | cut -d " " -f1)"; \
 input="$$(printf "%s\n" terlan.hermetic-support.v1 "$$channel" "$$source_hash" "$$tools_hash" | sha256sum | cut -d " " -f1)"; \
+generation="$$( { printf "%s\n" terlan.support-cache.v1 "$$channel" "$$tools_hash"; sha256sum Cargo.toml Cargo.lock mk/hermetic-support.mk; } | sha256sum | cut -d " " -f1)"; \
+cache="$$cache_root/generations/$$generation"; \
 mkdir -- "$$scratch/source" "$$scratch/install"; \
 tar --touch -xf "$$scratch/source.tar" -C "$$scratch/source"; \
 mkdir "$$scratch/source/target"; \
-for directory in "$$cache" "$$cache/registry" "$$cache/git" "$$cache/target"; do \
+for directory in "$$cache_root" "$$cache_root/generations" "$$cache" "$$cache/registry" "$$cache/git" "$$cache/target"; do \
 	test ! -L "$$directory" && { test ! -e "$$directory" || test -d "$$directory"; } || exit 1; \
 	mkdir -p -- "$$directory"; \
 done; \
@@ -114,7 +117,13 @@ for name in terlan-build-cache terlan-test-orchestrator; do \
 		chmod 755 "$$scratch/install/$$name"; \
 		mv -T -- "$$scratch/install/$$name" "target/debug/$$name"; \
 	fi; \
-done
+done; \
+for marker in "$$cache/last-used" "$$cache_root/active"; do \
+	test ! -L "$$marker" && { test ! -e "$$marker" || test -f "$$marker"; } || exit 1; \
+done; \
+touch -- "$$cache/last-used"; \
+printf "%s\n" "$$generation" > "$$scratch/active"; \
+mv -T -- "$$scratch/active" "$$cache_root/active"
 endef
 
 hermetic-support-inner:

@@ -1800,7 +1800,7 @@ in order; close them only with passing implementation evidence.
     compilation now uses the approved frozen-source, pinned-toolchain,
     isolated-Cargo bootstrap. It admits inputs before building and rejects
     source/tool changes before installation; ordinary compiler/runtime Cargo
-    configuration remains unchanged. Its 18 lifecycle cases pass, while the
+    configuration remains unchanged. Its 20 lifecycle cases pass, while the
     full-candidate acceptance below remains required.
     Typed-AOT images retain their existing process-owner and atomic cache
     contract, and the default-feature AOT release check now records its Cargo
@@ -1835,6 +1835,10 @@ in order; close them only with passing implementation evidence.
     deleting their targets, and verified caches/evidence remain separate.
   - Apply byte/entry/age budgets and generation-safe cleanup to reusable caches;
     retain dependencies without accumulating obsolete candidate payloads.
+    Private support-tool generations now have a lease-protected retention owner
+    that pins the current outputs and recovers interrupted retirements. This
+    closes that cache namespace's implementation gap, not the whole-cache audit
+    or full-candidate acceptance below.
   - Acceptance: cold preparation, unchanged warm preparation, and interrupted
     preparation followed by resume produce equivalent decisions. A verified
     completed owner is not replayed; changed inputs rerun only affected owners.

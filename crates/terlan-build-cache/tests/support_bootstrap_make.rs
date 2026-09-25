@@ -183,7 +183,26 @@ fn run(fixture: &Fixture, entries: &[(&str, &str)]) -> bool {
 }
 
 fn cache(fixture: &Fixture) -> PathBuf {
-    fixture.0.join("target/hermetic-support/target")
+    let root = fixture.0.join("target/hermetic-support");
+    if let Ok(current) = fs::read_to_string(root.join("active")) {
+        return root.join("generations").join(current.trim()).join("target");
+    }
+    caches(fixture)
+        .pop()
+        .unwrap_or_else(|| root.join("not-created/target"))
+}
+
+fn caches(fixture: &Fixture) -> Vec<PathBuf> {
+    let root = fixture.0.join("target/hermetic-support/generations");
+    let mut entries = fs::read_dir(root)
+        .map(|entries| {
+            entries
+                .map(|entry| entry.unwrap().path().join("target"))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    entries.sort();
+    entries
 }
 
 fn receipt(fixture: &Fixture) -> PathBuf {
@@ -191,7 +210,10 @@ fn receipt(fixture: &Fixture) -> PathBuf {
 }
 
 fn launches(fixture: &Fixture) -> String {
-    fs::read_to_string(cache(fixture).join("launches")).unwrap_or_default()
+    caches(fixture)
+        .into_iter()
+        .map(|path| fs::read_to_string(path.join("launches")).unwrap_or_default())
+        .collect()
 }
 
 fn assert_no_scratch(fixture: &Fixture) {
@@ -403,7 +425,10 @@ fn started(fixture: &Fixture, selected: &str) -> OwnedChild {
         .stderr(Stdio::null());
     let mut child = OwnedChild::spawn(command).unwrap();
     let deadline = Instant::now() + Duration::from_secs(30);
-    while !cache(fixture).join("in-flight").exists() {
+    while !caches(fixture)
+        .iter()
+        .any(|path| path.join("in-flight").exists())
+    {
         assert!(child.try_wait().unwrap().is_none(), "producer exited early");
         assert!(Instant::now() < deadline, "producer did not start");
         std::thread::sleep(Duration::from_millis(10));
@@ -557,4 +582,62 @@ fn redirected_scratch_parent_and_install_destination_are_rejected() {
             "untouched"
         );
     }
+}
+
+fn age_cache(path: &Path, timestamp: SystemTime) {
+    if path.is_dir() {
+        for entry in fs::read_dir(path).unwrap() {
+            age_cache(&entry.unwrap().path(), timestamp);
+        }
+    }
+    fs::File::open(path)
+        .unwrap()
+        .set_times(fs::FileTimes::new().set_modified(timestamp))
+        .unwrap();
+}
+
+#[test]
+fn retention_reclaims_obsolete_and_interrupted_generations_without_replaying_current_build() {
+    for interrupted in [false, true] {
+        let fixture = fixture();
+        assert!(run(&fixture, &[]));
+        let old = cache(&fixture).parent().unwrap().to_owned();
+        mode(&fixture, "new-tool-generation");
+        assert!(run(&fixture, &[]));
+        let current = cache(&fixture);
+        let verified = fs::read(receipt(&fixture)).unwrap();
+        let root = fixture.0.join("target/hermetic-support");
+        if interrupted {
+            fs::create_dir(root.join("retired")).unwrap();
+            fs::rename(&old, root.join("retired").join(old.file_name().unwrap())).unwrap();
+        } else {
+            age_cache(&old, SystemTime::now() - Duration::from_secs(8 * 86400));
+        }
+        assert!(run(&fixture, &[]));
+        assert_eq!(cache(&fixture), current);
+        assert_eq!(fs::read(receipt(&fixture)).unwrap(), verified);
+        assert_eq!(
+            fs::read_to_string(current.join("launches")).unwrap(),
+            "cargo\n"
+        );
+        assert!(!old.exists());
+        assert_eq!(fs::read_dir(root.join("retired")).unwrap().count(), 0);
+    }
+}
+
+#[test]
+fn retention_reclaims_legacy_cache_only_after_installing_new_verified_tools() {
+    let fixture = fixture();
+    let legacy = fixture.0.join("target/hermetic-support/target");
+    fs::create_dir_all(&legacy).unwrap();
+    fs::write(legacy.join("old-object"), "regenerable").unwrap();
+    age_cache(&legacy, SystemTime::now() - Duration::from_secs(600));
+    mode(&fixture, "failure");
+    assert!(!run(&fixture, &[]));
+    assert!(legacy.join("old-object").exists());
+    mode(&fixture, "success");
+    assert!(run(&fixture, &[]));
+    assert!(!legacy.exists());
+    assert!(receipt(&fixture).is_file());
+    assert!(fixture.0.join("target/debug/terlan-build-cache").is_file());
 }

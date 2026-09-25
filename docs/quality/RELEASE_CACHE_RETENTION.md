@@ -2,6 +2,41 @@
 
 Updated: 2026-09-10. Scoped V9-1 cleanup evidence, not full release acceptance.
 
+## Hermetic Support Cache (2026-09-25)
+
+The Linux support bootstrap keeps private Cargo data under
+`target/hermetic-support/generations/<digest>`. A generation binds the pinned
+toolchain/tool bytes, root manifest, dependency lock and bootstrap configuration.
+Ordinary source edits keep compiled dependencies in the same generation; the
+separate source/output receipt still decides whether Cargo must run. Compiler
+and runtime caches and their normal configuration are unchanged.
+
+After verified installation, bootstrap atomically selects the current generation
+and records its last use. `terlan-build-cache support-cache-prune` reacquires the
+same bootstrap lease before measuring or retiring anything. The default limits
+for generation payloads are 4 GiB of unique-inode allocated bytes,
+100,000 filesystem entries, three
+generations, seven days of inactive age, and a five-minute grace. Recent and
+future-dated payloads and the current generation are protected. If protected
+data alone exceeds a limit, admission fails without destroying that data.
+These are point-in-time retention limits, not a disk-space reservation.
+
+Inventory is bounded, rejects unknown top-level entries and redirected owned
+directories, and never follows interior Cargo-cache symlinks. Retirement first
+renames an obsolete generation into the reserved `retired/<digest>` namespace;
+the next lease owner completes an interrupted removal. Interior symlinks are
+unlinked without touching their targets. Legacy flat cache directories are
+eligible only after a new verified generation has been installed and their
+age grace has elapsed. Source, installed tools, and external release evidence
+are outside the deletion namespace. Matching warm receipts do not replay Cargo
+merely because retention runs.
+
+This protocol assumes cooperating producers and a trusted local filesystem.
+It does not protect against a same-user process bypassing the lease. A failed
+first-ever bootstrap cannot run the tool it has not yet built; its incomplete
+generation is measured on the next successful bootstrap. Support-cache limits
+do not imply that every other V9-1 cache owner is complete.
+
 ## Interrupted Rust Writers
 
 `terlan-build-cache` now retires abandoned `-working` sessions as well as
