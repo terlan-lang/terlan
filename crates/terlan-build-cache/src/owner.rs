@@ -14,6 +14,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 use terlan_process_owner::ProcessControl;
+use terlan_test_orchestrator::build_inputs::CargoInputFiles;
 
 #[path = "owner_bootstrap.rs"]
 mod bootstrap;
@@ -21,6 +22,7 @@ mod bootstrap;
 mod environment;
 
 const SCHEMA: &str = "terlan.build-owner.v1";
+pub(crate) const PROTOCOL: &str = "terlan.build-owner.v3";
 const MAX_RECEIPT_BYTES: u64 = 16 * 1024 * 1024;
 
 struct Options {
@@ -32,12 +34,23 @@ struct Options {
     command: Option<Command>,
     completed_cargo_log: Option<PathBuf>,
     environment: environment::Snapshot,
+    cargo: Option<PathBuf>,
 }
 
 /// Runs a receipt-backed producer, returning false only for a producer failure.
 pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
     let mut options = parse(root, args)?;
-    if options.command.is_some() && reusable(&options)? {
+    let mut cargo_inputs = options
+        .cargo
+        .as_ref()
+        .map(|cargo| CargoInputFiles::capture(cargo, options.timeout.min(Duration::from_secs(30))))
+        .transpose()?;
+    if options.command.is_some()
+        && reusable(&options, cargo_inputs.as_ref().map(CargoInputFiles::digest))?
+    {
+        if let Some(inputs) = &mut cargo_inputs {
+            inputs.verify(options.timeout.min(Duration::from_secs(30)))?;
+        }
         println!(
             "{}",
             json!({
@@ -71,12 +84,17 @@ pub(crate) fn run(root: &Path, args: &[OsString]) -> io::Result<bool> {
     let mut receipt = json!({
         "schema": SCHEMA,
         "outcome": "pass",
+        "owner_protocol": PROTOCOL,
         "input_sha256": options.input_sha256,
         "environment_sha256": options.environment.digest(),
         "outputs": outputs,
     });
     if let Some(observation) = cargo_observation {
         receipt["bootstrap_cargo_log_sha256"] = observation.into();
+    }
+    if let Some(inputs) = &mut cargo_inputs {
+        inputs.verify(options.timeout.min(Duration::from_secs(30)))?;
+        receipt["cargo_inputs_sha256"] = inputs.digest().into();
     }
     owned_file_path(root, &options.receipt)?;
     publish_receipt(&options.receipt, &receipt)?;
@@ -91,6 +109,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
     let mut timeout = None;
     let mut outputs: Vec<PathBuf> = Vec::new();
     let mut completed_cargo_log = None;
+    let mut cargo = None;
     let command_start = loop {
         if index >= args.len() {
             break None;
@@ -115,6 +134,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
                 timeout = Some(Duration::from_secs(seconds));
             }
             "--output" => outputs.push(next_value(args, &mut index, "--output")?.into()),
+            "--cargo" => cargo = Some(PathBuf::from(next_value(args, &mut index, flag)?)),
             "--completed-cargo-log" => {
                 completed_cargo_log = Some(PathBuf::from(next_value(args, &mut index, flag)?));
             }
@@ -173,6 +193,7 @@ fn parse(root: &Path, args: &[OsString]) -> io::Result<Options> {
         command,
         completed_cargo_log,
         environment: environment::Snapshot::capture()?,
+        cargo,
     })
 }
 
@@ -187,7 +208,7 @@ fn next_value(args: &[OsString], index: &mut usize, flag: &str) -> io::Result<Os
 }
 
 fn usage() -> &'static str {
-    "usage: owner --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... (-- <program> [args...] | --completed-cargo-log <path>)"
+    "usage: owner [--cargo <executable>] --receipt <path> --input-sha256 <hex> --timeout-seconds <1..86400> --output <path>... (-- <program> [args...] | --completed-cargo-log <path>)"
 }
 
 /// Missing descendants are allowed for cold builds, but existing components
@@ -229,7 +250,7 @@ fn owned_file_path(root: &Path, path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn reusable(options: &Options) -> io::Result<bool> {
+fn reusable(options: &Options, cargo_inputs: Option<&str>) -> io::Result<bool> {
     owned_file_path(&options.root, &options.receipt)?;
     let source = match fs::read(&options.receipt) {
         Ok(source) => source,
@@ -244,10 +265,12 @@ fn reusable(options: &Options) -> io::Result<bool> {
         Err(_) => return Ok(false),
     };
     if document.get("schema").and_then(Value::as_str) != Some(SCHEMA)
+        || document.get("owner_protocol").and_then(Value::as_str) != Some(PROTOCOL)
         || document.get("outcome").and_then(Value::as_str) != Some("pass")
         || document.get("input_sha256").and_then(Value::as_str) != Some(&options.input_sha256)
         || document.get("environment_sha256").and_then(Value::as_str)
             != Some(options.environment.digest())
+        || document.get("cargo_inputs_sha256").and_then(Value::as_str) != cargo_inputs
     {
         return Ok(false);
     }

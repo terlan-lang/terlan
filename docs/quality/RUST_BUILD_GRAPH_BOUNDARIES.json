@@ -149,7 +149,7 @@
     },
     {
       "name": "terlan-build-cache",
-      "responsibility": "Own compiler-independent Linux Rust incremental-cache inspection and lease-coordinated retirement without linking compiler or VM dependencies.",
+      "responsibility": "Own compiler-independent Linux Rust cache retirement and reusable build receipts, consuming shared Cargo input verification without compiler or VM dependencies.",
       "top_level_feature_modules": [
         "incremental",
         "layout"
@@ -215,8 +215,9 @@
     },
     {
       "name": "terlan-test-orchestrator",
-      "responsibility": "Own compiler-independent Rust test phases and durable direct-launch observations through shared process ownership.",
+      "responsibility": "Own compiler-independent Rust test phases, durable launch observations, and shared Cargo input verification behind a thin command-line entry point.",
       "top_level_feature_modules": [
+        "build_inputs",
         "cargo_artifact_stream",
         "cargo_compiler_environment",
         "cargo_configuration",
@@ -242,6 +243,7 @@
         "hosted_make",
         "hosted_producer",
         "launch_ledger",
+        "lib",
         "main",
         "make_coverage",
         "make_environment",

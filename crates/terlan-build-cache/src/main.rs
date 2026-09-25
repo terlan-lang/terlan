@@ -25,6 +25,10 @@ fn main() -> std::process::ExitCode {
 #[cfg(target_os = "linux")]
 fn run() -> std::io::Result<bool> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.len() == 1 && args[0] == "owner-protocol" {
+        println!("{}", owner::PROTOCOL);
+        return Ok(true);
+    }
     if args.first().is_some_and(|arg| arg == "admit") {
         return admission::run(&std::env::current_dir()?, &args[1..]);
     }

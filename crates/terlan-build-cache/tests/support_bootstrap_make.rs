@@ -104,6 +104,7 @@ if test "$SUPPORT_MODE" != incomplete; then
 fi
 if test "$SUPPORT_MODE" = failure; then exit 7; fi
 if test "$SUPPORT_MODE" = changed; then printf '\n# mutated\n' >> Cargo.toml; fi
+if test "$SUPPORT_MODE" = config-changed; then printf '\n# changed during build\n' >> "$CARGO_HOME/config.toml"; fi
 "#,
     );
     git(&fixture.0, &["init", "--quiet"]);
@@ -186,6 +187,27 @@ fn first_success_seals_and_identical_warm_build_launches_no_cargo() {
 }
 
 #[test]
+fn older_support_owner_is_rebuilt_once_before_using_the_new_receipt_protocol() {
+    let fixture = fixture();
+    fs::create_dir_all(fixture.0.join("target/debug")).unwrap();
+    executable(
+        &fixture.0.join("target/debug/terlan-build-cache"),
+        "#!/bin/sh\necho unsupported-owner-option >&2\nexit 2\n",
+    );
+    executable(
+        &fixture.0.join("target/debug/terlan-test-orchestrator"),
+        "#!/bin/sh\nexit 0\n",
+    );
+    assert!(run(&fixture, "success"));
+    assert!(run(&fixture, "success"));
+    assert!(receipt(&fixture).is_file());
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\n"
+    );
+}
+
+#[test]
 fn failed_incomplete_interrupted_or_changed_cold_builds_cannot_seal() {
     for mode in ["failure", "incomplete", "interrupted", "timeout", "changed"] {
         let fixture = fixture();
@@ -247,7 +269,6 @@ fn changed_compiler_flags_profile_and_build_script_inputs_invalidate_reuse() {
         "RUSTFLAGS",
         "CARGO_ENCODED_RUSTFLAGS",
         "CARGO_PROFILE_DEV_DEBUG",
-        "RUSTC_WRAPPER",
         "CUSTOM_BUILD_INPUT",
     ] {
         let fixture = fixture();
@@ -264,4 +285,58 @@ fn changed_compiler_flags_profile_and_build_script_inputs_invalidate_reuse() {
             "{key}"
         );
     }
+}
+
+#[test]
+fn changed_external_cargo_configuration_invalidates_an_unchanged_environment() {
+    let fixture = fixture();
+    let cargo_home = fixture.0.join("target/ambient-cargo");
+    fs::create_dir_all(&cargo_home).unwrap();
+    let configuration = cargo_home.join("config.toml");
+    fs::write(&configuration, "[build]\nrustflags = ['-Cdebuginfo=1']\n").unwrap();
+    let entries = [("CARGO_HOME", cargo_home.to_str().unwrap())];
+    assert!(run_with_environment(&fixture, "success", &entries));
+    fs::write(&configuration, "[build]\nrustflags = ['-Cdebuginfo=2']\n").unwrap();
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\n"
+    );
+}
+
+#[test]
+fn changed_external_wrapper_bytes_invalidate_an_unchanged_path() {
+    let fixture = fixture();
+    fs::create_dir_all(fixture.0.join("target")).unwrap();
+    let wrapper = fixture.0.join("target/compiler-wrapper");
+    executable(&wrapper, "#!/bin/sh\n# first revision\nexec \"$@\"\n");
+    let entries = [("RUSTC_WRAPPER", wrapper.to_str().unwrap())];
+    assert!(run_with_environment(&fixture, "success", &entries));
+    executable(&wrapper, "#!/bin/sh\n# second revision\nexec \"$@\"\n");
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\n"
+    );
+}
+
+#[test]
+fn warm_producer_rejects_configuration_mutation_and_preserves_previous_receipt() {
+    let fixture = fixture();
+    let cargo_home = fixture.0.join("target/ambient-cargo");
+    fs::create_dir_all(&cargo_home).unwrap();
+    fs::write(cargo_home.join("config.toml"), "[build]\nrustflags = []\n").unwrap();
+    let entries = [("CARGO_HOME", cargo_home.to_str().unwrap())];
+    assert!(run_with_environment(&fixture, "success", &entries));
+    let original = fs::read(receipt(&fixture)).unwrap();
+    assert!(!run_with_environment(&fixture, "config-changed", &entries));
+    assert_eq!(original, fs::read(receipt(&fixture)).unwrap());
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert!(run_with_environment(&fixture, "success", &entries));
+    assert_eq!(
+        fs::read_to_string(fixture.0.join("target/launches")).unwrap(),
+        "cargo\ncargo\ncargo\n"
+    );
 }
