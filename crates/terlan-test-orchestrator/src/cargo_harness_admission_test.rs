@@ -88,6 +88,48 @@ fn saved_library_declaration_requires_unchanged_manifest_target_and_source() {
 }
 
 #[test]
+fn saved_targets_preserve_inherited_editions_for_cargo_discovery() {
+    for legacy_library in [false, true] {
+        let declaration = if legacy_library {
+            "edition.workspace = true\n[lib]\nname = \"terlan\"\n"
+        } else {
+            "edition.workspace = true\n[[bin]]\nname = \"explicit\"\npath = \"explicit.rs\"\n"
+        };
+        let (root, mut artifact) = fixture(declaration);
+        let (name, kind, source, edition) = if legacy_library {
+            fs::remove_file(root.0.join("src/lib.rs")).unwrap();
+            ("terlan", "lib", "src/terlan.rs", "2015")
+        } else {
+            fs::create_dir(root.0.join("src/bin")).unwrap();
+            ("discovered", "bin", "src/bin/discovered.rs", "2021")
+        };
+        fs::write(root.0.join(source), "// fixture\n").unwrap();
+        artifact["target"] = serde_json::json!({
+            "name": name, "kind": [kind], "src_path": root.0.join(source),
+            "edition": edition,
+        });
+        let saved = admit(&root.0, &artifact).unwrap().json();
+        assert_eq!(
+            ManifestAdmission::new(&root.0)
+                .unwrap()
+                .restore(&saved, control())
+                .unwrap()
+                .json(),
+            saved
+        );
+        assert_eq!(saved["edition"], edition);
+        for invalid in [Value::Null, serde_json::json!("unknown")] {
+            let mut changed = saved.clone();
+            changed["edition"] = invalid;
+            assert!(ManifestAdmission::new(&root.0)
+                .unwrap()
+                .restore(&changed, control())
+                .is_err());
+        }
+    }
+}
+
+#[test]
 fn cargo_profile_test_cannot_admit_a_custom_or_malformed_library_contract() {
     for lib in [
         "[lib]\nharness = false",
