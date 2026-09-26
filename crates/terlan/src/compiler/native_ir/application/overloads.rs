@@ -15,6 +15,7 @@ use type_scoring::type_match_score;
 /// One source overload and its deterministic NativeIR-facing identity.
 struct OverloadCandidate {
     module: String,
+    selected_import: bool,
     private_trait_impl: bool,
     generic_trait_method: bool,
     arity: usize,
@@ -165,6 +166,7 @@ fn collect_overload_groups(
             .enumerate()
             .map(|(index, (parameters, result))| OverloadCandidate {
                 module: module.clone(),
+                selected_import: false,
                 private_trait_impl: false,
                 generic_trait_method: false,
                 arity,
@@ -729,11 +731,11 @@ fn select_candidate<'a>(
     current_module: &str,
     aliases: &AliasBodies,
 ) -> Result<&'a OverloadCandidate, String> {
-    // A uniquely identified trait implementation is a callable template, not
-    // an overload on its method's generic arguments. Those arguments (including
-    // constructors and callback signatures) are checked by monomorphization.
+    // A single explicit import has already been selected and typechecked by the
+    // frontend. Likewise, a unique trait template's generic arguments are
+    // checked by monomorphization. Neither needs overload scoring here.
     if let [candidate] = candidates {
-        if candidate.generic_trait_method
+        if (candidate.selected_import || candidate.generic_trait_method)
             && (!candidate.private_trait_impl || candidate.module == current_module)
         {
             return Ok(candidate);

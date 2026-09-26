@@ -73,6 +73,36 @@ pub check(): Bool -> integer(41) == 42 and floating(40.0) == 42.0.
     ]);
 }
 
+/// Explicit selection takes precedence over a same-name whole-module provider.
+#[test]
+fn selected_import_keeps_its_provider_beside_a_whole_module_import() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module imports.Single.
+import imports.Other.
+import imports.Selected.{choose}.
+pub check(): Bool -> choose(40) == 42 and Other.choose(40) == 140.
+"#,
+        "module imports.Selected. pub choose(value: Int): Int -> value + 2.",
+        "module imports.Other. pub choose(value: Int): Int -> value + 100.",
+    ]);
+}
+
+/// A single selected generic alias needs qualification without overload scoring.
+#[test]
+fn selected_import_alias_keeps_its_provider_beside_a_whole_module_import() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module imports.SingleAlias.
+import imports.Other.
+import imports.Selected.{convert as choose}.
+pub check(): Bool -> choose(42) == 42 and Other.choose(40) == 140.
+"#,
+        "module imports.Selected. pub convert[T](value: T): T -> value.",
+        "module imports.Other. pub choose(value: Int): Int -> value + 100.",
+    ]);
+}
+
 /// Import aliases retain the different public names of their checked providers.
 #[test]
 fn selected_import_aliases_execute_without_losing_provider_names() {
