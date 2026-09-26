@@ -77,7 +77,7 @@ impl ManifestAdmission {
         }
         let artifact = serde_json::json!({"reason":"compiler-artifact", "profile":{"test":true},
             "executable":evidence["executable"],"manifest_path":evidence["manifest"],
-            "target":{"kind":[evidence["kind"].clone()],"name":evidence["target"],"src_path":evidence["source"]}});
+            "target":{"kind":[evidence["kind"].clone()],"name":evidence["target"],"src_path":evidence["source"],"edition":evidence["edition"]}});
         let declaration = self.admit(&artifact, control)?;
         if declaration.json() != *evidence {
             return Err(failure(
@@ -103,6 +103,7 @@ pub(super) struct DeclaredHarness {
     package: String,
     name: String,
     kind: String,
+    edition: Option<String>,
 }
 
 impl DeclaredHarness {
@@ -150,7 +151,7 @@ impl DeclaredHarness {
 
     /// Does not claim that manifest declaration proves arbitrary compiler output is libtest.
     pub(super) fn json(&self) -> Value {
-        serde_json::json!({"scope": "declared-cargo-libtest-target-v1", "package": self.package, "target": self.name, "kind": self.kind, "manifest": self.manifest,
+        serde_json::json!({"scope": "declared-cargo-libtest-target-v1", "package": self.package, "target": self.name, "kind": self.kind, "edition": self.edition, "manifest": self.manifest,
             "manifest_identity_sha256": self.manifest_identity, "source": self.source,
             "resolved_source": self.resolved_source, "executable": self.executable,
             "harness": true, "harness_setting": if self.explicit_harness { "explicit" } else { "cargo-default" }})
@@ -188,6 +189,13 @@ fn admit_snapshot(
     if artifact["reason"] != "compiler-artifact" || artifact["profile"]["test"] != true {
         return Err(failure("Cargo artifact is not a test target"));
     }
+    let edition = match &artifact["target"]["edition"] {
+        Value::Null => None,
+        Value::String(value) if matches!(value.as_str(), "2015" | "2018" | "2021" | "2024") => {
+            Some(value.clone())
+        }
+        _ => return Err(failure("Cargo target edition is malformed")),
+    };
     let executable = artifact_path(artifact, "executable")?;
     if !executable.is_file() {
         return Err(PhaseFailure {
@@ -222,6 +230,7 @@ fn admit_snapshot(
         package: declared.package,
         name: declared.name,
         kind: declared.kind.to_owned(),
+        edition,
     })
 }
 
