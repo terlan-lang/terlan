@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::ExitCode;
 
@@ -151,6 +152,7 @@ fn run_discovered_wasm_tests(artifact: &Path, tests: &[DiscoveredTest]) -> TestR
         passed,
         failed,
         results,
+        covered_callables: BTreeSet::new(),
     }
 }
 

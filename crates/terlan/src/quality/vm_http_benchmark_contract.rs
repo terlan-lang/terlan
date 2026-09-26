@@ -10,9 +10,6 @@ use crate::terlan_quality::QualityResult;
 const PROFILE_PATH: &str = "benches/http/PROFILE.toml";
 const COMPARABILITY_REPORT_PATH: &str =
     "target/quality/vm-http-benchmark-comparability-report.json";
-const ATTRIBUTION_REPORT_PATH: &str =
-    "target/quality/vm-http-runtime-attribution-contract-report.json";
-
 const REQUIRED_STACKS: &[&str] = &["terlan-vm", "axum", "hyper"];
 const REQUIRED_METRICS: &[&str] = &[
     "mean_us",
@@ -31,36 +28,6 @@ const REQUIRED_SCENARIOS: &[&str] = &[
     "cancellation",
     "backpressure",
 ];
-const REQUIRED_ATTRIBUTION_BUCKETS: &[&str] = &[
-    "transportNs",
-    "parserNs",
-    "schedulerNs",
-    "routingNs",
-    "allocationAndConversionNs",
-    "handlerNs",
-    "responseWriteNs",
-];
-const REQUIRED_ATTRIBUTION_INVARIANTS: &[&str] = &[
-    "completedMatchesReductions",
-    "phaseBucketsMatchAccountedTotal",
-    "queueBalanced",
-    "parkedProcessesReleased",
-    "saturationHasBackpressureOutcome",
-];
-const REQUIRED_AOT_REPLAY_INTEGRATION: &[&str] = &[
-    "AotHandlerGeneration",
-    "multicore_replay_evidence",
-    "multicore_replay_capture",
-    "VmMulticoreReplayEvidence",
-];
-const REQUIRED_AOT_REPLAY_EVIDENCE: &[&str] = &[
-    "terlan.vm.multicore-replay.v1",
-    "VmMulticoreReplayEvidence",
-    "retained_events",
-    "dropped_events",
-    "replayable",
-];
-
 #[derive(Debug, Deserialize)]
 struct BenchmarkProfile {
     schema: String,
@@ -107,14 +74,6 @@ pub struct VmHttpBenchmarkComparabilitySummary {
     pub report_path: PathBuf,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// Data describing vm http runtime attribution contract summary.
-pub struct VmHttpRuntimeAttributionContractSummary {
-    pub bucket_count: usize,
-    pub invariant_count: usize,
-    pub report_path: PathBuf,
-}
-
 /// Validates the product-owned benchmark schedule shared by external HTTP lanes.
 pub fn run_vm_http_benchmark_comparability(
     root: &Path,
@@ -155,66 +114,6 @@ pub fn run_vm_http_benchmark_comparability(
         profile_fingerprint: fingerprint,
         concurrency_count: profile.schedule.concurrency.len(),
         scenario_count: profile.adversarial.scenarios.len(),
-        report_path,
-    })
-}
-
-/// Validates attribution telemetry and canonical check/release ownership.
-pub fn run_vm_http_runtime_attribution_contract(
-    root: &Path,
-) -> QualityResult<VmHttpRuntimeAttributionContractSummary> {
-    let (profile, _) = read_profile(root)?;
-    let mut diagnostics = validate_profile(&profile);
-    diagnostics.extend(validate_source_terms(
-        root,
-        "crates/terlan/src/vm/main/http_attribution.rs",
-        REQUIRED_ATTRIBUTION_BUCKETS,
-        "attribution bucket",
-    )?);
-    diagnostics.extend(validate_source_terms(
-        root,
-        "crates/terlan/src/vm/main/http_attribution.rs",
-        REQUIRED_ATTRIBUTION_INVARIANTS,
-        "attribution invariant",
-    )?);
-    diagnostics.extend(validate_source_terms(
-        root,
-        "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
-        REQUIRED_AOT_REPLAY_INTEGRATION,
-        "AOT replay integration",
-    )?);
-    diagnostics.extend(validate_source_terms(
-        root,
-        "crates/terlan/src/runtime/vm/multicore_replay.rs",
-        REQUIRED_AOT_REPLAY_EVIDENCE,
-        "AOT replay evidence",
-    )?);
-    diagnostics.extend(validate_make_ownership(root)?);
-    if !diagnostics.is_empty() {
-        return Err(render_failure("vm-http-runtime-attribution", &diagnostics));
-    }
-
-    let report = json!({
-        "schema": "terlan-vm-http-runtime-attribution-contract-v1",
-        "runtimeSchema": "terlan-vm-http-runtime-attribution-v1",
-        "externalEvidenceSchema": "terlan-vm-http-runtime-attribution-comparison-v1",
-        "externalEvidenceOwnership": "workspace-benchmarks-outside-golden-release",
-        "requiredBuckets": REQUIRED_ATTRIBUTION_BUCKETS,
-        "requiredInvariants": REQUIRED_ATTRIBUTION_INVARIANTS,
-        "dominantCauseRequired": true,
-        "sourceCounterRequired": true,
-        "boundedAotReplayRequired": true,
-        "checkOrder": [
-            "vm-http-benchmark-comparability-check",
-            "vm-http-runtime-attribution-check"
-        ],
-        "ownedByCheck": true,
-        "ownedByReleasePreflight": true
-    });
-    let report_path = write_report(root, ATTRIBUTION_REPORT_PATH, &report)?;
-    Ok(VmHttpRuntimeAttributionContractSummary {
-        bucket_count: REQUIRED_ATTRIBUTION_BUCKETS.len(),
-        invariant_count: REQUIRED_ATTRIBUTION_INVARIANTS.len(),
         report_path,
     })
 }
@@ -340,39 +239,6 @@ fn require_numbers(diagnostics: &mut Vec<String>, label: &str, actual: &[u32], r
             diagnostics.push(format!("benchmark profile is missing {label} `{value}`"));
         }
     }
-}
-
-fn validate_source_terms(
-    root: &Path,
-    relative: &str,
-    terms: &[&str],
-    label: &str,
-) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join(relative))
-        .map_err(|err| format!("{relative}: failed to read {label} source: {err}"))?;
-    Ok(terms
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("{relative}: missing {label} `{term}`"))
-        .collect())
-}
-
-fn validate_make_ownership(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
-        .map_err(|err| format!("Makefile: failed to read attribution ownership: {err}"))?;
-    let required = [
-        "VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check",
-        "vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)",
-        "vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check",
-        "vm-http-runtime-attribution-check \\",
-        "vm-http-vs-axum-check: tvm-http-paired-performance-check\n",
-        "RELEASE_EVIDENCE_GATES := \\\n\tvm-http-runtime-attribution-check \\",
-    ];
-    Ok(required
-        .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("Makefile: missing canonical attribution ownership `{term}`"))
-        .collect())
 }
 
 fn write_report(root: &Path, relative: &str, report: &serde_json::Value) -> QualityResult<PathBuf> {

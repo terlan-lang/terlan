@@ -528,8 +528,7 @@ policy SecretKey
 /// - A struct field that attempts to decorate its type with `=>`.
 ///
 /// Output:
-/// - Stable parser diagnostic pointing users to struct-level `where`
-///   constraints instead.
+/// - Stable parser diagnostic pointing users to generic parameters instead.
 ///
 /// Transformation:
 /// - Reserves the implication arrow for compile-time constraint lists and
@@ -547,9 +546,7 @@ pub struct Page {
 
     let err = parse_module(source).expect_err("field implication should be rejected");
     assert!(
-        err.message
-            .contains("implication constraints are not valid on struct fields")
-            && err.message.contains("owning generic parameter list"),
+        err.message.contains("only valid on generic parameters"),
         "unexpected diagnostic: {:?}",
         err
     );
@@ -576,8 +573,7 @@ pub type Projected = User => {name: String}.
 
     let err = parse_module(source).expect_err("type alias implication should be rejected");
     assert!(
-        err.message
-            .contains("implication constraints are only valid in generic parameter constraints"),
+        err.message.contains("only valid on generic parameters"),
         "unexpected diagnostic: {:?}",
         err
     );

@@ -725,11 +725,6 @@ pub(super) fn validate_c_parameter_shape(
                 c_pointer_base(&resolved),
                 "int64_t" | "double" | "uint8_t" | "uint64_t"
             )
-            || (c_pointer_base(&resolved) == "uint64_t"
-                && parameter
-                    .input_array
-                    .as_ref()
-                    .is_none_or(|array| array.element_type.is_none()))
             || (c_pointer_base(&resolved) != "uint64_t"
                 && parameter
                     .input_array
@@ -737,7 +732,7 @@ pub(super) fn validate_c_parameter_shape(
                     .is_some_and(|array| array.element_type.is_some())))
     {
         return Err(format!(
-            "error[native_bindgen.c_input_array_contract]: `{}` must be a borrowed const primitive input pointer or a typed const uint64_t handle array",
+            "error[native_bindgen.c_input_array_contract]: `{}` must be a borrowed const primitive input pointer or typed uint64_t handle array",
             parameter.name
         ));
     }

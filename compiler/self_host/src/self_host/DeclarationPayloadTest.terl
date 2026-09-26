@@ -1,0 +1,45 @@
+/** Positive and negative contracts for nested declaration payloads. */
+module self_host.DeclarationPayloadTest.
+
+import self_host.ExpressionSyntax.{IntegerExpression}.
+import self_host.TypeSyntax.{NamedType, UnionType}.
+
+import std.collections.List.
+import self_host.ConstantLowering.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+import self_host.StructLowering.
+import self_host.TypeDeclarationLowering.
+
+@pure
+positive_payloads(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Payload.\npub const LIMIT: Int = 32.\npub type State = Ready | Failed(String).\npub struct User { name: String, #age: Int = 0, }.\n",
+    ));
+    case lowered_module.declarations {
+        [constant_decl, type_decl, struct_decl] ->
+            let constant = ConstantLowering.lower(constant_decl);
+            let declared_type = TypeDeclarationLowering.lower(type_decl);
+            let structure = StructLowering.lower(struct_decl);
+            constant.valid
+                and constant.annotation.syntax.class == NamedType
+                and constant.value.syntax.class == IntegerExpression
+                and declared_type.valid
+                and declared_type.representation.syntax.class == UnionType
+                and structure.valid
+                and List.length(structure.fields) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_payloads(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Payload.\npub struct Broken { field, }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] -> not StructLowering.lower(declaration).valid;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_payloads() and negative_payloads().
+

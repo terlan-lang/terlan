@@ -1,0 +1,257 @@
+/** Resolves backend import declarations against local and external interfaces. */
+module self_host.ImportResolution.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.CompilationBundleSyntax.{CompilationBundle}.
+import self_host.ImportReferenceSyntax.{ImportReference}.
+import self_host.ImportResolutionSyntax.{DuplicateImportedSymbol, ImportDiagnostic, ImportedSymbolKindMismatch, InvalidImportReference, MissingImportedModule, MissingImportedSymbol, ResolvedCompilationBundle, ResolvedImport}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.{ImportDeclaration, OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
+
+
+import std.collections.List.
+import std.core.String.
+import self_host.ImportReferenceLowering.
+
+
+struct ResolutionState {
+    valid: Bool,
+    imported_names: List[String],
+    imports: List[ResolvedImport],
+    diagnostics: List[ImportDiagnostic],
+}.
+
+constructor ResolutionState {
+    (valid: Bool, imported_names: List[String], imports: List[ResolvedImport], diagnostics: List[ImportDiagnostic]): ResolutionState ->
+        ResolutionState {
+            valid: valid,
+            imported_names: imported_names,
+            imports: imports,
+            diagnostics: diagnostics,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+find_interface(values: List[ModuleInterface], name: String): Option[ModuleInterface] ->
+    case values {
+        [] -> None;
+        [value | _] where value.module_name == name -> Some(value);
+        [_value | rest] -> find_interface(rest, name)
+    }.
+
+@pure
+find_symbol(values: List[ExportedSymbol], name: String): Option[ExportedSymbol] ->
+    case values {
+        [] -> None;
+        [value | _] where value.name == name -> Some(value);
+        [_value | rest] -> find_symbol(rest, name)
+    }.
+
+@pure
+contains(values: List[String], name: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
+
+@pure
+is_type_export(symbol: ExportedSymbol): Bool ->
+    symbol.class == TypeDeclaration
+        or symbol.class == OpaqueTypeDeclaration
+        or symbol.class == StructDeclaration
+        or symbol.class == TraitDeclaration.
+
+@pure
+exports_type(interface: ModuleInterface, name: String): Bool ->
+    case find_symbol(interface.symbols, name) {
+        Some(symbol) -> is_type_export(symbol);
+        None -> false
+    }.
+
+@pure
+diagnostic(
+    class: self_host.ImportResolutionSyntax.ImportDiagnosticClass,
+    owner: String,
+    name: String,
+    message: String,
+    reference: ImportReference,
+): ImportDiagnostic ->
+    ImportDiagnostic(class, owner, name, message, reference.span).
+
+@pure
+resolve_items(
+    owner: String,
+    reference: ImportReference,
+    interface: ModuleInterface,
+    items: List[String],
+    state: ResolutionState,
+): ResolutionState ->
+    case items {
+        [] -> state;
+        [name | rest] ->
+            let duplicate = contains(state.imported_names, name);
+            let exported = find_symbol(interface.symbols, name);
+            let next = if {
+                duplicate -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                        DuplicateImportedSymbol,
+                        owner,
+                        name,
+                        String.append("duplicate imported symbol: ", name),
+                        reference,
+                    ) | state.diagnostics]);
+                true -> case exported {
+                    None -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                            MissingImportedSymbol,
+                            owner,
+                            name,
+                            String.append("missing imported symbol: ", name),
+                            reference,
+                        ) | state.diagnostics]);
+                    Some(symbol) where reference.is_type and not is_type_export(symbol) -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                            ImportedSymbolKindMismatch,
+                            owner,
+                            name,
+                            String.append("imported symbol is not a type: ", name),
+                            reference,
+                        ) | state.diagnostics]);
+                    Some(_symbol) -> ResolutionState(valid = state.valid, imported_names = [name | state.imported_names], imports = [ResolvedImport(owner, reference.module_name, name, reference.is_type, reference.span) | state.imports], diagnostics = state.diagnostics)
+                }
+            };
+            resolve_items(owner, reference, interface, rest, next)
+    }.
+
+@pure
+resolve_namespace_items(
+    owner: String,
+    reference: ImportReference,
+    interfaces: List[ModuleInterface],
+    items: List[String],
+    state: ResolutionState,
+): ResolutionState ->
+    case items {
+        [] -> state;
+        [name | rest] ->
+            let module_name = String.concat([reference.module_name, ".", name]);
+            let duplicate = contains(state.imported_names, name);
+            let next = if {
+                duplicate -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                        DuplicateImportedSymbol,
+                        owner,
+                        name,
+                        String.append("duplicate imported symbol: ", name),
+                        reference,
+                    ) | state.diagnostics]);
+                true -> case find_interface(interfaces, module_name) {
+                    None -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                            MissingImportedSymbol,
+                            owner,
+                            name,
+                            String.append("missing imported module or symbol: ", name),
+                            reference,
+                        ) | state.diagnostics]);
+                    Some(interface) where reference.is_type and not exports_type(interface, name) ->
+                        ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                                ImportedSymbolKindMismatch,
+                                owner,
+                                name,
+                                String.append("imported child module does not export type: ", name),
+                                reference,
+                            ) | state.diagnostics]);
+                    Some(_interface) -> ResolutionState(valid = state.valid, imported_names = [name | state.imported_names], imports = [ResolvedImport(owner, module_name, name, reference.is_type, reference.span) | state.imports], diagnostics = state.diagnostics)
+                }
+            };
+            resolve_namespace_items(owner, reference, interfaces, rest, next)
+    }.
+
+@pure
+resolve_reference(
+    owner: String,
+    reference: ImportReference,
+    interfaces: List[ModuleInterface],
+    state: ResolutionState,
+): ResolutionState ->
+    if {
+        not reference.valid -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                InvalidImportReference,
+                owner,
+                reference.module_name,
+                reference.message,
+                reference,
+            ) | state.diagnostics]);
+        true -> case find_interface(interfaces, reference.module_name) {
+            None where reference.selective -> resolve_namespace_items(
+                owner,
+                reference,
+                interfaces,
+                reference.items,
+                state,
+            );
+            None -> ResolutionState(valid = false, imported_names = state.imported_names, imports = state.imports, diagnostics = [diagnostic(
+                    MissingImportedModule,
+                    owner,
+                    reference.module_name,
+                    String.append("missing imported module: ", reference.module_name),
+                    reference,
+                ) | state.diagnostics]);
+            Some(interface) where reference.selective ->
+                resolve_items(owner, reference, interface, reference.items, state);
+            Some(_interface) -> ResolutionState(valid = state.valid, imported_names = state.imported_names, imports = [ResolvedImport(owner, reference.module_name, "", reference.is_type, reference.span) | state.imports], diagnostics = state.diagnostics)
+        }
+    }.
+
+@pure
+resolve_declarations(
+    owner: String,
+    values: List[BackendDeclaration],
+    interfaces: List[ModuleInterface],
+    state: ResolutionState,
+): ResolutionState ->
+    case values {
+        [] -> state;
+        [value | rest] where value.class == ImportDeclaration ->
+            resolve_declarations(
+                owner,
+                rest,
+                interfaces,
+                resolve_reference(owner, ImportReferenceLowering.lower_backend(value), interfaces, state),
+            );
+        [_value | rest] -> resolve_declarations(owner, rest, interfaces, state)
+    }.
+
+@pure
+resolve_modules(
+    values: List[BackendModule],
+    interfaces: List[ModuleInterface],
+    state: ResolutionState,
+): ResolutionState ->
+    case values {
+        [] -> state;
+        [value | rest] ->
+            let module_state = resolve_declarations(
+                value.module_name,
+                value.declarations,
+                interfaces,
+                ResolutionState(valid = true, imported_names = List.new[String](), imports = List.new[ResolvedImport](), diagnostics = List.new[ImportDiagnostic]()),
+            );
+            resolve_modules(rest, interfaces, ResolutionState(valid = state.valid and module_state.valid, imported_names = List.new[String](), imports = append(reverse(module_state.imports), state.imports), diagnostics = append(reverse(module_state.diagnostics), state.diagnostics)))
+    }.
+
+/** Resolves every import against bundle interfaces plus supplied dependencies. */
+@pure
+pub resolve(
+    bundle: CompilationBundle,
+    external_interfaces: List[ModuleInterface],
+): ResolvedCompilationBundle ->
+    let interfaces = append(bundle.interfaces, external_interfaces);
+    let state = resolve_modules(bundle.modules, interfaces, ResolutionState(valid = bundle.valid, imported_names = List.new[String](), imports = List.new[ResolvedImport](), diagnostics = List.new[ImportDiagnostic]()));
+    ResolvedCompilationBundle(state.valid, bundle, interfaces, reverse(state.imports), reverse(state.diagnostics)).

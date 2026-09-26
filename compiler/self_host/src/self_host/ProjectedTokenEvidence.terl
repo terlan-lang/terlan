@@ -1,0 +1,47 @@
+/** Implementation-neutral authority evidence for projected contextual tokens. */
+module self_host.ProjectedTokenEvidence.
+
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+row(token: ProjectedCanonicalToken): String ->
+    String.concat([
+        token.terminal,
+        "\t",
+        Int.to_string(token.start_byte),
+        "\t",
+        Int.to_string(token.end_byte),
+        "\t",
+        Int.to_string(String.byte_size(token.text)),
+        "\n",
+    ]).
+
+@pure
+reverse_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+rows_at(values: List[ProjectedCanonicalToken], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse_at(output, List.new[String]());
+        [value | rest] -> rows_at(rest, [row(value) | output])
+    }.
+
+@pure
+rows(values: List[ProjectedCanonicalToken]): List[String] ->
+    rows_at(values, List.new[String]()).
+
+/** Serializes the projected stream for differential comparison. */
+@pure
+pub document(values: List[ProjectedCanonicalToken]): String ->
+    String.concat([
+        "schema terlan.self-host.projected-tokens/v1\nterminal\tstart\tend\tlexeme_bytes\n"
+        | rows(values)
+    ]).

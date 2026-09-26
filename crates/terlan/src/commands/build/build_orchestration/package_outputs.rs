@@ -58,7 +58,7 @@ pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
     let artifact_relative_path =
         PathBuf::from("vm").join(format!("{}.tvm", executable_vm_artifact_stem(manifest)));
     let artifact_path = state.out_dir.join(&artifact_relative_path);
-    if !artifact_path.is_file() {
+    if !vm_service && !artifact_path.is_file() {
         return Err(format!(
             "terlc build executable package `{}` requires entry artifact `{}`; define `{}.Main.main/0` or set [build] artifact = \"library\"",
             manifest.package.name,
@@ -67,7 +67,7 @@ pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
         ));
     }
     let entry_module = format!("{}.Main", source_package_path(&manifest.package).join("."));
-    if !vm_image_has_main_entrypoint(&artifact_path, &entry_module)? {
+    if !vm_service && !vm_image_has_main_entrypoint(&artifact_path, &entry_module)? {
         return Err(format!(
             "terlc build executable package `{}` requires public `main/0` in `{}`; define `{}.Main.main/0` or set [build] artifact = \"library\"",
             manifest.package.name,
@@ -97,7 +97,7 @@ pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
     );
     metadata.executable = Some(BuildPackageExecutable {
         path: path_to_manifest_string(&executable_relative_path),
-        image: path_to_manifest_string(&artifact_relative_path),
+        image: (!vm_service).then(|| path_to_manifest_string(&artifact_relative_path)),
         runtime: path_to_manifest_string(&PathBuf::from("bin").join(terlan_vm_runner_name())),
         native_worker: path_to_manifest_string(
             &PathBuf::from("bin").join(terlan_native_worker_name()),

@@ -1,11 +1,7 @@
 path	count	classification	owner	milestone
-crates/terlan/src/benchmark/aot_compilation.rs	31	internal-helper	benchmark-errors	0.0.9
-crates/terlan/src/benchmark/aot_compilation/model.rs	1	internal-helper	benchmark-errors	0.0.9
-crates/terlan/src/benchmark/aot_compilation/policy.rs	7	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/binary_protocol.rs	4	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/binary_protocol_snapshot.rs	1	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/database.rs	12	internal-helper	benchmark-errors	0.0.9
-crates/terlan/src/benchmark/http_and_build.rs	20	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/http_aot_performance.rs	10	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/http_aot_performance/additional_workloads.rs	5	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/http_aot_performance/benchmark_evidence.rs	1	internal-helper	benchmark-errors	0.0.9
@@ -18,9 +14,10 @@ crates/terlan/src/benchmark/http_framework_baseline.rs	16	internal-helper	benchm
 crates/terlan/src/benchmark/http_paired_benchmark.rs	9	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/http_paired_benchmark/statistics.rs	8	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/map_workloads.rs	20	internal-helper	benchmark-errors	0.0.9
-crates/terlan/src/benchmark/measurement.rs	4	internal-helper	benchmark-errors	0.0.9
+crates/terlan/src/benchmark/measurement.rs	2	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/persistent_actor.rs	16	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/benchmark/runtime_workloads.rs	13	internal-helper	benchmark-errors	0.0.9
+crates/terlan/src/benchmark/vm_artifact.rs	10	internal-helper	benchmark-errors	0.0.9
 crates/terlan/src/commands/api/mod.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/artifacts.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/bind/c_abi_binding_generator/generator.rs	3	internal-helper	command-errors	0.0.9
@@ -470,8 +467,8 @@ crates/terlan/src/validation/phase_manifest/mod.rs	5	internal-helper	support-err
 crates/terlan/src/validation/proof_baseline/mod.rs	4	internal-helper	support-errors	0.0.9
 crates/terlan/src/validation/static_output/mod.rs	5	internal-helper	support-errors	0.0.9
 crates/terlan/src/vm/arguments.rs	4	internal-helper	command-errors	0.0.9
-crates/terlan/src/vm/cli.rs	2	internal-helper	command-errors	0.0.9
-crates/terlan/src/vm/execution.rs	6	internal-helper	command-errors	0.0.9
+crates/terlan/src/vm/cli.rs	1	internal-helper	command-errors	0.0.9
+crates/terlan/src/vm/execution.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/main/framing_benchmark.rs	7	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/main/inspection.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/main/native_image_runner.rs	2	internal-helper	command-errors	0.0.9

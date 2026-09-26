@@ -1,0 +1,197 @@
+/** Declaration parser consuming the projected canonical terminal stream. */
+module self_host.ProjectedParser.
+
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import std.core.Option.{None, Option, Some}.
+import self_host.Parser.
+import self_host.ConcreteSyntaxParser.
+
+
+pub struct ProjectedSegment {
+    start_byte: Int,
+    end_byte: Int,
+    terminated: Bool,
+}.
+
+pub constructor ProjectedSegment {
+    (start_byte: Int, end_byte: Int, terminated: Bool): ProjectedSegment ->
+        ProjectedSegment {
+            start_byte: start_byte,
+            end_byte: end_byte,
+            terminated: terminated,
+        }
+}.
+
+
+struct SegmentState {
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+    start_byte: Int,
+    has_start: Bool,
+    has_significant: Bool,
+    last_end: Int,
+    segments: List[ProjectedSegment],
+}.
+
+constructor SegmentState {
+    (parens: Int, brackets: Int, braces: Int, start_byte: Int, has_start: Bool, has_significant: Bool, last_end: Int, segments: List[ProjectedSegment]): SegmentState ->
+        SegmentState {
+            parens: parens,
+            brackets: brackets,
+            braces: braces,
+            start_byte: start_byte,
+            has_start: has_start,
+            has_significant: has_significant,
+            last_end: last_end,
+            segments: segments,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+is_end(token: ProjectedCanonicalToken): Bool ->
+    token.terminal == "eof"
+        or token.terminal == "EOF"
+        or (token.text == "" and token.start_byte == token.end_byte).
+
+@pure
+is_trivia(token: ProjectedCanonicalToken): Bool ->
+    String.contains(token.terminal, "comment")
+        or String.contains(token.terminal, "Comment")
+        or String.contains(token.terminal, "doc")
+        or String.contains(token.terminal, "Doc").
+
+@pure
+is_ordinary_dot(token: ProjectedCanonicalToken): Bool ->
+    token.text == "."
+        and not String.contains(token.terminal, "tight")
+        and not String.contains(token.terminal, "Tight")
+        and not String.contains(token.terminal, "selector")
+        and not String.contains(token.terminal, "Selector").
+
+@pure
+next_significant(values: List[ProjectedCanonicalToken]): Option[ProjectedCanonicalToken] ->
+    case values {
+        [] -> None;
+        [value | rest] where is_trivia(value) -> next_significant(rest);
+        [value | _] where is_end(value) -> None;
+        [value | _] -> Some(value)
+    }.
+
+@pure
+dot_terminates(token: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): Bool ->
+    case next_significant(rest) {
+        Some(next) -> token.end_byte != next.start_byte;
+        None -> true
+    }.
+
+@pure
+scan(values: List[ProjectedCanonicalToken], state: SegmentState): SegmentState ->
+    case values {
+        [] -> if {
+            state.has_start and state.has_significant -> SegmentState(parens = state.parens, brackets = state.brackets, braces = state.braces, start_byte = state.start_byte, has_start = false, has_significant = false, last_end = state.last_end, segments = [ProjectedSegment(state.start_byte, state.last_end, false) | state.segments]);
+            true -> state
+        };
+        [value | rest] where is_end(value) -> scan(List.new[ProjectedCanonicalToken](), state);
+        [value | rest] ->
+            let start = if { state.has_start -> state.start_byte; true -> value.start_byte };
+            let at_boundary = is_ordinary_dot(value)
+                and dot_terminates(value, rest)
+                and state.parens == 0
+                and state.brackets == 0
+                and state.braces == 0;
+            let segments = if {
+                at_boundary -> [ProjectedSegment(start, value.end_byte, true) | state.segments];
+                true -> state.segments
+            };
+            scan(rest, SegmentState(parens = if {
+                    value.text == "(" -> state.parens + 1;
+                    value.text == ")" -> state.parens - 1;
+                    true -> state.parens
+                }, brackets = if {
+                    value.text == "[" -> state.brackets + 1;
+                    value.text == "]" -> state.brackets - 1;
+                    true -> state.brackets
+                }, braces = if {
+                    value.text == "{" -> state.braces + 1;
+                    value.text == "}" -> state.braces - 1;
+                    true -> state.braces
+                }, start_byte = if { at_boundary -> value.end_byte; true -> start }, has_start = not at_boundary, has_significant = if {
+                    at_boundary -> false;
+                    is_trivia(value) -> state.has_significant;
+                    true -> true
+                }, last_end = value.end_byte, segments = segments))
+    }.
+
+/** Splits projected tokens only at ordinary depth-zero declaration dots. */
+@pure
+pub segments(values: List[ProjectedCanonicalToken]): List[ProjectedSegment] ->
+    reverse(scan(values, SegmentState(parens = 0, brackets = 0, braces = 0, start_byte = 0, has_start = false, has_significant = false, last_end = 0, segments = List.new[ProjectedSegment]())).segments).
+
+@pure
+module_name(head: String): String ->
+    if {
+        String.starts_with(head, "module ") and String.ends_with(head, ".") ->
+            String.trim(head.utf8_slice(7, head.byte_size() - 8));
+        true -> ""
+    }.
+
+struct ModuleState {
+    saw_module: Bool,
+    valid: Bool,
+    name: String,
+    declarations: List[ProjectedSurfaceDeclaration],
+    message: String,
+}.
+
+constructor ModuleState {
+    (saw_module: Bool, valid: Bool, name: String, declarations: List[ProjectedSurfaceDeclaration], message: String): ModuleState ->
+        ModuleState {
+            saw_module: saw_module,
+            valid: valid,
+            name: name,
+            declarations: declarations,
+            message: message,
+        }
+}.
+
+@pure
+lower_segments(source: String, values: List[ProjectedSegment], state: ModuleState): ModuleState ->
+    case values {
+        [] -> state;
+        [value | rest] ->
+            let text = source.utf8_slice(value.start_byte, value.end_byte - value.start_byte);
+            let head = Parser.declaration_head(text);
+            let name = module_name(head);
+            if {
+                not state.saw_module and name != "" -> lower_segments(source, rest, ModuleState(saw_module = true, valid = state.valid and value.terminated, name = name, declarations = state.declarations, message = if { value.terminated -> state.message; true -> "module declaration is unterminated" }));
+                not state.saw_module -> lower_segments(source, rest, ModuleState(saw_module = false, valid = false, name = state.name, declarations = state.declarations, message = "source declaration appears before the module declaration"));
+                true -> lower_segments(source, rest, ModuleState(saw_module = true, valid = state.valid and value.terminated, name = state.name, declarations = [ProjectedSurfaceDeclaration(Parser.declaration_class(text), text, SyntaxSpan(value.start_byte, value.end_byte), String.starts_with(head, "pub ")) | state.declarations], message = if {
+                        value.terminated -> state.message;
+                        true -> "source declaration is unterminated"
+                    }))
+            }
+    }.
+
+/** Builds a declaration-level module from source and projected tokens. */
+@pure
+pub parse(source: String, values: List[ProjectedCanonicalToken]): ProjectedSurfaceModule ->
+    let concrete = ConcreteSyntaxParser.parse(values);
+    let state = lower_segments(source, segments(values), ModuleState(saw_module = false, valid = true, name = "", declarations = List.new[ProjectedSurfaceDeclaration](), message = ""));
+    ProjectedSurfaceModule(state.valid and state.saw_module and concrete.valid, state.name, reverse(state.declarations), if {
+            not concrete.valid -> concrete.message;
+            not state.saw_module -> "module declaration is missing";
+            true -> state.message
+        }).

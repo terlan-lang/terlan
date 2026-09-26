@@ -1,0 +1,91 @@
+/**
+ * Adapter-neutral lexical binding events and resolution results.
+ */
+module self_host.ProjectedBindingSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+pub struct BindingEvent {
+    kind: String,
+    name: String,
+    binding_kind: String,
+    byte_offset: Int,
+}.
+
+pub constructor BindingEvent {
+    (kind: String, name: String, binding_kind: String, byte_offset: Int): BindingEvent ->
+        BindingEvent {
+            kind: kind,
+            name: name,
+            binding_kind: binding_kind,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct BindingDeclaration {
+    name: String,
+    binding_kind: String,
+    scope_depth: Int,
+    byte_offset: Int,
+}.
+
+pub constructor BindingDeclaration {
+    (name: String, binding_kind: String, scope_depth: Int, byte_offset: Int): BindingDeclaration ->
+        BindingDeclaration {
+            name: name,
+            binding_kind: binding_kind,
+            scope_depth: scope_depth,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct BindingReference {
+    name: String,
+    byte_offset: Int,
+    declaration_offset: Option[Int],
+}.
+
+pub constructor BindingReference {
+    (name: String, byte_offset: Int, declaration_offset: Option[Int]): BindingReference ->
+        BindingReference {
+            name: name,
+            byte_offset: byte_offset,
+            declaration_offset: declaration_offset,
+        }
+}.
+
+
+pub struct BindingDiagnostic {
+    code: String,
+    message: String,
+    byte_offset: Int,
+}.
+
+pub constructor BindingDiagnostic {
+    (code: String, message: String, byte_offset: Int): BindingDiagnostic ->
+        BindingDiagnostic {
+            code: code,
+            message: message,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct BindingResolution {
+    declarations: List[self_host.ProjectedBindingSyntax.BindingDeclaration],
+    references: List[self_host.ProjectedBindingSyntax.BindingReference],
+    diagnostics: List[self_host.ProjectedBindingSyntax.BindingDiagnostic],
+}.
+
+pub constructor BindingResolution {
+    (declarations: List[self_host.ProjectedBindingSyntax.BindingDeclaration], references: List[self_host.ProjectedBindingSyntax.BindingReference], diagnostics: List[self_host.ProjectedBindingSyntax.BindingDiagnostic]): BindingResolution ->
+        BindingResolution {
+            declarations: declarations,
+            references: references,
+            diagnostics: diagnostics,
+        }
+}.
+

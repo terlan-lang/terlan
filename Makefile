@@ -162,7 +162,7 @@ export TERLAN_CUDA_DIR
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
-.PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-benchmark-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
+.PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 
 .PHONY: docs-light-check rust-security-audit-check terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
 
@@ -258,7 +258,7 @@ rust-security-audit-check:
 .PHONY: vm-native-worker-runtime-check vm-io-reactor-runtime-check
 .PHONY: vm-http-handler-scheduler-fairness-check vm-http-stateful-actor-session-check vm-live-template-stream-check vm-live-template-client-protocol-check
 .PHONY: cpp-binding-metadata-extractor-check cpp-binding-metadata-extractor-live-check cpp-binding-build-plan-check cpp-binding-value-record-check cpp-binding-copied-containers-check cpp-binding-enum-check cpp-binding-exception-check cpp-package-consumer-check
-.PHONY: vm-http-benchmark-comparability-check vm-http-runtime-attribution-check vm-http-soak-stability-check
+.PHONY: vm-http-benchmark-comparability-check vm-http-soak-stability-check
 .PHONY: vm-http-acme-tls-base-check vm-http-acme-tls-production-check vm-http-protocol-readiness-check
 .PHONY: vm-otp-abstractions-terlan-stdlib-check
 
@@ -1425,7 +1425,8 @@ lean-proof-track-release-closeout-check: rust-test-suite lalrpop-parser-parity-c
 
 
 RELEASE_EVIDENCE_GATES := \
-	vm-http-runtime-attribution-check \
+	vm-http-benchmark-comparability-check \
+	vm-multicore-replay-observability-check \
 	release-failure-reproduction-check \
 	internal-docs-check \
 	release-generated-artifacts-check \
@@ -2541,30 +2542,6 @@ tvm-single-image-artifact-check: tvm-native-image-format-check
 	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::native_reuse::native_reuse_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_package package_build_emits_one_tvm_image_with_qualified_module_exports -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --test direct_aot_cache native_aot_cache_verifies_and_recovers_every_required_file -- --exact
-
-tvm-aot-compilation-benchmark-check:
-ifeq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
-	test -x target/release/terlc
-	test -x target/release/terlan-vm
-	test -x target/release/terlan-benchmark
-else
-	$(CARGO) build --release -p terlan --bin terlc --bin terlan-vm --bin terlan-benchmark --features benchmark-tools
-endif
-	$(CURDIR)/target/release/terlan-benchmark aot-compilation-self-test
-	@mkdir -p target/quality
-	TERLAN_BENCH_AOT_COMPILATION_OUTPUT=$(CURDIR)/target/quality/aot-compilation-benchmark.json \
-		$(CURDIR)/target/release/terlan-benchmark aot-compilation
-	TERLAN_BENCH_AOT_COMPILATION_REPORT=$(CURDIR)/target/quality/aot-compilation-benchmark.json \
-		TERLAN_BENCH_AOT_COMPILATION_POLICY=$(CURDIR)/benchmarks/baselines/aot-compilation-limits.json \
-		$(CURDIR)/target/release/terlan-benchmark aot-compilation-validate
-	@test -s target/quality/aot-compilation-benchmark.json
-	@rg -q '"schema": "terlan-aot-compilation-benchmark-v1"' target/quality/aot-compilation-benchmark.json
-	@rg -q '"status": "completed"' target/quality/aot-compilation-benchmark.json
-	@rg -q '"sample_count": 7' target/quality/aot-compilation-benchmark.json
-	TERLAN_JSON_EVIDENCE_PATH=target/quality/aot-compilation-benchmark.json \
-	TERLAN_JSON_EVIDENCE_REQUIRED='"name": "small_cold_development";;"name": "multi_cold_development";;"name": "one_package_edit";;"name": "no_op_development";;"name": "cold_release";;"name": "package_relink";;"name": "repl_startup";;"name": "first_repl";;"name": "changed_repl";;"name": "unchanged_repl"' \
-		target/debug/terlc test scripts/self_validation/JsonEvidenceContractTest.terl \
-			--name selected_json_evidence_holds
 
 tvm-aot-compilation-time-check: tvm-single-image-artifact-check
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::specialization_budget_test
@@ -3911,10 +3888,6 @@ no-implicit-otp-runtime-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools no_implicit_otp_runtime_test
 	$(TERLAN_QUALITY) no-implicit-otp-runtime
 
-otp-runtime-exit-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools otp_runtime_exit_test
-	$(TERLAN_QUALITY) otp-runtime-exit
-
 vm-hibernate-suite-parity-check: vm-gc-suite-parity-check vm-scheduler-contract-check
 	$(RUST_TEST) -p terlan --lib runtime::vm::actor::tests::actor_hibernate_beam_suite_parity_test
 	@rg -q 'VmProcessState::Hibernated' crates/terlan/src/runtime/vm/process.rs crates/terlan/src/runtime/vm/process/parking.rs
@@ -4493,14 +4466,8 @@ vm-postgres-runtime-check: vm-sql-macro-validation-check vm-native-boundary-cont
 native-boundary-postgres-baseline-benchmark:
 	$(TERLAN_BENCHMARK) native-boundary-postgres-baseline
 
-native-boundary-http-baseline-benchmark:
-	$(TERLAN_BENCHMARK) native-boundary-http-baseline
-
 vm-performance-baseline-check: achamp-adversarial-coverage-check
-	$(EXACT_CARGO_TEST) -p terlan --lib --features benchmark-tools tests::synthetic_helper_source_contains_requested_workload -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features benchmark-tools tests::vm_performance_skipped_tracks_match_required_policy -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features benchmark-tools tests::map_benchmark_tracks_cover_otp_threshold_sizes -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features benchmark-tools tests::otp_map_benchmark_eval_uses_native_map_assertions -- --exact
+	$(RUST_TEST) -p terlan --lib --features benchmark-tools benchmark::database::tests
 	$(TERLAN_BENCHMARK) vm-performance-baseline
 
 achamp-adversarial-coverage-check: vm-memory-heap-pressure-check
@@ -4517,10 +4484,6 @@ executable-docs-vm-check: | terlan-repository-validation-bootstrap
 
 docs-codeblock-executable-check: executable-docs-vm-check
 
-
-terlan-vm-compiler-bridge-check: cli-terlan-vm-compiler-bridge-check
-
-terlc-build-executable-check: cli-terlc-build-executable-check
 
 http-runtime-stack-check:
 	$(CURDIR)/target/debug/terlc test scripts/self_validation/HttpRuntimeStackTest.terl
@@ -4554,10 +4517,7 @@ vm-http-concurrency-investigation-check: \
 vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)
 	$(TERLAN_QUALITY) vm-http-benchmark-comparability
 
-vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
-	$(TERLAN_QUALITY) vm-http-runtime-attribution
-
-vm-http-soak-stability-check: vm-http-runtime-attribution-check vm-timer-deadline-check
+vm-http-soak-stability-check: vm-http-benchmark-comparability-check vm-multicore-replay-observability-check vm-timer-deadline-check
 	test -s $(HTTP_SOAK_REPORT)
 
 vm-semantics-vs-otp-check: binary-bitstring-processing-check

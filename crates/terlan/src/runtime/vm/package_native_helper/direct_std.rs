@@ -2,14 +2,19 @@
 //!
 //! These operations use the same typed NativeBoundary dispatcher as external
 //! workers, but retain their resources inside the execution-shard process.
-//! Unsafe or blocking package code remains on the supervised helper protocol.
+//! Unsafe or package-owned blocking code remains on the supervised helper
+//! protocol. The bounded `std.system.Process` capability is VM-owned and is
+//! admitted here explicitly so trusted applications can invoke a fixed host
+//! adapter without requiring a package-native helper binary.
 
 use crate::runtime::vm::pure_native::PureNativeCapabilityRequest;
 use crate::runtime::vm::{ReplValue, VmRuntimeError, VmRuntimeResult};
 use crate::terlan_native_boundary::dispatch::{
-    dispatch_with_resources_for_process, DispatchError, NativeBoundaryBridgeValue,
+    dispatch_with_resources_for_process, dispatch_with_resources_for_process_with_policy,
+    DispatchError, NativeBoundaryBridgeValue,
 };
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
+use crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass;
 use crate::terlan_native_boundary::resource::{ResourceKind, ResourceStore};
 
 /// Returns whether an operation belongs to the closed direct-safe adapter set.
@@ -61,6 +66,9 @@ pub(super) fn supports(operation: &str) -> bool {
         || operation == "std.crypto.hash.sha256_nul_separated"
         || operation == "std.crypto.hash.sha256_bytes"
         || operation == "std.crypto.ed25519.verify"
+        || operation == "std.system.process.run"
+        || operation == "std.system.process.run_many"
+        || operation == "std.system.process.run_length_framed"
         || operation == "std.system.platform.current"
 }
 
@@ -77,12 +85,24 @@ pub(super) fn call(
         .iter()
         .map(|value| repl_to_bridge(value, owner_process_id))
         .collect::<Result<Vec<_>, _>>()?;
-    match dispatch_with_resources_for_process(
-        resources,
-        owner_process_id,
-        &request.operation,
-        &arguments,
-    ) {
+    let dispatched = if request.operation.starts_with("std.system.process.") {
+        dispatch_with_resources_for_process_with_policy(
+            resources,
+            owner_process_id,
+            &["process"],
+            &[NativeBoundaryWorkerClass::LongRunningCancellable],
+            &request.operation,
+            &arguments,
+        )
+    } else {
+        dispatch_with_resources_for_process(
+            resources,
+            owner_process_id,
+            &request.operation,
+            &arguments,
+        )
+    };
+    match dispatched {
         Ok(value) => {
             let value = bridge_to_repl(resources, owner_process_id, value)?;
             if typed_result_error_name(&request.operation).is_some() {
@@ -188,7 +208,7 @@ fn repl_to_bridge(
         ReplValue::Bytes(value) => Ok(NativeBoundaryBridgeValue::Bytes(value.to_vec())),
         ReplValue::Atom(value) => Ok(NativeBoundaryBridgeValue::Atom(value.clone())),
         ReplValue::Bool(value) => Ok(NativeBoundaryBridgeValue::Bool(*value)),
-        ReplValue::Record { name, fields } if native_handle(fields).is_some() => {
+        ReplValue::Record { name: _, fields } if native_handle(fields).is_some() => {
             let (handle, type_name, owner) = native_handle(fields)
                 .expect("native handle presence was checked before conversion")?;
             let expected_owner = owner_process_id.to_string();
@@ -197,16 +217,7 @@ fn repl_to_bridge(
                     "error[native_boundary.resource_owner]: handle owner `{owner}` does not match process `{expected_owner}`"
                 ).into());
             }
-            if !matches!(
-                (type_name, name.as_str()),
-                ("std.data.Json.Json", "Json")
-                    | ("std.regex.Regex.Regex", "Regex")
-                    | ("std.http.Request.Request", "Request")
-                    | ("std.http.Response.Response", "Response")
-                    | ("std.http.Cookies.Jar", "Jar")
-                    | ("std.net.Uri.Uri", "Uri")
-                    | ("std.io.Path.Path", "Path")
-            ) {
+            if !supported_handle_type(type_name) {
                 return Err(format!(
                     "error[native_boundary.direct_std]: operation received unsupported handle type `{type_name}`"
                 ).into());
@@ -233,6 +244,19 @@ fn repl_to_bridge(
         )
         .into()),
     }
+}
+
+fn supported_handle_type(type_name: &str) -> bool {
+    matches!(
+        type_name,
+        "std.data.Json.Json"
+            | "std.regex.Regex.Regex"
+            | "std.http.Request.Request"
+            | "std.http.Response.Response"
+            | "std.http.Cookies.Jar"
+            | "std.net.Uri.Uri"
+            | "std.io.Path.Path"
+    )
 }
 
 fn bridge_to_repl(

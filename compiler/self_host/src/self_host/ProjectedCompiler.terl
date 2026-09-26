@@ -1,0 +1,25 @@
+/** Compiler entry point consuming canonical lexer tokens through LR projection. */
+module self_host.ProjectedCompiler.
+
+import self_host.BackendSyntax.{BackendModule}.
+import self_host.CanonicalToken.{CanonicalToken}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.BackendHandoff.
+import self_host.ProjectionAdapter.
+import self_host.ProjectedDeclarationLowering.
+import self_host.ProjectedParser.
+import self_host.SemanticAnalysis.
+import self_host.TypedModuleLowering.
+
+
+/** Projects, parses, lowers, analyzes, and hands off one ordinary source module. */
+@pure
+pub compile(source: String, tokens: List[CanonicalToken]): BackendModule ->
+    BackendHandoff.lower(SemanticAnalysis.analyze(TypedModuleLowering.lower(
+        ProjectedDeclarationLowering.lower(ProjectedParser.parse(
+            source,
+            ProjectionAdapter.rewrite(source, tokens),
+        )),
+    ))).

@@ -1,7 +1,7 @@
 use super::*;
 
 const INLINE_OWNED_FUNCTION_LIMIT: usize = 24;
-const OWNED_FUNCTION_CHUNK_SIZE: usize = 24;
+const GENERATED_ADAPTER_LINE_LIMIT: usize = 900;
 const INLINE_FFI_FUNCTION_LIMIT: usize = 48;
 const FFI_FUNCTION_CHUNK_SIZE: usize = 48;
 const INLINE_FREE_FUNCTION_LIMIT: usize = 24;
@@ -192,7 +192,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
                     build.push_str(&format!("    c_build.include({directory:?});\n"));
                 }
                 build.push_str(
-                    "    c_build\n        .include(\"include\")\n        .include(\".\")\n        .warnings_into_errors(true)\n        .flag_if_supported(\"-std=c11\")\n        .compile(\"terlan_native_boundary_c_abi\");\n",
+                    "    c_build\n        .include(\".\")\n        .warnings_into_errors(true)\n        .flag_if_supported(\"-std=c11\")\n        .compile(\"terlan_native_boundary_c_abi\");\n",
                 );
             }
             if !metadata.sources.is_empty() {
@@ -232,7 +232,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
                 ));
             }
             build.push_str(
-                "    c_build.include(\"include\").include(\".\").warnings_into_errors(true).flag_if_supported(\"-std=c11\").compile(\"terlan_native_boundary_c_abi\");\n",
+                "    c_build.include(\".\").warnings_into_errors(true).flag_if_supported(\"-std=c11\").compile(\"terlan_native_boundary_c_abi\");\n",
             );
         }
         if !cpp_sources.is_empty() {
@@ -256,7 +256,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
                 ));
             }
             build.push_str(&format!(
-                "    cpp_build.include(\"include\").include(\".\").warnings_into_errors(true).flag_if_supported(\"-std={cpp_standard}\").compile(\"terlan_native_boundary_cpp_abi\");\n"
+                "    cpp_build.include(\".\").warnings_into_errors(true).flag_if_supported(\"-std={cpp_standard}\").compile(\"terlan_native_boundary_cpp_abi\");\n"
             ));
         }
         if !metadata.sources.is_empty() {
@@ -299,7 +299,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
             ));
         }
         build.push_str(
-            "    c_build.include(\"include\").include(\".\").warnings_into_errors(true).flag_if_supported(\"-std=c11\").compile(\"terlan_native_boundary_c_abi\");\n",
+            "    c_build.include(\".\").warnings_into_errors(true).flag_if_supported(\"-std=c11\").compile(\"terlan_native_boundary_c_abi\");\n",
         );
     }
     if !cpp_sources.is_empty() {
@@ -317,7 +317,7 @@ pub(super) fn render_c_build(metadata: &CMetadata) -> String {
             ));
         }
         build.push_str(&format!(
-            "    cpp_build.include(\"include\").include(\".\").warnings_into_errors(true).flag_if_supported(\"-std={cpp_standard}\").compile(\"terlan_native_boundary_cpp_abi\");\n"
+            "    cpp_build.include(\".\").warnings_into_errors(true).flag_if_supported(\"-std={cpp_standard}\").compile(\"terlan_native_boundary_cpp_abi\");\n"
         ));
     }
     append_adapter_input_watches(&mut build);
@@ -345,6 +345,13 @@ pub(super) struct RenderedRustAdapter {
     pub(super) ffi_chunks: Vec<String>,
     pub(super) owned_chunks: Vec<String>,
     pub(super) free_chunks: Vec<String>,
+}
+
+pub(super) fn render_rust_doc(indent: &str, documentation: &str) -> String {
+    documentation
+        .lines()
+        .map(|line| format!("{indent}/// {line}\n"))
+        .collect()
 }
 
 pub(super) fn render_rust_ffi_and_adapter(
@@ -392,8 +399,10 @@ pub(super) fn render_rust_ffi_and_adapter(
         })
         .copied()
         .collect::<Vec<_>>();
-    let mut source = String::from("#![deny(unsafe_op_in_unsafe_fn)]\n\n");
-    source.push_str("pub mod ffi {\n");
+    let mut source = format!(
+        "//! Generated Rust adapter for the `{}` native package.\n\n#![deny(unsafe_op_in_unsafe_fn)]\n\n/// Raw C ABI declarations used by the safe generated adapter.\npub mod ffi {{\n",
+        manifest.package.namespace
+    );
     let mut ffi_chunks = Vec::new();
     let mut owned_chunks = Vec::new();
     let mut free_chunks = Vec::new();
@@ -402,6 +411,7 @@ pub(super) fn render_rust_ffi_and_adapter(
             .get(ty.c_symbol.as_str())
             .copied()
             .ok_or_else(|| format!("unknown C record `{}`", ty.c_symbol))?;
+        source.push_str(&render_rust_doc("    ", &ty.documentation));
         source.push_str(&format!(
             "    #[repr(C)]\n    pub struct {} {{\n        _private: [u8; 0],\n    }}\n\n",
             record.c_name
@@ -437,13 +447,14 @@ pub(super) fn render_rust_ffi_and_adapter(
         source.push_str("use std::ptr::NonNull;\n\n");
     }
     source.push_str(
-        "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct CAbiError {\n    pub operation: &'static str,\n    pub status: i32,\n}\n\n",
+        "/// Error returned when a generated C ABI operation fails.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct CAbiError {\n    /// Stable operation identifier for the failed call.\n    pub operation: &'static str,\n    /// Status code returned by the native implementation.\n    pub status: i32,\n}\n\n",
     );
     for (_, ty) in &types {
         let record = symbols
             .get(ty.c_symbol.as_str())
             .copied()
             .ok_or_else(|| format!("unknown C record `{}`", ty.c_symbol))?;
+        source.push_str(&render_rust_doc("", &ty.documentation));
         source.push_str(&format!(
             "pub struct {} {{\n    raw: NonNull<ffi::{}>,\n}}\n\n",
             ty.name, record.c_name
@@ -474,6 +485,29 @@ pub(super) fn render_rust_ffi_and_adapter(
             dispatcher_dispose_symbol.c_name,
             dispatcher_dispose_symbol.success_code.unwrap_or(0)
         ));
+        let needs_output_guard = manifest
+            .modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .filter_map(|function| function.dispatcher.as_ref())
+            .any(|dispatcher| {
+                matches!(
+                    &dispatcher.output,
+                    CDispatcherOutput::OwnedHandleTuple { .. }
+                        | CDispatcherOutput::DiscardOwnedHandle { .. }
+                        | CDispatcherOutput::DiscardOwnedHandleTuple { .. }
+                )
+            });
+        if needs_output_guard {
+            source.push_str(&format!(
+                "/// Owns one dispatcher result until it is transferred into its public wrapper.\nstruct DispatcherOutputGuard {{\n    raw: Option<NonNull<ffi::{}>>,\n}}\n\nimpl DispatcherOutputGuard {{\n    /// Arms a guard for one non-null dispatcher result.\n    fn new(raw: *mut ffi::{}) -> Option<Self> {{\n        NonNull::new(raw).map(|raw| Self {{ raw: Some(raw) }})\n    }}\n\n    /// Transfers the result into its public resource wrapper.\n    fn into_raw(mut self) -> NonNull<ffi::{}> {{\n        self.raw.take().expect(\"dispatcher output guard is armed\")\n    }}\n}}\n\nimpl Drop for DispatcherOutputGuard {{\n    fn drop(&mut self) {{\n        if let Some(raw) = self.raw.take() {{\n            // SAFETY: an armed guard exclusively owns a dispatcher result not yet transferred to a public wrapper.\n            let status = unsafe {{ ffi::{}(raw.as_ptr()) }};\n            debug_assert_eq!(status, {});\n        }}\n    }}\n}}\n\n",
+                dispatcher_record.c_name,
+                dispatcher_record.c_name,
+                dispatcher_record.c_name,
+                dispatcher_dispose_symbol.c_name,
+                dispatcher_dispose_symbol.success_code.unwrap_or(0),
+            ));
+        }
     }
     if manifest
         .modules
@@ -485,13 +519,15 @@ pub(super) fn render_rust_ffi_and_adapter(
             matches!(
                 value,
                 CDispatcherStackValue::OwnedOptionalIntArgument { .. }
+                    | CDispatcherStackValue::OwnedOptionalFloatArgument { .. }
                     | CDispatcherStackValue::OwnedOptionalHandleCopy { .. }
                     | CDispatcherStackValue::OwnedOptionalIntListArgument { .. }
+                    | CDispatcherStackValue::OwnedOptionalStringArgument { .. }
             )
         })
     {
         source.push_str(
-            "struct DispatcherOptionalValueGuard {\n    raw: Option<NonNull<u64>>,\n    destructor: unsafe extern \"C\" fn(*mut u64) -> i32,\n    success: i32,\n}\n\nimpl DispatcherOptionalValueGuard {\n    fn new(\n        raw: *mut u64,\n        destructor: unsafe extern \"C\" fn(*mut u64) -> i32,\n        success: i32,\n    ) -> Option<Self> {\n        NonNull::new(raw).map(|raw| Self { raw: Some(raw), destructor, success })\n    }\n\n    fn write_stable_ivalue(&mut self, value: u64) {\n        // SAFETY: the allocator returned exclusive storage for one StableIValue.\n        unsafe { *self.raw.expect(\"dispatcher optional guard is armed\").as_ptr() = value };\n    }\n\n    fn write_i64(&mut self, value: i64) {\n        self.write_stable_ivalue(value as u64);\n    }\n\n    fn into_stable_ivalue(mut self) -> u64 {\n        self.raw.take().expect(\"dispatcher optional guard is armed\").as_ptr() as usize as u64\n    }\n}\n\nimpl Drop for DispatcherOptionalValueGuard {\n    fn drop(&mut self) {\n        if let Some(raw) = self.raw.take() {\n            // SAFETY: an armed guard exclusively owns optional backing storage not yet transferred to the dispatcher.\n            let status = unsafe { (self.destructor)(raw.as_ptr()) };\n            debug_assert_eq!(status, self.success);\n        }\n    }\n}\n\n",
+            "struct DispatcherOptionalValueGuard {\n    raw: Option<NonNull<u64>>,\n    destructor: unsafe extern \"C\" fn(*mut u64) -> i32,\n    success: i32,\n}\n\nimpl DispatcherOptionalValueGuard {\n    fn new(\n        raw: *mut u64,\n        destructor: unsafe extern \"C\" fn(*mut u64) -> i32,\n        success: i32,\n    ) -> Option<Self> {\n        NonNull::new(raw).map(|raw| Self { raw: Some(raw), destructor, success })\n    }\n\n    fn write_stable_ivalue(&mut self, value: u64) {\n        // SAFETY: the allocator returned exclusive storage for one StableIValue.\n        unsafe { *self.raw.expect(\"dispatcher optional guard is armed\").as_ptr() = value };\n    }\n\n    fn write_i64(&mut self, value: i64) {\n        self.write_stable_ivalue(value as u64);\n    }\n\n    fn write_f64(&mut self, value: f64) {\n        self.write_stable_ivalue(value.to_bits());\n    }\n\n    fn into_stable_ivalue(mut self) -> u64 {\n        self.raw.take().expect(\"dispatcher optional guard is armed\").as_ptr() as usize as u64\n    }\n}\n\nimpl Drop for DispatcherOptionalValueGuard {\n    fn drop(&mut self) {\n        if let Some(raw) = self.raw.take() {\n            // SAFETY: an armed guard exclusively owns optional backing storage not yet transferred to the dispatcher.\n            let status = unsafe { (self.destructor)(raw.as_ptr()) };\n            debug_assert_eq!(status, self.success);\n        }\n    }\n}\n\n",
         );
     }
     if manifest
@@ -505,6 +541,7 @@ pub(super) fn render_rust_ffi_and_adapter(
                 value,
                 CDispatcherStackValue::OwnedIntListArgument { .. }
                     | CDispatcherStackValue::OwnedOptionalIntListArgument { .. }
+                    | CDispatcherStackValue::OwnedHandleListArgument { .. }
             )
         })
     {
@@ -518,7 +555,14 @@ pub(super) fn render_rust_ffi_and_adapter(
         .flat_map(|module| &module.functions)
         .filter_map(|function| function.dispatcher.as_ref())
         .flat_map(|dispatcher| &dispatcher.stack)
-        .any(|value| matches!(value, CDispatcherStackValue::OwnedStringLiteral { .. }))
+        .any(|value| {
+            matches!(
+                value,
+                CDispatcherStackValue::OwnedStringArgument { .. }
+                    | CDispatcherStackValue::OwnedOptionalStringArgument { .. }
+                    | CDispatcherStackValue::OwnedStringLiteral { .. }
+            )
+        })
     {
         source.push_str(
             "struct DispatcherStringGuard {\n    raw: Option<NonNull<()>>,\n    destructor: unsafe extern \"C\" fn(*mut ()) -> i32,\n    success: i32,\n}\n\nimpl DispatcherStringGuard {\n    fn new(\n        raw: *mut (),\n        destructor: unsafe extern \"C\" fn(*mut ()) -> i32,\n        success: i32,\n    ) -> Option<Self> {\n        NonNull::new(raw).map(|raw| Self { raw: Some(raw), destructor, success })\n    }\n\n    fn into_stable_ivalue(mut self) -> u64 {\n        self.raw.take().expect(\"dispatcher string guard is armed\").as_ptr() as usize as u64\n    }\n}\n\nimpl Drop for DispatcherStringGuard {\n    fn drop(&mut self) {\n        if let Some(raw) = self.raw.take() {\n            // SAFETY: an armed guard exclusively owns a dispatcher string not yet transferred to the stack.\n            let status = unsafe { (self.destructor)(raw.as_ptr()) };\n            debug_assert_eq!(status, self.success);\n        }\n    }\n}\n\n",
@@ -565,25 +609,46 @@ pub(super) fn render_rust_ffi_and_adapter(
             }
             source.push_str("}\n\n");
         } else {
-            for functions in owned_functions.chunks(OWNED_FUNCTION_CHUNK_SIZE) {
-                let chunk_index = owned_chunks.len();
-                let mut chunk = format!("use super::*;\n\nimpl {} {{\n", ty.name);
-                for function in functions {
-                    chunk.push_str(&render_safe_wrapper(
-                        SafeWrapperRendering {
-                            manifest,
-                            symbols,
-                            aliases: &manifest.c_metadata.aliases,
-                        },
-                        SafeWrapperTarget {
-                            function,
-                            symbol: function_symbol(function, symbols)?,
-                            record: Some(record),
-                            ty: Some(ty),
-                            inside_impl: true,
-                        },
-                    )?);
+            let prelude = format!("use super::*;\n\nimpl {} {{\n", ty.name);
+            let mut chunk = prelude.clone();
+            let mut chunk_function_count = 0;
+            for function in owned_functions {
+                let wrapper = render_safe_wrapper(
+                    SafeWrapperRendering {
+                        manifest,
+                        symbols,
+                        aliases: &manifest.c_metadata.aliases,
+                    },
+                    SafeWrapperTarget {
+                        function,
+                        symbol: function_symbol(function, symbols)?,
+                        record: Some(record),
+                        ty: Some(ty),
+                        inside_impl: true,
+                    },
+                )?;
+                let wrapper_line_count = wrapper.lines().count();
+                if prelude.lines().count() + wrapper_line_count + 1 > GENERATED_ADAPTER_LINE_LIMIT {
+                    return Err(format!(
+                        "generated adapter wrapper `{}` exceeds the {}-line shard limit",
+                        function.operation, GENERATED_ADAPTER_LINE_LIMIT
+                    ));
                 }
+                if chunk_function_count != 0
+                    && chunk.lines().count() + wrapper_line_count + 1 > GENERATED_ADAPTER_LINE_LIMIT
+                {
+                    let chunk_index = owned_chunks.len();
+                    chunk.push_str("}\n");
+                    owned_chunks.push(chunk);
+                    source.push_str(&format!("mod generated_adapter_{chunk_index};\n"));
+                    chunk = prelude.clone();
+                    chunk_function_count = 0;
+                }
+                chunk.push_str(&wrapper);
+                chunk_function_count += 1;
+            }
+            if chunk_function_count != 0 {
+                let chunk_index = owned_chunks.len();
                 chunk.push_str("}\n");
                 owned_chunks.push(chunk);
                 source.push_str(&format!("mod generated_adapter_{chunk_index};\n"));

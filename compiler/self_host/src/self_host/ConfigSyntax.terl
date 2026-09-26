@@ -1,0 +1,40 @@
+/** Typed syntax for target and machine configuration declarations. */
+module self_host.ConfigSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.core.String.
+
+
+pub type RawConfig.
+pub type TargetConfig.
+pub type MachineConfig.
+pub type StaticConfig.
+
+pub type ConfigKind = RawConfig | TargetConfig | MachineConfig | StaticConfig.
+
+pub struct ConfigSyntax {
+    valid: Bool,
+    kind: self_host.ConfigSyntax.ConfigKind,
+    name: String,
+    adapter: String,
+    has_adapter: Bool,
+    raw: String,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ConfigSyntax {
+    (valid: Bool, kind: self_host.ConfigSyntax.ConfigKind, name: String, adapter: String, has_adapter: Bool, raw: String, span: SyntaxSpan, message: String): ConfigSyntax ->
+        ConfigSyntax {
+            valid: valid,
+            kind: kind,
+            name: name,
+            adapter: adapter,
+            has_adapter: has_adapter,
+            raw: raw,
+            span: span,
+            message: message,
+        }
+}.
+

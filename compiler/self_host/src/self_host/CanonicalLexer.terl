@@ -1,0 +1,261 @@
+/** Byte-exact canonical lexer for the self-hosted frontend. */
+module self_host.CanonicalLexer.
+
+import self_host.CanonicalToken.{BinaryToken, CanonicalLexError, CanonicalLexOutput, CanonicalToken, CommentToken, ContextualKeywordToken, DocCommentToken, EndToken, FloatToken, IntegerToken, KeywordToken, LowerIdentifierToken, ModuleDocCommentToken, OperatorToken, PunctuationToken, StringToken, TokenCategory, UpperIdentifierToken}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+struct Scan {
+    index: Int,
+    tokens: List[CanonicalToken],
+    errors: List[CanonicalLexError],
+}.
+
+constructor Scan {
+    (index: Int, tokens: List[CanonicalToken], errors: List[CanonicalLexError]): Scan ->
+        Scan {
+            index: index,
+            tokens: tokens,
+            errors: errors,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+starts_at(source: String, expected: String, index: Int, offset: Int): Bool ->
+    if {
+        offset == expected.byte_size() -> true;
+        index + offset >= source.byte_size() -> false;
+        source.utf8_byte_at(index + offset) != expected.utf8_byte_at(offset) -> false;
+        true -> starts_at(source, expected, index, offset + 1)
+    }.
+
+@pure
+starts(source: String, expected: String, index: Int): Bool ->
+    starts_at(source, expected, index, 0).
+
+@pure
+slice(source: String, start: Int, end: Int): String ->
+    source.utf8_slice(start, end - start).
+
+@pure
+token(category: TokenCategory, terminal: String, source: String, start: Int, end: Int): CanonicalToken ->
+    CanonicalToken(category, terminal, slice(source, start, end), start, end).
+
+@pure
+advance(scan: Scan, index: Int, value: CanonicalToken): Scan ->
+    Scan(index = index, tokens = [value | scan.tokens], errors = scan.errors).
+
+@pure
+fail(scan: Scan, index: Int, end: Int, message: String): Scan ->
+    Scan(index = end, tokens = scan.tokens, errors = [CanonicalLexError(message, index, end) | scan.errors]).
+
+@pure
+is_space(byte: Int): Bool -> byte == 32 or byte == 9 or byte == 10 or byte == 13.
+
+@pure
+is_digit(byte: Int): Bool -> byte >= 48 and byte <= 57.
+
+@pure
+is_alpha(byte: Int): Bool -> (byte >= 65 and byte <= 90) or (byte >= 97 and byte <= 122).
+
+@pure
+is_identifier_start(byte: Int): Bool -> is_alpha(byte) or byte == 95.
+
+@pure
+is_identifier_continue(byte: Int): Bool -> is_identifier_start(byte) or is_digit(byte).
+
+@pure
+line_end(source: String, index: Int): Int ->
+    if { index == source.byte_size() or source.utf8_byte_at(index) == 10 -> index; true -> line_end(source, index + 1) }.
+
+@pure
+identifier_end(source: String, index: Int): Int ->
+    if {
+        index == source.byte_size() or not is_identifier_continue(source.utf8_byte_at(index)) -> index;
+        true -> identifier_end(source, index + 1)
+    }.
+
+@pure
+digits_end(source: String, index: Int): Int ->
+    if { index == source.byte_size() or not is_digit(source.utf8_byte_at(index)) -> index; true -> digits_end(source, index + 1) }.
+
+@pure
+alphanumeric_end(source: String, index: Int): Int ->
+    if {
+        index == source.byte_size() or not (is_alpha(source.utf8_byte_at(index)) or is_digit(source.utf8_byte_at(index))) -> index;
+        true -> alphanumeric_end(source, index + 1)
+    }.
+
+@pure
+string_end(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
+    if {
+        index == source.byte_size() -> -1;
+        escaped -> string_end(source, index + 1, quote_byte, false);
+        source.utf8_byte_at(index) == 92 -> string_end(source, index + 1, quote_byte, true);
+        source.utf8_byte_at(index) == quote_byte -> index + 1;
+        true -> string_end(source, index + 1, quote_byte, false)
+    }.
+
+@pure
+block_end(source: String, index: Int): Int ->
+    if {
+        index + 1 >= source.byte_size() -> -1;
+        starts(source, "*/", index) -> index + 2;
+        true -> block_end(source, index + 1)
+    }.
+
+@pure
+binary_end(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
+    if {
+        index >= source.byte_size() -> -1;
+        quote_byte != 0 and escaped -> binary_end(source, index + 1, quote_byte, false);
+        quote_byte != 0 and source.utf8_byte_at(index) == 92 -> binary_end(source, index + 1, quote_byte, true);
+        quote_byte != 0 and source.utf8_byte_at(index) == quote_byte -> binary_end(source, index + 1, 0, false);
+        quote_byte != 0 -> binary_end(source, index + 1, quote_byte, false);
+        source.utf8_byte_at(index) == 34 or source.utf8_byte_at(index) == 39 -> binary_end(source, index + 1, source.utf8_byte_at(index), false);
+        starts(source, ">>", index) -> index + 2;
+        true -> binary_end(source, index + 1, 0, false)
+    }.
+
+@pure
+is_canonical_keyword(text: String): Bool ->
+    String.contains("|module|pub|const|macro|constructor|export|import|type|nominal|opaque|trait|impl|implements|includes|for|template|where|extends|struct|case|of|end|try|catch|after|fun|let|if|when|with|and|in|or|div|rem|", String.concat(["|", text, "|"])).
+
+@pure
+is_contextual_keyword(text: String): Bool ->
+    String.contains("|annotation|applies_to|as|Bool|config|css|default|else|exists|false|file|Float|from|function|html|Int|machine|markdown|method|mut|Name|not|opaque_type|quote|repeatable|required|shape|static|String|target|true|Type|unquote|", String.concat(["|", text, "|"])).
+
+@pure
+identifier_category(text: String): TokenCategory ->
+    if {
+        is_canonical_keyword(text) -> KeywordToken;
+        is_contextual_keyword(text) -> ContextualKeywordToken;
+        text.utf8_byte_at(0) >= 65 and text.utf8_byte_at(0) <= 90 -> UpperIdentifierToken;
+        true -> LowerIdentifierToken
+    }.
+
+@pure
+identifier_terminal(text: String): String ->
+    if {
+        text == "_" -> "placeholder";
+        is_canonical_keyword(text) or is_contextual_keyword(text) -> text;
+        text.utf8_byte_at(0) >= 65 and text.utf8_byte_at(0) <= 90 -> "upper-ident";
+        true -> "atom"
+    }.
+
+@pure
+number_end(source: String, start: Int): Int ->
+    if {
+        start + 2 < source.byte_size()
+            and source.utf8_byte_at(start) == 48
+            and (source.utf8_byte_at(start + 1) == 98 or source.utf8_byte_at(start + 1) == 111 or source.utf8_byte_at(start + 1) == 120) ->
+                alphanumeric_end(source, start + 2);
+        true ->
+            let integer_end = digits_end(source, start + 1);
+            let fraction_end = if {
+                integer_end + 1 < source.byte_size()
+                    and source.utf8_byte_at(integer_end) == 46
+                    and source.utf8_byte_at(integer_end + 1) != 46
+                    and is_digit(source.utf8_byte_at(integer_end + 1)) -> digits_end(source, integer_end + 2);
+                true -> integer_end
+            };
+            if {
+                fraction_end < source.byte_size()
+                    and (source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69) ->
+                        let sign_end = if {
+                            fraction_end + 1 < source.byte_size()
+                                and (source.utf8_byte_at(fraction_end + 1) == 43 or source.utf8_byte_at(fraction_end + 1) == 45) -> fraction_end + 2;
+                            true -> fraction_end + 1
+                        };
+                        let exponent_end = digits_end(source, sign_end);
+                        if { exponent_end > sign_end -> exponent_end; true -> fraction_end };
+                true -> fraction_end
+            }
+    }.
+
+@pure
+is_float_text(text: String): Bool -> String.contains(text, ".") or String.contains(text, "e") or String.contains(text, "E").
+
+@pure
+operator_at(source: String, index: Int): String ->
+    if {
+        starts(source, "...", index) -> "...";
+        starts(source, "===", index) -> "===";
+        starts(source, "!==", index) -> "!==";
+        starts(source, "..", index) -> "..";
+        starts(source, "|>", index) -> "|>";
+        starts(source, "->", index) -> "->";
+        starts(source, String.append("=", ">"), index) -> String.append("=", ">");
+        starts(source, "==", index) -> "==";
+        starts(source, "!=", index) -> "!=";
+        starts(source, "<=", index) -> "<=";
+        starts(source, ">=", index) -> ">=";
+        starts(source, "<-", index) -> "<-";
+        true -> ""
+    }.
+
+@pure
+is_single_operator(byte: Int): Bool -> byte == 124 or byte == 43 or byte == 45 or byte == 42 or byte == 47 or byte == 61 or byte == 33 or byte == 60 or byte == 62.
+
+@pure
+is_punctuation(byte: Int): Bool ->
+    byte == 40 or byte == 41 or byte == 91 or byte == 93 or byte == 123 or byte == 125
+        or byte == 35 or byte == 44 or byte == 46 or byte == 58 or byte == 59
+        or byte == 63 or byte == 36 or byte == 64.
+
+@pure
+scan_one(source: String, scan: Scan): Scan ->
+    let index = scan.index;
+    let byte = source.utf8_byte_at(index);
+    if {
+        is_space(byte) -> Scan(index = index + 1, tokens = scan.tokens, errors = scan.errors);
+        starts(source, "/**", index) ->
+            let end = block_end(source, index + 3);
+            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated documentation block comment"); true -> advance(scan, end, token(DocCommentToken, "doc-block", source, index, end)) };
+        starts(source, "/*", index) ->
+            let end = block_end(source, index + 2);
+            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated block comment"); true -> advance(scan, end, token(CommentToken, "comment", source, index, end)) };
+        starts(source, "///", index) -> let end = line_end(source, index + 3); advance(scan, end, token(DocCommentToken, "doc", source, index, end));
+        starts(source, "//!", index) -> let end = line_end(source, index + 3); advance(scan, end, token(ModuleDocCommentToken, "module-doc", source, index, end));
+        starts(source, "//", index) or byte == 37 -> let end = line_end(source, index + 1); advance(scan, end, token(CommentToken, "comment", source, index, end));
+        byte == 34 or byte == 39 ->
+            let end = string_end(source, index + 1, byte, false);
+            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated string literal"); true -> advance(scan, end, token(StringToken, "string", source, index, end)) };
+        starts(source, "<<", index) ->
+            let end = binary_end(source, index + 2, 0, false);
+            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated binary literal"); true -> advance(scan, end, token(BinaryToken, "binary", source, index, end)) };
+        is_digit(byte) ->
+            let end = number_end(source, index);
+            let text = slice(source, index, end);
+            advance(scan, end, token(if { is_float_text(text) -> FloatToken; true -> IntegerToken }, if { is_float_text(text) -> "float"; true -> "int" }, source, index, end));
+        is_identifier_start(byte) ->
+            let end = identifier_end(source, index + 1);
+            let text = slice(source, index, end);
+            advance(scan, end, token(identifier_category(text), identifier_terminal(text), source, index, end));
+        operator_at(source, index) != "" ->
+            let operator = operator_at(source, index);
+            advance(scan, index + operator.byte_size(), token(OperatorToken, operator, source, index, index + operator.byte_size()));
+        is_single_operator(byte) -> advance(scan, index + 1, token(OperatorToken, slice(source, index, index + 1), source, index, index + 1));
+        is_punctuation(byte) -> advance(scan, index + 1, token(PunctuationToken, slice(source, index, index + 1), source, index, index + 1));
+        true -> fail(scan, index, index + 1, "unrecognized source byte")
+    }.
+
+@pure
+scan_all(source: String, scan: Scan): Scan ->
+    if { scan.index == source.byte_size() -> scan; true -> scan_all(source, scan_one(source, scan)) }.
+
+/** Tokenizes complete Terlan source and always appends an EOF token. */
+@pure
+pub lex(source: String): CanonicalLexOutput ->
+    let scanned = scan_all(source, Scan(index = 0, tokens = List.new[CanonicalToken](), errors = List.new[CanonicalLexError]()));
+    let eof = CanonicalToken(EndToken, "eof", "", source.byte_size(), source.byte_size());
+    CanonicalLexOutput(List.is_empty(scanned.errors), reverse_at([eof | scanned.tokens], List.new[CanonicalToken]()), reverse_at(scanned.errors, List.new[CanonicalLexError]())).

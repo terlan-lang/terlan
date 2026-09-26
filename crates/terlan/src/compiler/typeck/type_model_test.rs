@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use super::test_support::check_syntax_output;
+use super::test_support::{check_syntax_output, check_syntax_output_with_std_interfaces};
 use super::*;
 use crate::terlan_hir::{resolve_syntax_module_output, syntax_module_output_to_interface};
 use crate::terlan_syntax::parse_module_as_syntax_output;
@@ -63,31 +63,17 @@ fn assert_alias_structural_implication(alias: &TypeAlias) {
     ));
 }
 
-/// Verifies singleton atom types unquote escaped single-quoted atom payloads.
-///
-/// Inputs:
-/// - A type expression using `Atom['it\\'s-ready']`.
-///
-/// Output:
-/// - Internal literal atom type containing `it's-ready`.
-///
-/// Transformation:
-/// - Exercises the shared single-quoted atom unquote helper from the type
-///   parser path, matching the value parser's atom literal handling.
+/// Verifies legacy atom spellings cannot become singleton types downstream.
 #[test]
-fn type_parser_unquotes_escaped_single_quoted_atom_types() {
-    let mut vars = HashMap::new();
-    let mut next_var = 0usize;
-    let ty = parse_type_expr(
-        "Atom['it\\'s-ready']",
-        &HashSet::new(),
-        &mut vars,
-        &mut next_var,
-    )
-    .expect("parse escaped singleton atom type");
-
-    assert_eq!(ty, Type::LiteralAtom("it's-ready".to_string()));
-    assert_eq!(pretty_type(&ty), "it's-ready");
+fn type_parser_rejects_legacy_atom_payloads() {
+    for source in [":ready", ":'it\\'s-ready'", "Atom['it\\'s-ready']"] {
+        assert_eq!(atom_type_literal_payload(source), None, "accepted {source}");
+        let ty = parse_type_expr(source, &HashSet::new(), &mut HashMap::new(), &mut 0);
+        assert!(
+            !matches!(ty, Some(Type::LiteralAtom(_))),
+            "lowered {source}"
+        );
+    }
 }
 
 /// Verifies singleton atom types decode canonical string-literal escapes.
@@ -279,6 +265,91 @@ fn expand_type_aliases_preserves_recursive_cycle_reference() {
             },
         ])
     );
+}
+
+/// Verifies global interface expansion preserves recursive collection aliases.
+#[test]
+fn expand_interface_global_aliases_preserves_recursive_cycle_reference() {
+    let aliases = HashMap::from([(
+        "ndarray.Numpy.Block".to_string(),
+        TypeAlias {
+            params: Vec::new(),
+            param_variance: Vec::new(),
+            bounds: Vec::new(),
+            body: Type::Union(vec![
+                Type::Named {
+                    module: None,
+                    name: "Array".to_string(),
+                    args: Vec::new(),
+                },
+                Type::List(Box::new(Type::Named {
+                    module: None,
+                    name: "Block".to_string(),
+                    args: Vec::new(),
+                })),
+            ]),
+            constructor_param_names: Vec::new(),
+            is_opaque: false,
+        },
+    )]);
+
+    assert_eq!(
+        expand_interface_global_aliases(
+            &Type::Named {
+                module: None,
+                name: "Block".to_string(),
+                args: Vec::new(),
+            },
+            &aliases,
+        ),
+        Type::Union(vec![
+            Type::Named {
+                module: None,
+                name: "Array".to_string(),
+                args: Vec::new(),
+            },
+            Type::List(Box::new(Type::Named {
+                module: None,
+                name: "Block".to_string(),
+                args: Vec::new(),
+            })),
+        ])
+    );
+}
+
+/// Verifies recursive aliases remain assignable through list containers.
+#[test]
+fn alias_aware_subtyping_compares_recursive_list_elements_structurally() {
+    let block_reference = Type::Named {
+        module: None,
+        name: "Block".to_string(),
+        args: Vec::new(),
+    };
+    let block_body = Type::Union(vec![
+        Type::Named {
+            module: None,
+            name: "Array".to_string(),
+            args: Vec::new(),
+        },
+        Type::List(Box::new(block_reference.clone())),
+    ]);
+    let aliases = HashMap::from([(
+        "Block".to_string(),
+        TypeAlias {
+            params: Vec::new(),
+            param_variance: Vec::new(),
+            bounds: Vec::new(),
+            body: block_body.clone(),
+            constructor_param_names: Vec::new(),
+            is_opaque: false,
+        },
+    )]);
+
+    assert!(is_subtype_with_aliases(
+        &Type::List(Box::new(block_body)),
+        &Type::List(Box::new(block_reference)),
+        &aliases,
+    ));
 }
 
 /// Verifies inference substitution rewrites higher-kinded applications.
@@ -567,6 +638,91 @@ pub submit(form: Form[Validated]): Unit ->\n\
 pub demo(form: Form[Draft], validate: (Form[Draft]) -> Form[Validated]): Unit ->\n\
     submit(validate(form)).\n\
 ",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
+/// Verifies recursive aliases survive list construction and case refinement.
+///
+/// Inputs:
+/// - A recursive `Block` alias containing either an integer or nested blocks.
+/// - Functions returning `List[Block]` and matching empty, non-empty, and leaf
+///   shapes.
+///
+/// Output:
+/// - Empty typecheck diagnostics.
+///
+/// Transformation:
+/// - Confirms return checking compares recursive aliases structurally and a
+///   final case binding receives only the scalar variant after both list
+///   shapes have been consumed.
+#[test]
+fn syntax_output_accepts_recursive_alias_returns_and_case_residuals() {
+    let diagnostics = check_syntax_output(
+        "\
+module recursive_block_ok.\n\
+pub type Block = Int | List[Block].\n\
+\n\
+pub singleton(value: Block): List[Block] ->\n\
+    [value].\n\
+\n\
+pub prepend(value: Block, values: List[Block]): List[Block] ->\n\
+    [value | values].\n\
+\n\
+pub leaf(value: Block): Int ->\n\
+    case value {\n\
+        [] -> 0;\n\
+        [first | rest] -> 1;\n\
+        integer -> integer\n\
+    }.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
+}
+
+/// Verifies Boolean literals retain their type in generic case-clause bodies.
+///
+/// Inputs:
+/// - A generic iterator of table rows and a callback producing expected values.
+/// - Nested option and Boolean case clauses that return a generic report.
+///
+/// Output:
+/// - Empty typecheck diagnostics.
+///
+/// Transformation:
+/// - Exercises lowercase Boolean literals emitted through variable-shaped
+///   clause syntax and imported recursive generic container contracts.
+#[test]
+fn syntax_output_types_boolean_literals_in_generic_case_reports() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module generic_case_report_ok.\n\
+import std.collections.Iterator.{next}.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.collections.{Iterator}.\n\
+\n\
+pub type Row[T, E] = {Binary, T, E}.\n\
+pub type Failure[E] = {Int, Binary, E, E}.\n\
+pub type Report[E] = {Bool, Option[Failure[E]]}.\n\
+\n\
+pub run[T, E](\n\
+    iterator: Iterator[Row[T, E]],\n\
+    index: Int,\n\
+    actual: (T) -> E,\n\
+): Report[E] ->\n\
+    case next(iterator) {\n\
+        None -> {true, None};\n\
+        Some({value: {name, input, expected}, next: rest}) ->\n\
+            let observed = actual(input);\n\
+            case expected == observed {\n\
+                true -> run(rest, index + 1, actual);\n\
+                false -> {false, Some({index, name, expected, observed})}\n\
+            }\n\
+    }.\n\
+",
+        "std/collections/Iterator.terl",
     );
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);

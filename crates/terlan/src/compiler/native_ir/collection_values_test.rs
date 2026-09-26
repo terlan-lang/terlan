@@ -108,6 +108,40 @@ fn managed_locals_recover_checked_element_type_for_list_literals() {
     assert!(contains_collection_tag(&collect.body, 1));
 }
 
+#[test]
+fn list_literal_lowers_as_a_transparent_recursive_union_variant() {
+    let modules = lower(
+        "module native_recursive_union_list.\n\n\
+         pub struct Leaf { value: Int }.\n\
+         pub type Node = Leaf | List[Node].\n\n\
+         pub wrap(value: Leaf): Node -> [value].\n",
+    );
+    let wrap = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "wrap")
+        .expect("recursive union wrapper");
+
+    assert!(contains_collection_tag(&wrap.body, 1));
+}
+
+#[test]
+fn nested_list_literal_retains_its_recursive_union_element_contract() {
+    let modules = lower(
+        "module native_nested_recursive_union_list.\n\n\
+         pub struct Leaf { value: Int }.\n\
+         pub type Node = Leaf | List[Node].\n\n\
+         pub wrap(left: Leaf, right: Leaf): Node -> [[left], [right]].\n",
+    );
+    let wrap = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "wrap")
+        .expect("nested recursive union wrapper");
+
+    assert!(contains_collection_tag(&wrap.body, 1));
+}
+
 fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
     match expr {
         NativeExpr::ManagedOperation { encoded, args } => {

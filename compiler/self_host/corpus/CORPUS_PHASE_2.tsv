@@ -1,0 +1,5 @@
+# expectation<TAB>feature<TAB>fixture
+accept	module-and-declarations	accepted/Surface.terl
+reject	missing-module	rejected/MissingModule.terl
+reject	unterminated-declaration	rejected/UnterminatedDeclaration.terl
+

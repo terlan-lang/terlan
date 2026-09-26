@@ -181,6 +181,68 @@ fn nested_composable_suspending_call_arguments_are_sequenced() {
 }
 
 #[test]
+fn field_projection_composes_after_a_suspending_struct_call() {
+    let identity = ("package.load_player".to_string(), 0);
+    let expression = CoreExpr::FieldAccess {
+        base: Box::new(CoreExpr::Call {
+            function: identity.0.clone(),
+            args: Vec::new(),
+        }),
+        field: "board".to_string(),
+    };
+    let suspending = HashSet::from([identity.clone()]);
+
+    let region = composed_call_region(
+        &expression,
+        &suspending,
+        &|function, arity| (function.to_string(), arity) == identity,
+        &HashSet::new(),
+    )
+    .expect("field projection must resume after the struct-producing call");
+
+    assert!(matches!(region.target, CallTarget::Direct(ref name) if name == &identity.0));
+    assert_eq!(
+        region.resume,
+        CoreExpr::FieldAccess {
+            base: Box::new(CoreExpr::Var("$native_call_result".to_string())),
+            field: "board".to_string(),
+        }
+    );
+}
+
+#[test]
+fn named_record_projection_composes_after_a_suspending_struct_call() {
+    let identity = ("package.load_player".to_string(), 0);
+    let expression = CoreExpr::RecordAccess {
+        base: Box::new(CoreExpr::Call {
+            function: identity.0.clone(),
+            args: Vec::new(),
+        }),
+        name: "package.Player".to_string(),
+        field: "board".to_string(),
+    };
+    let suspending = HashSet::from([identity.clone()]);
+
+    let region = composed_call_region(
+        &expression,
+        &suspending,
+        &|function, arity| (function.to_string(), arity) == identity,
+        &HashSet::new(),
+    )
+    .expect("named record projection must resume after the struct-producing call");
+
+    assert!(matches!(region.target, CallTarget::Direct(ref name) if name == &identity.0));
+    assert_eq!(
+        region.resume,
+        CoreExpr::RecordAccess {
+            base: Box::new(CoreExpr::Var("$native_call_result".to_string())),
+            name: "package.Player".to_string(),
+            field: "board".to_string(),
+        }
+    );
+}
+
+#[test]
 fn record_constructor_fields_sequence_composable_calls_left_to_right() {
     let first = ("package.first".to_string(), 0);
     let second = ("package.second".to_string(), 0);

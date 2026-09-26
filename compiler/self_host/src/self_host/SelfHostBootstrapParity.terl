@@ -1,0 +1,86 @@
+/**
+ * Fixed-point evidence model for compiler authority transfer.
+ */
+module self_host.SelfHostBootstrapParity.
+
+import std.collections.List.
+pub struct BootstrapArtifact {
+    module_name: String,
+    token_digest: String,
+    syntax_digest: String,
+    semantic_digest: String,
+    backend_digest: String,
+}.
+
+pub constructor BootstrapArtifact {
+    (module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String, backend_digest: String): BootstrapArtifact ->
+        BootstrapArtifact {
+            module_name: module_name,
+            token_digest: token_digest,
+            syntax_digest: syntax_digest,
+            semantic_digest: semantic_digest,
+            backend_digest: backend_digest,
+        }
+}.
+
+
+pub struct BootstrapParity {
+    module_equal: Bool,
+    token_equal: Bool,
+    syntax_equal: Bool,
+    semantic_equal: Bool,
+    backend_equal: Bool,
+    fixed_point: Bool,
+    differences: List[String],
+}.
+
+pub constructor BootstrapParity {
+    (module_equal: Bool, token_equal: Bool, syntax_equal: Bool, semantic_equal: Bool, backend_equal: Bool, fixed_point: Bool, differences: List[String]): BootstrapParity ->
+        BootstrapParity {
+            module_equal: module_equal,
+            token_equal: token_equal,
+            syntax_equal: syntax_equal,
+            semantic_equal: semantic_equal,
+            backend_equal: backend_equal,
+            fixed_point: fixed_point,
+            differences: differences,
+        }
+}.
+
+
+@pure
+add_difference(equal: Bool, message: String, values: List[String]): List[String] ->
+    if { equal -> values; true -> [message | values] }.
+
+@pure
+reverse(values: List[String], result: List[String]): List[String] ->
+    case values {
+        [] -> result;
+        [value | rest] -> reverse(rest, [value | result])
+    }.
+
+@pure
+pub compare(reference: BootstrapArtifact, candidate: BootstrapArtifact): BootstrapParity ->
+    let module_equal = reference.module_name == candidate.module_name;
+    let token_equal = reference.token_digest == candidate.token_digest;
+    let syntax_equal = reference.syntax_digest == candidate.syntax_digest;
+    let semantic_equal = reference.semantic_digest == candidate.semantic_digest;
+    let backend_equal = reference.backend_digest == candidate.backend_digest;
+    let differences = add_difference(
+        backend_equal,
+        "backend artifact differs",
+        add_difference(
+            semantic_equal,
+            "semantic artifact differs",
+            add_difference(
+                syntax_equal,
+                "syntax artifact differs",
+                add_difference(token_equal, "token artifact differs", add_difference(
+                    module_equal,
+                    "module identity differs",
+                    List.new[String](),
+                )),
+            ),
+        ),
+    );
+    BootstrapParity(module_equal, token_equal, syntax_equal, semantic_equal, backend_equal, module_equal and token_equal and syntax_equal and semantic_equal and backend_equal, reverse(differences, List.new[String]())).

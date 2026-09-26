@@ -51,9 +51,7 @@ pub(crate) struct VmWebSocketAcceptedUpgrade {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg(test)]
 pub enum VmWebSocketControlFrame {
-    #[cfg(test)]
     Ping(Vec<u8>),
-    #[cfg(test)]
     Pong(Vec<u8>),
     Close,
 }
@@ -71,7 +69,6 @@ pub enum VmWebSocketControlFrame {
 ///   streams without exposing tungstenite messages.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VmWebSocketFrame {
-    #[cfg(test)]
     Text(String),
     #[cfg(test)]
     Control(VmWebSocketControlFrame),
@@ -94,12 +91,13 @@ pub(crate) enum VmWebSocketBinaryPayloadPolicy {
 }
 
 impl VmWebSocketFrame {
-    #[cfg(test)]
     pub(crate) fn payload_len(&self) -> usize {
         match self {
             Self::Text(value) => value.len(),
+            #[cfg(test)]
             Self::Control(VmWebSocketControlFrame::Ping(value))
             | Self::Control(VmWebSocketControlFrame::Pong(value)) => value.len(),
+            #[cfg(test)]
             Self::Control(VmWebSocketControlFrame::Close) => 0,
         }
     }
@@ -122,6 +120,8 @@ pub struct VmWebSocketEndpointPlan {
     pub(crate) max_frame_bytes: usize,
     pub(crate) binary_payload_policy: VmWebSocketBinaryPayloadPolicy,
     pub(crate) callbacks: Option<VmWebSocketCallbackPlan>,
+    #[serde(default)]
+    pub(crate) pairing: Option<VmWebSocketPairingPlan>,
 }
 
 /// Complete static callback set for one generated WebSocket endpoint.
@@ -137,6 +137,37 @@ pub(crate) struct VmWebSocketCallbackPlan {
     pub(crate) close: VmNativeCallableRef,
     /// Called during abrupt scheduler or transport cancellation.
     pub(crate) cancellation: VmNativeCallableRef,
+}
+
+/// Source-owned payload and callback policy for a two-peer WebSocket session.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub(crate) struct VmWebSocketPairingPlan {
+    pub(crate) waiting: String,
+    pub(crate) first_matched: String,
+    pub(crate) second_matched: String,
+    pub(crate) peer_left: String,
+    #[serde(default)]
+    pub(crate) stateful: bool,
+    #[serde(default)]
+    pub(crate) restoration: Option<VmWebSocketPairRestorationPlan>,
+    pub(crate) inbound: VmNativeCallableRef,
+    pub(crate) cancellation: VmNativeCallableRef,
+}
+
+/// Source-declared identity and callback policy for reclaiming a paired seat.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub(crate) struct VmWebSocketPairRestorationPlan {
+    pub(crate) waiting: VmNativeCallableRef,
+    pub(crate) peer_left: VmNativeCallableRef,
+    pub(crate) room_query: String,
+    pub(crate) player_query: String,
+    pub(crate) room_prefix: String,
+    pub(crate) first_player: String,
+    pub(crate) second_player: String,
+    pub(crate) retention_ms: u64,
+    pub(crate) retained_room_capacity: usize,
+    pub(crate) matched: VmNativeCallableRef,
+    pub(crate) restored: VmNativeCallableRef,
 }
 
 impl VmWebSocketEndpointPlan {
@@ -159,6 +190,7 @@ impl VmWebSocketEndpointPlan {
             max_frame_bytes,
             binary_payload_policy: VmWebSocketBinaryPayloadPolicy::Reject,
             callbacks: None,
+            pairing: None,
         })
     }
 
@@ -168,6 +200,11 @@ impl VmWebSocketEndpointPlan {
         mut self,
         callbacks: VmWebSocketCallbackPlan,
     ) -> Result<Self, String> {
+        if self.pairing.is_some() {
+            return Err(
+                "error[vm_websocket_endpoint]: callbacks conflict with pairing".to_string(),
+            );
+        }
         if self.callbacks.is_some() {
             return Err("error[vm_websocket_endpoint]: callbacks already configured".to_string());
         }
@@ -178,6 +215,26 @@ impl VmWebSocketEndpointPlan {
     /// Returns the generated callback set retained by this endpoint.
     pub(crate) fn callbacks(&self) -> Option<&VmWebSocketCallbackPlan> {
         self.callbacks.as_ref()
+    }
+
+    /// Attaches one source-declared two-peer delivery policy.
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    pub(crate) fn with_pairing(mut self, pairing: VmWebSocketPairingPlan) -> Result<Self, String> {
+        if self.callbacks.is_some() {
+            return Err(
+                "error[vm_websocket_endpoint]: pairing conflicts with callbacks".to_string(),
+            );
+        }
+        if self.pairing.is_some() {
+            return Err("error[vm_websocket_endpoint]: pairing already configured".to_string());
+        }
+        self.pairing = Some(pairing);
+        Ok(self)
+    }
+
+    /// Returns the optional source-declared two-peer delivery policy.
+    pub(crate) fn pairing(&self) -> Option<&VmWebSocketPairingPlan> {
+        self.pairing.as_ref()
     }
 
     /// Returns the binary payload policy for this endpoint plan.

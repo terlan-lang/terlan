@@ -247,15 +247,6 @@ pub(super) fn lower_type(
     } else {
         None
     };
-    if declared_body
-        .as_ref()
-        .is_some_and(|body| body.text.contains("=>"))
-    {
-        return Err(context.error(
-            node,
-            "implication arrows are only valid on generic parameters",
-        ));
-    }
     let variants = children
         .get(parameter_count + implement_count)
         .filter(|_| metadata_bool(node, "representation"))
@@ -337,12 +328,6 @@ fn lower_struct_field(
         .get(1)
         .map(|child| context.expression(child))
         .transpose()?;
-    if annotation.text.contains("=>") {
-        return Err(context.error(
-            node,
-            "implication arrows are only valid on generic parameters",
-        ));
-    }
     Ok(StructFieldDecl {
         is_private: name.starts_with('#'),
         name: name.trim_start_matches('#').to_string(),

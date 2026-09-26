@@ -1,0 +1,345 @@
+/** Module-interface extraction over the self-hosted token stream. */
+module self_host.Interface.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.Token.{Identifier, Keyword, Token}.
+
+import std.core.String.
+
+pub struct Import {
+    path: String,
+    type_only: Bool,
+}.
+
+pub constructor Import {
+    (path: String, type_only: Bool): Import ->
+        Import {
+            path: path,
+            type_only: type_only,
+        }
+}.
+
+
+pub struct PublicDeclaration {
+    kind: String,
+    name: String,
+}.
+
+pub constructor PublicDeclaration {
+    (kind: String, name: String): PublicDeclaration ->
+        PublicDeclaration {
+            kind: kind,
+            name: name,
+        }
+}.
+
+
+pub struct ModuleInterface {
+    module_name: String,
+    imports: List[Import],
+    declarations: List[PublicDeclaration],
+}.
+
+pub constructor ModuleInterface {
+    (module_name: String, imports: List[Import], declarations: List[PublicDeclaration]): ModuleInterface ->
+        ModuleInterface {
+            module_name: module_name,
+            imports: imports,
+            declarations: declarations,
+        }
+}.
+
+
+pub struct InterfaceError {
+    code: String,
+    message: String,
+}.
+
+pub constructor InterfaceError {
+    (code: String, message: String): InterfaceError ->
+        InterfaceError {
+            code: code,
+            message: message,
+        }
+}.
+
+
+pub struct InterfaceResult {
+    interface: ModuleInterface,
+    errors: List[InterfaceError],
+}.
+
+pub constructor InterfaceResult {
+    (interface: ModuleInterface, errors: List[InterfaceError]): InterfaceResult ->
+        InterfaceResult {
+            interface: interface,
+            errors: errors,
+        }
+}.
+
+
+pub struct Qualified {
+    accepted: Bool,
+    name: String,
+    rest: List[Token],
+}.
+
+pub constructor Qualified {
+    (accepted: Bool, name: String, rest: List[Token]): Qualified ->
+        Qualified {
+            accepted: accepted,
+            name: name,
+            rest: rest,
+        }
+}.
+
+
+pub struct ImportTake {
+    accepted: Bool,
+    path: String,
+    rest: List[Token],
+}.
+
+pub constructor ImportTake {
+    (accepted: Bool, path: String, rest: List[Token]): ImportTake ->
+        ImportTake {
+            accepted: accepted,
+            path: path,
+            rest: rest,
+        }
+}.
+
+
+pub struct DeclarationTake {
+    declaration: Option[PublicDeclaration],
+    rest: List[Token],
+}.
+
+pub constructor DeclarationTake {
+    (declaration: Option[PublicDeclaration], rest: List[Token]): DeclarationTake ->
+        DeclarationTake {
+            declaration: declaration,
+            rest: rest,
+        }
+}.
+
+
+@pure
+reverse_imports(values: List[Import], output: List[Import]): List[Import] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_imports(rest, [value | output])
+    }.
+
+@pure
+reverse_declarations(
+    values: List[PublicDeclaration],
+    output: List[PublicDeclaration],
+): List[PublicDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_declarations(rest, [value | output])
+    }.
+
+@pure
+qualified(tokens: List[Token]): Qualified ->
+    case tokens {
+        [] -> Qualified(false, "", []);
+        [first | rest] ->
+            if {
+                first.kind == Identifier -> qualified_tail(first.lexeme, rest);
+                true -> Qualified(false, "", tokens)
+            }
+    }.
+
+@pure
+qualified_tail(name: String, tokens: List[Token]): Qualified ->
+    case tokens {
+        [dot | rest] ->
+            if {
+                dot.lexeme != "." -> Qualified(false, "", tokens);
+                true ->
+                    case rest {
+                        [next | remaining] ->
+                            if {
+                                next.kind == Identifier ->
+                                    qualified_tail(String.concat([name, ".", next.lexeme]), remaining);
+                                true -> Qualified(true, name, rest)
+                            };
+                        [] -> Qualified(true, name, [])
+                    }
+            };
+        _ -> Qualified(false, "", tokens)
+    }.
+
+@pure
+import_continues(tokens: List[Token]): Bool ->
+    case tokens {
+        [next | _rest] -> next.kind == Identifier or next.lexeme == "{";
+        [] -> false
+    }.
+
+@pure
+take_import(tokens: List[Token], depth: Int, output: String): ImportTake ->
+    case tokens {
+        [] -> ImportTake(false, output, []);
+        [token | rest] ->
+            if {
+                token.lexeme == "." and depth == 0 and not import_continues(rest) ->
+                    ImportTake(output != "", output, rest);
+                token.lexeme == "{" ->
+                    take_import(rest, depth + 1, String.append(output, token.lexeme));
+                token.lexeme == "}" ->
+                    take_import(rest, depth - 1, String.append(output, token.lexeme));
+                true -> take_import(rest, depth, String.append(output, token.lexeme))
+            }
+    }.
+
+@pure
+receiver_name(tokens: List[Token], depth: Int): DeclarationTake ->
+    case tokens {
+        [] -> DeclarationTake(None, []);
+        [token | rest] ->
+            if {
+                token.lexeme == "(" -> receiver_name(rest, depth + 1);
+                token.lexeme == ")" and depth > 1 -> receiver_name(rest, depth - 1);
+                token.lexeme == ")" and depth == 1 ->
+                    case rest {
+                        [name | remaining] ->
+                            if {
+                                name.kind == Identifier ->
+                                    DeclarationTake(Some(PublicDeclaration("receiver", name.lexeme)), remaining);
+                                true -> DeclarationTake(None, rest)
+                            };
+                        [] -> DeclarationTake(None, [])
+                    };
+                true -> receiver_name(rest, depth)
+            }
+    }.
+
+@pure
+named_declaration(kind: String, tokens: List[Token]): DeclarationTake ->
+    case tokens {
+        [name | rest] ->
+            if {
+                name.kind == Identifier ->
+                    DeclarationTake(Some(PublicDeclaration(kind, name.lexeme)), rest);
+                true -> DeclarationTake(None, tokens)
+            };
+        [] -> DeclarationTake(None, [])
+    }.
+
+@pure
+take_declaration(tokens: List[Token]): DeclarationTake ->
+    case tokens {
+        [] -> DeclarationTake(None, []);
+        [first | rest] ->
+            if {
+                first.kind == Identifier -> named_declaration("function", tokens);
+                first.lexeme == "(" -> receiver_name(tokens, 0);
+                first.lexeme == "opaque" ->
+                    case rest {
+                        [type_token | remaining] ->
+                            if {
+                                type_token.lexeme == "type" -> named_declaration("opaque type", remaining);
+                                true -> DeclarationTake(None, tokens)
+                            };
+                        [] -> DeclarationTake(None, [])
+                    };
+                first.lexeme == "type"
+                    or first.lexeme == "struct"
+                    or first.lexeme == "trait"
+                    or first.lexeme == "impl"
+                    or first.lexeme == "constructor" -> named_declaration(first.lexeme, rest);
+                true -> DeclarationTake(None, tokens)
+            }
+    }.
+
+@pure
+scan(
+    tokens: List[Token],
+    module_name: String,
+    imports: List[Import],
+    declarations: List[PublicDeclaration],
+    errors: List[InterfaceError],
+): InterfaceResult ->
+    case tokens {
+        [] ->
+            let final_errors =
+                if {
+                    module_name == "" -> [InterfaceError("missing_module", "source has no module declaration") | errors];
+                    true -> errors
+                };
+            InterfaceResult(ModuleInterface(module_name, reverse_imports(imports, []), reverse_declarations(declarations, [])), final_errors);
+        [token | rest] ->
+            if {
+                token.kind == Keyword and token.lexeme == "module" ->
+                    let parsed = qualified(rest);
+                    if {
+                        parsed.accepted and module_name == "" ->
+                            scan(parsed.rest, parsed.name, imports, declarations, errors);
+                        parsed.accepted ->
+                            scan(
+                                parsed.rest,
+                                module_name,
+                                imports,
+                                declarations,
+                                [InterfaceError("duplicate_module", "source has more than one module declaration") | errors],
+                            );
+                        true ->
+                            scan(
+                                rest,
+                                module_name,
+                                imports,
+                                declarations,
+                                [InterfaceError("invalid_module", "module declaration is malformed") | errors],
+                            )
+                    };
+                token.kind == Keyword and token.lexeme == "import" ->
+                    case rest {
+                        [next | remaining] ->
+                            let type_only = next.lexeme == "type";
+                            let import_tokens = if {type_only -> remaining; true -> rest};
+                            let parsed = take_import(import_tokens, 0, "");
+                            if {
+                                parsed.accepted ->
+                                    scan(
+                                        parsed.rest,
+                                        module_name,
+                                        [Import(parsed.path, type_only) | imports],
+                                        declarations,
+                                        errors,
+                                    );
+                                true ->
+                                    scan(
+                                        rest,
+                                        module_name,
+                                        imports,
+                                        declarations,
+                                        [InterfaceError("invalid_import", "import declaration is malformed") | errors],
+                                    )
+                            };
+                        [] ->
+                            scan(
+                                [],
+                                module_name,
+                                imports,
+                                declarations,
+                                [InterfaceError("invalid_import", "import declaration is incomplete") | errors],
+                            )
+                    };
+                token.kind == Keyword and token.lexeme == "pub" ->
+                    let parsed = take_declaration(rest);
+                    case parsed.declaration {
+                        Some(declaration) ->
+                            scan(parsed.rest, module_name, imports, [declaration | declarations], errors);
+                        None -> scan(rest, module_name, imports, declarations, errors)
+                    };
+                true -> scan(rest, module_name, imports, declarations, errors)
+            }
+    }.
+
+@pure
+pub extract(tokens: List[Token]): InterfaceResult ->
+    scan(tokens, "", [], [], []).

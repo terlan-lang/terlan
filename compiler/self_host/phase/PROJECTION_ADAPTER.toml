@@ -1,0 +1,34 @@
+schema = "terlan.self-host.projection-adapter/v1"
+status = "implemented-unvalidated"
+input = "self_host.CanonicalToken.CanonicalToken"
+output = "self_host.ProjectionSyntax.ProjectionOutput"
+preserves_text = true
+preserves_byte_spans = true
+
+[covered]
+function_body_arrow = true
+head_constraint_list = true
+lambda_opening = true
+lambda_sequence_semicolon = true
+if_clause_semicolon = true
+expression_raw_macro = true
+native_raw_declaration = true
+config_raw_declaration = true
+typed_lambda_pattern = true
+cast_type_lbracket = true
+canonical_terminal_rewrite = true
+terminal_names_verified_against_lalrpop_grammar = true
+
+[remaining]
+rust_normalized_parser_oracle = true
+
+[parser]
+projected_token_consumption = true
+depth_aware_declaration_boundaries = true
+exact_source_spans = true
+shared_typed_lowering = true
+semantic_and_backend_handoff = true
+normalized_declaration_evidence = true
+lossless_concrete_syntax_tree = true
+balanced_delimiter_validation = true
+normalized_concrete_tree_evidence = true

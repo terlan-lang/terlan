@@ -1,0 +1,76 @@
+/** Self-hosted lowering for annotation schema entries and option blocks. */
+module self_host.AnnotationSchemaLowering.
+
+import self_host.AnnotationSchemaSyntax.{AnnotationSchemaEntrySyntax, AnnotationSchemaSyntax}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{AnnotationSchemaDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.Delimited.
+
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [""] -> List.new[String](); [value | rest] -> [value | drop_terminal_empty(rest)] }.
+
+@pure
+entry(source: String): AnnotationSchemaEntrySyntax ->
+    let text = String.trim(source);
+    let colon = Delimited.top_level_byte(text, 58);
+    let right = if { colon >= 0 -> String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)); true -> "" };
+    let options_open = Delimited.top_level_byte(right, 123);
+    let options_valid = options_open < 0 or String.ends_with(right, "}");
+    let value_type = if {
+        options_open < 0 -> right;
+        true -> String.trim(right.utf8_slice(0, options_open))
+    };
+    let options_text = if {
+        options_open >= 0 and options_valid -> right.utf8_slice(options_open + 1, right.byte_size() - options_open - 2);
+        true -> ""
+    };
+    let options = if {
+        options_open >= 0 and options_valid -> drop_terminal_empty(Delimited.split_top_level(options_text, 59));
+        true -> List.new[String]()
+    };
+    AnnotationSchemaEntrySyntax(colon > 0 and value_type != "" and options_valid, if { colon > 0 -> String.trim(text.utf8_slice(0, colon)); true -> "" }, value_type, options, if {
+            colon <= 0 -> "annotation schema entry requires `key: ValueType`";
+            value_type == "" -> "annotation schema value type is empty";
+            not options_valid -> "annotation schema option block is incomplete";
+            true -> ""
+        }).
+
+@pure
+entries_at(values: List[String]): List[AnnotationSchemaEntrySyntax] ->
+    case values { [] -> List.new[AnnotationSchemaEntrySyntax](); [value | rest] -> [entry(value) | entries_at(rest)] }.
+
+@pure
+all_valid(values: List[AnnotationSchemaEntrySyntax]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_valid(rest) }.
+
+@pure
+first_error(values: List[AnnotationSchemaEntrySyntax]): String ->
+    case values { [] -> ""; [value | rest] -> if { value.valid -> first_error(rest); true -> value.message } }.
+
+/** Lowers one canonical `annotation path { ... }.` schema declaration. */
+@pure
+pub lower(source: DeclarationSyntax): AnnotationSchemaSyntax ->
+    let text = String.trim(source.body);
+    let public_text = if { String.starts_with(text, "pub ") -> String.trim(text.utf8_slice(4, text.byte_size() - 4)); true -> text };
+    let annotation_text = if {
+        String.starts_with(public_text, "annotation ") -> String.trim(public_text.utf8_slice(11, public_text.byte_size() - 11));
+        true -> ""
+    };
+    let open = Delimited.top_level_byte(annotation_text, 123);
+    let body_valid = open > 0 and String.ends_with(annotation_text, "}.");
+    let path = if { open > 0 -> String.trim(annotation_text.utf8_slice(0, open)); true -> "" };
+    let body = if { body_valid -> annotation_text.utf8_slice(open + 1, annotation_text.byte_size() - open - 3); true -> "" };
+    let entries = if { body_valid -> entries_at(drop_terminal_empty(Delimited.split_top_level(body, 59))); true -> List.new[AnnotationSchemaEntrySyntax]() };
+    let supported = source.class == AnnotationSchemaDeclaration;
+    AnnotationSchemaSyntax(supported and body_valid and path != "" and all_valid(entries), path, entries, source.is_public, source.span, if {
+            not supported -> "declaration is not an annotation schema";
+            path == "" -> "annotation schema path is empty";
+            not body_valid -> "annotation schema body is incomplete";
+            not all_valid(entries) -> first_error(entries);
+            true -> ""
+        }).

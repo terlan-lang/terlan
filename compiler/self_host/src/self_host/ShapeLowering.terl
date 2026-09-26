@@ -1,0 +1,92 @@
+/** Self-hosted lowering for reusable shape patterns and guards. */
+module self_host.ShapeLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.PatternSyntax.{PatternParse}.
+import self_host.ShapeSyntax.{ShapeSyntax}.
+import self_host.Syntax.{ShapeDeclaration}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.PatternParser.
+
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [""] -> List.new[String]();
+        [value | rest] -> [value | drop_terminal_empty(rest)]
+    }.
+
+@pure
+parse_patterns(values: List[String]): List[PatternParse] ->
+    case values {
+        [] -> List.new[PatternParse]();
+        [value | rest] -> [PatternParser.parse(value) | parse_patterns(rest)]
+    }.
+
+@pure
+patterns_valid(values: List[PatternParse]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value.valid and patterns_valid(rest)
+    }.
+
+@pure
+first_pattern_error(values: List[PatternParse]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if { value.valid -> first_pattern_error(rest); true -> value.message }
+    }.
+
+@pure
+strip_terminal_dot(source: String): String ->
+    let value = String.trim(source);
+    if {
+        String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1));
+        true -> value
+    }.
+
+@pure
+failure(source: DeclarationSyntax, message: String): ShapeSyntax ->
+    ShapeSyntax(false, source.name, List.new[PatternParse](), PatternParser.parse(""), false, ExpressionParser.parse(""), source.is_public, source.span, message).
+
+@pure
+pub lower(source: DeclarationSyntax): ShapeSyntax ->
+    let open = Delimited.top_level_byte(source.body, 40);
+    let assignment = Delimited.top_level_assignment(source.body);
+    if {
+        source.class != ShapeDeclaration -> failure(source, "declaration is not a shape");
+        open < 0 or assignment < 0 or open >= assignment -> failure(source, "shape declaration is incomplete");
+        true ->
+            let parameter_region = String.trim(source.body.utf8_slice(open + 1, assignment - open - 1));
+            let parameters_closed = String.ends_with(parameter_region, ")");
+            let parameter_text = if {
+                parameters_closed -> String.trim(parameter_region.utf8_slice(0, parameter_region.byte_size() - 1));
+                true -> ""
+            };
+            let parameters = parse_patterns(drop_terminal_empty(Delimited.split_top_level(parameter_text, 44)));
+            let right = strip_terminal_dot(source.body.utf8_slice(assignment + 1, source.body.byte_size() - assignment - 1));
+            let guard_at = Delimited.top_level_text(right, " where ");
+            let body_text = if { guard_at < 0 -> right; true -> String.trim(right.utf8_slice(0, guard_at)) };
+            let guard_text = if {
+                guard_at < 0 -> "";
+                true -> String.trim(right.utf8_slice(guard_at + 7, right.byte_size() - guard_at - 7))
+            };
+            let body = PatternParser.parse(body_text);
+            let guard = ExpressionParser.parse(guard_text);
+            let valid = parameters_closed
+                and patterns_valid(parameters)
+                and body.valid
+                and (guard_at < 0 or guard.valid);
+            ShapeSyntax(valid, source.name, parameters, body, guard_at >= 0, guard, source.is_public, source.span, if {
+                    not parameters_closed -> "shape parameter list is incomplete";
+                    not patterns_valid(parameters) -> first_pattern_error(parameters);
+                    not body.valid -> body.message;
+                    guard_at >= 0 and not guard.valid -> guard.message;
+                    true -> ""
+                })
+    }.

@@ -1,0 +1,63 @@
+/** Typed syntax for module and asset imports. */
+module self_host.ImportSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub type ModuleImport.
+pub type FileImport.
+pub type CssImport.
+pub type MarkdownImport.
+
+pub type ImportKind = ModuleImport | FileImport | CssImport | MarkdownImport.
+
+pub struct ImportItemSyntax {
+    name: String,
+    alias: String,
+    has_alias: Bool,
+}.
+
+pub constructor ImportItemSyntax {
+    (name: String, alias: String, has_alias: Bool): ImportItemSyntax ->
+        ImportItemSyntax {
+            name: name,
+            alias: alias,
+            has_alias: has_alias,
+        }
+}.
+
+
+pub struct ImportSyntax {
+    valid: Bool,
+    kind: self_host.ImportSyntax.ImportKind,
+    module_name: String,
+    source_path: String,
+    alias: String,
+    has_alias: Bool,
+    is_type: Bool,
+    is_selected: Bool,
+    items: List[self_host.ImportSyntax.ImportItemSyntax],
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ImportSyntax {
+    (valid: Bool, kind: self_host.ImportSyntax.ImportKind, module_name: String, source_path: String, alias: String, has_alias: Bool, is_type: Bool, is_selected: Bool, items: List[self_host.ImportSyntax.ImportItemSyntax], span: SyntaxSpan, message: String): ImportSyntax ->
+        ImportSyntax {
+            valid: valid,
+            kind: kind,
+            module_name: module_name,
+            source_path: source_path,
+            alias: alias,
+            has_alias: has_alias,
+            is_type: is_type,
+            is_selected: is_selected,
+            items: items,
+            span: span,
+            message: message,
+        }
+}.
+

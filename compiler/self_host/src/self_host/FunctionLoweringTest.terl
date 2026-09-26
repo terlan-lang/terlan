@@ -1,0 +1,41 @@
+/** Positive and negative nested function-lowering contracts. */
+module self_host.FunctionLoweringTest.
+
+
+import std.core.Result.{Result}.
+import self_host.ExpressionSyntax.{PipeExpression}.
+import self_host.TypeSyntax.{AppliedType}.
+
+import std.collections.List.
+import self_host.DeclarationLowering.
+import self_host.FunctionLowering.
+import self_host.Parser.
+
+@pure
+positive_function(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Function.\npub run(value: String): Result[String, Error] -> value |> normalize().\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let function = FunctionLowering.lower(declaration);
+            function.valid
+                and function.name == "run"
+                and function.parameters == "value: String"
+                and List.length(function.typed_parameters) == 1
+                and function.return_type.syntax.class == AppliedType
+                and function.body.syntax.class == PipeExpression;
+        _ -> false
+    }.
+
+@pure
+negative_function(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Function.\npub run(value: String): Result[String, Error -> value.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] -> not FunctionLowering.lower(declaration).valid;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_function() and negative_function().

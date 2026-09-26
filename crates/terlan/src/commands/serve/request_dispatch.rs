@@ -1,6 +1,7 @@
 use super::response_rendering::*;
 use super::server_lifecycle::*;
 use super::*;
+use std::io::Write as _;
 
 /// Handles one Hyper request for the browser package server.
 ///
@@ -264,6 +265,7 @@ where
     if let Some(response) = manifest_static_response_for_request(&web_root, &method, &request_path)
     {
         let started = Instant::now();
+        record_manifest_callable_coverage(&response.module, &response.function, response.arity);
         let status = response.status;
         let headers = static_response_header_tuples(&response.headers).unwrap_or_else(|message| {
             eprintln!("{message}");
@@ -296,6 +298,7 @@ where
         manifest_file_response_for_request(&web_root, &method, &request_path)
     {
         let started = Instant::now();
+        record_manifest_callable_coverage(&response.module, &response.function, response.arity);
         let (status, output) = manifest_file_response(&method, &response_path, &response);
         log_file_route_result(RouteLogEvent {
             request_id,
@@ -319,6 +322,17 @@ where
             "text/plain; charset=utf-8",
             &[("Allow".to_string(), "GET, HEAD".to_string())],
             b"method not allowed",
+            method == "HEAD",
+        );
+    }
+
+    if std::env::var("TERLAN_SERVE_MANIFEST_ONLY").as_deref() == Ok("1") {
+        return serve_response(
+            404,
+            "Not Found",
+            "text/plain; charset=utf-8",
+            &[],
+            b"not found",
             method == "HEAD",
         );
     }
@@ -355,6 +369,31 @@ where
         started.elapsed().as_millis(),
     );
     output
+}
+
+/// Records a statically lowered handler when its manifest route serves a request.
+fn record_manifest_callable_coverage(module: &str, function: &str, arity: usize) {
+    if module.is_empty() || function.is_empty() {
+        return;
+    }
+    let Some(path) = std::env::var_os("TERLAN_CALLABLE_COVERAGE_FILE")
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+    else {
+        return;
+    };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let callable_id =
+            crate::runtime::native_image::debug::tvm_coverage_callable_id(module, function, arity);
+        let _ = writeln!(file, "{callable_id}");
+    }
 }
 
 /// Handles one parsed HTTP request through the serve route graph.
@@ -654,6 +693,11 @@ pub(super) fn handle_vm_stream_request(
                 return static_vm_stream_file_response(method, &response_path);
             }
             MatchedWebPackageRoute::StaticResponse(response) => {
+                record_manifest_callable_coverage(
+                    &response.module,
+                    &response.function,
+                    response.arity,
+                );
                 let header_pairs = request_header_pairs(&request.headers);
                 let cookie_pairs = request_cookie_pairs(&request.headers);
                 let native_request =
@@ -692,6 +736,11 @@ pub(super) fn handle_vm_stream_request(
                 );
             }
             MatchedWebPackageRoute::FileResponse(response, response_path) => {
+                record_manifest_callable_coverage(
+                    &response.module,
+                    &response.function,
+                    response.arity,
+                );
                 return manifest_vm_stream_file_response(method, &response_path, &response);
             }
             MatchedWebPackageRoute::Sse(endpoint) => {
@@ -759,6 +808,17 @@ pub(super) fn handle_vm_stream_request(
             "text/plain; charset=utf-8",
             &[("Allow".to_string(), "GET, HEAD".to_string())],
             b"method not allowed",
+            method == "HEAD",
+        );
+    }
+
+    if std::env::var("TERLAN_SERVE_MANIFEST_ONLY").as_deref() == Ok("1") {
+        return serve_vm_stream_response(
+            404,
+            "Not Found",
+            "text/plain; charset=utf-8",
+            &[],
+            b"not found",
             method == "HEAD",
         );
     }

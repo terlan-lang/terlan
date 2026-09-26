@@ -1,0 +1,213 @@
+/**
+ * Solves projected expression constraints in dependency order.
+ */
+module self_host.ProjectedTypeConstraintResolution.
+
+
+
+import std.core.Option.{None, Option, Some}.
+import std.collections.List.
+import std.collections.Map.
+import self_host.ProjectedTypeConstraintSyntax.
+
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintEvent, TypeConstraintResolution}.
+struct ConstraintState {
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+    index: Map[Int, Int],
+}.
+
+constructor ConstraintState {
+    (
+        facts: List[InferredTypeFact],
+        diagnostics: List[TypeConstraintDiagnostic],
+        index: Map[Int, Int],
+    ): ConstraintState ->
+        ConstraintState {
+            facts: facts,
+            diagnostics: diagnostics,
+            index: index,
+        }
+}.
+
+name_code(name: String): Int ->
+    if {
+        name == "Int" -> 1;
+        name == "Float" -> 2;
+        name == "String" -> 3;
+        name == "Bool" -> 4;
+        name == "Unit" -> 5;
+        name == "List" -> 6;
+        true -> 0
+    }.
+
+@pure
+type_code(value: Option[String]): Int ->
+    case value {
+        Some(name) -> name_code(name);
+        None -> 0
+    }.
+
+find_code(node_id: Int, index: Map[Int, Int]): Int ->
+    case index.get(node_id) {
+        Some(code) -> code;
+        None -> 0
+    }.
+
+@pure
+reverse_facts(values: List[InferredTypeFact], result: List[InferredTypeFact]): List[InferredTypeFact] ->
+    case values {
+        [] -> result;
+        [value | rest] -> reverse_facts(rest, [value | result])
+    }.
+
+@pure
+reverse_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    result: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> result;
+        [value | rest] -> reverse_diagnostics(rest, [value | result])
+    }.
+
+@pure
+expect_code(
+    actual: Int,
+    expected: Int,
+    event: TypeConstraintEvent,
+    diagnostics: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    if {
+        actual == 0 or actual == expected -> diagnostics;
+        true -> [TypeConstraintDiagnostic(
+            code = "type-mismatch",
+            message = "expression type does not satisfy its constraint",
+            byte_offset = event.byte_offset,
+        ) | diagnostics]
+    }.
+
+@pure
+merged_code(left: Int, right: Int): Int ->
+    if {
+        left == 0 -> right;
+        right == 0 or left == right -> left;
+        true -> 0
+    }.
+
+@pure
+merge_diagnostics(
+    left: Int,
+    right: Int,
+    event: TypeConstraintEvent,
+    diagnostics: List[TypeConstraintDiagnostic],
+): List[TypeConstraintDiagnostic] ->
+    if {
+        left == 0 or right == 0 or left == right -> diagnostics;
+        true -> [TypeConstraintDiagnostic(
+            code = "incompatible-branches",
+            message = "expression branches infer different types",
+            byte_offset = event.byte_offset,
+        ) | diagnostics]
+    }.
+
+prepend_fact(fact: InferredTypeFact, state: ConstraintState): ConstraintState ->
+    let _stored = state.index.put(fact.node_id, type_code(fact.type_name));
+    ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
+
+prepend_code_fact(
+    node_id: Int,
+    code: Int,
+    byte_offset: Int,
+    state: ConstraintState,
+): ConstraintState ->
+    let _stored = state.index.put(node_id, code);
+    let fact = if {
+        code == 1 -> InferredTypeFact(node_id = node_id, type_name = Some("Int"), byte_offset = byte_offset);
+        code == 2 -> InferredTypeFact(node_id = node_id, type_name = Some("Float"), byte_offset = byte_offset);
+        code == 3 -> InferredTypeFact(node_id = node_id, type_name = Some("String"), byte_offset = byte_offset);
+        code == 4 -> InferredTypeFact(node_id = node_id, type_name = Some("Bool"), byte_offset = byte_offset);
+        code == 5 -> InferredTypeFact(node_id = node_id, type_name = Some("Unit"), byte_offset = byte_offset);
+        code == 6 -> InferredTypeFact(node_id = node_id, type_name = Some("List"), byte_offset = byte_offset);
+        true -> InferredTypeFact(node_id = node_id, type_name = None, byte_offset = byte_offset)
+    };
+    ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
+
+step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "known" -> prepend_fact(
+            InferredTypeFact(node_id = event.node_id, type_name = Some(event.type_name), byte_offset = event.byte_offset),
+            state,
+        );
+        event.kind == "unknown" -> prepend_fact(
+            InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset),
+            state,
+        );
+        event.kind == "propagate" -> prepend_code_fact(
+            event.node_id,
+            find_code(event.left_node, state.index),
+            event.byte_offset,
+            state,
+        );
+        event.kind == "expect" -> prepend_fact(InferredTypeFact(
+                node_id = event.node_id,
+                type_name = Some(event.type_name),
+                byte_offset = event.byte_offset,
+            ), ConstraintState(facts = state.facts, diagnostics = expect_code(
+                find_code(event.left_node, state.index),
+                name_code(event.type_name),
+                event,
+                state.diagnostics,
+            ), index = state.index));
+        event.kind == "same" -> let left = find_code(event.left_node, state.index);
+        let right = find_code(event.right_node, state.index);
+        prepend_code_fact(event.node_id, merged_code(left, right), event.byte_offset, ConstraintState(
+            facts = state.facts,
+            diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
+            index = state.index,
+        ));
+        event.kind == "compare-same" -> let left = find_code(event.left_node, state.index);
+        let right = find_code(event.right_node, state.index);
+        prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(
+            facts = state.facts,
+            diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
+            index = state.index,
+        ));
+        event.kind == "logical" -> let left_checked = expect_code(
+            find_code(event.left_node, state.index),
+            4,
+            event,
+            state.diagnostics,
+        );
+        prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(facts = state.facts, diagnostics = expect_code(
+                find_code(event.right_node, state.index),
+                4,
+                event,
+                left_checked,
+            ), index = state.index));
+        true -> prepend_fact(InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset), ConstraintState(facts = state.facts, diagnostics = [TypeConstraintDiagnostic(
+                code = "unknown-type-constraint",
+                message = "expression adapter emitted an unsupported type constraint",
+                byte_offset = event.byte_offset,
+            ) | state.diagnostics], index = state.index))
+    }.
+
+walk(events: List[TypeConstraintEvent], state: ConstraintState): ConstraintState ->
+    case events {
+        [] -> state;
+        [event | rest] -> walk(rest, step(event, state))
+    }.
+
+pub resolve(events: List[TypeConstraintEvent]): TypeConstraintResolution ->
+    let state = walk(events, ConstraintState(
+        facts = List.new[InferredTypeFact](),
+        diagnostics = List.new[TypeConstraintDiagnostic](),
+        index = Map.new[Int, Int](),
+    ));
+    TypeConstraintResolution(
+        facts = reverse_facts(state.facts, List.new[InferredTypeFact]()),
+        diagnostics = reverse_diagnostics(
+            state.diagnostics,
+            List.new[TypeConstraintDiagnostic](),
+        ),
+    ).

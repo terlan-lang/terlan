@@ -137,6 +137,16 @@ fn emit_native_module_object_with_policy_untyped(
                 .map_err(|error| format!("error[cranelift.declare]: {error}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let function_coverage_ids = functions
+        .iter()
+        .map(|(_, function)| {
+            super::super::coverage_callable_id(
+                &function.source_module,
+                &function.source_function,
+                function.source_arity,
+            )
+        })
+        .collect::<Vec<_>>();
     for (index, (native, function)) in functions.iter().enumerate() {
         if std::ptr::eq(*native, selected) {
             let tail_component = tail_components
@@ -163,6 +173,7 @@ fn emit_native_module_object_with_policy_untyped(
                 &mut module,
                 NativeFunctionDefinition {
                     id: function_ids[index],
+                    coverage_id: function_coverage_ids[index],
                     self_function: Some(index),
                     tail_component_bodies: tail_component_bodies.as_deref(),
                     signature: &signatures[index],
@@ -171,6 +182,7 @@ fn emit_native_module_object_with_policy_untyped(
                 },
                 NativeFunctionCatalog {
                     ids: &function_ids,
+                    coverage_ids: &function_coverage_ids,
                     parameter_types: &function_parameter_types,
                     suspending: &function_suspending,
                     transition_counts: &function_transition_counts,
@@ -215,6 +227,11 @@ fn emit_native_module_object_with_policy_untyped(
             &mut module,
             NativeFunctionDefinition {
                 id,
+                coverage_id: super::super::coverage_callable_id(
+                    &continuation.source_module,
+                    &continuation.source_function,
+                    continuation.source_arity,
+                ),
                 self_function: None,
                 tail_component_bodies: None,
                 signature: &signature,
@@ -223,6 +240,7 @@ fn emit_native_module_object_with_policy_untyped(
             },
             NativeFunctionCatalog {
                 ids: &function_ids,
+                coverage_ids: &function_coverage_ids,
                 parameter_types: &function_parameter_types,
                 suspending: &function_suspending,
                 transition_counts: &function_transition_counts,

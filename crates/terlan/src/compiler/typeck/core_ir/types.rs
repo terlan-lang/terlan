@@ -281,7 +281,7 @@ pub(crate) fn core_type_from_text(text: &str) -> Option<CoreType> {
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Union);
     }
-    if let Some(atom) = core_atom_literal_from_text(text) {
+    if let Some(atom) = atom_type_literal_payload(text) {
         return Some(CoreType::AtomLiteral(atom));
     }
     match text {
@@ -560,45 +560,6 @@ fn is_tuple_type_field_name(name: &str) -> bool {
             && name
                 .chars()
                 .all(|ch| ch.is_ascii_alphanumeric() || ch == '_'))
-}
-
-/// Converts raw atom literal type text into a Core atom literal payload.
-///
-/// Inputs:
-/// - `text`: normalized type annotation text.
-///
-/// Output:
-/// - `Some(String)` for explicit raw atom literal forms such as `:none` and
-///   `:'Elixir.Module'`.
-/// - `None` when the text is not a supported atom literal.
-///
-/// Transformation:
-/// - Strips the leading `:`, preserves quoted interop atom content without the
-///   surrounding quotes, and accepts only explicit atom syntax so bare names do
-///   not become atoms in Terlan source mode.
-fn core_atom_literal_from_text(text: &str) -> Option<String> {
-    if let Some(atom) = atom_type_literal_payload(text) {
-        return Some(atom);
-    }
-
-    let atom = text.strip_prefix(':')?.trim();
-    if let Some(quoted) = atom
-        .strip_prefix('\'')
-        .and_then(|value| value.strip_suffix('\''))
-    {
-        if quoted.is_empty() {
-            return None;
-        }
-        return Some(quoted.to_string());
-    }
-    if atom.is_empty()
-        || !atom
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
-    {
-        return None;
-    }
-    Some(atom.to_string())
 }
 
 /// Extracts the canonical `Atom["name"]` singleton primitive payload.

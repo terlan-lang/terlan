@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 const SERVE_RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
 const COMPILER_DAEMON_ENV: &str = "TERLAN_SERVE_COMPILER_DAEMON";
 const COMPILER_DAEMON_PREFIX: &str = "TERLAN_GENERATION:";
-const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v4";
+const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v5";
 const ACTIVE_GENERATION_SCHEMA: &str = "terlan-serve-active-generation-v1";
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const RELOAD_REPORT_SCHEMA: &str = "terlan-aot-developer-hot-reload-v1";
@@ -325,15 +325,25 @@ fn load_persisted_generation(
             .into())
         }
     };
+    let envelope = serde_json::from_slice::<serde_json::Value>(&bytes).map_err(|error| {
+        format!(
+            "error[serve.aot.runtime_generation]: invalid `{}`: {error}",
+            path.display()
+        )
+    })?;
+    if envelope.get("schema").and_then(serde_json::Value::as_str)
+        != Some(PERSISTED_GENERATION_SCHEMA)
+    {
+        return Ok(None);
+    }
     let generation =
-        serde_json::from_slice::<PersistedServeGeneration>(&bytes).map_err(|error| {
+        serde_json::from_value::<PersistedServeGeneration>(envelope).map_err(|error| {
             format!(
                 "error[serve.aot.runtime_generation]: invalid `{}`: {error}",
                 path.display()
             )
         })?;
-    if generation.schema != PERSISTED_GENERATION_SCHEMA
-        || generation.compiler_version != env!("CARGO_PKG_VERSION")
+    if generation.compiler_version != env!("CARGO_PKG_VERSION")
         || generation.checksum != checksum
         || generation.module != expected_module
     {

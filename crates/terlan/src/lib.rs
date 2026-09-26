@@ -39,6 +39,7 @@ pub mod package_registry;
 #[cfg(feature = "quality-tools")]
 pub mod quality;
 pub mod runtime;
+pub mod self_host_ir;
 pub(crate) mod service_foundation;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub mod support;
@@ -461,6 +462,11 @@ fn command_has_usage(command: &str) -> bool {
             | "interface"
             | "doc"
             | "api"
+            | "login"
+            | "deploy"
+            | "status"
+            | "logs"
+            | "rollback"
             | "db"
             | "debug"
             | "doctest"

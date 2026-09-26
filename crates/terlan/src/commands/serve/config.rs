@@ -534,9 +534,7 @@ pub(super) fn write_effective_serve_config(
     config: &EffectiveServeConfig,
     web_root: &Path,
 ) -> super::ServeResult<PathBuf> {
-    let artifact_root =
-        manifest::adjacent_project_root(web_root).unwrap_or_else(|| web_root.to_path_buf());
-    let path = artifact_root.join("build/artifacts/serve-effective-config.json");
+    let path = super::runtime_artifact_directory(web_root)?.join("serve-effective-config.json");
     let bytes = serde_json::to_vec_pretty(config)
         .map_err(|error| format!("error[serve.config]: encode artifact: {error}"))?;
     atomic_write(&path, &bytes)?;

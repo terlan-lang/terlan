@@ -1,0 +1,28 @@
+/** Positive and negative annotation-schema contracts. */
+module self_host.AnnotationSchemaLoweringTest.
+
+import std.collections.List.
+import self_host.AnnotationSchemaLowering.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+
+@pure
+positive_schema(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Annotations.\npub annotation http.route { method: Name { required: true }; path: String { required: true; repeatable: false } }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let schema = AnnotationSchemaLowering.lower(declaration);
+            schema.valid and schema.path == "http.route" and List.length(schema.entries) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_schema(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Annotations.\nannotation route { method }.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not AnnotationSchemaLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_schema() and negative_schema().

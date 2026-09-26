@@ -14,7 +14,7 @@ use super::super::validate_continuation_captures;
 
 /// Converts a descriptor-checked VM value into the recursively owned term
 /// accepted by the capability boundary.
-pub(super) fn repl_value_to_boundary_term(value: ReplValue) -> VmRuntimeResult<NativeBoundaryTerm> {
+pub(crate) fn repl_value_to_boundary_term(value: ReplValue) -> VmRuntimeResult<NativeBoundaryTerm> {
     match value {
         ReplValue::Unit => Ok(NativeBoundaryTerm::Unit),
         ReplValue::Int(value) => Ok(NativeBoundaryTerm::Int(value)),

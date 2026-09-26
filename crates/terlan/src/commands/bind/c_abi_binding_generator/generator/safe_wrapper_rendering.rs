@@ -1,7 +1,9 @@
 use super::*;
 
+mod dispatcher_lists;
 mod ffi_types;
 mod raw_ffi;
+use dispatcher_lists::render_dispatcher_lists;
 use ffi_types::rust_ffi_type;
 pub(super) use raw_ffi::render_raw_ffi_function;
 
@@ -80,9 +82,16 @@ pub(super) fn render_safe_wrapper(
                 rust_args.push(format!("{}: &[&{}]", argument.name, inner.name));
                 continue;
             }
-            value if owner_name == Some(value) && inside_impl => "&Self",
+            value if owner_name == Some(value) && inside_impl => {
+                if argument.mutable {
+                    "&mut Self"
+                } else {
+                    "&Self"
+                }
+            }
             value if binding_type(manifest, value).is_some() => {
-                rust_args.push(format!("{}: &{value}", argument.name));
+                let borrow = if argument.mutable { "&mut " } else { "&" };
+                rust_args.push(format!("{}: {borrow}{value}", argument.name));
                 continue;
             }
             value => {
@@ -113,6 +122,22 @@ pub(super) fn render_safe_wrapper(
             let (_, inner) = list_binding_type(manifest, value).expect("matched resource list");
             format!("Vec<{}>", inner.name)
         }
+        value if resource_tuple_binding_types(manifest, value).is_some() => {
+            let elements = resource_tuple_binding_types(manifest, value)
+                .expect("matched opaque-resource tuple");
+            let elements = elements
+                .into_iter()
+                .map(|(_, element)| {
+                    if owner_name == Some(element.name.as_str()) && inside_impl {
+                        "Self"
+                    } else {
+                        element.name.as_str()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({elements})")
+        }
         "Int" => "i64".to_string(),
         "Float" => "f64".to_string(),
         "Bool" => "bool".to_string(),
@@ -136,11 +161,12 @@ pub(super) fn render_safe_wrapper(
     } else {
         return_ty
     };
-    let mut rendered = format!(
+    let mut rendered = render_rust_doc(indent, &function.documentation);
+    rendered.push_str(&format!(
         "{indent}pub fn {}({}) -> {public_return} {{\n",
         function.adapter_name(),
         signature_args.join(", ")
-    );
+    ));
 
     if let Some(dispatcher) = &function.dispatcher {
         let record = record.ok_or_else(|| {
@@ -673,10 +699,15 @@ pub(super) fn render_dispatcher_wrapper_body(
         .map_err(|detail| format!("error[native_bindgen.c_dispatcher_contract]: {detail}"))?;
     let operation = format!("{}\0", dispatcher.operator_name);
     let overload = format!("{}\0", dispatcher.overload_name);
+    let owner_type = if function.role == CAbiFunctionRole::Constructor {
+        function.returns.as_str()
+    } else {
+        function.args[0].ty.as_str()
+    };
     let handle_arguments = function
         .args
         .iter()
-        .filter(|argument| argument.ty == function.args[0].ty)
+        .filter(|argument| argument.ty == owner_type)
         .collect::<Vec<_>>();
     let mut body = String::new();
     for (index, argument) in handle_arguments.iter().enumerate() {
@@ -704,8 +735,10 @@ pub(super) fn render_dispatcher_wrapper_body(
     for value in &dispatcher.stack {
         let argument = match value {
             CDispatcherStackValue::OwnedOptionalIntArgument { argument }
+            | CDispatcherStackValue::OwnedOptionalFloatArgument { argument }
             | CDispatcherStackValue::OwnedOptionalHandleCopy { argument }
-            | CDispatcherStackValue::OwnedOptionalIntListArgument { argument } => argument,
+            | CDispatcherStackValue::OwnedOptionalIntListArgument { argument }
+            | CDispatcherStackValue::OwnedOptionalStringArgument { argument } => argument,
             _ => continue,
         };
         let allocator = symbols
@@ -738,57 +771,17 @@ pub(super) fn render_dispatcher_wrapper_body(
             function.operation,
         ));
     }
-    for value in &dispatcher.stack {
-        let argument = match value {
-            CDispatcherStackValue::OwnedIntListArgument { argument }
-            | CDispatcherStackValue::OwnedOptionalIntListArgument { argument } => argument,
-            _ => continue,
-        };
-        let allocator = symbols
-            .get(
-                dispatcher
-                    .list_allocator_symbol
-                    .as_deref()
-                    .expect("validated list allocator"),
-            )
-            .copied()
-            .expect("validated list allocator symbol");
-        let push = symbols
-            .get(
-                dispatcher
-                    .list_push_symbol
-                    .as_deref()
-                    .expect("validated list push"),
-            )
-            .copied()
-            .expect("validated list push symbol");
-        let destructor = symbols
-            .get(
-                dispatcher
-                    .list_destructor_symbol
-                    .as_deref()
-                    .expect("validated list destructor"),
-            )
-            .copied()
-            .expect("validated list destructor symbol");
-        let raw = format!("dispatcher_list_{argument}_raw");
-        let guard = format!("dispatcher_list_{argument}");
-        let allocate_operation = format!("{}.list.{argument}.allocate", function.operation);
-        let push_operation = format!("{}.list.{argument}.push", function.operation);
-        body.push_str(&format!(
-            "{indent}    let mut {raw}: *mut () = std::ptr::null_mut();\n{indent}    // SAFETY: the reviewed allocator returns one exclusive dispatcher list.\n{indent}    let status = unsafe {{ ffi::{}({argument}.len(), &mut {raw}) }};\n{indent}    check_status({allocate_operation:?}, status, {})?;\n{indent}    let {guard} = DispatcherListGuard::new({raw}, ffi::{}, {}).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n{indent}    for element in {argument} {{\n{indent}        // SAFETY: the armed list guard owns the destination and integer StableIValues are copied by value.\n{indent}        let status = unsafe {{ ffi::{}({guard}.as_ptr(), *element as u64) }};\n{indent}        check_status({push_operation:?}, status, {})?;\n{indent}    }}\n",
-            allocator.c_name,
-            allocator.success_code.unwrap_or(0),
-            destructor.c_name,
-            destructor.success_code.unwrap_or(0),
-            function.operation,
-            push.c_name,
-            push.success_code.unwrap_or(0),
-        ));
-    }
+    body.push_str(&render_dispatcher_lists(
+        function, dispatcher, symbols, record, duplicate, indent,
+    ));
     for (index, value) in dispatcher.stack.iter().enumerate() {
-        let CDispatcherStackValue::OwnedStringLiteral { value } = value else {
-            continue;
+        let bytes_source = match value {
+            CDispatcherStackValue::OwnedStringArgument { argument }
+            | CDispatcherStackValue::OwnedOptionalStringArgument { argument } => {
+                argument.to_string()
+            }
+            CDispatcherStackValue::OwnedStringLiteral { value } => format!("{value:?}"),
+            _ => continue,
         };
         let allocator = symbols
             .get(
@@ -813,7 +806,7 @@ pub(super) fn render_dispatcher_wrapper_body(
         let bytes = format!("dispatcher_string_{index}_bytes");
         let allocate_operation = format!("{}.string.{index}.allocate", function.operation);
         body.push_str(&format!(
-            "{indent}    let {bytes}: &[u8] = {value:?}.as_bytes();\n{indent}    let mut {raw}: *mut () = std::ptr::null_mut();\n{indent}    // SAFETY: the reviewed allocator copies the fixed metadata bytes into one exclusive dispatcher string.\n{indent}    let status = unsafe {{ ffi::{}({bytes}.as_ptr().cast(), {bytes}.len(), &mut {raw}) }};\n{indent}    check_status({allocate_operation:?}, status, {})?;\n{indent}    let {guard} = DispatcherStringGuard::new({raw}, ffi::{}, {}).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n",
+            "{indent}    let {bytes}: &[u8] = {bytes_source}.as_bytes();\n{indent}    let mut {raw}: *mut () = std::ptr::null_mut();\n{indent}    // SAFETY: the reviewed allocator copies the borrowed bytes into one exclusive dispatcher string.\n{indent}    let status = unsafe {{ ffi::{}({bytes}.as_ptr().cast(), {bytes}.len(), &mut {raw}) }};\n{indent}    check_status({allocate_operation:?}, status, {})?;\n{indent}    let {guard} = DispatcherStringGuard::new({raw}, ffi::{}, {}).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n",
             allocator.c_name,
             allocator.success_code.unwrap_or(0),
             destructor.c_name,
@@ -828,6 +821,11 @@ pub(super) fn render_dispatcher_wrapper_body(
                     "{indent}    dispatcher_optional_{argument}.write_i64({argument});\n"
                 ));
             }
+            CDispatcherStackValue::OwnedOptionalFloatArgument { argument } => {
+                body.push_str(&format!(
+                    "{indent}    dispatcher_optional_{argument}.write_f64({argument});\n"
+                ));
+            }
             CDispatcherStackValue::OwnedOptionalHandleCopy { argument } => {
                 body.push_str(&format!(
                     "{indent}    dispatcher_optional_{argument}.write_stable_ivalue(dispatcher_input_{argument}.into_stable_ivalue());\n"
@@ -838,10 +836,27 @@ pub(super) fn render_dispatcher_wrapper_body(
                     "{indent}    dispatcher_optional_{argument}.write_stable_ivalue(dispatcher_list_{argument}.into_stable_ivalue());\n"
                 ));
             }
+            CDispatcherStackValue::OwnedOptionalStringArgument { argument } => {
+                let index = dispatcher
+                    .stack
+                    .iter()
+                    .position(|value| {
+                        matches!(
+                            value,
+                            CDispatcherStackValue::OwnedOptionalStringArgument {
+                                argument: candidate
+                            } if candidate == argument
+                        )
+                    })
+                    .expect("current optional string is in the dispatcher stack");
+                body.push_str(&format!(
+                    "{indent}    dispatcher_optional_{argument}.write_stable_ivalue(dispatcher_string_{index}.into_stable_ivalue());\n"
+                ));
+            }
             _ => {}
         }
     }
-    let stack = dispatcher
+    let mut stack_values = dispatcher
         .stack
         .iter()
         .enumerate()
@@ -858,8 +873,15 @@ pub(super) fn render_dispatcher_wrapper_body(
             CDispatcherStackValue::OwnedOptionalIntListArgument { argument } => {
                 format!("dispatcher_optional_{argument}.into_stable_ivalue()")
             }
-            CDispatcherStackValue::OwnedStringLiteral { .. } => {
+            CDispatcherStackValue::OwnedHandleListArgument { argument } => {
+                format!("dispatcher_list_{argument}.into_stable_ivalue()")
+            }
+            CDispatcherStackValue::OwnedStringArgument { .. }
+            | CDispatcherStackValue::OwnedStringLiteral { .. } => {
                 format!("dispatcher_string_{index}.into_stable_ivalue()")
+            }
+            CDispatcherStackValue::OwnedOptionalStringArgument { argument } => {
+                format!("dispatcher_optional_{argument}.into_stable_ivalue()")
             }
             CDispatcherStackValue::IntArgument { argument } => {
                 format!("{argument} as u64")
@@ -873,21 +895,63 @@ pub(super) fn render_dispatcher_wrapper_body(
             CDispatcherStackValue::OwnedOptionalIntArgument { argument } => {
                 format!("dispatcher_optional_{argument}.into_stable_ivalue()")
             }
+            CDispatcherStackValue::OwnedOptionalFloatArgument { argument } => {
+                format!("dispatcher_optional_{argument}.into_stable_ivalue()")
+            }
             CDispatcherStackValue::Null => "0u64".to_string(),
             CDispatcherStackValue::Unsupported => unreachable!("validated dispatcher stack"),
         })
-        .collect::<Vec<_>>()
-        .join(", ");
+        .collect::<Vec<_>>();
+    let output_indices = dispatcher.output.indices();
+    let required_stack_len = output_indices.iter().max().map_or(0, |index| index + 1);
+    stack_values.resize(
+        stack_values.len().max(required_stack_len),
+        "0u64".to_string(),
+    );
+    let stack = stack_values.join(", ");
     body.push_str(&format!(
-        "{indent}    // StableIValue takes ownership of copied handle inputs; the selected output slot transfers ownership back.\n{indent}    let mut stack = [{stack}];\n{indent}    // SAFETY: metadata fixes the operator schema, stack layout, ABI version, and ownership transfer.\n{indent}    let status = unsafe {{ ffi::{}({:?}.as_ptr().cast(), {:?}.as_ptr().cast(), stack.as_mut_ptr(), 0x{abi_version:016x}u64) }};\n{indent}    check_status({:?}, status, {})?;\n{indent}    let raw = stack[{}] as usize as *mut ffi::{};\n{indent}    let raw = NonNull::new(raw).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n{indent}    Ok(Self {{ raw }})\n",
+        "{indent}    // StableIValue takes ownership of copied inputs; declared output slots transfer ownership back.\n{indent}    let mut stack = [{stack}];\n{indent}    // SAFETY: metadata fixes the operator schema, stack layout, ABI version, and ownership transfer.\n{indent}    let status = unsafe {{ ffi::{}({:?}.as_ptr().cast(), {:?}.as_ptr().cast(), stack.as_mut_ptr(), 0x{abi_version:016x}u64) }};\n{indent}    check_status({:?}, status, {})?;\n",
         call_symbol.c_name,
         operation,
         overload,
         function.operation,
         call_symbol.success_code.unwrap_or(0),
-        dispatcher.output.index,
-        record.c_name,
-        function.operation,
     ));
+    match &dispatcher.output {
+        CDispatcherOutput::OwnedHandle { index } => {
+            body.push_str(&format!(
+                "{indent}    let raw = stack[{index}] as usize as *mut ffi::{};\n{indent}    let raw = NonNull::new(raw).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n{indent}    Ok(Self {{ raw }})\n",
+                record.c_name, function.operation,
+            ));
+        }
+        CDispatcherOutput::OwnedHandleTuple { indices } => {
+            for (position, index) in indices.iter().enumerate() {
+                body.push_str(&format!(
+                    "{indent}    let raw_{position} = stack[{index}] as usize as *mut ffi::{};\n{indent}    let output_{position} = DispatcherOutputGuard::new(raw_{position}).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n",
+                    record.c_name, function.operation,
+                ));
+            }
+            let values = (0..indices.len())
+                .map(|position| format!("Self {{ raw: output_{position}.into_raw() }}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            body.push_str(&format!("{indent}    Ok(({values}))\n"));
+        }
+        CDispatcherOutput::DiscardOwnedHandle { index } => {
+            body.push_str(&format!(
+                "{indent}    let raw = stack[{index}] as usize as *mut ffi::{};\n{indent}    let _output = DispatcherOutputGuard::new(raw).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n{indent}    Ok(())\n",
+                record.c_name, function.operation,
+            ));
+        }
+        CDispatcherOutput::DiscardOwnedHandleTuple { indices } => {
+            for (position, index) in indices.iter().enumerate() {
+                body.push_str(&format!(
+                    "{indent}    let raw_{position} = stack[{index}] as usize as *mut ffi::{};\n{indent}    let _output_{position} = DispatcherOutputGuard::new(raw_{position}).ok_or(CAbiError {{ operation: {:?}, status: -1 }})?;\n",
+                    record.c_name, function.operation,
+                ));
+            }
+            body.push_str(&format!("{indent}    Ok(())\n"));
+        }
+    }
     Ok(body)
 }

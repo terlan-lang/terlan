@@ -1,0 +1,25 @@
+[contract]
+name = "self-host-backend-ir"
+abi_major = 1
+abi_minor = 0
+status = "in-progress"
+
+[implemented]
+target_neutral_ir = true
+structural_ir_validation = true
+versioned_backend_envelope = true
+artifact_parity_model = true
+
+[authority]
+rust_consumer = false
+executable_fixed_point = false
+authority_transfer = false
+
+[evidence_tooling]
+compiler_rust_consumer = true
+vm_rust_consumer = true
+stage_digest_artifacts = true
+fixed_point_comparator = true
+self_hosted_abi_json_encoder = true
+resolved_semantic_plan_lowering = true
+checked_backend_compile_entry_point = true

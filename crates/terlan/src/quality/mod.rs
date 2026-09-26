@@ -46,7 +46,6 @@ mod no_implicit_otp_runtime;
 mod no_terlan_vm_erts_rust_dependency;
 mod operator_full_coverage;
 mod otp_reference_inventory;
-mod otp_runtime_exit;
 mod otp_test_pipeline_inventory;
 mod oxc_boundary;
 mod package_api_compatibility;

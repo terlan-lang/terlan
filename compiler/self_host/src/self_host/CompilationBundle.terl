@@ -1,0 +1,83 @@
+/** Compiles and indexes a deterministic list of source modules. */
+module self_host.CompilationBundle.
+
+
+import self_host.BackendSyntax.{BackendModule}.
+import self_host.CompilationBundleSyntax.{BundleDiagnostic, CompilationBundle, DuplicateModule, InvalidModule}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+
+
+import std.collections.List.
+import std.core.String.
+import self_host.Compiler.
+import self_host.ModuleInterface.
+
+
+struct BundleState {
+    valid: Bool,
+    modules: List[BackendModule],
+    interfaces: List[ModuleInterface],
+    diagnostics: List[BundleDiagnostic],
+}.
+
+constructor BundleState {
+    (valid: Bool, modules: List[BackendModule], interfaces: List[ModuleInterface], diagnostics: List[BundleDiagnostic]): BundleState ->
+        BundleState {
+            valid: valid,
+            modules: modules,
+            interfaces: interfaces,
+            diagnostics: diagnostics,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+contains_module(values: List[BackendModule], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.module_name == name or contains_module(rest, name)
+    }.
+
+@pure
+append_interface(compiled: BackendModule, duplicate: Bool, values: List[ModuleInterface]): List[ModuleInterface] ->
+    if {
+        compiled.valid and not duplicate -> [compiled.interface | values];
+        true -> values
+    }.
+
+@pure
+append_diagnostic(compiled: BackendModule, duplicate: Bool, values: List[BundleDiagnostic]): List[BundleDiagnostic] ->
+    if {
+        duplicate -> [BundleDiagnostic(DuplicateModule, compiled.module_name, String.append("duplicate module: ", compiled.module_name)) | values];
+        not compiled.valid -> [BundleDiagnostic(InvalidModule, compiled.module_name, compiled.message) | values];
+        true -> values
+    }.
+
+@pure
+compile_at(values: List[String], state: BundleState): BundleState ->
+    case values {
+        [] -> state;
+        [source | rest] ->
+            let compiled = Compiler.compile(source);
+            let duplicate = compiled.module_name != "" and contains_module(state.modules, compiled.module_name);
+            let interfaces = append_interface(compiled, duplicate, state.interfaces);
+            let diagnostics = append_diagnostic(compiled, duplicate, state.diagnostics);
+            compile_at(rest, BundleState(
+                state.valid and compiled.valid and not duplicate,
+                [compiled | state.modules],
+                interfaces,
+                diagnostics,
+            ))
+    }.
+
+/** Compiles all sources and rejects duplicate module identities deterministically. */
+@pure
+pub compile(values: List[String]): CompilationBundle ->
+    let state = compile_at(values, BundleState(valid = true, modules = List.new[BackendModule](), interfaces = List.new[ModuleInterface](), diagnostics = List.new[BundleDiagnostic]()));
+    CompilationBundle(state.valid, reverse(state.modules), reverse(state.interfaces), reverse(state.diagnostics)).

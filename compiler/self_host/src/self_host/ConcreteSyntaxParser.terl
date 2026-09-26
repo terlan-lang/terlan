@@ -1,0 +1,86 @@
+/** Builds a balanced, lossless CST from projected canonical terminals. */
+module self_host.ConcreteSyntaxParser.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ConcreteSyntaxTree.{ConcreteSyntaxDocument, ConcreteSyntaxNode}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+
+import std.collections.List.
+import std.core.String.
+
+
+struct NodeParse {
+    valid: Bool,
+    nodes: List[ConcreteSyntaxNode],
+    rest: List[ProjectedCanonicalToken],
+    close: Option[ProjectedCanonicalToken],
+    message: String,
+}.
+
+constructor NodeParse {
+    (valid: Bool, nodes: List[ConcreteSyntaxNode], rest: List[ProjectedCanonicalToken], close: Option[ProjectedCanonicalToken], message: String): NodeParse ->
+        NodeParse {
+            valid: valid,
+            nodes: nodes,
+            rest: rest,
+            close: close,
+            message: message,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+opening_close(text: String): String ->
+    if { text == "(" -> ")"; text == "[" -> "]"; text == "{" -> "}"; true -> "" }.
+
+@pure
+group_terminal(text: String): String ->
+    if { text == "(" -> "group-()"; text == "[" -> "group-[]"; text == "{" -> "group-{}"; true -> "group" }.
+
+@pure
+is_closing(text: String): Bool -> text == ")" or text == "]" or text == "}".
+
+@pure
+leaf(value: ProjectedCanonicalToken): ConcreteSyntaxNode ->
+    ConcreteSyntaxNode(value.terminal, value.text, value.start_byte, value.end_byte, List.new[ConcreteSyntaxNode]()).
+
+@pure
+parse_at(
+    values: List[ProjectedCanonicalToken],
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    case values {
+        [] -> NodeParse(expected_close == "", reverse(output), List.new[ProjectedCanonicalToken](), None, if { expected_close == "" -> ""; true -> String.append("missing closing delimiter: ", expected_close) });
+        [value | rest] where expected_close != "" and value.text == expected_close -> NodeParse(valid = true, nodes = reverse(output), rest = rest, close = Some(value), message = "");
+        [value | _] where is_closing(value.text) -> NodeParse(valid = false, nodes = reverse(output), rest = values, close = None, message = String.append("unexpected closing delimiter: ", value.text));
+        [value | rest] ->
+            let close_text = opening_close(value.text);
+            if {
+                close_text == "" -> parse_at(rest, expected_close, [leaf(value) | output]);
+                true ->
+                    let nested = parse_at(rest, close_text, List.new[ConcreteSyntaxNode]());
+                    case nested.close {
+                        Some(close) where nested.valid -> parse_at(
+                            nested.rest,
+                            expected_close,
+                            [ConcreteSyntaxNode(group_terminal(value.text), "", value.start_byte, close.end_byte, nested.nodes) | output],
+                        );
+                        _ -> NodeParse(valid = false, nodes = reverse(output), rest = nested.rest, close = None, message = nested.message)
+                    }
+            }
+    }.
+
+/** Parses every projected token into a delimiter-balanced concrete tree. */
+@pure
+pub parse(values: List[ProjectedCanonicalToken]): ConcreteSyntaxDocument ->
+    let parsed = parse_at(values, "", List.new[ConcreteSyntaxNode]());
+    ConcreteSyntaxDocument(parsed.valid, parsed.nodes, parsed.message).

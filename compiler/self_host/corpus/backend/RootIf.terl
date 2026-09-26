@@ -1,0 +1,9 @@
+/** Root conditional used to validate self-hosted ABI-1 CFG lowering. */
+module self_host_probe.RootIf.
+
+
+pub choose(value: Bool): Int ->
+    if {
+        value -> 1;
+        true -> 2
+    }.

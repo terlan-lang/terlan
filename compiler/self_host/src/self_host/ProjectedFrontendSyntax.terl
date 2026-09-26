@@ -1,0 +1,41 @@
+/** Complete self-hosted projected frontend result for one source module. */
+module self_host.ProjectedFrontendSyntax.
+
+import self_host.BackendSyntax.{BackendModule}.
+import self_host.ConcreteSyntaxTree.{ConcreteSyntaxDocument}.
+import self_host.ProjectedBodySyntax.{ProjectedBodies}.
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceModule}.
+import self_host.ProjectedSignatureSyntax.{ProjectedSignatureDocument}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedFrontendModule {
+    valid: Bool,
+    source: String,
+    tokens: List[ProjectedCanonicalToken],
+    concrete: ConcreteSyntaxDocument,
+    surface: ProjectedSurfaceModule,
+    signatures: ProjectedSignatureDocument,
+    bodies: ProjectedBodies,
+    backend: BackendModule,
+    message: String,
+}.
+
+pub constructor ProjectedFrontendModule {
+    (valid: Bool, source: String, tokens: List[ProjectedCanonicalToken], concrete: ConcreteSyntaxDocument, surface: ProjectedSurfaceModule, signatures: ProjectedSignatureDocument, bodies: ProjectedBodies, backend: BackendModule, message: String): ProjectedFrontendModule ->
+        ProjectedFrontendModule {
+            valid: valid,
+            source: source,
+            tokens: tokens,
+            concrete: concrete,
+            surface: surface,
+            signatures: signatures,
+            bodies: bodies,
+            backend: backend,
+            message: message,
+        }
+}.
+

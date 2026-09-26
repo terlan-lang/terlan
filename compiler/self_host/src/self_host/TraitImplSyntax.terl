@@ -1,0 +1,62 @@
+/** Typed syntax for explicit trait implementations. */
+module self_host.TraitImplSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ImplConstantSyntax {
+    valid: Bool,
+    name: String,
+    has_annotation: Bool,
+    annotation: TypeParse,
+    value: ExpressionParse,
+    message: String,
+}.
+
+pub constructor ImplConstantSyntax {
+    (valid: Bool, name: String, has_annotation: Bool, annotation: TypeParse, value: ExpressionParse, message: String): ImplConstantSyntax ->
+        ImplConstantSyntax {
+            valid: valid,
+            name: name,
+            has_annotation: has_annotation,
+            annotation: annotation,
+            value: value,
+            message: message,
+        }
+}.
+
+
+pub struct TraitImplSyntax {
+    valid: Bool,
+    trait_type: TypeParse,
+    target_type: TypeParse,
+    is_negative: Bool,
+    constants: List[self_host.TraitImplSyntax.ImplConstantSyntax],
+    methods: List[FunctionSyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor TraitImplSyntax {
+    (valid: Bool, trait_type: TypeParse, target_type: TypeParse, is_negative: Bool, constants: List[self_host.TraitImplSyntax.ImplConstantSyntax], methods: List[FunctionSyntax], is_public: Bool, span: SyntaxSpan, message: String): TraitImplSyntax ->
+        TraitImplSyntax {
+            valid: valid,
+            trait_type: trait_type,
+            target_type: target_type,
+            is_negative: is_negative,
+            constants: constants,
+            methods: methods,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

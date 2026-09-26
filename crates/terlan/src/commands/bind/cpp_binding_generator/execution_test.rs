@@ -29,7 +29,7 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         output.read_line(&mut reply).expect("read helper reply");
         reply.trim_end().to_string()
     };
-    let first = call(1, "cpp_fixture.native_boundary.new", " i:42");
+    let first = call(1, "cpp_fixture.native_boundary.new", " li:42");
     let fields = first.split_whitespace().collect::<Vec<_>>();
     let ["reply", "1", "1", "ok_handle", owner, "1", "1", returned_type] = fields.as_slice() else {
         panic!("unexpected owner-bound handle reply: {first}");
@@ -54,7 +54,7 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         format!("reply 5 1 ok_atom {}", STANDARD.encode("doubled"))
     );
     assert_eq!(
-        call(6, "cpp_fixture.native_boundary.new", " i:1"),
+        call(6, "cpp_fixture.native_boundary.new", " li:1"),
         format!("reply 6 1 ok_handle {owner} 2 1 {type_name}")
     );
     let hidden_handle = format!(" h:{owner}:2:1:{type_name}");
@@ -67,7 +67,7 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         )
     );
     assert_eq!(
-        call(8, "cpp_fixture.native_boundary.new", " i:-1"),
+        call(8, "cpp_fixture.native_boundary.new", " li:-1"),
         format!("reply 8 1 ok_handle {owner} 3 1 {type_name}")
     );
     let failing_handle = format!(" h:{owner}:3:1:{type_name}");
@@ -171,9 +171,26 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         duplicate.contains(&STANDARD.encode("request_not_monotonic")),
         "duplicate request id was not rejected: {duplicate}"
     );
+    assert_eq!(
+        call(
+            21,
+            "cpp_fixture.native_boundary.shifted",
+            &format!("{handle} i:8")
+        ),
+        format!("reply 21 1 ok_handle {owner} 4 1 {type_name}")
+    );
+    let shifted_handle = format!(" h:{owner}:4:1:{type_name}");
+    assert_eq!(
+        call(22, "cpp_fixture.native_boundary.value", &shifted_handle),
+        "reply 22 1 ok_int 50"
+    );
+    assert_eq!(
+        call(23, "cpp_fixture.native_boundary.dispose", &shifted_handle),
+        "reply 23 1 ok_unit"
+    );
     drop(call);
     let chunked_request = format!(
-        "call 21 {} li:10,20,30",
+        "call 24 {} li:10,20,30",
         STANDARD.encode("cpp_fixture.native_boundary.sum_integers")
     );
     let split = chunked_request.len() / 2;
@@ -186,7 +203,7 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
     {
         writeln!(
             input,
-            "chunk 21 {index} {} {}",
+            "chunk 24 {index} {} {}",
             usize::from(index == 1),
             STANDARD.encode(chunk)
         )
@@ -197,7 +214,7 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
     output
         .read_line(&mut chunked_reply)
         .expect("read chunked helper reply");
-    assert_eq!(chunked_reply.trim_end(), "reply 21 1 ok_int 60");
+    assert_eq!(chunked_reply.trim_end(), "reply 24 1 ok_int 60");
     writeln!(
         input,
         "{}",

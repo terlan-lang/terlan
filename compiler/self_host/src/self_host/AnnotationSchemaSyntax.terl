@@ -1,0 +1,50 @@
+/** Typed syntax for compile-time annotation schemas. */
+module self_host.AnnotationSchemaSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct AnnotationSchemaEntrySyntax {
+    valid: Bool,
+    key: String,
+    value_type: String,
+    options: List[String],
+    message: String,
+}.
+
+pub constructor AnnotationSchemaEntrySyntax {
+    (valid: Bool, key: String, value_type: String, options: List[String], message: String): AnnotationSchemaEntrySyntax ->
+        AnnotationSchemaEntrySyntax {
+            valid: valid,
+            key: key,
+            value_type: value_type,
+            options: options,
+            message: message,
+        }
+}.
+
+
+pub struct AnnotationSchemaSyntax {
+    valid: Bool,
+    path: String,
+    entries: List[self_host.AnnotationSchemaSyntax.AnnotationSchemaEntrySyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor AnnotationSchemaSyntax {
+    (valid: Bool, path: String, entries: List[self_host.AnnotationSchemaSyntax.AnnotationSchemaEntrySyntax], is_public: Bool, span: SyntaxSpan, message: String): AnnotationSchemaSyntax ->
+        AnnotationSchemaSyntax {
+            valid: valid,
+            path: path,
+            entries: entries,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+

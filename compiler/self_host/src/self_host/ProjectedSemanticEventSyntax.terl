@@ -1,0 +1,44 @@
+/**
+ * Semantic events derived from projected expression bodies.
+ */
+module self_host.ProjectedSemanticEventSyntax.
+
+import std.collections.List.
+import self_host.ProjectedBindingSyntax.
+import self_host.ProjectedBindingSyntax.{BindingEvent}.
+import self_host.ProjectedCallableSyntax.
+import self_host.ProjectedCallableSyntax.{CallableUse}.
+import self_host.ProjectedTypeConstraintSyntax.
+
+import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintEvent}.
+pub struct BindingTypeLink {
+    declaration_offset: Int,
+    source_offset: Int,
+}.
+
+pub constructor BindingTypeLink {
+    (declaration_offset: Int, source_offset: Int): BindingTypeLink ->
+        BindingTypeLink {
+            declaration_offset: declaration_offset,
+            source_offset: source_offset,
+        }
+}.
+
+
+pub struct ProjectedSemanticEvents {
+    binding_events: List[BindingEvent],
+    callable_uses: List[CallableUse],
+    type_constraints: List[TypeConstraintEvent],
+    binding_type_links: List[self_host.ProjectedSemanticEventSyntax.BindingTypeLink],
+}.
+
+pub constructor ProjectedSemanticEvents {
+    (binding_events: List[BindingEvent], callable_uses: List[CallableUse], type_constraints: List[TypeConstraintEvent], binding_type_links: List[self_host.ProjectedSemanticEventSyntax.BindingTypeLink]): ProjectedSemanticEvents ->
+        ProjectedSemanticEvents {
+            binding_events: binding_events,
+            callable_uses: callable_uses,
+            type_constraints: type_constraints,
+            binding_type_links: binding_type_links,
+        }
+}.
+

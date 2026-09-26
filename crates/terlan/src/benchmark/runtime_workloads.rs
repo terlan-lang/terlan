@@ -13,10 +13,10 @@ use super::managed_heap::{
     ActorHeap, ActorId, AllocationClass, HeapLimits, ManagedRoot, ManagedTypeDescriptor,
     RootLocation, SemanticTypeId,
 };
-use super::vm_runtime::actor::{VmActorReceive, VmActorRuntime};
-use super::vm_runtime::process::{VmExitReason, VmProcessSource};
-use super::vm_runtime::scheduler::{VmSchedulerDecision, VmSchedulerOutcome};
 use super::ReplValue;
+use crate::runtime::vm::actor::{VmActorReceive, VmActorRuntime};
+use crate::runtime::vm::process::{VmExitReason, VmProcessSource};
+use crate::runtime::vm::scheduler::{VmSchedulerDecision, VmSchedulerOutcome};
 
 use super::{rustc_version, unix_timestamp_seconds, write_report, BenchmarkStatus, Measurement};
 

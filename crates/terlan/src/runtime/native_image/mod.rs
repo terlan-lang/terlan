@@ -15,7 +15,7 @@ pub use descriptor::{
     decode_descriptor, encode_descriptor, TvmCallableDescriptor, TvmContinuationDescriptor,
     TvmDependencyDescriptor, TvmExecutableDescriptor, TvmExportDescriptor, TvmImageIdentity,
     TvmImageIntegrity, TvmImageTarget, TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
-    TvmNativeResourceDescriptor, TvmSignatureDescriptor, TVM_DISPATCH_SYMBOL_V3,
+    TvmNativeResourceDescriptor, TvmSignatureDescriptor, TVM_DISPATCH_SYMBOL_V4,
     TVM_IMAGE_ENTRY_SYMBOL_V1,
 };
 pub use image::{
@@ -29,6 +29,13 @@ pub(crate) use sealed::{reject_tvm_image_sidecars, SealedTvmImage};
 /// This bound is shared by generated code and the execution shard so a closure
 /// can call any admitted suspending target without retaining a native stack.
 pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize = 128;
+
+/// Maximum words retained by a recursively composed native completion stack.
+///
+/// ABI-1 keeps transition storage caller-owned and contiguous. Recursive
+/// non-tail suspension therefore uses this deterministic resource bound rather
+/// than requiring an impossible compile-time proof of an unbounded width.
+pub(crate) const TVM_COMPLETION_TRANSITION_WORD_CAPACITY: usize = 8_192;
 
 #[cfg(test)]
 #[path = "native_image_test.rs"]

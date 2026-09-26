@@ -1,0 +1,19 @@
+/** Multi-module self-hosted compiler facade with explicit dependency interfaces. */
+module self_host.ProgramCompiler.
+
+import self_host.ImportResolutionSyntax.{ResolvedCompilationBundle}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.CompilationBundle.
+import self_host.ImportResolution.
+
+
+/** Compiles all modules and resolves imports against local and external interfaces. */
+@pure
+pub compile(
+    sources: List[String],
+    external_interfaces: List[ModuleInterface],
+): ResolvedCompilationBundle ->
+    ImportResolution.resolve(CompilationBundle.compile(sources), external_interfaces).

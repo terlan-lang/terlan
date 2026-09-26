@@ -1,0 +1,73 @@
+/** Stable self-hosted pattern-syntax contract. */
+module self_host.PatternSyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub type WildcardPattern.
+pub type NamePattern.
+pub type QualifiedNamePattern.
+pub type IntegerPattern.
+pub type FloatPattern.
+pub type StringPattern.
+pub type TypedStringPattern.
+pub type ConstructorPattern.
+pub type TuplePattern.
+pub type MapPattern.
+pub type ListPattern.
+pub type ListConsPattern.
+pub type BinaryLayoutPattern.
+pub type NominalKeyedPattern.
+pub type GroupedPattern.
+pub type InvalidPattern.
+
+pub type PatternClass =
+    WildcardPattern
+    | NamePattern
+    | QualifiedNamePattern
+    | IntegerPattern
+    | FloatPattern
+    | StringPattern
+    | TypedStringPattern
+    | ConstructorPattern
+    | TuplePattern
+    | MapPattern
+    | ListPattern
+    | ListConsPattern
+    | BinaryLayoutPattern
+    | NominalKeyedPattern
+    | GroupedPattern
+    | InvalidPattern.
+
+/** Lossless pattern node with normalized immediate components. */
+pub struct PatternSyntax {
+    class: self_host.PatternSyntax.PatternClass,
+    text: String,
+    parts: List[String],
+}.
+
+pub constructor PatternSyntax {
+    (class: self_host.PatternSyntax.PatternClass, text: String, parts: List[String]): PatternSyntax ->
+        PatternSyntax {
+            class: class,
+            text: text,
+            parts: parts,
+        }
+}.
+
+
+pub struct PatternParse {
+    valid: Bool,
+    syntax: self_host.PatternSyntax.PatternSyntax,
+    message: String,
+}.
+
+pub constructor PatternParse {
+    (valid: Bool, syntax: self_host.PatternSyntax.PatternSyntax, message: String): PatternParse ->
+        PatternParse {
+            valid: valid,
+            syntax: syntax,
+            message: message,
+        }
+}.
+

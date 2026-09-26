@@ -1,0 +1,30 @@
+module self_host_corpus.Patterns.
+
+pub struct Person {
+    name: String,
+    age: Int,
+}.
+
+pub wildcard(_) -> Unit.
+
+pub literal(0) -> "zero";
+literal(_) -> "other".
+
+pub tuple_pattern({first, second}) -> {second, first}.
+
+pub list_pattern([first, second]) -> {first, second}.
+
+pub cons_pattern([head | tail]) -> {head, tail}.
+
+pub keyed_pattern({name: name, age: _}) -> name.
+
+pub struct_pattern(Person{name: name, age: _}) -> name.
+
+pub constructor_pattern(Some(value)) -> value;
+constructor_pattern(None) -> Unit.
+
+pub guarded(value) where value > 0 -> value;
+guarded(_) -> 0.
+
+pub string_pattern("ready") -> true;
+string_pattern(_) -> false.

@@ -321,6 +321,9 @@ pub(super) fn infer_syntax_expr(
         }
         SyntaxExprKind::Var => {
             let name = expr.text.as_deref().unwrap_or_default();
+            if name == "true" || name == "false" {
+                return Type::Bool;
+            }
             let inferred = infer_syntax_var(name, locals, ctx);
             if is_reserved_uppercase_bool_literal_spelling(name) && inferred == Type::Dynamic {
                 errors.push(format!(
@@ -360,10 +363,25 @@ pub(super) fn infer_syntax_expr(
                 .unwrap_or(Type::Dynamic);
             if let Some(tail) = expr.children.get(1) {
                 let tail_type = infer_syntax_expr(tail, locals, ctx, subst, errors);
-                if let Err(message) =
-                    unify(&tail_type, &Type::List(Box::new(head_type.clone())), subst)
-                {
-                    errors.push(format!("list cons tail {}", message));
+                let expected_tail = Type::List(Box::new(head_type.clone()));
+                let mut unified_subst = subst.clone();
+                if let Err(message) = unify(&tail_type, &expected_tail, &mut unified_subst) {
+                    let tail_substituted = apply_subst(&tail_type, subst);
+                    let expected_substituted = apply_subst(&expected_tail, subst);
+                    let aliases_match = is_subtype_with_aliases(
+                        &tail_substituted,
+                        &expected_substituted,
+                        ctx.aliases,
+                    ) && is_subtype_with_aliases(
+                        &expected_substituted,
+                        &tail_substituted,
+                        ctx.aliases,
+                    );
+                    if !aliases_match {
+                        errors.push(format!("list cons tail {}", message));
+                    }
+                } else {
+                    *subst = unified_subst;
                 }
             }
             Type::List(Box::new(apply_subst(&head_type, subst)))

@@ -35,6 +35,11 @@ pub(super) fn infer_type(
                 .all(|item| infer_type(item, variables, templates, module) == Some(first.clone()))
                 .then(|| CoreType::List(Box::new(first)))
         }
+        CoreExpr::ListCons { head, tail } => infer_type(tail, variables, templates, module)
+            .or_else(|| {
+                infer_type(head, variables, templates, module)
+                    .map(|element| CoreType::List(Box::new(element)))
+            }),
         CoreExpr::Tuple(items) => items
             .iter()
             .map(|item| infer_type(item, variables, templates, module).map(CoreTupleTypeElem::Type))
@@ -96,6 +101,28 @@ pub(super) fn infer_type(
             Some(CoreType::Bool)
         }
         CoreExpr::BinaryOp { left, .. } => infer_type(left, variables, templates, module),
+        CoreExpr::If { clauses } => {
+            let inferred = clauses
+                .iter()
+                .map(|clause| infer_type(&clause.body, variables, templates, module))
+                .collect::<Option<Vec<_>>>()?;
+            let concrete = inferred
+                .iter()
+                .filter(|ty| !contains_implicit_generic_type(ty))
+                .collect::<Vec<_>>();
+            if let Some(first) = concrete.first() {
+                concrete
+                    .iter()
+                    .all(|candidate| candidate == first)
+                    .then(|| (*first).clone())
+            } else {
+                let first = inferred.first()?;
+                inferred
+                    .iter()
+                    .all(|candidate| candidate == first)
+                    .then(|| first.clone())
+            }
+        }
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base_type = infer_type(base, variables, templates, module)?;
             named_field_type(&base_type, field).cloned()
@@ -317,71 +344,89 @@ pub(super) fn infer_generic_argument_types(
         )?;
         concrete[index] = Some(inferred);
     }
-    for (index, (parameter, argument)) in template.params.iter().zip(arguments).enumerate() {
-        let expected = parameter.core_ty.as_ref().ok_or_else(|| {
-            "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
-        })?;
-        let contextual_expected = substitute(expected, &template.generic_params, &substitution);
-        let inferred = concrete[index]
-            .clone()
-            .or_else(|| {
-                contextual_lambda_type(
-                    argument,
-                    &contextual_expected,
-                    &template.generic_params,
-                    variables,
-                    templates,
-                    module,
-                )
-            })
-            .or_else(|| contextual_literal_type(argument, &contextual_expected))
-            .or_else(|| {
-                (needs_contextual_type(argument)
-                    && !contains_generic_parameter(
+    let mut pending = (0..arguments.len()).collect::<Vec<_>>();
+    while !pending.is_empty() {
+        let mut deferred = Vec::new();
+        let mut progressed = false;
+        for index in pending {
+            let parameter = &template.params[index];
+            let argument = &arguments[index];
+            let expected = parameter.core_ty.as_ref().ok_or_else(|| {
+                "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
+            })?;
+            let contextual_expected = substitute(expected, &template.generic_params, &substitution);
+            let inferred = concrete[index]
+                .clone()
+                .or_else(|| {
+                    contextual_lambda_type(
+                        argument,
                         &contextual_expected,
                         &template.generic_params,
-                    ))
-                .then_some(contextual_expected.clone())
-            })
-            .or_else(|| {
-                infer_generic_argument_type(
-                    argument,
-                    &template.generic_params,
-                    variables,
-                    templates,
-                    module,
-                )
-            })
-            .or_else(|| {
-                (!contains_generic_parameter(&contextual_expected, &template.generic_params))
+                        variables,
+                        templates,
+                        module,
+                    )
+                })
+                .or_else(|| contextual_literal_type(argument, &contextual_expected))
+                .or_else(|| {
+                    (needs_contextual_type(argument)
+                        && !contains_generic_parameter(
+                            &contextual_expected,
+                            &template.generic_params,
+                        ))
                     .then_some(contextual_expected.clone())
-            })
-            .ok_or_else(|| {
+                })
+                .or_else(|| {
+                    infer_generic_argument_type(
+                        argument,
+                        &template.generic_params,
+                        variables,
+                        templates,
+                        module,
+                    )
+                })
+                .or_else(|| {
+                    (!contains_generic_parameter(&contextual_expected, &template.generic_params))
+                        .then_some(contextual_expected.clone())
+                });
+            let Some(inferred) = inferred else {
+                deferred.push(index);
+                continue;
+            };
+            unify(
+                expected,
+                &inferred,
+                &template.generic_params,
+                &mut substitution,
+            )
+            .map_err(|error| {
                 format!(
-                    "error[native_ir.generic_argument]: cannot infer argument {} for `{}/{}` from `{}` against contextual type `{}`",
+                    "{error}; while specializing argument {} of `{}/{}` from `{}`",
                     index + 1,
                     template.name,
                     template.arity,
-                    argument.contract_text(),
-                    contextual_expected.contract_text(),
+                    argument.contract_text()
                 )
             })?;
-        unify(
-            expected,
-            &inferred,
-            &template.generic_params,
-            &mut substitution,
-        )
-        .map_err(|error| {
-            format!(
-                "{error}; while specializing argument {} of `{}/{}` from `{}`",
+            concrete[index] = Some(inferred);
+            progressed = true;
+        }
+        if !progressed {
+            let index = deferred[0];
+            let expected = template.params[index].core_ty.as_ref().ok_or_else(|| {
+                "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
+            })?;
+            let contextual_expected = substitute(expected, &template.generic_params, &substitution);
+            return Err(format!(
+                "error[native_ir.generic_argument]: cannot infer argument {} for `{}/{}` from `{}` against contextual type `{}`",
                 index + 1,
                 template.name,
                 template.arity,
-                argument.contract_text()
-            )
-        })?;
-        concrete[index] = Some(inferred);
+                arguments[index].contract_text(),
+                contextual_expected.contract_text(),
+            ));
+        }
+        pending = deferred;
     }
     concrete
         .into_iter()

@@ -29,6 +29,38 @@ fn collection_abi_round_trips_every_family_canonically() {
 }
 
 #[test]
+/// Round-trips sorted, deduplicated transparent-union reference semantics.
+fn collection_abi_round_trips_transparent_reference_union_variants() {
+    let union = SemanticTypeId::from_canonical("example.Block").expect("union identity");
+    let array = SemanticTypeId::from_canonical("example.Array").expect("array identity");
+    let nested = SemanticTypeId::from_canonical("List(example.Block)").expect("list identity");
+    let descriptor = ManagedCollectionDescriptor::list_with_reference_variants(
+        "List(example.Block)",
+        ManagedFieldType::Reference(union),
+        vec![nested, array, nested, union],
+    )
+    .expect("union list descriptor");
+
+    let encoded = encode_collection_layout(&descriptor).expect("encode union list");
+    let decoded = decode_collection_layout(&encoded).expect("decode union list");
+
+    assert_eq!(decoded, descriptor);
+    let mut expected = vec![array, nested];
+    expected.sort_unstable();
+    assert_eq!(
+        decoded
+            .list_descriptor()
+            .expect("list descriptor")
+            .reference_variants(),
+        expected
+    );
+    assert_eq!(
+        encode_collection_layout(&decoded).expect("canonical re-encode"),
+        encoded
+    );
+}
+
+#[test]
 /// Rejects every truncated prefix plus corrupted fixed-header fields.
 fn collection_abi_rejects_truncation_and_header_corruption() {
     let descriptor =

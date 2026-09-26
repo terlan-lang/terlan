@@ -1,0 +1,10 @@
+[package]
+name = "terlan-self-host-semantic-evidence"
+version = "0.0.1"
+namespace = "self_host_semantic_evidence"
+
+[build]
+artifact = "terlan-vm"
+
+[dependencies]
+self_host = { path = "../self_host" }

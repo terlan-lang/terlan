@@ -1,0 +1,52 @@
+/** Evaluates all mandatory parity and fixed-point gates for authority transfer. */
+module self_host.AuthorityTransfer.
+
+import self_host.AuthoritySyntax.{AcceptedParserParityGate, AuthorityDecision, AuthorityEvidence, AuthorityGate, BackendContractParityGate, BootstrapFixedPointGate, RejectedParserParityGate, SemanticParityGate, TokenParityGate}.
+
+import std.collections.List.
+
+
+struct GateState {
+    passed: List[AuthorityGate],
+    failed: List[AuthorityGate],
+}.
+
+constructor GateState {
+    (passed: List[AuthorityGate], failed: List[AuthorityGate]): GateState ->
+        GateState {
+            passed: passed,
+            failed: failed,
+        }
+}.
+
+@pure
+record(state: GateState, gate: AuthorityGate, passed: Bool): GateState ->
+    if {
+        passed -> GateState(passed = [gate | state.passed], failed = state.failed);
+        true -> GateState(passed = state.passed, failed = [gate | state.failed])
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+/** Requires every parity gate and a non-empty reproducible bootstrap hash. */
+@pure
+pub evaluate(evidence: AuthorityEvidence): AuthorityDecision ->
+    let fixed_point = evidence.stage0_artifact_hash != ""
+        and evidence.stage0_artifact_hash == evidence.stage1_artifact_hash;
+    let state0 = GateState(passed = List.new[AuthorityGate](), failed = List.new[AuthorityGate]());
+    let state1 = record(state0, TokenParityGate, evidence.token_parity);
+    let state2 = record(state1, AcceptedParserParityGate, evidence.accepted_parser_parity);
+    let state3 = record(state2, RejectedParserParityGate, evidence.rejected_parser_parity);
+    let state4 = record(state3, SemanticParityGate, evidence.semantic_parity);
+    let state5 = record(state4, BackendContractParityGate, evidence.backend_contract_parity);
+    let state6 = record(state5, BootstrapFixedPointGate, fixed_point);
+    let transferable = state6.failed == [];
+    AuthorityDecision(transferable, reverse(state6.passed), reverse(state6.failed), not transferable, if {
+            transferable -> "self-hosted frontend may become authoritative";
+            true -> "authority transfer denied: one or more mandatory gates failed"
+        }).

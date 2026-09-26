@@ -10,7 +10,7 @@ use cranelift_frontend::FunctionBuilder;
 use cranelift_module::Module;
 use cranelift_object::ObjectModule;
 
-use super::super::{status, NativeExpr, NativeModule};
+use super::super::{status, NativeModule};
 
 /// Aggregate descriptors admitted for one native object.
 pub(super) struct ManagedLayouts {
@@ -27,10 +27,10 @@ impl ManagedLayouts {
         let mut layouts = Vec::<Arc<[u8]>>::new();
         for native in natives {
             for function in &native.functions {
-                collect_layouts(&function.body, &mut layouts);
+                function.body.collect_managed_encodings(&mut layouts);
             }
             for continuation in &native.continuations {
-                collect_layouts(&continuation.body, &mut layouts);
+                continuation.body.collect_managed_encodings(&mut layouts);
             }
         }
         let admitted = natives
@@ -232,105 +232,6 @@ pub(super) fn emit_managed_allocation(
         );
     }
     Ok(result)
-}
-
-/// Recursively inventories every managed constructor descriptor in one body.
-fn collect_layouts(expr: &NativeExpr, layouts: &mut Vec<Arc<[u8]>>) {
-    match expr {
-        NativeExpr::ManagedLiteral { encoded } => layouts.push(encoded.clone()),
-        NativeExpr::ManagedOperation { encoded, args } => {
-            layouts.push(encoded.clone());
-            args.iter()
-                .for_each(|argument| collect_layouts(argument, layouts));
-        }
-        NativeExpr::MakeClosure { encoded, captures } => {
-            layouts.push(encoded.clone());
-            captures
-                .iter()
-                .for_each(|capture| collect_layouts(capture, layouts));
-        }
-        NativeExpr::Construct {
-            encoded_layout,
-            fields,
-            ..
-        } => {
-            layouts.push(encoded_layout.clone());
-            fields
-                .iter()
-                .for_each(|field| collect_layouts(field, layouts));
-        }
-        NativeExpr::Call { args, .. }
-        | NativeExpr::TailCall { args, .. }
-        | NativeExpr::ContinuationTailCall { args, .. } => args
-            .iter()
-            .for_each(|argument| collect_layouts(argument, layouts)),
-        NativeExpr::InvokeClosure { callee, args, .. } => {
-            collect_layouts(callee, layouts);
-            args.iter()
-                .for_each(|argument| collect_layouts(argument, layouts));
-        }
-        NativeExpr::InvokeClosureThen {
-            callee,
-            args,
-            values,
-            ..
-        } => {
-            collect_layouts(callee, layouts);
-            args.iter()
-                .chain(values)
-                .for_each(|argument| collect_layouts(argument, layouts));
-        }
-        NativeExpr::CallThen { args, values, .. } => {
-            args.iter()
-                .chain(values)
-                .for_each(|value| collect_layouts(value, layouts));
-        }
-        NativeExpr::Neg(value)
-        | NativeExpr::FloatNeg(value)
-        | NativeExpr::FloatFloor(value)
-        | NativeExpr::FloatCeil(value)
-        | NativeExpr::IntToFloat(value)
-        | NativeExpr::Not(value) => collect_layouts(value, layouts),
-        NativeExpr::Binary { left, right, .. } => {
-            collect_layouts(left, layouts);
-            collect_layouts(right, layouts);
-        }
-        NativeExpr::Let { bindings, body } => {
-            bindings
-                .iter()
-                .for_each(|binding| collect_layouts(binding, layouts));
-            collect_layouts(body, layouts);
-        }
-        NativeExpr::If { clauses } => clauses.iter().for_each(|(condition, body)| {
-            collect_layouts(condition, layouts);
-            collect_layouts(body, layouts);
-        }),
-        NativeExpr::Try {
-            protected,
-            success,
-            failure,
-            cleanup,
-        } => {
-            collect_layouts(protected, layouts);
-            collect_layouts(success, layouts);
-            collect_layouts(failure, layouts);
-            cleanup
-                .iter()
-                .for_each(|expression| collect_layouts(expression, layouts));
-        }
-        NativeExpr::Suspend {
-            arguments, values, ..
-        } => arguments
-            .iter()
-            .chain(values)
-            .for_each(|value| collect_layouts(value, layouts)),
-        NativeExpr::Unit
-        | NativeExpr::Int(_)
-        | NativeExpr::Float(_)
-        | NativeExpr::Bool(_)
-        | NativeExpr::AtomLiteral(_)
-        | NativeExpr::Param(_) => {}
-    }
 }
 
 /// Routes a failed precondition to the native function's shared error block.

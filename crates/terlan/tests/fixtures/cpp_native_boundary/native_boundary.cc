@@ -13,11 +13,20 @@ NativeBoundary::NativeBoundary(std::int64_t value) noexcept : value_(value) {
   ++live_count;
 }
 
+NativeBoundary::NativeBoundary(NativeBoundary&& other) noexcept
+    : value_(other.value_) {
+  ++live_count;
+}
+
 NativeBoundary::~NativeBoundary() noexcept { --live_count; }
 
 std::int64_t NativeBoundary::value() const noexcept { return value_; }
 
 std::int64_t NativeBoundary::doubled() const noexcept { return value_ * 2; }
+
+NativeBoundary NativeBoundary::shifted(std::int64_t delta) const noexcept {
+  return NativeBoundary(value_ + delta);
+}
 
 std::unique_ptr<std::string> NativeBoundary::label() const noexcept {
   return std::make_unique<std::string>(std::to_string(value_));
@@ -56,8 +65,13 @@ std::int64_t NativeBoundary::tripled_or_throw() const {
 
 void NativeBoundary::add(std::int64_t delta) noexcept { value_ += delta; }
 
-std::unique_ptr<NativeBoundary> make_native_boundary(std::int64_t value) noexcept {
-  return std::make_unique<NativeBoundary>(value);
+NativeBoundary make_native_boundary(IntArrayRef values,
+                                    std::int64_t offset) noexcept {
+  std::int64_t value = offset;
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    value += values.data()[index];
+  }
+  return NativeBoundary(value);
 }
 
 std::int64_t live_native_boundary_count() noexcept { return live_count.load(); }

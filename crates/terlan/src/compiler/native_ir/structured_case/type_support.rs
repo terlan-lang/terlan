@@ -278,11 +278,14 @@ fn bind_pattern_types(pattern: &CorePattern, ty: &CoreType, types: &mut HashMap<
             }
         }
         CorePattern::ListCons { head, tail } => {
-            let Ok(element) = list_element_type(Some(ty)) else {
+            let Ok(list) = list_variant_type(Some(ty)) else {
+                return;
+            };
+            let Ok(element) = list_element_type(Some(list)) else {
                 return;
             };
             bind_pattern_types(head, element, types);
-            bind_pattern_types(tail, ty, types);
+            bind_pattern_types(tail, list, types);
         }
         _ => {}
     }
@@ -428,12 +431,37 @@ pub(super) fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
 }
 
 pub(super) fn list_element_type(core_type: Option<&CoreType>) -> Result<&CoreType, String> {
+    match list_variant_type(core_type)? {
+        CoreType::List(element) => Ok(element),
+        CoreType::Apply { args, .. } => Ok(&args[0]),
+        _ => unreachable!("list variant validation returned a non-list type"),
+    }
+}
+
+/// Selects the unique concrete list member of a structural union.
+pub(super) fn list_variant_type(core_type: Option<&CoreType>) -> Result<&CoreType, String> {
     match core_type {
-        Some(CoreType::List(element)) => Ok(element),
+        Some(CoreType::List(_)) => Ok(core_type.expect("matched concrete list type")),
         Some(CoreType::Apply { constructor, args })
             if constructor.rsplit('.').next() == Some("List") && args.len() == 1 =>
         {
-            Ok(&args[0])
+            Ok(core_type.expect("matched concrete list type"))
+        }
+        Some(CoreType::Union(variants)) => {
+            let mut lists = variants.iter().filter(|variant| {
+                matches!(variant, CoreType::List(_))
+                    || matches!(
+                        variant,
+                        CoreType::Apply { constructor, args }
+                            if constructor.rsplit('.').next() == Some("List") && args.len() == 1
+                    )
+            });
+            let list = lists.next();
+            if list.is_some() && lists.next().is_none() {
+                Ok(list.expect("unique list variant checked"))
+            } else {
+                Err("error[native_ir.list_pattern_type]: structural union must contain exactly one List variant".into())
+            }
         }
         _ => Err("error[native_ir.list_pattern_type]: concrete List type is unavailable".into()),
     }

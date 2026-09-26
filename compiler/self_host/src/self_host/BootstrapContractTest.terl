@@ -1,0 +1,43 @@
+module self_host.BootstrapContractTest.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.core.String.
+import std.io.File.
+
+text(path: String): String ->
+    case File.read_text(path) {
+        Ok(value) -> value;
+        Err(_reason) -> ""
+    }.
+
+@test
+pub bootstrap_manifest_owns_all_three_stages(): Bool ->
+    let manifest = text("compiler/self_host/bootstrap/BOOTSTRAP.toml");
+    String.contains(manifest, "[stage0]")
+        and String.contains(manifest, "[stage1]")
+        and String.contains(manifest, "[stage2]")
+        and String.contains(manifest, "built_by = \"stage0\"")
+        and String.contains(manifest, "built_by = \"stage1\"").
+
+@test
+pub bootstrap_manifest_rejects_implicit_path_compilers(): Bool ->
+    let manifest = text("compiler/self_host/bootstrap/BOOTSTRAP.toml");
+    not String.contains(manifest, "artifact = \"terlc\"")
+        and String.contains(manifest, "target/bootstrap/terlc0/terlc")
+        and String.contains(manifest, "target/bootstrap/terlc1/terlc")
+        and String.contains(manifest, "target/bootstrap/terlc2/terlc").
+
+@test
+pub schemas_exclude_private_backend_types(): Bool ->
+    let schemas = text("compiler/self_host/SCHEMAS.md");
+    String.contains(schemas, "terlan.self-host.tokens.v1")
+        and String.contains(schemas, "terlan.self-host.interface.v1")
+        and String.contains(schemas, "terlan.self-host.source-evidence.v1")
+        and String.contains(schemas, "Private Rust")
+        and String.contains(schemas, "Cranelift").
+
+@test
+pub corpus_manifest_pairs_acceptance_with_rejection(): Bool ->
+    let corpus = text("compiler/self_host/corpus/CORPUS.tsv");
+    String.contains(corpus, "\taccept\t") and String.contains(corpus, "\treject\t").

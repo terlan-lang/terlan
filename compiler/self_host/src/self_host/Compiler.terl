@@ -1,0 +1,19 @@
+/** Public self-hosted compiler facade. */
+module self_host.Compiler.
+
+import self_host.BackendSyntax.{BackendModule}.
+
+import std.core.String.
+import self_host.BackendHandoff.
+import self_host.CompilerPipeline.
+
+
+/** Compiles one source module to the stable native-backend handoff contract. */
+@pure
+pub compile(source: String): BackendModule ->
+    BackendHandoff.lower(CompilerPipeline.analyze(source)).
+
+/** Compiles one `.terli` interface summary. */
+@pure
+pub compile_interface(source: String): BackendModule ->
+    BackendHandoff.lower(CompilerPipeline.analyze_interface(source)).

@@ -1,0 +1,11 @@
+module corpus.backend.NestedLetIf.
+
+import std.collections.List.
+import std.core.{Bool, String}.
+
+pub choose(flag: Bool, output: List[String]): List[String] ->
+    let next = if {
+        flag -> ["selected" | output];
+        true -> output
+    };
+    next.

@@ -1,0 +1,9 @@
+/** Root list case used to validate self-hosted ABI-1 pattern CFG lowering. */
+module self_host_probe.RootCase.
+
+
+pub first_or_zero(values: List[Int]): Int ->
+    case values {
+        [value | _rest] -> value;
+        [] -> 0
+    }.

@@ -1,0 +1,68 @@
+/** Stable backend handoff artifact owned by the self-hosted compiler. */
+module self_host.BackendSyntax.
+
+import self_host.DeclarationMetadataSyntax.{AnnotationUse}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.SemanticSyntax.{SemanticSourceKind}.
+import self_host.Syntax.{DeclarationClass, SyntaxSpan}.
+import self_host.TypedModuleSyntax.{TypedDeclarationPayload}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct BackendDeclaration {
+    class: DeclarationClass,
+    symbol_name: String,
+    semantic_identity: String,
+    is_public: Bool,
+    source_text: String,
+    payload: TypedDeclarationPayload,
+    annotations: List[AnnotationUse],
+    docs: List[String],
+    span: SyntaxSpan,
+}.
+
+pub constructor BackendDeclaration {
+    (class: DeclarationClass, symbol_name: String, semantic_identity: String, is_public: Bool, source_text: String, payload: TypedDeclarationPayload, annotations: List[AnnotationUse], docs: List[String], span: SyntaxSpan): BackendDeclaration ->
+        BackendDeclaration {
+            class: class,
+            symbol_name: symbol_name,
+            semantic_identity: semantic_identity,
+            is_public: is_public,
+            source_text: source_text,
+            payload: payload,
+            annotations: annotations,
+            docs: docs,
+            span: span,
+        }
+}.
+
+
+pub struct BackendModule {
+    valid: Bool,
+    schema: String,
+    module_name: String,
+    source_kind: SemanticSourceKind,
+    declarations: List[self_host.BackendSyntax.BackendDeclaration],
+    interface: ModuleInterface,
+    interface_text: String,
+    text: String,
+    message: String,
+}.
+
+pub constructor BackendModule {
+    (valid: Bool, schema: String, module_name: String, source_kind: SemanticSourceKind, declarations: List[self_host.BackendSyntax.BackendDeclaration], interface: ModuleInterface, interface_text: String, text: String, message: String): BackendModule ->
+        BackendModule {
+            valid: valid,
+            schema: schema,
+            module_name: module_name,
+            source_kind: source_kind,
+            declarations: declarations,
+            interface: interface,
+            interface_text: interface_text,
+            text: text,
+            message: message,
+        }
+}.
+

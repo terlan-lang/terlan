@@ -1,0 +1,145 @@
+/** Extracts and parses callable bodies from contextual projected tokens. */
+module self_host.ProjectedBodyParser.
+
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration, MethodDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.Parser.
+import self_host.StructuredExpressionParser.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+is_callable(value: ProjectedSurfaceDeclaration): Bool ->
+    value.class == FunctionDeclaration
+        or value.class == ConstFunctionDeclaration
+        or value.class == MethodDeclaration.
+
+@pure
+is_trivia(value: ProjectedCanonicalToken): Bool ->
+    String.contains(value.terminal, "comment")
+        or String.contains(value.terminal, "Comment")
+        or String.contains(value.terminal, "doc")
+        or String.contains(value.terminal, "Doc").
+
+@pure
+in_span(value: ProjectedCanonicalToken, declaration: ProjectedSurfaceDeclaration): Bool ->
+    value.start_byte >= declaration.span.start_byte and value.end_byte <= declaration.span.end_byte.
+
+@pure
+declaration_tokens(
+    values: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] where in_span(value, declaration) and not is_trivia(value) ->
+            [value | declaration_tokens(rest, declaration)];
+        [_value | rest] -> declaration_tokens(rest, declaration)
+    }.
+
+@pure
+has_tagged_body_arrow(values: List[ProjectedCanonicalToken]): Bool ->
+    case values {
+        [] -> false;
+        [value | _] where value.terminal == "function-body-arrow" -> true;
+        [_value | rest] -> has_tagged_body_arrow(rest)
+    }.
+
+@pure
+after_body_arrow_at(values: List[ProjectedCanonicalToken], tagged: Bool): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] where (tagged and value.terminal == "function-body-arrow")
+            or (not tagged and value.text == "->") -> rest;
+        [_value | rest] -> after_body_arrow_at(rest, tagged)
+    }.
+
+@pure
+after_body_arrow(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    after_body_arrow_at(values, has_tagged_body_arrow(values)).
+
+@pure
+before_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    case reverse(values) {
+        [value | rest] where value.text == "." -> reverse(rest);
+        _ -> values
+    }.
+
+@pure
+has_top_level_arrow_at(
+    values: List[ProjectedCanonicalToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+): Bool ->
+    case values {
+        [] -> false;
+        [value | _] where value.text == "->" and parens == 0 and brackets == 0 and braces == 0 -> true;
+        [value | rest] -> has_top_level_arrow_at(
+            rest,
+            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
+            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
+            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+        )
+    }.
+
+@pure
+has_top_level_arrow(values: List[ProjectedCanonicalToken]): Bool ->
+    has_top_level_arrow_at(values, 0, 0, 0).
+
+@pure
+before_clause_separator(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    if {
+        not has_top_level_arrow(values) -> values;
+        true -> case values {
+            [] -> List.new[ProjectedCanonicalToken]();
+            [value | _] where value.text == ";" -> List.new[ProjectedCanonicalToken]();
+            [value | rest] -> [value | before_clause_separator(rest)]
+        }
+    }.
+
+@pure
+body(
+    tokens: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): ProjectedBody ->
+    ProjectedBody(Parser.declaration_head(declaration.text), declaration.span, StructuredExpressionParser.parse(before_clause_separator(before_terminal_dot(after_body_arrow(
+            declaration_tokens(tokens, declaration),
+        ))))).
+
+@pure
+bodies_at(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+    output: List[ProjectedBody],
+): List[ProjectedBody] ->
+    case declarations {
+        [] -> reverse(output);
+        [value | rest] where is_callable(value) ->
+            let parsed = body(tokens, value);
+            bodies_at(tokens, rest, [parsed | output]);
+        [_value | rest] -> bodies_at(tokens, rest, output)
+    }.
+
+@pure
+all_valid(values: List[ProjectedBody]): Bool ->
+    case values { [] -> true; [value | rest] -> value.expression.valid and all_valid(rest) }.
+
+/** Parses all callable bodies selected by contextual declaration arrows. */
+@pure
+pub parse(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+): ProjectedBodies ->
+    let values = bodies_at(tokens, declarations, List.new[ProjectedBody]());
+    ProjectedBodies(all_valid(values), values).

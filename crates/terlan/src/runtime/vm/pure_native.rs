@@ -33,7 +33,9 @@ pub(crate) use crate::runtime::vm::native_image_diagnostics::{
 pub(crate) use direct_backend::DirectNativeBackend;
 #[cfg(test)]
 pub(crate) use execution::{dispatch_transition_operation, validate_transition_arguments};
-pub(crate) use execution::{PureNativeCapabilityRequest, PureNativeExecution};
+pub(crate) use execution::{
+    repl_value_to_boundary_term, PureNativeCapabilityRequest, PureNativeExecution,
+};
 pub(crate) use execution_runtime::PendingNativeCompletionFrame;
 pub(crate) use execution_runtime::{NativeContinuationClaim, PureNativeExecutionRuntime};
 #[cfg(test)]

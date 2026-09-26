@@ -1,0 +1,75 @@
+/**
+ * Neutral expression-type constraints emitted by projected AST adapters.
+ */
+module self_host.ProjectedTypeConstraintSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+pub struct TypeConstraintEvent {
+    kind: String,
+    node_id: Int,
+    left_node: Int,
+    right_node: Int,
+    type_name: String,
+    byte_offset: Int,
+}.
+
+pub constructor TypeConstraintEvent {
+    (kind: String, node_id: Int, left_node: Int, right_node: Int, type_name: String, byte_offset: Int): TypeConstraintEvent ->
+        TypeConstraintEvent {
+            kind: kind,
+            node_id: node_id,
+            left_node: left_node,
+            right_node: right_node,
+            type_name: type_name,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct InferredTypeFact {
+    node_id: Int,
+    type_name: Option[String],
+    byte_offset: Int,
+}.
+
+pub constructor InferredTypeFact {
+    (node_id: Int, type_name: Option[String], byte_offset: Int): InferredTypeFact ->
+        InferredTypeFact {
+            node_id: node_id,
+            type_name: type_name,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct TypeConstraintDiagnostic {
+    code: String,
+    message: String,
+    byte_offset: Int,
+}.
+
+pub constructor TypeConstraintDiagnostic {
+    (code: String, message: String, byte_offset: Int): TypeConstraintDiagnostic ->
+        TypeConstraintDiagnostic {
+            code: code,
+            message: message,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct TypeConstraintResolution {
+    facts: List[self_host.ProjectedTypeConstraintSyntax.InferredTypeFact],
+    diagnostics: List[self_host.ProjectedTypeConstraintSyntax.TypeConstraintDiagnostic],
+}.
+
+pub constructor TypeConstraintResolution {
+    (facts: List[self_host.ProjectedTypeConstraintSyntax.InferredTypeFact], diagnostics: List[self_host.ProjectedTypeConstraintSyntax.TypeConstraintDiagnostic]): TypeConstraintResolution ->
+        TypeConstraintResolution {
+            facts: facts,
+            diagnostics: diagnostics,
+        }
+}.
+

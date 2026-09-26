@@ -1,0 +1,83 @@
+/** Cross-module import resolution result. */
+module self_host.ImportResolutionSyntax.
+
+import self_host.CompilationBundleSyntax.{CompilationBundle}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub type InvalidImportReference.
+pub type MissingImportedModule.
+pub type MissingImportedSymbol.
+pub type DuplicateImportedSymbol.
+pub type ImportedSymbolKindMismatch.
+
+pub type ImportDiagnosticClass =
+    InvalidImportReference
+    | MissingImportedModule
+    | MissingImportedSymbol
+    | DuplicateImportedSymbol
+    | ImportedSymbolKindMismatch.
+
+pub struct ResolvedImport {
+    owner_module: String,
+    source_module: String,
+    local_name: String,
+    is_type: Bool,
+    span: SyntaxSpan,
+}.
+
+pub constructor ResolvedImport {
+    (owner_module: String, source_module: String, local_name: String, is_type: Bool, span: SyntaxSpan): ResolvedImport ->
+        ResolvedImport {
+            owner_module: owner_module,
+            source_module: source_module,
+            local_name: local_name,
+            is_type: is_type,
+            span: span,
+        }
+}.
+
+
+pub struct ImportDiagnostic {
+    class: self_host.ImportResolutionSyntax.ImportDiagnosticClass,
+    owner_module: String,
+    imported_name: String,
+    message: String,
+    span: SyntaxSpan,
+}.
+
+pub constructor ImportDiagnostic {
+    (class: self_host.ImportResolutionSyntax.ImportDiagnosticClass, owner_module: String, imported_name: String, message: String, span: SyntaxSpan): ImportDiagnostic ->
+        ImportDiagnostic {
+            class: class,
+            owner_module: owner_module,
+            imported_name: imported_name,
+            message: message,
+            span: span,
+        }
+}.
+
+
+pub struct ResolvedCompilationBundle {
+    valid: Bool,
+    bundle: CompilationBundle,
+    interfaces: List[ModuleInterface],
+    imports: List[self_host.ImportResolutionSyntax.ResolvedImport],
+    diagnostics: List[self_host.ImportResolutionSyntax.ImportDiagnostic],
+}.
+
+pub constructor ResolvedCompilationBundle {
+    (valid: Bool, bundle: CompilationBundle, interfaces: List[ModuleInterface], imports: List[self_host.ImportResolutionSyntax.ResolvedImport], diagnostics: List[self_host.ImportResolutionSyntax.ImportDiagnostic]): ResolvedCompilationBundle ->
+        ResolvedCompilationBundle {
+            valid: valid,
+            bundle: bundle,
+            interfaces: interfaces,
+            imports: imports,
+            diagnostics: diagnostics,
+        }
+}.
+

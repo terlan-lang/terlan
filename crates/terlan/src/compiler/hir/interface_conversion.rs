@@ -13,9 +13,10 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     let mut public_types = HashSet::new();
     let mut private_types = HashSet::new();
     let mut opaque_types = HashSet::new();
+    let imported_type_refs = collect_syntax_selected_type_refs(module);
     let type_params = collect_syntax_type_params(module);
-    let type_bodies = collect_syntax_type_bodies(module);
-    let struct_fields = collect_syntax_struct_fields(module);
+    let type_bodies = collect_syntax_type_bodies(module, &imported_type_refs);
+    let struct_fields = collect_syntax_struct_fields(module, &imported_type_refs);
     let shapes = collect_syntax_shape_signatures(module);
     let mut functions = HashMap::new();
     let mut function_overloads = HashMap::new();
@@ -27,8 +28,6 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     let traits = collect_syntax_trait_signatures(module);
     let trait_conformances = collect_syntax_trait_conformances(module);
     let constructors = collect_syntax_constructor_signatures(module);
-    let imported_type_refs = collect_syntax_selected_type_refs(module);
-
     for declaration in &module.declarations {
         match &declaration.payload {
             SyntaxDeclarationPayload::Constant {
@@ -631,6 +630,7 @@ pub(super) fn collect_syntax_type_params(
 /// order for imported constructor/type checks.
 pub(super) fn collect_syntax_type_bodies(
     module: &SyntaxModuleOutput,
+    imported_type_refs: &HashMap<String, String>,
 ) -> HashMap<String, Vec<String>> {
     let mut bodies = HashMap::new();
     for declaration in &module.declarations {
@@ -647,7 +647,12 @@ pub(super) fn collect_syntax_type_bodies(
                     name.clone(),
                     variants
                         .iter()
-                        .map(|variant| variant.text.clone())
+                        .map(|variant| {
+                            qualify_syntax_type_text(
+                                &normalize_type_text(&variant.text),
+                                imported_type_refs,
+                            )
+                        })
                         .collect(),
                 );
             }
@@ -670,6 +675,7 @@ pub(super) fn collect_syntax_type_bodies(
 ///   across module boundaries.
 pub(super) fn collect_syntax_struct_fields(
     module: &SyntaxModuleOutput,
+    imported_type_refs: &HashMap<String, String>,
 ) -> HashMap<String, Vec<StructFieldSignature>> {
     let mut structs = HashMap::new();
     for declaration in &module.declarations {
@@ -693,7 +699,10 @@ pub(super) fn collect_syntax_struct_fields(
                 .iter()
                 .map(|field| StructFieldSignature {
                     name: field.name.clone(),
-                    annotation: normalize_type_text(&field.annotation.text),
+                    annotation: qualify_syntax_type_text(
+                        &normalize_type_text(&field.annotation.text),
+                        imported_type_refs,
+                    ),
                     is_private: field.is_private,
                 })
                 .collect(),

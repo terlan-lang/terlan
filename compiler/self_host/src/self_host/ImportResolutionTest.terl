@@ -1,0 +1,27 @@
+/** Positive and negative cross-module import resolution contracts. */
+module self_host.ImportResolutionTest.
+
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+
+import std.collections.List.
+import self_host.CompilationBundle.
+import self_host.ImportResolution.
+
+
+@pure
+positive_import(): Bool ->
+    let bundle = CompilationBundle.compile([
+        "module demo.Provider.\npub struct User { id: Int }.\n",
+        "module demo.Consumer.\nimport type demo.Provider.{User}.\n",
+    ]);
+    ImportResolution.resolve(bundle, List.new[ModuleInterface]()).valid.
+
+@pure
+missing_symbol(): Bool ->
+    let bundle = CompilationBundle.compile([
+        "module demo.Provider.\npub struct User { id: Int }.\n",
+        "module demo.Consumer.\nimport type demo.Provider.{Missing}.\n",
+    ]);
+    not ImportResolution.resolve(bundle, List.new[ModuleInterface]()).valid.
+
+pub self_test(): Bool -> positive_import() and missing_symbol().

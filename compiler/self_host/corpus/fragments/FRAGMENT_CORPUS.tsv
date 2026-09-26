@@ -1,0 +1,18 @@
+# mode	path
+expression	expressions/Binding.terl
+expression	expressions/Precedence.terl
+expression	expressions/Call.terl
+expression	expressions/Tuple.terl
+expression	expressions/List.terl
+expression	expressions/Map.terl
+pattern	patterns/Binding.terl
+pattern	patterns/Constructor.terl
+pattern	patterns/Tuple.terl
+pattern	patterns/ListCons.terl
+pattern	patterns/Map.terl
+type	types/Named.terl
+type	types/Generic.terl
+type	types/Union.terl
+type	types/Function.terl
+type	types/Tuple.terl
+type	types/Map.terl

@@ -1,0 +1,67 @@
+schema = "terlan.self-host.phase/v1"
+phase = 3
+name = "semantic-analysis-and-backend-handoff"
+status = "validated-candidate"
+
+[inputs]
+typed_module = "self_host.TypedModuleSyntax.TypedModule"
+
+[outputs]
+semantic_module = "self_host.SemanticSyntax.SemanticModule"
+backend_contract = "terlan.self-host.backend/v1"
+
+[contracts]
+invalid_declarations_rejected = true
+duplicate_type_symbols_rejected = true
+function_shape_identity_pending = true
+identical_callable_duplicates_rejected = true
+deterministic_backend_handoff = true
+typed_payloads_cross_backend_boundary = true
+structured_annotations_cross_backend_boundary = true
+documentation_crosses_backend_boundary = true
+public_module_interface_emitted = true
+multi_module_compilation = true
+duplicate_module_identity_rejected = true
+structured_import_references = true
+local_and_external_interface_resolution = true
+missing_import_diagnostics = true
+duplicate_selective_import_diagnostics = true
+type_import_kind_validation = true
+program_compiler_facade = true
+module_and_interface_source_kinds = true
+module_mode_rejects_export_summaries = true
+interface_export_arity_preserved = true
+interface_export_name_resolution = true
+interface_export_exact_arity_resolution = true
+sum_free_backend_abi_v1 = true
+backend_abi_preserves_source_identity_and_metadata = true
+recursive_projected_backend_abi_v2 = true
+backend_abi_v2_carries_cst_signatures_and_bodies = true
+projected_signature_type_resolution = true
+unknown_projected_type_diagnostics = true
+conservative_projected_expression_typecheck = true
+known_callable_result_mismatch_diagnostics = true
+unified_projected_semantic_module = true
+semantic_backend_abi_v3 = true
+import_derived_projected_type_environment = true
+program_aware_projected_semantic_analysis = true
+adapter_neutral_lexical_binding_resolution = true
+exact_arity_callable_resolution = true
+adapter_neutral_expression_type_constraints = true
+composed_local_semantic_analysis = true
+projected_expression_semantic_event_adapter = true
+projected_body_local_semantic_entry_point = true
+typed_and_interface_callable_catalog = true
+projected_frontend_local_semantic_entry_point = true
+callable_return_type_resolution = true
+call_expression_type_fact_merge = true
+simple_let_binding_type_links = true
+lexical_reference_type_fixed_point = true
+native_backend_is_downstream = true
+
+[validation]
+explicitly_run = true
+common_semantic_parity = true
+supplemental_type_evidence = true
+retained_image = "target/quality/self-host-phase3-image-17/bin/terlan-self-host-semantic-evidence"
+artifact_root = "target/quality/self-host-phase3-semantic-17"

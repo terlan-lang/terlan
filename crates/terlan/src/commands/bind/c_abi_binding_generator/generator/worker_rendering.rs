@@ -12,6 +12,56 @@ use native_helper_template::NATIVE_HELPER_TEMPLATE;
 
 const NATIVE_HELPER_FUNCTION_CHUNK_SIZE: usize = 16;
 
+const STORE_HANDLES_METHOD: &str = r#"    fn store_handles(
+        &mut self,
+        values: Vec<HandleValue>,
+    ) -> Result<Vec<(u64, u64)>, String> {
+        let mut stored = Vec::with_capacity(values.len());
+        for value in values {
+            match self.store_handle(value) {
+                Ok(handle) => stored.push(handle),
+                Err(error) => {
+                    for (id, _) in stored {
+                        self.release_handle(id);
+                    }
+                    return Err(error);
+                }
+            }
+        }
+        Ok(stored)
+    }
+"#;
+
+/// Renders one fallible opaque-resource tuple result for the helper protocol.
+fn render_resource_tuple_result(
+    manifest: &CAbiBindingManifest,
+    function: &CAbiBindingFunction,
+    call: &str,
+    borrows: &str,
+) -> Result<Option<String>, String> {
+    let Some(elements) = resource_tuple_binding_types(manifest, &function.returns) else {
+        return Ok(None);
+    };
+    let bindings = (0..elements.len())
+        .map(|index| format!("value_{index}"))
+        .collect::<Vec<_>>();
+    let stored = elements
+        .iter()
+        .zip(&bindings)
+        .map(|((_, ty), binding)| format!("HandleValue::{}({binding})", ty.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let qualified = elements
+        .iter()
+        .map(|(_, ty)| qualified_type_name(manifest, &ty.name).map(|name| format!("{name:?}")))
+        .collect::<Result<Vec<_>, _>>()?
+        .join(", ");
+    Ok(Some(format!(
+        "{borrows}                let ({}) = match {call} {{\n                    Ok(values) => values,\n                    Err(error) => return native_error(&error),\n                }};\n                let handles = match self.store_handles(vec![{stored}]) {{\n                    Ok(handles) => handles,\n                    Err(error) => return error,\n                }};\n                let qualified_types = [{qualified}];\n                let encoded = handles.into_iter().zip(qualified_types).map(|((id, generation), qualified)| format!(\"{{}}:{{id}}:{{generation}}:{{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode(qualified))).collect::<Vec<_>>();\n                format!(\"ok_tuple_handles {{}}\", encoded.join(\",\"))\n",
+        bindings.join(", "),
+    )))
+}
+
 fn render_multi_helper_match_arm(
     manifest: &CAbiBindingManifest,
     function: &CAbiBindingFunction,
@@ -102,7 +152,7 @@ fn render_multi_helper_match_arm(
                     .args
                     .iter()
                     .any(|argument| resource_list(&argument.ty).is_some());
-            let (mut borrows, restore) = if has_mutable_resource_list {
+            let (mut borrows, mut restore) = if has_mutable_resource_list {
                 render_mutable_resource_list_borrows(manifest, &function.args)?
             } else {
                 (String::new(), String::new())
@@ -111,7 +161,6 @@ fn render_multi_helper_match_arm(
                 && function.role == CAbiFunctionRole::MutableMethod
                 && handle_arguments.len() > 1
             {
-                let receiver = handle_arguments[0];
                 for argument in &handle_arguments {
                     let qualified = qualified_type_name(manifest, &argument.ty)?;
                     borrows.push_str(&format!(
@@ -121,48 +170,45 @@ fn render_multi_helper_match_arm(
                 }
                 for (index, left) in handle_arguments.iter().enumerate() {
                     for right in &handle_arguments[index + 1..] {
+                        if index != 0 && !left.mutable && !right.mutable {
+                            continue;
+                        }
                         borrows.push_str(&format!(
                             "                if {}.id == {}.id {{\n                    return protocol_error(\"aliased_mutable_handle\", \"mutable resource calls require distinct handle arguments\");\n                }}\n",
                             left.name, right.name
                         ));
                     }
                 }
-                let entries = handle_arguments
-                    .iter()
-                    .map(|argument| format!("entry_{}", argument.name))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let keys = handle_arguments
-                    .iter()
-                    .map(|argument| format!("&{}.id", argument.name))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                borrows.push_str(&format!(
-                    "                let [{entries}] = self.handles.get_disjoint_mut([{keys}]);\n"
-                ));
-                if binding_types(manifest).len() == 1 {
-                    borrows.push_str(&format!(
-                        "                let HandleValue::{}(value_{}) = &mut entry_{}.expect(\"validated disjoint handle\").value;\n",
-                        owner_ty.name, receiver.name, receiver.name
-                    ));
-                } else {
-                    let qualified = qualified_type_name(manifest, &owner_ty.name)?;
-                    borrows.push_str(&format!(
-                        "                let value_{} = match &mut entry_{}.expect(\"validated disjoint handle\").value {{\n                    HandleValue::{}(value) => value,\n                    _ => return protocol_error(\"handle_storage_mismatch\", {qualified:?}),\n                }};\n",
-                        receiver.name, receiver.name, owner_ty.name
-                    ));
-                }
-                for argument in &handle_arguments[1..] {
+                for (index, argument) in handle_arguments.iter().enumerate() {
+                    let mutable = index == 0 || argument.mutable;
+                    if mutable {
+                        borrows.push_str(&format!(
+                            "                let mut entry_{} = self.handles.remove(&{}.id).expect(\"validated mutable handle\");\n",
+                            argument.name, argument.name
+                        ));
+                        restore.push_str(&format!(
+                            "                let previous = self.handles.insert({}.id, entry_{});\n                debug_assert!(previous.is_none());\n",
+                            argument.name, argument.name
+                        ));
+                    }
+                    let entry = if mutable {
+                        format!("&mut entry_{}.value", argument.name)
+                    } else {
+                        format!(
+                            "&self.handles.get(&{}.id).expect(\"validated borrowed handle\").value",
+                            argument.name
+                        )
+                    };
                     if binding_types(manifest).len() == 1 {
                         borrows.push_str(&format!(
-                            "                let HandleValue::{}(value_{}) = &entry_{}.expect(\"validated disjoint handle\").value;\n",
-                            argument.ty, argument.name, argument.name
+                            "                let HandleValue::{}(value_{}) = {entry};\n",
+                            argument.ty, argument.name,
                         ));
                     } else {
                         let qualified = qualified_type_name(manifest, &argument.ty)?;
                         borrows.push_str(&format!(
-                            "                let value_{} = match &entry_{}.expect(\"validated disjoint handle\").value {{\n                    HandleValue::{}(value) => value,\n                    _ => return protocol_error(\"handle_storage_mismatch\", {qualified:?}),\n                }};\n",
-                            argument.name, argument.name, argument.ty
+                            "                let value_{} = match {entry} {{\n                    HandleValue::{}(value) => value,\n                    _ => return protocol_error(\"handle_storage_mismatch\", {qualified:?}),\n                }};\n",
+                            argument.name, argument.ty,
                         ));
                     }
                 }
@@ -199,7 +245,7 @@ fn render_multi_helper_match_arm(
                 "value_{receiver}.{}({method_arguments})",
                 function.adapter_name()
             );
-            let call = if has_mutable_resource_list {
+            let call = if !restore.is_empty() {
                 borrows.push_str(&format!(
                     "                let call_result = {direct_call};\n{restore}"
                 ));
@@ -207,7 +253,18 @@ fn render_multi_helper_match_arm(
             } else {
                 direct_call
             };
-            if let Some((_, output_ty)) = list_binding_type(manifest, &function.returns) {
+            if resource_tuple_binding_types(manifest, &function.returns).is_some() {
+                if !fallible {
+                    return Err(format!(
+                        "error[native_bindgen.unsupported_wrapper_shape]: handle-tuple-returning method `{}` must be fallible",
+                        function.name
+                    ));
+                }
+                arm.push_str(
+                    &render_resource_tuple_result(manifest, function, &call, &borrows)?
+                        .expect("matched resource tuple"),
+                );
+            } else if let Some((_, output_ty)) = list_binding_type(manifest, &function.returns) {
                 if !fallible {
                     return Err(format!(
                         "error[native_bindgen.unsupported_wrapper_shape]: handle-list-returning method `{}` must be fallible",
@@ -276,7 +333,34 @@ fn render_multi_helper_match_arm(
                 .join(", ");
             let borrows = render_immutable_resource_borrows(manifest, &function.args);
             let call = format!("{}({bindings})", function.adapter_name());
-            if let Some((_, output_ty)) = binding_type(manifest, &function.returns) {
+            if resource_tuple_binding_types(manifest, &function.returns).is_some() {
+                if !fallible {
+                    return Err(format!(
+                        "error[native_bindgen.unsupported_wrapper_shape]: handle-tuple-returning free function `{}` must be fallible",
+                        function.name
+                    ));
+                }
+                arm.push_str(
+                    &render_resource_tuple_result(manifest, function, &call, &borrows)?
+                        .expect("matched resource tuple"),
+                );
+                arm.push_str("            }\n");
+                return Ok(arm);
+            } else if let Some((_, output_ty)) = list_binding_type(manifest, &function.returns) {
+                if !fallible {
+                    return Err(format!(
+                        "error[native_bindgen.unsupported_wrapper_shape]: handle-list-returning free function `{}` must be fallible",
+                        function.name
+                    ));
+                }
+                let qualified = qualified_type_name(manifest, &output_ty.name)?;
+                arm.push_str(&format!(
+                    "{borrows}                let values = match {call} {{\n                    Ok(values) => values,\n                    Err(error) => return native_error(&error),\n                }};\n                let mut handles = Vec::with_capacity(values.len());\n                for value in values {{\n                    let (id, generation) = match self.store_handle(HandleValue::{}(value)) {{\n                        Ok(handle) => handle,\n                        Err(error) => return error,\n                    }};\n                    handles.push(format!(\"{{}}:{{id}}:{{generation}}:{{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({qualified:?})));\n                }}\n                if handles.is_empty() {{ \"ok_handles\".to_string() }} else {{ format!(\"ok_handles {{}}\", handles.join(\",\")) }}\n",
+                    output_ty.name
+                ));
+                arm.push_str("            }\n");
+                return Ok(arm);
+            } else if let Some((_, output_ty)) = binding_type(manifest, &function.returns) {
                 if !fallible {
                     return Err(format!(
                         "error[native_bindgen.unsupported_wrapper_shape]: handle-returning free function `{}` must be fallible",
@@ -435,6 +519,16 @@ pub(super) fn render_native_helper(
                     .args
                     .first()
                     .is_some_and(|argument| argument.ty == ty.name)
+                && function
+                    .args
+                    .iter()
+                    .filter(|argument| binding_type(manifest, &argument.ty).is_some())
+                    .count()
+                    == 1
+                && !function
+                    .args
+                    .iter()
+                    .any(|argument| list_binding_type(manifest, &argument.ty).is_some())
         });
         if types.len() == 1 {
             if immutable_required {
@@ -482,6 +576,14 @@ pub(super) fn render_native_helper(
     };
     let dispatch_modules = render_dispatch_modules(dispatch_chunks.len());
     let dispatch_calls = render_dispatch_calls(dispatch_chunks.len(), &inline_match_arms);
+    let store_handles = if functions
+        .iter()
+        .any(|function| resource_tuple_binding_types(manifest, &function.returns).is_some())
+    {
+        STORE_HANDLES_METHOD
+    } else {
+        ""
+    };
     let root = template
         .replace("@CRATE@", &crate_ident)
         .replace("@IMPORTS@", &imports.join(", "))
@@ -490,6 +592,7 @@ pub(super) fn render_native_helper(
         .replace("@HANDLE_VARIANTS@", &handle_variants)
         .replace("@HANDLE_TYPE_ARMS@", &handle_type_arms)
         .replace("@HANDLE_ACCESSORS@", &handle_accessors)
+        .replace("@STORE_HANDLES@", store_handles)
         .replace("@RESOURCE_DEAD_CODE@", resource_dead_code)
         .replace("@FALLIBLE_DEAD_CODE@", fallible_dead_code)
         .replace(

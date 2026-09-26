@@ -228,3 +228,56 @@ pub view(Title: Text, User: User): Html[none] ->
     let output = format_module(&module);
     assert!(output.contains("Page {title: Title, user: User}."));
 }
+
+/// Embedded SQL keeps clause wrapping and relative continuation indentation.
+#[test]
+pub(super) fn formats_multiline_sql_regions_idempotently() {
+    let source = r#"
+module sql_fmt.
+
+pub query(email: String): Result[Option[Row], Error] ->
+    sql[Row] {
+        SELECT id::text AS id
+        FROM users
+        WHERE email = ${email}
+            AND active = true
+        LIMIT 1
+    }.
+"#;
+    let once = format_module(&parse_module(source).expect("parse multiline SQL"));
+    let twice = format_module(&parse_module(&once).expect("parse formatted SQL"));
+
+    assert_eq!(twice, once);
+    assert!(once.contains(
+        "sql[Row] {\n        SELECT id::text AS id\n        FROM users\n        WHERE email = ${email}\n            AND active = true\n        LIMIT 1\n    }"
+    ));
+}
+
+/// Nested SQL case scrutinees retain the surrounding expression indentation.
+#[test]
+pub(super) fn formats_nested_sql_case_scrutinees_idempotently() {
+    let source = r#"
+module nested_sql_fmt.
+
+pub exists(email: String): Bool ->
+    case email == "" {
+        false ->
+            case sql[Row] {
+                SELECT id
+                FROM users
+                WHERE email = ${email}
+            } {
+                Ok(Some(_row)) -> true;
+                _ -> false
+            };
+        true -> false
+    }.
+"#;
+    let once = format_module(&parse_module(source).expect("parse nested SQL case"));
+    let twice = format_module(&parse_module(&once).expect("parse formatted nested SQL case"));
+
+    assert_eq!(twice, once);
+    assert!(once.contains(
+        "sql[Row] {\n                SELECT id\n                FROM users\n                WHERE email = ${email}\n            }"
+    ));
+}

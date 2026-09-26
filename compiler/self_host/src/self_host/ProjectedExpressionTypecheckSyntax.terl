@@ -1,0 +1,51 @@
+/** Conservative expression typecheck result over projected body trees. */
+module self_host.ProjectedExpressionTypecheckSyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub struct InferredProjectedType {
+    known: Bool,
+    name: String,
+}.
+
+pub constructor InferredProjectedType {
+    (known: Bool, name: String): InferredProjectedType ->
+        InferredProjectedType {
+            known: known,
+            name: name,
+        }
+}.
+
+
+pub struct ProjectedExpressionTypeDiagnostic {
+    declaration_head: String,
+    expected: String,
+    actual: String,
+    message: String,
+}.
+
+pub constructor ProjectedExpressionTypeDiagnostic {
+    (declaration_head: String, expected: String, actual: String, message: String): ProjectedExpressionTypeDiagnostic ->
+        ProjectedExpressionTypeDiagnostic {
+            declaration_head: declaration_head,
+            expected: expected,
+            actual: actual,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedExpressionTypecheck {
+    valid: Bool,
+    diagnostics: List[self_host.ProjectedExpressionTypecheckSyntax.ProjectedExpressionTypeDiagnostic],
+}.
+
+pub constructor ProjectedExpressionTypecheck {
+    (valid: Bool, diagnostics: List[self_host.ProjectedExpressionTypecheckSyntax.ProjectedExpressionTypeDiagnostic]): ProjectedExpressionTypecheck ->
+        ProjectedExpressionTypecheck {
+            valid: valid,
+            diagnostics: diagnostics,
+        }
+}.
+

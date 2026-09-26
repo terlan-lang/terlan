@@ -1,0 +1,12 @@
+/** Lowers a projected semantic module to the structural native ABI v3. */
+module self_host.ProjectedSemanticAbi.
+
+import self_host.ProjectedSemanticAbiSyntax.{ProjectedSemanticAbiModule}.
+import self_host.ProjectedSemanticSyntax.{ProjectedSemanticModule}.
+
+import self_host.ProjectedBackendAbi.
+
+
+@pure
+pub lower(source: ProjectedSemanticModule): ProjectedSemanticAbiModule ->
+    ProjectedSemanticAbiModule("terlan.self-host.backend-abi/v3", source.valid, ProjectedBackendAbi.lower(source.frontend), source.type_resolution.diagnostics, source.expression_typecheck.diagnostics).

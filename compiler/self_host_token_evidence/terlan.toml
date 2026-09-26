@@ -1,0 +1,10 @@
+[package]
+name = "terlan-self-host-token-evidence"
+version = "0.0.1"
+namespace = "self_host_token_evidence"
+
+[build]
+artifact = "terlan-vm"
+
+[dependencies]
+self_host = { path = "../self_host" }

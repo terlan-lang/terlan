@@ -101,6 +101,7 @@ pub(in crate::commands::build) fn write_release_bundle(
 
     let artifact_files = copy_executable_artifacts(&state.out_dir, &staging_root)?;
     let artifact_identity = artifact_set_identity(&artifact_files);
+    copy_release_migrations(project_dir, &staging_root, &deploy_plan)?;
 
     write_json_file(&staging_root.join("deploy-plan.json"), &deploy_plan)?;
     write_json_file(
@@ -207,6 +208,76 @@ pub(in crate::commands::build) fn write_release_bundle(
     Ok(release_root)
 }
 
+fn copy_release_migrations(
+    project_dir: &Path,
+    staging_root: &Path,
+    deploy_plan: &Value,
+) -> Result<(), String> {
+    let canonical_project = fs::canonicalize(project_dir).map_err(|error| {
+        format!(
+            "cannot resolve release project directory {}: {error}",
+            project_dir.display()
+        )
+    })?;
+    let migrations = deploy_plan
+        .get("migrations")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "semantic deploy plan migrations are not an array".to_string())?;
+    for migration in migrations {
+        let path = migration
+            .get("path")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "semantic deploy migration omitted path".to_string())?;
+        let expected_sha256 = migration
+            .get("sha256")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("semantic deploy migration `{path}` omitted SHA-256"))?;
+        let relative = validate_portable_relative_path(path)?;
+        if relative.components().count() == 1
+            || relative
+                .components()
+                .next()
+                .is_some_and(|component| component.as_os_str() == "artifact")
+        {
+            return Err(format!(
+                "release migration path collides with release metadata: `{path}`"
+            ));
+        }
+        let source = fs::canonicalize(project_dir.join(&relative))
+            .map_err(|error| format!("cannot resolve release migration `{path}`: {error}"))?;
+        if !source.starts_with(&canonical_project) || !source.is_file() {
+            return Err(format!(
+                "release migration must be a project-local regular file: `{path}`"
+            ));
+        }
+        let bytes = fs::read(&source)
+            .map_err(|error| format!("cannot read release migration `{path}`: {error}"))?;
+        let actual_sha256 = hex_digest(Sha256::digest(&bytes).as_slice());
+        if actual_sha256 != expected_sha256 {
+            return Err(format!(
+                "release migration `{path}` changed after deploy-plan analysis"
+            ));
+        }
+        let destination = staging_root.join(&relative);
+        let parent = destination
+            .parent()
+            .ok_or_else(|| format!("release migration has no destination directory: `{path}`"))?;
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "cannot create release migration directory {}: {error}",
+                parent.display()
+            )
+        })?;
+        fs::write(&destination, bytes).map_err(|error| {
+            format!(
+                "cannot copy release migration to {}: {error}",
+                destination.display()
+            )
+        })?;
+    }
+    Ok(())
+}
+
 fn copy_executable_artifacts(
     output_root: &Path,
     staging_root: &Path,
@@ -229,12 +300,17 @@ fn copy_executable_artifacts(
         .and_then(Value::as_object)
         .ok_or_else(|| "release package metadata has no executable section".to_string())?;
     let mut paths = BTreeSet::new();
-    for field in ["path", "image", "runtime", "native_worker"] {
+    for field in ["path", "runtime", "native_worker"] {
         let value = executable
             .get(field)
             .and_then(Value::as_str)
             .ok_or_else(|| format!("release executable metadata is missing `{field}`"))?;
         paths.insert(validate_portable_relative_path(value)?);
+    }
+    if let Some(value) = executable.get("image").and_then(Value::as_str) {
+        paths.insert(validate_portable_relative_path(value)?);
+    } else if executable.get("service_runtime").is_none() {
+        return Err("release executable metadata is missing `image`".to_string());
     }
     if let Some(value) = executable.get("service_runtime").and_then(Value::as_str) {
         paths.insert(validate_portable_relative_path(value)?);
@@ -260,6 +336,9 @@ fn copy_executable_artifacts(
             let nested = source
                 .strip_prefix(&source_root)
                 .expect("service file remains below web root");
+            if nested.starts_with(Path::new("build/artifacts")) {
+                continue;
+            }
             let relative = relative_root.join(nested);
             identities.push(copy_artifact_file(output_root, staging_root, &relative)?);
         }

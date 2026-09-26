@@ -1,0 +1,841 @@
+/** Pratt parser implementing canonical Terlan operator precedence. */
+module self_host.ProjectedExpressionParser.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.ProjectedPatternParser.
+
+
+struct GroupSlice {
+    valid: Bool,
+    inner: List[ProjectedCanonicalToken],
+    rest: List[ProjectedCanonicalToken],
+    close: Option[ProjectedCanonicalToken],
+}.
+
+constructor GroupSlice {
+    (valid: Bool, inner: List[ProjectedCanonicalToken], rest: List[ProjectedCanonicalToken], close: Option[ProjectedCanonicalToken]): GroupSlice ->
+        GroupSlice {
+            valid: valid,
+            inner: inner,
+            rest: rest,
+            close: close,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+is_open(text: String): Bool -> text == "(" or text == "[" or text == "{".
+
+@pure
+is_close(text: String): Bool -> text == ")" or text == "]" or text == "}".
+
+@pure
+expected_close(text: String): String ->
+    if { text == "(" -> ")"; text == "[" -> "]"; text == "{" -> "}"; true -> "" }.
+
+@pure
+group_at(
+    values: List[ProjectedCanonicalToken],
+    close_text: String,
+    depth: Int,
+    output: List[ProjectedCanonicalToken],
+): GroupSlice ->
+    case values {
+        [] -> GroupSlice(valid = false, inner = reverse(output), rest = List.new[ProjectedCanonicalToken](), close = None);
+        [value | rest] where value.text == close_text and depth == 1 -> GroupSlice(valid = true, inner = reverse(output), rest = rest, close = Some(value));
+        [value | rest] -> group_at(
+            rest,
+            close_text,
+            if { is_open(value.text) -> depth + 1; is_close(value.text) -> depth - 1; true -> depth },
+            [value | output],
+        )
+    }.
+
+@pure
+group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
+    group_at(values, expected_close(opening.text), 1, List.new[ProjectedCanonicalToken]()).
+
+@pure
+precedence(text: String): Int ->
+    if {
+        text == "|>" -> 2;
+        text == "or" -> 3;
+        text == "and" -> 4;
+        text == "==" or text == "!=" or text == "<" or text == ">" or text == "<=" or text == ">=" or text == "in" -> 5;
+        text == "+" or text == "-" or text == ".." -> 6;
+        text == "*" or text == "/" or text == "div" or text == "rem" -> 7;
+        true -> -1
+    }.
+
+@pure
+leaf(token: ProjectedCanonicalToken): ProjectedExpressionNode ->
+    ProjectedExpressionNode(if {
+            token.terminal == "expression-raw-macro" and String.starts_with(token.text, "html") -> "html-raw-block";
+            token.terminal == "expression-raw-macro" -> "raw-macro";
+            token.terminal == "var" -> "identifier";
+            token.terminal == "upper-ident" -> "constructor";
+            token.terminal == "int" -> "integer";
+            token.terminal == "float" -> "float";
+            token.terminal == "string" -> "string";
+            token.terminal == "atom" -> "atom";
+            true -> "primary"
+        }, token.text, token.start_byte, token.end_byte, List.new[ProjectedExpressionNode]()).
+
+@pure
+optional_children(value: Option[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
+    case value {
+        Some(node_value) -> [node_value];
+        None -> List.new[ProjectedExpressionNode]()
+    }.
+
+@pure
+postfix_children(base: ProjectedExpressionNode, value: Option[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
+    case value {
+        Some(node_value) -> [base, node_value];
+        None -> [base]
+    }.
+
+@pure
+node(
+    kind: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+    children: List[ProjectedExpressionNode],
+): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start_byte, end_byte, children).
+
+struct TokenPartition {
+    found: Bool,
+    left: List[ProjectedCanonicalToken],
+    right: List[ProjectedCanonicalToken],
+}.
+
+constructor TokenPartition {
+    (found: Bool, left: List[ProjectedCanonicalToken], right: List[ProjectedCanonicalToken]): TokenPartition ->
+        TokenPartition {
+            found: found,
+            left: left,
+            right: right,
+        }
+}.
+
+struct NodeListParse {
+    valid: Bool,
+    nodes: List[ProjectedExpressionNode],
+    message: String,
+}.
+
+constructor NodeListParse {
+    (valid: Bool, nodes: List[ProjectedExpressionNode], message: String): NodeListParse ->
+        NodeListParse {
+            valid: valid,
+            nodes: nodes,
+            message: message,
+        }
+}.
+
+@pure
+partition_at(
+    values: List[ProjectedCanonicalToken],
+    separator: String,
+    round: Int,
+    square: Int,
+    brace: Int,
+    output: List[ProjectedCanonicalToken],
+): TokenPartition ->
+    case values {
+        [] -> TokenPartition(found = false, left = reverse(output), right = List.new[ProjectedCanonicalToken]());
+        [value | rest]
+            where value.text == separator
+                and value.terminal != "string"
+                and value.terminal != "atom"
+                and round == 0
+                and square == 0
+                and brace == 0 ->
+            TokenPartition(found = true, left = reverse(output), right = rest);
+        [value | rest] -> partition_at(
+            rest,
+            separator,
+            if { value.text == "(" -> round + 1; value.text == ")" -> round - 1; true -> round },
+            if { value.text == "[" -> square + 1; value.text == "]" -> square - 1; true -> square },
+            if { value.text == "{" -> brace + 1; value.text == "}" -> brace - 1; true -> brace },
+            [value | output],
+        )
+    }.
+
+@pure
+partition(values: List[ProjectedCanonicalToken], separator: String): TokenPartition ->
+    partition_at(values, separator, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+partition_terminal_at(
+    values: List[ProjectedCanonicalToken],
+    separator: String,
+    round: Int,
+    square: Int,
+    brace: Int,
+    output: List[ProjectedCanonicalToken],
+): TokenPartition ->
+    case values {
+        [] -> TokenPartition(found = false, left = reverse(output), right = List.new[ProjectedCanonicalToken]());
+        [value | rest]
+            where value.terminal == separator and round == 0 and square == 0 and brace == 0 ->
+            TokenPartition(found = true, left = reverse(output), right = rest);
+        [value | rest] -> partition_terminal_at(
+            rest,
+            separator,
+            if { value.text == "(" -> round + 1; value.text == ")" -> round - 1; true -> round },
+            if { value.text == "[" -> square + 1; value.text == "]" -> square - 1; true -> square },
+            if { value.text == "{" -> brace + 1; value.text == "}" -> brace - 1; true -> brace },
+            [value | output],
+        )
+    }.
+
+@pure
+partition_terminal(values: List[ProjectedCanonicalToken], separator: String): TokenPartition ->
+    partition_terminal_at(values, separator, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+has_top_level(values: List[ProjectedCanonicalToken], separator: String): Bool ->
+    partition(values, separator).found.
+
+@pure
+if_clauses_at(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    if {
+        values == [] -> NodeListParse(output != [], reverse(output), if { output == [] -> "if requires at least one clause"; true -> "" });
+        true ->
+            let separator = partition_terminal(values, "if-clause-semicolon");
+            let arrow = partition(separator.left, "->");
+            let condition = parse(arrow.left);
+            let body = parse(arrow.right);
+            case {condition.node, body.node} {
+                {Some(condition_node), Some(body_node)} where arrow.found and condition.rest == [] and body.rest == [] ->
+                    let clause_node = node(
+                        "clause",
+                        "->",
+                        condition_node.start_byte,
+                        body_node.end_byte,
+                        [condition_node, body_node],
+                    );
+                    if {
+                        separator.found -> if_clauses_at(separator.right, [clause_node | output]);
+                        true -> NodeListParse(condition.valid and body.valid, reverse([clause_node | output]), if { not condition.valid -> condition.message; true -> body.message })
+                    };
+                _ -> NodeListParse(false, reverse(output), "nested if clause is invalid")
+            }
+    }.
+
+@pure
+parse_if_primary(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case values {
+        [opening | rest] where opening.text == "{" ->
+            let slice = group(opening, rest);
+            let clauses = if_clauses_at(slice.inner, List.new[ProjectedExpressionNode]());
+            case slice.close {
+                Some(close) -> ProjectedExpressionResult(
+                    slice.valid and clauses.valid,
+                    Some(node("if", "if", keyword.start_byte, close.end_byte, clauses.nodes)),
+                    slice.rest,
+                    clauses.message,
+                );
+                None -> ProjectedExpressionResult(false, None, slice.rest, "nested if is missing its closing brace")
+            };
+        _ -> ProjectedExpressionResult(false, None, values, "nested if is missing its clause block")
+    }.
+
+@pure
+case_clauses_at(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    if {
+        values == [] -> NodeListParse(output != [], reverse(output), if { output == [] -> "case requires at least one clause"; true -> "" });
+        true ->
+            let separator = partition_terminal(values, "if-clause-semicolon");
+            let arrow = partition(separator.left, "->");
+            let pattern = ProjectedPatternParser.parse(arrow.left);
+            let body = parse(arrow.right);
+            case {pattern.node, body.node} {
+                {Some(pattern_node), Some(body_node)} where arrow.found and pattern.rest == [] and body.rest == [] ->
+                    let clause_node = node(
+                        "clause",
+                        "->",
+                        pattern_node.start_byte,
+                        body_node.end_byte,
+                        [pattern_node, body_node],
+                    );
+                    if {
+                        separator.found -> case_clauses_at(separator.right, [clause_node | output]);
+                        true -> NodeListParse(pattern.valid and body.valid, reverse([clause_node | output]), if { not pattern.valid -> pattern.message; true -> body.message })
+                    };
+                _ -> NodeListParse(false, reverse(output), "nested case clause is invalid")
+            }
+    }.
+
+@pure
+parse_case_primary_at(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    round: Int,
+    square: Int,
+    brace: Int,
+    subject_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(false, None, List.new[ProjectedCanonicalToken](), "nested case is missing its clause block");
+        [opening | rest]
+            where opening.text == "{"
+                and opening.terminal != "string"
+                and opening.terminal != "atom"
+                and round == 0
+                and square == 0
+                and brace == 0
+                and subject_tokens != [] ->
+            let subject = parse(reverse(subject_tokens));
+            let slice = group(opening, rest);
+            let clauses = case_clauses_at(slice.inner, List.new[ProjectedExpressionNode]());
+            case {subject.node, slice.close} {
+                {Some(subject_node), Some(close)} -> ProjectedExpressionResult(
+                    subject.valid and subject.rest == [] and slice.valid and clauses.valid,
+                    Some(node("case", "case", keyword.start_byte, close.end_byte, [subject_node | clauses.nodes])),
+                    slice.rest,
+                    if { not subject.valid -> subject.message; true -> clauses.message },
+                );
+                _ -> ProjectedExpressionResult(false, None, slice.rest, "nested case expression is invalid")
+            };
+        [value | rest] -> parse_case_primary_at(
+            keyword,
+            rest,
+            if { value.text == "(" -> round + 1; value.text == ")" -> round - 1; true -> round },
+            if { value.text == "[" -> square + 1; value.text == "]" -> square - 1; true -> square },
+            if { value.text == "{" -> brace + 1; value.text == "}" -> brace - 1; true -> brace },
+            [value | subject_tokens],
+        )
+    }.
+
+@pure
+parse_case_primary(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    parse_case_primary_at(keyword, values, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+field_nodes(value: ProjectedExpressionResult): List[ProjectedExpressionNode] ->
+    case value.node {
+        Some(node_value) where node_value.kind == "keyed-fields" -> node_value.children;
+        Some(node_value) -> [node_value];
+        None -> List.new[ProjectedExpressionNode]()
+    }.
+
+@pure
+parse_fields(values: List[ProjectedCanonicalToken], assignment: String): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(true, Some(node("keyed-fields", assignment, 0, 0, List.new[ProjectedExpressionNode]())), List.new[ProjectedCanonicalToken](), "");
+        _ -> let item = partition(values, ",");
+            let pair = partition(item.left, assignment);
+            if {
+                not pair.found -> ProjectedExpressionResult(false, None, item.right, "keyed field is missing its assignment separator");
+                true -> let parsed = parse(pair.right);
+                    let following = if {
+                        item.found -> parse_fields(item.right, assignment);
+                        true -> ProjectedExpressionResult(true, Some(node("keyed-fields", assignment, 0, 0, List.new[ProjectedExpressionNode]())), List.new[ProjectedCanonicalToken](), "")
+                    };
+                    case {pair.left, parsed.node} {
+                        {[key | _], Some(value)} -> ProjectedExpressionResult(parsed.valid and parsed.rest == [] and following.valid, Some(node(
+                                "keyed-fields",
+                                assignment,
+                                key.start_byte,
+                                value.end_byte,
+                                [node(
+                                    "keyed-field",
+                                    key.text,
+                                    key.start_byte,
+                                    value.end_byte,
+                                    [value],
+                                ) | field_nodes(following)],
+                            )), following.rest, if {
+                                parsed.rest != [] -> "keyed field value contains trailing tokens";
+                                true -> following.message
+                            });
+                        _ -> ProjectedExpressionResult(false, None, following.rest, "keyed field is invalid")
+                    }
+            }
+    }.
+
+@pure
+argument_nodes(value: ProjectedExpressionResult): List[ProjectedExpressionNode] ->
+    case value.node {
+        Some(node_value) where node_value.kind == "call-arguments" -> node_value.children;
+        Some(node_value) -> [node_value];
+        None -> List.new[ProjectedExpressionNode]()
+    }.
+
+@pure
+parse_arguments(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(true, Some(node("call-arguments", "", 0, 0, List.new[ProjectedExpressionNode]())), List.new[ProjectedCanonicalToken](), "");
+        _ -> let item = partition(values, ",");
+            let assignment = partition(item.left, "=");
+            let parsed = if {
+                assignment.found -> parse(assignment.right);
+                true -> parse(item.left)
+            };
+            let following = if {
+                item.found -> parse_arguments(item.right);
+                true -> ProjectedExpressionResult(true, Some(node("call-arguments", "", 0, 0, List.new[ProjectedExpressionNode]())), List.new[ProjectedCanonicalToken](), "")
+            };
+            case parsed.node {
+                Some(value) -> let argument = if {
+                    assignment.found -> case assignment.left {
+                        [name] -> node(
+                            "named-argument",
+                            name.text,
+                            name.start_byte,
+                            value.end_byte,
+                            [value],
+                        );
+                        _ -> node(
+                            "invalid-named-argument",
+                            "",
+                            value.start_byte,
+                            value.end_byte,
+                            [value],
+                        )
+                    };
+                    true -> value
+                };
+                ProjectedExpressionResult(parsed.valid and parsed.rest == [] and following.valid
+                        and argument.kind != "invalid-named-argument", Some(node(
+                        "call-arguments",
+                        "",
+                        argument.start_byte,
+                        argument.end_byte,
+                        [argument | argument_nodes(following)],
+                    )), following.rest, if {
+                        parsed.rest != [] -> "call argument contains trailing tokens";
+                        true -> following.message
+                    });
+                None -> ProjectedExpressionResult(false, None, following.rest, "call argument is invalid")
+            }
+    }.
+
+@pure
+group_kind(opening: String, inner: List[ProjectedCanonicalToken]): String ->
+    let keyed = has_top_level(inner, ":");
+    if {
+        opening == "(" -> "tuple-or-group";
+        opening == "[" -> "list";
+        opening == "{" and keyed -> "keyed-container";
+        true -> "tuple"
+    }.
+
+@pure
+parse_elements(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(true, None, List.new[ProjectedCanonicalToken](), "");
+        _ ->
+            let item = partition(values, ",");
+            let first = parse(item.left);
+            case first.node {
+                Some(_first_node) where item.found and item.right == [] -> first;
+                Some(first_node) where item.found ->
+                    let following = parse_elements(item.right);
+                    case following.node {
+                        Some(next_node) -> ProjectedExpressionResult(first.valid and following.valid, Some(node(
+                                "sequence",
+                                ",",
+                                first_node.start_byte,
+                                next_node.end_byte,
+                                [first_node, next_node],
+                            )), following.rest, following.message);
+                        None -> ProjectedExpressionResult(false, Some(first_node), following.rest, "comma is missing its following expression")
+                    };
+                _ -> first
+            }
+    }.
+
+@pure
+parse_list_cons_group(
+    opening: ProjectedCanonicalToken,
+    slice: GroupSlice,
+): ProjectedExpressionResult ->
+    let parts = partition(slice.inner, "|");
+    let heads = parse_elements(parts.left);
+    let tail = parse(parts.right);
+    case {slice.close, heads.node, tail.node} {
+        {Some(close), Some(head_node), Some(tail_node)} where slice.valid and parts.found ->
+            ProjectedExpressionResult(
+                heads.valid and heads.rest == [] and tail.valid and tail.rest == [],
+                Some(node(
+                    "list-cons",
+                    "|",
+                    opening.start_byte,
+                    close.end_byte,
+                    [head_node, tail_node],
+                )),
+                slice.rest,
+                if {
+                    heads.rest != [] -> "list cons head contains trailing tokens";
+                    tail.rest != [] -> "list cons tail contains trailing tokens";
+                    true -> tail.message
+                },
+            );
+        _ -> ProjectedExpressionResult(false, None, slice.rest, "list cons expression is invalid")
+    }.
+
+@pure
+parse_primary(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(false, None, values, "expression is missing a primary");
+        [keyword | rest] where keyword.text == "if" -> parse_if_primary(keyword, rest);
+        [keyword | rest] where keyword.text == "case" -> parse_case_primary(keyword, rest);
+        [opening | rest] where is_open(opening.text) ->
+            let slice = group(opening, rest);
+            if {
+                opening.text == "[" and has_top_level(slice.inner, "|") ->
+                    parse_list_cons_group(opening, slice);
+                true ->
+                    let inner = if {
+                        opening.text == "{" and has_top_level(slice.inner, ":") -> parse_fields(slice.inner, ":");
+                        true -> parse_elements(slice.inner)
+                    };
+                    case {slice.close, inner.node} {
+                        {Some(close), Some(value)} where slice.valid and inner.valid ->
+                            let kind = group_kind(opening.text, slice.inner);
+                            ProjectedExpressionResult(inner.rest == [], Some(node(
+                                kind,
+                                opening.text,
+                                opening.start_byte,
+                                close.end_byte,
+                                [value],
+                            )), slice.rest, if { inner.rest == [] -> ""; true -> "group contains an unparsed token" });
+                        {Some(close), None} where slice.valid ->
+                            let kind = group_kind(opening.text, slice.inner);
+                            ProjectedExpressionResult(true, Some(node(
+                                kind,
+                                opening.text,
+                                opening.start_byte,
+                                close.end_byte,
+                                List.new[ProjectedExpressionNode](),
+                            )), slice.rest, "");
+                        _ -> ProjectedExpressionResult(false, None, slice.rest, "expression group is invalid")
+                    }
+            };
+        [marker | [opening | rest]] where marker.text == "#" and opening.text == "[" ->
+            let slice = group(opening, rest);
+            let inner = parse_elements(slice.inner);
+            case slice.close {
+                Some(close) where slice.valid -> ProjectedExpressionResult(inner.valid and inner.rest == [], Some(node(
+                        "fixed-array",
+                        "#[",
+                        marker.start_byte,
+                        close.end_byte,
+                        optional_children(inner.node),
+                    )), slice.rest, inner.message);
+                _ -> ProjectedExpressionResult(false, None, slice.rest, "fixed array is missing its closing bracket")
+            };
+        [value | rest] -> ProjectedExpressionResult(true, Some(leaf(value)), rest, "")
+    }.
+
+@pure
+parse_postfix_at(result: ProjectedExpressionResult): ProjectedExpressionResult ->
+    case {result.node, result.rest} {
+        {Some(base), [opening | rest]} where opening.text == "{" and base.kind == "constructor" ->
+            let slice = group(opening, rest);
+            let fields = parse_fields(slice.inner, ":");
+            case slice.close {
+                Some(close) where slice.valid -> parse_postfix_at(ProjectedExpressionResult(fields.valid, Some(node(
+                        "nominal-keyed",
+                        base.text,
+                        base.start_byte,
+                        close.end_byte,
+                        [base | field_nodes(fields)],
+                    )), slice.rest, fields.message));
+                _ -> ProjectedExpressionResult(false, Some(base), slice.rest, "nominal keyed value is missing its closing brace")
+            };
+        {Some(base), [opening | rest]} where opening.text == "(" or opening.text == "[" ->
+            let slice = group(opening, rest);
+            let arguments = if {
+                opening.text == "(" -> parse_arguments(slice.inner);
+                true -> parse_elements(slice.inner)
+            };
+            case slice.close {
+                Some(close) where slice.valid and arguments.valid ->
+                    let children = postfix_children(base, arguments.node);
+                    parse_postfix_at(ProjectedExpressionResult(arguments.rest == [], Some(node(
+                            if {
+                                opening.text == "(" and base.text == "unquote" -> "unquote";
+                                opening.text == "(" -> "call";
+                                opening.text == "[" and base.text == "Atom" -> "atom-literal";
+                                true -> "index"
+                            },
+                            opening.text,
+                            base.start_byte,
+                            close.end_byte,
+                            children,
+                        )), slice.rest, if { arguments.rest == [] -> ""; true -> "postfix arguments contain an unparsed token" }));
+                _ -> ProjectedExpressionResult(false, result.node, slice.rest, "postfix group is invalid")
+            };
+        {Some(base), [dot | [opening | rest]]} where dot.text == "." and opening.text == "(" ->
+            let slice = group(opening, rest);
+            let arguments = parse_arguments(slice.inner);
+            case slice.close {
+                Some(close) where slice.valid -> parse_postfix_at(ProjectedExpressionResult(arguments.valid and arguments.rest == [], Some(node(
+                        "dynamic-call",
+                        String.append(".", "("),
+                        base.start_byte,
+                        close.end_byte,
+                        postfix_children(base, arguments.node),
+                    )), slice.rest, arguments.message));
+                _ -> ProjectedExpressionResult(false, Some(base), slice.rest, "dynamic call is missing its closing parenthesis")
+            };
+        {Some(base), [marker | [type_name | [dot | [field | rest]]]]}
+            where marker.text == "#" and dot.text == "." ->
+            parse_postfix_at(ProjectedExpressionResult(true, Some(node(
+                    "record-access",
+                    field.text,
+                    base.start_byte,
+                    field.end_byte,
+                    [base, leaf(type_name), leaf(field)],
+                )), rest, ""));
+        {Some(base), [marker | [type_name | [opening | rest]]]}
+            where marker.text == "#" and opening.text == "{" ->
+            let slice = group(opening, rest);
+            let fields = parse_fields(slice.inner, "=");
+            case slice.close {
+                Some(close) where slice.valid -> parse_postfix_at(ProjectedExpressionResult(fields.valid, Some(node(
+                        "record-update",
+                        type_name.text,
+                        base.start_byte,
+                        close.end_byte,
+                        [base | [leaf(type_name) | field_nodes(fields)]],
+                    )), slice.rest, fields.message));
+                _ -> ProjectedExpressionResult(false, Some(base), slice.rest, "record update is missing its closing brace")
+            };
+        {Some(base), [dot | [field | rest]]} where dot.text == "." -> parse_postfix_at(ProjectedExpressionResult(
+            valid = true,
+            node = Some(node("field", field.text, base.start_byte, field.end_byte, [base, leaf(field)])),
+            rest = rest,
+            message = "",
+        ));
+        _ -> result
+    }.
+
+@pure
+parse_unary(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [operator | rest] where operator.text == "quote" ->
+            let operand = parse_unary(rest);
+            case operand.node {
+                Some(value) -> ProjectedExpressionResult(
+                    valid = operand.valid,
+                    node = Some(node("quote", "quote", operator.start_byte, value.end_byte, [value])),
+                    rest = operand.rest,
+                    message = operand.message,
+                );
+                None -> operand
+            };
+        [operator | rest] where operator.text == "-" or operator.text == "!" or operator.text == "not" ->
+            let operand = parse_unary(rest);
+            case operand.node {
+                Some(value) -> ProjectedExpressionResult(
+                    valid = operand.valid,
+                    node = Some(node("unary", operator.text, operator.start_byte, value.end_byte, [value])),
+                    rest = operand.rest,
+                    message = operand.message,
+                );
+                None -> operand
+            };
+        _ -> parse_postfix_at(parse_primary(values))
+    }.
+
+@pure
+type_tokens(values: List[ProjectedCanonicalToken]): List[ProjectedExpressionNode] ->
+    case values {
+        [] -> List.new[ProjectedExpressionNode]();
+        [value | rest] -> [leaf(value) | type_tokens(rest)]
+    }.
+
+@pure
+cast_type(target: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [opening | rest] where opening.text == "[" ->
+            let slice = group(opening, rest);
+            case slice.close {
+                Some(close) where slice.valid -> let children = type_tokens(slice.inner);
+                    ProjectedExpressionResult(
+                    valid = true,
+                    node = Some(node(
+                        "type",
+                        target.text,
+                        target.start_byte,
+                        close.end_byte,
+                        [leaf(target) | children],
+                    )),
+                    rest = slice.rest,
+                    message = "",
+                );
+                _ -> ProjectedExpressionResult(
+                    valid = false,
+                    node = None,
+                    rest = slice.rest,
+                    message = "cast type arguments are invalid",
+                )
+            };
+        _ -> ProjectedExpressionResult(
+            valid = true,
+            node = Some(node(
+                "type",
+                target.text,
+                target.start_byte,
+                target.end_byte,
+                [leaf(target)],
+            )),
+            rest = values,
+            message = "",
+        )
+    }.
+
+@pure
+parse_casts(result: ProjectedExpressionResult): ProjectedExpressionResult ->
+    case {result.node, result.rest} {
+        {Some(left), [operator | [target | rest]]} where operator.text == "as" ->
+            let parsed_type = cast_type(target, rest);
+            case parsed_type.node {
+                Some(type_node) -> parse_casts(ProjectedExpressionResult(
+                    valid = parsed_type.valid,
+                    node = Some(node(
+                        "cast",
+                        target.text,
+                        left.start_byte,
+                        type_node.end_byte,
+                        [left, type_node],
+                    )),
+                    rest = parsed_type.rest,
+                    message = parsed_type.message,
+                ));
+                None -> parsed_type
+            };
+        _ -> result
+    }.
+
+@pure
+parse_binary_tail(
+    left: ProjectedExpressionNode,
+    values: List[ProjectedCanonicalToken],
+    minimum: Int,
+): ProjectedExpressionResult ->
+    case values {
+        [operator | rest] where operator.text == "with" ->
+            let right = parse_precedence(rest, 0);
+            case right.node {
+                Some(right_node) -> ProjectedExpressionResult(
+                    valid = right.valid,
+                    node = Some(node(
+                        "constructor-chain",
+                        "with",
+                        left.start_byte,
+                        right_node.end_byte,
+                        [left, right_node],
+                    )),
+                    rest = right.rest,
+                    message = right.message,
+                );
+                None -> ProjectedExpressionResult(
+                    valid = false,
+                    node = Some(left),
+                    rest = right.rest,
+                    message = "constructor chain is missing its right call",
+                )
+            };
+        [operator | rest] where precedence(operator.text) >= minimum ->
+            let level = precedence(operator.text);
+            let right = parse_precedence(rest, level + 1);
+            case right.node {
+                Some(right_node) -> parse_binary_tail(
+                    node("binary", operator.text, left.start_byte, right_node.end_byte, [left, right_node]),
+                    right.rest,
+                    minimum,
+                );
+                None -> ProjectedExpressionResult(
+                    valid = false,
+                    node = Some(left),
+                    rest = right.rest,
+                    message = "binary operator is missing its right operand",
+                )
+            };
+        _ -> ProjectedExpressionResult(valid = true, node = Some(left), rest = values, message = "")
+    }.
+
+@pure
+parse_precedence(values: List[ProjectedCanonicalToken], minimum: Int): ProjectedExpressionResult ->
+    let initial = parse_casts(parse_unary(values));
+    case initial.node {
+        Some(left) where initial.valid -> parse_binary_tail(left, initial.rest, minimum);
+        _ -> initial
+    }.
+
+/** Parses one canonical operator expression and requires complete consumption. */
+@pure
+pub parse(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let result = parse_precedence(values, 0);
+    ProjectedExpressionResult(
+        valid = result.valid and result.rest == [],
+        node = result.node,
+        rest = result.rest,
+        message = if {
+            not result.valid -> result.message;
+            result.rest != [] -> "expression contains trailing tokens";
+            true -> ""
+        },
+    ).
+
+/** Continues postfix, cast, and binary parsing from an already parsed structured primary. */
+@pure
+pub continue_from(
+    value: ProjectedExpressionNode,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let postfix = parse_postfix_at(ProjectedExpressionResult(
+        valid = true,
+        node = Some(value),
+        rest = values,
+        message = "",
+    ));
+    let cast = parse_casts(postfix);
+    case cast.node {
+        Some(left) ->
+            let result = parse_binary_tail(left, cast.rest, 0);
+            ProjectedExpressionResult(
+                valid = result.valid and result.rest == [],
+                node = result.node,
+                rest = result.rest,
+                message = if {
+                    not result.valid -> result.message;
+                    result.rest != [] -> "expression contains trailing tokens";
+                    true -> ""
+                },
+            );
+        None -> cast
+    }.

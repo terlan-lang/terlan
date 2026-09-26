@@ -1,0 +1,106 @@
+schema = "terlan.self-host.phase/v1"
+phase = 2
+name = "syntax"
+authority = "validated-candidate"
+
+[input]
+grammar = "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
+rust_token_contract = "crates/terlan/src/compiler/syntax/token.rs"
+rust_parser_contract = "crates/terlan/src/compiler/syntax/parse_tree.rs"
+
+[implementation]
+surface_model = "compiler/self_host/src/self_host/Syntax.terl"
+surface_parser = "compiler/self_host/src/self_host/Parser.terl"
+tests = "compiler/self_host/src/self_host/ParserTest.terl"
+
+[coverage]
+module_boundary = true
+declaration_boundary = true
+lossless_declaration_text = true
+byte_spans = true
+error_recovery = true
+typed_declarations = true
+type_parser_foundation = true
+pattern_parser_foundation = true
+expression_parser_foundation = true
+canonical_lexer_foundation = true
+contextual_token_foundation = true
+token_evidence_foundation = true
+token_evidence_executable = true
+token_evidence_exact_comparison_gate = true
+token_declaration_segmentation = true
+canonical_parser_composition = true
+token_driven_surface_construction = true
+import_nested_lowering = true
+template_nested_lowering = true
+unified_typed_module_lowering = true
+export_nested_lowering = true
+annotation_schema_nested_lowering = true
+config_nested_lowering = true
+native_boundary_lowering = true
+contextual_projection_model = true
+balanced_raw_macro_projection = true
+balanced_native_projection = true
+balanced_config_projection = true
+function_body_arrow_projection = true
+head_constraint_projection = true
+lambda_opening_projection = true
+lambda_sequence_semicolon_projection = true
+if_clause_semicolon_projection = true
+canonical_projection_adapter = true
+typed_lambda_pattern_projection = true
+cast_type_lbracket_projection = true
+projected_parser_consumption = true
+projected_parser_typed_pipeline = true
+lossless_projected_concrete_tree = true
+canonical_operator_precedence_tree = true
+operator_expression_evidence = true
+contextual_callable_body_extraction = true
+projected_callable_body_evidence = true
+structured_let_if_case_lambda_trees = true
+list_cons_and_comprehension_trees = true
+structured_try_handler_tree = true
+grouped_and_unbraced_refutable_let_trees = true
+recursive_projected_pattern_trees = true
+recursive_projected_type_trees = true
+projected_type_tree_evidence = true
+projected_callable_signature_trees = true
+projected_type_declaration_trees = true
+projected_signature_evidence = true
+raw_macro_and_html_primary_kinds = true
+ordinary_macro_call_trees = true
+structured_primary_operator_continuation = true
+unified_projected_frontend = true
+function_nested_lowering = true
+constant_nested_lowering = true
+type_nested_lowering = true
+struct_nested_lowering = true
+shape_nested_lowering = true
+valued_union_nested_lowering = true
+parameter_nested_lowering = true
+constructor_nested_lowering = true
+trait_member_nested_lowering = true
+method_nested_lowering = true
+trait_impl_nested_lowering = true
+types = true
+patterns = true
+expressions = true
+
+[promotion]
+required = [
+  "positive-and-negative-parser-contracts",
+  "canonical-corpus-differential-evidence",
+  "typed-declaration-lowering",
+  "type-pattern-expression-parity",
+]
+keyed_container_expression_nodes = true
+nominal_keyed_expression_nodes = true
+fixed_array_expression_nodes = true
+atom_literal_expression_nodes = true
+record_access_and_update_nodes = true
+dynamic_call_expression_nodes = true
+quote_and_unquote_expression_nodes = true
+constructor_chain_expression_nodes = true
+named_and_positional_call_argument_nodes = true
+recursive_keyed_container_pattern_nodes = true
+distinct_struct_and_constructor_pattern_nodes = true

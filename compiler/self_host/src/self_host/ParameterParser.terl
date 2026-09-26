@@ -1,0 +1,109 @@
+/** Canonical parameter parser shared by all callable declaration families. */
+module self_host.ParameterParser.
+
+import self_host.ParameterSyntax.{ParameterSyntax}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.PatternParser.
+import self_host.TypeParser.
+
+
+@pure
+drop_prefix(source: String, count: Int): String ->
+    String.trim(source.utf8_slice(count, source.byte_size() - count)).
+
+@pure
+without_modifiers(source: String): String ->
+    let varargs_removed = if { String.starts_with(source, "...") -> drop_prefix(source, 3); true -> source };
+    if { String.starts_with(varargs_removed, "mut ") -> drop_prefix(varargs_removed, 4); true -> varargs_removed }.
+
+@pure
+empty_parameter(message: String): ParameterSyntax ->
+    ParameterSyntax(false, "", PatternParser.parse(""), false, TypeParser.parse(""), false, ExpressionParser.parse(""), false, false, false, message).
+
+/** Parses one complete canonical parameter. */
+@pure
+pub parse(source: String): ParameterSyntax ->
+    let normalized = String.trim(source);
+    let colon = Delimited.top_level_byte(normalized, 58);
+    let assignment = Delimited.top_level_assignment(normalized);
+    if {
+        normalized == "" -> empty_parameter("parameter is empty");
+        assignment >= 0 and colon > assignment ->
+            let pattern_text = String.trim(normalized.utf8_slice(0, assignment));
+            let name_text = String.trim(normalized.utf8_slice(assignment + 1, colon - assignment - 1));
+            let annotation_text = String.trim(normalized.utf8_slice(colon + 1, normalized.byte_size() - colon - 1));
+            let pattern = PatternParser.parse(pattern_text);
+            let annotation = TypeParser.parse(annotation_text);
+            ParameterSyntax(pattern.valid and name_text != "" and annotation.valid, name_text, pattern, true, annotation, false, ExpressionParser.parse(""), false, false, true, if {
+                    not pattern.valid -> pattern.message;
+                    name_text == "" -> "structural binding name is empty";
+                    not annotation.valid -> annotation.message;
+                    true -> ""
+                });
+        true ->
+            let left_end = if { colon >= 0 -> colon; assignment >= 0 -> assignment; true -> normalized.byte_size() };
+            let left = String.trim(normalized.utf8_slice(0, left_end));
+            let pattern_text = without_modifiers(left);
+            let annotation_end = if { assignment > colon -> assignment; true -> normalized.byte_size() };
+            let annotation_text = if {
+                colon < 0 -> "";
+                true -> String.trim(normalized.utf8_slice(colon + 1, annotation_end - colon - 1))
+            };
+            let default_text = if {
+                assignment < 0 -> "";
+                true -> String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1))
+            };
+            let pattern = PatternParser.parse(pattern_text);
+            let annotation = TypeParser.parse(annotation_text);
+            let default_value = ExpressionParser.parse(default_text);
+            let valid = pattern.valid
+                and (colon < 0 or annotation.valid)
+                and (assignment < 0 or default_value.valid);
+            ParameterSyntax(valid, pattern_text, pattern, colon >= 0, annotation, assignment >= 0, default_value, String.starts_with(left, "mut ") or String.starts_with(left, "...mut "), String.starts_with(left, "..."), String.starts_with(pattern_text, "{")
+                    or String.starts_with(pattern_text, "[")
+                    or (not String.starts_with(pattern_text, "{") and String.contains(pattern_text, "{"))
+                    or String.contains(pattern_text, "("), if {
+                    not pattern.valid -> pattern.message;
+                    colon >= 0 and not annotation.valid -> annotation.message;
+                    assignment >= 0 and not default_value.valid -> default_value.message;
+                    true -> ""
+                })
+    }.
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [""] -> List.new[String]();
+        [value | rest] -> [value | drop_terminal_empty(rest)]
+    }.
+
+@pure
+parse_all_at(values: List[String]): List[ParameterSyntax] ->
+    case values {
+        [] -> List.new[ParameterSyntax]();
+        [value | rest] -> [parse(value) | parse_all_at(rest)]
+    }.
+
+/** Parses a comma-separated parameter region. */
+@pure
+pub parse_all(source: String): List[ParameterSyntax] ->
+    parse_all_at(drop_terminal_empty(Delimited.split_top_level(source, 44))).
+
+@pure
+pub all_valid(values: List[ParameterSyntax]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value.valid and all_valid(rest)
+    }.
+
+@pure
+pub first_error(values: List[ParameterSyntax]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> if { value.valid -> first_error(rest); true -> value.message }
+    }.

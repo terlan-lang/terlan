@@ -1,3 +1,5 @@
+//! Native-boundary helper generated from reviewed C ABI metadata.
+
 #![forbid(unsafe_code)]
 
 use std::collections::HashMap;

@@ -1,0 +1,146 @@
+/**
+ * Fully resolved semantic plans accepted by backend IR lowering.
+ */
+module self_host.SelfHostSemanticIrSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+import self_host.SelfHostIrSyntax.
+
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrModule, IrParameter}.
+pub struct SemanticInstructionPlan {
+    opcode: String,
+    result: Option[String],
+    operands: List[String],
+    resolved_type: Option[String],
+}.
+
+pub constructor SemanticInstructionPlan {
+    (opcode: String, result: Option[String], operands: List[String], resolved_type: Option[String]): SemanticInstructionPlan ->
+        SemanticInstructionPlan {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            resolved_type: resolved_type,
+        }
+}.
+
+
+pub struct SemanticTerminatorPlan {
+    opcode: String,
+    operands: List[String],
+    targets: List[String],
+}.
+
+pub constructor SemanticTerminatorPlan {
+    (opcode: String, operands: List[String], targets: List[String]): SemanticTerminatorPlan ->
+        SemanticTerminatorPlan {
+            opcode: opcode,
+            operands: operands,
+            targets: targets,
+        }
+}.
+
+
+pub struct SemanticBlockPlan {
+    label: String,
+    instructions: List[self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan],
+    terminator: self_host.SelfHostSemanticIrSyntax.SemanticTerminatorPlan,
+}.
+
+pub constructor SemanticBlockPlan {
+    (label: String, instructions: List[self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan], terminator: self_host.SelfHostSemanticIrSyntax.SemanticTerminatorPlan): SemanticBlockPlan ->
+        SemanticBlockPlan {
+            label: label,
+            instructions: instructions,
+            terminator: terminator,
+        }
+}.
+
+
+pub struct SemanticFunctionPlan {
+    module_name: String,
+    name: String,
+    arity: Int,
+    parameters: List[IrParameter],
+    resolved_return_type: Option[String],
+    blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan],
+    native_symbol: Option[String],
+}.
+
+pub constructor SemanticFunctionPlan {
+    (module_name: String, name: String, arity: Int, parameters: List[IrParameter], resolved_return_type: Option[String], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], native_symbol: Option[String]): SemanticFunctionPlan ->
+        SemanticFunctionPlan {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            parameters: parameters,
+            resolved_return_type: resolved_return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        }
+}.
+
+
+pub struct SemanticModulePlan {
+    name: String,
+    functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan],
+}.
+
+pub constructor SemanticModulePlan {
+    (name: String, functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan]): SemanticModulePlan ->
+        SemanticModulePlan {
+            name: name,
+            functions: functions,
+        }
+}.
+
+
+pub struct IrLoweringDiagnostic {
+    code: String,
+    message: String,
+    function_name: String,
+    block_label: String,
+}.
+
+pub constructor IrLoweringDiagnostic {
+    (code: String, message: String, function_name: String, block_label: String): IrLoweringDiagnostic ->
+        IrLoweringDiagnostic {
+            code: code,
+            message: message,
+            function_name: function_name,
+            block_label: block_label,
+        }
+}.
+
+
+pub struct IrLoweringResult {
+    ir_module: Option[IrModule],
+    diagnostics: List[self_host.SelfHostSemanticIrSyntax.IrLoweringDiagnostic],
+}.
+
+pub constructor IrLoweringResult {
+    (ir_module: Option[IrModule], diagnostics: List[self_host.SelfHostSemanticIrSyntax.IrLoweringDiagnostic]): IrLoweringResult ->
+        IrLoweringResult {
+            ir_module: ir_module,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+pub struct BackendCompilation {
+    envelope: Option[BackendEnvelope],
+    json: Option[String],
+    diagnostics: List[String],
+}.
+
+pub constructor BackendCompilation {
+    (envelope: Option[BackendEnvelope], json: Option[String], diagnostics: List[String]): BackendCompilation ->
+        BackendCompilation {
+            envelope: envelope,
+            json: json,
+            diagnostics: diagnostics,
+        }
+}.
+

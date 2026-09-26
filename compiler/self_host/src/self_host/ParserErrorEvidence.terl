@@ -1,0 +1,152 @@
+/** Stable normalized parser error class and enclosing declaration span. */
+module self_host.ParserErrorEvidence.
+
+
+
+import std.core.Result.{Result}.
+import std.core.Option.{None, Option, Some}.
+import self_host.CanonicalToken.{CanonicalToken}.
+
+
+import std.collections.List.
+import std.data.Json.
+import self_host.CanonicalParser.
+import self_host.ProjectionAdapter.
+import self_host.ProjectedBodyParser.
+import self_host.ProjectedParser.
+import self_host.ProjectedSignatureParser.
+import self_host.ProjectedBodySyntax.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedSignatureSyntax.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedTypeDeclarationTree}.
+import self_host.Syntax.
+
+import self_host.Syntax.{InvalidModuleDeclaration, LexicalParseError, MissingModuleDeclaration, ParseErrorClass, SourceBeforeModuleDeclaration, UnterminatedDeclaration}.
+import type std.data.Json.{Json, JsonError}.
+
+struct NormalizedError {
+    class_name: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+constructor NormalizedError {
+    (class_name: String, start_byte: Int, end_byte: Int): NormalizedError ->
+        NormalizedError {
+            class_name: class_name,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+class_name(value: ParseErrorClass): String ->
+    case value {
+        MissingModuleDeclaration -> "missing-module";
+        InvalidModuleDeclaration -> "invalid-module";
+        SourceBeforeModuleDeclaration -> "source-before-module";
+        LexicalParseError -> "lexical";
+        UnterminatedDeclaration -> "unterminated-declaration"
+    }.
+
+first_body_error(values: List[ProjectedBody]): Option[NormalizedError] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            not value.expression.valid -> Some(NormalizedError(class_name = "expression", start_byte = value.span.start_byte, end_byte = value.span.end_byte));
+            true -> first_body_error(rest)
+        }
+    }.
+
+parameters_have_invalid_pattern(values: List[ProjectedParameterTree]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> case value.pattern {
+            None -> true;
+            Some(_pattern) -> parameters_have_invalid_pattern(rest)
+        }
+    }.
+
+first_pattern_error(values: List[ProjectedCallableSignature]): Option[NormalizedError] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            parameters_have_invalid_pattern(value.parameters) -> Some(NormalizedError(class_name = "pattern", start_byte = value.span.start_byte, end_byte = value.span.end_byte));
+            true -> first_pattern_error(rest)
+        }
+    }.
+
+first_callable_error(values: List[ProjectedCallableSignature]): Option[NormalizedError] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            not value.valid -> Some(NormalizedError(class_name = "signature", start_byte = value.span.start_byte, end_byte = value.span.end_byte));
+            true -> first_callable_error(rest)
+        }
+    }.
+
+first_type_error(values: List[ProjectedTypeDeclarationTree]): Option[NormalizedError] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            not value.valid -> Some(NormalizedError(class_name = "type", start_byte = value.span.start_byte, end_byte = value.span.end_byte));
+            true -> first_type_error(rest)
+        }
+    }.
+
+projected_error(source: String, tokens: List[CanonicalToken]): Option[NormalizedError] ->
+    let projected = ProjectionAdapter.rewrite(source, tokens);
+    let surface = ProjectedParser.parse(source, projected);
+    let signatures = ProjectedSignatureParser.parse(projected, surface.declarations);
+    let bodies = ProjectedBodyParser.parse(projected, surface.declarations);
+    case first_type_error(signatures.types) {
+        Some(value) -> Some(value);
+        None -> case first_pattern_error(signatures.callables) {
+            Some(value) -> Some(value);
+            None -> case first_body_error(bodies.values) {
+                Some(value) -> Some(value);
+                None -> first_callable_error(signatures.callables)
+            }
+        }
+    }.
+
+first_token_error(tokens: List[CanonicalToken], class_name: String): Option[NormalizedError] ->
+    case tokens {
+        [] -> Some(NormalizedError(class_name = class_name, start_byte = 0, end_byte = 0));
+        [value | _] -> Some(NormalizedError(class_name = class_name, start_byte = value.start_byte, end_byte = value.end_byte))
+    }.
+
+normalized_error(source: String, tokens: List[CanonicalToken]): Option[NormalizedError] ->
+    let canonical = CanonicalParser.parse(source);
+    case canonical.lexical_errors {
+        [value | _] -> Some(NormalizedError(class_name = "lexical", start_byte = value.start_byte, end_byte = value.end_byte));
+        [] -> case canonical.surface.errors {
+            [value | _] where value.class == SourceBeforeModuleDeclaration and canonical.surface.name == "" ->
+                first_token_error(tokens, "missing-module");
+            [value | _] -> Some(NormalizedError(class_name = class_name(value.class), start_byte = value.span.start_byte, end_byte = value.span.end_byte));
+            [] -> if {
+                canonical.has_unterminated_segment -> Some(NormalizedError(class_name = "unterminated-declaration", start_byte = source.byte_size(), end_byte = source.byte_size()));
+                true -> projected_error(source, tokens)
+            }
+        }
+    }.
+
+document(source: String, tokens: List[CanonicalToken]): Json ->
+    let normalized = normalized_error(source, tokens);
+    case normalized {
+        None -> Json.object()
+            .put("class", Json.string("none"))
+            .put("end", Json.int(0))
+            .put("schema", Json.string("terlan.self-host.parser-error/v1"))
+            .put("start", Json.int(0))
+            .put("valid", Json.bool(true));
+        Some(value) -> Json.object()
+            .put("class", Json.string(value.class_name))
+            .put("end", Json.int(value.end_byte))
+            .put("schema", Json.string("terlan.self-host.parser-error/v1"))
+            .put("start", Json.int(value.start_byte))
+            .put("valid", Json.bool(false))
+    }.
+
+pub encode(source: String, tokens: List[CanonicalToken]): Result[String, JsonError] ->
+    let value = document(source, tokens);
+    Json.stringify_pretty(value).

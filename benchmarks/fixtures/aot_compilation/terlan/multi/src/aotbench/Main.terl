@@ -1,9 +1,0 @@
-module aotbench.Main.
-
-import aotbench.Math.
-
-pub value(): Int ->
-    Math.value() + 34.
-
-pub main(): Bool ->
-    value() == 41.

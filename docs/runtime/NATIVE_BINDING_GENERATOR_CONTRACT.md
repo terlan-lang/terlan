@@ -77,6 +77,25 @@ The generator must produce:
 Conformance tests must call through the Rust adapter. They must not mock the
 native library as a substitute for validating the binding boundary.
 
+## Dispatcher Families
+
+An explicit manifest may use `function_families` inside a module when multiple
+dispatcher functions share the same role, arguments, return type, resource
+policy, StableIValue stack, and ABI version. Each member still declares its
+public name, native operator and overload, and documentation. The generator
+expands families before normal validation and writes the normalized generated
+manifest as ordinary functions, so family members receive exactly the same
+ownership, symbol, operation-identity, and documentation checks as handwritten
+function entries.
+
+Families are public by default. A family may set `visibility` to `private` when
+its expanded members are implementation leaves behind public `terlan_body`
+facades; the normalized manifest preserves that visibility and the generated
+Terlan declarations omit `pub` for those members.
+
+Families are compression, not inference. They cannot guess overloads, argument
+types, defaults, output ownership, or native symbols from a C++ library.
+
 ## Non-Goals
 
 The generator is not a C++ reflection system, a raw FFI escape hatch, or a way

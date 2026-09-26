@@ -1,0 +1,26 @@
+/**
+ * End-to-end projected frontend semantic analysis and ABI-1 compilation.
+ */
+module self_host.ProjectedBackendCompile.
+
+import std.collections.List.
+import self_host.ModuleInterfaceSyntax.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedFrontendSyntax.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedLocalSemantic.
+import self_host.ProjectedSemanticIrPlan.
+import self_host.SelfHostBackendCompile.
+import self_host.SelfHostSemanticIrSyntax.
+
+import self_host.SelfHostSemanticIrSyntax.{BackendCompilation}.
+pub compile(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+    target: String,
+): BackendCompilation ->
+    let semantics = ProjectedLocalSemantic.analyze_frontend(frontend, imported_interfaces);
+    SelfHostBackendCompile.compile(
+        ProjectedSemanticIrPlan.lower(frontend, semantics),
+        target,
+    ).

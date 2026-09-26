@@ -1,0 +1,19 @@
+[contract]
+name = "normalized-syntax-evidence"
+schema = "terlan.syntax.module.v1"
+status = "complete"
+
+[implemented]
+rust_module_oracle = true
+rust_interface_oracle = true
+rust_script_oracle = true
+rust_expression_oracle = true
+deterministic_json_output = true
+rust_projected_concrete_tree_oracle = true
+self_hosted_projected_concrete_tree_oracle = true
+byte_exact_concrete_tree_corpus_runner = true
+
+[parity]
+projected_schema_adapter = true
+corpus_comparison = true
+parser_authority = true

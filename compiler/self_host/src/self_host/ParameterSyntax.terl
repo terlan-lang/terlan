@@ -1,0 +1,42 @@
+/** Typed syntax for callable and constructor parameters. */
+module self_host.ParameterSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.PatternSyntax.{PatternParse}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.core.String.
+
+
+pub struct ParameterSyntax {
+    valid: Bool,
+    name: String,
+    pattern: PatternParse,
+    has_annotation: Bool,
+    annotation: TypeParse,
+    has_default: Bool,
+    default_value: ExpressionParse,
+    is_mutable: Bool,
+    is_varargs: Bool,
+    is_structural_binding: Bool,
+    message: String,
+}.
+
+pub constructor ParameterSyntax {
+    (valid: Bool, name: String, pattern: PatternParse, has_annotation: Bool, annotation: TypeParse, has_default: Bool, default_value: ExpressionParse, is_mutable: Bool, is_varargs: Bool, is_structural_binding: Bool, message: String): ParameterSyntax ->
+        ParameterSyntax {
+            valid: valid,
+            name: name,
+            pattern: pattern,
+            has_annotation: has_annotation,
+            annotation: annotation,
+            has_default: has_default,
+            default_value: default_value,
+            is_mutable: is_mutable,
+            is_varargs: is_varargs,
+            is_structural_binding: is_structural_binding,
+            message: message,
+        }
+}.
+
+

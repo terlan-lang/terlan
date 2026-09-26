@@ -1,0 +1,7 @@
+module self_host_probe.NestedLeafIf.
+
+pub label(flag: Bool): String ->
+    String.append("status: ", if {
+        flag -> "enabled";
+        true -> "disabled"
+    }).

@@ -19,7 +19,8 @@ use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmD
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
 use crate::runtime::native_image::{
     SealedTvmImage, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
-    TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V3, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+    TvmExportDescriptor, TVM_COMPLETION_TRANSITION_WORD_CAPACITY, TVM_DISPATCH_SYMBOL_V4,
+    TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
@@ -31,9 +32,10 @@ use super::{
 use frames::{capability_result_type, frame_from_status};
 use managed_values::{allocate_public_managed, materialize_public_managed};
 
-/// Runtime-ABI-3 native image dispatch ABI with VM-owned table lookup.
+/// Runtime-ABI-4 native image dispatch ABI with VM-owned table lookup and coverage recording.
 type NativeDispatch = unsafe extern "C" fn(
     *mut c_void,
+    *const c_void,
     *const c_void,
     *const c_void,
     *const c_void,
@@ -108,9 +110,9 @@ impl DirectNativeBackend {
         // SAFETY: format 1 fixes this symbol to `NativeDispatch`; the copied
         // function pointer cannot outlive `library`, retained in the same Arc.
         let dispatch: Symbol<'_, NativeDispatch> =
-            unsafe { library.get(TVM_DISPATCH_SYMBOL_V3.as_bytes()) }.map_err(|error| {
+            unsafe { library.get(TVM_DISPATCH_SYMBOL_V4.as_bytes()) }.map_err(|error| {
                 format!(
-                "error[execution_shard.symbol]: failed to load `{TVM_DISPATCH_SYMBOL_V3}`: {error}"
+                "error[execution_shard.symbol]: failed to load `{TVM_DISPATCH_SYMBOL_V4}`: {error}"
             )
             })?;
         let dispatch = *dispatch;
@@ -167,6 +169,7 @@ impl DirectNativeBackend {
             let mut transition_len = 0_u64;
             let dispatch = self.image.dispatch;
             let transition_capacity = self.image.transition_capacity;
+            let callable_coverage = context.managed_ref().callable_coverage_callback();
             debug_assert_eq!(self.transition_scratch.len(), transition_capacity);
             let status = context.managed().with_dispatch(
                 owner_id,
@@ -180,6 +183,7 @@ impl DirectNativeBackend {
                             allocator,
                             closure_resolver,
                             tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
+                            callable_coverage,
                             entry_id,
                             arguments.as_ptr(),
                             arguments.len() as u64,
@@ -192,7 +196,9 @@ impl DirectNativeBackend {
                 },
             );
             if let Some(error) = context.managed().take_allocation_error() {
-                return Err(error);
+                return Err(format!(
+                    "{error}; while dispatching entry {entry_id} with arguments {arguments:?}"
+                ));
             }
             let transition_len = usize::try_from(transition_len).map_err(|_| {
                 "error[execution_shard.transition_size]: transition length exceeds usize"
@@ -476,6 +482,7 @@ fn transition_capacity(
         .unwrap_or(0);
     TVM_INDIRECT_TRANSITION_WORD_CAPACITY
         .saturating_add(callable_width.saturating_mul(5).saturating_add(6))
+        .max(TVM_COMPLETION_TRANSITION_WORD_CAPACITY)
 }
 
 impl NativeImageBackend for DirectNativeBackend {

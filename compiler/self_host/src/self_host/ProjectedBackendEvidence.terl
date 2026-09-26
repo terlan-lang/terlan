@@ -1,0 +1,27 @@
+/** Exact ABI-1 backend envelope production for authority and bootstrap gates. */
+module self_host.ProjectedBackendEvidence.
+
+
+import std.core.Option.{Option}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+
+import self_host.ProjectedBackendCompile.
+import std.collections.List.
+import std.core.String.
+
+/** Compiles one projected frontend module without ambient imports. */
+pub document(frontend: ProjectedFrontendModule, target: String): Option[String] ->
+    ProjectedBackendCompile.compile(
+        frontend,
+        List.new[ModuleInterface](),
+        target,
+    ).json.
+
+/** Renders backend lowering diagnostics when no ABI-1 envelope is available. */
+pub diagnostics(frontend: ProjectedFrontendModule, target: String): String ->
+    String.join(ProjectedBackendCompile.compile(
+            frontend,
+            List.new[ModuleInterface](),
+            target,
+        ).diagnostics, "\n").

@@ -440,6 +440,9 @@ fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String
     if let Some((source_function, source_arity)) = generated_list_builder_origin(&function.name) {
         return (module.to_string(), source_function, source_arity);
     }
+    if let Some(source_function) = typed_overload_origin(&function.name) {
+        return (module.to_string(), source_function, function.arity);
+    }
     let origin = function
         .name
         .strip_prefix("$aot_generic_")
@@ -457,6 +460,13 @@ fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String
         }
         _ => (module.to_string(), function.name.clone(), function.arity),
     }
+}
+
+/// Recovers the public declaration name from one typed-overload symbol.
+fn typed_overload_origin(name: &str) -> Option<String> {
+    let (source, ordinal) = name.rsplit_once("__terlan_overload_")?;
+    (!source.is_empty() && !ordinal.is_empty() && ordinal.bytes().all(|byte| byte.is_ascii_digit()))
+        .then(|| source.to_string())
 }
 
 /// Recovers the source owner encoded in a synthesized list-builder symbol.

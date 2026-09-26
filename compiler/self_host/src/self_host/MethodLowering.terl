@@ -1,0 +1,82 @@
+/** Self-hosted lowering for receiver-first method declarations. */
+module self_host.MethodLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.MethodSyntax.{MethodSyntax}.
+import self_host.Syntax.{MethodDeclaration}.
+
+import std.core.{Int, String}.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.ParameterParser.
+import self_host.TypeParser.
+
+
+@pure
+matching_parenthesis(source: String, index: Int, depth: Int): Int ->
+    if {
+        index == source.byte_size() -> -1;
+        source.utf8_byte_at(index) == 40 -> matching_parenthesis(source, index + 1, depth + 1);
+        source.utf8_byte_at(index) == 41 and depth == 1 -> index;
+        source.utf8_byte_at(index) == 41 -> matching_parenthesis(source, index + 1, depth - 1);
+        true -> matching_parenthesis(source, index + 1, depth)
+    }.
+
+@pure
+strip_terminal_dot(source: String): String ->
+    let value = String.trim(source);
+    if { String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1)); true -> value }.
+
+@pure
+failure(source: DeclarationSyntax, message: String): MethodSyntax ->
+    MethodSyntax(false, "", ParameterParser.parse(""), ParameterParser.parse_all(""), TypeParser.parse(""), false, ExpressionParser.parse(""), source.is_public, source.span, message).
+
+/** Lowers one canonical `(receiver: Type) method(...): Return` declaration. */
+@pure
+pub lower(source: DeclarationSyntax): MethodSyntax ->
+    let value = strip_terminal_dot(source.body);
+    let public_offset = if { String.starts_with(value, "pub ") -> 4; true -> 0 };
+    let receiver_open = public_offset;
+    let receiver_close = if {
+        receiver_open < value.byte_size() and value.utf8_byte_at(receiver_open) == 40 -> matching_parenthesis(value, receiver_open + 1, 1);
+        true -> -1
+    };
+    if {
+        source.class != MethodDeclaration -> failure(source, "declaration is not a method");
+        receiver_close < 0 -> failure(source, "method receiver is incomplete");
+        true ->
+            let receiver_text = value.utf8_slice(receiver_open + 1, receiver_close - receiver_open - 1);
+            let receiver = ParameterParser.parse(receiver_text);
+            let callable = String.trim(value.utf8_slice(receiver_close + 1, value.byte_size() - receiver_close - 1));
+            let open = Delimited.top_level_byte(callable, 40);
+            let colon = Delimited.top_level_byte(callable, 58);
+            let arrow = Delimited.top_level_pair(callable, 45, 62);
+            let parameters_closed = open > 0 and colon > open and callable.utf8_byte_at(colon - 1) == 41;
+            let parameters = if {
+                parameters_closed -> ParameterParser.parse_all(callable.utf8_slice(open + 1, colon - open - 2));
+                true -> ParameterParser.parse_all("")
+            };
+            let return_end = if { arrow < 0 -> callable.byte_size(); true -> arrow };
+            let return_type = if {
+                colon >= 0 -> TypeParser.parse(String.trim(callable.utf8_slice(colon + 1, return_end - colon - 1)));
+                true -> TypeParser.parse("")
+            };
+            let body = if {
+                arrow < 0 -> ExpressionParser.parse("");
+                true -> ExpressionParser.parse(String.trim(callable.utf8_slice(arrow + 2, callable.byte_size() - arrow - 2)))
+            };
+            let valid = receiver.valid
+                and parameters_closed
+                and ParameterParser.all_valid(parameters)
+                and return_type.valid
+                and (arrow < 0 or body.valid);
+            MethodSyntax(valid, if { open > 0 -> String.trim(callable.utf8_slice(0, open)); true -> "" }, receiver, parameters, return_type, arrow >= 0, body, source.is_public, source.span, if {
+                    not receiver.valid -> receiver.message;
+                    not parameters_closed -> "method parameter list is incomplete";
+                    not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
+                    not return_type.valid -> return_type.message;
+                    arrow >= 0 and not body.valid -> body.message;
+                    true -> ""
+                })
+    }.
+

@@ -1,4 +1,5 @@
 path
+docs/cloud/TERLAN_CLOUD_CLI.md
 docs/compiler/AOT_DEVELOPER_HOT_RELOAD.md
 docs/compiler/COMPILER_INCREMENTAL_CACHE.md
 docs/compiler/SOURCE_MAP_DEBUG_INFO.md

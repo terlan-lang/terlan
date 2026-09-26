@@ -1,0 +1,21 @@
+/** Composes projected syntax, type-name resolution, and expression checking. */
+module self_host.ProjectedSemanticAnalysis.
+
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedSemanticSyntax.{ProjectedSemanticModule}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.ProjectedExpressionTypecheck.
+import self_host.ProjectedTypeResolution.
+
+
+/** Produces one semantic module using explicit external type identities. */
+@pure
+pub analyze(
+    source: ProjectedFrontendModule,
+    external_types: List[String],
+): ProjectedSemanticModule ->
+    let type_resolution = ProjectedTypeResolution.resolve(source, external_types);
+    let expression_typecheck = ProjectedExpressionTypecheck.check(source);
+    ProjectedSemanticModule(source.valid and type_resolution.valid and expression_typecheck.valid, source, type_resolution, expression_typecheck).

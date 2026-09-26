@@ -1,0 +1,66 @@
+/** Canonical differential evidence emitted by the self-hosted source slice. */
+module self_host.Evidence.
+
+
+import std.core.Result.{Result}.
+import self_host.Interface.{InterfaceError}.
+import self_host.Token.{LexicalError}.
+
+import self_host.Canonical.
+import self_host.Interface.
+import self_host.Interface.{InterfaceError}.
+import self_host.Lexer.
+import std.collections.List.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.data.Json.{Json, JsonError}.
+
+lexical_errors(values: List[LexicalError], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            lexical_errors(
+                rest,
+                output.push(
+                    Json.object()
+                        .put("code", Json.string(value.code))
+                        .put("message", Json.string(value.message))
+                        .put("start_byte", Json.int(value.span.start_byte))
+                        .put("end_byte", Json.int(value.span.end_byte)),
+                ),
+            )
+    }.
+
+interface_errors(values: List[InterfaceError], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            interface_errors(
+                rest,
+                output.push(
+                    Json.object()
+                        .put("code", Json.string(value.code))
+                        .put("message", Json.string(value.message)),
+                ),
+            )
+    }.
+
+pub document(source_name: String, source: String): Json ->
+    let lexical = Lexer.lex(source);
+    let parsed = Interface.extract(lexical.tokens);
+    let accepted = List.is_empty(lexical.errors) and List.is_empty(parsed.errors);
+    Json.object()
+        .put("schema", Json.string("terlan.self-host.source-evidence.v1"))
+        .put("implementation", Json.string("terlan-self-host"))
+        .put("source_name", Json.string(source_name))
+        .put("source_sha256", Json.string(Hash.sha256(source)))
+        .put("accepted", Json.bool(accepted))
+        .put("token_count", Json.int(List.length(lexical.tokens)))
+        .put("tokens", Canonical.token_document(lexical.tokens))
+        .put("interface", Canonical.interface_document(parsed.interface))
+        .put("lexical_errors", lexical_errors(lexical.errors, Json.array()))
+        .put("interface_errors", interface_errors(parsed.errors, Json.array())).
+
+pub render(source_name: String, source: String): Result[String, JsonError] ->
+    Json.stringify_pretty(document(source_name, source)).

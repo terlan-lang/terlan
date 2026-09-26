@@ -8,15 +8,20 @@ fn a_second_package_neutral_surface_generates_independent_names() {
         manifest["cpp_metadata"]["namespace"] = Value::String("counter_fixture_native".into());
         symbol_mut(manifest, "record.native_boundary")["cpp_name"] =
             Value::String("Counter".into());
+        symbol_mut(manifest, "record.native_boundary")["overload_set"] =
+            Value::String("counter_fixture_native::Counter".into());
         symbol_mut(manifest, "function.make_native_boundary")["cpp_name"] =
             Value::String("make_counter".into());
+        symbol_mut(manifest, "function.make_native_boundary")["overload_set"] =
+            Value::String("counter_fixture_native::make_counter".into());
         symbol_mut(manifest, "function.make_native_boundary")["returns"]["spelling"] =
-            Value::String("std::unique_ptr<Counter>".into());
+            Value::String("Counter".into());
         symbol_mut(manifest, "function.make_native_boundary")["returns"]["canonical"] =
-            Value::String("std::unique_ptr<Counter>".into());
+            Value::String("counter_fixture_native::Counter".into());
         for id in [
             "method.native_boundary.value",
             "method.native_boundary.doubled",
+            "method.native_boundary.shifted",
             "method.native_boundary.label",
             "method.native_boundary.bytes",
             "method.native_boundary.samples",
@@ -26,6 +31,10 @@ fn a_second_package_neutral_surface_generates_independent_names() {
         ] {
             symbol_mut(manifest, id)["receiver"] = Value::String("Counter".into());
         }
+        symbol_mut(manifest, "method.native_boundary.shifted")["returns"]["spelling"] =
+            Value::String("Counter".into());
+        symbol_mut(manifest, "method.native_boundary.shifted")["returns"]["canonical"] =
+            Value::String("counter_fixture_native::Counter".into());
         manifest["modules"][0]["module"] = Value::String("counter_fixture.Counter".into());
         manifest["modules"][0]["types"][0]["name"] = Value::String("Counter".into());
         for function in manifest["modules"][0]["functions"]
@@ -60,6 +69,40 @@ fn a_second_package_neutral_surface_generates_independent_names() {
     assert!(out_dir
         .join("tests/counter_fixture/CounterTest.terl")
         .is_file());
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+fn free_functions_use_their_extracted_namespace() {
+    let manifest = write_fixture_variant("free_function_namespace", |manifest| {
+        symbol_mut(manifest, "function.sum_integer_list")["overload_set"] =
+            Value::String("another_library::sum_integer_list".into());
+    });
+    let out_dir = temp_dir("free_function_namespace_out");
+    generate_cpp_bindings(&manifest, &out_dir).expect("generate cross-namespace function");
+
+    let bridge = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("bridge");
+    assert!(bridge.contains(
+        "#[namespace = \"another_library\"]\n        fn sum_integer_list(values: &[i64]) -> i64;"
+    ));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+fn extracted_cpp_parameter_names_may_start_with_an_acronym() {
+    let manifest = write_fixture_variant("cpp_parameter_acronym", |manifest| {
+        symbol_mut(manifest, "function.sum_integer_list")["parameters"][0]["name"] =
+            Value::String("LU_values".into());
+    });
+    let out_dir = temp_dir("cpp_parameter_acronym_out");
+    generate_cpp_bindings(&manifest, &out_dir).expect("generate acronym parameter");
+
+    let bridge = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("bridge");
+    assert!(bridge.contains("fn sum_integer_list(LU_values: &[i64]) -> i64;"));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");

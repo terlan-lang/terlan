@@ -1,5 +1,39 @@
 use super::*;
 
+/// Validates package-level Terlan dependencies before manifest rendering.
+pub(super) fn validate_terlan_dependencies(package: &CAbiBindingPackage) -> Result<(), String> {
+    for (alias, dependency) in &package.terlan_dependencies {
+        validate_cargo_package_name(alias)?;
+        match dependency {
+            CAbiTerlanDependency::Path { path } => {
+                if path.trim().is_empty() || Path::new(path).is_absolute() {
+                    return Err(format!(
+                        "C ABI package Terlan dependency `{alias}` requires a non-empty relative path"
+                    ));
+                }
+            }
+            CAbiTerlanDependency::Git { git, rev } => {
+                if git.trim().is_empty()
+                    || !matches!(rev.len(), 40 | 64)
+                    || !rev.bytes().all(|byte| byte.is_ascii_hexdigit())
+                {
+                    return Err(format!(
+                        "C ABI package Terlan dependency `{alias}` requires a source and full hexadecimal revision"
+                    ));
+                }
+            }
+            CAbiTerlanDependency::Registry { registry, version } => {
+                if registry.trim().is_empty() || version.trim().is_empty() {
+                    return Err(format!(
+                        "C ABI package Terlan dependency `{alias}` requires a registry and version"
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn validate_c_inputs(metadata: &CMetadata, input_dir: &Path) -> Result<(), String> {
     if let Some(link) = &metadata.external_link {
         match (&link.root_env, &link.pkg_config) {

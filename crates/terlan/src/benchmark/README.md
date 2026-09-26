@@ -23,19 +23,17 @@ machinery.
   and VM HTTP lifecycle workloads with cold/warm JSON report generation.
 - `runtime_workloads.rs`: fixed direct-AOT allocation, messaging, scheduling,
   collection-pause, actor-churn, and mixed-tail runtime workloads.
+- `vm_artifact.rs`: compiler-emitted native image build/load probes and
+  correctness-checked VM process primitives.
 - `managed_heap.rs`: safe benchmark embedding of the canonical actor heap,
   layout, root, and mailbox modules; it defines no benchmark-only VM types.
 - `scripts/benchmarks/protocol/`: fixed workload/seed definitions, comparison
   driver, JSON/TSV publication, and stable winner/delta validation.
-- `http_runtime_lane.rs`: HTTP runtime lane capability and report helpers.
 - `http_aot_performance.rs`: executable native-AOT HTTP lane recorder.
 - `http_framework_baseline.rs`: framework-neutral maintained-client recorder
   used for both Axum and plain Hyper controls.
 - `http_paired_benchmark.rs`: rotating AOT/Axum/plain-Hyper orchestration,
   environment admission, paired bootstrap statistics, and isolation evidence.
-- `aot_compilation.rs`: equivalent Terlan/Go small-command and multi-package
-  compilation recorder covering cold development, edits, no-op reuse, release,
-  relinking, compiler-service startup, and REPL generations.
 - `native_modules.rs`: native module benchmark metadata and fixtures.
 
 ## Core Model
@@ -76,8 +74,7 @@ Important invariants:
 
 ## Integration Points
 
-- `runtime::vm`: supplies VM execution capability status and future execution
-  hooks.
+- `runtime::vm`: supplies the VM execution, scheduler, and process primitives.
 - `runtime::native`: supplies Rust-owned native adapters used by benchmark
   scenarios.
 - `commands::serve`: defines HTTP behavior that benchmark probes must not
@@ -93,29 +90,20 @@ Important invariants:
 - Binary protocol cold timings include compiler-process startup and VM test
   execution; warm samples repeat the same fixed workload after the first cold
   population and retain an explicit process-plus-workload measurement scope.
-- VM framing and HTTP lifecycle timing use standalone VM commands so compiler
-  startup is outside their internal measurement. HTTP concurrency uses
-  independently admitted VM logical streams and does not require host socket
-  permission.
+- In-memory framing uses the standalone VM framing command. HTTP performance
+  uses the native-AOT socket harness, not retired standalone HTTP benchmark
+  commands or host-only response-construction timings.
 - Every comparable row prints and stores its winner and signed delta against
   the checked baseline. Structurally different legacy lanes remain explicitly
   unsupported rather than receiving synthetic numbers.
 - Native-boundary measurements must keep capability names and failure modes
   stable so future regressions are visible.
 
-## Types And Interfaces
-
-`HttpRuntimeLane`
-: Identifies the runtime lane being described by an HTTP benchmark report.
-
-`HttpRuntimeReport`
-: Captures whether an HTTP benchmark lane is executable, unavailable, or failed
-  with a stable diagnostic.
-
 ## Testing Notes
 
-- `http_runtime_lane.rs` contains focused tests for typed VM HTTP lane
-  reporting.
+- Live AOT scheduler telemetry and replay are tested by
+  `make vm-multicore-replay-observability-check`. The retired synthetic HTTP
+  attribution report is not production per-phase timing evidence.
 - `http-aot-performance-self-test` validates timing, comparison, fingerprint,
   and incomplete-evidence handling without requiring a loopback socket.
 - `make tvm-aot-http-performance-check` is a manually requested diagnostic. It
@@ -141,12 +129,5 @@ Important invariants:
   Optional hardware counters use `TERLAN_BENCH_HTTP_PERF_SECONDS`; unavailable
   kernel permissions are recorded explicitly rather than fabricating zeros.
 - Add focused tests when new benchmark report states are introduced.
-- Run `terlan-benchmark aot-compilation-self-test` for production-compiled
-  report, percentile, malformed-evidence, serialization, and fixture checks.
-- Run `terlan-benchmark aot-compilation` with release-built `terlc` and
-  `terlan-vm` siblings to record the complete same-machine compilation report.
-- Run `terlan-benchmark aot-compilation-validate` to compare against the committed
-  cold and incremental Terlan-to-Go ratio ceilings and warm p95 limit from
-  `benchmarks/baselines/aot-compilation-limits.json`.
 - Keep large performance sweeps outside normal unit tests; release gates should
   validate shape and correctness, not depend on machine-specific timing.

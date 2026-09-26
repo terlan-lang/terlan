@@ -293,6 +293,7 @@ enum Arg {
     Atom(String),
     Record(RecordArg),
     Handle(HandleArg),
+    Handles(Vec<HandleArg>),
 }
 
 struct Request {
@@ -368,14 +369,7 @@ impl Worker {
         Ok(self.handles.get(&handle.id).expect("validated handle"))
     }
 
-    fn live_mut(
-        &mut self,
-        handle: &HandleArg,
-        expected_type: &str,
-    ) -> Result<&mut HandleEntry, String> {
-        self.validate(handle, expected_type)?;
-        Ok(self.handles.get_mut(&handle.id).expect("validated handle"))
-    }
+@LIVE_MUT@
 }
 
 fn request_id(line: &str) -> Option<u64> {
@@ -475,17 +469,18 @@ fn parse_arg(value: &str) -> Result<Arg, String> {
     if let Some(value) = value.strip_prefix("r:") {
         return parse_record(value).map(Arg::Record);
     }
+    if let Some(value) = value.strip_prefix("lh:") {
+        if value.is_empty() {
+            return Ok(Arg::Handles(Vec::new()));
+        }
+        return value
+            .split(',')
+            .map(parse_handle)
+            .collect::<Result<Vec<_>, _>>()
+            .map(Arg::Handles);
+    }
     if let Some(value) = value.strip_prefix("h:") {
-        let fields = value.split(':').collect::<Vec<_>>();
-        let [owner, id, generation, type_name] = fields.as_slice() else {
-            return Err(protocol_error("invalid_argument", "malformed handle"));
-        };
-        return Ok(Arg::Handle(HandleArg {
-            owner: decode_text(owner)?,
-            id: id.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-            generation: generation.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
-            type_name: decode_text(type_name)?,
-        }));
+        return parse_handle(value).map(Arg::Handle);
     }
     Err(protocol_error("invalid_argument", "unsupported argument encoding"))
 }
@@ -504,6 +499,21 @@ fn arg_floats(value: &Arg) -> &[f64] {
         Arg::EmptyList => &[],
         _ => unreachable!("generated operation pattern validates float-list arguments"),
     }
+}
+
+@ARG_HANDLES@
+
+fn parse_handle(value: &str) -> Result<HandleArg, String> {
+    let fields = value.split(':').collect::<Vec<_>>();
+    let [owner, id, generation, type_name] = fields.as_slice() else {
+        return Err(protocol_error("invalid_argument", "malformed handle"));
+    };
+    Ok(HandleArg {
+        owner: decode_text(owner)?,
+        id: id.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
+        generation: generation.parse().map_err(|error: std::num::ParseIntError| protocol_error("invalid_argument", &error.to_string()))?,
+        type_name: decode_text(type_name)?,
+    })
 }
 
 /// Parses one strict copied-record wire argument.

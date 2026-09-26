@@ -46,6 +46,48 @@ fn parses_canonical_terlan_ebnf() {
     assert!(grammar.rules.len() > 100);
 }
 
+#[test]
+fn canonical_ebnf_keeps_retired_call_and_implication_forms_out() {
+    let grammar = compile_ebnf_contract(include_str!(
+        "../../../../../docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
+    ))
+    .expect("canonical contract");
+    let calls = &grammar.rule("FunCallSuffix").expect("call suffix").expr;
+    let mut terminals = Vec::new();
+    collect_terminals(calls, &mut terminals);
+    assert_eq!(terminals, ["(", ")"]);
+    let owners = grammar
+        .rules
+        .iter()
+        .filter_map(|rule| {
+            let mut terminals = Vec::new();
+            collect_terminals(&rule.expr, &mut terminals);
+            terminals.contains(&"=>").then_some(rule.name.as_str())
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(owners, ["ImplicationConstraint"]);
+    let atom = &grammar.rule("AtomLiteralExpr").expect("atom literal").expr;
+    let mut terminals = Vec::new();
+    collect_terminals(atom, &mut terminals);
+    assert_eq!(terminals, ["Atom", "[", "]"]);
+}
+
+fn collect_terminals<'a>(expr: &'a EbnfGrammarExpr, terminals: &mut Vec<&'a str>) {
+    match &expr.kind {
+        EbnfGrammarExprKind::Terminal { value } => terminals.push(value),
+        EbnfGrammarExprKind::Sequence { items } | EbnfGrammarExprKind::Alternation { items } => {
+            for item in items {
+                collect_terminals(item, terminals);
+            }
+        }
+        EbnfGrammarExprKind::Optional { expr }
+        | EbnfGrammarExprKind::Repetition { expr }
+        | EbnfGrammarExprKind::Group { expr }
+        | EbnfGrammarExprKind::OneOrMore { expr } => collect_terminals(expr, terminals),
+        _ => {}
+    }
+}
+
 /// Verifies the public parse entry point returns a grammar contract.
 #[test]
 fn parse_ebnf_returns_grammar_contract() {

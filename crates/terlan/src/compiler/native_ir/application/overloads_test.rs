@@ -107,3 +107,78 @@ fn duplicate_core_signature_is_left_for_application_admission() {
     assert_eq!(module.functions[0].name, "choose");
     assert_eq!(module.functions[1].name, "choose");
 }
+
+/// Result constructor payloads retain their type for downstream overloads.
+#[test]
+fn result_pattern_payload_type_selects_nested_overloads() {
+    let result = CoreType::Apply {
+        constructor: "Result".to_string(),
+        args: vec![
+            CoreType::Named("Expr".to_string()),
+            CoreType::Named("Error".to_string()),
+        ],
+    };
+    let pattern = CorePattern::Constructor {
+        name: "Ok".to_string(),
+        constructor_identity: Some("std.core.Result.Ok".to_string()),
+        args: vec![CorePattern::Var("expression".to_string())],
+    };
+    let mut environment = HashMap::new();
+
+    bind_pattern_type(&pattern, &result, &mut environment);
+
+    assert_eq!(
+        environment.get("expression"),
+        Some(&CoreType::Named("Expr".to_string()))
+    );
+}
+
+/// Transparent Result lowering uses an equivalent tagged-tuple pattern.
+#[test]
+fn tagged_result_pattern_payload_type_is_retained() {
+    let result = CoreType::Apply {
+        constructor: "std.core.Result.Result".to_string(),
+        args: vec![CoreType::Int, CoreType::String],
+    };
+    let pattern = CorePattern::Tuple(vec![
+        CorePattern::Atom("ok".to_string()),
+        CorePattern::Var("value".to_string()),
+    ]);
+    let mut environment = HashMap::new();
+
+    bind_pattern_type(&pattern, &result, &mut environment);
+
+    assert_eq!(environment.get("value"), Some(&CoreType::Int));
+}
+
+/// A singleton literal selects the union overload that contains its alias.
+#[test]
+fn atom_literal_matches_a_transparent_union_member() {
+    let expected = CoreType::Named("DataType".to_string());
+    let actual = CoreType::AtomLiteral("int_64".to_string());
+    let aliases = HashMap::from([
+        (
+            "DataType".to_string(),
+            CoreType::Union(vec![
+                CoreType::Named("Int64".to_string()),
+                CoreType::Named("Float64".to_string()),
+            ]),
+        ),
+        (
+            "Int64".to_string(),
+            CoreType::AtomLiteral("int_64".to_string()),
+        ),
+        (
+            "Float64".to_string(),
+            CoreType::AtomLiteral("float_64".to_string()),
+        ),
+    ]);
+
+    assert!(type_match_score(&expected, &actual, &aliases).is_some());
+    assert!(type_match_score(
+        &expected,
+        &CoreType::AtomLiteral("utf_8".to_string()),
+        &aliases
+    )
+    .is_none());
+}

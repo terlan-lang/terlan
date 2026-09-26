@@ -46,7 +46,7 @@ const REQUIRED_VM_MAIN_TERMS: &[&str] = &[
     "DiagnosticFormat",
     "Json",
     "error[tvm_json_runtime_removed]",
-    "error[vm_inspect_not_found]",
+    "error[vm_inspect_unavailable]",
 ];
 
 const REQUIRED_REPL_TERMS: &[&str] = &[

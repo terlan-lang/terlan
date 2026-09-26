@@ -13,6 +13,9 @@ pub(super) use std::process::{ExitCode, Stdio};
 mod fixtures_and_generation;
 use fixtures_and_generation::*;
 #[cfg(test)]
+#[path = "c_abi_binding_generator_test/function_families.rs"]
+mod function_families;
+#[cfg(test)]
 #[path = "c_abi_binding_generator_test/ownership_adapters.rs"]
 mod ownership_adapters;
 #[cfg(test)]

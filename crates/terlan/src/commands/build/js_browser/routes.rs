@@ -75,6 +75,7 @@ pub(super) fn discover_web_route_manifest_from_sources(
 ) -> Result<WebRouteManifestRows, String> {
     let mut rows = WebRouteManifestRows::default();
     let string_constants = source_string_constants(sources)?;
+    let signature_catalog = router_handler_signature_catalog(sources)?;
     for source_artifact in sources {
         let source = fs::read_to_string(&source_artifact.source_path).map_err(|err| {
             format!(
@@ -88,7 +89,8 @@ pub(super) fn discover_web_route_manifest_from_sources(
                 source_artifact.source_path
             )
         })?;
-        let signatures = router_handler_signatures(&syntax);
+        let (signatures, handler_targets) =
+            router_handler_scope(&syntax, &source_artifact.module, &signature_catalog);
         let source_context = route_source_context(source_artifact, &source);
         for declaration in &syntax.declarations {
             let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload
@@ -104,6 +106,7 @@ pub(super) fn discover_web_route_manifest_from_sources(
                     &clause.body,
                     &source_context,
                     &signatures,
+                    &handler_targets,
                     &mut rows,
                 )?;
             }
@@ -160,6 +163,7 @@ fn discover_web_handlers_from_sources(
     sources: &[WebRouteSourceArtifact],
 ) -> Result<Vec<WebHandlerArtifact>, String> {
     let mut handlers = Vec::new();
+    let signature_catalog = router_handler_signature_catalog(sources)?;
     for source_artifact in sources {
         let source = fs::read_to_string(&source_artifact.source_path).map_err(|err| {
             format!(
@@ -173,7 +177,8 @@ fn discover_web_handlers_from_sources(
                 source_artifact.source_path
             )
         })?;
-        let signatures = router_handler_signatures(&syntax);
+        let (signatures, handler_targets) =
+            router_handler_scope(&syntax, &source_artifact.module, &signature_catalog);
         let source_context = route_source_context(source_artifact, &source);
         for declaration in &syntax.declarations {
             let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload
@@ -189,6 +194,7 @@ fn discover_web_handlers_from_sources(
                     &clause.body,
                     &source_context,
                     &signatures,
+                    &handler_targets,
                     &mut handlers,
                 )?;
             }
@@ -254,7 +260,8 @@ pub(super) fn discover_web_error_handler_from_sources(
                 source_artifact.source_path
             )
         })?;
-        let signatures = router_handler_signatures(&syntax);
+        let source_context = route_source_context(source_artifact, &source);
+        let signatures = router_handler_signatures(&syntax, Some(&source_context));
         for declaration in &syntax.declarations {
             let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload
             else {
@@ -288,12 +295,119 @@ pub(super) fn discover_web_error_handler_from_sources(
 /// Transformation:
 /// - Keeps route extraction independent of the full typechecker while still
 ///   validating the handler surface needed by the serve manifest.
+#[derive(Clone)]
 struct RouterHandlerSignature {
     arity: usize,
     param_names: Vec<String>,
     param_types: Vec<String>,
     return_type: String,
     body: Option<SyntaxExprOutput>,
+    source: Option<super::manifest::WebSourceSpanArtifact>,
+}
+
+#[derive(Clone)]
+struct RouterHandlerTarget {
+    module: String,
+    function: String,
+    source: Option<super::manifest::WebSourceSpanArtifact>,
+}
+
+type RouterHandlerSignatureCatalog = HashMap<String, HashMap<String, RouterHandlerSignature>>;
+
+/// Collects handler declarations from every route-source module.
+///
+/// Route assembly may reference selected imports whose declarations live in a
+/// dedicated handler module. The catalog keeps those declarations available
+/// without coupling source-level route extraction to backend artifacts.
+fn router_handler_signature_catalog(
+    sources: &[WebRouteSourceArtifact],
+) -> Result<RouterHandlerSignatureCatalog, String> {
+    let mut catalog = HashMap::new();
+    for source_artifact in sources {
+        let source = fs::read_to_string(&source_artifact.source_path).map_err(|err| {
+            format!(
+                "cannot read source {} for web handler discovery: {err}",
+                source_artifact.source_path
+            )
+        })?;
+        let syntax = parse_module_as_syntax_output(&source).map_err(|err| {
+            format!(
+                "cannot parse source {} for web handler discovery: {err:?}",
+                source_artifact.source_path
+            )
+        })?;
+        let source_context = route_source_context(source_artifact, &source);
+        catalog.insert(
+            source_artifact.module.clone(),
+            router_handler_signatures(&syntax, Some(&source_context)),
+        );
+    }
+    Ok(catalog)
+}
+
+/// Builds the callable scope visible to one router declaration.
+///
+/// Local declarations retain their source-module identity. Selected value
+/// imports add their local alias while preserving the provider module and
+/// exported function name used by runtime dispatch.
+fn router_handler_scope(
+    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
+    module_name: &str,
+    catalog: &RouterHandlerSignatureCatalog,
+) -> (
+    HashMap<String, RouterHandlerSignature>,
+    HashMap<String, RouterHandlerTarget>,
+) {
+    let mut signatures = catalog.get(module_name).cloned().unwrap_or_default();
+    let mut targets = signatures
+        .iter()
+        .map(|(name, signature)| {
+            (
+                name.clone(),
+                RouterHandlerTarget {
+                    module: module_name.to_string(),
+                    function: name.clone(),
+                    source: signature.source.clone(),
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
+
+    for declaration in &syntax.declarations {
+        let SyntaxDeclarationPayload::Import {
+            module_name: provider,
+            items,
+            is_type,
+            is_selected,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        if *is_type || !*is_selected {
+            continue;
+        }
+        let Some(provider_signatures) = catalog.get(provider) else {
+            continue;
+        };
+        for item in items {
+            let Some(signature) = provider_signatures.get(&item.name) else {
+                continue;
+            };
+            let local_name = item.as_alias.as_ref().unwrap_or(&item.name);
+            signatures.insert(local_name.clone(), signature.clone());
+            targets.insert(
+                local_name.clone(),
+                RouterHandlerTarget {
+                    module: provider.clone(),
+                    function: item.name.clone(),
+                    source: signature.source.clone(),
+                },
+            );
+        }
+    }
+
+    (signatures, targets)
 }
 
 /// Collects local function signatures visible to router builders.
@@ -309,6 +423,7 @@ struct RouterHandlerSignature {
 ///   for simple local handler validation.
 fn router_handler_signatures(
     syntax: &crate::terlan_syntax::SyntaxModuleOutput,
+    source: Option<&WebRouteSourceContext<'_>>,
 ) -> HashMap<String, RouterHandlerSignature> {
     syntax
         .declarations
@@ -337,6 +452,9 @@ fn router_handler_signatures(
                     body: clauses
                         .first()
                         .and_then(|clause| (clauses.len() == 1).then(|| clause.body.clone())),
+                    source: clauses.first().and_then(|clause| {
+                        source.map(|source| source_span_for_expr(source, &clause.body))
+                    }),
                 },
             ))
         })
@@ -577,6 +695,7 @@ fn collect_router_routes_from_expr(
     expr: &SyntaxExprOutput,
     source: &WebRouteSourceContext<'_>,
     signatures: &HashMap<String, RouterHandlerSignature>,
+    handler_targets: &HashMap<String, RouterHandlerTarget>,
     rows: &mut WebRouteManifestRows,
 ) -> Result<(), String> {
     if let Some(middleware) = router_middleware_from_expr(expr) {
@@ -587,7 +706,14 @@ fn collect_router_routes_from_expr(
     }
     if let Some((prefix, body)) = router_group_body_expr(expr) {
         let mut grouped_rows = WebRouteManifestRows::default();
-        collect_router_routes_from_expr(module_name, body, source, signatures, &mut grouped_rows)?;
+        collect_router_routes_from_expr(
+            module_name,
+            body,
+            source,
+            signatures,
+            handler_targets,
+            &mut grouped_rows,
+        )?;
         prefix_web_route_manifest_rows(&prefix, &mut grouped_rows);
         rows.handlers.append(&mut grouped_rows.handlers);
         rows.websockets.append(&mut grouped_rows.websockets);
@@ -604,18 +730,49 @@ fn collect_router_routes_from_expr(
         validate_router_handler_rows(module_name, &handlers, signatures)?;
         let mut handlers = handlers;
         apply_router_handler_arities(&mut handlers, signatures);
-        for handler in handlers {
+        for mut handler in handlers {
+            let local_name = handler.function.clone();
             if let Some(response) = static_response_from_handler(&handler, signatures) {
+                let mut response = response;
+                apply_router_target(
+                    &local_name,
+                    &mut response.module,
+                    &mut response.function,
+                    &mut response.source,
+                    handler_targets,
+                );
                 rows.static_responses.push(response);
             } else if let Some(response) = file_response_from_handler(&handler, signatures) {
+                let mut response = response;
+                apply_router_target(
+                    &local_name,
+                    &mut response.module,
+                    &mut response.function,
+                    &mut response.source,
+                    handler_targets,
+                );
                 rows.file_responses.push(response);
             } else {
+                apply_router_target(
+                    &local_name,
+                    &mut handler.module,
+                    &mut handler.function,
+                    &mut handler.source,
+                    handler_targets,
+                );
                 rows.handlers.push(handler);
             }
         }
     }
     for child in &expr.children {
-        collect_router_routes_from_expr(module_name, child, source, signatures, rows)?;
+        collect_router_routes_from_expr(
+            module_name,
+            child,
+            source,
+            signatures,
+            handler_targets,
+            rows,
+        )?;
     }
     Ok(())
 }
@@ -668,6 +825,7 @@ fn collect_router_handlers_from_expr(
     expr: &SyntaxExprOutput,
     source: &WebRouteSourceContext<'_>,
     signatures: &HashMap<String, RouterHandlerSignature>,
+    handler_targets: &HashMap<String, RouterHandlerTarget>,
     handlers: &mut Vec<WebHandlerArtifact>,
 ) -> Result<(), String> {
     if let Some(middleware) = router_middleware_from_expr(expr) {
@@ -683,6 +841,7 @@ fn collect_router_handlers_from_expr(
             body,
             source,
             signatures,
+            handler_targets,
             &mut grouped_handlers,
         )?;
         for handler in &mut grouped_handlers {
@@ -695,12 +854,45 @@ fn collect_router_handlers_from_expr(
         validate_router_handler_rows(module_name, &handler, signatures)?;
         let mut handler = handler;
         apply_router_handler_arities(&mut handler, signatures);
+        for row in &mut handler {
+            let local_name = row.function.clone();
+            apply_router_target(
+                &local_name,
+                &mut row.module,
+                &mut row.function,
+                &mut row.source,
+                handler_targets,
+            );
+        }
         handlers.extend(handler);
     }
     for child in &expr.children {
-        collect_router_handlers_from_expr(module_name, child, source, signatures, handlers)?;
+        collect_router_handlers_from_expr(
+            module_name,
+            child,
+            source,
+            signatures,
+            handler_targets,
+            handlers,
+        )?;
     }
     Ok(())
+}
+
+/// Rewrites a router-local callback reference to its runtime provider.
+fn apply_router_target(
+    local_name: &str,
+    module: &mut String,
+    function: &mut String,
+    source: &mut Option<super::manifest::WebSourceSpanArtifact>,
+    handler_targets: &HashMap<String, RouterHandlerTarget>,
+) {
+    let Some(target) = handler_targets.get(local_name) else {
+        return;
+    };
+    module.clone_from(&target.module);
+    function.clone_from(&target.function);
+    source.clone_from(&target.source);
 }
 
 /// Recursively collects router-level error-handler calls from a syntax tree.

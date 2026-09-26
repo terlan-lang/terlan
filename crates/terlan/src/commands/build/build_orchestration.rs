@@ -517,7 +517,13 @@ pub(super) fn run_terlan_vm_file_build(
             &entry_module,
         )?;
     } else {
-        vm_artifact::build_vm_application_artifacts(&files, &file_state, policy)?;
+        let entry_module = format!("{}.Main", source_package_path(&manifest.package).join("."));
+        vm_artifact::build_vm_application_artifacts_with_entry(
+            &files,
+            &file_state,
+            policy,
+            &entry_module,
+        )?;
     }
     if !state.no_emit {
         let metadata = build_package_metadata_with_artifacts(
@@ -739,11 +745,41 @@ pub(super) fn run_terlan_vm_directory_build(
             };
             let vm_service = !route_sources.is_empty();
             if vm_service {
+                let mut browser_static_assets = match manifest
+                    .web_assets
+                    .as_ref()
+                    .map(|assets| js_assets::browser_static_assets_from_manifest(dir, assets))
+                    .transpose()
+                {
+                    Ok(assets) => assets,
+                    Err(message) => {
+                        eprintln!("{message}");
+                        return ExitCode::from(1);
+                    }
+                };
+                if let Some(assets) = browser_static_assets.as_mut() {
+                    assets.angular_ts = manifest.dependencies.iter().any(|dependency| {
+                        matches!(
+                            (&dependency.scope, &dependency.source),
+                            (
+                                project_manifest::ProjectDependencyScope::Target(
+                                    project_manifest::ProjectTarget::Js
+                                ),
+                                project_manifest::ProjectDependencySource::Npm {
+                                    package,
+                                    version,
+                                    ..
+                                }
+                            ) if web_toolchain::is_managed_js_dependency(package, version)
+                        )
+                    });
+                }
                 if let Err(message) = js_browser::write_vm_service_package(
                     dir,
                     &state.out_dir,
                     &manifest.source_roots,
                     &route_sources,
+                    browser_static_assets.as_ref(),
                     state.incremental,
                 ) {
                     eprintln!("{message}");

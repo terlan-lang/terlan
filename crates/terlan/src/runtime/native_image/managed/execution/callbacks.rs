@@ -1,4 +1,39 @@
 use super::*;
+use std::io::Write;
+
+/// Records one compiler-issued callable identity without crossing a process boundary.
+pub(crate) unsafe extern "C" fn managed_record_callable(context: *mut c_void, callable_id: u64) {
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        if context.is_null() || !(context as *const ManagedAllocationContext).is_aligned() {
+            return;
+        }
+        // SAFETY: generated code receives this pointer only from `with_dispatch`
+        // and the callback cannot outlive that exclusive runtime borrow.
+        let context = unsafe { &mut *context.cast::<ManagedAllocationContext>() };
+        if context.runtime.is_null() {
+            return;
+        }
+        // SAFETY: `with_dispatch` retains the runtime for the synchronous call.
+        let runtime = unsafe { &mut *context.runtime };
+        if runtime.callable_coverage_enabled {
+            let first_hit = runtime.covered_callables.insert(callable_id);
+            if first_hit {
+                if let Some(path) = runtime.callable_coverage_file.as_ref() {
+                    if let Some(parent) = path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    if let Ok(mut file) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(path)
+                    {
+                        let _ = writeln!(file, "{callable_id}");
+                    }
+                }
+            }
+        }
+    }));
+}
 
 /// Validates one generated allocation call and publishes through its owner heap.
 pub(crate) unsafe extern "C" fn managed_allocate(

@@ -1,0 +1,22 @@
+schema = "terlan.self-host.token-evidence/v1"
+producer = "self_host.TokenEvidence"
+rust_authority = "compiler::syntax::lalrpop_boundary::parse_lalrpop_token_output"
+self_host_schema = "terlan.self-host.token-authority/v1"
+
+[row]
+columns = ["contextual_terminal", "display_terminal", "start_byte", "end_byte", "lexeme_sha256"]
+ordering = "source"
+includes_eof = false
+
+[promotion]
+required = [
+  "same-accepted-corpus",
+  "same-display-terminals",
+  "same-byte-spans",
+  "same-lexeme-hashes",
+  "same-error-spans",
+]
+
+[gates]
+single_fixture = "make self-host-token-parity-check"
+accepted_corpus = "make self-host-token-corpus-parity-check"

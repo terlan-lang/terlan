@@ -321,6 +321,26 @@ fn package_helper_round_trips_lists_of_opaque_resources() {
 }
 
 #[test]
+fn package_helper_decodes_tuples_of_opaque_resources() {
+    let owner = STANDARD.encode("worker");
+    let tensor_type = STANDARD.encode("pytorch.Tensor.Tensor");
+    let value = decode_payload(&[
+        "ok_tuple_handles",
+        &format!("{owner}:7:3:{tensor_type},{owner}:8:4:{tensor_type}"),
+    ])
+    .expect("resource tuple");
+    assert!(matches!(
+        value,
+        ReplValue::Tuple(values)
+            if values.len() == 2
+                && values.iter().all(|value| matches!(
+                    value,
+                    ReplValue::Record { name, .. } if name == "Tensor"
+                ))
+    ));
+}
+
+#[test]
 fn package_helper_rejects_malformed_resource_lists() {
     assert!(decode_payload(&["ok_handles", "missing:fields"]).is_err());
 }
@@ -546,6 +566,16 @@ fn platform_metrics_use_the_vm_capability_path_not_direct_std() {
     };
     assert_eq!(name, "HostMetrics");
     assert_eq!(fields.len(), 12);
+}
+
+#[test]
+fn bounded_process_operations_are_vm_owned_direct_capabilities() {
+    assert!(super::direct_std::supports("std.system.process.run"));
+    assert!(super::direct_std::supports("std.system.process.run_many"));
+    assert!(super::direct_std::supports(
+        "std.system.process.run_length_framed"
+    ));
+    assert!(!super::direct_std::supports("std.system.process.unbounded"));
 }
 
 #[test]

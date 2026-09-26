@@ -10,7 +10,6 @@ fn main() {
         c_build.include(include_path);
     }
     c_build
-        .include("include")
         .include(".")
         .warnings_into_errors(true)
         .flag_if_supported("-std=c11")

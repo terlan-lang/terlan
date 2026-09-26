@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use smallvec::SmallVec;
 
-use super::aggregates::{decode_typed_slot, encode_typed_slot};
+use super::aggregates::{decode_typed_slot, encode_validated_typed_slot, validate_typed_value};
 use super::slots::{packed_slot_layout, packed_slot_offset};
 use super::{
     ActorHeap, AllocationClass, ManagedFieldType, ManagedFieldValue, ManagedMemoryError,
@@ -54,6 +54,7 @@ pub struct ManagedListDescriptor {
     leaf_semantic_id: SemanticTypeId,
     node_semantic_id: SemanticTypeId,
     element_type: ManagedFieldType,
+    reference_variants: Box<[SemanticTypeId]>,
 }
 
 impl ManagedListDescriptor {
@@ -62,8 +63,27 @@ impl ManagedListDescriptor {
         canonical_type: &str,
         element_type: ManagedFieldType,
     ) -> Result<Self, ManagedMemoryError> {
+        Self::with_reference_variants(canonical_type, element_type, Vec::new())
+    }
+
+    /// Creates one bounded list profile whose transparent reference union
+    /// admits only the supplied concrete semantic identities.
+    pub fn with_reference_variants(
+        canonical_type: &str,
+        element_type: ManagedFieldType,
+        mut reference_variants: Vec<SemanticTypeId>,
+    ) -> Result<Self, ManagedMemoryError> {
         if canonical_type.is_empty() {
             return Err(ManagedMemoryError::InvalidAggregateShape);
+        }
+        if !reference_variants.is_empty() && !matches!(element_type, ManagedFieldType::Reference(_))
+        {
+            return Err(ManagedMemoryError::InvalidAggregateShape);
+        }
+        reference_variants.sort_unstable();
+        reference_variants.dedup();
+        if let ManagedFieldType::Reference(expected) = element_type {
+            reference_variants.retain(|semantic| *semantic != expected);
         }
         Ok(Self {
             semantic_id: SemanticTypeId::from_canonical(canonical_type)?,
@@ -74,6 +94,7 @@ impl ManagedListDescriptor {
                 "{canonical_type}#rrb-node"
             ))?,
             element_type,
+            reference_variants: reference_variants.into_boxed_slice(),
         })
     }
 
@@ -85,6 +106,18 @@ impl ManagedListDescriptor {
     /// Returns the statically selected element slot category.
     pub fn element_type(&self) -> ManagedFieldType {
         self.element_type
+    }
+
+    /// Returns the canonical concrete semantics admitted by a transparent
+    /// reference union element type.
+    pub fn reference_variants(&self) -> &[SemanticTypeId] {
+        &self.reference_variants
+    }
+
+    /// Reports whether one live concrete semantic can inhabit this list slot.
+    fn accepts_reference_semantic(&self, semantic: SemanticTypeId) -> bool {
+        matches!(self.element_type, ManagedFieldType::Reference(expected) if expected == semantic)
+            || self.reference_variants.binary_search(&semantic).is_ok()
     }
 }
 
@@ -194,7 +227,7 @@ impl ActorHeap {
         match header.form {
             FORM_INLINE => {
                 let offset = packed_slot_offset(descriptor.element_type, ROOT_HEADER_BYTES, index)?;
-                decode_typed_slot(self, list.erase(), payload, offset, descriptor.element_type)
+                decode_list_slot(self, descriptor, list.erase(), payload, offset)
             }
             FORM_TREE => {
                 let absolute = header
@@ -383,6 +416,57 @@ fn allocate_empty_root(
     heap.allocate(managed, &payload, &[])
 }
 
+/// Validates one list element against its exact scalar type or declared
+/// transparent reference-union alternatives.
+fn validate_list_value(
+    heap: &ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    value: ManagedFieldValue,
+) -> Result<(), ManagedMemoryError> {
+    if let (ManagedFieldType::Reference(_), ManagedFieldValue::Reference(reference)) =
+        (descriptor.element_type, value)
+    {
+        let actual = heap.descriptor(reference)?.semantic_id();
+        return descriptor
+            .accepts_reference_semantic(actual)
+            .then_some(())
+            .ok_or(ManagedMemoryError::InvalidAggregateField);
+    }
+    validate_typed_value(heap, descriptor.element_type, value)
+}
+
+/// Encodes one already typed list slot and records its precise reference.
+fn encode_list_slot(
+    heap: &ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    payload: &mut [u8],
+    offset: usize,
+    value: ManagedFieldValue,
+    references: &mut impl Extend<(usize, TvmRef<()>)>,
+) -> Result<(), ManagedMemoryError> {
+    validate_list_value(heap, descriptor, value)?;
+    if let ManagedFieldValue::Reference(reference) = value {
+        references.extend(std::iter::once((offset, reference)));
+    }
+    encode_validated_typed_slot(payload, offset, descriptor.element_type, value)
+}
+
+/// Decodes one list slot while preserving transparent-union validation.
+fn decode_list_slot(
+    heap: &ActorHeap,
+    descriptor: &ManagedListDescriptor,
+    object: TvmRef<()>,
+    payload: &[u8],
+    offset: usize,
+) -> Result<ManagedFieldValue, ManagedMemoryError> {
+    if matches!(descriptor.element_type, ManagedFieldType::Reference(_)) {
+        let value = ManagedFieldValue::Reference(heap.reference_field(object, offset)?);
+        validate_list_value(heap, descriptor, value)?;
+        return Ok(value);
+    }
+    decode_typed_slot(heap, object, payload, offset, descriptor.element_type)
+}
+
 /// Allocates a compact inline root with no child node.
 fn allocate_inline_root(
     heap: &mut ActorHeap,
@@ -395,11 +479,11 @@ fn allocate_inline_root(
     let mut references = Vec::new();
     for (index, value) in elements.iter().enumerate() {
         let offset = packed_slot_offset(descriptor.element_type, ROOT_HEADER_BYTES, index)?;
-        encode_typed_slot(
+        encode_list_slot(
             heap,
+            descriptor,
             &mut payload,
             offset,
-            descriptor.element_type,
             *value,
             &mut references,
         )?;
@@ -455,11 +539,11 @@ fn allocate_leaf(
     let mut references = Vec::new();
     for (index, value) in elements.iter().enumerate() {
         let offset = packed_slot_offset(descriptor.element_type, NODE_HEADER_BYTES, index)?;
-        encode_typed_slot(
+        encode_list_slot(
             heap,
+            descriptor,
             &mut payload,
             offset,
-            descriptor.element_type,
             *value,
             &mut references,
         )?;
@@ -578,7 +662,7 @@ fn node_get(
     let payload = heap.read(node)?;
     if header.kind == NODE_LEAF {
         let offset = packed_slot_offset(descriptor.element_type, NODE_HEADER_BYTES, index)?;
-        return decode_typed_slot(heap, node.erase(), payload, offset, descriptor.element_type);
+        return decode_list_slot(heap, descriptor, node.erase(), payload, offset);
     }
     let (child_index, child_start) = if header.kind == NODE_REGULAR {
         let first: TvmRef<RrbNode> = heap.reference_field(node, NODE_HEADER_BYTES)?.cast();

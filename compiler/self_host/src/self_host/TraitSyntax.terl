@@ -1,0 +1,82 @@
+/** Typed syntax for trait contracts and members. */
+module self_host.TraitSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct TraitConstantSyntax {
+    valid: Bool,
+    name: String,
+    annotation: TypeParse,
+    has_default: Bool,
+    default_value: ExpressionParse,
+    message: String,
+}.
+
+pub constructor TraitConstantSyntax {
+    (valid: Bool, name: String, annotation: TypeParse, has_default: Bool, default_value: ExpressionParse, message: String): TraitConstantSyntax ->
+        TraitConstantSyntax {
+            valid: valid,
+            name: name,
+            annotation: annotation,
+            has_default: has_default,
+            default_value: default_value,
+            message: message,
+        }
+}.
+
+
+pub struct TraitMethodSyntax {
+    valid: Bool,
+    name: String,
+    parameters: List[ParameterSyntax],
+    return_type: TypeParse,
+    has_default: Bool,
+    default_body: ExpressionParse,
+    message: String,
+}.
+
+pub constructor TraitMethodSyntax {
+    (valid: Bool, name: String, parameters: List[ParameterSyntax], return_type: TypeParse, has_default: Bool, default_body: ExpressionParse, message: String): TraitMethodSyntax ->
+        TraitMethodSyntax {
+            valid: valid,
+            name: name,
+            parameters: parameters,
+            return_type: return_type,
+            has_default: has_default,
+            default_body: default_body,
+            message: message,
+        }
+}.
+
+
+pub struct TraitSyntax {
+    valid: Bool,
+    name: String,
+    constants: List[self_host.TraitSyntax.TraitConstantSyntax],
+    methods: List[self_host.TraitSyntax.TraitMethodSyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor TraitSyntax {
+    (valid: Bool, name: String, constants: List[self_host.TraitSyntax.TraitConstantSyntax], methods: List[self_host.TraitSyntax.TraitMethodSyntax], is_public: Bool, span: SyntaxSpan, message: String): TraitSyntax ->
+        TraitSyntax {
+            valid: valid,
+            name: name,
+            constants: constants,
+            methods: methods,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

@@ -395,65 +395,190 @@ fn canonicalize_core_selected_function_imports(
     }
 
     for declaration in &mut module.declarations {
-        let clauses = match &mut declaration.payload {
+        match &mut declaration.payload {
             SyntaxDeclarationPayload::Function {
                 params, clauses, ..
-            }
-            | SyntaxDeclarationPayload::Method {
-                params, clauses, ..
             } => {
+                let bound = params
+                    .iter()
+                    .map(|parameter| parameter.name.clone())
+                    .collect::<std::collections::HashSet<_>>();
                 for param in params {
                     if let Some(default) = &mut param.default {
-                        canonicalize_core_expr_selected_function_imports(default, imports);
+                        canonicalize_core_expr_selected_function_imports(default, imports, &bound);
                     }
                 }
-                clauses
+                canonicalize_core_selected_import_clauses(clauses, imports, &bound);
             }
-            _ => continue,
-        };
-        for clause in clauses {
-            if let Some(guard) = &mut clause.guard {
-                canonicalize_core_expr_selected_function_imports(guard, imports);
+            SyntaxDeclarationPayload::Method {
+                receiver,
+                params,
+                clauses,
+                ..
+            } => {
+                let mut bound = params
+                    .iter()
+                    .map(|parameter| parameter.name.clone())
+                    .collect::<std::collections::HashSet<_>>();
+                bound.insert(receiver.name.clone());
+                if let Some(default) = &mut receiver.default {
+                    canonicalize_core_expr_selected_function_imports(default, imports, &bound);
+                }
+                for param in params {
+                    if let Some(default) = &mut param.default {
+                        canonicalize_core_expr_selected_function_imports(default, imports, &bound);
+                    }
+                }
+                canonicalize_core_selected_import_clauses(clauses, imports, &bound);
             }
-            canonicalize_core_expr_selected_function_imports(&mut clause.body, imports);
+            _ => {}
         }
+    }
+}
+
+fn canonicalize_core_selected_import_clauses(
+    clauses: &mut [crate::terlan_syntax::SyntaxFunctionClauseOutput],
+    imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+    bound: &std::collections::HashSet<String>,
+) {
+    for clause in clauses {
+        if let Some(guard) = &mut clause.guard {
+            canonicalize_core_expr_selected_function_imports(guard, imports, bound);
+        }
+        canonicalize_core_expr_selected_function_imports(&mut clause.body, imports, bound);
     }
 }
 
 fn canonicalize_core_expr_selected_function_imports(
     expr: &mut SyntaxExprOutput,
     imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+    bound: &std::collections::HashSet<String>,
 ) {
-    if expr.kind == SyntaxExprKind::Call && expr.remote.is_none() {
-        if let Some(callee) = expr.children.first_mut() {
-            if matches!(callee.kind, SyntaxExprKind::Var | SyntaxExprKind::Atom) {
-                if let Some(local_name) = callee.text.as_deref() {
-                    if let Some([target]) = imports.get(local_name).map(Vec::as_slice) {
+    if expr.kind == SyntaxExprKind::Var {
+        if let Some(local_name) = expr.text.as_deref() {
+            if !bound.contains(local_name) {
+                if let Some([target]) = imports.get(local_name).map(Vec::as_slice) {
+                    if let Some(arity) = target.arity {
+                        expr.kind = SyntaxExprKind::RemoteFunRef;
                         expr.remote = Some(target.module.clone());
-                        callee.text = Some(target.function.clone());
+                        expr.text = Some(target.function.clone());
+                        expr.arity = arity;
                     }
                 }
             }
         }
     }
-    for child in &mut expr.children {
-        canonicalize_core_expr_selected_function_imports(child, imports);
+    if expr.kind == SyntaxExprKind::Let {
+        let mut success_bound = bound.clone();
+        for index in 0..expr.patterns.len() {
+            if let Some(value) = expr.children.get_mut(index) {
+                canonicalize_core_expr_selected_function_imports(value, imports, &success_bound);
+            }
+            collect_core_pattern_bindings(&expr.patterns[index], &mut success_bound);
+            if let Some(guard) = expr.let_guards.get_mut(index).and_then(Option::as_mut) {
+                canonicalize_core_expr_selected_function_imports(guard, imports, &success_bound);
+            }
+        }
+        if let Some(body) = expr.children.get_mut(expr.patterns.len()) {
+            canonicalize_core_expr_selected_function_imports(body, imports, &success_bound);
+        }
+        canonicalize_core_scoped_clauses(&mut expr.clauses, imports, bound);
+        return;
+    }
+    if expr.kind == SyntaxExprKind::ListComprehension {
+        let mut comprehension_bound = bound.clone();
+        for index in 0..expr.patterns.len() {
+            if let Some(source) = expr.children.get_mut(index + 1) {
+                canonicalize_core_expr_selected_function_imports(
+                    source,
+                    imports,
+                    &comprehension_bound,
+                );
+            }
+            collect_core_pattern_bindings(&expr.patterns[index], &mut comprehension_bound);
+        }
+        for guard in expr.children.iter_mut().skip(expr.patterns.len() + 1) {
+            canonicalize_core_expr_selected_function_imports(guard, imports, &comprehension_bound);
+        }
+        if let Some(yielded) = expr.children.first_mut() {
+            canonicalize_core_expr_selected_function_imports(
+                yielded,
+                imports,
+                &comprehension_bound,
+            );
+        }
+        return;
+    }
+    if expr.kind == SyntaxExprKind::Call && expr.remote.is_none() {
+        if let Some(callee) = expr.children.first_mut() {
+            if matches!(callee.kind, SyntaxExprKind::Var | SyntaxExprKind::Atom) {
+                if let Some(local_name) = callee.text.as_deref() {
+                    if !bound.contains(local_name) {
+                        if let Some([target]) = imports.get(local_name).map(Vec::as_slice) {
+                            expr.remote = Some(target.module.clone());
+                            callee.text = Some(target.function.clone());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (index, child) in expr.children.iter_mut().enumerate() {
+        if expr.kind == SyntaxExprKind::Call && index == 0 {
+            continue;
+        }
+        canonicalize_core_expr_selected_function_imports(child, imports, bound);
     }
     for guard in expr.let_guards.iter_mut().flatten() {
-        canonicalize_core_expr_selected_function_imports(guard, imports);
+        canonicalize_core_expr_selected_function_imports(guard, imports, bound);
     }
     for field in &mut expr.fields {
-        canonicalize_core_expr_selected_function_imports(&mut field.value, imports);
+        canonicalize_core_expr_selected_function_imports(&mut field.value, imports, bound);
     }
-    for clause in expr.clauses.iter_mut().chain(&mut expr.catch_clauses) {
-        if let Some(guard) = &mut clause.guard {
-            canonicalize_core_expr_selected_function_imports(guard, imports);
-        }
-        canonicalize_core_expr_selected_function_imports(&mut clause.body, imports);
-    }
+    canonicalize_core_scoped_clauses(&mut expr.clauses, imports, bound);
+    canonicalize_core_scoped_clauses(&mut expr.catch_clauses, imports, bound);
     if let Some(after) = &mut expr.try_after {
-        canonicalize_core_expr_selected_function_imports(&mut after.trigger, imports);
-        canonicalize_core_expr_selected_function_imports(&mut after.body, imports);
+        canonicalize_core_expr_selected_function_imports(&mut after.trigger, imports, bound);
+        canonicalize_core_expr_selected_function_imports(&mut after.body, imports, bound);
+    }
+}
+
+fn canonicalize_core_scoped_clauses(
+    clauses: &mut [crate::terlan_syntax::SyntaxClauseOutput],
+    imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+    bound: &std::collections::HashSet<String>,
+) {
+    for clause in clauses {
+        let mut clause_bound = bound.clone();
+        for pattern in &clause.patterns {
+            collect_core_pattern_bindings(pattern, &mut clause_bound);
+        }
+        if let Some(guard) = &mut clause.guard {
+            canonicalize_core_expr_selected_function_imports(guard, imports, &clause_bound);
+        }
+        canonicalize_core_expr_selected_function_imports(&mut clause.body, imports, &clause_bound);
+    }
+}
+
+fn collect_core_pattern_bindings(
+    pattern: &crate::terlan_syntax::SyntaxPatternOutput,
+    bound: &mut std::collections::HashSet<String>,
+) {
+    if matches!(
+        pattern.kind,
+        crate::terlan_syntax::SyntaxPatternKind::Var
+            | crate::terlan_syntax::SyntaxPatternKind::Alias
+            | crate::terlan_syntax::SyntaxPatternKind::StringCapture
+    ) {
+        if let Some(name) = &pattern.text {
+            bound.insert(name.clone());
+        }
+    }
+    for child in &pattern.children {
+        collect_core_pattern_bindings(child, bound);
+    }
+    for field in &pattern.fields {
+        collect_core_pattern_bindings(&field.value, bound);
     }
 }
 

@@ -29,7 +29,7 @@ use super::native_units::prepare_native_object_units;
 use super::{native_cache, output_cleanup};
 
 pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
-pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v4";
+pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v5";
 pub(super) const DIRECT_AOT_CODEGEN_REVISION: &str = env!("TERLAN_NATIVE_CODEGEN_REVISION_SHA256");
 pub(super) const DIRECT_AOT_BUILD_POLICY: &str = env!("TERLAN_NATIVE_BUILD_POLICY_SHA256");
 
@@ -440,19 +440,24 @@ pub(crate) fn compile_test_native_image(
     native_cache_root: &Path,
     module_stem: &str,
     cores: &[&CoreModule],
+    roots: &[(String, String, usize)],
+    debug_inputs: &[NativeDebugInput<'_>],
     incremental: bool,
 ) -> Result<Option<PathBuf>, String> {
     let vm_dir = workspace.join("vm");
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create test AOT output directory: {error}"))?;
-    compile_native_application_image(
+    compile_rooted_native_application_image(
         &vm_dir,
         native_cache_root,
         module_stem,
         cores,
-        &[],
-        NativeCodegenPolicy::Development,
-        incremental,
+        RootedNativeApplicationInput {
+            roots,
+            debug_inputs,
+            policy: NativeCodegenPolicy::Development,
+            incremental,
+        },
     )
     .map(|image| image.map(|image| image.cached_image_path))
     .map_err(build_error_message)

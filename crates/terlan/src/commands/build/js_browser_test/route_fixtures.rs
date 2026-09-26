@@ -514,6 +514,45 @@ pub(super) fn discover_web_handlers_from_modules_extracts_router_builder_calls()
     fs::remove_file(source_path).expect("cleanup router source");
 }
 
+/// Verifies route assembly can reference aliased handlers from another module.
+#[test]
+pub(super) fn discover_web_handlers_from_modules_resolves_selected_imports() {
+    let router_path = temp_source_path("imported_router_handlers");
+    let handler_path = temp_source_path("imported_handler_provider");
+    fs::write(
+        &router_path,
+        "module app.Web.\n\nimport app.handlers.Pages.{index as index_handler}.\nimport std.http.Router.\nimport type std.http.Router.Router.\n\npub router(): Router ->\n    Router.new().get(\"/\", index_handler).\n",
+    )
+    .expect("write imported router source");
+    fs::write(
+        &handler_path,
+        "module app.handlers.Pages.\n\nimport std.http.Request.\nimport std.http.Response.\nimport type std.http.Request.Request.\nimport type std.http.Response.Response.\n\npub index(request: Request): Response ->\n    Response.text(request.path()).\n",
+    )
+    .expect("write imported handler source");
+    let modules = vec![
+        module_artifact("app.Web", &router_path),
+        module_artifact("app.handlers.Pages", &handler_path),
+    ];
+
+    let handlers = discover_web_handlers_from_modules(&modules).expect("discover handlers");
+
+    assert_eq!(handlers.len(), 1);
+    assert_eq!(handlers[0].module, "app.handlers.Pages");
+    assert_eq!(handlers[0].function, "index");
+    assert_eq!(handlers[0].arity, 1);
+    assert_eq!(handlers[0].route, "/");
+    assert_eq!(
+        handlers[0].source.as_ref().expect("handler source").path,
+        handler_path
+            .file_name()
+            .expect("handler file name")
+            .to_string_lossy()
+    );
+
+    fs::remove_file(router_path).expect("cleanup imported router source");
+    fs::remove_file(handler_path).expect("cleanup imported handler source");
+}
+
 /// Verifies typed brace route params survive browser manifest discovery.
 ///
 /// Inputs:

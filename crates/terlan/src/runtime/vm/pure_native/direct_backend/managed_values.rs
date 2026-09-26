@@ -97,7 +97,19 @@ pub(super) fn materialize_public_managed(
         })?;
     let reference = TvmRef::from_encoded(encoded);
     heap.validate_abi_reference(reference.encoded_abi_word(), semantic)
-        .map_err(|error| format!("error[execution_shard.managed_reference]: {error}"))?;
+        .map_err(|error| {
+            if error == ManagedMemoryError::ManagedTypeMismatch {
+                let actual = heap
+                    .abi_reference_semantic_id(reference.encoded_abi_word())
+                    .map(|(_, actual)| format!("{actual:?}"))
+                    .unwrap_or_else(|reason| format!("unavailable ({reason})"));
+                format!(
+                    "error[execution_shard.managed_reference]: {error}; expected {semantic:?}, actual {actual}"
+                )
+            } else {
+                format!("error[execution_shard.managed_reference]: {error}")
+            }
+        })?;
     let mut budget = MAX_PUBLIC_MANAGED_VALUES;
     materialize_managed(
         heap,
@@ -481,11 +493,15 @@ fn named_fields_match(
 
 /// Accepts a canonical record identity or its unqualified final segment.
 pub(super) fn type_name_matches(canonical: &str, public: &str) -> bool {
-    let nominal = canonical
+    let nominal = nominal_type_name(canonical);
+    nominal == public || nominal.rsplit('.').next() == Some(public)
+}
+
+fn nominal_type_name(canonical: &str) -> &str {
+    canonical
         .strip_prefix("Named(")
         .and_then(|name| name.strip_suffix(')'))
-        .unwrap_or(canonical);
-    nominal == public || nominal.rsplit('.').next() == Some(public)
+        .unwrap_or(canonical)
 }
 
 /// Recursively materializes one validated managed reference.
@@ -571,6 +587,11 @@ fn materialize_collection(
                 .map_err(managed_read_error)?
                 .into_iter()
                 .map(|value| {
+                    // Each collection element is a sibling traversal. Keep
+                    // the parent path, but do not share mutable traversal
+                    // state between siblings; repeated opaque handles are
+                    // valid aliases, not cycles.
+                    let mut branch = active.clone();
                     materialize_field(
                         heap,
                         layouts,
@@ -578,7 +599,7 @@ fn materialize_collection(
                         value,
                         depth + 1,
                         budget,
-                        active,
+                        &mut branch,
                     )
                 })
                 .collect::<Result<Vec<_>, _>>()
@@ -590,6 +611,8 @@ fn materialize_collection(
                 .map_err(managed_read_error)?
                 .into_iter()
                 .map(|(key, value)| {
+                    let mut key_branch = active.clone();
+                    let mut value_branch = active.clone();
                     Ok((
                         materialize_field(
                             heap,
@@ -598,7 +621,7 @@ fn materialize_collection(
                             key,
                             depth + 1,
                             budget,
-                            active,
+                            &mut key_branch,
                         )?,
                         materialize_field(
                             heap,
@@ -607,7 +630,7 @@ fn materialize_collection(
                             value,
                             depth + 1,
                             budget,
-                            active,
+                            &mut value_branch,
                         )?,
                     ))
                 })
@@ -620,6 +643,7 @@ fn materialize_collection(
                 .map_err(managed_read_error)?
                 .into_iter()
                 .map(|value| {
+                    let mut branch = active.clone();
                     materialize_field(
                         heap,
                         layouts,
@@ -627,7 +651,7 @@ fn materialize_collection(
                         value,
                         depth + 1,
                         budget,
-                        active,
+                        &mut branch,
                     )
                 })
                 .collect::<Result<Vec<_>, _>>()
@@ -718,8 +742,7 @@ fn public_aggregate(descriptor: &ManagedAggregateDescriptor, values: Vec<ReplVal
             let name = descriptor
                 .variant_name()
                 .unwrap_or_else(|| {
-                    descriptor
-                        .canonical_type()
+                    nominal_type_name(descriptor.canonical_type())
                         .rsplit('.')
                         .next()
                         .expect("canonical aggregate identity is nonempty")

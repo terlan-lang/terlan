@@ -143,6 +143,31 @@ fn tuple_list_and_map_patterns_lower_to_bounded_managed_matchers() {
 }
 
 #[test]
+fn structural_union_list_patterns_select_the_concrete_list_semantic() {
+    let modules = lower(
+        "module structured_recursive_list_union.\n\n\
+         pub opaque type Leaf.\n\
+         pub type Node = Leaf | List[Node].\n\n\
+         pub is_list(value: Node): Bool ->\n\
+             case value { [] -> true; [_head | _tail] -> true; _leaf -> false }.\n\n\
+         pub leaf_or(value: Node, fallback: Leaf): Leaf ->\n\
+             case value { [] -> fallback; [_head | _tail] -> fallback; leaf -> leaf }.\n",
+    );
+
+    let function = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "is_list")
+        .expect("lower recursive structural list-union matcher");
+    assert!(contains_managed_operation(&function.body, b"TVMP", 1));
+    assert!(contains_managed_operation(&function.body, b"TVMC", 5));
+    assert!(modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .any(|function| function.name == "leaf_or"));
+}
+
+#[test]
 fn none_pattern_accepts_immediate_and_managed_zero_field_option_variants() {
     let modules = lower(
         "module structured_option_source.\n\n\

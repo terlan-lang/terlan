@@ -1,0 +1,32 @@
+/** Executable producer for self-hosted token authority artifacts. */
+module self_host_token_evidence.Main.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String}.
+import std.io.Console.{eprintln}.
+import std.io.File.{read_text, write_text}.
+import std.system.Arguments.{get}.
+import self_host.TokenEvidence.
+
+argument(index: Int): String ->
+    case get(index) { Some(value) -> value; None -> "" }.
+
+fail(message: String): Bool ->
+    let _printed = eprintln(message);
+    false.
+
+/** Reads one source path and writes its implementation-neutral token artifact. */
+pub main(): Bool ->
+    let source_path = argument(0);
+    let output_path = argument(1);
+    if {
+        source_path == "" or output_path == "" -> fail("usage: token-evidence <source.terl> <output>");
+        true -> case read_text(source_path) {
+            Err(_reason) -> fail("self-host token evidence could not read source");
+            Ok(source) -> case write_text(output_path, TokenEvidence.authority_document(source)) {
+                Err(_reason) -> fail("self-host token evidence could not write artifact");
+                Ok(_written) -> true
+            }
+        }
+    }.

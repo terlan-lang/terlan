@@ -4,6 +4,9 @@ use super::super::diagnostic::{LintDiagnostic, Severity};
 
 const DEBUG_CALL_RULE_ID: &str = "TL0904";
 const DEBUG_CALL_RULE_NAME: &str = "maintainability.debug-call";
+const SQL_LINE_WIDTH_RULE_ID: &str = "TL0907";
+const SQL_LINE_WIDTH_RULE_NAME: &str = "maintainability.sql-line-width";
+const SQL_MAX_LINE_WIDTH: usize = 100;
 
 /// Builds diagnostics for unstructured debug calls left in production source.
 pub(super) fn debug_call_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
@@ -28,6 +31,34 @@ pub(super) fn debug_call_diagnostics(path: &Path, source: &str) -> Vec<LintDiagn
         });
     }
 
+    diagnostics
+}
+
+/// Rejects embedded SQL lines that exceed the maintained source-width limit.
+pub(super) fn sql_line_width_diagnostics(path: &Path, source: &str) -> Vec<LintDiagnostic> {
+    let mut in_sql = false;
+    let mut diagnostics = Vec::new();
+    for (line_index, line) in source.lines().enumerate() {
+        let trimmed = line.trim();
+        if !in_sql && trimmed.contains("sql[") && trimmed.contains('{') {
+            in_sql = true;
+        }
+        if in_sql && line.chars().count() > SQL_MAX_LINE_WIDTH {
+            diagnostics.push(LintDiagnostic {
+                path: path.to_path_buf(),
+                line: line_index + 1,
+                column: SQL_MAX_LINE_WIDTH + 1,
+                rule_id: SQL_LINE_WIDTH_RULE_ID,
+                rule_name: SQL_LINE_WIDTH_RULE_NAME,
+                severity: Severity::Error,
+                message: "embedded SQL lines must be wrapped to at most 100 columns",
+                fix_available: false,
+            });
+        }
+        if in_sql && trimmed.starts_with('}') {
+            in_sql = false;
+        }
+    }
     diagnostics
 }
 

@@ -71,7 +71,7 @@ pub(super) use free_variable_analysis::free_variables;
 use type_mapping::is_empty_list;
 pub(super) use type_mapping::{
     core_string_runtime_value, literal_collection_type, managed_semantic_contract, native_type,
-    witnessed_collection_type,
+    normalize_recursive_managed_type, witnessed_collection_type,
 };
 
 mod inference;
@@ -117,6 +117,18 @@ fn lower_expected_field(
         context.function_types,
         context.constructors,
     )?
+    .or_else(|| {
+        matches!(field, CoreExpr::Var(name) if context.params.contains_key(name))
+            .then_some(expected_native)
+    })
+    .or_else(|| {
+        let variables = free_variables(field);
+        (!variables.is_empty()
+            && variables
+                .iter()
+                .all(|name| context.params.contains_key(name)))
+        .then_some(expected_native)
+    })
     .ok_or_else(|| {
         format!("error[native_ir.constructor_control_field]: cannot infer `{field:?}`")
     })?;
@@ -791,6 +803,25 @@ pub(super) fn lower_expr_with_constructors(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if let Some(collection_type) =
+                super::collection_values::transparent_collection_variant(target_type, expr)
+            {
+                return super::collection_values::lower_boundary_collection_value(
+                    expr,
+                    Some(collection_type),
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                )?
+                .ok_or_else(|| {
+                    format!(
+                        "error[native_ir.cast_union_collection]: union variant `{}` is not a concrete native collection",
+                        collection_type.contract_text()
+                    )
+                });
+            }
             if matches!(expr.as_ref(), CoreExpr::Binary(_))
                 && matches!(target_type, CoreType::Binary)
             {
@@ -880,49 +911,53 @@ pub(super) fn lower_expr_with_constructors(
             }
             if let Some(lowered) =
                 lower_structural_constructor_call(expr, target_type, |field, expected_core| {
-                    if let Some(lowered) =
-                        super::collection_values::lower_boundary_collection_value(
-                            field,
-                            Some(expected_core),
+                    lower_expected_field(
+                        field,
+                        expected_core,
+                        "native_ir.structural_constructor_field",
+                        &ExpectedFieldContext {
                             params,
                             param_types,
                             functions,
                             function_types,
                             constructors,
-                        )?
-                    {
-                        let ty = native_type(
-                            Some(expected_core),
-                            &expected_core.contract_text(),
-                        )
-                        .ok_or_else(|| {
-                            "error[native_ir.structural_constructor_field_type]: expected field is not native"
-                                .to_string()
-                        })?;
-                        return Ok((lowered, ty));
-                    }
-                    let ty = infer_native_type_for_lowering(
-                        field,
-                        param_types,
-                        function_types,
-                        constructors,
-                    )?
-                    .ok_or_else(|| {
-                        "error[native_ir.structural_constructor_field_type]: cannot infer field"
-                            .to_string()
-                    })?;
-                    let lowered = lower_expr_with_constructors(
-                        field,
-                        params,
-                        param_types,
-                        functions,
-                        function_types,
-                        constructors,
-                    )?;
-                    Ok((lowered, ty))
+                        },
+                    )
                 })?
             {
                 return Ok(lowered);
+            }
+            // A contextual cast around an `if` describes the representation
+            // expected from every selected branch. Lower each branch against
+            // that checked target instead of trying to infer one pre-cast
+            // representation for the whole control expression.
+            if let CoreExpr::If { clauses } = expr.as_ref() {
+                return Ok(NativeExpr::If {
+                    clauses: clauses
+                        .iter()
+                        .map(|clause| {
+                            Ok((
+                                lower_expr_with_constructors(
+                                    &clause.condition,
+                                    params,
+                                    param_types,
+                                    functions,
+                                    function_types,
+                                    constructors,
+                                )?,
+                                super::collection_values::lower_typed_value(
+                                    &clause.body,
+                                    target_type,
+                                    params,
+                                    param_types,
+                                    functions,
+                                    function_types,
+                                    constructors,
+                                )?,
+                            ))
+                        })
+                        .collect::<Result<Vec<_>, String>>()?,
+                });
             }
             let source = infer_native_type_for_lowering(
                 expr,

@@ -1,0 +1,2185 @@
+/**
+ * Converts projected bodies plus local semantic facts into resolved IR plans.
+ */
+module self_host.ProjectedSemanticIrPlan.
+
+
+
+import std.core.Option.{None, Option, Some}.
+import std.core.Bool.
+import std.core.Int.
+import std.collections.List.
+import std.core.String.
+import self_host.BackendSyntax.
+import self_host.BackendSyntax.{BackendDeclaration}.
+import self_host.ParameterSyntax.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.ProjectedBodySyntax.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedFrontendSyntax.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedLocalSemanticSyntax.
+import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
+import self_host.ProjectedTypeConstraintSyntax.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostIrSyntax.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticTerminatorPlan}.
+import self_host.TypedModuleSyntax.
+
+import self_host.TypedModuleSyntax.{FunctionPayload, MethodPayload}.
+struct ExpressionPlan {
+    next_id: Int,
+    result: String,
+    result_type: Option[String],
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor ExpressionPlan {
+    (next_id: Int, result: String, result_type: Option[String], instructions: List[SemanticInstructionPlan]): ExpressionPlan ->
+        ExpressionPlan {
+            next_id: next_id,
+            result: result,
+            result_type: result_type,
+            instructions: instructions,
+        }
+}.
+
+struct ChildrenPlan {
+    next_id: Int,
+    results: List[String],
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor ChildrenPlan {
+    (next_id: Int, results: List[String], instructions: List[SemanticInstructionPlan]): ChildrenPlan ->
+        ChildrenPlan {
+            next_id: next_id,
+            results: results,
+            instructions: instructions,
+        }
+}.
+
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+prepend_reversed[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> prepend_reversed(rest, [value | output]) }.
+
+concat[T](left: List[T], right: List[T]): List[T] ->
+    prepend_reversed(reverse_at(left, List.new[T]()), right).
+
+concat_instructions(
+    left: List[SemanticInstructionPlan],
+    right: List[SemanticInstructionPlan],
+): List[SemanticInstructionPlan] ->
+    concat(left, right).
+
+parameter_count(values: List[IrParameter]): Int ->
+    case values {
+        [] -> 0;
+        [_ | rest] -> 1 + parameter_count(rest)
+    }.
+
+ir_parameters(values: List[ParameterSyntax]): List[IrParameter] ->
+    case values {
+        [] -> List.new[IrParameter]();
+        [value | rest] -> [parameter(value) | ir_parameters(rest)]
+    }.
+
+shallow_pattern_supported(pattern: ProjectedExpressionNode): Bool ->
+    case pattern.children {
+        [] -> true;
+        [value] -> value.children == [];
+        [left, right] -> left.children == [] and right.children == [];
+        _ -> false
+    }.
+
+shallow_pattern_operands(
+    subject: String,
+    pattern: ProjectedExpressionNode,
+): List[String] ->
+    case pattern.children {
+        [] -> [subject, pattern.kind, pattern.text, "0"];
+        [value] -> [subject, pattern.kind, pattern.text, "1", value.kind, value.text, "0"];
+        [left, right] -> [subject, pattern.kind, pattern.text, "2", left.kind, left.text, "0", right.kind, right.text, "0"];
+        _ -> List.new[String]()
+    }.
+
+shallow_binding(
+    value: ProjectedExpressionNode,
+    environment: String,
+): List[SemanticInstructionPlan] ->
+    if {
+        value.kind == "binding-pattern" -> [SemanticInstructionPlan(
+            "get-pattern-binding",
+            some_string(value.text),
+            [environment, Int.to_string(value.start_byte)],
+            some_string("Dynamic"),
+        )];
+        true -> List.new[SemanticInstructionPlan]()
+    }.
+
+shallow_pattern_bindings(
+    pattern: ProjectedExpressionNode,
+    environment: String,
+): List[SemanticInstructionPlan] ->
+    let root = shallow_binding(pattern, environment);
+    case pattern.children {
+        [] -> root;
+        [value] -> concat_instructions(root, shallow_binding(value, environment));
+        [left, right] -> concat_instructions(
+            root,
+            concat_instructions(
+                shallow_binding(left, environment),
+                shallow_binding(right, environment),
+            ),
+        );
+        _ -> List.new[SemanticInstructionPlan]()
+    }.
+
+node_size(node: ProjectedExpressionNode): Int ->
+    1 + child_sizes(node.children).
+
+child_sizes(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> node_size(value) + child_sizes(rest)
+    }.
+
+register(node_id: Int): String ->
+    String.append("%", Int.to_string(node_id)).
+
+indexed_label(prefix: String, index: Int): String ->
+    String.append(prefix, Int.to_string(index)).
+
+fact_type(byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset -> value.type_name;
+            true -> fact_type(byte_offset, rest)
+        }
+    }.
+
+parameter_type(name: String, values: List[IrParameter]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.name == name -> Some(value.type_name);
+            true -> parameter_type(name, rest)
+        }
+    }.
+
+some_string(value: String): Option[String] -> Some(value).
+
+none_string(): Option[String] -> None.
+
+resolved_or_dynamic(value: Option[String]): Option[String] ->
+    case value {
+        Some(name) -> some_string(name);
+        None -> some_string("Dynamic")
+    }.
+
+last_expression_type(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case values {
+        [] -> none_string();
+        [value] -> expression_type(value, facts, parameters);
+        [_ | rest] -> last_expression_type(rest, facts, parameters)
+    }.
+
+expression_type(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case fact_type(node.start_byte, facts) {
+        Some(name) -> some_string(name);
+        None -> if {
+            node.kind == "identifier" or node.kind == "atom" -> case parameter_type(node.text, parameters) {
+                Some(name) -> some_string(name);
+                None -> some_string("Dynamic")
+            };
+            node.kind == "integer" -> some_string("Int");
+            node.kind == "float" -> some_string("Float");
+            node.kind == "string" -> some_string("String");
+            node.kind == "constructor" -> some_string(node.text);
+            node.kind == "primary" and (node.text == "true" or node.text == "false") -> some_string("Bool");
+            node.kind == "primary" -> some_string("Dynamic");
+            node.kind == "call" or node.kind == "field" or node.kind == "index" -> some_string("Dynamic");
+            node.kind == "list" or node.kind == "list-cons" or node.kind == "list-comprehension" -> some_string("List");
+            node.kind == "tuple" -> some_string("Tuple");
+            node.kind == "tuple-or-group" -> if {
+                node.children.length() == 1 -> last_expression_type(node.children, facts, parameters);
+                true -> some_string("Tuple")
+            };
+            node.kind == "cast" -> some_string(node.text);
+            node.kind == "sequence" or node.kind == "call-arguments" or node.kind == "named-argument"
+                or node.kind == "let" or node.kind == "let-refutable" ->
+                last_expression_type(node.children, facts, parameters);
+            node.kind == "binary" and (
+                node.text == "==" or node.text == "!=" or node.text == "<" or node.text == ">"
+                    or node.text == "<=" or node.text == ">=" or node.text == "in"
+                    or node.text == "and" or node.text == "or"
+            ) -> some_string("Bool");
+            node.kind == "binary" -> case node.children {
+                [left, right] -> case {
+                    expression_type(left, facts, parameters),
+                    expression_type(right, facts, parameters),
+                } {
+                    {Some(left_name), Some(right_name)} where left_name == right_name -> some_string(left_name);
+                    _ -> some_string("Dynamic")
+                };
+                _ -> some_string("Dynamic")
+            };
+            node.kind == "unary" and (node.text == "not" or node.text == "!") -> some_string("Bool");
+            node.kind == "unary" -> case node.children {
+                [operand] -> expression_type(operand, facts, parameters);
+                _ -> some_string("Dynamic")
+            };
+            true -> none_string()
+        }
+    }.
+
+last_string(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [_ | rest] -> last_string(rest)
+    }.
+
+binary_opcode(text: String): String ->
+    if {
+        text == "+" -> "add-small";
+        text == "-" -> "sub-small";
+        text == "*" -> "mul-small";
+        text == "/" or text == "div" -> "div-small";
+        text == "rem" -> "rem-small";
+        text == "==" -> "equal";
+        text == "<" -> "less-small";
+        true -> String.append("binary-", text)
+    }.
+
+node_opcode(node: ProjectedExpressionNode): String ->
+    if {
+        node.kind == "integer" or node.kind == "float" or node.kind == "string"
+            or node.kind == "constructor" or node.kind == "primary"
+            -> "load-literal";
+        node.kind == "identifier" or node.kind == "atom" -> "move";
+        node.kind == "binary" -> binary_opcode(node.text);
+        node.kind == "unary" and node.text == "-" -> "neg-small";
+        node.kind == "unary" -> String.append("unary-", node.text);
+        node.kind == "list" or node.kind == "list-cons" or node.kind == "list-comprehension" -> "put-list";
+        node.kind == "tuple-or-group" or node.kind == "tuple" -> "put-tuple";
+        node.kind == "field" -> "get-map-elements";
+        node.kind == "index" -> "get-tuple-element";
+        node.kind == "cast" -> "move";
+        true -> String.append("unsupported-", node.kind)
+    }.
+
+literal_operands(node: ProjectedExpressionNode): List[String] ->
+    if {
+        node.kind == "integer" or node.kind == "float" or node.kind == "string"
+            or node.kind == "atom" or node.kind == "constructor" or node.kind == "primary"
+            -> [node.text];
+        node.kind == "identifier" -> [node.text];
+        node.kind == "field" -> [node.text];
+        true -> List.new[String]()
+    }.
+
+lower_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case values {
+        [] -> ChildrenPlan(next_id = next_id, results = List.new[String](), instructions = List.new[SemanticInstructionPlan]());
+        [value | rest] -> let lowered = lower_expression(value, next_id, facts, parameters);
+            let remaining = lower_children(rest, lowered.next_id, facts, parameters);
+            ChildrenPlan(next_id = remaining.next_id, results = [lowered.result | remaining.results], instructions = concat(lowered.instructions, remaining.instructions))
+    }.
+
+call_identity(callee: ProjectedExpressionNode): List[String] ->
+    if {
+        callee.kind == "field" -> case callee.children {
+            [base | _] -> [base.text, callee.text];
+            _ -> [callee.text]
+        };
+        true -> [callee.text]
+    }.
+
+call_opcode(callee: ProjectedExpressionNode): String ->
+    if { callee.kind == "field" -> "call-import"; true -> "call-local" }.
+
+lower_call_arguments(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case values {
+        [sequence] where sequence.kind == "sequence" or sequence.kind == "call-arguments" -> lower_children(
+            sequence.children,
+            next_id + 1,
+            facts,
+            parameters,
+        );
+        _ -> lower_children(values, next_id, facts, parameters)
+    }.
+
+lower_call(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [callee | arguments] -> let argument_start = node_id + 1 + node_size(callee);
+            let lowered = lower_call_arguments(arguments, argument_start, facts, parameters);
+            let result = register(node_id);
+            let instruction_result = some_string(result);
+            let resolved_type = expression_type(node, facts, parameters);
+            let operands = concat(call_identity(callee), lowered.results);
+            let instruction = SemanticInstructionPlan(
+                opcode = call_opcode(callee),
+                result = instruction_result,
+                operands = operands,
+                resolved_type = resolved_type,
+            );
+            let instructions = concat(lowered.instructions, [instruction]);
+            ExpressionPlan(
+                next_id = node_id + node_size(node),
+                result = result,
+                result_type = resolved_type,
+                instructions = instructions,
+            );
+        _ -> let result = register(node_id);
+            let instruction_result = some_string(result);
+            ExpressionPlan(next_id = node_id + node_size(node), result = result, result_type = None, instructions = [SemanticInstructionPlan(
+                opcode = "unsupported-call",
+                result = instruction_result,
+                operands = List.new[String](),
+                resolved_type = None,
+            )])
+    }.
+
+lower_let(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [pattern | [source | [continuation | fallback]]] ->
+            let source_id = node_id + 1 + node_size(pattern);
+            let lowered_source = lower_expression(source, source_id, facts, parameters);
+            let lowered_continuation = lower_expression(
+                continuation,
+                lowered_source.next_id,
+                facts,
+                parameters,
+            );
+            let lowered_fallback = lower_children(
+                fallback,
+                lowered_continuation.next_id,
+                facts,
+                parameters,
+            );
+            let binding = if {
+                pattern.kind == "binding-pattern" -> let binding_result = some_string(pattern.text);
+                    [SemanticInstructionPlan(
+                        opcode = "move",
+                        result = binding_result,
+                        operands = [lowered_source.result],
+                        resolved_type = resolved_or_dynamic(lowered_source.result_type),
+                    )];
+                true -> List.new[SemanticInstructionPlan]()
+            };
+            ExpressionPlan(next_id = node_id + node_size(node), result = lowered_continuation.result, result_type = expression_type(node, facts, parameters), instructions = concat(
+                    lowered_source.instructions,
+                    concat(
+                        binding,
+                        concat(lowered_continuation.instructions, lowered_fallback.instructions),
+                    ),
+                ));
+        _ -> ExpressionPlan(next_id = node_id + node_size(node), result = register(node_id), result_type = None, instructions = List.new[SemanticInstructionPlan]())
+    }.
+
+leaf_selection_value(node: ProjectedExpressionNode): Bool ->
+    node.kind == "integer"
+        or node.kind == "float"
+        or node.kind == "string"
+        or node.kind == "constructor"
+        or node.kind == "primary"
+        or node.kind == "identifier"
+        or node.kind == "atom".
+
+leaf_if_supported(node: ProjectedExpressionNode): Bool ->
+    case node.children {
+        [first, second] -> case first.children {
+            [_first_condition, first_body] -> case second.children {
+                [second_condition, second_body] ->
+                    second_condition.text == "true"
+                        and leaf_selection_value(first_body)
+                        and leaf_selection_value(second_body);
+                _ -> false
+            };
+            _ -> false
+        };
+        _ -> false
+    }.
+
+pure_selection_condition(node: ProjectedExpressionNode): Bool ->
+    if {
+        leaf_selection_value(node) -> true;
+        node.kind == "unary" -> case node.children {
+            [value] -> pure_selection_condition(value);
+            _ -> false
+        };
+        node.kind == "binary" -> case node.children {
+            [left, right] -> pure_selection_condition(left) and pure_selection_condition(right);
+            _ -> false
+        };
+        node.kind == "tuple-or-group" -> case node.children {
+            [value] -> pure_selection_condition(value);
+            _ -> false
+        };
+        true -> false
+    }.
+
+leaf_if_three_supported(node: ProjectedExpressionNode): Bool ->
+    case node.children {
+        [first, second, third] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] -> case third.children {
+                    [third_condition, third_body] ->
+                        third_condition.text == "true"
+                            and pure_selection_condition(first_condition)
+                            and pure_selection_condition(second_condition)
+                            and leaf_selection_value(first_body)
+                            and leaf_selection_value(second_body)
+                            and leaf_selection_value(third_body);
+                    _ -> false
+                };
+                _ -> false
+            };
+            _ -> false
+        };
+        _ -> false
+    }.
+
+leaf_if_chain_clauses_supported(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [clause] -> case clause.children {
+            [condition, body] -> condition.text == "true" and leaf_selection_value(body);
+            _ -> false
+        };
+        [clause | rest] -> case clause.children {
+            [condition, body] -> pure_selection_condition(condition)
+                and leaf_selection_value(body)
+                and leaf_if_chain_clauses_supported(rest);
+            _ -> false
+        }
+    }.
+
+leaf_if_long_supported(node: ProjectedExpressionNode): Bool ->
+    node.children.length() >= 4 and leaf_if_chain_clauses_supported(node.children).
+
+lower_leaf_if(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [first, second] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] ->
+                    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+                    let first_body_id = node_id + 2 + node_size(first_condition);
+                    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                    let second_id = node_id + 1 + node_size(first);
+                    let second_body_id = second_id + 1 + node_size(second_condition);
+                    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                    let result = register(node_id);
+                    let result_type = case {
+                        expression_type(first_body, facts, parameters),
+                        expression_type(second_body, facts, parameters),
+                    } {
+                        {Some(first_name), Some(second_name)} where first_name == second_name -> some_string(first_name);
+                        _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                    };
+                    ExpressionPlan(
+                        node_id + node_size(node),
+                        result,
+                        result_type,
+                        concat_instructions(
+                            first_condition_plan.instructions,
+                            concat_instructions(
+                                first_body_plan.instructions,
+                                concat_instructions(
+                                    second_body_plan.instructions,
+                                    [SemanticInstructionPlan(
+                                        "select",
+                                        some_string(result),
+                                        [first_condition_plan.result, first_body_plan.result, second_body_plan.result],
+                                        result_type,
+                                    )],
+                                ),
+                            ),
+                        ),
+                    );
+                _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+            };
+            _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+        };
+        _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+    }.
+
+lower_leaf_if_three(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [first, second, third] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] -> case third.children {
+                    [third_condition, third_body] ->
+                        let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+                        let first_body_id = node_id + 2 + node_size(first_condition);
+                        let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                        let second_id = node_id + 1 + node_size(first);
+                        let second_condition_id = second_id + 1;
+                        let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+                        let second_body_id = second_condition_id + node_size(second_condition);
+                        let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                        let third_id = second_id + node_size(second);
+                        let third_body_id = third_id + 1 + node_size(third_condition);
+                        let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+                        let tail_result = indexed_label("%leaf_if_tail_", node_id);
+                        let result = register(node_id);
+                        let tail_type = case {
+                            second_body_plan.result_type,
+                            third_body_plan.result_type,
+                        } {
+                            {Some(second_name), Some(third_name)} where second_name == third_name -> some_string(second_name);
+                            _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                        };
+                        let result_type = case {
+                            first_body_plan.result_type,
+                            tail_type,
+                        } {
+                            {Some(first_name), Some(tail_name)} where first_name == tail_name -> some_string(first_name);
+                            _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                        };
+                        ExpressionPlan(
+                            node_id + node_size(node),
+                            result,
+                            result_type,
+                            concat_instructions(
+                                first_condition_plan.instructions,
+                                concat_instructions(
+                                    first_body_plan.instructions,
+                                    concat_instructions(
+                                        second_condition_plan.instructions,
+                                        concat_instructions(
+                                            second_body_plan.instructions,
+                                            concat_instructions(
+                                                third_body_plan.instructions,
+                                                [SemanticInstructionPlan(
+                                                    "select",
+                                                    some_string(tail_result),
+                                                    [
+                                                        second_condition_plan.result,
+                                                        second_body_plan.result,
+                                                        third_body_plan.result,
+                                                    ],
+                                                    tail_type,
+                                                ), SemanticInstructionPlan(
+                                                    "select",
+                                                    some_string(result),
+                                                    [first_condition_plan.result, first_body_plan.result, tail_result],
+                                                    result_type,
+                                                )],
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        );
+                    _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+                };
+                _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+            };
+            _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+        };
+        _ -> ExpressionPlan(node_id + node_size(node), register(node_id), None, List.new[SemanticInstructionPlan]())
+    }.
+
+lower_leaf_if_clause_chain(
+    values: List[ProjectedExpressionNode],
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case values {
+        [clause] -> case clause.children {
+            [condition, body] ->
+                let body_id = clause_id + 1 + node_size(condition);
+                let body_plan = lower_expression(body, body_id, facts, parameters);
+                ExpressionPlan(
+                    clause_id + node_size(clause),
+                    body_plan.result,
+                    body_plan.result_type,
+                    body_plan.instructions,
+                );
+            _ -> ExpressionPlan(clause_id + node_size(clause), register(clause_id), None, List.new[SemanticInstructionPlan]())
+        };
+        [clause | rest] -> case clause.children {
+            [condition, body] ->
+                let condition_plan = lower_expression(condition, clause_id + 1, facts, parameters);
+                let body_id = clause_id + 1 + node_size(condition);
+                let body_plan = lower_expression(body, body_id, facts, parameters);
+                let tail_plan = lower_leaf_if_clause_chain(
+                    rest,
+                    clause_id + node_size(clause),
+                    facts,
+                    parameters,
+                );
+                let result = indexed_label("%leaf_if_clause_", clause_id);
+                let result_type = case {body_plan.result_type, tail_plan.result_type} {
+                    {Some(body_name), Some(tail_name)} where body_name == tail_name -> some_string(body_name);
+                    _ -> some_string("Dynamic")
+                };
+                ExpressionPlan(
+                    tail_plan.next_id,
+                    result,
+                    result_type,
+                    concat_instructions(
+                        condition_plan.instructions,
+                        concat_instructions(
+                            body_plan.instructions,
+                            concat_instructions(
+                                tail_plan.instructions,
+                                [SemanticInstructionPlan(
+                                    "select",
+                                    some_string(result),
+                                    [condition_plan.result, body_plan.result, tail_plan.result],
+                                    result_type,
+                                )],
+                            ),
+                        ),
+                    ),
+                );
+            _ -> ExpressionPlan(clause_id + node_size(clause), register(clause_id), None, List.new[SemanticInstructionPlan]())
+        };
+        [] -> ExpressionPlan(clause_id, register(clause_id), None, List.new[SemanticInstructionPlan]())
+    }.
+
+lower_leaf_if_long(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let lowered = lower_leaf_if_clause_chain(node.children, node_id + 1, facts, parameters);
+    ExpressionPlan(
+        node_id + node_size(node),
+        lowered.result,
+        lowered.result_type,
+        lowered.instructions,
+    ).
+
+lower_expression(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "call" -> lower_call(node, node_id, facts, parameters);
+        node.kind == "let" or node.kind == "let-refutable" -> lower_let(
+            node,
+            node_id,
+            facts,
+            parameters,
+        );
+        node.kind == "if" and leaf_if_supported(node) -> lower_leaf_if(
+            node,
+            node_id,
+            facts,
+            parameters,
+        );
+        node.kind == "if" and leaf_if_three_supported(node) -> lower_leaf_if_three(
+            node,
+            node_id,
+            facts,
+            parameters,
+        );
+        node.kind == "if" and leaf_if_long_supported(node) -> lower_leaf_if_long(
+            node,
+            node_id,
+            facts,
+            parameters,
+        );
+        true -> let children = lower_children(node.children, node_id + 1, facts, parameters);
+            let structural = node.kind == "sequence" or node.kind == "call-arguments"
+                or node.kind == "named-argument"
+                or (node.kind == "tuple-or-group" and node.children.length() == 1);
+            let result = if { structural -> last_string(children.results); true -> register(node_id) };
+            let result_type = expression_type(node, facts, parameters);
+            let instruction_result = some_string(result);
+            let operands = concat(literal_operands(node), children.results);
+            let instructions = if {
+                structural -> children.instructions;
+                true -> concat(children.instructions, [SemanticInstructionPlan(
+                    opcode = node_opcode(node),
+                    result = instruction_result,
+                    operands = operands,
+                    resolved_type = result_type,
+                )])
+            };
+            ExpressionPlan(next_id = node_id + node_size(node), result = result, result_type = result_type, instructions = instructions)
+    }.
+
+parameter(value: ParameterSyntax): IrParameter ->
+    IrParameter(
+        value.name,
+        if {
+            value.has_annotation and value.annotation.valid -> value.annotation.syntax.text;
+            true -> "Dynamic"
+        },
+    ).
+
+resolved_return(declared: String, inferred: Option[String]): Option[String] ->
+    if {
+        declared == "" -> resolved_or_dynamic(inferred);
+        true -> some_string(declared)
+    }.
+
+body_for(name: String, values: List[ProjectedBody]): Option[ProjectedBody] ->
+    case values {
+        [] -> None;
+        [value | rest] -> let direct = String.append(name, "(");
+            let qualified = String.append(" ", direct);
+            if {
+            String.starts_with(value.declaration_head, direct)
+                or String.contains(value.declaration_head, qualified) -> Some(value);
+            true -> body_for(name, rest)
+        }
+    }.
+
+nested_if_result_type(
+    source: ProjectedExpressionNode,
+    first: ExpressionPlan,
+    second: ExpressionPlan,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    case {first.result_type, second.result_type} {
+        {Some(first_name), Some(second_name)} where first_name == second_name -> some_string(first_name);
+        _ -> resolved_or_dynamic(expression_type(source, facts, parameters))
+    }.
+
+nested_if_cfg(
+    pattern: ProjectedExpressionNode,
+    result: String,
+    result_type: Option[String],
+    entry_instructions: List[SemanticInstructionPlan],
+    first_condition: ExpressionPlan,
+    first_body: ExpressionPlan,
+    second_condition: ExpressionPlan,
+    second_body: ExpressionPlan,
+    continuation: ExpressionPlan,
+): List[SemanticBlockPlan] ->
+    [SemanticBlockPlan(
+        "entry",
+        concat_instructions(entry_instructions, first_condition.instructions),
+        SemanticTerminatorPlan(
+            "branch",
+            [first_condition.result],
+            ["nested_if_body_0", "nested_if_condition_1"],
+        ),
+    ), SemanticBlockPlan(
+        "nested_if_body_0",
+        first_body.instructions,
+        SemanticTerminatorPlan("jump", List.new[String](), ["nested_if_join"]),
+    ), SemanticBlockPlan(
+        "nested_if_condition_1",
+        second_condition.instructions,
+        SemanticTerminatorPlan(
+            "branch",
+            [second_condition.result],
+            ["nested_if_body_1", "nested_if_unreachable"],
+        ),
+    ), SemanticBlockPlan(
+        "nested_if_body_1",
+        second_body.instructions,
+        SemanticTerminatorPlan("jump", List.new[String](), ["nested_if_join"]),
+    ), SemanticBlockPlan(
+        "nested_if_unreachable",
+        List.new[SemanticInstructionPlan](),
+        SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+    ), SemanticBlockPlan(
+        "nested_if_join",
+        concat_instructions(
+            [SemanticInstructionPlan(
+                "phi",
+                some_string(result),
+                ["nested_if_body_0", first_body.result, "nested_if_body_1", second_body.result],
+                result_type,
+            ), SemanticInstructionPlan(
+                "move",
+                some_string(pattern.text),
+                [result],
+                result_type,
+            )],
+            continuation.instructions,
+        ),
+        SemanticTerminatorPlan("return", [continuation.result], List.new[String]()),
+    )].
+
+nested_let_if_two(
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let first_condition_plan = lower_expression(first_condition, source_id + 2, facts, parameters);
+    let first_body_plan = lower_expression(
+        first_body,
+        source_id + 2 + node_size(first_condition),
+        facts,
+        parameters,
+    );
+    let second_id = source_id + 1 + node_size(first);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_plan = lower_expression(
+        second_body,
+        second_condition_id + node_size(second_condition),
+        facts,
+        parameters,
+    );
+    let continuation_plan = lower_expression(
+        continuation,
+        source_id + node_size(source),
+        facts,
+        parameters,
+    );
+    let result_type = nested_if_result_type(
+        source,
+        first_body_plan,
+        second_body_plan,
+        facts,
+        parameters,
+    );
+    nested_if_cfg(
+        pattern,
+        register(source_id),
+        result_type,
+        entry_instructions,
+        first_condition_plan,
+        first_body_plan,
+        second_condition_plan,
+        second_body_plan,
+        continuation_plan,
+    ).
+
+linear_binding(
+    pattern: ProjectedExpressionNode,
+    source: ExpressionPlan,
+): List[SemanticInstructionPlan] ->
+    if {
+        pattern.kind == "binding-pattern" -> [SemanticInstructionPlan(
+            "move",
+            some_string(pattern.text),
+            [source.result],
+            resolved_or_dynamic(source.result_type),
+        )];
+        true -> List.new[SemanticInstructionPlan]()
+    }.
+
+nested_let_if_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case node.children {
+        [pattern, source, continuation] where node.kind == "let"
+            and pattern.kind == "binding-pattern" ->
+            if {
+                source.kind == "if" -> case source.children {
+                [first, second] -> case first.children {
+                    [first_condition, first_body] -> case second.children {
+                        [second_condition, second_body] -> Some(nested_let_if_two(
+                            node_id,
+                            entry_instructions,
+                            pattern,
+                            source,
+                            continuation,
+                            first,
+                            second,
+                            first_condition,
+                            first_body,
+                            second_condition,
+                            second_body,
+                            facts,
+                            parameters,
+                        ));
+                        _ -> None
+                    };
+                    _ -> None
+                };
+                _ -> None
+                };
+                true ->
+                    let source_id = node_id + 1 + node_size(pattern);
+                    let source_plan = lower_expression(source, source_id, facts, parameters);
+                    let next_instructions = concat_instructions(
+                        entry_instructions,
+                        concat_instructions(
+                            source_plan.instructions,
+                            linear_binding(pattern, source_plan),
+                        ),
+                    );
+                    nested_let_if_at(
+                        continuation,
+                        source_id + node_size(source),
+                        next_instructions,
+                        facts,
+                        parameters,
+                    )
+            };
+        _ -> None
+    }.
+
+nested_let_if_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    nested_let_if_at(
+        node,
+        0,
+        List.new[SemanticInstructionPlan](),
+        facts,
+        parameters,
+    ).
+
+struct EmbeddedBranchPlan {
+    blocks: List[SemanticBlockPlan],
+    result: String,
+    exit_label: String,
+}.
+
+constructor EmbeddedBranchPlan {
+    (blocks: List[SemanticBlockPlan], result: String, exit_label: String): EmbeddedBranchPlan ->
+        EmbeddedBranchPlan {
+            blocks: blocks,
+            result: result,
+            exit_label: exit_label,
+        }
+}.
+
+embedded_label(prefix: String, suffix: String): String ->
+    String.append(prefix, suffix).
+
+embedded_if_two_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [first, second] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] ->
+                    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+                    let first_body_id = node_id + 2 + node_size(first_condition);
+                    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                    let second_id = node_id + 1 + node_size(first);
+                    let second_condition_id = second_id + 1;
+                    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+                    let second_body_id = second_condition_id + node_size(second_condition);
+                    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                    let first_body_label = embedded_label(label_prefix, "body_0");
+                    let second_condition_label = embedded_label(label_prefix, "condition_1");
+                    let second_body_label = embedded_label(label_prefix, "body_1");
+                    let unreachable_label = embedded_label(label_prefix, "unreachable");
+                    let join_label = embedded_label(label_prefix, "join");
+                    let result = register(node_id);
+                    let result_type = case {first_body_plan.result_type, second_body_plan.result_type} {
+                        {Some(first_name), Some(second_name)} where first_name == second_name -> some_string(first_name);
+                        _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                    };
+                    Some(EmbeddedBranchPlan([
+                        SemanticBlockPlan(
+                            entry_label,
+                            concat_instructions(entry_instructions, first_condition_plan.instructions),
+                            SemanticTerminatorPlan(
+                                "branch",
+                                [first_condition_plan.result],
+                                [first_body_label, second_condition_label],
+                            ),
+                        ),
+                        SemanticBlockPlan(
+                            first_body_label,
+                            first_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                        ),
+                        SemanticBlockPlan(
+                            second_condition_label,
+                            second_condition_plan.instructions,
+                            SemanticTerminatorPlan(
+                                "branch",
+                                [second_condition_plan.result],
+                                [second_body_label, unreachable_label],
+                            ),
+                        ),
+                        SemanticBlockPlan(
+                            second_body_label,
+                            second_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                        ),
+                        SemanticBlockPlan(
+                            unreachable_label,
+                            List.new[SemanticInstructionPlan](),
+                            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                        ),
+                        SemanticBlockPlan(
+                            join_label,
+                            [SemanticInstructionPlan(
+                                "phi",
+                                some_string(result),
+                                [first_body_label, first_body_plan.result, second_body_label, second_body_plan.result],
+                                result_type,
+                            )],
+                            SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                        ),
+                    ], result, join_label));
+                _ -> None
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+embedded_if_three_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [first, second, third] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] -> case third.children {
+                    [third_condition, third_body] ->
+                        let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+                        let first_body_id = node_id + 2 + node_size(first_condition);
+                        let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                        let second_id = node_id + 1 + node_size(first);
+                        let second_condition_id = second_id + 1;
+                        let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+                        let second_body_id = second_condition_id + node_size(second_condition);
+                        let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                        let third_id = second_id + node_size(second);
+                        let third_condition_id = third_id + 1;
+                        let third_condition_plan = lower_expression(third_condition, third_condition_id, facts, parameters);
+                        let third_body_id = third_condition_id + node_size(third_condition);
+                        let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+                        let first_body_label = embedded_label(label_prefix, "body_0");
+                        let second_condition_label = embedded_label(label_prefix, "condition_1");
+                        let second_body_label = embedded_label(label_prefix, "body_1");
+                        let third_condition_label = embedded_label(label_prefix, "condition_2");
+                        let third_body_label = embedded_label(label_prefix, "body_2");
+                        let unreachable_label = embedded_label(label_prefix, "unreachable");
+                        let join_label = embedded_label(label_prefix, "join");
+                        let result = register(node_id);
+                        let result_type = case {
+                            first_body_plan.result_type,
+                            second_body_plan.result_type,
+                            third_body_plan.result_type,
+                        } {
+                            {Some(first_name), Some(second_name), Some(third_name)}
+                                where first_name == second_name and first_name == third_name -> some_string(first_name);
+                            _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                        };
+                        Some(EmbeddedBranchPlan([
+                            SemanticBlockPlan(
+                                entry_label,
+                                concat_instructions(entry_instructions, first_condition_plan.instructions),
+                                SemanticTerminatorPlan(
+                                    "branch",
+                                    [first_condition_plan.result],
+                                    [first_body_label, second_condition_label],
+                                ),
+                            ),
+                            SemanticBlockPlan(
+                                first_body_label,
+                                first_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                            ),
+                            SemanticBlockPlan(
+                                second_condition_label,
+                                second_condition_plan.instructions,
+                                SemanticTerminatorPlan(
+                                    "branch",
+                                    [second_condition_plan.result],
+                                    [second_body_label, third_condition_label],
+                                ),
+                            ),
+                            SemanticBlockPlan(
+                                second_body_label,
+                                second_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                            ),
+                            SemanticBlockPlan(
+                                third_condition_label,
+                                third_condition_plan.instructions,
+                                SemanticTerminatorPlan(
+                                    "branch",
+                                    [third_condition_plan.result],
+                                    [third_body_label, unreachable_label],
+                                ),
+                            ),
+                            SemanticBlockPlan(
+                                third_body_label,
+                                third_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                            ),
+                            SemanticBlockPlan(
+                                unreachable_label,
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ),
+                            SemanticBlockPlan(
+                                join_label,
+                                [SemanticInstructionPlan(
+                                    "phi",
+                                    some_string(result),
+                                    [
+                                        first_body_label,
+                                        first_body_plan.result,
+                                        second_body_label,
+                                        second_body_plan.result,
+                                        third_body_label,
+                                        third_body_plan.result,
+                                    ],
+                                    result_type,
+                                )],
+                                SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                            ),
+                        ], result, join_label));
+                    _ -> None
+                };
+                _ -> None
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+embedded_if_four_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [first, second, third, fourth] -> case first.children {
+            [first_condition, first_body] -> case second.children {
+                [second_condition, second_body] -> case third.children {
+                    [third_condition, third_body] -> case fourth.children {
+                        [fourth_condition, fourth_body] ->
+                            let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+                            let first_body_id = node_id + 2 + node_size(first_condition);
+                            let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                            let second_id = node_id + 1 + node_size(first);
+                            let second_condition_id = second_id + 1;
+                            let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+                            let second_body_id = second_condition_id + node_size(second_condition);
+                            let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                            let third_id = second_id + node_size(second);
+                            let third_condition_id = third_id + 1;
+                            let third_condition_plan = lower_expression(third_condition, third_condition_id, facts, parameters);
+                            let third_body_id = third_condition_id + node_size(third_condition);
+                            let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+                            let fourth_id = third_id + node_size(third);
+                            let fourth_condition_id = fourth_id + 1;
+                            let fourth_condition_plan = lower_expression(fourth_condition, fourth_condition_id, facts, parameters);
+                            let fourth_body_id = fourth_condition_id + node_size(fourth_condition);
+                            let fourth_body_plan = lower_expression(fourth_body, fourth_body_id, facts, parameters);
+                            let first_body_label = embedded_label(label_prefix, "body_0");
+                            let second_condition_label = embedded_label(label_prefix, "condition_1");
+                            let second_body_label = embedded_label(label_prefix, "body_1");
+                            let third_condition_label = embedded_label(label_prefix, "condition_2");
+                            let third_body_label = embedded_label(label_prefix, "body_2");
+                            let fourth_condition_label = embedded_label(label_prefix, "condition_3");
+                            let fourth_body_label = embedded_label(label_prefix, "body_3");
+                            let unreachable_label = embedded_label(label_prefix, "unreachable");
+                            let join_label = embedded_label(label_prefix, "join");
+                            let result = register(node_id);
+                            let result_type = case {
+                                first_body_plan.result_type,
+                                second_body_plan.result_type,
+                                third_body_plan.result_type,
+                                fourth_body_plan.result_type,
+                            } {
+                                {Some(first_name), Some(second_name), Some(third_name), Some(fourth_name)}
+                                    where first_name == second_name
+                                        and first_name == third_name
+                                        and first_name == fourth_name -> some_string(first_name);
+                                _ -> resolved_or_dynamic(expression_type(node, facts, parameters))
+                            };
+                            Some(EmbeddedBranchPlan([
+                                SemanticBlockPlan(
+                                    entry_label,
+                                    concat_instructions(entry_instructions, first_condition_plan.instructions),
+                                    SemanticTerminatorPlan(
+                                        "branch",
+                                        [first_condition_plan.result],
+                                        [first_body_label, second_condition_label],
+                                    ),
+                                ),
+                                SemanticBlockPlan(
+                                    first_body_label,
+                                    first_body_plan.instructions,
+                                    SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                                ),
+                                SemanticBlockPlan(
+                                    second_condition_label,
+                                    second_condition_plan.instructions,
+                                    SemanticTerminatorPlan(
+                                        "branch",
+                                        [second_condition_plan.result],
+                                        [second_body_label, third_condition_label],
+                                    ),
+                                ),
+                                SemanticBlockPlan(
+                                    second_body_label,
+                                    second_body_plan.instructions,
+                                    SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                                ),
+                                SemanticBlockPlan(
+                                    third_condition_label,
+                                    third_condition_plan.instructions,
+                                    SemanticTerminatorPlan(
+                                        "branch",
+                                        [third_condition_plan.result],
+                                        [third_body_label, fourth_condition_label],
+                                    ),
+                                ),
+                                SemanticBlockPlan(
+                                    third_body_label,
+                                    third_body_plan.instructions,
+                                    SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                                ),
+                                SemanticBlockPlan(
+                                    fourth_condition_label,
+                                    fourth_condition_plan.instructions,
+                                    SemanticTerminatorPlan(
+                                        "branch",
+                                        [fourth_condition_plan.result],
+                                        [fourth_body_label, unreachable_label],
+                                    ),
+                                ),
+                                SemanticBlockPlan(
+                                    fourth_body_label,
+                                    fourth_body_plan.instructions,
+                                    SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+                                ),
+                                SemanticBlockPlan(
+                                    unreachable_label,
+                                    List.new[SemanticInstructionPlan](),
+                                    SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                                ),
+                                SemanticBlockPlan(
+                                    join_label,
+                                    [SemanticInstructionPlan(
+                                        "phi",
+                                        some_string(result),
+                                        [
+                                            first_body_label,
+                                            first_body_plan.result,
+                                            second_body_label,
+                                            second_body_plan.result,
+                                            third_body_label,
+                                            third_body_plan.result,
+                                            fourth_body_label,
+                                            fourth_body_plan.result,
+                                        ],
+                                        result_type,
+                                    )],
+                                    SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                                ),
+                            ], result, join_label));
+                        _ -> None
+                    };
+                    _ -> None
+                };
+                _ -> None
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+embedded_if_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [pattern, source, continuation] where node.kind == "let"
+            and pattern.kind == "binding-pattern" ->
+            let source_id = node_id + 1 + node_size(pattern);
+            let source_plan = lower_expression(source, source_id, facts, parameters);
+            embedded_if_at(
+                continuation,
+                source_id + node_size(source),
+                entry_label,
+                label_prefix,
+                concat_instructions(
+                    entry_instructions,
+                    concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+                ),
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> if {
+            node.kind == "if" and node.children.length() == 2 -> embedded_if_two_direct(
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+            node.kind == "if" and node.children.length() == 3 -> embedded_if_three_direct(
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+            node.kind == "if" and node.children.length() == 4 -> embedded_if_four_direct(
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+            true -> None
+        }
+    }.
+
+root_embedded_if_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case embedded_if_at(
+        node,
+        0,
+        "entry",
+        "root_if_",
+        List.new[SemanticInstructionPlan](),
+        "root_return",
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> Some(concat(
+            embedded.blocks,
+            [SemanticBlockPlan(
+                "root_return",
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("return", [embedded.result], List.new[String]()),
+            )],
+        ));
+        None -> None
+    }.
+
+root_case_two_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    return_name: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case node.children {
+        [subject, first, second] -> case first.children {
+            [first_pattern, first_body] -> case second.children {
+                [second_pattern, second_body] ->
+                    let subject_plan = lower_expression(subject, node_id + 1, facts, parameters);
+                    let first_id = node_id + 1 + node_size(subject);
+                    let first_body_id = first_id + 1 + node_size(first_pattern);
+                    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+                    let second_id = first_id + node_size(first);
+                    let second_body_id = second_id + 1 + node_size(second_pattern);
+                    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+                    let first_environment = "%root_case_environment_0";
+                    let second_environment = "%root_case_environment_1";
+                    let first_match = "%root_case_match_0";
+                    let second_match = "%root_case_match_1";
+                    let first_supported = shallow_pattern_supported(first_pattern);
+                    let second_supported = shallow_pattern_supported(second_pattern);
+                    let first_prepare = SemanticInstructionPlan(
+                        "prepare-pattern",
+                        some_string(first_environment),
+                        shallow_pattern_operands(subject_plan.result, first_pattern),
+                        some_string("PatternMatch"),
+                    );
+                    let second_prepare = SemanticInstructionPlan(
+                        "prepare-pattern",
+                        some_string(second_environment),
+                        shallow_pattern_operands(subject_plan.result, second_pattern),
+                        some_string("PatternMatch"),
+                    );
+                    let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
+                    let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+                    let second_embedded = embedded_if_at(
+                        second_body,
+                        second_body_id,
+                        "root_case_body_1",
+                        "root_case_body_1_if_",
+                        second_bindings,
+                        "root_case_join",
+                        facts,
+                        parameters,
+                    );
+                    let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                    if {
+                        first_supported and second_supported -> case second_embedded {
+                            Some(embedded) -> Some(concat(
+                                [SemanticBlockPlan(
+                                    "entry",
+                                    concat_instructions(entry_instructions, subject_plan.instructions),
+                                    SemanticTerminatorPlan("jump", List.new[String](), ["root_case_pattern_0"]),
+                                ), SemanticBlockPlan(
+                                    "root_case_pattern_0",
+                                    [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                    SemanticTerminatorPlan("branch", [first_match], ["root_case_body_0", "root_case_pattern_1"]),
+                                ), SemanticBlockPlan(
+                                    "root_case_body_0",
+                                    concat_instructions(first_bindings, first_body_plan.instructions),
+                                    SemanticTerminatorPlan("jump", List.new[String](), ["root_case_join"]),
+                                ), SemanticBlockPlan(
+                                    "root_case_pattern_1",
+                                    [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                    SemanticTerminatorPlan("branch", [second_match], ["root_case_body_1", "root_case_unreachable"]),
+                                )],
+                                concat(
+                                    embedded.blocks,
+                                    [SemanticBlockPlan(
+                                        "root_case_unreachable",
+                                        List.new[SemanticInstructionPlan](),
+                                        SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                                    ), SemanticBlockPlan(
+                                        "root_case_join",
+                                        [SemanticInstructionPlan(
+                                            "phi",
+                                            some_string("%root_case_result"),
+                                            ["root_case_body_0", first_body_plan.result, embedded.exit_label, embedded.result],
+                                            some_string(phi_type),
+                                        )],
+                                        SemanticTerminatorPlan("return", ["%root_case_result"], List.new[String]()),
+                                    )],
+                                ),
+                            ));
+                            None -> Some([SemanticBlockPlan(
+                                "entry",
+                                concat_instructions(entry_instructions, subject_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["root_case_pattern_0"]),
+                            ), SemanticBlockPlan(
+                                "root_case_pattern_0",
+                                [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [first_match], ["root_case_body_0", "root_case_pattern_1"]),
+                            ), SemanticBlockPlan(
+                                "root_case_body_0",
+                                concat_instructions(first_bindings, first_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["root_case_join"]),
+                            ), SemanticBlockPlan(
+                                "root_case_pattern_1",
+                                [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [second_match], ["root_case_body_1", "root_case_unreachable"]),
+                            ), SemanticBlockPlan(
+                                "root_case_body_1",
+                                concat_instructions(second_bindings, second_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["root_case_join"]),
+                            ), SemanticBlockPlan(
+                                "root_case_unreachable",
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ), SemanticBlockPlan(
+                                "root_case_join",
+                                [SemanticInstructionPlan(
+                                    "phi",
+                                    some_string("%root_case_result"),
+                                    ["root_case_body_0", first_body_plan.result, "root_case_body_1", second_body_plan.result],
+                                    some_string(phi_type),
+                                )],
+                                SemanticTerminatorPlan("return", ["%root_case_result"], List.new[String]()),
+                            )])
+                        };
+                        true -> None
+                    };
+                _ -> None
+            };
+            _ -> None
+        };
+        _ -> None
+    }.
+
+root_case_two_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    return_name: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case node.children {
+        [pattern, source, continuation] where node.kind == "let"
+            and pattern.kind == "binding-pattern" ->
+            let source_id = node_id + 1 + node_size(pattern);
+            let source_plan = lower_expression(source, source_id, facts, parameters);
+            root_case_two_at(
+                continuation,
+                source_id + node_size(source),
+                concat_instructions(
+                    entry_instructions,
+                    concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+                ),
+                return_name,
+                facts,
+                parameters,
+            );
+        _ -> if {
+            node.kind == "case" -> root_case_two_direct(
+                node,
+                node_id,
+                entry_instructions,
+                return_name,
+                facts,
+                parameters,
+            );
+            true -> None
+        }
+    }.
+
+function_plan(
+    module_name: String,
+    declaration: BackendDeclaration,
+    body: ProjectedBody,
+    facts: List[InferredTypeFact],
+): Option[SemanticFunctionPlan] ->
+    case {declaration.payload, body.expression.node} {
+        {FunctionPayload(function), Some(node)} ->
+            let params = ir_parameters(function.typed_parameters);
+            let expression = lower_expression(node, 0, facts, params);
+            let return_name = if { function.return_type.valid -> function.return_type.syntax.text; true -> "" };
+            let linear_blocks = [SemanticBlockPlan(
+                    label = "entry",
+                    instructions = expression.instructions,
+                    terminator = SemanticTerminatorPlan(
+                        opcode = "return",
+                        operands = [expression.result],
+                        targets = List.new[String](),
+                    ),
+                )];
+            let root_blocks = case node.children {
+                [first, second] where node.kind == "if" -> case first.children {
+                    [first_condition, first_body] -> case second.children {
+                        [second_condition, second_body] ->
+                        let first_condition_plan = lower_expression(first_condition, 2, facts, params);
+                        let first_body_id = 2 + node_size(first_condition);
+                        let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                        let second_id = 1 + node_size(first);
+                        let second_condition_id = second_id + 1;
+                        let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, params);
+                        let second_body_id = second_condition_id + node_size(second_condition);
+                        let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                        let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                        [SemanticBlockPlan(
+                            "entry",
+                            first_condition_plan.instructions,
+                            SemanticTerminatorPlan("branch", [first_condition_plan.result], ["if_body_0", "if_condition_1"]),
+                        ), SemanticBlockPlan(
+                            "if_body_0",
+                            first_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                        ), SemanticBlockPlan(
+                            "if_condition_1",
+                            second_condition_plan.instructions,
+                            SemanticTerminatorPlan("branch", [second_condition_plan.result], ["if_body_1", "if_unreachable"]),
+                        ), SemanticBlockPlan(
+                            "if_body_1",
+                            second_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                        ), SemanticBlockPlan(
+                            "if_unreachable",
+                            List.new[SemanticInstructionPlan](),
+                            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                        ), SemanticBlockPlan(
+                            "if_join",
+                            [SemanticInstructionPlan("phi", some_string("%if_result"), ["if_body_0", first_body_plan.result, "if_body_1", second_body_plan.result], some_string(phi_type))],
+                            SemanticTerminatorPlan("return", ["%if_result"], List.new[String]()),
+                        )];
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                [first, second, third] where node.kind == "if" -> case first.children {
+                    [first_condition, first_body] -> case second.children {
+                        [second_condition, second_body] -> case third.children {
+                            [third_condition, third_body] ->
+                            let first_condition_plan = lower_expression(first_condition, 2, facts, params);
+                            let first_body_id = 2 + node_size(first_condition);
+                            let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                            let second_id = 1 + node_size(first);
+                            let second_condition_id = second_id + 1;
+                            let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, params);
+                            let second_body_id = second_condition_id + node_size(second_condition);
+                            let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                            let third_id = second_id + node_size(second);
+                            let third_condition_id = third_id + 1;
+                            let third_condition_plan = lower_expression(third_condition, third_condition_id, facts, params);
+                            let third_body_id = third_condition_id + node_size(third_condition);
+                            let third_body_plan = lower_expression(third_body, third_body_id, facts, params);
+                            let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                            [SemanticBlockPlan(
+                                "entry",
+                                first_condition_plan.instructions,
+                                SemanticTerminatorPlan("branch", [first_condition_plan.result], ["if_body_0", "if_condition_1"]),
+                            ), SemanticBlockPlan(
+                                "if_body_0",
+                                first_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                            ), SemanticBlockPlan(
+                                "if_condition_1",
+                                second_condition_plan.instructions,
+                                SemanticTerminatorPlan("branch", [second_condition_plan.result], ["if_body_1", "if_condition_2"]),
+                            ), SemanticBlockPlan(
+                                "if_body_1",
+                                second_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                            ), SemanticBlockPlan(
+                                "if_condition_2",
+                                third_condition_plan.instructions,
+                                SemanticTerminatorPlan("branch", [third_condition_plan.result], ["if_body_2", "if_unreachable"]),
+                            ), SemanticBlockPlan(
+                                "if_body_2",
+                                third_body_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                            ), SemanticBlockPlan(
+                                "if_unreachable",
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ), SemanticBlockPlan(
+                                "if_join",
+                                [SemanticInstructionPlan(
+                                    "phi",
+                                    some_string("%if_result"),
+                                    ["if_body_0", first_body_plan.result, "if_body_1", second_body_plan.result, "if_body_2", third_body_plan.result],
+                                    some_string(phi_type),
+                                )],
+                                SemanticTerminatorPlan("return", ["%if_result"], List.new[String]()),
+                            )];
+                            _ -> linear_blocks
+                        };
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                [subject, first, second] where node.kind == "case" -> case first.children {
+                    [first_pattern, first_body] -> case second.children {
+                        [second_pattern, second_body] ->
+                            let subject_plan = lower_expression(subject, 1, facts, params);
+                            let first_id = 1 + node_size(subject);
+                            let first_body_id = first_id + 1 + node_size(first_pattern);
+                            let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                            let second_id = first_id + node_size(first);
+                            let second_body_id = second_id + 1 + node_size(second_pattern);
+                            let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                            let first_environment = "%case_environment_0";
+                            let second_environment = "%case_environment_1";
+                            let first_match = "%case_match_0";
+                            let second_match = "%case_match_1";
+                            let first_supported = shallow_pattern_supported(first_pattern);
+                            let second_supported = shallow_pattern_supported(second_pattern);
+                            let first_operands = shallow_pattern_operands(subject_plan.result, first_pattern);
+                            let second_operands = shallow_pattern_operands(subject_plan.result, second_pattern);
+                            let first_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(first_environment),
+                                first_operands,
+                                some_string("PatternMatch"),
+                            );
+                            let second_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(second_environment),
+                                second_operands,
+                                some_string("PatternMatch"),
+                            );
+                            let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
+                            let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+                            let second_embedded = embedded_if_at(
+                                second_body,
+                                second_body_id,
+                                "case_body_1",
+                                "case_body_1_if_",
+                                second_bindings,
+                                "case_join",
+                                facts,
+                                params,
+                            );
+                            let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                            if {
+                                first_supported and second_supported -> case second_embedded {
+                                Some(embedded) -> concat(
+                                    [SemanticBlockPlan(
+                                        "entry",
+                                        subject_plan.instructions,
+                                        SemanticTerminatorPlan("jump", List.new[String](), ["case_pattern_0"]),
+                                    ), SemanticBlockPlan(
+                                        "case_pattern_0",
+                                        [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                        SemanticTerminatorPlan("branch", [first_match], ["case_body_0", "case_pattern_1"]),
+                                    ), SemanticBlockPlan(
+                                        "case_body_0",
+                                        concat_instructions(first_bindings, first_body_plan.instructions),
+                                        SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                                    ), SemanticBlockPlan(
+                                        "case_pattern_1",
+                                        [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                        SemanticTerminatorPlan("branch", [second_match], ["case_body_1", "case_unreachable"]),
+                                    )],
+                                    concat(
+                                        embedded.blocks,
+                                        [SemanticBlockPlan(
+                                            "case_unreachable",
+                                            List.new[SemanticInstructionPlan](),
+                                            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                                        ), SemanticBlockPlan(
+                                            "case_join",
+                                            [SemanticInstructionPlan(
+                                                "phi",
+                                                some_string("%case_result"),
+                                                ["case_body_0", first_body_plan.result, embedded.exit_label, embedded.result],
+                                                some_string(phi_type),
+                                            )],
+                                            SemanticTerminatorPlan("return", ["%case_result"], List.new[String]()),
+                                        )],
+                                    ),
+                                );
+                                None -> [SemanticBlockPlan(
+                                "entry",
+                                subject_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_pattern_0"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_0",
+                                [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [first_match], ["case_body_0", "case_pattern_1"]),
+                            ), SemanticBlockPlan(
+                                "case_body_0",
+                                concat_instructions(first_bindings, first_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_1",
+                                [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [second_match], ["case_body_1", "case_unreachable"]),
+                            ), SemanticBlockPlan(
+                                "case_body_1",
+                                concat_instructions(second_bindings, second_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_unreachable",
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ), SemanticBlockPlan(
+                                "case_join",
+                                [SemanticInstructionPlan("phi", some_string("%case_result"), ["case_body_0", first_body_plan.result, "case_body_1", second_body_plan.result], some_string(phi_type))],
+                                SemanticTerminatorPlan("return", ["%case_result"], List.new[String]()),
+                            )]
+                                };
+                                true -> linear_blocks
+                            };
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                [subject, first, second, third] where node.kind == "case" -> case first.children {
+                    [first_pattern, first_body] -> case second.children {
+                        [second_pattern, second_body] -> case third.children {
+                            [third_pattern, third_body] ->
+                            let subject_plan = lower_expression(subject, 1, facts, params);
+                            let first_id = 1 + node_size(subject);
+                            let first_body_id = first_id + 1 + node_size(first_pattern);
+                            let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                            let second_id = first_id + node_size(first);
+                            let second_body_id = second_id + 1 + node_size(second_pattern);
+                            let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                            let third_id = second_id + node_size(second);
+                            let third_body_id = third_id + 1 + node_size(third_pattern);
+                            let third_body_plan = lower_expression(third_body, third_body_id, facts, params);
+                            let first_environment = "%case_environment_0";
+                            let second_environment = "%case_environment_1";
+                            let third_environment = "%case_environment_2";
+                            let first_match = "%case_match_0";
+                            let second_match = "%case_match_1";
+                            let third_match = "%case_match_2";
+                            let first_supported = shallow_pattern_supported(first_pattern);
+                            let second_supported = shallow_pattern_supported(second_pattern);
+                            let third_supported = shallow_pattern_supported(third_pattern);
+                            let first_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(first_environment),
+                                shallow_pattern_operands(subject_plan.result, first_pattern),
+                                some_string("PatternMatch"),
+                            );
+                            let second_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(second_environment),
+                                shallow_pattern_operands(subject_plan.result, second_pattern),
+                                some_string("PatternMatch"),
+                            );
+                            let third_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(third_environment),
+                                shallow_pattern_operands(subject_plan.result, third_pattern),
+                                some_string("PatternMatch"),
+                            );
+                            let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
+                            let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+                            let third_bindings = shallow_pattern_bindings(third_pattern, third_environment);
+                            let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                            if {
+                                first_supported and second_supported and third_supported -> [SemanticBlockPlan(
+                                "entry",
+                                subject_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_pattern_0"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_0",
+                                [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [first_match], ["case_body_0", "case_pattern_1"]),
+                            ), SemanticBlockPlan(
+                                "case_body_0",
+                                concat_instructions(first_bindings, first_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_1",
+                                [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [second_match], ["case_body_1", "case_pattern_2"]),
+                            ), SemanticBlockPlan(
+                                "case_body_1",
+                                concat_instructions(second_bindings, second_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_2",
+                                [third_prepare, SemanticInstructionPlan("pattern-matched", some_string(third_match), [third_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [third_match], ["case_body_2", "case_unreachable"]),
+                            ), SemanticBlockPlan(
+                                "case_body_2",
+                                concat_instructions(third_bindings, third_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_unreachable",
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ), SemanticBlockPlan(
+                                "case_join",
+                                [SemanticInstructionPlan(
+                                    "phi",
+                                    some_string("%case_result"),
+                                    ["case_body_0", first_body_plan.result, "case_body_1", second_body_plan.result, "case_body_2", third_body_plan.result],
+                                    some_string(phi_type),
+                                )],
+                                SemanticTerminatorPlan("return", ["%case_result"], List.new[String]()),
+                            )];
+                                true -> linear_blocks
+                            };
+                            _ -> linear_blocks
+                        };
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                _ -> linear_blocks
+            };
+            let blocks = case nested_let_if_blocks(node, facts, params) {
+                Some(nested_blocks) -> nested_blocks;
+                None -> case root_embedded_if_blocks(node, facts, params) {
+                    Some(embedded_blocks) -> embedded_blocks;
+                    None -> case root_case_two_at(
+                        node,
+                        0,
+                        List.new[SemanticInstructionPlan](),
+                        return_name,
+                        facts,
+                        params,
+                    ) {
+                        Some(case_blocks) -> case_blocks;
+                        None -> root_blocks
+                    }
+                }
+            };
+            Some(SemanticFunctionPlan(
+                module_name = module_name,
+                name = declaration.symbol_name,
+                arity = parameter_count(params),
+                parameters = params,
+                resolved_return_type = if {
+                    function.return_type.valid -> resolved_return(
+                        function.return_type.syntax.text,
+                        expression.result_type,
+                    );
+                    true -> none_string()
+                },
+                blocks = blocks,
+                native_symbol = none_string(),
+            ));
+        {MethodPayload(method), Some(node)} ->
+            let params = [parameter(method.receiver) | ir_parameters(method.parameters)];
+            let method_arity = parameter_count(params);
+            let expression = lower_expression(node, 0, facts, params);
+            let resolved_return_type = if {
+                method.return_type.valid -> resolved_return(
+                    method.return_type.syntax.text,
+                    expression.result_type,
+                );
+                true -> none_string()
+            };
+            let return_name = if { method.return_type.valid -> method.return_type.syntax.text; true -> "" };
+            let linear_blocks = [SemanticBlockPlan(
+                    label = "entry",
+                    instructions = expression.instructions,
+                    terminator = SemanticTerminatorPlan(
+                        opcode = "return",
+                        operands = [expression.result],
+                        targets = List.new[String](),
+                    ),
+                )];
+            let root_blocks = case node.children {
+                [first, second] where node.kind == "if" -> case first.children {
+                    [first_condition, first_body] -> case second.children {
+                        [second_condition, second_body] ->
+                        let first_condition_plan = lower_expression(first_condition, 2, facts, params);
+                        let first_body_id = 2 + node_size(first_condition);
+                        let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                        let second_id = 1 + node_size(first);
+                        let second_condition_id = second_id + 1;
+                        let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, params);
+                        let second_body_id = second_condition_id + node_size(second_condition);
+                        let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                        let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                        [SemanticBlockPlan(
+                            "entry",
+                            first_condition_plan.instructions,
+                            SemanticTerminatorPlan("branch", [first_condition_plan.result], ["if_body_0", "if_condition_1"]),
+                        ), SemanticBlockPlan(
+                            "if_body_0",
+                            first_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                        ), SemanticBlockPlan(
+                            "if_condition_1",
+                            second_condition_plan.instructions,
+                            SemanticTerminatorPlan("branch", [second_condition_plan.result], ["if_body_1", "if_unreachable"]),
+                        ), SemanticBlockPlan(
+                            "if_body_1",
+                            second_body_plan.instructions,
+                            SemanticTerminatorPlan("jump", List.new[String](), ["if_join"]),
+                        ), SemanticBlockPlan(
+                            "if_unreachable",
+                            List.new[SemanticInstructionPlan](),
+                            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                        ), SemanticBlockPlan(
+                            "if_join",
+                            [SemanticInstructionPlan("phi", some_string("%if_result"), ["if_body_0", first_body_plan.result, "if_body_1", second_body_plan.result], some_string(phi_type))],
+                            SemanticTerminatorPlan("return", ["%if_result"], List.new[String]()),
+                        )];
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                [subject, first, second] where node.kind == "case" -> case first.children {
+                        [first_pattern, first_body] -> case second.children {
+                            [second_pattern, second_body] ->
+                            let subject_plan = lower_expression(subject, 1, facts, params);
+                            let first_id = 1 + node_size(subject);
+                            let first_body_id = first_id + 1 + node_size(first_pattern);
+                            let first_body_plan = lower_expression(first_body, first_body_id, facts, params);
+                            let second_id = first_id + node_size(first);
+                            let second_body_id = second_id + 1 + node_size(second_pattern);
+                            let second_body_plan = lower_expression(second_body, second_body_id, facts, params);
+                            let first_environment = "%case_environment_0";
+                            let second_environment = "%case_environment_1";
+                            let first_match = "%case_match_0";
+                            let second_match = "%case_match_1";
+                            let first_supported = shallow_pattern_supported(first_pattern);
+                            let second_supported = shallow_pattern_supported(second_pattern);
+                            let first_operands = shallow_pattern_operands(subject_plan.result, first_pattern);
+                            let second_operands = shallow_pattern_operands(subject_plan.result, second_pattern);
+                            let first_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(first_environment),
+                                first_operands,
+                                some_string("PatternMatch"),
+                            );
+                            let second_prepare = SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(second_environment),
+                                second_operands,
+                                some_string("PatternMatch"),
+                            );
+                            let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
+                            let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+                            let phi_type = if { return_name == "" -> "Dynamic"; true -> return_name };
+                            if {
+                                first_supported and second_supported -> [SemanticBlockPlan(
+                                "entry",
+                                subject_plan.instructions,
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_pattern_0"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_0",
+                                [first_prepare, SemanticInstructionPlan("pattern-matched", some_string(first_match), [first_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [first_match], ["case_body_0", "case_pattern_1"]),
+                            ), SemanticBlockPlan(
+                                "case_body_0",
+                                concat_instructions(first_bindings, first_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_pattern_1",
+                                [second_prepare, SemanticInstructionPlan("pattern-matched", some_string(second_match), [second_environment], some_string("Bool"))],
+                                SemanticTerminatorPlan("branch", [second_match], ["case_body_1", "case_unreachable"]),
+                            ), SemanticBlockPlan(
+                                "case_body_1",
+                                concat_instructions(second_bindings, second_body_plan.instructions),
+                                SemanticTerminatorPlan("jump", List.new[String](), ["case_join"]),
+                            ), SemanticBlockPlan(
+                                "case_unreachable",
+                                List.new[SemanticInstructionPlan](),
+                                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                            ), SemanticBlockPlan(
+                                "case_join",
+                                [SemanticInstructionPlan("phi", some_string("%case_result"), ["case_body_0", first_body_plan.result, "case_body_1", second_body_plan.result], some_string(phi_type))],
+                                SemanticTerminatorPlan("return", ["%case_result"], List.new[String]()),
+                            )];
+                                true -> linear_blocks
+                            };
+                        _ -> linear_blocks
+                    };
+                    _ -> linear_blocks
+                };
+                _ -> linear_blocks
+            };
+            let blocks = case nested_let_if_blocks(node, facts, params) {
+                Some(nested_blocks) -> nested_blocks;
+                None -> case root_embedded_if_blocks(node, facts, params) {
+                    Some(embedded_blocks) -> embedded_blocks;
+                    None -> case root_case_two_at(
+                        node,
+                        0,
+                        List.new[SemanticInstructionPlan](),
+                        return_name,
+                        facts,
+                        params,
+                    ) {
+                        Some(case_blocks) -> case_blocks;
+                        None -> root_blocks
+                    }
+                }
+            };
+            Some(SemanticFunctionPlan(
+                module_name,
+                declaration.symbol_name,
+                method_arity,
+                params,
+                resolved_return_type,
+                blocks,
+                none_string(),
+            ));
+        _ -> None
+    }.
+
+plans(
+    module_name: String,
+    declarations: List[BackendDeclaration],
+    bodies: List[ProjectedBody],
+    facts: List[InferredTypeFact],
+): List[SemanticFunctionPlan] ->
+    case declarations {
+        [] -> List.new[SemanticFunctionPlan]();
+        [declaration | rest] -> case body_for(declaration.symbol_name, bodies) {
+            Some(body) -> case function_plan(module_name, declaration, body, facts) {
+                Some(plan) -> [plan | plans(module_name, rest, bodies, facts)];
+                None -> plans(module_name, rest, bodies, facts)
+            };
+            None -> plans(module_name, rest, bodies, facts)
+        }
+    }.
+
+pub lower(
+    frontend: ProjectedFrontendModule,
+    semantics: LocalSemanticResult,
+): SemanticModulePlan ->
+    SemanticModulePlan(
+        name = frontend.backend.module_name,
+        functions = plans(
+            frontend.backend.module_name,
+            frontend.backend.declarations,
+            frontend.bodies.values,
+            semantics.types.facts,
+        ),
+    ).

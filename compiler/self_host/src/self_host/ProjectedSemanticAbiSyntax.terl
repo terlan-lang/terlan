@@ -1,0 +1,30 @@
+/** Native handoff retaining projected semantic evidence. */
+module self_host.ProjectedSemanticAbiSyntax.
+
+import self_host.ProjectedBackendAbiSyntax.{ProjectedBackendAbiModule}.
+import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypeDiagnostic}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeDiagnostic}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedSemanticAbiModule {
+    schema: String,
+    valid: Bool,
+    frontend: ProjectedBackendAbiModule,
+    type_diagnostics: List[ProjectedTypeDiagnostic],
+    expression_diagnostics: List[ProjectedExpressionTypeDiagnostic],
+}.
+
+pub constructor ProjectedSemanticAbiModule {
+    (schema: String, valid: Bool, frontend: ProjectedBackendAbiModule, type_diagnostics: List[ProjectedTypeDiagnostic], expression_diagnostics: List[ProjectedExpressionTypeDiagnostic]): ProjectedSemanticAbiModule ->
+        ProjectedSemanticAbiModule {
+            schema: schema,
+            valid: valid,
+            frontend: frontend,
+            type_diagnostics: type_diagnostics,
+            expression_diagnostics: expression_diagnostics,
+        }
+}.
+

@@ -64,7 +64,12 @@ pub(super) fn validate_managed_collections(
     }
     for layout in layouts {
         let decoded = decode_collection_layout(&layout.encoded_layout).map_err(|error| {
-            collection_error(format!("error[tvm.image.managed_collection]: {error}"))
+            collection_error(format!(
+                "error[tvm.image.managed_collection]: {error}; semantic={:?}; bytes={}; prefix={:02x?}",
+                layout.semantic_id,
+                layout.encoded_layout.len(),
+                &layout.encoded_layout[..layout.encoded_layout.len().min(24)],
+            ))
         })?;
         if decoded.semantic_id().bytes() != layout.semantic_id {
             return Err(collection_error(
@@ -72,7 +77,15 @@ pub(super) fn validate_managed_collections(
             ));
         }
         let canonical = encode_collection_layout(&decoded).map_err(|error| {
-            collection_error(format!("error[tvm.image.managed_collection]: {error}"))
+            collection_error(format!(
+                "error[tvm.image.managed_collection]: {error}; canonical={}; kind={:?}; reference_variants={}",
+                decoded.canonical_type(),
+                decoded.kind(),
+                decoded
+                    .list_descriptor()
+                    .map(|list| list.reference_variants().len())
+                    .unwrap_or(0),
+            ))
         })?;
         if canonical != layout.encoded_layout {
             return Err(collection_error(

@@ -1,7 +1,9 @@
 //! Fixed-point analysis for native suspension and transition-frame sizing.
 
 use super::{NativeExpr, NativeModule};
-use crate::runtime::native_image::TVM_INDIRECT_TRANSITION_WORD_CAPACITY;
+use crate::runtime::native_image::{
+    TVM_COMPLETION_TRANSITION_WORD_CAPACITY, TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+};
 
 /// Computes which functions suspend and their maximum transition value count.
 pub(crate) fn suspension_profile(
@@ -43,27 +45,15 @@ pub(crate) fn suspension_profile(
         }
         transition_counts = next;
     }
-    let next = native
-        .functions
-        .iter()
-        .map(|function| suspension_value_count(&function.body, &transition_counts))
-        .collect::<Vec<_>>();
-    let growing = native
-        .functions
-        .iter()
-        .zip(transition_counts.iter().zip(next))
-        .filter(|(_function, (before, after))| after > *before)
-        .map(|(function, (before, after))| {
-            format!(
-                "{}.{}/{} ({before}->{after})",
-                native.name, function.name, function.arity
-            )
-        })
-        .collect::<Vec<_>>();
-    Err(format!(
-        "error[cranelift.unbounded_completion_stack]: suspension frame sizing did not converge; a non-tail recursive call retains an unbounded caller stack: {}",
-        growing.join(", ")
-    ).into())
+    Ok((
+        suspending.clone(),
+        suspending
+            .iter()
+            .map(|suspends| {
+                usize::from(*suspends).saturating_mul(TVM_COMPLETION_TRANSITION_WORD_CAPACITY)
+            })
+            .collect(),
+    ))
 }
 
 /// Gives every fused tail-component entry the capacity required by its widest

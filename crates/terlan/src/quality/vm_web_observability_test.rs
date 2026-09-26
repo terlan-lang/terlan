@@ -117,9 +117,10 @@ process_registry mailboxes reductions resource_handles native_call_state
 "#,
         )?;
         self.write(
-            "crates/terlan/src/benchmark/http_runtime_lane.rs",
+            "crates/terlan/src/benchmark/http_aot_performance.rs",
             r#"
-terlan-vm-http-runtime http_runtime RuntimeCapabilityStatus::Available
+HttpPerformanceReport p50_ns p95_ns p99_ns
+throughput_requests_per_second process_memory_snapshot
 "#,
         )?;
         self.write("Makefile", COMPLETE_MAKEFILE)

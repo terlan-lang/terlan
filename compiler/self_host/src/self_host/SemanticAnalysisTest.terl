@@ -1,0 +1,24 @@
+/** Positive and negative semantic-analysis contracts. */
+module self_host.SemanticAnalysisTest.
+
+import self_host.CompilerPipeline.
+
+@pure
+positive_module(): Bool ->
+    CompilerPipeline.analyze(
+        "module demo.Semantic.\nconst answer: Int = 42.\nvalue(x: Int): Int -> x.\n",
+    ).valid.
+
+@pure
+duplicate_module(): Bool ->
+    not CompilerPipeline.analyze(
+        "module demo.Semantic.\nstruct User { id: Int }.\ntype User = Int.\n",
+    ).valid.
+
+@pure
+duplicate_callable(): Bool ->
+    not CompilerPipeline.analyze(
+        "module demo.Semantic.\nvalue(x: Int): Int -> x.\nvalue(x: Int): Int -> x.\n",
+    ).valid.
+
+pub self_test(): Bool -> positive_module() and duplicate_module() and duplicate_callable().

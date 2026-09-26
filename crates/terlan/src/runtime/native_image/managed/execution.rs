@@ -1,9 +1,10 @@
 //! Owner-scoped managed execution context for generated native calls.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::ffi::c_void;
 use std::num::NonZeroUsize;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::runtime::native_image::{
@@ -25,7 +26,10 @@ mod actor_transfer;
 pub(crate) use actor_transfer::ManagedActorTransfer;
 #[path = "execution/abi_types.rs"]
 mod abi_types;
-use abi_types::{managed_semantic_id, reference_word, ManagedAllocator, ManagedClosureResolver};
+use abi_types::{
+    managed_semantic_id, reference_word, ManagedAllocator, ManagedCallableRecorder,
+    ManagedClosureResolver,
+};
 #[path = "execution/hibernation.rs"]
 mod hibernation;
 #[path = "execution/owner_heaps.rs"]
@@ -63,6 +67,12 @@ pub(crate) struct ManagedExecutionRuntime {
     http_sessions: Option<VmHttpSessionService>,
     /// Last synchronous allocator diagnostic retained across the C ABI return.
     last_allocation_error: Option<String>,
+    /// Whether generated callable-entry probes should retain stable identities.
+    callable_coverage_enabled: bool,
+    /// Stable callable identities observed while coverage collection is active.
+    covered_callables: BTreeSet<u64>,
+    /// Optional append-only cross-process coverage stream selected by the caller.
+    callable_coverage_file: Option<PathBuf>,
 }
 
 /// Byte offset read by generated backedges to observe actor-heap pressure.
@@ -118,6 +128,9 @@ impl ManagedExecutionRuntime {
     pub(crate) fn runtime_default() -> Result<Self, String> {
         let limits = HeapLimits::new(DEFAULT_SOFT_HEAP_BYTES, DEFAULT_HARD_HEAP_BYTES)
             .map_err(|error| format!("error[managed_execution.limits]: {error}"))?;
+        let callable_coverage_file = std::env::var_os("TERLAN_CALLABLE_COVERAGE_FILE")
+            .filter(|path| !path.is_empty())
+            .map(PathBuf::from);
         Ok(Self {
             limits,
             layouts: Arc::new(ManagedLayoutRegistry::default()),
@@ -128,6 +141,9 @@ impl ManagedExecutionRuntime {
             next_mailbox_fragment_id: 0,
             http_sessions: None,
             last_allocation_error: None,
+            callable_coverage_enabled: callable_coverage_file.is_some(),
+            covered_callables: BTreeSet::new(),
+            callable_coverage_file,
         })
     }
 
@@ -212,6 +228,30 @@ impl ManagedExecutionRuntime {
             next_mailbox_fragment_id: 0,
             http_sessions: self.http_sessions.clone(),
             last_allocation_error: None,
+            callable_coverage_enabled: self.callable_coverage_file.is_some(),
+            covered_callables: BTreeSet::new(),
+            callable_coverage_file: self.callable_coverage_file.clone(),
+        }
+    }
+
+    /// Starts a fresh callable-coverage interval for this execution shard.
+    pub(crate) fn start_callable_coverage(&mut self) {
+        self.covered_callables.clear();
+        self.callable_coverage_enabled = true;
+    }
+
+    /// Stops coverage collection and returns the exact executed callable identities.
+    pub(crate) fn finish_callable_coverage(&mut self) -> BTreeSet<u64> {
+        self.callable_coverage_enabled = false;
+        std::mem::take(&mut self.covered_callables)
+    }
+
+    /// Returns the optional callback passed into generated native entries.
+    pub(crate) fn callable_coverage_callback(&self) -> *const c_void {
+        if self.callable_coverage_enabled {
+            callbacks::managed_record_callable as ManagedCallableRecorder as *const c_void
+        } else {
+            std::ptr::null()
         }
     }
 
@@ -909,19 +949,22 @@ fn managed_allocate_inner(
                                 .and_then(|bytes| <[u8; 16]>::try_from(bytes).ok())
                                 .unwrap_or_default();
                             let expected = super::SemanticTypeId::from_bytes(expected_bytes);
-                            let actual = fields.first().and_then(|word| {
-                                usize::try_from(u64::from_ne_bytes(word.to_ne_bytes()))
+                            let actual = fields.first().map(|word| {
+                                let encoded = u64::from_ne_bytes(word.to_ne_bytes());
+                                let resolved = usize::try_from(encoded)
                                     .ok()
                                     .and_then(NonZeroUsize::new)
-                                    .and_then(|word| {
-                                        heap.descriptor(TvmRef::<()>::from_encoded(word)).ok()
+                                    .ok_or(super::ManagedMemoryError::UnknownReference)
+                                    .and_then(|encoded| {
+                                        heap.descriptor(TvmRef::<()>::from_encoded(encoded))
                                     })
                                     .map(|descriptor| {
                                         (
                                             descriptor.semantic_id().bytes(),
                                             descriptor.fingerprint(),
                                         )
-                                    })
+                                    });
+                                (encoded, resolved)
                             });
                             let admitted = layouts
                                 .layouts(expected)
@@ -945,7 +988,13 @@ fn managed_allocate_inner(
             } else {
                 heap.allocate_managed_words_abi(layout, fields)
                     .map_err(|error| {
-                        let context = super::decode_aggregate_layout(layout)
+                        let (heap_owner, heap_token, latest_retired_token) =
+                            heap.diagnostic_identity();
+                        let reference_tokens = fields
+                            .iter()
+                            .map(|word| u64::from_ne_bytes(word.to_ne_bytes()) >> 32)
+                            .collect::<Vec<_>>();
+                        let layout_context = super::decode_aggregate_layout(layout)
                             .ok()
                             .map(|descriptor| {
                                 let supplied = descriptor
@@ -962,7 +1011,10 @@ fn managed_allocate_inner(
                                 )
                             })
                             .unwrap_or_default();
-                        format!("{error}{context}")
+                        format!(
+                            "{error}{layout_context}; dispatch owner {}, heap owner {heap_owner}, heap token {heap_token}, latest retired token {latest_retired_token:?}, supplied upper words {reference_tokens:?}",
+                            context.owner_id
+                        )
                     })
             }
         })

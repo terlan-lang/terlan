@@ -169,6 +169,7 @@ pub(super) fn lower_prepared_call(
                 )
             }
         };
+    contextualize_constructor_prefix(&mut region, constructors);
     contextualize_comparison_prefix(&mut region, result_core_type.as_ref());
     let call_ordinal = *ordinal;
     *ordinal = ordinal.saturating_add(1);
@@ -474,5 +475,64 @@ fn contextualize_comparison_prefix(region: &mut CallRegion, result_type: Option<
             expr: Box::new(binding.value.clone()),
             target_type: result_type.clone(),
         };
+    }
+}
+
+/// Restores checked constructor-field types on values materialized before a
+/// later argument suspends. Without this context a captured `Some(value)`, for
+/// example, retains its narrow variant semantic instead of the declared
+/// `Option[T]` field representation of the surrounding record.
+fn contextualize_constructor_prefix(
+    region: &mut CallRegion,
+    constructors: &super::super::constructors::NativeConstructorLayouts,
+) {
+    let constructor = match &region.resume {
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+        } => Some((constructor, constructor_identity.as_ref(), args)),
+        CoreExpr::Cast { expr, .. } => match expr.as_ref() {
+            CoreExpr::ConstructorCall {
+                constructor,
+                constructor_identity,
+                args,
+            } => Some((constructor, constructor_identity.as_ref(), args)),
+            _ => None,
+        },
+        _ => None,
+    };
+    let Some((constructor, constructor_identity, args)) = constructor else {
+        return;
+    };
+    let layout = constructor_identity
+        .and_then(|identity| constructors.get(&(identity.clone(), args.len())))
+        .or_else(|| constructors.get(&(constructor.clone(), args.len())))
+        .or_else(|| {
+            let mut candidates = constructors.iter().filter(|((identity, arity), _)| {
+                *arity == args.len() && identity.rsplit('.').next() == Some(constructor.as_str())
+            });
+            let (_, first) = candidates.next()?;
+            candidates.next().is_none().then_some(first)
+        });
+    let Some(layout) = layout else {
+        return;
+    };
+    for (argument, expected) in args.iter().zip(&layout.parameter_core_types) {
+        let (CoreExpr::Var(name), Some(expected)) = (argument, expected) else {
+            continue;
+        };
+        let Some(binding) = region.prefix.iter_mut().find(|binding| {
+            matches!(&binding.pattern, crate::terlan_typeck::CorePattern::Var(bound) if bound == name)
+        }) else {
+            continue;
+        };
+        if !matches!(&binding.value, CoreExpr::Cast { target_type, .. } if target_type == expected)
+        {
+            binding.value = CoreExpr::Cast {
+                expr: Box::new(binding.value.clone()),
+                target_type: expected.clone(),
+            };
+        }
     }
 }

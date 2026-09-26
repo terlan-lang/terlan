@@ -1,0 +1,36 @@
+/** Stable evidence combining callable identities with expression-tree validity. */
+module self_host.ProjectedBodyEvidence.
+
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+@pure
+row(value: ProjectedBody): String ->
+    String.concat([
+        value.declaration_head,
+        "\t",
+        Int.to_string(value.span.start_byte),
+        "\t",
+        Int.to_string(value.span.end_byte),
+        "\t",
+        if { value.expression.valid -> "valid"; true -> "invalid" },
+        "\t",
+        Int.to_string(String.byte_size(value.expression.message)),
+        "\t",
+        value.expression.message,
+        "\n",
+    ]).
+
+@pure
+rows(values: List[ProjectedBody]): String ->
+    case values { [] -> ""; [value | rest] -> String.append(row(value), rows(rest)) }.
+
+@pure
+pub document(value: ProjectedBodies): String ->
+    String.concat([
+        "schema terlan.self-host.projected-bodies/v1\nvalid\t",
+        if { value.valid -> "true"; true -> "false" },
+        "\nhead\tstart\tend\tstatus\tmessage_bytes\tmessage\n",
+        rows(value.values),
+    ]).

@@ -1,0 +1,146 @@
+/** Conservatively checks known projected expression results against signatures. */
+module self_host.ProjectedExpressionTypecheck.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedExpressionTypecheckSyntax.{InferredProjectedType, ProjectedExpressionTypeDiagnostic, ProjectedExpressionTypecheck}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+
+
+import std.collections.List.
+import std.core.{Float, Int, String}.
+
+
+@pure
+known(name: String): InferredProjectedType -> InferredProjectedType(true, name).
+
+@pure
+unknown(): InferredProjectedType -> InferredProjectedType(false, "").
+
+@pure
+type_name(value: Option[ProjectedTypeNode]): String ->
+    case value { Some(node) -> node.text; None -> "" }.
+
+@pure
+last_inferred(values: List[ProjectedExpressionNode]): InferredProjectedType ->
+    case values {
+        [] -> unknown();
+        [value] -> infer(value);
+        [_ | rest] -> last_inferred(rest)
+    }.
+
+@pure
+clause_result(value: ProjectedExpressionNode): InferredProjectedType ->
+    if {
+        value.kind == "clause" -> last_inferred(value.children);
+        true -> infer(value)
+    }.
+
+@pure
+merge_branches(values: List[ProjectedExpressionNode], current: InferredProjectedType): InferredProjectedType ->
+    case values {
+        [] -> current;
+        [value | rest] ->
+            let branch = clause_result(value);
+            let next = if {
+                not current.known -> branch;
+                not branch.known -> current;
+                current.name == branch.name -> current;
+                true -> unknown()
+            };
+            merge_branches(rest, next)
+    }.
+
+@pure
+primitive(text: String): InferredProjectedType ->
+    let integer = case Int.from_string(text) { Some(_value) -> true; None -> false };
+    let floating = case Float.from_string(text) { Some(_value) -> true; None -> false };
+    if {
+        text == "true" or text == "false" -> known("Bool");
+        String.starts_with(text, "\"") -> known("String");
+        integer -> known("Int");
+        floating -> known("Float");
+        true -> unknown()
+    }.
+
+@pure
+binary(value: ProjectedExpressionNode): InferredProjectedType ->
+    case value.children {
+        [left_node, right_node] ->
+            let left = infer(left_node);
+            let right = infer(right_node);
+            if {
+                value.text == "==" or value.text == "!=" or value.text == "<" or value.text == ">" or value.text == "<=" or value.text == ">=" or value.text == "in" -> known("Bool");
+                value.text == "and" or value.text == "or" -> known("Bool");
+                value.text == "|>" -> right;
+                left.known and right.known and left.name == right.name -> left;
+                true -> unknown()
+            };
+        _ -> unknown()
+    }.
+
+/** Infers a result only when the projected tree provides sufficient local evidence. */
+@pure
+pub infer(value: ProjectedExpressionNode): InferredProjectedType ->
+    if {
+        value.kind == "primary" -> primitive(value.text);
+        value.kind == "html-raw-block" -> known("Html");
+        value.kind == "binary" -> binary(value);
+        value.kind == "cast" -> known(value.text);
+        value.kind == "unary" and (value.text == "not" or value.text == "!") -> known("Bool");
+        value.kind == "unary" -> last_inferred(value.children);
+        value.kind == "sequence" or value.kind == "let" or value.kind == "let-refutable" -> last_inferred(value.children);
+        value.kind == "if" -> merge_branches(value.children, unknown());
+        value.kind == "case" -> case value.children {
+            [_subject | clauses] -> merge_branches(clauses, unknown());
+            _ -> unknown()
+        };
+        value.kind == "try" -> unknown();
+        value.kind == "list" or value.kind == "list-cons" or value.kind == "list-comprehension" -> known("List");
+        true -> unknown()
+    }.
+
+@pure
+check_at(
+    signatures: List[ProjectedCallableSignature],
+    bodies: List[ProjectedBody],
+    output: List[ProjectedExpressionTypeDiagnostic],
+): List[ProjectedExpressionTypeDiagnostic] ->
+    case {signatures, bodies} {
+        {[], _} -> output;
+        {_, []} -> output;
+        {[signature | signature_rest], [body | body_rest]} ->
+            let expected = type_name(signature.return_type);
+            let actual = case body.expression.node {
+                Some(value) -> infer(value);
+                None -> unknown()
+            };
+            let next = if {
+                expected != "" and actual.known and expected != actual.name -> [ProjectedExpressionTypeDiagnostic(body.declaration_head, expected, actual.name, String.concat([
+                        "callable result type mismatch: expected ",
+                        expected,
+                        ", found ",
+                        actual.name,
+                    ])) | output];
+                true -> output
+            };
+            check_at(signature_rest, body_rest, next)
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+/** Checks every callable with a known projected result type. */
+@pure
+pub check(source: ProjectedFrontendModule): ProjectedExpressionTypecheck ->
+    let diagnostics = reverse_at(check_at(
+        source.signatures.callables,
+        source.bodies.values,
+        List.new[ProjectedExpressionTypeDiagnostic](),
+    ), List.new[ProjectedExpressionTypeDiagnostic]());
+    ProjectedExpressionTypecheck(source.valid and diagnostics == [], diagnostics).

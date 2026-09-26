@@ -1,0 +1,83 @@
+/** Executable producer for self-hosted Phase 2 syntax authority artifacts. */
+module self_host_syntax_evidence.Main.
+
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String}.
+import std.io.Console.{eprintln}.
+import std.io.File.{read_text, write_text}.
+import std.system.Arguments.{get}.
+import self_host.CanonicalLexer.
+import self_host.ConcreteSyntaxParser.
+import self_host.ConcreteSyntaxEvidence.
+import self_host.ParserErrorEvidence.
+import self_host.ProjectionAdapter.
+import self_host.ProjectedDeclarationLowering.
+import self_host.ProjectedBodyParser.
+import self_host.ProjectedFragmentEvidence.
+import self_host.ProjectedParityEvidence.
+import self_host.ProjectedParser.
+import self_host.ProjectedParserEvidence.
+import self_host.ProjectedSignatureParser.
+
+argument(index: Int): String ->
+    case get(index) { Some(value) -> value; None -> "" }.
+
+fail(message: String): Bool ->
+    let _printed = eprintln(message);
+    false.
+
+render(mode: String, source: String): Option[String] ->
+    let lexed = CanonicalLexer.lex(source);
+    let projected = ProjectionAdapter.rewrite(source, lexed.tokens);
+    if {
+        mode == "parity" -> let concrete = ConcreteSyntaxParser.parse(projected);
+            let surface = ProjectedParser.parse(source, projected);
+            let signatures = ProjectedSignatureParser.parse(projected, surface.declarations);
+            let bodies = ProjectedBodyParser.parse(projected, surface.declarations);
+            let valid = lexed.valid
+                and concrete.valid
+                and surface.valid
+                and signatures.valid
+                and bodies.valid;
+            case ProjectedParityEvidence.encode_surface_with_validity(
+                ProjectedDeclarationLowering.lower(surface),
+                valid,
+            ) {
+            Ok(text) -> Some(text);
+            Err(_reason) -> None
+        };
+        mode == "parser" -> Some(ProjectedParserEvidence.document(ProjectedParser.parse(source, projected)));
+        mode == "concrete" -> Some(ConcreteSyntaxEvidence.document(
+            ConcreteSyntaxParser.parse(ProjectionAdapter.concrete_tokens(lexed.tokens)),
+        ));
+        mode == "errors" -> let encoded = ParserErrorEvidence.encode(source, lexed.tokens);
+            case encoded {
+            Ok(text) -> Some(text);
+            Err(_reason) -> None
+        };
+        mode == "expression" or mode == "pattern" or mode == "type" ->
+            ProjectedFragmentEvidence.document(mode, source, lexed.valid, lexed.tokens);
+        true -> None
+    }.
+
+/** Reads one source path and writes its implementation-neutral syntax artifact. */
+pub main(): Bool ->
+    let mode = argument(0);
+    let source_path = argument(1);
+    let output_path = argument(2);
+    if {
+        mode == "" or source_path == "" or output_path == "" ->
+            fail("usage: syntax-evidence <mode> <source.terl> <output>");
+        true -> case read_text(source_path) {
+            Err(_reason) -> fail("self-host syntax evidence could not read source");
+            Ok(source) -> let rendered = render(mode, source);
+                case rendered {
+                None -> fail("self-host syntax evidence generation failed");
+                Some(text) -> case write_text(output_path, text) {
+                    Err(_reason) -> fail("self-host syntax evidence could not write artifact");
+                    Ok(_written) -> true
+                }
+            }
+        }
+    }.

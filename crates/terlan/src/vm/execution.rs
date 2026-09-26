@@ -23,66 +23,6 @@ pub(super) enum RunResultMode {
     Script,
 }
 
-pub(super) fn benchmark_http_handler(iterations: usize) -> Result<String, String> {
-    let _ = iterations;
-    Err(aot_cutover_error("HTTP handler benchmark"))
-}
-
-pub(super) fn benchmark_http_stack(iterations: usize) -> Result<String, String> {
-    let _ = iterations;
-    Err(aot_cutover_error("HTTP stack benchmark"))
-}
-
-pub(super) fn benchmark_http_vm_stream(
-    iterations: usize,
-    payload_bytes: usize,
-    requests_per_connection: usize,
-    request_mix: BenchmarkHttpRequestMix,
-) -> Result<String, String> {
-    let _ = (
-        iterations,
-        payload_bytes,
-        requests_per_connection,
-        request_mix,
-    );
-    Err(aot_cutover_error("HTTP VM-stream benchmark"))
-}
-
-pub(super) struct HttpSocketBenchmarkOptions {
-    pub(super) iterations: usize,
-    pub(super) concurrency: usize,
-    pub(super) queue_capacity: usize,
-    pub(super) warmup_requests: usize,
-    pub(super) handler_delay_ms: u64,
-    pub(super) requests_per_connection: usize,
-    pub(super) payload_bytes: usize,
-    pub(super) request_mix: BenchmarkHttpRequestMix,
-}
-
-pub(super) fn benchmark_http_socket(options: HttpSocketBenchmarkOptions) -> Result<String, String> {
-    let HttpSocketBenchmarkOptions {
-        iterations,
-        concurrency,
-        queue_capacity,
-        warmup_requests,
-        handler_delay_ms,
-        requests_per_connection,
-        payload_bytes,
-        request_mix,
-    } = options;
-    let _ = (
-        iterations,
-        concurrency,
-        queue_capacity,
-        warmup_requests,
-        handler_delay_ms,
-        requests_per_connection,
-        payload_bytes,
-        request_mix,
-    );
-    Err(aot_cutover_error("HTTP socket benchmark"))
-}
-
 pub(super) fn aot_cutover_error(surface: &str) -> String {
     format!(
         "error[vm.aot_required]: {surface} has no managed AOT implementation; runtime CoreIR interpretation has been removed"
@@ -125,7 +65,6 @@ pub(super) fn print_usage() {
     println!("terlan-vm package-image-metadata <file.tvm> --entry <function> [--package-path <relative.tvm>]");
     println!("terlan-vm validate-package <archive-or-install-root>");
     println!("terlan-vm support-bundle <file.tvm>");
-    println!("source execution and HTTP benchmarks require managed AOT support");
     println!("terlan-vm inspect processes|supervisors|resources|process <pid>");
     println!(
         "terlan-vm benchmark-in-memory-framing [--iterations <count>] [--payload-bytes <count>] [--workload roundtrip|truncated|malformed-length|invalid-utf8]"

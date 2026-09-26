@@ -1,0 +1,56 @@
+/** Self-hosted lowering for explicit export identities. */
+module self_host.ExportLowering.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExportSyntax.{ExportItemSyntax, ExportSyntax}.
+import self_host.Syntax.{ExportDeclaration}.
+
+import std.collections.List.
+import std.core.Int.
+import std.core.String.
+import self_host.Delimited.
+
+
+@pure
+item(source: String): ExportItemSyntax ->
+    let value = String.trim(source);
+    let slash = Delimited.top_level_byte(value, 47);
+    let arity = if { slash > 0 -> Int.from_string(String.trim(value.utf8_slice(slash + 1, value.byte_size() - slash - 1))); true -> None };
+    case arity {
+        Some(count) -> ExportItemSyntax(count >= 0, String.trim(value.utf8_slice(0, slash)), count, if { count >= 0 -> ""; true -> "export arity must be non-negative" });
+        None -> ExportItemSyntax(false, "", 0, "export item must use `name/arity`")
+    }.
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [""] -> List.new[String](); [value | rest] -> [value | drop_terminal_empty(rest)] }.
+
+@pure
+items_at(values: List[String]): List[ExportItemSyntax] ->
+    case values { [] -> List.new[ExportItemSyntax](); [value | rest] -> [item(value) | items_at(rest)] }.
+
+@pure
+all_valid(values: List[ExportItemSyntax]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_valid(rest) }.
+
+@pure
+first_error(values: List[ExportItemSyntax]): String ->
+    case values { [] -> ""; [value | rest] -> if { value.valid -> first_error(rest); true -> value.message } }.
+
+/** Lowers one canonical `export {name/arity, ...}.` declaration. */
+@pure
+pub lower(source: DeclarationSyntax): ExportSyntax ->
+    let text = String.trim(source.body);
+    let open = Delimited.top_level_byte(text, 123);
+    let body_valid = open >= 0 and String.ends_with(text, "}.");
+    let body = if { body_valid -> text.utf8_slice(open + 1, text.byte_size() - open - 3); true -> "" };
+    let items = if { body_valid -> items_at(drop_terminal_empty(Delimited.split_top_level(body, 44))); true -> List.new[ExportItemSyntax]() };
+    let supported = source.class == ExportDeclaration;
+    ExportSyntax(supported and body_valid and all_valid(items), items, source.span, if {
+            not supported -> "declaration is not an export";
+            not body_valid -> "export body is incomplete";
+            not all_valid(items) -> first_error(items);
+            true -> ""
+        }).

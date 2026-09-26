@@ -196,13 +196,16 @@ fn execute_resource_dispatch(
     if operation.starts_with("std.native.collections.vector.") {
         return dispatch_native_vector_with_resources(store, caller_process_id, operation, args);
     }
-    let decoded = decode_bridge_args(store, operation, args)?;
     if matches!(
         operation,
         "std.system.process.run"
             | "std.system.process.run_many"
             | "std.system.process.run_length_framed"
     ) {
+        let decoded = args
+            .iter()
+            .map(|argument| decode_process_bridge_value(operation, argument))
+            .collect::<Result<Vec<_>, _>>()?;
         let result = match operation {
             "std.system.process.run" => super::process::run_process(&decoded, cancellation)?,
             "std.system.process.run_many" => {
@@ -212,8 +215,50 @@ fn execute_resource_dispatch(
         };
         return encode_bridge_result(store, caller_process_id, result);
     }
+    let decoded = decode_bridge_args(store, operation, args)?;
     let result = dispatch(operation, &decoded)?;
     encode_bridge_result(store, caller_process_id, result)
+}
+
+/// Decodes the recursively owned records used by the bounded process API.
+/// Process requests contain string lists, optional working directories, and
+/// nested environment records; none of those values are opaque resources.
+fn decode_process_bridge_value(
+    operation: &str,
+    value: &NativeBoundaryBridgeValue,
+) -> Result<NativeBoundaryValue, DispatchError> {
+    match value {
+        NativeBoundaryBridgeValue::Unit => Ok(NativeBoundaryValue::Unit),
+        NativeBoundaryBridgeValue::Text(value) => Ok(NativeBoundaryValue::Text(value.clone())),
+        NativeBoundaryBridgeValue::Bytes(value) => Ok(NativeBoundaryValue::Bytes(value.clone())),
+        NativeBoundaryBridgeValue::Int(value) => Ok(NativeBoundaryValue::Int(*value)),
+        NativeBoundaryBridgeValue::Float(value) => Ok(NativeBoundaryValue::Float(*value)),
+        NativeBoundaryBridgeValue::Bool(value) => Ok(NativeBoundaryValue::Bool(*value)),
+        NativeBoundaryBridgeValue::Atom(value) => Ok(NativeBoundaryValue::Atom(value.clone())),
+        NativeBoundaryBridgeValue::OptionalText(value) => {
+            Ok(NativeBoundaryValue::OptionalText(value.clone()))
+        }
+        NativeBoundaryBridgeValue::Record { name, fields } => Ok(NativeBoundaryValue::Record {
+            name: name.clone(),
+            fields: fields
+                .iter()
+                .map(|(name, value)| {
+                    decode_process_bridge_value(operation, value).map(|value| (name.clone(), value))
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        }),
+        NativeBoundaryBridgeValue::List(values) => Ok(NativeBoundaryValue::List(
+            values
+                .iter()
+                .map(|value| decode_process_bridge_value(operation, value))
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
+        NativeBoundaryBridgeValue::Handle(_)
+        | NativeBoundaryBridgeValue::OptionalHandle(_)
+        | NativeBoundaryBridgeValue::PostgresConfig(_) => {
+            Err(type_error(operation, 0, "owned process request value"))
+        }
+    }
 }
 
 /// Extends one JSON array while both resources remain VM-owned.

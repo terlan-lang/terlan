@@ -1,0 +1,44 @@
+/** Surface syntax produced directly from projected canonical tokens. */
+module self_host.ProjectedParserSyntax.
+
+import self_host.Syntax.{DeclarationClass, SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedSurfaceDeclaration {
+    class: DeclarationClass,
+    text: String,
+    span: SyntaxSpan,
+    is_public: Bool,
+}.
+
+pub constructor ProjectedSurfaceDeclaration {
+    (class: DeclarationClass, text: String, span: SyntaxSpan, is_public: Bool): ProjectedSurfaceDeclaration ->
+        ProjectedSurfaceDeclaration {
+            class: class,
+            text: text,
+            span: span,
+            is_public: is_public,
+        }
+}.
+
+
+pub struct ProjectedSurfaceModule {
+    valid: Bool,
+    name: String,
+    declarations: List[self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration],
+    message: String,
+}.
+
+pub constructor ProjectedSurfaceModule {
+    (valid: Bool, name: String, declarations: List[self_host.ProjectedParserSyntax.ProjectedSurfaceDeclaration], message: String): ProjectedSurfaceModule ->
+        ProjectedSurfaceModule {
+            valid: valid,
+            name: name,
+            declarations: declarations,
+            message: message,
+        }
+}.
+

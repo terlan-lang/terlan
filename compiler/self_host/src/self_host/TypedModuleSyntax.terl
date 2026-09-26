@@ -1,0 +1,111 @@
+/** Unified typed declaration handoff for the self-hosted frontend. */
+module self_host.TypedModuleSyntax.
+
+import self_host.AnnotationSchemaSyntax.{AnnotationSchemaSyntax}.
+import self_host.ConfigSyntax.{ConfigSyntax}.
+import self_host.ConstructorSyntax.{ConstructorSyntax}.
+import self_host.DeclarationMetadataSyntax.{AnnotationUse}.
+import self_host.DeclarationPayloadSyntax.{ConstantSyntax, StructSyntax, TypeDeclarationSyntax}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExportSyntax.{ExportSyntax}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.ImportSyntax.{ImportSyntax}.
+import self_host.MethodSyntax.{MethodSyntax}.
+import self_host.NativeSyntax.{NativeSyntax}.
+import self_host.ShapeSyntax.{ShapeSyntax}.
+import self_host.Syntax.{DeclarationClass, ParseError, SyntaxSpan}.
+import self_host.TemplateSyntax.{TemplateSyntax}.
+import self_host.TraitImplSyntax.{TraitImplSyntax}.
+import self_host.TraitSyntax.{TraitSyntax}.
+import self_host.ValuedUnionSyntax.{ValuedUnionSyntax}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub type ImportPayload = {Atom["import_payload"], value: ImportSyntax}.
+pub type ConfigPayload = {Atom["config_payload"], value: ConfigSyntax}.
+pub type AnnotationSchemaPayload = {Atom["annotation_schema_payload"], value: AnnotationSchemaSyntax}.
+pub type ExportPayload = {Atom["export_payload"], value: ExportSyntax}.
+pub type ConstantPayload = {Atom["constant_payload"], value: ConstantSyntax}.
+pub type FunctionPayload = {Atom["function_payload"], value: FunctionSyntax}.
+pub type TypePayload = {Atom["type_payload"], value: TypeDeclarationSyntax}.
+pub type ValuedUnionPayload = {Atom["valued_union_payload"], value: ValuedUnionSyntax}.
+pub type StructPayload = {Atom["struct_payload"], value: StructSyntax}.
+pub type ConstructorPayload = {Atom["constructor_payload"], value: ConstructorSyntax}.
+pub type MethodPayload = {Atom["method_payload"], value: MethodSyntax}.
+pub type NativePayload = {Atom["native_payload"], value: NativeSyntax}.
+pub type TraitPayload = {Atom["trait_payload"], value: TraitSyntax}.
+pub type TraitImplPayload = {Atom["trait_impl_payload"], value: TraitImplSyntax}.
+pub type TemplatePayload = {Atom["template_payload"], value: TemplateSyntax}.
+pub type ShapePayload = {Atom["shape_payload"], value: ShapeSyntax}.
+pub type UnsupportedPayload = {Atom["unsupported_payload"], value: DeclarationSyntax}.
+
+pub type TypedDeclarationPayload =
+    ImportPayload
+    | ConfigPayload
+    | AnnotationSchemaPayload
+    | ExportPayload
+    | ConstantPayload
+    | FunctionPayload
+    | TypePayload
+    | ValuedUnionPayload
+    | StructPayload
+    | ConstructorPayload
+    | MethodPayload
+    | NativePayload
+    | TraitPayload
+    | TraitImplPayload
+    | TemplatePayload
+    | ShapePayload
+    | UnsupportedPayload.
+
+pub struct TypedDeclaration {
+    valid: Bool,
+    payload: self_host.TypedModuleSyntax.TypedDeclarationPayload,
+    class: DeclarationClass,
+    symbol_name: String,
+    semantic_identity: String,
+    is_public: Bool,
+    source_text: String,
+    annotations: List[AnnotationUse],
+    docs: List[String],
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor TypedDeclaration {
+    (valid: Bool, payload: self_host.TypedModuleSyntax.TypedDeclarationPayload, class: DeclarationClass, symbol_name: String, semantic_identity: String, is_public: Bool, source_text: String, annotations: List[AnnotationUse], docs: List[String], span: SyntaxSpan, message: String): TypedDeclaration ->
+        TypedDeclaration {
+            valid: valid,
+            payload: payload,
+            class: class,
+            symbol_name: symbol_name,
+            semantic_identity: semantic_identity,
+            is_public: is_public,
+            source_text: source_text,
+            annotations: annotations,
+            docs: docs,
+            span: span,
+            message: message,
+        }
+}.
+
+
+pub struct TypedModule {
+    valid: Bool,
+    name: String,
+    declarations: List[self_host.TypedModuleSyntax.TypedDeclaration],
+    errors: List[ParseError],
+}.
+
+pub constructor TypedModule {
+    (valid: Bool, name: String, declarations: List[self_host.TypedModuleSyntax.TypedDeclaration], errors: List[ParseError]): TypedModule ->
+        TypedModule {
+            valid: valid,
+            name: name,
+            declarations: declarations,
+            errors: errors,
+        }
+}.
+

@@ -1,0 +1,34 @@
+/** Positive and negative configuration-lowering contracts. */
+module self_host.ConfigLoweringTest.
+
+import self_host.ConfigSyntax.{MachineConfig, TargetConfig}.
+
+import self_host.CanonicalSurface.
+import self_host.ConfigLowering.
+import self_host.DeclarationLowering.
+
+@pure
+positive_configs(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Config.\ntarget js with web.react.\nmachine worker.\n",
+    ));
+    case lowered_module.declarations {
+        [target_decl, machine_decl] ->
+            let target = ConfigLowering.lower(target_decl);
+            let machine = ConfigLowering.lower(machine_decl);
+            target.valid
+                and target.kind == TargetConfig
+                and target.name == "js"
+                and target.adapter == "web.react"
+                and machine.valid
+                and machine.kind == MachineConfig
+                and machine.name == "worker";
+        _ -> false
+    }.
+
+@pure
+negative_config(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse("module demo.Config.\ntarget .\n"));
+    case lowered_module.declarations { [declaration] -> not ConfigLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_configs() and negative_config().

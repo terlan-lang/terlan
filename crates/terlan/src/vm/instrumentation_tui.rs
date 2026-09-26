@@ -1,4 +1,6 @@
 //! Ratatui renderer for the local Terlan VM dashboard.
+//! This retained experiment is not wired into the CLI yet; integration is tracked
+//! in `docs/roadmap/ROADMAP_0_10_0.md`.
 //!
 //! Inputs:
 //! - Validated VM instrumentation dashboard configuration.

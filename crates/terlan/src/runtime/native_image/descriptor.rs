@@ -23,8 +23,8 @@ const MAX_DESCRIPTOR_LEN: usize = 16 * 1024 * 1024;
 const MAX_TEXT_LEN: usize = u16::MAX as usize;
 const OPTIONAL_RECORD: u16 = 1;
 
-/// Runtime-ABI-3 symbol loaded by the supervised native-image worker.
-pub const TVM_DISPATCH_SYMBOL_V3: &str = "terlan_native_dispatch_v3";
+/// Runtime-ABI-4 symbol loaded by the supervised native-image worker.
+pub const TVM_DISPATCH_SYMBOL_V4: &str = "terlan_native_dispatch_v4";
 /// Format-1 native image entry marker used for static admission and linking.
 pub const TVM_IMAGE_ENTRY_SYMBOL_V1: &str = "terlan_tvm_image_entry_v1";
 
@@ -864,6 +864,11 @@ fn validate_managed_layouts(layouts: &[TvmManagedLayoutDescriptor]) -> Result<()
             continue;
         }
         let first = &variants[0];
+        if first.kind() != ManagedAggregateKind::Constructor
+            && variants.iter().all(|variant| variant == first)
+        {
+            continue;
+        }
         if variants.iter().any(|variant| {
             variant.kind() != ManagedAggregateKind::Constructor
                 || variant.canonical_type() != first.canonical_type()
@@ -873,11 +878,16 @@ fn validate_managed_layouts(layouts: &[TvmManagedLayoutDescriptor]) -> Result<()
                 .iter()
                 .map(|variant| {
                     format!(
-                        "{}:{:?}:{:?}/{:?}",
+                        "{}:{:?}:{:?}/{:?}:fields={:?}",
                         variant.canonical_type(),
                         variant.kind(),
                         variant.discriminant(),
-                        variant.variant_count()
+                        variant.variant_count(),
+                        variant
+                            .fields()
+                            .iter()
+                            .map(|field| (field.name(), field.field_type()))
+                            .collect::<Vec<_>>()
                     )
                 })
                 .collect::<Vec<_>>()

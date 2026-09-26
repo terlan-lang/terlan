@@ -1,0 +1,39 @@
+/** Typed nested syntax for compile-time shape declarations. */
+module self_host.ShapeSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.PatternSyntax.{PatternParse}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ShapeSyntax {
+    valid: Bool,
+    name: String,
+    parameters: List[PatternParse],
+    body: PatternParse,
+    has_guard: Bool,
+    guard: ExpressionParse,
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ShapeSyntax {
+    (valid: Bool, name: String, parameters: List[PatternParse], body: PatternParse, has_guard: Bool, guard: ExpressionParse, is_public: Bool, span: SyntaxSpan, message: String): ShapeSyntax ->
+        ShapeSyntax {
+            valid: valid,
+            name: name,
+            parameters: parameters,
+            body: body,
+            has_guard: has_guard,
+            guard: guard,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

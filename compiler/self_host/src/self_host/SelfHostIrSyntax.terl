@@ -1,0 +1,159 @@
+/**
+ * Stable backend-neutral IR produced after projected semantic analysis.
+ */
+module self_host.SelfHostIrSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+pub struct IrParameter {
+    name: String,
+    type_name: String,
+}.
+
+pub constructor IrParameter {
+    (name: String, type_name: String): IrParameter ->
+        IrParameter {
+            name: name,
+            type_name: type_name,
+        }
+}.
+
+
+pub struct IrInstruction {
+    opcode: String,
+    result: Option[String],
+    operands: List[String],
+    type_name: String,
+}.
+
+pub constructor IrInstruction {
+    (opcode: String, result: Option[String], operands: List[String], type_name: String): IrInstruction ->
+        IrInstruction {
+            opcode: opcode,
+            result: result,
+            operands: operands,
+            type_name: type_name,
+        }
+}.
+
+
+pub struct IrTerminator {
+    opcode: String,
+    operands: List[String],
+    targets: List[String],
+}.
+
+pub constructor IrTerminator {
+    (opcode: String, operands: List[String], targets: List[String]): IrTerminator ->
+        IrTerminator {
+            opcode: opcode,
+            operands: operands,
+            targets: targets,
+        }
+}.
+
+
+pub struct IrBlock {
+    label: String,
+    instructions: List[self_host.SelfHostIrSyntax.IrInstruction],
+    terminator: self_host.SelfHostIrSyntax.IrTerminator,
+}.
+
+pub constructor IrBlock {
+    (label: String, instructions: List[self_host.SelfHostIrSyntax.IrInstruction], terminator: self_host.SelfHostIrSyntax.IrTerminator): IrBlock ->
+        IrBlock {
+            label: label,
+            instructions: instructions,
+            terminator: terminator,
+        }
+}.
+
+
+pub struct IrFunction {
+    module_name: String,
+    name: String,
+    arity: Int,
+    parameters: List[self_host.SelfHostIrSyntax.IrParameter],
+    return_type: String,
+    blocks: List[self_host.SelfHostIrSyntax.IrBlock],
+    native_symbol: Option[String],
+}.
+
+pub constructor IrFunction {
+    (module_name: String, name: String, arity: Int, parameters: List[self_host.SelfHostIrSyntax.IrParameter], return_type: String, blocks: List[self_host.SelfHostIrSyntax.IrBlock], native_symbol: Option[String]): IrFunction ->
+        IrFunction {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            parameters: parameters,
+            return_type: return_type,
+            blocks: blocks,
+            native_symbol: native_symbol,
+        }
+}.
+
+
+pub struct IrModule {
+    name: String,
+    functions: List[self_host.SelfHostIrSyntax.IrFunction],
+}.
+
+pub constructor IrModule {
+    (name: String, functions: List[self_host.SelfHostIrSyntax.IrFunction]): IrModule ->
+        IrModule {
+            name: name,
+            functions: functions,
+        }
+}.
+
+
+pub struct BackendEnvelope {
+    abi_major: Int,
+    abi_minor: Int,
+    target: String,
+    ir_module: self_host.SelfHostIrSyntax.IrModule,
+}.
+
+pub constructor BackendEnvelope {
+    (abi_major: Int, abi_minor: Int, target: String, ir_module: self_host.SelfHostIrSyntax.IrModule): BackendEnvelope ->
+        BackendEnvelope {
+            abi_major: abi_major,
+            abi_minor: abi_minor,
+            target: target,
+            ir_module: ir_module,
+        }
+}.
+
+
+pub struct IrDiagnostic {
+    code: String,
+    message: String,
+    function_name: String,
+    block_label: String,
+}.
+
+pub constructor IrDiagnostic {
+    (code: String, message: String, function_name: String, block_label: String): IrDiagnostic ->
+        IrDiagnostic {
+            code: code,
+            message: message,
+            function_name: function_name,
+            block_label: block_label,
+        }
+}.
+
+
+pub struct IrValidation {
+    valid: Bool,
+    diagnostics: List[self_host.SelfHostIrSyntax.IrDiagnostic],
+}.
+
+pub constructor IrValidation {
+    (valid: Bool, diagnostics: List[self_host.SelfHostIrSyntax.IrDiagnostic]): IrValidation ->
+        IrValidation {
+            valid: valid,
+            diagnostics: diagnostics,
+        }
+}.
+

@@ -1,0 +1,57 @@
+/** Positive and negative contracts for contextual terminal projection. */
+module self_host.TokenContextTest.
+
+import self_host.CanonicalToken.{CanonicalToken}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.CanonicalLexer.
+import self_host.TokenContext.
+
+
+@pure
+contains_terminal(tokens: List[CanonicalToken], expected: String): Bool ->
+    case tokens {
+        [] -> false;
+        [token | rest] -> token.terminal == expected or contains_terminal(rest, expected)
+    }.
+
+@pure
+positive_context(): Bool ->
+    let source = "module app.Main.\nimport std.core.Option.{Some}.\npub value(): User -> User{name: \"Ada\"}.\npub map(value): Value -> ((item) -> item)(value).\n";
+    let tokens = TokenContext.project(CanonicalLexer.lex(source).tokens);
+    contains_terminal(tokens, "tight-dot")
+        and contains_terminal(tokens, "selector-dot")
+        and contains_terminal(tokens, "nominal-keyed-{")
+        and contains_terminal(tokens, "lambda-(").
+
+@pure
+positive_specialized_context(): Bool ->
+    let tokens = TokenContext.project(CanonicalLexer.lex(
+        "module app.Context.\npub run(value): Value -> service:call[Value](value).\npub clause(Ready) -> true; clause(_) -> false.\npub layout(): Packet -> Binary[big]{value: Int}.\n",
+    ).tokens);
+    contains_terminal(tokens, "remote-call-colon")
+        and contains_terminal(tokens, "generic-call-[")
+        and contains_terminal(tokens, "function-clause-(")
+        and contains_terminal(tokens, "binary-layout-[").
+
+@pure
+legacy_atoms_are_not_merged(): Bool ->
+    let lexical = CanonicalLexer.lex("value == :ready or value == :'not ready'").tokens;
+    let tokens = TokenContext.project(lexical);
+    not contains_terminal(tokens, "legacy-atom")
+        and contains_terminal(tokens, ":")
+        and contains_terminal(tokens, "raw-quoted-text")
+        and List.length(tokens) == List.length(lexical).
+
+@pure
+negative_context(): Bool ->
+    let tokens = TokenContext.project(CanonicalLexer.lex("module app.Main.\npub value(): Map -> {name: \"Ada\"}.\n").tokens);
+    not contains_terminal(tokens, "nominal-keyed-{").
+
+@test
+pub self_test(): Bool ->
+    positive_context()
+        and positive_specialized_context()
+        and legacy_atoms_are_not_merged()
+        and negative_context().

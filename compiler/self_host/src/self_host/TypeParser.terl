@@ -1,0 +1,57 @@
+/** Balanced, union-aware parser for canonical Terlan type expressions. */
+module self_host.TypeParser.
+
+import self_host.TypeSyntax.{AppliedType, ExistentialType, FunctionType, GroupedType, ImplicationType, InvalidType, ListType, MapType, NamedType, TupleType, TypeClass, TypeParse, TypeSyntax, UnionType}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.Delimited.
+
+
+@pure
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+@pure
+classify(source: String, parts: List[String]): TypeClass ->
+    if {
+        String.starts_with(source, "exists ") -> ExistentialType;
+        Delimited.top_level_pair(source, 45, 62) >= 0 -> FunctionType;
+        Delimited.top_level_pair(source, 61, 62) >= 0 -> ImplicationType;
+        List.length(parts) > 1 -> UnionType;
+        String.starts_with(source, "{") -> classify_braced(source);
+        String.starts_with(source, "[") -> ListType;
+        String.starts_with(source, "(") -> GroupedType;
+        String.contains(source, "[") or String.contains(source, "<") or String.contains(source, "(") -> AppliedType;
+        true -> NamedType
+    }.
+
+@pure
+classify_braced(source: String): TypeClass ->
+    if {
+        source.byte_size() < 2 -> MapType;
+        true -> let inner = source.utf8_slice(1, source.byte_size() - 2);
+        if {
+            Delimited.top_level_byte(inner, 58) >= 0 or String.trim(inner) == "" -> MapType;
+            true -> TupleType
+        }
+    }.
+
+@pure
+invalid(source: String, message: String): TypeParse ->
+    TypeParse(false, TypeSyntax(InvalidType, source, List.new[String]()), message).
+
+/** Parses one complete type expression without discarding source spelling. */
+@pure
+pub parse(source: String): TypeParse ->
+    let normalized = String.trim(source);
+    let parts = Delimited.split_top_level(normalized, 124);
+    if {
+        normalized == "" -> invalid(source, "type expression is empty");
+        not Delimited.balanced(normalized) -> invalid(source, "type expression has unbalanced delimiters");
+        not all_nonempty(parts) -> invalid(source, "union type contains an empty arm");
+        true -> TypeParse(true, TypeSyntax(classify(normalized, parts), normalized, parts), "")
+    }.

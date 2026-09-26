@@ -34,7 +34,7 @@ pub(crate) fn semantic_deploy_plan_value(
         .map_err(|error| format!("cannot serialize semantic deploy plan: {error}"))
 }
 
-/// Runs the hidden experimental deploy command group.
+/// Runs a public Cloud deployment or the hidden experimental plan command.
 ///
 /// Inputs:
 /// - `cmd`: parsed `deploy` command and command-local arguments.
@@ -46,11 +46,15 @@ pub(crate) fn semantic_deploy_plan_value(
 ///   emission.
 ///
 /// Transformation:
-/// - Requires `--experimental`, then routes `deploy plan` to a deterministic
-///   manifest projection consumed by Terlan Cloud prototypes.
+/// - Routes ordinary deploy arguments to the authenticated Cloud client.
+/// - Requires `--experimental` only for `deploy plan`, which emits a
+///   deterministic manifest projection consumed by Cloud tooling.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
+    if cmd.args.first().is_none_or(|argument| argument != "plan") {
+        return crate::commands::cloud::run_deploy(&cmd.args, state);
+    }
     if !state.experimental {
-        eprintln!("terlc deploy is experimental; rerun with --experimental to enable it.");
+        eprintln!("terlc deploy plan is experimental; rerun with --experimental to enable it.");
         return ExitCode::from(2);
     }
 
@@ -207,6 +211,7 @@ fn parse_deploy_plan_args(args: &[String]) -> DeployArgs {
 /// - Keeps experimental help reachable only after the hidden command is known,
 ///   while excluding it from top-level public help.
 fn print_deploy_usage() {
+    println!("{}", crate::commands::cloud::deploy_usage());
     println!("terlc --experimental deploy plan [project-dir] [--schema v1|v2] [--out-dir <dir>]");
 }
 

@@ -25,6 +25,9 @@ pub(super) type ManagedClosureResolver = unsafe extern "C" fn(
     *mut u64,
 ) -> i32;
 
+/// Call-scoped source-coverage recorder invoked by generated function entries.
+pub(super) type ManagedCallableRecorder = unsafe extern "C" fn(*mut c_void, u64);
+
 /// Returns the semantic identity for one actor-heap boundary value.
 pub(super) fn managed_semantic_id(
     boundary_type: &TvmBoundaryType,

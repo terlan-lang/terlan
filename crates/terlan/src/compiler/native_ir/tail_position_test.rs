@@ -1357,11 +1357,12 @@ const DEEP_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1378,11 +1379,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1403,11 +1405,12 @@ const SUSPENDING_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1424,11 +1427,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1450,11 +1454,12 @@ const HETEROGENEOUS_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1471,11 +1476,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1496,11 +1502,12 @@ const MANAGED_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1518,11 +1525,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1543,11 +1551,12 @@ const MANAGED_PARALLEL_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1566,11 +1575,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1591,11 +1601,12 @@ const FAILING_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1612,11 +1623,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1636,11 +1648,12 @@ const MANAGED_AGGREGATE_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1682,11 +1695,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             (&mut capture as *mut Capture).cast(),
             allocate as *const () as *const c_void,
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1709,11 +1723,12 @@ const MANAGED_COLLECTION_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1755,11 +1770,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             (&mut capture as *mut Capture).cast(),
             allocate as *const () as *const c_void,
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             7,
             arguments.as_ptr(),
             arguments.len() as u64,
@@ -1782,11 +1798,12 @@ const CANCELLING_TAIL_LOOP_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -1801,11 +1818,12 @@ fn dispatch(export_id: u64, arguments: &[i64], transitions: &mut [i64]) -> (i32,
     let mut result = -1_i64;
     let mut transition_len = 99_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             export_id,
             arguments.as_ptr(),
             arguments.len() as u64,

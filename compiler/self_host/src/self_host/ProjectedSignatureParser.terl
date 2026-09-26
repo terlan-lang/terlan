@@ -1,0 +1,344 @@
+/** Extracts recursive pattern/type trees from projected declaration signatures. */
+module self_host.ProjectedSignatureParser.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedSignatureDocument, ProjectedTypeDeclarationTree}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration, MethodDeclaration, OpaqueTypeDeclaration, TypeDeclaration}.
+
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Parser.
+import self_host.ProjectedPatternParser.
+import self_host.ProjectedTypeParser.
+
+
+struct TokenSplit {
+    found: Bool,
+    left: List[ProjectedCanonicalToken],
+    separator: Option[ProjectedCanonicalToken],
+    right: List[ProjectedCanonicalToken],
+}.
+
+constructor TokenSplit {
+    (found: Bool, left: List[ProjectedCanonicalToken], separator: Option[ProjectedCanonicalToken], right: List[ProjectedCanonicalToken]): TokenSplit ->
+        TokenSplit {
+            found: found,
+            left: left,
+            separator: separator,
+            right: right,
+        }
+}.
+
+struct GroupSlice {
+    valid: Bool,
+    inner: List[ProjectedCanonicalToken],
+    close: Option[ProjectedCanonicalToken],
+    rest: List[ProjectedCanonicalToken],
+}.
+
+constructor GroupSlice {
+    (valid: Bool, inner: List[ProjectedCanonicalToken], close: Option[ProjectedCanonicalToken], rest: List[ProjectedCanonicalToken]): GroupSlice ->
+        GroupSlice {
+            valid: valid,
+            inner: inner,
+            close: close,
+            rest: rest,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+is_trivia(value: ProjectedCanonicalToken): Bool ->
+    String.contains(value.terminal, "comment")
+        or String.contains(value.terminal, "Comment")
+        or String.contains(value.terminal, "doc")
+        or String.contains(value.terminal, "Doc").
+
+@pure
+in_span(value: ProjectedCanonicalToken, declaration: ProjectedSurfaceDeclaration): Bool ->
+    value.start_byte >= declaration.span.start_byte and value.end_byte <= declaration.span.end_byte.
+
+@pure
+declaration_tokens(
+    values: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] where in_span(value, declaration) and not is_trivia(value) ->
+            [value | declaration_tokens(rest, declaration)];
+        [_value | rest] -> declaration_tokens(rest, declaration)
+    }.
+
+@pure
+split_at(
+    values: List[ProjectedCanonicalToken],
+    delimiter: String,
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+    output: List[ProjectedCanonicalToken],
+): TokenSplit ->
+    case values {
+        [] -> TokenSplit(found = false, left = reverse(output), separator = None, right = List.new[ProjectedCanonicalToken]());
+        [value | rest]
+            where value.text == delimiter and parens == 0 and brackets == 0 and braces == 0 ->
+            TokenSplit(found = true, left = reverse(output), separator = Some(value), right = rest);
+        [value | rest] -> split_at(
+            rest,
+            delimiter,
+            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
+            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
+            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+            [value | output],
+        )
+    }.
+
+@pure
+split(values: List[ProjectedCanonicalToken], delimiter: String): TokenSplit ->
+    split_at(values, delimiter, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+group_at(
+    values: List[ProjectedCanonicalToken],
+    close_text: String,
+    depth: Int,
+    output: List[ProjectedCanonicalToken],
+): GroupSlice ->
+    case values {
+        [] -> GroupSlice(valid = false, inner = reverse(output), close = None, rest = List.new[ProjectedCanonicalToken]());
+        [value | rest] where value.text == close_text and depth == 1 ->
+            GroupSlice(valid = true, inner = reverse(output), close = Some(value), rest = rest);
+        [value | rest] -> group_at(
+            rest,
+            close_text,
+            if {
+                value.text == "(" or value.text == "[" or value.text == "{" -> depth + 1;
+                value.text == ")" or value.text == "]" or value.text == "}" -> depth - 1;
+                true -> depth
+            },
+            [value | output],
+        )
+    }.
+
+@pure
+group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
+    group_at(
+        values,
+        if { opening.text == "(" -> ")"; opening.text == "[" -> "]"; true -> "}" },
+        1,
+        List.new[ProjectedCanonicalToken](),
+    ).
+
+@pure
+token_text(values: List[ProjectedCanonicalToken]): String ->
+    case values { [] -> ""; [value | rest] -> String.append(value.text, token_text(rest)) }.
+
+@pure
+has_tagged_body_arrow(values: List[ProjectedCanonicalToken]): Bool ->
+    case values {
+        [] -> false;
+        [value | _] where value.terminal == "function-body-arrow" -> true;
+        [_value | rest] -> has_tagged_body_arrow(rest)
+    }.
+
+@pure
+before_body_arrow_at(values: List[ProjectedCanonicalToken], tagged: Bool): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | _] where (tagged and value.terminal == "function-body-arrow")
+            or (not tagged and value.text == "->") -> List.new[ProjectedCanonicalToken]();
+        [value | rest] -> [value | before_body_arrow_at(rest, tagged)]
+    }.
+
+@pure
+before_body_arrow(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    before_body_arrow_at(values, has_tagged_body_arrow(values)).
+
+@pure
+without_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    case reverse(values) {
+        [value | rest] where value.text == "." -> reverse(rest);
+        _ -> values
+    }.
+
+@pure
+parameter(values: List[ProjectedCanonicalToken]): ProjectedParameterTree ->
+    let default_value = split(values, "=");
+    let parameter_tokens = if { default_value.found -> default_value.left; true -> values };
+    let annotation = split(parameter_tokens, ":");
+    let pattern = ProjectedPatternParser.parse(annotation.left);
+    let parsed_type = ProjectedTypeParser.parse(annotation.right);
+    ProjectedParameterTree(pattern.valid and (not annotation.found or parsed_type.valid), pattern.node, parsed_type.node, if { default_value.found -> token_text(default_value.right); true -> "" }, if {
+            not pattern.valid -> pattern.message;
+            annotation.found and not parsed_type.valid -> parsed_type.message;
+            true -> ""
+        }).
+
+@pure
+parameters_at(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedParameterTree],
+): List[ProjectedParameterTree] ->
+    if {
+        values == [] -> reverse(output);
+        true ->
+            let comma = split(values, ",");
+            if {
+                comma.found -> parameters_at(comma.right, [parameter(comma.left) | output]);
+                true -> reverse([parameter(comma.left) | output])
+            }
+    }.
+
+@pure
+parameters_valid(values: List[ProjectedParameterTree]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and parameters_valid(rest) }.
+
+@pure
+callable_after_params(
+    declaration: ProjectedSurfaceDeclaration,
+    parameters: List[ProjectedParameterTree],
+    values: List[ProjectedCanonicalToken],
+): ProjectedCallableSignature ->
+    let colon = split(values, ":");
+    let return_type = ProjectedTypeParser.parse(colon.right);
+    ProjectedCallableSignature(parameters_valid(parameters) and (not colon.found or return_type.valid), Parser.declaration_head(declaration.text), parameters, return_type.node, declaration.span, if {
+            not parameters_valid(parameters) -> "one or more callable parameters are invalid";
+            colon.found and not return_type.valid -> return_type.message;
+            true -> ""
+        }).
+
+@pure
+function_signature(
+    tokens: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): ProjectedCallableSignature ->
+    let signature = before_body_arrow(declaration_tokens(tokens, declaration));
+    let opening_split = split(signature, "(");
+    case opening_split.separator {
+        Some(opening) ->
+            let params = group(opening, opening_split.right);
+            callable_after_params(declaration, parameters_at(params.inner, List.new[ProjectedParameterTree]()), params.rest);
+        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "callable signature is missing parameter list")
+    }.
+
+@pure
+method_signature(
+    tokens: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): ProjectedCallableSignature ->
+    let signature = before_body_arrow(declaration_tokens(tokens, declaration));
+    let receiver_open = split(signature, "(");
+    case receiver_open.separator {
+        Some(opening) ->
+            let receiver = group(opening, receiver_open.right);
+            let ordinary_open = split(receiver.rest, "(");
+            case ordinary_open.separator {
+                Some(parameters_open) ->
+                    let ordinary = group(parameters_open, ordinary_open.right);
+                    let receiver_parameters = parameters_at(receiver.inner, List.new[ProjectedParameterTree]());
+                    let parameters = append_parameters(
+                        receiver_parameters,
+                        parameters_at(ordinary.inner, List.new[ProjectedParameterTree]()),
+                    );
+                    callable_after_params(declaration, parameters, ordinary.rest);
+                None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "method signature is missing ordinary parameter list")
+            };
+        None -> ProjectedCallableSignature(false, Parser.declaration_head(declaration.text), List.new[ProjectedParameterTree](), None, declaration.span, "method signature is missing receiver")
+    }.
+
+@pure
+append_parameters(
+    left: List[ProjectedParameterTree],
+    right: List[ProjectedParameterTree],
+): List[ProjectedParameterTree] ->
+    case left { [] -> right; [value | rest] -> [value | append_parameters(rest, right)] }.
+
+@pure
+type_declaration(
+    tokens: List[ProjectedCanonicalToken],
+    declaration: ProjectedSurfaceDeclaration,
+): ProjectedTypeDeclarationTree ->
+    let values = without_terminal_dot(declaration_tokens(tokens, declaration));
+    let assignment = split(values, "=");
+    let representation_separator = split(assignment.left, ":");
+    let valued_union = assignment.found and representation_separator.found;
+    let generic_head = split(values, "[");
+    let atom_shorthand = not assignment.found and not generic_head.found;
+    let representation_tokens = if {
+        valued_union -> representation_separator.right;
+        assignment.found -> assignment.right;
+        true -> List.new[ProjectedCanonicalToken]()
+    };
+    let representation = if {
+        assignment.found -> ProjectedTypeParser.parse(representation_tokens);
+        true -> ProjectedTypeParser.parse(List.new[ProjectedCanonicalToken]())
+    };
+    let is_opaque = declaration.class == OpaqueTypeDeclaration;
+    let representation_node = if { assignment.found -> representation.node; true -> None };
+    ProjectedTypeDeclarationTree(if {
+            assignment.found -> representation.valid;
+            is_opaque -> true;
+            atom_shorthand -> true;
+            true -> false
+        }, Parser.declaration_head(declaration.text), representation_node, is_opaque, declaration.span, if {
+            assignment.found and not representation.valid -> representation.message;
+            not assignment.found and not is_opaque and not atom_shorthand -> "generic type declaration is missing = representation";
+            true -> ""
+        }).
+
+@pure
+callables_at(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+): List[ProjectedCallableSignature] ->
+    case declarations {
+        [] -> List.new[ProjectedCallableSignature]();
+        [value | rest] where value.class == MethodDeclaration ->
+            [method_signature(tokens, value) | callables_at(tokens, rest)];
+        [value | rest]
+            where value.class == FunctionDeclaration or value.class == ConstFunctionDeclaration ->
+            [function_signature(tokens, value) | callables_at(tokens, rest)];
+        [_value | rest] -> callables_at(tokens, rest)
+    }.
+
+@pure
+types_at(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+): List[ProjectedTypeDeclarationTree] ->
+    case declarations {
+        [] -> List.new[ProjectedTypeDeclarationTree]();
+        [value | rest]
+            where value.class == TypeDeclaration or value.class == OpaqueTypeDeclaration ->
+            [type_declaration(tokens, value) | types_at(tokens, rest)];
+        [_value | rest] -> types_at(tokens, rest)
+    }.
+
+@pure
+all_callables_valid(values: List[ProjectedCallableSignature]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_callables_valid(rest) }.
+
+@pure
+all_types_valid(values: List[ProjectedTypeDeclarationTree]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_types_valid(rest) }.
+
+/** Extracts every callable signature and type representation in one module. */
+@pure
+pub parse(
+    tokens: List[ProjectedCanonicalToken],
+    declarations: List[ProjectedSurfaceDeclaration],
+): ProjectedSignatureDocument ->
+    let callables = callables_at(tokens, declarations);
+    let types = types_at(tokens, declarations);
+    ProjectedSignatureDocument(all_callables_valid(callables) and all_types_valid(types), callables, types).

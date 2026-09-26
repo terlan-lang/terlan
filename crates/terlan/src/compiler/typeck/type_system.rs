@@ -9,8 +9,11 @@ mod interface;
 mod map_fields;
 pub(crate) mod parser;
 mod special;
+mod standard_aliases;
 mod substitution;
 mod text;
+
+use standard_aliases::option_representation_is_subtype;
 
 pub(super) use builtins::{
     builtin_call, is_literal_atom, is_removed_implicit_builtin_call,
@@ -152,12 +155,6 @@ pub(super) fn is_subtype(lhs: &Type, rhs: &Type) -> bool {
 /// Output:
 /// - `true` when `lhs` can be assigned to `rhs` under primitive, structural,
 ///   alias-expanded, and variance-aware named-type rules.
-///
-/// Transformation:
-/// - Runs the existing structural subtype relation first, then uses alias
-///   metadata to compare generic arguments covariantly, contravariantly, or
-///   invariantly. Non-opaque aliases are expanded as a final fallback so
-///   structural aliases still behave like their bodies.
 pub(super) fn is_subtype_with_aliases(
     lhs: &Type,
     rhs: &Type,
@@ -175,10 +172,6 @@ pub(super) fn is_subtype_with_aliases(
 ///
 /// Output:
 /// - `true` when the current pair is compatible.
-///
-/// Transformation:
-/// - Applies primitive checks, union distribution, container variance, named
-///   generic variance, and then a guarded alias expansion fallback.
 fn is_subtype_with_aliases_inner(
     lhs: &Type,
     rhs: &Type,
@@ -187,6 +180,11 @@ fn is_subtype_with_aliases_inner(
 ) -> bool {
     if is_subtype(lhs, rhs) {
         return true;
+    }
+    if let Some(result) = option_representation_is_subtype(lhs, rhs, |lhs, rhs| {
+        is_subtype_with_aliases_inner(lhs, rhs, aliases, depth)
+    }) {
+        return result;
     }
     match (lhs, rhs) {
         (Type::Union(items), _) => {
@@ -200,6 +198,14 @@ fn is_subtype_with_aliases_inner(
                 .iter()
                 .any(|item| is_subtype_with_aliases_inner(lhs, item, aliases, depth))
                 || expand_and_retry_subtype(lhs, rhs, aliases, depth)
+        }
+        (Type::List(lhs_item), Type::List(rhs_item)) => {
+            is_subtype_with_aliases_inner(lhs_item, rhs_item, aliases, depth)
+        }
+        (Type::Tuple(lhs_items), Type::Tuple(rhs_items)) if lhs_items.len() == rhs_items.len() => {
+            lhs_items.iter().zip(rhs_items).all(|(lhs_item, rhs_item)| {
+                is_subtype_with_aliases_inner(lhs_item, rhs_item, aliases, depth)
+            })
         }
         (
             Type::FixedArray {
@@ -362,8 +368,9 @@ fn type_args_match_variance(
 /// - `true` when expanding at least one side makes the pair compatible.
 ///
 /// Transformation:
-/// - Expands non-opaque aliases with a conservative depth guard to avoid
-///   recursive alias cycles from making subtype checks non-terminating.
+/// - Expands only root non-opaque aliases with a conservative depth guard.
+///   Structural containers recurse independently so a recursive alias is not
+///   unrolled one additional level on every retry.
 fn expand_and_retry_subtype(
     lhs: &Type,
     rhs: &Type,
@@ -373,12 +380,21 @@ fn expand_and_retry_subtype(
     if depth >= 8 {
         return false;
     }
-    let lhs_expanded = expand_type_aliases(lhs, aliases);
-    let rhs_expanded = expand_type_aliases(rhs, aliases);
+    let lhs_expanded = expand_root_type_alias(lhs, aliases);
+    let rhs_expanded = expand_root_type_alias(rhs, aliases);
     if lhs_expanded == *lhs && rhs_expanded == *rhs {
         return false;
     }
     is_subtype_with_aliases_inner(&lhs_expanded, &rhs_expanded, aliases, depth + 1)
+}
+
+/// Expands an alias only when it is the root of the compared type.
+fn expand_root_type_alias(ty: &Type, aliases: &HashMap<String, TypeAlias>) -> Type {
+    if matches!(ty, Type::Named { .. }) {
+        expand_type_aliases(ty, aliases)
+    } else {
+        ty.clone()
+    }
 }
 
 /// Unifies two types and updates type-variable substitutions.
@@ -430,9 +446,9 @@ pub(super) fn unify(
             }
         }
         (Type::Union(left), Type::Union(right)) => {
-            for l in left {
+            for r in right {
                 let mut trial_ok = false;
-                for r in right {
+                for l in left {
                     let mut trial_subst = subst.clone();
                     if unify(l, r, &mut trial_subst).is_ok() {
                         *subst = trial_subst;
@@ -443,8 +459,8 @@ pub(super) fn unify(
                 if !trial_ok {
                     return Err(format!(
                         "expected {} but could not match {}",
-                        pretty_type(&Type::Union(right.to_vec())),
-                        pretty_type(l)
+                        pretty_type(&Type::Union(left.to_vec())),
+                        pretty_type(r)
                     ));
                 }
             }
@@ -467,16 +483,16 @@ pub(super) fn unify(
         (lhs, Type::Union(right)) => {
             for r in right {
                 let mut trial_subst = subst.clone();
-                if unify(lhs, r, &mut trial_subst).is_ok() {
-                    *subst = trial_subst;
-                    return Ok(());
+                if unify(lhs, r, &mut trial_subst).is_err() {
+                    return Err(format!(
+                        "expected {} found {}",
+                        pretty_type(lhs),
+                        pretty_type(&Type::Union(right.clone()))
+                    ));
                 }
+                *subst = trial_subst;
             }
-            Err(format!(
-                "expected {} found {}",
-                pretty_type(lhs),
-                pretty_type(&Type::Union(right.clone()))
-            ))
+            Ok(())
         }
         (Type::Int, Type::Number) => Ok(()),
         (Type::Float, Type::Number) => Ok(()),

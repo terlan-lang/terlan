@@ -1,0 +1,19 @@
+/** Preserves native declarations for the ABI backend without interpreting foreign source. */
+module self_host.NativeLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.NativeSyntax.{NativeSyntax}.
+import self_host.Syntax.{NativeDeclaration}.
+
+import std.core.String.
+
+
+@pure
+pub lower(source: DeclarationSyntax): NativeSyntax ->
+    let raw = String.trim(source.body);
+    let supported = source.class == NativeDeclaration;
+    NativeSyntax(supported and raw != "", source.body, source.span, if {
+            not supported -> "declaration is not native";
+            raw == "" -> "native declaration is empty";
+            true -> ""
+        }).

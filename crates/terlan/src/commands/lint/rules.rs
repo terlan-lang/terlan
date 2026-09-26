@@ -8,7 +8,7 @@ use actor_vm::actor_vm_diagnostics;
 use complexity::{file_size_diagnostics, function_size_diagnostics, match_arm_size_diagnostics};
 use consistency::{
     declaration_order_diagnostics, import_order_diagnostics, module_order_diagnostic,
-    single_module_diagnostics, std_module_path_diagnostics,
+    named_atom_literal_diagnostics, single_module_diagnostics, std_module_path_diagnostics,
 };
 use generated::{
     generated_lint_suppression_diagnostics, generated_skip_manifest_diagnostics,
@@ -21,7 +21,7 @@ use imports::{
     selected_import_sort_diagnostics, unused_module_import_diagnostics,
     unused_selected_import_diagnostics,
 };
-use maintainability::debug_call_diagnostics;
+use maintainability::{debug_call_diagnostics, sql_line_width_diagnostics};
 use naming::{
     binding_snake_case_diagnostics, case_underscore_collision_diagnostics,
     function_snake_case_diagnostics, type_upper_camel_diagnostics,
@@ -123,6 +123,7 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(file_size_diagnostics(path, source));
     diagnostics.extend(actor_vm_diagnostics(path, source));
     diagnostics.extend(debug_call_diagnostics(path, source));
+    diagnostics.extend(sql_line_width_diagnostics(path, source));
     if let Some(diagnostic) = module_order_diagnostic(path, source) {
         diagnostics.push(diagnostic);
     }
@@ -130,6 +131,7 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(single_module_diagnostics(path, source));
     diagnostics.extend(declaration_order_diagnostics(path, source));
     diagnostics.extend(std_module_path_diagnostics(path, source));
+    diagnostics.extend(named_atom_literal_diagnostics(path, source));
     diagnostics.extend(deep_expression_diagnostics(path, source));
     diagnostics.extend(grouped_binding_diagnostics(path, source));
     diagnostics.extend(function_reference_diagnostics(path, source));

@@ -728,18 +728,6 @@ pub(super) fn run_runtime_and_release_command(
                 Err(message) => failure(message),
             }
         }
-        Some("otp-runtime-exit") => match run_otp_runtime_exit(Path::new(".")) {
-            Ok(summary) => {
-                println!(
-                    "[otp-runtime-exit] {} required terms, {} removal lanes, and {} closeout blockers checked.",
-                    summary.required_term_count,
-                    summary.removal_lane_count,
-                    summary.closeout_blocker_count
-                );
-                ExitCode::SUCCESS
-            }
-            Err(message) => failure(message),
-        },
         _ => return None,
     };
     Some(result)

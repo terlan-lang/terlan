@@ -51,6 +51,56 @@ pub value(): Int ->
     );
 }
 
+/// Verifies inline atom literals cannot duplicate a local singleton type.
+#[test]
+fn lint_rejects_inline_literal_for_named_atom_type() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+pub type Hit.
+
+pub is_hit(result: Hit): Bool ->
+    result == Atom["hit"].
+"#,
+    );
+
+    let rendered = diagnostics
+        .iter()
+        .map(super::super::render_diagnostic)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(rendered.contains("error[TL0506:consistency.inline-named-atom]"));
+    assert!(rendered.contains("use its named constructor"));
+}
+
+/// Verifies the named constructor and unrelated atoms remain valid.
+#[test]
+fn lint_accepts_named_constructor_and_unrelated_atom_literal() {
+    let diagnostics = lint_source(
+        Path::new("Sample.terl"),
+        r#"
+module sample.
+
+pub type Hit.
+
+pub hit(): Hit ->
+    Hit.
+
+pub external_protocol_tag(): Atom ->
+    Atom["external_protocol_tag"].
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0506"),
+        "named constructors must not be reported: {diagnostics:?}"
+    );
+}
+
 /// Verifies leading line comments are allowed before the module declaration.
 #[test]
 fn lint_accepts_line_comments_before_module_declaration() {

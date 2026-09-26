@@ -1,0 +1,25 @@
+/** Authoritative composition of the self-hosted frontend stages. */
+module self_host.CompilerPipeline.
+
+import self_host.SemanticSyntax.{SemanticModule}.
+
+import std.core.String.
+import self_host.CanonicalParser.
+import self_host.DeclarationLowering.
+import self_host.SemanticAnalysis.
+import self_host.TypedModuleLowering.
+
+
+/** Lexes, parses, lowers, and semantically analyzes one Terlan module. */
+@pure
+pub analyze(source: String): SemanticModule ->
+    SemanticAnalysis.analyze(TypedModuleLowering.lower(
+        DeclarationLowering.lower(CanonicalParser.parse(source).surface),
+    )).
+
+/** Parses and analyzes one interface summary with interface-only declarations enabled. */
+@pure
+pub analyze_interface(source: String): SemanticModule ->
+    SemanticAnalysis.analyze_interface(TypedModuleLowering.lower(
+        DeclarationLowering.lower(CanonicalParser.parse(source).surface),
+    )).

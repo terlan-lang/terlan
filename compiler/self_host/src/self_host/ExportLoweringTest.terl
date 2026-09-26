@@ -1,0 +1,28 @@
+/** Positive and negative export-lowering contracts. */
+module self_host.ExportLoweringTest.
+
+import std.collections.List.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.ExportLowering.
+
+@pure
+positive_export(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Export.\nexport {run/0, render/2}.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_export = ExportLowering.lower(declaration);
+            lowered_export.valid and List.length(lowered_export.items) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_export(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Export.\nexport {run}.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not ExportLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_export() and negative_export().

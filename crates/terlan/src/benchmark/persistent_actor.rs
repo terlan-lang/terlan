@@ -1,3 +1,4 @@
+use crate::support::statistics::percentile;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -344,9 +345,9 @@ fn summarize_size(mut values: Vec<u64>) -> SizeDistribution {
     values.sort_unstable();
     SizeDistribution {
         sample_count: values.len(),
-        p50_bytes: percentile_u64(&values, 50),
-        p95_bytes: percentile_u64(&values, 95),
-        p99_bytes: percentile_u64(&values, 99),
+        p50_bytes: percentile(&values, 50),
+        p95_bytes: percentile(&values, 95),
+        p99_bytes: percentile(&values, 99),
     }
 }
 
@@ -785,8 +786,8 @@ fn summarize_file_backed(samples: &[FileBackedSample]) -> FileBackedRun {
         reopen_load: summarize_phase(reopen),
         vm_replay: summarize_phase(replay),
         reopen_replay: summarize_phase(reopen_replay),
-        disk_bytes_p50: percentile_u64(&disk, 50),
-        disk_bytes_p99: percentile_u64(&disk, 99),
+        disk_bytes_p50: percentile(&disk, 50),
+        disk_bytes_p99: percentile(&disk, 99),
     }
 }
 
@@ -799,10 +800,6 @@ fn summarize_phase(mut values: Vec<u128>) -> PhaseLatency {
     }
 }
 
-fn percentile_u64(sorted: &[u64], percentile: usize) -> u64 {
-    let index = ((sorted.len() - 1) * percentile).div_ceil(100);
-    sorted[index]
-}
 
 fn execute_sample(sample: usize, event_count: usize) -> Result<(), String> {
     let actor_id = VmPersistentActorId::new(format!("benchmark-{sample}"))?;
@@ -869,10 +866,6 @@ fn summarize(durations: &[u128], events_per_sample: usize) -> PersistentActorRun
     }
 }
 
-fn percentile(sorted: &[u128], percentile: usize) -> u128 {
-    let index = ((sorted.len() - 1) * percentile).div_ceil(100);
-    sorted[index]
-}
 
 fn env_usize(name: &str, default: usize) -> Result<usize, String> {
     let Some(value) = env::var_os(name) else {

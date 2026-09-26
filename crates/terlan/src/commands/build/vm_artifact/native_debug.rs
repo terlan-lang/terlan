@@ -1,5 +1,6 @@
 //! Compiler-owned source identities embedded in native TVM images.
 
+use crate::compiler::native_ir::coverage_callable_id;
 use crate::compiler::native_ir::NativeModule;
 use crate::runtime::native_image::debug::{
     encode_tvm_native_debug, tvm_debug_source_sha256, TvmNativeDebugContinuationRecord,
@@ -118,6 +119,11 @@ pub(crate) fn encode_native_debug(
                 })
                 .collect::<Result<Vec<_>, String>>()?;
             records.push(TvmNativeDebugRecord {
+                callable_id: coverage_callable_id(
+                    &function.source_module,
+                    &function.source_function,
+                    function.source_arity,
+                ),
                 source_file: input.source_path.to_string(),
                 module: native.name.clone(),
                 function: function.name.clone(),

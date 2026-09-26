@@ -1,0 +1,37 @@
+/** Positive and negative contracts for shape payload lowering. */
+module self_host.ShapeLoweringTest.
+
+import self_host.PatternSyntax.{MapPattern}.
+
+import std.collections.List.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+import self_host.ShapeLowering.
+
+@pure
+positive_shape(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Shape.\npub shape Named(Name) = {name: Name} where Name != \"\".\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let shape = ShapeLowering.lower(declaration);
+            shape.valid
+                and shape.has_guard
+                and List.length(shape.parameters) == 1
+                and shape.body.syntax.class == MapPattern;
+        _ -> false
+    }.
+
+@pure
+negative_shape(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Shape.\npub shape Broken(Name) = {name}.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] -> not ShapeLowering.lower(declaration).valid;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_shape() and negative_shape().
+

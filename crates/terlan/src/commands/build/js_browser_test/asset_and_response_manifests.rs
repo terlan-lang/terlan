@@ -213,14 +213,20 @@ pub(super) fn write_browser_package_serializes_constant_handlers_as_file_respons
         .as_array()
         .expect("file responses");
     assert!(file_responses.iter().any(|response| {
-        response["method"] == "GET"
+        response["module"] == "app.Http"
+            && response["function"] == "download"
+            && response["arity"] == 1
+            && response["method"] == "GET"
             && response["route"] == "/download"
             && response["path"] == "downloads/report.txt"
             && response["status"] == 200
             && response["content_type"] == "text/plain; charset=utf-8"
     }));
     assert!(file_responses.iter().any(|response| {
-        response["method"] == "GET"
+        response["module"] == "app.Http"
+            && response["function"] == "manual"
+            && response["arity"] == 1
+            && response["method"] == "GET"
             && response["route"] == "/manual"
             && response["path"] == "downloads/manual.pdf"
             && response["status"] == 206

@@ -1,0 +1,10 @@
+module self_host_corpus.Minimal.
+
+import std.core.String.
+
+pub struct Greeting {
+    value: String,
+}.
+
+pub greet(name: String): Greeting ->
+    Greeting(value = name).

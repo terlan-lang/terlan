@@ -8,11 +8,9 @@ Rust-native runtime path directly.
 ## Responsibilities
 
 - Parse `terlan-vm` command-line arguments.
-- Compile one Terlan source file through the normal compiler frontend.
-- Load the resulting CoreIR into the Rust VM and execute a zero-arity
-  entrypoint.
-- Load only the transitive artifact dependencies needed by source fallback;
-  unrelated sibling artifacts must not affect execution or startup cost.
+- Load compiler-emitted native `.tvm` images and execute their entrypoints.
+- Reject source execution and retired JSON artifacts; compilation belongs to
+  `terlc`, with no runtime CoreIR interpreter or source fallback.
 - Preserve text and test-evaluation output semantics for release validation.
 - Keep local VM instrumentation providers independent from Terlan Cloud.
 - Keep local and cloud dashboard providers aligned over shared logical
@@ -24,29 +22,22 @@ Rust-native runtime path directly.
 ## Public Surface
 
 - `main.rs`: standalone binary entrypoint.
-- `commands.rs`: command helpers shared by the VM binary surface.
+- `cli.rs` and `arguments.rs`: command dispatch and argument validation.
+- `main/native_image_runner.rs`: native image execution and support bundles.
 - `instrumentation.rs`: local-only VM instrumentation provider model plus
   provider-neutral dashboard component declarations.
 
 ## Core Model
 
-The binary does not define a separate Terlan-to-VM compiler path. It reuses the
-formal compiler pipeline, loads CoreIR into `runtime::vm::TerlanVm`, and runs
-the requested function.
+The binary does not define a separate Terlan-to-VM compiler path. It loads
+native images through `PureNativeExecutionShard` and executes them with
+VM-owned runtime services.
 
 Important invariants:
 
 - The VM binary must not bypass compiler validation.
-- Artifact source fallback follows structured imports and qualified CoreIR
-  module references recorded in the optional `extensions.module_dependencies`
-  field. It never discovers dependencies by parsing source text.
-- Optional extension metadata selects which sibling artifacts to inspect. It
-  is outside the executable checksum for backward compatibility, while each
-  selected sibling still passes its own complete schema and checksum
-  validation before compilation.
-- Missing sibling artifacts are allowed because standard-library and
-  runtime-native modules may not have package-local artifact files. Present
-  but malformed or misidentified dependencies fail explicitly.
+- Native image admission and package validation must succeed before execution;
+  invalid images must not trigger source compilation or interpretation.
 - `--test` (alias for `--test-eval`) accepts only boolean test results.
 - User-facing errors must identify whether failure happened during read,
   compile, load, or execution.
@@ -62,15 +53,14 @@ Important invariants:
 
 ## Integration Points
 
-- `formal_pipeline`: source-to-CoreIR compilation.
-- `runtime::vm`: CoreIR execution.
+- `runtime::native_image`: native image admission and package validation.
+- `runtime::vm`: process ownership, scheduling, and native execution services.
 - Release packaging: installs `terlan-vm` beside `terlc`.
 
 ## Testing Notes
 
-- `main_test.rs` covers argument parsing and source execution.
-- Artifact fallback tests prove transitive dependency loading, rejection of a
-  malformed selected dependency, and isolation from malformed unrelated
-  siblings.
-- Release preflight checks compare `terlc run` output with `terlan-vm run`
-  output for the bridge fixture.
+- `main_test.rs` covers argument parsing, result contracts, and rejection of
+  retired HTTP benchmark commands.
+- Native image runner tests cover image execution and admission failures.
+- HTTP performance belongs to the maintained `terlan-benchmark` AOT socket
+  harness; the standalone VM retains only its in-memory framing benchmark.

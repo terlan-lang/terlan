@@ -4,13 +4,17 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
-    encode_collection_layout, ManagedCollectionDescriptor, ManagedFieldType,
+    encode_collection_layout, ManagedCollectionDescriptor, ManagedFieldType, SemanticTypeId,
 };
 use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
-use super::{constructors::managed_field_type, native_type};
+use super::{
+    constructors::managed_field_type,
+    expression::{managed_semantic_contract, normalize_recursive_managed_type},
+    native_type,
+};
 
 /// Encodes every concrete List, Map, and Set schema reachable from checked types.
 pub(super) fn managed_collection_layouts<'a>(
@@ -309,13 +313,53 @@ fn insert_list(
     element: &CoreType,
     layouts: &mut BTreeSet<Vec<u8>>,
 ) -> Result<(), String> {
-    let descriptor = ManagedCollectionDescriptor::list(
-        &collection.contract_text(),
-        collection_field_type(element)?,
+    let normalized_element = normalize_recursive_managed_type(element);
+    let descriptor = ManagedCollectionDescriptor::list_with_reference_variants(
+        &managed_semantic_contract(collection),
+        collection_field_type(&normalized_element)?,
+        transparent_reference_variants(&normalized_element)?,
     )
     .map_err(collection_schema_error)?;
     layouts.insert(encode_collection_layout(&descriptor).map_err(collection_schema_error)?);
     Ok(())
+}
+
+/// Returns concrete managed reference semantics for a transparent union.
+/// Mixed scalar/reference unions retain their exact synthetic semantic because
+/// they do not share one physical reference slot representation.
+fn transparent_reference_variants(ty: &CoreType) -> Result<Vec<SemanticTypeId>, String> {
+    let CoreType::Union(variants) = ty else {
+        return Ok(Vec::new());
+    };
+    let mut semantics = Vec::with_capacity(variants.len());
+    for variant in variants {
+        let Some(native) = native_type(Some(variant), &variant.contract_text()) else {
+            return Ok(Vec::new());
+        };
+        let ManagedFieldType::Reference(semantic) = managed_field_type(native)? else {
+            return Ok(Vec::new());
+        };
+        semantics.push(semantic);
+    }
+    if variants.iter().any(|variant| {
+        matches!(
+            variant,
+            CoreType::List(element) if matches!(element.as_ref(), CoreType::Named(_))
+        )
+    }) {
+        let fixpoint = CoreType::List(Box::new(ty.clone()));
+        let native = native_type(Some(&fixpoint), &fixpoint.contract_text()).ok_or_else(|| {
+            "error[native_ir.collection_type]: recursive union fixpoint is not native".to_string()
+        })?;
+        let ManagedFieldType::Reference(semantic) = managed_field_type(native)? else {
+            return Err(
+                "error[native_ir.collection_type]: recursive union fixpoint is not a reference"
+                    .to_string(),
+            );
+        };
+        semantics.push(semantic);
+    }
+    Ok(semantics)
 }
 
 /// Inserts one canonical map schema.
@@ -326,7 +370,7 @@ fn insert_map(
     layouts: &mut BTreeSet<Vec<u8>>,
 ) -> Result<(), String> {
     let descriptor = ManagedCollectionDescriptor::map(
-        &collection.contract_text(),
+        &managed_semantic_contract(collection),
         collection_field_type(key)?,
         collection_field_type(value)?,
     )
@@ -342,7 +386,7 @@ fn insert_set(
     layouts: &mut BTreeSet<Vec<u8>>,
 ) -> Result<(), String> {
     let descriptor = ManagedCollectionDescriptor::set(
-        &collection.contract_text(),
+        &managed_semantic_contract(collection),
         collection_field_type(element)?,
     )
     .map_err(collection_schema_error)?;

@@ -136,23 +136,6 @@ pub(crate) fn type_name_to_atom_payload(name: &str) -> String {
     out
 }
 
-/// Decodes the quoted payload accepted by the legacy `:'name'` atom alias.
-pub(crate) fn unquote_single_quoted_atom(text: &str) -> Option<String> {
-    let inner = text.strip_prefix('\'')?.strip_suffix('\'')?;
-    let mut output = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch == '\\' {
-            if let Some(escaped) = chars.next() {
-                output.push(escaped);
-            }
-        } else {
-            output.push(ch);
-        }
-    }
-    Some(output)
-}
-
 /// Escapes text as a double-quoted Terlan source string literal.
 ///
 /// Inputs:

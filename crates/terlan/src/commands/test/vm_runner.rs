@@ -29,6 +29,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
             ));
         }
     }
+    native.start_callable_coverage();
     let mut passed = 0usize;
     let mut failed = 0usize;
     let mut results = Vec::new();
@@ -117,11 +118,13 @@ pub(super) fn run_discovered_terlan_vm_tests(
         }
     }
 
+    let covered_callables = native.finish_callable_coverage();
     native.shutdown()?;
     Ok(TestRunReport {
         passed,
         failed,
         results,
+        covered_callables,
     })
 }
 

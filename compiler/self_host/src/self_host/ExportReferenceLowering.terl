@@ -1,0 +1,67 @@
+/** Lowers canonical interface export summaries of the form `export name/arity.`. */
+module self_host.ExportReferenceLowering.
+
+
+import std.core.Option.{None, Some}.
+import self_host.ExportReferenceSyntax.{ExportReference}.
+import self_host.Syntax.{ExportDeclaration}.
+import self_host.TypedModuleSyntax.{TypedDeclaration}.
+
+
+import std.core.{Int, String}.
+
+@pure
+without_terminal_dot(text: String): String ->
+    if {
+        String.ends_with(text, ".") -> String.trim(text.utf8_slice(0, text.byte_size() - 1));
+        true -> text
+    }.
+
+@pure
+export_payload(source: TypedDeclaration, text: String): String ->
+    if {
+        source.class == ExportDeclaration and String.starts_with(text, "export ") ->
+            String.trim(text.utf8_slice(7, text.byte_size() - 7));
+        true -> ""
+    }.
+
+@pure
+export_name(payload: String): String ->
+    case String.split(payload, "/") {
+        [value, _arity] -> String.trim(value);
+        _ -> ""
+    }.
+
+@pure
+export_arity(payload: String): Int ->
+    case String.split(payload, "/") {
+        [_name, value] -> case Int.from_string(String.trim(value)) {
+            Some(arity) -> arity;
+            None -> -1
+        };
+        _ -> -1
+    }.
+
+@pure
+export_message(source: TypedDeclaration, name: String, valid_arity: Bool): String ->
+    if {
+        source.class != ExportDeclaration -> "declaration is not an export summary";
+        name == "" -> "exported function name is empty";
+        not valid_arity -> "exported function arity is invalid";
+        true -> ""
+    }.
+
+@pure
+pub lower(source: TypedDeclaration): ExportReference ->
+    let text = without_terminal_dot(String.trim(source.source_text));
+    let payload = export_payload(source, text);
+    let name = export_name(payload);
+    let arity = export_arity(payload);
+    let valid_arity = arity >= 0;
+    ExportReference(
+        source.class == ExportDeclaration and name != "" and valid_arity,
+        name,
+        arity,
+        source.span,
+        export_message(source, name, valid_arity),
+    ).

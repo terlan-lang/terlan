@@ -17,7 +17,7 @@ WEB_PROFILE_PREFLIGHT_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/web-profile-preflight
 CLI_BUILD_EXECUTABLE_CHECK_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable
 CLI_BUILD_EXECUTABLE_HANDOFF_DIR ?= $(TERLAN_TEST_WORKSPACE_ROOT)/terlc-build-executable-handoff
 
-.PHONY: abi1-pre-freeze-check abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check abi1-release-candidate-check abi1-compatibility-freeze-check
+.PHONY: abi1-pre-freeze-check abi1-continuous-fuzz-check abi1-cross-target-conformance-check abi1-tail-latency-check abi1-zero-copy-conformance-check abi1-specialization-equivalence-check abi1-trusted-adapter-audit-check abi1-release-candidate-check abi1-compatibility-freeze-check self-host-source-slice-check
 
 abi1-pre-freeze-check:
 	$(TERLAN_QUALITY) abi1-pre-freeze
@@ -53,6 +53,67 @@ abi1-release-candidate-check: abi1-continuous-fuzz-check abi1-cross-target-confo
 
 abi1-compatibility-freeze-check: abi1-release-candidate-check
 	$(TERLAN_QUALITY) abi1-compatibility-freeze
+
+self-host-source-slice-check:
+	target/debug/terlc test compiler/self_host
+	target/debug/terlc run compiler/self_host -- compiler/self_host/corpus/accepted/Minimal.terl target/quality/self-host-source-evidence.json
+	test -s target/quality/self-host-source-evidence.json
+
+self-host-token-parity-check: target/debug/terlc
+	mkdir -p target/quality
+	target/debug/terlc syntax-contract --tokens compiler/self_host/corpus/accepted/Minimal.terl --out target/quality/self-host-rust-tokens.tsv
+	target/debug/terlc run compiler/self_host_token_evidence -- compiler/self_host/corpus/accepted/Minimal.terl target/quality/self-host-terlan-tokens.tsv
+	cmp target/quality/self-host-rust-tokens.tsv target/quality/self-host-terlan-tokens.tsv
+
+self-host-token-corpus-parity-check: target/debug/terlc
+	rm -rf target/quality/self-host-token-corpus
+	mkdir -p target/quality/self-host-token-corpus
+	@set -e; for source in compiler/self_host/corpus/accepted/*.terl; do \
+		name=$$(basename "$$source" .terl); \
+		target/debug/terlc syntax-contract --tokens "$$source" --out "target/quality/self-host-token-corpus/$$name.rust.tsv"; \
+		target/debug/terlc run compiler/self_host_token_evidence -- "$$source" "target/quality/self-host-token-corpus/$$name.terlan.tsv"; \
+		cmp "target/quality/self-host-token-corpus/$$name.rust.tsv" "target/quality/self-host-token-corpus/$$name.terlan.tsv"; \
+	done
+
+.PHONY: self-host-surface-parity-check
+self-host-surface-parity-check: target/debug/terlc
+	cargo build -p terlan --bin terlan-surface-oracle
+	mkdir -p target/quality/self-host-surface-corpus
+	TERLC=target/debug/terlc compiler/self_host/scripts/surface_parity.sh \
+		target/debug/terlan-surface-oracle \
+		compiler/self_host/scripts/projected_oracle.sh \
+		compiler/self_host/corpus/accepted \
+		target/quality/self-host-surface-corpus
+
+.PHONY: self-host-rejection-parity-check
+self-host-rejection-parity-check: target/debug/terlc
+	cargo build -p terlan --bin terlan-surface-oracle
+	mkdir -p target/quality/self-host-rejection-corpus
+	TERLC=target/debug/terlc compiler/self_host/scripts/rejection_parity.sh \
+		target/debug/terlan-surface-oracle \
+		compiler/self_host/scripts/projected_oracle.sh \
+		compiler/self_host/corpus/rejected \
+		target/quality/self-host-rejection-corpus
+
+.PHONY: self-host-concrete-parity-check
+self-host-concrete-parity-check: target/debug/terlc
+	cargo build -p terlan --bin terlan-concrete-oracle
+	mkdir -p target/quality/self-host-concrete-corpus
+	TERLC=target/debug/terlc compiler/self_host/scripts/concrete_parity.sh \
+		target/debug/terlan-concrete-oracle \
+		compiler/self_host/scripts/projected_oracle.sh \
+		compiler/self_host/corpus/accepted \
+		target/quality/self-host-concrete-corpus
+
+.PHONY: self-host-error-parity-check
+self-host-error-parity-check: target/debug/terlc
+	cargo build -p terlan --bin terlan-parser-error-oracle
+	mkdir -p target/quality/self-host-error-corpus
+	TERLC=target/debug/terlc compiler/self_host/scripts/error_parity.sh \
+		target/debug/terlan-parser-error-oracle \
+		compiler/self_host/scripts/projected_oracle.sh \
+		compiler/self_host/corpus/rejected \
+		target/quality/self-host-error-corpus
 
 .PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-readability-canonicalization-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
@@ -93,8 +154,8 @@ cli-help:
 	@echo "  make terlan-lint-style-check - run public lint command and style diagnostics regressions"
 	@echo "  make release-artifact-current - build and smoke-test the current platform artifact"
 	@echo "  make vm-artifact-check - build and smoke-test the standalone terlan-vm artifact"
-	@echo "  make terlc-build-executable-check - prove terlc build emits a runnable VM executable"
-	@echo "  make terlan-vm-compiler-bridge-check - compare compiler VM run and direct VM source execution"
+	@echo "  make cli-terlc-build-executable-check - prove terlc build emits a runnable VM executable"
+	@echo "  make cli-terlan-vm-compiler-bridge-check - validate compiled VM output, intrinsics, and runtime"
 	@echo "  make formal-cli-build-gate - run CLI build artifact/debug-map regressions"
 	@echo "  make formal-cli-js-gate - run CLI JavaScript/Oxc output regressions"
 	@echo "  make formal-cli-rust-gate - run CLI Rust/native neutrality probe regressions"
@@ -1242,3 +1303,39 @@ formal-directory-phase-gate:
 	$(TERLC) check tests/fixtures/phase_contract --cache-dir "$${cache_b}" --emit-phase-manifest "$${manifest_b}"; \
 	diff -qr "$${manifest_a}" "$${manifest_b}" >/dev/null; \
 	rm -rf "$${tmpdir}"
+.PHONY: self-host-fragment-parity
+self-host-fragment-parity:
+	@compiler/self_host/scripts/fragment_parity.sh
+.PHONY: self-host-backend-contract-parity
+self-host-backend-contract-parity:
+	@compiler/self_host/scripts/backend_contract_parity.sh
+.PHONY: self-host-semantic-parity
+self-host-semantic-parity:
+	@compiler/self_host/scripts/semantic_parity.sh
+
+.PHONY: self-host-pre-bootstrap-gates
+self-host-pre-bootstrap-gates: \
+	self-host-token-corpus-parity-check \
+	self-host-surface-parity-check \
+	self-host-rejection-parity-check \
+	self-host-concrete-parity-check \
+	self-host-error-parity-check \
+	self-host-fragment-parity \
+	self-host-semantic-parity \
+	self-host-backend-contract-parity
+
+.PHONY: self-host-bootstrap-compare
+self-host-bootstrap-compare:
+	@test -n "$(STAGE1)" -a -n "$(STAGE2)" || \
+		(echo "usage: make self-host-bootstrap-compare STAGE1=... STAGE2=..." >&2; exit 2)
+	@compiler/self_host/scripts/bootstrap_fixed_point.sh "$(STAGE1)" "$(STAGE2)"
+
+.PHONY: self-host-package-stage
+self-host-package-stage:
+	@test -n "$(OUTPUT)" || (echo "usage: make self-host-package-stage OUTPUT=..." >&2; exit 2)
+	@compiler/self_host/scripts/package_stage.sh "$(OUTPUT)"
+
+.PHONY: self-host-seed-stage
+self-host-seed-stage:
+	@test -n "$(OUTPUT)" || (echo "usage: make self-host-seed-stage OUTPUT=..." >&2; exit 2)
+	@compiler/self_host/scripts/seed_stage.sh "$(OUTPUT)"

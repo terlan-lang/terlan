@@ -57,4 +57,7 @@ enum class CounterMode : std::int32_t {
   Offset = 99,
 };
 
+/// Mutates and returns one counter alias.
+Counter& mutate_counter(Counter& counter) noexcept;
+
 }  // namespace extractor_fixture

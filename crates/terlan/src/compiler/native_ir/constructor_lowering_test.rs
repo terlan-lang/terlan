@@ -87,6 +87,43 @@ pub selected(): Bool ->
     );
 }
 
+#[test]
+fn explicit_struct_constructor_uses_the_nominal_record_layout() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module explicit_struct_constructor_layout.
+
+import std.collections.List.
+
+pub struct Board {
+    rows: List[Int],
+}.
+
+pub constructor Board {
+    (rows: List[Int]): Board ->
+        Board {rows: rows}
+}.
+
+pub make(): Board ->
+    Board(List(1, 2, 3)).
+
+pub rows(board: Board): List[Int] ->
+    board.rows.
+"#,
+    )
+    .expect("parse explicit struct constructor fixture");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules =
+        NativeModule::lower_application(&[&core]).expect("lower explicit struct constructor");
+
+    emit_native_application_object("explicit_struct_constructor_layout", &modules)
+        .expect("emit explicit struct constructor object");
+}
+
 /// Builds one fixed constructor declaration for a shared `Result[Int, Int]` union.
 fn declaration(name: &str, parameter: &str) -> CoreConstructorDecl {
     CoreConstructorDecl {

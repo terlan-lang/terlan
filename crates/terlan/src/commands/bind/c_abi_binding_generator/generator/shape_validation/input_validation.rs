@@ -120,12 +120,12 @@ pub(in super::super) fn validate_input_array_binding(
             "uint8_t" if array.bytes => "Bytes",
             "uint8_t" => "List[Bool]",
             "uint64_t" => {
-                let element_type = array.element_type.as_deref().ok_or_else(|| {
-                    format!(
-                        "error[native_bindgen.c_input_array_contract]: `{}` requires an opaque-resource element_type",
-                        parameter.name
-                    )
-                })?;
+                let Some(element_type) = array.element_type.as_deref() else {
+                    return Err(format!(
+                        "error[native_bindgen.c_input_array_contract]: `{}` is a C/Rust-only UInt64 primitive array and cannot bind `{}`",
+                        parameter.name, function.name
+                    ));
+                };
                 if binding_type(manifest, element_type).is_none() {
                     return Err(format!(
                         "error[native_bindgen.c_input_array_contract]: `{}` names unknown opaque-resource element type `{element_type}`",
@@ -187,6 +187,15 @@ pub(in super::super) fn validate_owned_array_binding(
         .iter()
         .filter_map(|parameter| parameter.owned_array.as_ref())
         .collect::<Vec<_>>();
+    if outputs
+        .iter()
+        .any(|output| output.element == COwnedArrayElement::UInt64)
+    {
+        return Err(format!(
+            "error[native_bindgen.c_owned_array_contract]: `{}` cannot expose a C/Rust-only UInt64 array to Terlan",
+            function.name
+        ));
+    }
     let expected = outputs.first().map(|array| array.element.terlan_list());
     if outputs.len() > 1 || expected.is_some_and(|expected| function.returns != expected) {
         return Err(format!(

@@ -1,14 +1,18 @@
 mod adapter_rendering;
+mod argument_mutability;
 mod binding_validation;
 mod consumer_output;
+mod function_family;
 mod input_validation;
 mod safe_wrapper_rendering;
 mod shape_validation;
 mod worker_rendering;
 
 use adapter_rendering::*;
+use argument_mutability::*;
 use binding_validation::*;
 use consumer_output::*;
+use function_family::*;
 use input_validation::*;
 use safe_wrapper_rendering::*;
 use shape_validation::*;
@@ -67,6 +71,17 @@ struct CAbiBindingPackage {
     /// Maps generated module names to package-authored Terlan declarations.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     terlan_module_extensions: BTreeMap<String, String>,
+    /// Package-level Terlan dependencies emitted into the generated manifest.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    terlan_dependencies: BTreeMap<String, CAbiTerlanDependency>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum CAbiTerlanDependency {
+    Path { path: String },
+    Git { git: String, rev: String },
+    Registry { registry: String, version: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -273,6 +288,8 @@ enum COwnedArrayCopy {
 enum COwnedArrayElement {
     #[default]
     Int64,
+    #[serde(rename = "uint64")]
+    UInt64,
     Float64,
     Bool8,
     Bytes,
@@ -282,6 +299,7 @@ impl COwnedArrayElement {
     fn c_pointer(self) -> &'static str {
         match self {
             Self::Int64 => "int64_t *",
+            Self::UInt64 => "uint64_t *",
             Self::Float64 => "double *",
             Self::Bool8 => "uint8_t *",
             Self::Bytes => "uint8_t *",
@@ -291,6 +309,7 @@ impl COwnedArrayElement {
     fn c_output_pointer(self) -> &'static str {
         match self {
             Self::Int64 => "int64_t **",
+            Self::UInt64 => "uint64_t **",
             Self::Float64 => "double **",
             Self::Bool8 => "uint8_t **",
             Self::Bytes => "uint8_t **",
@@ -300,6 +319,7 @@ impl COwnedArrayElement {
     fn rust_element(self) -> &'static str {
         match self {
             Self::Int64 => "i64",
+            Self::UInt64 => "u64",
             Self::Float64 => "f64",
             Self::Bool8 => "u8",
             Self::Bytes => "u8",
@@ -309,6 +329,7 @@ impl COwnedArrayElement {
     fn terlan_list(self) -> &'static str {
         match self {
             Self::Int64 => "List[Int]",
+            Self::UInt64 => "C/Rust-only UInt64",
             Self::Float64 => "List[Float]",
             Self::Bool8 => "List[Bool]",
             Self::Bytes => "Bytes",
@@ -385,6 +406,8 @@ struct CAbiBindingModule {
     types: Vec<CAbiBindingType>,
     #[serde(default)]
     functions: Vec<CAbiBindingFunction>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    function_families: Vec<CAbiBindingFunctionFamily>,
 }
 
 /// One explicit selective import required by generated module extensions.
@@ -403,7 +426,7 @@ struct CAbiBindingType {
     documentation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CAbiBindingFunction {
     name: String,
     #[serde(default)]
@@ -451,7 +474,7 @@ enum CGeneratedSmokePolicy {
     PackageOwned,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CDispatcherBinding {
     duplicate_handle_symbol: String,
     #[serde(default)]
@@ -475,7 +498,7 @@ struct CDispatcherBinding {
     output: CDispatcherOutput,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum CDispatcherStackValue {
     OwnedHandleCopy {
@@ -496,10 +519,22 @@ enum CDispatcherStackValue {
     OwnedOptionalIntArgument {
         argument: String,
     },
+    OwnedOptionalFloatArgument {
+        argument: String,
+    },
     OwnedIntListArgument {
         argument: String,
     },
     OwnedOptionalIntListArgument {
+        argument: String,
+    },
+    OwnedHandleListArgument {
+        argument: String,
+    },
+    OwnedStringArgument {
+        argument: String,
+    },
+    OwnedOptionalStringArgument {
         argument: String,
     },
     OwnedStringLiteral {
@@ -510,19 +545,28 @@ enum CDispatcherStackValue {
     Unsupported,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct CDispatcherOutput {
-    kind: CDispatcherOutputKind,
-    index: usize,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum CDispatcherOutput {
+    OwnedHandle { index: usize },
+    OwnedHandleTuple { indices: Vec<usize> },
+    DiscardOwnedHandle { index: usize },
+    DiscardOwnedHandleTuple { indices: Vec<usize> },
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-enum CDispatcherOutputKind {
-    OwnedHandle,
+impl CDispatcherOutput {
+    /// Returns the StableIValue stack slots transferred into the public result.
+    fn indices(&self) -> Vec<usize> {
+        match self {
+            Self::OwnedHandle { index } | Self::DiscardOwnedHandle { index } => vec![*index],
+            Self::OwnedHandleTuple { indices } | Self::DiscardOwnedHandleTuple { indices } => {
+                indices.clone()
+            }
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CAbiBindingArg {
     name: String,
     ty: String,
@@ -530,6 +574,9 @@ struct CAbiBindingArg {
     abi_ty: Option<String>,
     #[serde(default)]
     default: Option<String>,
+    /// Borrows this non-receiver opaque resource mutably in generated Rust.
+    #[serde(default, skip_serializing_if = "is_false")]
+    mutable: bool,
 }
 
 impl CAbiBindingArg {
@@ -556,7 +603,7 @@ enum CAbiFunctionRole {
     Dispose,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum CAbiBlockingPolicy {
     Fast,
@@ -564,7 +611,7 @@ enum CAbiBlockingPolicy {
     Async,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum CAbiResourcePolicy {
     Value,
@@ -612,12 +659,14 @@ pub(in crate::commands::bind) fn generate_c_abi_bindings(
             manifest_path.display()
         )
     })?;
-    let manifest: CAbiBindingManifest = serde_json::from_str(&manifest_text).map_err(|error| {
-        format!(
-            "failed to parse structured C metadata `{}`: {error}",
-            manifest_path.display()
-        )
-    })?;
+    let mut manifest: CAbiBindingManifest =
+        serde_json::from_str(&manifest_text).map_err(|error| {
+            format!(
+                "failed to parse structured C metadata `{}`: {error}",
+                manifest_path.display()
+            )
+        })?;
+    expand_function_families(&mut manifest)?;
     let input_dir = manifest_path.parent().unwrap_or_else(|| Path::new("."));
     let symbols = validate_manifest(&manifest, input_dir)?;
     let skipped = collect_skipped_symbols(&manifest.c_metadata.symbols)?;
@@ -769,6 +818,7 @@ fn validate_manifest<'a>(
             ));
         }
     }
+    validate_terlan_dependencies(&manifest.package)?;
     validate_rust_extension(&manifest.package, input_dir)?;
     validate_c_abi_contract(&manifest.validation)?;
 
@@ -907,6 +957,7 @@ fn validate_manifest<'a>(
             validate_lower_identifier("adapter function", function.adapter_name())?;
             validate_identifier_path("native operation", &function.operation)?;
             validate_argument_defaults(function)?;
+            validate_argument_mutability(manifest, function)?;
             if !operations.insert(function.operation.as_str()) {
                 return Err(format!(
                     "duplicate native operation `{}`",

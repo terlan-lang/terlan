@@ -1,6 +1,6 @@
 //! Same-shard ownership for ordinary native actor execution.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::atomic::AtomicU64;
 
@@ -154,12 +154,16 @@ impl PureNativeExecutionImage {
     ) -> Result<PureNativeExecutionShard, String> {
         let sequence = allocate_sequence(&self.next_shard_sequence, "image shard")?;
         let shard_id = shard_identity(self.boundary.image_identity()?, sequence)?;
-        PureNativeExecutionShard::with_boundary_and_execution(
+        let mut shard = PureNativeExecutionShard::with_boundary_and_execution(
             self.boundary.fork_empty()?,
             self.execution.fork_empty(),
             shard_id,
             scheduler,
-        )
+        )?;
+        if std::env::var_os("TERLAN_CALLABLE_COVERAGE_FILE").is_some() {
+            shard.start_callable_coverage();
+        }
+        Ok(shard)
     }
 }
 
@@ -238,6 +242,16 @@ impl PureNativeExecutionShard {
         self.boundary.has_export(function, arity)
     }
 
+    /// Starts one exact callable-coverage interval for test execution.
+    pub(crate) fn start_callable_coverage(&mut self) {
+        self.execution.managed().start_callable_coverage();
+    }
+
+    /// Stops callable coverage and returns the stable identities actually entered.
+    pub(crate) fn finish_callable_coverage(&mut self) -> BTreeSet<u64> {
+        self.execution.managed().finish_callable_coverage()
+    }
+
     /// Returns the exact supervised shard identity used by typed I/O waits.
     #[cfg(test)]
     pub(crate) fn shard_id(&self) -> &VmExecutionShardId {
@@ -259,7 +273,6 @@ impl PureNativeExecutionShard {
     }
 
     /// Resumes one parked generated continuation from an exact typed VM I/O wake.
-    #[cfg(test)]
     pub(crate) fn resume_io_call(
         &mut self,
         owner: VmProcessId,

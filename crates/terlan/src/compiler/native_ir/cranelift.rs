@@ -44,6 +44,7 @@ use super::suspension::{
 };
 use super::symbol::native_symbol;
 use super::{status, NativeBinaryOperator, NativeExpr, NativeModule};
+use crate::runtime::native_image::TVM_COMPLETION_TRANSITION_WORD_CAPACITY;
 use callables::validate_callable_shapes;
 use dispatch::define_dispatch;
 use error::{branch_if_error, branch_on_flag, emit_integer_comparison};
@@ -65,6 +66,7 @@ use wrapped_yield::{emit_wrapped_call_yield, WrappedCallYield};
 #[derive(Clone, Copy)]
 struct NativeFunctionCatalog<'a> {
     ids: &'a [FuncId],
+    coverage_ids: &'a [u64],
     parameter_types: &'a [Vec<super::NativeType>],
     suspending: &'a [bool],
     transition_counts: &'a [usize],
@@ -167,6 +169,16 @@ fn emit_native_application_object_with_policy_untyped(
                 .map_err(|error| format!("error[cranelift.declare]: {error}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let function_coverage_ids = application_functions
+        .iter()
+        .map(|(_, function)| {
+            super::coverage_callable_id(
+                &function.source_module,
+                &function.source_function,
+                function.source_arity,
+            )
+        })
+        .collect::<Vec<_>>();
     let mut dispatch_functions = Vec::new();
     for (index, (_, function)) in application_functions.iter().enumerate() {
         let tail_component = tail_components
@@ -193,6 +205,7 @@ fn emit_native_application_object_with_policy_untyped(
             &mut module,
             NativeFunctionDefinition {
                 id: function_ids[index],
+                coverage_id: function_coverage_ids[index],
                 self_function: Some(index),
                 tail_component_bodies: tail_component_bodies.as_deref(),
                 signature: &signatures[index],
@@ -201,6 +214,7 @@ fn emit_native_application_object_with_policy_untyped(
             },
             NativeFunctionCatalog {
                 ids: &function_ids,
+                coverage_ids: &function_coverage_ids,
                 parameter_types: &function_parameter_types,
                 suspending: &function_suspending,
                 transition_counts: &function_transition_counts,
@@ -254,6 +268,11 @@ fn emit_native_application_object_with_policy_untyped(
                 &mut module,
                 NativeFunctionDefinition {
                     id,
+                    coverage_id: super::coverage_callable_id(
+                        &continuation.source_module,
+                        &continuation.source_function,
+                        continuation.source_arity,
+                    ),
                     self_function: None,
                     tail_component_bodies: None,
                     signature: &signature,
@@ -262,6 +281,7 @@ fn emit_native_application_object_with_policy_untyped(
                 },
                 NativeFunctionCatalog {
                     ids: &function_ids,
+                    coverage_ids: &function_coverage_ids,
                     parameter_types: &function_parameter_types,
                     suspending: &function_suspending,
                     transition_counts: &function_transition_counts,
@@ -332,6 +352,11 @@ fn emit_suspending_body(
             values,
         } => {
             let transition_value_count = arguments.len().saturating_add(values.len());
+            if transition_value_count > TVM_COMPLETION_TRANSITION_WORD_CAPACITY {
+                return Err(format!(
+                    "error[cranelift.transition_capacity]: suspension requires {transition_value_count} words, exceeding the ABI-1 completion limit of {TVM_COMPLETION_TRANSITION_WORD_CAPACITY}"
+                ));
+            }
             if transition_value_count != 0 {
                 let pointer = transition_pointer.ok_or_else(|| {
                     "error[cranelift.suspend]: transition buffer is unavailable".to_string()

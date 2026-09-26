@@ -1,0 +1,45 @@
+/** Typed syntax for explicit function exports. */
+module self_host.ExportSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+pub struct ExportItemSyntax {
+    valid: Bool,
+    name: String,
+    arity: Int,
+    message: String,
+}.
+
+pub constructor ExportItemSyntax {
+    (valid: Bool, name: String, arity: Int, message: String): ExportItemSyntax ->
+        ExportItemSyntax {
+            valid: valid,
+            name: name,
+            arity: arity,
+            message: message,
+        }
+}.
+
+
+pub struct ExportSyntax {
+    valid: Bool,
+    items: List[self_host.ExportSyntax.ExportItemSyntax],
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ExportSyntax {
+    (valid: Bool, items: List[self_host.ExportSyntax.ExportItemSyntax], span: SyntaxSpan, message: String): ExportSyntax ->
+        ExportSyntax {
+            valid: valid,
+            items: items,
+            span: span,
+            message: message,
+        }
+}.
+
+

@@ -31,6 +31,32 @@ fn qualified_generic_symbol_recovers_source_declaration() {
     );
 }
 
+/// Typed-overload symbols point debugger metadata at their public declaration.
+#[test]
+fn typed_overload_symbol_recovers_source_declaration() {
+    let overload = function("define_udf__terlan_overload_0", 3);
+
+    assert_eq!(
+        source_declaration_identity("polars.DataFrame", &overload),
+        ("polars.DataFrame".to_string(), "define_udf".to_string(), 3,)
+    );
+}
+
+/// A suffix without a numeric overload identity remains an ordinary symbol.
+#[test]
+fn malformed_typed_overload_symbol_retains_its_name() {
+    let malformed = function("define_udf__terlan_overload_nested", 3);
+
+    assert_eq!(
+        source_declaration_identity("polars.DataFrame", &malformed),
+        (
+            "polars.DataFrame".to_string(),
+            "define_udf__terlan_overload_nested".to_string(),
+            3,
+        )
+    );
+}
+
 /// Ordinary functions continue to point at their own module and declaration.
 #[test]
 fn ordinary_symbol_retains_local_source_declaration() {

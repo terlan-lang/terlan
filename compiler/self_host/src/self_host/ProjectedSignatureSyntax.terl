@@ -1,0 +1,92 @@
+/** Recursive type/pattern payloads extracted from projected declarations. */
+module self_host.ProjectedSignatureSyntax.
+
+
+import std.core.Option.{Option}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedParameterTree {
+    valid: Bool,
+    pattern: Option[ProjectedExpressionNode],
+    annotation: Option[ProjectedTypeNode],
+    default_text: String,
+    message: String,
+}.
+
+pub constructor ProjectedParameterTree {
+    (valid: Bool, pattern: Option[ProjectedExpressionNode], annotation: Option[ProjectedTypeNode], default_text: String, message: String): ProjectedParameterTree ->
+        ProjectedParameterTree {
+            valid: valid,
+            pattern: pattern,
+            annotation: annotation,
+            default_text: default_text,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedCallableSignature {
+    valid: Bool,
+    declaration_head: String,
+    parameters: List[self_host.ProjectedSignatureSyntax.ProjectedParameterTree],
+    return_type: Option[ProjectedTypeNode],
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ProjectedCallableSignature {
+    (valid: Bool, declaration_head: String, parameters: List[self_host.ProjectedSignatureSyntax.ProjectedParameterTree], return_type: Option[ProjectedTypeNode], span: SyntaxSpan, message: String): ProjectedCallableSignature ->
+        ProjectedCallableSignature {
+            valid: valid,
+            declaration_head: declaration_head,
+            parameters: parameters,
+            return_type: return_type,
+            span: span,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedTypeDeclarationTree {
+    valid: Bool,
+    declaration_head: String,
+    representation: Option[ProjectedTypeNode],
+    is_opaque: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ProjectedTypeDeclarationTree {
+    (valid: Bool, declaration_head: String, representation: Option[ProjectedTypeNode], is_opaque: Bool, span: SyntaxSpan, message: String): ProjectedTypeDeclarationTree ->
+        ProjectedTypeDeclarationTree {
+            valid: valid,
+            declaration_head: declaration_head,
+            representation: representation,
+            is_opaque: is_opaque,
+            span: span,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedSignatureDocument {
+    valid: Bool,
+    callables: List[self_host.ProjectedSignatureSyntax.ProjectedCallableSignature],
+    types: List[self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree],
+}.
+
+pub constructor ProjectedSignatureDocument {
+    (valid: Bool, callables: List[self_host.ProjectedSignatureSyntax.ProjectedCallableSignature], types: List[self_host.ProjectedSignatureSyntax.ProjectedTypeDeclarationTree]): ProjectedSignatureDocument ->
+        ProjectedSignatureDocument {
+            valid: valid,
+            callables: callables,
+            types: types,
+        }
+}.
+

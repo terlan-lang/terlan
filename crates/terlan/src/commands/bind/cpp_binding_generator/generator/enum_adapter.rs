@@ -47,7 +47,7 @@ pub(super) fn render_enum_adapter_header(
             source.push_str(&format!(
                 "std::unique_ptr<std::string> {}(const {}& value) noexcept;\n",
                 enum_adapter_name(module, function),
-                resource_symbol.cpp_name
+                resource_symbol.overload_set
             ));
         }
     }
@@ -73,18 +73,20 @@ pub(super) fn render_enum_adapter_source(
             let resource_symbol = symbol_for_type(resource, symbols)?;
             let enum_symbol = symbol_for_type(enum_type, symbols)?;
             source.push_str(&format!(
-                "std::unique_ptr<std::string> {}(const {}& value) noexcept {{\n  const auto result = value.{}();\n",
+                "std::unique_ptr<std::string> {}(const {}& value) noexcept {{\n  try {{\n    const auto result = value.{}();\n",
                 enum_adapter_name(module, function),
-                resource_symbol.cpp_name,
+                resource_symbol.overload_set,
                 getter.cpp_name
             ));
             for variant in &enum_type.variants {
                 source.push_str(&format!(
-                    "  if (result == {}::{}) {{\n    return std::make_unique<std::string>({:?});\n  }}\n",
-                    enum_symbol.cpp_name, variant.cpp_name, variant.atom
+                    "    if (result == {}::{}) {{\n      return std::make_unique<std::string>({:?});\n    }}\n",
+                    enum_symbol.overload_set, variant.cpp_name, variant.atom
                 ));
             }
-            source.push_str("  return nullptr;\n}\n\n");
+            source.push_str(
+                "    return nullptr;\n  } catch (...) {\n    return nullptr;\n  }\n}\n\n",
+            );
         }
     }
     source.push_str(&format!(

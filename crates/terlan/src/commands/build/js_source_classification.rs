@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::terlan_syntax::{
-    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxImportKind,
+    parse_module_as_syntax_output, syntax_module_import_identity, SyntaxDeclarationPayload,
+    SyntaxImportKind,
 };
 
 use crate::commands::build::js_browser::WebRouteSourceArtifact;
@@ -118,8 +119,44 @@ fn is_browser_js_source_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput
 ///   realtime route metadata.
 fn is_web_route_source_module(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
     (imports_std_http_router(syntax) && declares_router_function(syntax))
+        || declares_http_handler_function(syntax)
         || is_websocket_metadata_module(syntax)
         || is_room_protocol_metadata_module(syntax)
+}
+
+/// Returns whether a module provides an importable HTTP request handler.
+///
+/// Handler modules participate in route metadata discovery even when router
+/// assembly lives elsewhere. This makes selected `Request -> Response`
+/// imports resolvable without treating unrelated server model modules as web
+/// route sources.
+fn declares_http_handler_function(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> bool {
+    syntax.declarations.iter().any(|declaration| {
+        matches!(
+            &declaration.payload,
+            SyntaxDeclarationPayload::Function {
+                is_public: true,
+                params,
+                return_type,
+                ..
+            } if params.first().is_some_and(|param| is_http_request_type(&param.annotation.text))
+                && is_http_response_type(&return_type.text)
+        )
+    })
+}
+
+fn is_http_request_type(type_text: &str) -> bool {
+    matches!(
+        type_text,
+        "Request" | "std.http.Request.Request" | "Request.Request"
+    )
+}
+
+fn is_http_response_type(type_text: &str) -> bool {
+    matches!(
+        type_text,
+        "Response" | "std.http.Response.Response" | "Response.Response"
+    )
 }
 
 /// Returns whether a module declares WebSocket metadata.
@@ -177,7 +214,8 @@ fn imports_std_http_router(syntax: &crate::terlan_syntax::SyntaxModuleOutput) ->
                 items,
                 is_selected,
                 ..
-            } if module_name == "std.http.Router"
+            } if syntax_module_import_identity(module_name, items, *is_selected)
+                    == "std.http.Router"
                 || (module_name == "std.http"
                     && *is_selected
                     && items.iter().any(|item| item.name == "Router"))

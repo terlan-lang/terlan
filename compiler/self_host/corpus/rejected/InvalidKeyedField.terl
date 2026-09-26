@@ -1,0 +1,3 @@
+module self_host_corpus.InvalidKeyedField.
+
+pub broken() -> {name "Ada"}.

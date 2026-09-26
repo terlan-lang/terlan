@@ -1,5 +1,6 @@
 use super::{
-    call, native_handle_from_store, native_handle_value, supports, typed_result_error_name,
+    call, native_handle_from_store, native_handle_value, supported_handle_type, supports,
+    typed_result_error_name,
 };
 use crate::runtime::native_boundary::resource::{ResourceStore, ResourceValue};
 use crate::runtime::native_image::TvmBoundaryType;
@@ -7,6 +8,14 @@ use crate::runtime::vm::pure_native::PureNativeCapabilityRequest;
 use crate::runtime::vm::ReplValue;
 
 const OWNER_PROCESS_ID: u64 = 7;
+
+#[test]
+fn native_handle_types_admit_only_direct_std_resources() {
+    assert!(supported_handle_type("std.regex.Regex.Regex"));
+    assert!(supported_handle_type("std.http.Request.Request"));
+    assert!(!supported_handle_type("std.regex.Regex.Other"));
+    assert!(!supported_handle_type("third.party.Handle"));
+}
 
 #[test]
 fn supports_http_and_uri_operations() {

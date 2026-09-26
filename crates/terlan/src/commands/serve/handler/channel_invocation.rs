@@ -9,7 +9,6 @@ use crate::commands::serve::handler_cache::invocation::{
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::runtime::vm::pure_native::PureNativeIoWait;
-#[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::ReplValue;
 
@@ -35,7 +34,6 @@ impl Debug for AotChannelCallbackState {
 pub(in crate::commands::serve) struct AotChannelInvocation<Event> {
     channel: &'static str,
     runtime: Arc<AotHandlerRuntime>,
-    module: String,
     pending: Option<AotHandlerInvocation>,
     pending_event: Option<Event>,
     completed_events: Vec<Event>,
@@ -49,12 +47,11 @@ where
     pub(in crate::commands::serve) fn new(
         channel: &'static str,
         runtime: Arc<AotHandlerRuntime>,
-        module: String,
+        _router_module: String,
     ) -> Self {
         Self {
             channel,
             runtime,
-            module,
             pending: None,
             pending_event: None,
             completed_events: Vec::new(),
@@ -68,13 +65,11 @@ where
     }
 
     /// Returns whether generated callback state is currently parked.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn is_waiting(&self) -> bool {
         self.pending.is_some()
     }
 
     /// Returns the exact typed wait retained by the parked callback, if any.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn pending_wait(
         &self,
     ) -> Result<Option<PureNativeIoWait>, String> {
@@ -103,7 +98,7 @@ where
         };
         let step = self
             .runtime
-            .begin_request_invocation(&self.module, &callback.function, args)
+            .begin_request_invocation(&callback.module, &callback.function, args)
             .map_err(|error| {
                 format!(
                     "error[serve.{}.callback]: {event:?} callback `{}.{}/{}` failed: {error}",
@@ -114,7 +109,6 @@ where
     }
 
     /// Resumes the exact parked callback from one typed VM I/O wake.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         &mut self,
         wake: PureNativeIoWake,
@@ -135,7 +129,6 @@ where
     }
 
     /// Cancels and releases currently parked callback state, if present.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn cancel_pending(
         &mut self,
         reason: String,
@@ -148,7 +141,6 @@ where
     }
 
     /// Accepts a terminal callback only when it released generated state.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn finish_terminal(
         &mut self,
         event: Event,
@@ -168,34 +160,34 @@ where
     fn finish_step(
         &mut self,
         event: Event,
-        step: AotHandlerInvocationStep,
+        mut step: AotHandlerInvocationStep,
     ) -> Result<AotChannelCallbackState, String> {
-        match step {
-            AotHandlerInvocationStep::Complete(value) => {
-                self.completed_events.push(event);
-                Ok(AotChannelCallbackState::Complete(value))
-            }
-            AotHandlerInvocationStep::Waiting(invocation) => {
-                let wait = invocation.wait()?;
-                self.pending = Some(invocation);
-                self.pending_event = Some(event);
-                Ok(AotChannelCallbackState::Waiting(wait))
-            }
-            AotHandlerInvocationStep::CapabilityWaiting(invocation) => {
-                let request = invocation.request()?;
-                Err(format!(
-                    "error[serve.{}.capability_orchestration]: capability `{}` operation `{}` requires the capability worker event pump",
-                    self.channel, request.capability, request.operation
-                ))
-            }
-            AotHandlerInvocationStep::TimerWaiting(invocation) => {
-                let reason = format!(
+        loop {
+            step = match step {
+                AotHandlerInvocationStep::Complete(value) => {
+                    self.completed_events.push(event);
+                    return Ok(AotChannelCallbackState::Complete(value));
+                }
+                AotHandlerInvocationStep::Waiting(invocation) => {
+                    let wait = invocation.wait()?;
+                    self.pending = Some(invocation);
+                    self.pending_event = Some(event);
+                    return Ok(AotChannelCallbackState::Waiting(wait));
+                }
+                AotHandlerInvocationStep::CapabilityWaiting(invocation) => {
+                    invocation.resume_from_trusted_host().map_err(|error| {
+                        format!("error[serve.{}.callback_capability]: {error}", self.channel)
+                    })?
+                }
+                AotHandlerInvocationStep::TimerWaiting(invocation) => {
+                    let reason = format!(
                     "error[serve.{}.timer_orchestration]: channel callbacks cannot retain an HTTP protocol deadline",
                     self.channel
                 );
-                invocation.cancel(reason.clone())?;
-                Err(reason)
-            }
+                    invocation.cancel(reason.clone())?;
+                    return Err(reason);
+                }
+            };
         }
     }
 }

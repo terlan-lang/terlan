@@ -70,7 +70,6 @@ impl PureNativeIoWait {
     }
 
     /// Creates one owned completion for this exact wait.
-    #[cfg(test)]
     pub(crate) fn wake(&self, value: ReplValue) -> PureNativeIoWake {
         PureNativeIoWake {
             wait: self.clone(),

@@ -1,6 +1,144 @@
 use super::*;
 
 #[test]
+fn c_abi_metadata_supports_c_rust_only_uint64_primitive_arrays() {
+    let manifest = write_fixture_variant("uint64_primitive_arrays", |metadata| {
+        let symbols = metadata["c_metadata"]["symbols"]
+            .as_array_mut()
+            .expect("symbols");
+        symbols.push(serde_json::json!({
+            "id": "function.consume_uints",
+            "c_name": "terlan_c_consume_uints",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "values", "c_type": "const uint64_t *", "direction": "input", "ownership": "borrowed_call", "input_array": {"length_parameter": "value_count"}},
+                {"name": "value_count", "c_type": "int64_t", "direction": "input", "ownership": "value"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
+            "id": "function.delete_uints",
+            "c_name": "terlan_c_delete_uints",
+            "kind": "function",
+            "status": "bind",
+            "returns": "void",
+            "error_model": "infallible",
+            "parameters": [
+                {"name": "values", "c_type": "uint64_t *", "direction": "input", "ownership": "transfer_full"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
+            "id": "function.read_uints",
+            "c_name": "terlan_c_read_uints",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "out_values", "c_type": "uint64_t **", "direction": "output", "ownership": "transfer_full", "owned_array": {"length_parameter": "out_length", "destructor_symbol": "function.delete_uints", "copy": "immediate", "element": "uint64"}},
+                {"name": "out_length", "c_type": "size_t *", "direction": "output", "ownership": "borrowed_call"}
+            ]
+        }));
+    });
+    let out_dir = temp_dir("uint64_primitive_arrays_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir)
+        .expect("generate C/Rust-only UInt64 primitive ABI");
+    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
+    assert!(adapter.contains("values: *const u64"));
+    assert!(adapter.contains("out_values: *mut *mut u64"));
+    assert!(adapter.contains("values: *mut u64"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+fn c_abi_uint64_primitive_arrays_cannot_masquerade_as_terlan_int_lists() {
+    let manifest = write_fixture_variant("uint64_terlan_array", |metadata| {
+        symbol_mut(metadata, "function.native_boundary_add")["parameters"][1] = serde_json::json!({
+            "name": "delta",
+            "c_type": "const uint64_t *",
+            "direction": "input",
+            "ownership": "borrowed_call",
+            "input_array": {"length_parameter": "delta_length"}
+        });
+        symbol_mut(metadata, "function.native_boundary_add")["parameters"]
+            .as_array_mut()
+            .expect("parameters")
+            .push(serde_json::json!({
+                "name": "delta_length",
+                "c_type": "int64_t",
+                "direction": "input",
+                "ownership": "value"
+            }));
+        metadata["modules"][0]["functions"][2]["args"][1] =
+            serde_json::json!({"name": "delta", "ty": "List[Int]"});
+    });
+    let error = generate_c_abi_bindings(&manifest, &temp_dir("uint64_terlan_array_output"))
+        .expect_err("UInt64 primitive arrays have no signed Terlan list representation");
+
+    assert!(error.contains("C/Rust-only UInt64 primitive array"));
+    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
+}
+
+#[test]
+fn c_abi_owned_uint64_arrays_cannot_masquerade_as_terlan_int_lists() {
+    let manifest = write_fixture_variant("owned_uint64_terlan_array", |metadata| {
+        let symbols = metadata["c_metadata"]["symbols"]
+            .as_array_mut()
+            .expect("symbols");
+        symbols.push(serde_json::json!({
+            "id": "function.delete_uints",
+            "c_name": "terlan_c_delete_uints",
+            "kind": "function",
+            "status": "bind",
+            "returns": "void",
+            "error_model": "infallible",
+            "parameters": [
+                {"name": "values", "c_type": "uint64_t *", "direction": "input", "ownership": "transfer_full"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
+            "id": "function.read_uints",
+            "c_name": "terlan_c_read_uints",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "out_values", "c_type": "uint64_t **", "direction": "output", "ownership": "transfer_full", "owned_array": {"length_parameter": "out_length", "destructor_symbol": "function.delete_uints", "copy": "immediate", "element": "uint64"}},
+                {"name": "out_length", "c_type": "size_t *", "direction": "output", "ownership": "borrowed_call"}
+            ]
+        }));
+        metadata["modules"][0]["functions"]
+            .as_array_mut()
+            .expect("functions")
+            .push(serde_json::json!({
+                "name": "uints",
+                "operation": "c_abi_fixture.native_boundary.uints",
+                "c_symbol": "function.read_uints",
+                "role": "free_function",
+                "args": [],
+                "returns": "List[Int]",
+                "blocking": "fast",
+                "resource": "value",
+                "documentation": "Attempts to expose raw unsigned values."
+            }));
+    });
+    let error = generate_c_abi_bindings(&manifest, &temp_dir("owned_uint64_terlan_array_output"))
+        .expect_err("owned UInt64 arrays have no signed Terlan list representation");
+
+    assert!(error.contains("cannot expose a C/Rust-only UInt64 array to Terlan"));
+    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
+}
+
+#[test]
 fn c_abi_wrapper_supports_borrowed_opaque_resource_input_arrays() {
     let manifest = write_fixture_variant("resource_input_arrays", |metadata| {
         metadata["c_metadata"]["symbols"]

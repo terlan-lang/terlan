@@ -1,0 +1,82 @@
+/** Canonical JSON projection for self-hosted frontend evidence. */
+module self_host.Canonical.
+
+
+import std.core.Result.{Result}.
+import self_host.Interface.{Import, ModuleInterface, PublicDeclaration}.
+import self_host.Source.{Span}.
+import self_host.Token.{Token, kind_name}.
+
+import std.data.Json.
+
+import type std.data.Json.{Json, JsonError}.
+
+imports_json(values: List[Import], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            imports_json(
+                rest,
+                output.push(
+                    Json.object()
+                        .put("path", Json.string(value.path))
+                        .put("type_only", Json.bool(value.type_only)),
+                ),
+            )
+    }.
+
+declarations_json(values: List[PublicDeclaration], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            declarations_json(
+                rest,
+                output.push(
+                    Json.object()
+                        .put("kind", Json.string(value.kind))
+                        .put("name", Json.string(value.name)),
+                ),
+            )
+    }.
+
+span_json(span: Span): Json ->
+    Json.object()
+        .put("start_byte", Json.int(span.start_byte))
+        .put("end_byte", Json.int(span.end_byte))
+        .put("start_line", Json.int(span.start_line))
+        .put("start_column", Json.int(span.start_column))
+        .put("end_line", Json.int(span.end_line))
+        .put("end_column", Json.int(span.end_column)).
+
+tokens_json(values: List[Token], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            tokens_json(
+                rest,
+                output.push(
+                    Json.object()
+                        .put("kind", Json.string(kind_name(value.kind)))
+                        .put("lexeme", Json.string(value.lexeme))
+                        .put("span", span_json(value.span)),
+                ),
+            )
+    }.
+
+pub interface_document(interface: ModuleInterface): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self-host.interface.v1"))
+        .put("module", Json.string(interface.module_name))
+        .put("imports", imports_json(interface.imports, Json.array()))
+        .put("declarations", declarations_json(interface.declarations, Json.array())).
+
+pub token_document(tokens: List[Token]): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self-host.tokens.v1"))
+        .put("tokens", tokens_json(tokens, Json.array())).
+
+pub render_interface(interface: ModuleInterface): Result[String, JsonError] ->
+    Json.stringify(interface_document(interface)).
+
+pub render_tokens(tokens: List[Token]): Result[String, JsonError] ->
+    Json.stringify(token_document(tokens)).

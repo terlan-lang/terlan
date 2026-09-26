@@ -1,0 +1,3 @@
+module corpus.UnterminatedDeclaration.
+
+pub answer(): Int -> 42

@@ -1,4 +1,0 @@
-module aotbench.Small.
-
-pub main(): Bool ->
-    40 + 2 == 42.

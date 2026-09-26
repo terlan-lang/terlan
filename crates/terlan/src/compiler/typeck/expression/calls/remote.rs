@@ -254,6 +254,7 @@ pub(super) fn infer_syntax_remote_call(
         if let Some(schemes) = parse_interface_constructor_schemes(
             interface.constructors.get(function_name).map(Vec::as_slice),
             interface,
+            ctx.aliases,
         ) {
             if let Some(constructed) = infer_constructor_schemes(
                 function_name,

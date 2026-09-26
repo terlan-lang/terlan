@@ -181,6 +181,15 @@ pub(crate) fn expand_interface_global_aliases(
     ty: &Type,
     global_aliases: &HashMap<String, TypeAlias>,
 ) -> Type {
+    expand_interface_global_aliases_inner(ty, global_aliases, &mut HashSet::new())
+}
+
+/// Expands global aliases while preserving references that close a recursive cycle.
+fn expand_interface_global_aliases_inner(
+    ty: &Type,
+    global_aliases: &HashMap<String, TypeAlias>,
+    active_aliases: &mut HashSet<String>,
+) -> Type {
     match ty {
         Type::Named {
             module: None,
@@ -188,19 +197,43 @@ pub(crate) fn expand_interface_global_aliases(
             args,
         } => {
             if let Some((qualified_name, alias)) = unique_global_alias(name, global_aliases) {
+                if active_aliases.contains(qualified_name) {
+                    return Type::Named {
+                        module: None,
+                        name: name.clone(),
+                        args: args
+                            .iter()
+                            .map(|arg| {
+                                expand_interface_global_aliases_inner(
+                                    arg,
+                                    global_aliases,
+                                    active_aliases,
+                                )
+                            })
+                            .collect(),
+                    };
+                }
                 if alias.params.len() != args.len() {
                     return Type::Named {
                         module: None,
                         name: name.clone(),
                         args: args
                             .iter()
-                            .map(|arg| expand_interface_global_aliases(arg, global_aliases))
+                            .map(|arg| {
+                                expand_interface_global_aliases_inner(
+                                    arg,
+                                    global_aliases,
+                                    active_aliases,
+                                )
+                            })
                             .collect(),
                     };
                 }
                 let args = args
                     .iter()
-                    .map(|arg| expand_interface_global_aliases(arg, global_aliases))
+                    .map(|arg| {
+                        expand_interface_global_aliases_inner(arg, global_aliases, active_aliases)
+                    })
                     .collect::<Vec<_>>();
                 let mapping = alias
                     .params
@@ -209,32 +242,41 @@ pub(crate) fn expand_interface_global_aliases(
                     .zip(args)
                     .collect::<HashMap<_, _>>();
                 let scoped_aliases = module_scoped_global_aliases(qualified_name, global_aliases);
-                let expanded_body = expand_type_aliases(
-                    &substitute_type_vars(&alias.body, &mapping),
-                    &scoped_aliases,
-                );
+                let substituted_body = substitute_type_vars(&alias.body, &mapping);
                 if alias.is_opaque {
-                    return expanded_body;
+                    return expand_type_aliases(&substituted_body, &scoped_aliases);
                 }
-                return expand_interface_global_aliases(&expanded_body, global_aliases);
+                active_aliases.insert(qualified_name.to_string());
+                let expanded = expand_interface_global_aliases_inner(
+                    &substituted_body,
+                    &scoped_aliases,
+                    active_aliases,
+                );
+                active_aliases.remove(qualified_name);
+                return expanded;
             }
             expand_type_aliases(ty, global_aliases)
         }
         Type::Named { .. } => expand_type_aliases(ty, global_aliases),
-        Type::List(inner) => Type::List(Box::new(expand_interface_global_aliases(
+        Type::List(inner) => Type::List(Box::new(expand_interface_global_aliases_inner(
             inner,
             global_aliases,
+            active_aliases,
         ))),
         Type::Tuple(items) => Type::Tuple(
             items
                 .iter()
-                .map(|item| expand_interface_global_aliases(item, global_aliases))
+                .map(|item| {
+                    expand_interface_global_aliases_inner(item, global_aliases, active_aliases)
+                })
                 .collect(),
         ),
         Type::Union(items) => Type::Union(
             items
                 .iter()
-                .map(|item| expand_interface_global_aliases(item, global_aliases))
+                .map(|item| {
+                    expand_interface_global_aliases_inner(item, global_aliases, active_aliases)
+                })
                 .collect(),
         ),
         Type::Map(fields) => Type::Map(
@@ -242,7 +284,11 @@ pub(crate) fn expand_interface_global_aliases(
                 .iter()
                 .map(|field| MapFieldType {
                     key: field.key.clone(),
-                    value: expand_interface_global_aliases(&field.value, global_aliases),
+                    value: expand_interface_global_aliases_inner(
+                        &field.value,
+                        global_aliases,
+                        active_aliases,
+                    ),
                     required: field.required,
                 })
                 .collect(),
@@ -250,13 +296,23 @@ pub(crate) fn expand_interface_global_aliases(
         Type::Function { params, ret } => Type::Function {
             params: params
                 .iter()
-                .map(|param| expand_interface_global_aliases(param, global_aliases))
+                .map(|param| {
+                    expand_interface_global_aliases_inner(param, global_aliases, active_aliases)
+                })
                 .collect(),
-            ret: Box::new(expand_interface_global_aliases(ret, global_aliases)),
+            ret: Box::new(expand_interface_global_aliases_inner(
+                ret,
+                global_aliases,
+                active_aliases,
+            )),
         },
         Type::FixedArray { size, elem } => Type::FixedArray {
             size: *size,
-            elem: Box::new(expand_interface_global_aliases(elem, global_aliases)),
+            elem: Box::new(expand_interface_global_aliases_inner(
+                elem,
+                global_aliases,
+                active_aliases,
+            )),
         },
         other => other.clone(),
     }
@@ -345,11 +401,15 @@ fn module_scoped_global_aliases(
 pub(crate) fn parse_interface_constructor_schemes(
     signatures: Option<&[ConstructorSignature]>,
     interface: &ModuleInterface,
+    global_aliases: &HashMap<String, TypeAlias>,
 ) -> Option<Vec<ConstructorScheme>> {
     let signatures = signatures?;
     let alias_names = interface_type_names(interface);
     let qualified_names = interface_qualified_type_names(interface);
-    let interface_aliases = interface_type_aliases(interface);
+    let mut interface_aliases = interface_type_aliases(interface);
+    for (name, alias) in interface_aliases.clone() {
+        interface_aliases.insert(format!("{}.{}", interface.module, name), alias);
+    }
 
     let schemes = signatures
         .iter()
@@ -367,6 +427,7 @@ pub(crate) fn parse_interface_constructor_schemes(
                 })
                 .map(|param| expand_type_aliases(&param, &interface_aliases))
                 .map(|param| qualify_type_names(&param, &qualified_names))
+                .map(|param| expand_type_aliases(&param, global_aliases))
                 .collect::<Vec<_>>();
             let param_names = signature
                 .params
@@ -379,7 +440,8 @@ pub(crate) fn parse_interface_constructor_schemes(
                     parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
                         .unwrap_or(Type::Dynamic);
                 let parsed = expand_type_aliases(&parsed, &interface_aliases);
-                qualify_type_names(&parsed, &qualified_names)
+                let parsed = qualify_type_names(&parsed, &qualified_names);
+                expand_type_aliases(&parsed, global_aliases)
             });
 
             let ret = parse_type_expr(
@@ -391,6 +453,7 @@ pub(crate) fn parse_interface_constructor_schemes(
             .unwrap_or(Type::Dynamic);
             let ret = expand_type_aliases(&ret, &interface_aliases);
             let ret = qualify_type_names(&ret, &qualified_names);
+            let ret = expand_type_aliases(&ret, global_aliases);
 
             ConstructorScheme {
                 param_names,

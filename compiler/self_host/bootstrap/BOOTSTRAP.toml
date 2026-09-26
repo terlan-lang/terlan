@@ -1,0 +1,35 @@
+[schema]
+name = "terlan.self-host.bootstrap"
+version = 1
+
+[stage0]
+implementation = "rust"
+artifact = "target/bootstrap/terlc0/terlc"
+source = "crates/terlan"
+
+[stage1]
+implementation = "terlan"
+artifact = "target/bootstrap/terlc1/terlc"
+source = "compiler/self_host"
+built_by = "stage0"
+
+[stage2]
+implementation = "terlan"
+artifact = "target/bootstrap/terlc2/terlc"
+source = "compiler/self_host"
+built_by = "stage1"
+
+[comparison]
+schema = "terlan.self-host.bootstrap-comparison.v1"
+canonical_layers = [
+  "tokens",
+  "source-spans",
+  "module-interface",
+  "diagnostics",
+  "typed-syntax",
+  "core-ir",
+  "managed-layouts",
+  "native-image-descriptor",
+  "runtime-behavior",
+  "normalized-artifact",
+]

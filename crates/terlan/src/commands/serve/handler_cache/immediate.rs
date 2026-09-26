@@ -3,7 +3,6 @@
 use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::vm::process::VmProcessId;
-#[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::pure_native::{
     PureNativeCapabilityWait, PureNativeExecution, PureNativeExecutionShard, PureNativeSuspension,
@@ -190,7 +189,6 @@ impl LocalImmediateShard {
     }
 
     /// Resumes one protocol-owned actor from its exact typed I/O wake.
-    #[cfg(test)]
     pub(super) fn resume(
         &mut self,
         route: VmFixedActorRoute,

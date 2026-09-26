@@ -24,6 +24,26 @@ type TestClosureResolver = unsafe extern "C" fn(
     u64,
     *mut u64,
 ) -> i32;
+type TestCallableRecorder = unsafe extern "C" fn(*mut c_void, u64);
+
+#[test]
+fn callable_coverage_records_each_executed_identity_once() {
+    let mut runtime = ManagedExecutionRuntime::runtime_default().expect("managed runtime");
+    runtime.start_callable_coverage();
+    let recorder = runtime.callable_coverage_callback();
+    runtime.with_dispatch(71, |context, _allocator, _resolver| {
+        // SAFETY: `callable_coverage_callback` publishes this exact callback ABI.
+        let recorder: TestCallableRecorder = unsafe { std::mem::transmute(recorder) };
+        // SAFETY: the dispatch context stays live for this synchronous callback.
+        unsafe {
+            recorder(context, 42);
+            recorder(context, 42);
+            recorder(context, 7);
+        }
+    });
+
+    assert_eq!(runtime.finish_callable_coverage(), [7, 42].into());
+}
 
 #[test]
 fn generated_callback_diagnostics_preserve_the_first_failure() {

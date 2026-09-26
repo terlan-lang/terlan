@@ -1,6 +1,7 @@
 //! Completion-frame emission for suspension-aware calls.
 
 use super::*;
+use crate::runtime::native_image::TVM_COMPLETION_TRANSITION_WORD_CAPACITY;
 
 /// Complete caller-owned state needed to wrap one callee suspension.
 pub(super) struct WrappedCallYield<'a> {
@@ -79,6 +80,19 @@ pub(super) fn emit_wrapped_call_yield(
     let pointer = transition_pointer.ok_or_else(|| {
         "error[cranelift.call_then]: transition buffer is unavailable".to_string()
     })?;
+    let appended_count = values.len().saturating_add(2);
+    let value_count = builder.ins().iadd_imm(actual_count, appended_count as i64);
+    let exceeds_capacity = builder.ins().icmp_imm(
+        IntCC::UnsignedGreaterThan,
+        value_count,
+        TVM_COMPLETION_TRANSITION_WORD_CAPACITY as i64,
+    );
+    branch_on_flag(
+        builder,
+        exceeds_capacity,
+        status::TRANSITION_CAPACITY,
+        error_block,
+    );
     let byte_offset = builder.ins().imul_imm(actual_count, 8);
     let append_pointer = builder.ins().iadd(pointer, byte_offset);
     for (index, value) in values.iter().enumerate() {
@@ -117,9 +131,6 @@ pub(super) fn emit_wrapped_call_yield(
         append_pointer,
         count_offset,
     );
-    let value_count = builder
-        .ins()
-        .iadd_imm(actual_count, values.len().saturating_add(2) as i64);
     builder
         .ins()
         .store(MemFlagsData::new(), value_count, len_pointer, 0);

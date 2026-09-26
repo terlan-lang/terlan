@@ -18,6 +18,15 @@ pub(super) fn structured_build_plan_renders_without_shell_commands() {
                 "linked_libraries": [{"name": "pthread", "kind": "dynamic"}]
             }
         ]);
+        manifest["build"]["external_roots"] = serde_json::json!([
+            {
+                "env": "FIXTURE_SDK",
+                "include_roots": ["include"],
+                "library_search_paths": ["lib"],
+                "linked_libraries": [{"name": "fixture_sdk", "kind": "dynamic"}],
+                "rebuild_inputs": ["version.txt"]
+            }
+        ]);
         manifest["build"]["rebuild_inputs"] =
             serde_json::json!(["src/lib.rs", "include", "cpp", "vendor/lib"]);
     });
@@ -38,6 +47,12 @@ pub(super) fn structured_build_plan_renders_without_shell_commands() {
     assert!(build.contains("build.define(\"TERLAN_LINUX\", None::<&str>)"));
     assert!(build.contains("cargo:rustc-link-lib=dylib=pthread"));
     assert!(build.contains("cargo:rerun-if-changed=vendor/lib"));
+    assert!(build.contains("cargo:rerun-if-env-changed=FIXTURE_SDK"));
+    assert!(build.contains("var_os(\"FIXTURE_SDK\")"));
+    assert!(build.contains("external_root_0.join(\"include\")"));
+    assert!(build.contains("external_root_0.join(\"lib\").display()"));
+    assert!(build.contains("cargo:rustc-link-lib=dylib=fixture_sdk"));
+    assert!(build.contains("external_root_0.join(\"version.txt\").display()"));
     assert!(!build.contains("Command::new"));
     assert!(!build.contains("sh -c"));
     assert_eq!(
@@ -121,6 +136,23 @@ pub(super) fn structured_build_plan_rejects_unsafe_or_ambiguous_tokens() {
         .expect_err("invalid library must fail");
     assert!(error.contains("invalid C++ linked library"));
     fs::remove_dir_all(invalid_library.parent().expect("variant root")).expect("remove variant");
+
+    let invalid_external = write_fixture_variant("external_environment", |manifest| {
+        manifest["build"]["external_roots"] = serde_json::json!([
+            {
+                "env": "sdk-path",
+                "include_roots": ["include"],
+                "library_search_paths": ["lib"],
+                "linked_libraries": [],
+                "rebuild_inputs": []
+            }
+        ]);
+    });
+    let error = generate_cpp_bindings(&invalid_external, &temp_dir("external_environment_out"))
+        .expect_err("unsafe external environment name must fail");
+    assert!(error.contains("invalid external C++ SDK environment variable"));
+    fs::remove_dir_all(invalid_external.parent().expect("variant root"))
+        .expect("remove invalid external variant");
 
     let duplicate_condition = write_fixture_variant("build_condition", |manifest| {
         manifest["build"]["platform_conditions"] = serde_json::json!([
@@ -482,7 +514,7 @@ pub(super) fn generated_helpers_lower_only_reviewed_enum_argument_atoms() {
     let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
         .expect("read generated helper");
 
-    assert!(helper.contains("Arg::Atom(arg_1)"));
+    assert!(helper.contains("arg_1 @ (Arg::Atom(_) | Arg::Int(_))"));
     assert!(helper.contains("\"raw\" => 7_i64"));
     assert!(helper.contains("\"doubled\" => 41_i64"));
     assert!(helper.contains("\"offset\" => 99_i64"));

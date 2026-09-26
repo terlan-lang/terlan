@@ -1,0 +1,42 @@
+/** Public module interface emitted by semantic analysis. */
+module self_host.ModuleInterfaceSyntax.
+
+import self_host.Syntax.{DeclarationClass, SyntaxSpan}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+pub struct ExportedSymbol {
+    name: String,
+    arity: Int,
+    class: DeclarationClass,
+    span: SyntaxSpan,
+}.
+
+pub constructor ExportedSymbol {
+    (name: String, arity: Int, class: DeclarationClass, span: SyntaxSpan): ExportedSymbol ->
+        ExportedSymbol {
+            name: name,
+            arity: arity,
+            class: class,
+            span: span,
+        }
+}.
+
+
+pub struct ModuleInterface {
+    schema: String,
+    module_name: String,
+    symbols: List[self_host.ModuleInterfaceSyntax.ExportedSymbol],
+}.
+
+pub constructor ModuleInterface {
+    (schema: String, module_name: String, symbols: List[self_host.ModuleInterfaceSyntax.ExportedSymbol]): ModuleInterface ->
+        ModuleInterface {
+            schema: schema,
+            module_name: module_name,
+            symbols: symbols,
+        }
+}.
+

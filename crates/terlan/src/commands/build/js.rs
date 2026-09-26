@@ -236,9 +236,10 @@ fn run_js_project_source_roots_build(
 /// - CLI exit code representing build success or failure.
 ///
 /// Transformation:
-/// - Discovers `.terl` files, validates each root with the formal check path,
-///   compiles every source file to CoreIR, emits deterministic JS modules, and
-///   writes one JS target manifest.
+/// - Discovers `.terl` files, prepares interfaces for classified browser
+///   projects or validates ordinary JS roots with the formal check path,
+///   compiles browser source files to CoreIR, records server route sources,
+///   and writes one JS target manifest.
 fn run_js_source_roots_build(
     source_roots: &[SourceRootBuildUnit],
     state: &CliState,
@@ -282,7 +283,9 @@ fn run_js_source_roots_build(
         directory_state.cache_dir = Some(js_build_root(state).join(".terlan"));
     }
 
-    if directory_state.incremental {
+    let classified_browser_project =
+        contract.profile == TargetProfile::JsBrowser && browser_static_assets.is_some();
+    if directory_state.incremental || classified_browser_project {
         for root in source_roots {
             if let Err(message) = prepare_source_root_interfaces(&root.path, &directory_state) {
                 eprintln!("{message}");
@@ -307,7 +310,10 @@ fn run_js_source_roots_build(
     ) {
         Ok(artifacts) => artifacts,
         Err(err) => {
-            if !directory_state.incremental {
+            if !directory_state.incremental && !classified_browser_project {
+                return err.into_exit_code();
+            }
+            if classified_browser_project {
                 return err.into_exit_code();
             }
             let check_status = run_full_js_source_root_checks(source_roots, &directory_state);

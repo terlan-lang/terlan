@@ -117,6 +117,7 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
     let report = TestRunReport {
         passed: 1,
         failed: 1,
+        covered_callables: Default::default(),
         results: vec![
             TestRunResult {
                 name: "passes".to_string(),

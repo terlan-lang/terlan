@@ -1,0 +1,50 @@
+/** Structured metadata attached to one source declaration. */
+module self_host.DeclarationMetadataSyntax.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct AnnotationUse {
+    path: String,
+    source: String,
+}.
+
+pub constructor AnnotationUse {
+    (path: String, source: String): AnnotationUse ->
+        AnnotationUse {
+            path: path,
+            source: source,
+        }
+}.
+
+
+pub struct DeclarationMetadata {
+    annotations: List[self_host.DeclarationMetadataSyntax.AnnotationUse],
+    docs: List[String],
+}.
+
+pub constructor DeclarationMetadata {
+    (annotations: List[self_host.DeclarationMetadataSyntax.AnnotationUse], docs: List[String]): DeclarationMetadata ->
+        DeclarationMetadata {
+            annotations: annotations,
+            docs: docs,
+        }
+}.
+
+
+pub struct PreparedDeclaration {
+    declaration: DeclarationSyntax,
+    metadata: self_host.DeclarationMetadataSyntax.DeclarationMetadata,
+}.
+
+pub constructor PreparedDeclaration {
+    (declaration: DeclarationSyntax, metadata: self_host.DeclarationMetadataSyntax.DeclarationMetadata): PreparedDeclaration ->
+        PreparedDeclaration {
+            declaration: declaration,
+            metadata: metadata,
+        }
+}.
+

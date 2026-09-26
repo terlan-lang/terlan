@@ -372,6 +372,7 @@ pub classify(value: Status): Int ->
         Status.OK -> 1;
         Status.MISSING -> 2
     }.
+pub forward(value: Status): Int -> classify(value).
 "#;
     let syntax = parse_module_as_syntax_output(source).expect("parse valued union fixture");
     let resolved = resolve_syntax_module_output(&syntax).module;

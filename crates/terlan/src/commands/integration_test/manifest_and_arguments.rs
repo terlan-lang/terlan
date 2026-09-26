@@ -91,6 +91,14 @@ pub(super) struct WebSocketCheck {
     pub(super) first_match_contains: String,
     pub(super) second_match_contains: String,
     pub(super) move_check: Option<WebSocketMoveCheck>,
+    pub(super) restore_check: Option<WebSocketRestoreCheck>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct WebSocketRestoreCheck {
+    pub(super) path: String,
+    pub(super) entry_contains: String,
+    pub(super) view_contains: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,7 +161,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 
 pub(super) fn print_usage() {
     println!(
-        "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--compose-service <name>] [--skip-db] [--skip-build] [--migrations <dir>] [--wait-secs <seconds>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]] [--websocket-check PAIR:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH] [--websocket-check PAIR_MOVE:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH:ROW:COLUMN:FIRST_UPDATE:SECOND_UPDATE]"
+        "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--compose-service <name>] [--skip-db] [--skip-build] [--migrations <dir>] [--wait-secs <seconds>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]] [--websocket-check PAIR:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH] [--websocket-check PAIR_MOVE:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH:ROW:COLUMN:FIRST_UPDATE:SECOND_UPDATE] [--websocket-check PAIR_RESTORE:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH:ROW:COLUMN:FIRST_UPDATE:SECOND_UPDATE:RESTORE_PATH:RESTORE_ENTRY:RESTORE_VIEW]"
     );
     println!("Use --flow <name> or [integration.default] in terlan.toml for composable integration traits.");
     println!("Global --out-dir selects the build output root; default is _build.");
@@ -352,15 +360,18 @@ pub(super) fn parse_http_check(value: &str) -> Result<HttpCheck, String> {
 
 pub(super) fn parse_websocket_check(value: &str) -> Result<WebSocketCheck, String> {
     let parts = value.split(':').collect::<Vec<_>>();
-    if parts.len() != 6 && parts.len() != 10 {
+    if parts.len() != 6 && parts.len() != 10 && parts.len() != 13 {
         return Err(format!(
-            "invalid WebSocket check `{value}`; expected PAIR:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH or PAIR_MOVE:FIRST_PATH:FIRST_INITIAL:SECOND_PATH:FIRST_MATCH:SECOND_MATCH:ROW:COLUMN:FIRST_UPDATE:SECOND_UPDATE"
+            "invalid WebSocket check `{value}`; expected PAIR, PAIR_MOVE, or PAIR_RESTORE fields"
         ));
     }
     let kind = parts[0].trim();
-    if (parts.len() == 6 && kind != "PAIR") || (parts.len() == 10 && kind != "PAIR_MOVE") {
+    if (parts.len() == 6 && kind != "PAIR")
+        || (parts.len() == 10 && kind != "PAIR_MOVE")
+        || (parts.len() == 13 && kind != "PAIR_RESTORE")
+    {
         return Err(format!(
-            "invalid WebSocket check `{value}`; expected PAIR or PAIR_MOVE"
+            "invalid WebSocket check `{value}`; kind does not match its field count"
         ));
     }
     let first_path = parse_websocket_check_path(parts[1], "first")?;
@@ -368,7 +379,7 @@ pub(super) fn parse_websocket_check(value: &str) -> Result<WebSocketCheck, Strin
     let second_path = parse_websocket_check_path(parts[3], "second")?;
     let first_match_contains = parse_websocket_check_contains(parts[4], "first match")?;
     let second_match_contains = parse_websocket_check_contains(parts[5], "second match")?;
-    let move_check = if parts.len() == 10 {
+    let move_check = if parts.len() >= 10 {
         let row = parts[6].trim().parse::<u64>().map_err(|_| {
             format!(
                 "integration WebSocket move row must be a u64, got `{}`",
@@ -390,6 +401,15 @@ pub(super) fn parse_websocket_check(value: &str) -> Result<WebSocketCheck, Strin
     } else {
         None
     };
+    let restore_check = if parts.len() == 13 {
+        Some(WebSocketRestoreCheck {
+            path: parse_websocket_check_path(parts[10], "restore")?,
+            entry_contains: parse_websocket_check_contains(parts[11], "restore entry")?,
+            view_contains: parse_websocket_check_contains(parts[12], "restore view")?,
+        })
+    } else {
+        None
+    };
     Ok(WebSocketCheck {
         first_path,
         first_initial_contains,
@@ -397,6 +417,7 @@ pub(super) fn parse_websocket_check(value: &str) -> Result<WebSocketCheck, Strin
         first_match_contains,
         second_match_contains,
         move_check,
+        restore_check,
     })
 }
 
@@ -433,6 +454,7 @@ pub(super) fn run_integration(mut args: IntegrationArgs, state: CliState) -> Res
 
     if args.traits.compose_db {
         normalize_database_host_port(&mut app_env)?;
+        configure_database_url(&mut app_env)?;
         run_database_phase(&project_dir, &args, &app_env)?;
     }
 

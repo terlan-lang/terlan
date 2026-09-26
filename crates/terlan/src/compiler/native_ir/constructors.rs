@@ -243,9 +243,12 @@ pub(super) fn install_struct_layouts(
                         "error[native_ir.struct_layout_type]: struct `{name}` has an unsupported field"
                     )
                 })?;
+            let canonical = super::expression::managed_semantic_contract(
+                declaration.core_body.as_ref().expect("matched struct body"),
+            );
             let descriptor = Arc::new(
                 ManagedAggregateDescriptor::record(
-                    name,
+                    &canonical,
                     fields
                         .iter()
                         .zip(parameters.iter().copied())
@@ -264,7 +267,7 @@ pub(super) fn install_struct_layouts(
                 parameter_core_types: fields.iter().map(|field| Some(field.ty.clone())).collect(),
                 parameters,
                 result: NativeType::ManagedRef(
-                    SemanticTypeId::from_canonical(name)
+                    SemanticTypeId::from_canonical(&canonical)
                         .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
                 ),
                 result_core_type: declaration.core_body.clone(),
@@ -488,8 +491,9 @@ pub(super) fn lower_structural_record_construct(
         descriptor_fields.push((field_name.to_string(), managed_field_type(ty)?));
         lowered.push(value);
     }
+    let canonical = super::expression::managed_semantic_contract(target);
     let descriptor = Arc::new(
-        ManagedAggregateDescriptor::record(&target.contract_text(), descriptor_fields)
+        ManagedAggregateDescriptor::record(&canonical, descriptor_fields)
             .map_err(|error| format!("error[native_ir.structural_record_layout]: {error}"))?,
     );
     let encoded_layout = Arc::<[u8]>::from(

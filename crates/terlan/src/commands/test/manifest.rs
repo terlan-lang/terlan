@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
@@ -58,6 +59,8 @@ pub(super) struct TestRunReport {
     pub(super) passed: usize,
     pub(super) failed: usize,
     pub(super) results: Vec<TestRunResult>,
+    /// Native callable identifiers observed while executing this test run.
+    pub(super) covered_callables: BTreeSet<u64>,
 }
 
 /// In-memory execution result for one test.
@@ -134,6 +137,7 @@ pub(super) fn validation_pass_report(tests: &[DiscoveredTest]) -> TestRunReport 
     TestRunReport {
         passed: tests.len(),
         failed: 0,
+        covered_callables: BTreeSet::new(),
         results: tests
             .iter()
             .map(|test| TestRunResult {

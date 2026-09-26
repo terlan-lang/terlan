@@ -1,0 +1,36 @@
+/** Positive and negative valued-union contracts. */
+module self_host.ValuedUnionLoweringTest.
+
+import self_host.TypeSyntax.{NamedType}.
+
+import std.collections.List.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+import self_host.ValuedUnionLowering.
+
+@pure
+positive_valued_union(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Code.\npub type Code: Int = Ok = 200 | Missing = 404.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let valued = ValuedUnionLowering.lower(declaration);
+            valued.valid
+                and valued.base.syntax.class == NamedType
+                and List.length(valued.arms) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_valued_union(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Code.\npub type Code: Int = Missing.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] -> not ValuedUnionLowering.lower(declaration).valid;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_valued_union() and negative_valued_union().
+

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -10,6 +11,20 @@
 #define TERLAN_FIXTURE_UNSAFE_SCALE(value) ((value) * 2)
 
 namespace terlan_fixture {
+
+template <typename T>
+class ArrayRef final {
+ public:
+  ArrayRef(const T* data, std::size_t size) noexcept : data_(data), size_(size) {}
+  const T* data() const noexcept { return data_; }
+  std::size_t size() const noexcept { return size_; }
+
+ private:
+  const T* data_;
+  std::size_t size_;
+};
+
+using IntArrayRef = ArrayRef<std::int64_t>;
 
 struct NativeSnapshot final {
   std::int64_t value;
@@ -29,6 +44,7 @@ enum class BoundaryMode : std::int32_t {
 class NativeBoundary final {
  public:
   explicit NativeBoundary(std::int64_t value) noexcept;
+  NativeBoundary(NativeBoundary&& other) noexcept;
   ~NativeBoundary() noexcept;
 
   NativeBoundary(const NativeBoundary&) = delete;
@@ -36,6 +52,7 @@ class NativeBoundary final {
 
   std::int64_t value() const noexcept;
   std::int64_t doubled() const noexcept;
+  NativeBoundary shifted(std::int64_t delta) const noexcept;
   std::unique_ptr<std::string> label() const noexcept;
   std::unique_ptr<std::vector<std::uint8_t>> bytes() const noexcept;
   std::unique_ptr<std::vector<std::int64_t>> samples() const noexcept;
@@ -47,7 +64,8 @@ class NativeBoundary final {
   std::int64_t value_;
 };
 
-std::unique_ptr<NativeBoundary> make_native_boundary(std::int64_t value) noexcept;
+NativeBoundary make_native_boundary(IntArrayRef values,
+                                    std::int64_t offset = 0) noexcept;
 std::int64_t live_native_boundary_count() noexcept;
 std::int64_t take_last_failure() noexcept;
 std::int64_t sum_snapshot_fields(std::int64_t value,

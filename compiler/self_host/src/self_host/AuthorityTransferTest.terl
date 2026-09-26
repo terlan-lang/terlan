@@ -1,0 +1,17 @@
+/** Positive and negative authority-transfer contracts. */
+module self_host.AuthorityTransferTest.
+
+import self_host.AuthoritySyntax.{AuthorityEvidence}.
+
+import self_host.AuthorityTransfer.
+
+@pure
+all_gates_pass(): Bool ->
+    AuthorityTransfer.evaluate(AuthorityEvidence(true, true, true, true, true, "sha256:fixed", "sha256:fixed")).transferable.
+
+@pure
+hash_mismatch_retains_rust(): Bool ->
+    let decision = AuthorityTransfer.evaluate(AuthorityEvidence(true, true, true, true, true, "sha256:stage0", "sha256:stage1"));
+    not decision.transferable and decision.retain_rust_frontend.
+
+pub self_test(): Bool -> all_gates_pass() and hash_mismatch_retains_rust().

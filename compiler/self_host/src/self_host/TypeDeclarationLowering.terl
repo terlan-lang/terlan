@@ -1,0 +1,52 @@
+/** Self-hosted lowering for transparent and opaque type declarations. */
+module self_host.TypeDeclarationLowering.
+
+import self_host.DeclarationPayloadSyntax.{TypeDeclarationSyntax}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{OpaqueTypeDeclaration, TypeDeclaration}.
+
+import std.core.{Bool, Int, String}.
+import self_host.Delimited.
+import self_host.TypeParser.
+
+
+@pure
+representation_text(source: String, assignment: Int): String ->
+    let value = String.trim(source.utf8_slice(assignment + 1, source.byte_size() - assignment - 1));
+    if {
+        String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1));
+        true -> value
+    }.
+
+@pure
+declaration_message(
+    supported: Bool,
+    assignment: Int,
+    representation_valid: Bool,
+    representation_message: String,
+): String ->
+    if {
+        not supported -> "declaration is not a type";
+        assignment >= 0 and not representation_valid -> representation_message;
+        true -> ""
+    }.
+
+@pure
+pub lower(source: DeclarationSyntax): TypeDeclarationSyntax ->
+    let supported = source.class == TypeDeclaration or source.class == OpaqueTypeDeclaration;
+    let assignment = Delimited.top_level_assignment(source.body);
+    let representation = if {
+        assignment < 0 -> TypeParser.parse("");
+        true -> TypeParser.parse(representation_text(source.body, assignment))
+    };
+    let valid = supported and (assignment < 0 or representation.valid);
+    TypeDeclarationSyntax(
+        valid,
+        source.name,
+        assignment >= 0,
+        representation,
+        source.class == OpaqueTypeDeclaration,
+        source.is_public,
+        source.span,
+        declaration_message(supported, assignment, representation.valid, representation.message),
+    ).

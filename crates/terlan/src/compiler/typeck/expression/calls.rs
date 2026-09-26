@@ -324,6 +324,7 @@ fn infer_syntax_call_with_arg_types(
                         .get(&imported.name)
                         .map(Vec::as_slice),
                     interface,
+                    ctx.aliases,
                 ) {
                     if let Some(constructed) = infer_constructor_schemes(
                         function_name,

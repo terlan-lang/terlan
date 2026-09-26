@@ -1,0 +1,87 @@
+/** Canonical token handoff for the self-hosted parser. */
+module self_host.CanonicalToken.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+pub type KeywordToken.
+pub type ContextualKeywordToken.
+pub type LowerIdentifierToken.
+pub type UpperIdentifierToken.
+pub type IntegerToken.
+pub type FloatToken.
+pub type StringToken.
+pub type BinaryToken.
+pub type OperatorToken.
+pub type PunctuationToken.
+pub type CommentToken.
+pub type DocCommentToken.
+pub type ModuleDocCommentToken.
+pub type EndToken.
+
+pub type TokenCategory =
+    KeywordToken
+    | ContextualKeywordToken
+    | LowerIdentifierToken
+    | UpperIdentifierToken
+    | IntegerToken
+    | FloatToken
+    | StringToken
+    | BinaryToken
+    | OperatorToken
+    | PunctuationToken
+    | CommentToken
+    | DocCommentToken
+    | ModuleDocCommentToken
+    | EndToken.
+
+pub struct CanonicalToken {
+    category: self_host.CanonicalToken.TokenCategory,
+    terminal: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor CanonicalToken {
+    (category: self_host.CanonicalToken.TokenCategory, terminal: String, text: String, start_byte: Int, end_byte: Int): CanonicalToken ->
+        CanonicalToken {
+            category: category,
+            terminal: terminal,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+
+pub struct CanonicalLexError {
+    message: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor CanonicalLexError {
+    (message: String, start_byte: Int, end_byte: Int): CanonicalLexError ->
+        CanonicalLexError {
+            message: message,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+
+pub struct CanonicalLexOutput {
+    valid: Bool,
+    tokens: List[self_host.CanonicalToken.CanonicalToken],
+    errors: List[self_host.CanonicalToken.CanonicalLexError],
+}.
+
+pub constructor CanonicalLexOutput {
+    (valid: Bool, tokens: List[self_host.CanonicalToken.CanonicalToken], errors: List[self_host.CanonicalToken.CanonicalLexError]): CanonicalLexOutput ->
+        CanonicalLexOutput {
+            valid: valid,
+            tokens: tokens,
+            errors: errors,
+        }
+}.

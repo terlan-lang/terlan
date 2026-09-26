@@ -93,6 +93,8 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
                     Ok("true")
                 } else if argument.abi_ty() == "List[Int]" {
                     Ok("[0]")
+                } else if argument.abi_ty() == "String" {
+                    Ok("\"reduced\"")
                 } else {
                     Err(format!(
                         "first generated consumer cannot construct `{}`",
@@ -245,6 +247,28 @@ pub(super) fn list_binding_type<'a>(
 ) -> Option<(&'a CAbiBindingModule, &'a CAbiBindingType)> {
     let inner = name.strip_prefix("List[")?.strip_suffix(']')?;
     binding_type(manifest, inner)
+}
+
+/// Resolves a structural tuple whose every element is an opaque resource type.
+pub(super) fn resource_tuple_binding_types<'a>(
+    manifest: &'a CAbiBindingManifest,
+    name: &str,
+) -> Option<Vec<(&'a CAbiBindingModule, &'a CAbiBindingType)>> {
+    tuple_type_elements(name)?
+        .into_iter()
+        .map(|element| binding_type(manifest, element))
+        .collect()
+}
+
+/// Parses a flat structural tuple type without accepting records or empty elements.
+pub(super) fn tuple_type_elements(name: &str) -> Option<Vec<&str>> {
+    let inner = name.strip_prefix('{')?.strip_suffix('}')?;
+    let elements = inner.split(',').map(str::trim).collect::<Vec<_>>();
+    (elements.len() >= 2
+        && elements
+            .iter()
+            .all(|element| !element.is_empty() && !element.contains(['{', '}', '[', ']', ':'])))
+    .then_some(elements)
 }
 
 pub(super) fn qualified_type_name(

@@ -1,0 +1,270 @@
+/**
+ * Deterministic JSON encoding for self-host backend IR ABI 1.
+ */
+module self_host.SelfHostIrJson.
+
+
+
+
+import std.core.Result.{Ok, Result}.
+import std.core.Option.{None, Option, Some}.
+import std.core.Int.
+import std.core.String.
+import std.data.Json.
+import std.collections.List.
+import type std.data.Json.{Json, JsonError}.
+import self_host.SelfHostIrSyntax.
+
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrBlock, IrFunction, IrInstruction, IrModule, IrParameter, IrTerminator}.
+string_array_at(values: List[String], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> string_array_at(rest, output.push(Json.string(value)))
+    }.
+
+string_array(values: List[String]): Json ->
+    string_array_at(values, Json.array()).
+
+optional_string(value: Option[String]): Json ->
+    case value {
+        None -> Json.null();
+        Some(text) -> Json.string(text)
+    }.
+
+parameter(value: IrParameter): Json ->
+    Json.object()
+        .put("name", Json.string(value.name))
+        .put("type_name", Json.string(value.type_name)).
+
+parameters_at(values: List[IrParameter], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> parameters_at(rest, output.push(parameter(value)))
+    }.
+
+parameters(values: List[IrParameter]): Json ->
+    parameters_at(values, Json.array()).
+
+instruction(value: IrInstruction): Json ->
+    Json.object()
+        .put("opcode", Json.string(value.opcode))
+        .put("result", optional_string(value.result))
+        .put("operands", string_array(value.operands))
+        .put("type_name", Json.string(value.type_name)).
+
+instructions_at(values: List[IrInstruction], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> instructions_at(rest, output.push(instruction(value)))
+    }.
+
+instructions(values: List[IrInstruction]): Json ->
+    instructions_at(values, Json.array()).
+
+terminator(value: IrTerminator): Json ->
+    Json.object()
+        .put("opcode", Json.string(value.opcode))
+        .put("operands", string_array(value.operands))
+        .put("targets", string_array(value.targets)).
+
+block(value: IrBlock): Json ->
+    Json.object()
+        .put("label", Json.string(value.label))
+        .put("instructions", instructions(value.instructions))
+        .put("terminator", terminator(value.terminator)).
+
+blocks_at(values: List[IrBlock], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> blocks_at(rest, output.push(block(value)))
+    }.
+
+blocks(values: List[IrBlock]): Json ->
+    blocks_at(values, Json.array()).
+
+function(value: IrFunction): Json ->
+    Json.object()
+        .put("module_name", Json.string(value.module_name))
+        .put("name", Json.string(value.name))
+        .put("arity", Json.int(value.arity))
+        .put("parameters", parameters(value.parameters))
+        .put("return_type", Json.string(value.return_type))
+        .put("blocks", blocks(value.blocks))
+        .put("native_symbol", optional_string(value.native_symbol)).
+
+functions_at(values: List[IrFunction], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> functions_at(rest, output.push(function(value)))
+    }.
+
+functions(values: List[IrFunction]): Json ->
+    functions_at(values, Json.array()).
+
+ir_module_json(value: IrModule): Json ->
+    Json.object()
+        .put("name", Json.string(value.name))
+        .put("functions", functions(value.functions)).
+
+pub to_json(envelope: BackendEnvelope): Json ->
+    Json.object()
+        .put("abi_major", Json.int(envelope.abi_major))
+        .put("abi_minor", Json.int(envelope.abi_minor))
+        .put("target", Json.string(envelope.target))
+        .put("module", ir_module_json(envelope.ir_module)).
+
+@pure
+quoted(value: String): String ->
+    Json.quote_string(value).
+
+@pure
+optional_string_text(value: Option[String]): String ->
+    case value {
+        Some(text) -> quoted(text);
+        None -> "null"
+    }.
+
+@pure
+string_items(values: List[String], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> string_items(
+            rest,
+            String.concat([output, separator, quoted(value)]),
+            ",",
+        )
+    }.
+
+@pure
+string_array_text(values: List[String]): String ->
+    String.concat(["[", string_items(values, "", ""), "]"]).
+
+@pure
+parameter_text(value: IrParameter): String ->
+    String.concat([
+        "{\"name\":", quoted(value.name),
+        ",\"type_name\":", quoted(value.type_name),
+        "}",
+    ]).
+
+@pure
+parameter_items(values: List[IrParameter], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> parameter_items(
+            rest,
+            String.concat([output, separator, parameter_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+parameter_array_text(values: List[IrParameter]): String ->
+    String.concat(["[", parameter_items(values, "", ""), "]"]).
+
+@pure
+instruction_text(value: IrInstruction): String ->
+    String.concat([
+        "{\"opcode\":", quoted(value.opcode),
+        ",\"result\":", optional_string_text(value.result),
+        ",\"operands\":", string_array_text(value.operands),
+        ",\"type_name\":", quoted(value.type_name),
+        "}",
+    ]).
+
+@pure
+instruction_items(values: List[IrInstruction], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> instruction_items(
+            rest,
+            String.concat([output, separator, instruction_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+instruction_array_text(values: List[IrInstruction]): String ->
+    String.concat(["[", instruction_items(values, "", ""), "]"]).
+
+@pure
+terminator_text(value: IrTerminator): String ->
+    String.concat([
+        "{\"opcode\":", quoted(value.opcode),
+        ",\"operands\":", string_array_text(value.operands),
+        ",\"targets\":", string_array_text(value.targets),
+        "}",
+    ]).
+
+@pure
+block_text(value: IrBlock): String ->
+    String.concat([
+        "{\"label\":", quoted(value.label),
+        ",\"instructions\":", instruction_array_text(value.instructions),
+        ",\"terminator\":", terminator_text(value.terminator),
+        "}",
+    ]).
+
+@pure
+block_items(values: List[IrBlock], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> block_items(
+            rest,
+            String.concat([output, separator, block_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+block_array_text(values: List[IrBlock]): String ->
+    String.concat(["[", block_items(values, "", ""), "]"]).
+
+@pure
+function_text(value: IrFunction): String ->
+    String.concat([
+        "{\"module_name\":", quoted(value.module_name),
+        ",\"name\":", quoted(value.name),
+        ",\"arity\":", Int.to_string(value.arity),
+        ",\"parameters\":", parameter_array_text(value.parameters),
+        ",\"return_type\":", quoted(value.return_type),
+        ",\"blocks\":", block_array_text(value.blocks),
+        ",\"native_symbol\":", optional_string_text(value.native_symbol),
+        "}",
+    ]).
+
+@pure
+function_items(values: List[IrFunction], output: String, separator: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] -> function_items(
+            rest,
+            String.concat([output, separator, function_text(value)]),
+            ",",
+        )
+    }.
+
+@pure
+function_array_text(values: List[IrFunction]): String ->
+    String.concat(["[", function_items(values, "", ""), "]"]).
+
+@pure
+module_text(value: IrModule): String ->
+    String.concat([
+        "{\"name\":", quoted(value.name),
+        ",\"functions\":", function_array_text(value.functions),
+        "}",
+    ]).
+
+@pure
+envelope_text(envelope: BackendEnvelope): String ->
+    String.concat([
+        "{\"abi_major\":", Int.to_string(envelope.abi_major),
+        ",\"abi_minor\":", Int.to_string(envelope.abi_minor),
+        ",\"target\":", quoted(envelope.target),
+        ",\"module\":", module_text(envelope.ir_module),
+        "}",
+    ]).
+
+pub encode(envelope: BackendEnvelope): Result[String, JsonError] ->
+    Ok(envelope_text(envelope)).

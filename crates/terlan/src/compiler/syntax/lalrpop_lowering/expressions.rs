@@ -260,15 +260,9 @@ fn lower_atom_literal(
     node: &LalrpopSyntaxNode,
 ) -> LalrpopLoweringResult<Expr> {
     let text = node_text(context, node);
-    let value = if text.starts_with('"') {
-        unquote(text)
-    } else if text.starts_with('\'') && text.ends_with('\'') {
-        Some(text[1..text.len() - 1].to_string())
-    } else {
-        Some(text.to_string())
-    }
-    .filter(|value| !value.is_empty())
-    .ok_or_else(|| context.error(node, "expected non-empty atom string literal"))?;
+    let value = unquote(text)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| context.error(node, "expected non-empty atom string literal"))?;
     Ok(Expr::AtomLiteral(value))
 }
 

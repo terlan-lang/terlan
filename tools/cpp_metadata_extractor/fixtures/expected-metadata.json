@@ -99,7 +99,7 @@
       "variadic": true
     },
     {
-      "id": "function:extractor_fixture::identity(T)",
+      "id": "function:extractor_fixture::identity<type>(T)",
       "cpp_name": "identity",
       "source": {"path": "extractor_fixture.hpp", "line": 51, "column": 3},
       "kind": "function",
@@ -139,6 +139,21 @@
       "returns": {"spelling": "std::int64_t", "canonical": "long", "is_const": false, "pointer_depth": 0, "reference": "none", "function_pointer": false, "template_dependent": false},
       "parameters": [],
       "noexcept": false,
+      "template_parameters": [],
+      "overload_candidates": 1,
+      "variadic": false
+    },
+    {
+      "id": "function:extractor_fixture::mutate_counter(extractor_fixture::Counter &)",
+      "cpp_name": "mutate_counter",
+      "source": {"path": "extractor_fixture.hpp", "line": 61, "column": 10},
+      "kind": "function",
+      "documentation": "Mutates and returns one counter alias.",
+      "annotations": [],
+      "overload_set": "extractor_fixture::mutate_counter",
+      "returns": {"spelling": "Counter &", "canonical": "extractor_fixture::Counter &", "is_const": false, "pointer_depth": 0, "reference": "lvalue", "function_pointer": false, "template_dependent": false},
+      "parameters": [{"name": "counter", "ty": {"spelling": "Counter &", "canonical": "extractor_fixture::Counter &", "is_const": false, "pointer_depth": 0, "reference": "lvalue", "function_pointer": false, "template_dependent": false}, "direction": "in_out"}],
+      "noexcept": true,
       "template_parameters": [],
       "overload_candidates": 1,
       "variadic": false

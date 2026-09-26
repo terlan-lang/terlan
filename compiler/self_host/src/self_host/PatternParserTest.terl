@@ -1,0 +1,42 @@
+/** Positive and negative contracts for self-hosted pattern parsing. */
+module self_host.PatternParserTest.
+
+
+import std.core.Result.{Ok, Result}.
+import self_host.PatternSyntax.{ConstructorPattern, ListConsPattern, MapPattern, NominalKeyedPattern, TuplePattern}.
+
+
+import std.collections.List.
+import self_host.PatternParser.
+
+@pure
+positive_patterns(): Bool ->
+    let constructor_pattern = PatternParser.parse("Ok(value)");
+    let tuple = PatternParser.parse("{left, right}");
+    let map = PatternParser.parse("{name: Name, age: Age}");
+    let cons = PatternParser.parse("[head | tail]");
+    let nominal_pattern = PatternParser.parse("User{name: Name}");
+    let trailing = PatternParser.parse("{left, right,}");
+    constructor_pattern.valid
+        and constructor_pattern.syntax.class == ConstructorPattern
+        and tuple.valid
+        and tuple.syntax.class == TuplePattern
+        and map.valid
+        and map.syntax.class == MapPattern
+        and cons.valid
+        and cons.syntax.class == ListConsPattern
+        and List.length(cons.syntax.parts) == 2
+        and nominal_pattern.valid
+        and nominal_pattern.syntax.class == NominalKeyedPattern
+        and trailing.valid
+        and List.length(trailing.syntax.parts) == 2.
+
+@pure
+negative_patterns(): Bool ->
+    not PatternParser.parse("{single}").valid
+        and not PatternParser.parse("{name}").valid
+        and not PatternParser.parse("[head | middle | tail]").valid
+        and not PatternParser.parse("Ok(value").valid.
+
+pub self_test(): Bool ->
+    positive_patterns() and negative_patterns().

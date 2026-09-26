@@ -1,0 +1,155 @@
+/** Stable semantic evidence shared by the Rust and self-hosted frontends. */
+module self_host.ProjectedSemanticEvidence.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedBindingSyntax.{BindingDeclaration, BindingDiagnostic, BindingReference}.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic}.
+
+import self_host.ProjectedCallableCatalog.
+import self_host.ProjectedLocalSemantic.
+import std.collections.List.
+import std.core.{Int, String}.
+@pure
+option_int(value: Option[Int]): String ->
+    case value { Some(offset) -> Int.to_string(offset); None -> "-1" }.
+
+@pure
+option_string(value: Option[String]): String ->
+    case value { Some(text) -> text; None -> "_" }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+callable_rows_at(values: List[CallableDeclaration], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> callable_rows_at(rest, [String.concat([
+            "callable\t", value.name, "\t", Int.to_string(value.arity), "\t",
+            option_string(value.return_type), "\t", Int.to_string(value.byte_offset), "\n",
+        ]) | output])
+    }.
+
+@pure
+callable_rows(values: List[CallableDeclaration]): List[String] ->
+    callable_rows_at(values, List.new[String]()).
+
+@pure
+declaration_rows_at(values: List[BindingDeclaration], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> declaration_rows_at(rest, [String.concat([
+            "declaration\t", value.name, "\t", Int.to_string(value.byte_offset), "\n",
+        ]) | output])
+    }.
+
+@pure
+declaration_rows(values: List[BindingDeclaration]): List[String] ->
+    declaration_rows_at(values, List.new[String]()).
+
+@pure
+reference_rows_at(values: List[BindingReference], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> reference_rows_at(rest, [String.concat([
+            "reference\t", value.name, "\t", Int.to_string(value.byte_offset), "\t",
+            option_int(value.declaration_offset), "\n",
+        ]) | output])
+    }.
+
+@pure
+reference_rows(values: List[BindingReference]): List[String] ->
+    reference_rows_at(values, List.new[String]()).
+
+@pure
+binding_diagnostic_rows_at(values: List[BindingDiagnostic], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> binding_diagnostic_rows_at(rest, [String.concat([
+            "diagnostic\t", Int.to_string(value.byte_offset), "\n",
+        ]) | output])
+    }.
+
+@pure
+binding_diagnostic_rows(values: List[BindingDiagnostic]): List[String] ->
+    binding_diagnostic_rows_at(values, List.new[String]()).
+
+@pure
+fact_rows_at(values: List[InferredTypeFact], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> fact_rows_at(rest, [String.concat([
+            "type\t", Int.to_string(value.node_id), "\t", Int.to_string(value.byte_offset), "\t",
+            option_string(value.type_name), "\n",
+        ]) | output])
+    }.
+
+@pure
+fact_rows(values: List[InferredTypeFact]): List[String] ->
+    fact_rows_at(values, List.new[String]()).
+
+@pure
+type_diagnostic_rows_at(values: List[TypeConstraintDiagnostic], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> type_diagnostic_rows_at(rest, [String.concat([
+            "type-diagnostic\t", value.code, "\t", Int.to_string(value.byte_offset), "\n",
+        ]) | output])
+    }.
+
+@pure
+type_diagnostic_rows(values: List[TypeConstraintDiagnostic]): List[String] ->
+    type_diagnostic_rows_at(values, List.new[String]()).
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    reverse_at(reverse(left), right).
+
+common_rows(semantics: LocalSemanticResult, callables: List[CallableDeclaration]): String ->
+    String.concat(["schema terlan.self-host.semantic-common/v1\n" | append_strings(
+        callable_rows(callables),
+        append_strings(
+            declaration_rows(semantics.bindings.declarations),
+            append_strings(
+                reference_rows(semantics.bindings.references),
+                binding_diagnostic_rows(semantics.bindings.diagnostics),
+            ),
+        ),
+    )]).
+
+supplemental_rows(semantics: LocalSemanticResult): String ->
+    String.concat(["schema terlan.self-host.semantic-supplemental/v1\n" | append_strings(
+        fact_rows(semantics.types.facts),
+        type_diagnostic_rows(semantics.types.diagnostics),
+    )]).
+
+/** Emits byte-comparable callable and immutable-binding semantic evidence. */
+pub common(frontend: ProjectedFrontendModule): String ->
+    let interfaces = List.new[ModuleInterface]();
+    let callables = ProjectedCallableCatalog.build(frontend.backend, interfaces);
+    let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
+    common_rows(semantics, callables).
+
+/** Emits projected inferred-type facts that must remain present through bootstrap. */
+pub supplemental(frontend: ProjectedFrontendModule): String ->
+    let semantics = ProjectedLocalSemantic.analyze_frontend(frontend, List.new[ModuleInterface]());
+    supplemental_rows(semantics).
+
+/** Emits both semantic evidence sections from one catalog and analysis pass. */
+pub document(frontend: ProjectedFrontendModule): String ->
+    let interfaces = List.new[ModuleInterface]();
+    let callables = ProjectedCallableCatalog.build(frontend.backend, interfaces);
+    let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
+    String.concat([common_rows(semantics, callables), supplemental_rows(semantics)]).

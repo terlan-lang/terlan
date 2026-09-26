@@ -1,0 +1,57 @@
+/** Flattens self-hosted backend values into the native ABI v1 schema. */
+module self_host.BackendAbi.
+
+import self_host.BackendAbiSyntax.{BackendAbiDeclaration, BackendAbiModule}.
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.DeclarationMetadataSyntax.{AnnotationUse}.
+import self_host.SemanticSyntax.{InterfaceSource, ModuleSource}.
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+
+
+@pure
+pub class_name(class: DeclarationClass): String ->
+    case class {
+        ImportDeclaration -> "import";
+        ExportDeclaration -> "export";
+        ConfigDeclaration -> "config";
+        AnnotationSchemaDeclaration -> "annotation-schema";
+        ConstantDeclaration -> "constant";
+        ConstFunctionDeclaration -> "const-function";
+        FunctionDeclaration -> "function";
+        TypeDeclaration -> "type";
+        OpaqueTypeDeclaration -> "opaque-type";
+        StructDeclaration -> "struct";
+        ConstructorDeclaration -> "constructor";
+        MethodDeclaration -> "method";
+        TraitDeclaration -> "trait";
+        TraitImplDeclaration -> "trait-impl";
+        TemplateDeclaration -> "template";
+        ShapeDeclaration -> "shape";
+        NativeDeclaration -> "native";
+        _ -> "unsupported"
+    }.
+
+@pure
+annotation_paths(values: List[AnnotationUse]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.path | annotation_paths(rest)]
+    }.
+
+@pure
+declarations(values: List[BackendDeclaration]): List[BackendAbiDeclaration] ->
+    case values {
+        [] -> List.new[BackendAbiDeclaration]();
+        [value | rest] -> [BackendAbiDeclaration(class_name(value.class), value.symbol_name, value.semantic_identity, value.is_public, value.source_text, value.span.start_byte, value.span.end_byte, annotation_paths(value.annotations), value.docs) | declarations(rest)]
+    }.
+
+/** Produces a sum-free structural value suitable for ABI 1 binding. */
+@pure
+pub lower(source: BackendModule): BackendAbiModule ->
+    BackendAbiModule("terlan.self-host.backend-abi/v1", source.valid, source.module_name, case source.source_kind {
+            ModuleSource -> "module";
+            InterfaceSource -> "interface"
+        }, declarations(source.declarations), source.interface_text, source.message).

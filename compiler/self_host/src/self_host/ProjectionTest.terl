@@ -1,0 +1,95 @@
+/** Focused contracts for balanced contextual projection. */
+module self_host.ProjectionTest.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectionSyntax.{ArrowProjection, AtomProjection, IfProjection, LBraceProjection, ProjectionToken, RBraceProjection, SemicolonProjection}.
+
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Projection.
+
+
+@pure
+token(kind: self_host.ProjectionSyntax.ProjectionTokenKind, text: String, start: Int, end: Int): ProjectionToken ->
+    ProjectionToken(kind, text, start, end).
+
+@pure
+html_raw_block(): Bool ->
+    case Projection.expression_raw_macro([
+        token(AtomProjection, "html", 0, 4),
+        token(LBraceProjection, "{", 5, 6),
+        token(LBraceProjection, "{", 7, 8),
+        token(RBraceProjection, "}", 8, 9),
+        token(RBraceProjection, "}", 10, 11),
+    ]) {
+        Some(mark) -> mark.start_byte == 0 and mark.end_byte == 11;
+        None -> false
+    }.
+
+@pure
+if_clause_boundaries(): Bool ->
+    let sequence_body = Projection.if_clause_semicolons([
+        token(IfProjection, "if", 0, 2),
+        token(LBraceProjection, "{", 3, 4),
+        token(AtomProjection, "true", 5, 9),
+        token(ArrowProjection, "->", 10, 12),
+        token(AtomProjection, "let", 13, 16),
+        token(AtomProjection, "value", 17, 22),
+        token(SemicolonProjection, ";", 22, 23),
+        token(IfProjection, "if", 24, 26),
+        token(LBraceProjection, "{", 27, 28),
+        token(AtomProjection, "true", 29, 33),
+        token(ArrowProjection, "->", 34, 36),
+        token(AtomProjection, "value", 37, 42),
+        token(RBraceProjection, "}", 43, 44),
+        token(RBraceProjection, "}", 45, 46),
+        token(AtomProjection, "later", 48, 53),
+        token(ArrowProjection, "->", 54, 56),
+    ]);
+    let clauses = Projection.if_clause_semicolons([
+        token(IfProjection, "if", 0, 2),
+        token(LBraceProjection, "{", 3, 4),
+        token(AtomProjection, "true", 5, 9),
+        token(ArrowProjection, "->", 10, 12),
+        token(AtomProjection, "one", 13, 16),
+        token(SemicolonProjection, ";", 16, 17),
+        token(AtomProjection, "true", 18, 22),
+        token(ArrowProjection, "->", 23, 25),
+        token(AtomProjection, "two", 26, 29),
+        token(RBraceProjection, "}", 30, 31),
+    ]);
+    let case_clauses = Projection.if_clause_semicolons([
+        token(AtomProjection, "case", 0, 4),
+        token(LBraceProjection, "{", 5, 6),
+        token(AtomProjection, "value", 6, 11),
+        token(AtomProjection, ",", 11, 12),
+        token(AtomProjection, "other", 13, 18),
+        token(RBraceProjection, "}", 18, 19),
+        token(LBraceProjection, "{", 20, 21),
+        token(AtomProjection, "Some", 22, 26),
+        token(ArrowProjection, "->", 27, 29),
+        token(AtomProjection, "let", 30, 33),
+        token(AtomProjection, "item", 34, 38),
+        token(SemicolonProjection, ";", 38, 39),
+        token(IfProjection, "if", 40, 42),
+        token(LBraceProjection, "{", 43, 44),
+        token(AtomProjection, "true", 45, 49),
+        token(ArrowProjection, "->", 50, 52),
+        token(AtomProjection, "item", 53, 57),
+        token(RBraceProjection, "}", 58, 59),
+        token(SemicolonProjection, ";", 59, 60),
+        token(AtomProjection, "None", 61, 65),
+        token(ArrowProjection, "->", 66, 68),
+        token(AtomProjection, "item", 69, 73),
+        token(RBraceProjection, "}", 74, 75),
+    ]);
+    case {sequence_body, clauses, case_clauses} {
+        {[], [if_mark], [case_mark]} ->
+            if_mark.start_byte == 16 and if_mark.end_byte == 17
+                and case_mark.start_byte == 59 and case_mark.end_byte == 60;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> html_raw_block() and if_clause_boundaries().

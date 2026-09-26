@@ -1,0 +1,50 @@
+/** Stable signature/type declaration evidence for parser parity. */
+module self_host.ProjectedSignatureEvidence.
+
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedSignatureDocument, ProjectedTypeDeclarationTree}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+callable_row(value: ProjectedCallableSignature): String ->
+    String.concat([
+        "callable\t",
+        value.declaration_head,
+        "\t",
+        Int.to_string(List.length(value.parameters)),
+        "\t",
+        if { value.valid -> "valid"; true -> "invalid" },
+        "\n",
+    ]).
+
+@pure
+callable_rows(values: List[ProjectedCallableSignature]): String ->
+    case values { [] -> ""; [value | rest] -> String.append(callable_row(value), callable_rows(rest)) }.
+
+@pure
+type_row(value: ProjectedTypeDeclarationTree): String ->
+    String.concat([
+        "type\t",
+        value.declaration_head,
+        "\t",
+        if { value.is_opaque -> "opaque"; true -> "transparent" },
+        "\t",
+        if { value.valid -> "valid"; true -> "invalid" },
+        "\n",
+    ]).
+
+@pure
+type_rows(values: List[ProjectedTypeDeclarationTree]): String ->
+    case values { [] -> ""; [value | rest] -> String.append(type_row(value), type_rows(rest)) }.
+
+@pure
+pub document(value: ProjectedSignatureDocument): String ->
+    String.concat([
+        "schema terlan.self-host.signatures/v1\nvalid\t",
+        if { value.valid -> "true"; true -> "false" },
+        "\nkind\thead\tshape\tstatus\n",
+        callable_rows(value.callables),
+        type_rows(value.types),
+    ]).

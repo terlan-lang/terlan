@@ -1,4 +1,5 @@
 mod arguments;
+mod coverage;
 mod discovery;
 mod execution;
 mod manifest;

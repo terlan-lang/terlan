@@ -6,6 +6,7 @@ pub(in super::super) fn collect_imported_struct_schemes(
     alias_names: &HashSet<String>,
 ) -> HashMap<String, StructScheme> {
     let mut out = HashMap::new();
+    let global_aliases = imported_type_aliases(resolved);
 
     for (local_name, imported) in &resolved.imported_types {
         let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
@@ -20,6 +21,10 @@ pub(in super::super) fn collect_imported_struct_schemes(
         if generic_params.is_empty() {
             continue;
         }
+        let mut provider_type_names = alias_names.clone();
+        provider_type_names.extend(interface_type_names(interface));
+        let provider_aliases = interface_type_aliases(interface);
+        let qualified_names = interface_qualified_type_names(interface);
 
         let mut vars = HashMap::new();
         let mut next_var: TypeVarId = 0;
@@ -32,8 +37,16 @@ pub(in super::super) fn collect_imported_struct_schemes(
         let fields = fields
             .iter()
             .map(|field| {
-                let ty = parse_type_expr(&field.annotation, alias_names, &mut vars, &mut next_var)
-                    .unwrap_or(Type::Dynamic);
+                let ty = parse_type_expr(
+                    &field.annotation,
+                    &provider_type_names,
+                    &mut vars,
+                    &mut next_var,
+                )
+                .unwrap_or(Type::Dynamic);
+                let ty = expand_type_aliases(&ty, &provider_aliases);
+                let ty = qualify_type_names(&ty, &qualified_names);
+                let ty = expand_type_aliases(&ty, &global_aliases);
                 (field.name.clone(), ty)
             })
             .collect();

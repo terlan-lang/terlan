@@ -1,0 +1,57 @@
+/** Source identity and UTF-8 span values owned by the self-hosted compiler. */
+module self_host.Source.
+
+pub struct Source {
+    name: String,
+    text: String,
+}.
+
+pub constructor Source {
+    (name: String, text: String): Source ->
+        Source {
+            name: name,
+            text: text,
+        }
+}.
+
+
+pub struct Span {
+    start_byte: Int,
+    end_byte: Int,
+    start_line: Int,
+    start_column: Int,
+    end_line: Int,
+    end_column: Int,
+}.
+
+pub constructor Span {
+    (start_byte: Int, end_byte: Int, start_line: Int, start_column: Int, end_line: Int, end_column: Int): Span ->
+        Span {
+            start_byte: start_byte,
+            end_byte: end_byte,
+            start_line: start_line,
+            start_column: start_column,
+            end_line: end_line,
+            end_column: end_column,
+        }
+}.
+
+
+@pure
+pub source(name: String, text: String): Source ->
+    Source(name, text).
+
+@pure
+pub span(
+    start_byte: Int,
+    end_byte: Int,
+    start_line: Int,
+    start_column: Int,
+    end_line: Int,
+    end_column: Int,
+): Span ->
+    Span(start_byte, end_byte, start_line, start_column, end_line, end_column).
+
+@pure
+pub empty_span(): Span ->
+    span(0, 0, 1, 1, 1, 1).

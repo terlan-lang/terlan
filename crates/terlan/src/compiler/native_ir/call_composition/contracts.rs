@@ -375,6 +375,151 @@ pub(in crate::compiler::native_ir) fn refresh_recursive_call_contract(
     }
 }
 
+/// Closes ordinary direct-call resume tables over final fixed-point profiles.
+///
+/// Every outward yield of an ordinary call resumes the same caller-owned
+/// completion frame. Profile discovery can add callee entries after a caller
+/// body was lowered; this final monotone pass adds those identities without
+/// rebuilding the already interned caller continuation.
+pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
+    expr: &mut NativeExpr,
+    profiles: &HashMap<usize, ComposedCallProfile>,
+) {
+    if let NativeExpr::CallThen {
+        function,
+        resumes,
+        completion_continuation_id,
+        values,
+        ..
+    } = expr
+    {
+        if let Some(profile) = profiles.get(function) {
+            let capture_counts = profile
+                .continuations
+                .iter()
+                .map(|continuation| (continuation.id, continuation.params.len()))
+                .collect::<HashMap<_, _>>();
+            let uniform_route = resumes.first().and_then(|first| {
+                resumes
+                    .iter()
+                    .all(|resume| {
+                        resume.continuation_id == first.continuation_id
+                            && resume.caller_value_start == first.caller_value_start
+                    })
+                    .then_some((first.continuation_id, first.caller_value_start))
+            });
+            let route = uniform_route.unwrap_or((*completion_continuation_id, 0));
+            if resumes.is_empty() || uniform_route.is_some() {
+                for entry in &profile.entries {
+                    if resumes
+                        .iter()
+                        .any(|resume| resume.callee_continuation_id == *entry)
+                    {
+                        continue;
+                    }
+                    if let Some(capture_count) = capture_counts.get(entry) {
+                        resumes.push(crate::compiler::native_ir::NativeCallResume {
+                            callee_continuation_id: *entry,
+                            callee_capture_count: *capture_count,
+                            continuation_id: route.0,
+                            caller_value_start: route.1.min(values.len()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+    match expr {
+        NativeExpr::ManagedOperation { args, .. }
+        | NativeExpr::Call { args, .. }
+        | NativeExpr::TailCall { args, .. }
+        | NativeExpr::ContinuationTailCall { args, .. } => {
+            for arg in args {
+                close_direct_call_contracts(arg, profiles);
+            }
+        }
+        NativeExpr::MakeClosure { captures, .. } => {
+            for capture in captures {
+                close_direct_call_contracts(capture, profiles);
+            }
+        }
+        NativeExpr::Construct { fields, .. } => {
+            for field in fields {
+                close_direct_call_contracts(field, profiles);
+            }
+        }
+        NativeExpr::InvokeClosure { callee, args, .. } => {
+            close_direct_call_contracts(callee, profiles);
+            for arg in args {
+                close_direct_call_contracts(arg, profiles);
+            }
+        }
+        NativeExpr::InvokeClosureThen {
+            callee,
+            args,
+            values,
+            ..
+        } => {
+            close_direct_call_contracts(callee, profiles);
+            for value in args.iter_mut().chain(values) {
+                close_direct_call_contracts(value, profiles);
+            }
+        }
+        NativeExpr::CallThen { args, values, .. }
+        | NativeExpr::Suspend {
+            arguments: args,
+            values,
+            ..
+        } => {
+            for value in args.iter_mut().chain(values) {
+                close_direct_call_contracts(value, profiles);
+            }
+        }
+        NativeExpr::Neg(value)
+        | NativeExpr::FloatNeg(value)
+        | NativeExpr::FloatFloor(value)
+        | NativeExpr::FloatCeil(value)
+        | NativeExpr::IntToFloat(value)
+        | NativeExpr::Not(value) => close_direct_call_contracts(value, profiles),
+        NativeExpr::Binary { left, right, .. } => {
+            close_direct_call_contracts(left, profiles);
+            close_direct_call_contracts(right, profiles);
+        }
+        NativeExpr::Let { bindings, body } => {
+            for binding in bindings {
+                close_direct_call_contracts(binding, profiles);
+            }
+            close_direct_call_contracts(body, profiles);
+        }
+        NativeExpr::If { clauses } => {
+            for (condition, body) in clauses {
+                close_direct_call_contracts(condition, profiles);
+                close_direct_call_contracts(body, profiles);
+            }
+        }
+        NativeExpr::Try {
+            protected,
+            success,
+            failure,
+            cleanup,
+        } => {
+            close_direct_call_contracts(protected, profiles);
+            close_direct_call_contracts(success, profiles);
+            close_direct_call_contracts(failure, profiles);
+            for value in cleanup {
+                close_direct_call_contracts(value, profiles);
+            }
+        }
+        NativeExpr::Unit
+        | NativeExpr::Int(_)
+        | NativeExpr::Float(_)
+        | NativeExpr::Bool(_)
+        | NativeExpr::AtomLiteral(_)
+        | NativeExpr::ManagedLiteral { .. }
+        | NativeExpr::Param(_) => {}
+    }
+}
+
 /// Proves that every direct composed call accepts its callee's full contract.
 #[cfg(test)]
 pub(in crate::compiler::native_ir) fn validate_call_then_contracts(

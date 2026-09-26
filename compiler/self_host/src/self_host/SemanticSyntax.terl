@@ -1,0 +1,87 @@
+/** Semantic model produced after typed declaration lowering. */
+module self_host.SemanticSyntax.
+
+import self_host.Syntax.{DeclarationClass, SyntaxSpan}.
+import self_host.TypedModuleSyntax.{TypedDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub type ModuleSource.
+pub type InterfaceSource.
+
+pub type SemanticSourceKind = ModuleSource | InterfaceSource.
+
+pub type InvalidDeclaration.
+pub type InvalidSourceExport.
+pub type MissingExportDefinition.
+pub type DuplicateDeclaration.
+pub type DuplicateCallable.
+
+pub type SemanticDiagnosticClass =
+    InvalidDeclaration
+    | InvalidSourceExport
+    | MissingExportDefinition
+    | DuplicateDeclaration
+    | DuplicateCallable.
+
+pub struct SemanticDiagnostic {
+    class: self_host.SemanticSyntax.SemanticDiagnosticClass,
+    message: String,
+    symbol_name: String,
+    span: SyntaxSpan,
+}.
+
+pub constructor SemanticDiagnostic {
+    (class: self_host.SemanticSyntax.SemanticDiagnosticClass, message: String, symbol_name: String, span: SyntaxSpan): SemanticDiagnostic ->
+        SemanticDiagnostic {
+            class: class,
+            message: message,
+            symbol_name: symbol_name,
+            span: span,
+        }
+}.
+
+
+pub struct SemanticSymbol {
+    name: String,
+    class: DeclarationClass,
+    identity: String,
+    is_public: Bool,
+    span: SyntaxSpan,
+}.
+
+pub constructor SemanticSymbol {
+    (name: String, class: DeclarationClass, identity: String, is_public: Bool, span: SyntaxSpan): SemanticSymbol ->
+        SemanticSymbol {
+            name: name,
+            class: class,
+            identity: identity,
+            is_public: is_public,
+            span: span,
+        }
+}.
+
+
+pub struct SemanticModule {
+    valid: Bool,
+    name: String,
+    source_kind: self_host.SemanticSyntax.SemanticSourceKind,
+    declarations: List[TypedDeclaration],
+    symbols: List[self_host.SemanticSyntax.SemanticSymbol],
+    diagnostics: List[self_host.SemanticSyntax.SemanticDiagnostic],
+}.
+
+pub constructor SemanticModule {
+    (valid: Bool, name: String, source_kind: self_host.SemanticSyntax.SemanticSourceKind, declarations: List[TypedDeclaration], symbols: List[self_host.SemanticSyntax.SemanticSymbol], diagnostics: List[self_host.SemanticSyntax.SemanticDiagnostic]): SemanticModule ->
+        SemanticModule {
+            valid: valid,
+            name: name,
+            source_kind: source_kind,
+            declarations: declarations,
+            symbols: symbols,
+            diagnostics: diagnostics,
+        }
+}.
+

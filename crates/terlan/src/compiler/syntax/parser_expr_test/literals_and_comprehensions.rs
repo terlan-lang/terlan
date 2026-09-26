@@ -113,12 +113,11 @@ pub(super) fn formal_atom_literal_expr_syntax_preserves_atoms_inside_tuples() {
     ));
 }
 
-/// Verifies legacy atom syntax remains a source-only compatibility alias.
+/// Verifies legacy atom aliases cannot bypass the canonical literal syntax.
 #[test]
-pub(super) fn formal_atom_literal_expr_syntax_accepts_legacy_aliases() {
-    for (source, expected) in [(":ready", "ready"), (":'interop-ready'", "interop-ready")] {
-        let expr = parse_terlan_expr(source).expect("parse legacy atom compatibility alias");
-        assert!(matches!(expr, Expr::AtomLiteral(value) if value == expected));
+pub(super) fn formal_atom_literal_expr_syntax_rejects_legacy_aliases() {
+    for source in [":ready", ":'interop-ready'"] {
+        parse_terlan_expr(source).expect_err("legacy atom compatibility alias must fail");
     }
 }
 

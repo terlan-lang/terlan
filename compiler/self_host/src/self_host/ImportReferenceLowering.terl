@@ -1,0 +1,68 @@
+/** Lowers canonical module and selective import source into semantic references. */
+module self_host.ImportReferenceLowering.
+
+import self_host.BackendSyntax.{BackendDeclaration}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ImportReferenceSyntax.{ImportReference}.
+import self_host.Syntax.{ImportDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+
+
+@pure
+strip_terminal_dot(source: String): String ->
+    let value = String.trim(source);
+    if {
+        String.ends_with(value, ".") -> String.trim(String.utf8_slice(value, 0, String.byte_size(value) - 1));
+        true -> value
+    }.
+
+@pure
+trim_items(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.trim(value) | trim_items(rest)]
+    }.
+
+@pure
+all_named(values: List[String]): Bool ->
+    case values { [] -> true; [value | rest] -> value != "" and all_named(rest) }.
+
+@pure
+pub lower(source: DeclarationSyntax): ImportReference ->
+    let text = strip_terminal_dot(source.body);
+    let supported = source.class == ImportDeclaration and String.starts_with(text, "import ");
+    let imported = if {
+        supported -> String.trim(String.utf8_slice(text, 7, String.byte_size(text) - 7));
+        true -> ""
+    };
+    let is_type = String.starts_with(imported, "type ");
+    let payload = if {
+        is_type -> String.trim(String.utf8_slice(imported, 5, String.byte_size(imported) - 5));
+        true -> imported
+    };
+    let parts = String.split(payload, ".{");
+    let selective = case parts { [_, _] -> true; _ -> false };
+    let module_name = case parts {
+        [module_path, _] -> String.trim(module_path);
+        _ -> String.trim(payload)
+    };
+    let items = case parts {
+        [_, raw] where String.ends_with(raw, "}") ->
+            trim_items(String.split(String.utf8_slice(raw, 0, String.byte_size(raw) - 1), ","));
+        [_, _] -> List.new[String]();
+        _ -> List.new[String]()
+    };
+    let valid_items = not selective or (items != [] and all_named(items));
+    ImportReference(supported and module_name != "" and valid_items, module_name, items, selective, is_type, source.span, if {
+            not supported -> "declaration is not an import";
+            module_name == "" -> "import module name is empty";
+            not valid_items -> "selective import items are invalid";
+            true -> ""
+        }).
+
+/** Lowers the source retained at the backend boundary without reparsing a module. */
+@pure
+pub lower_backend(source: BackendDeclaration): ImportReference ->
+    lower(DeclarationSyntax(source.class, source.symbol_name, source.semantic_identity, source.source_text, source.is_public, source.span)).

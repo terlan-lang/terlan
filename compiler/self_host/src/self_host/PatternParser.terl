@@ -1,0 +1,113 @@
+/** Grammar-aligned classifier and validator for complete Terlan patterns. */
+module self_host.PatternParser.
+
+import self_host.PatternSyntax.{BinaryLayoutPattern, ConstructorPattern, FloatPattern, GroupedPattern, IntegerPattern, InvalidPattern, ListConsPattern, ListPattern, MapPattern, NamePattern, NominalKeyedPattern, PatternClass, PatternParse, PatternSyntax, QualifiedNamePattern, StringPattern, TuplePattern, TypedStringPattern, WildcardPattern}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Delimited.
+
+
+@pure
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [""] -> List.new[String]();
+        [value | rest] -> [value | drop_terminal_empty(rest)]
+    }.
+
+@pure
+all_map_fields(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> Delimited.top_level_byte(value, 58) >= 0 and all_map_fields(rest)
+    }.
+
+@pure
+inner(source: String): String ->
+    source.utf8_slice(1, source.byte_size() - 2).
+
+@pure
+starts_digit(source: String): Bool ->
+    source != "" and source.utf8_byte_at(0) >= 48 and source.utf8_byte_at(0) <= 57.
+
+@pure
+parts_for(source: String, class: PatternClass): List[String] ->
+    case class {
+        TuplePattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        MapPattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        ListPattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        ListConsPattern -> Delimited.split_top_level(inner(source), 124);
+        _ -> List.new[String]()
+    }.
+
+@pure
+classify_braced(source: String): PatternClass ->
+    let contents = inner(source);
+    if {
+        String.trim(contents) == "" -> MapPattern;
+        Delimited.top_level_byte(contents, 58) >= 0 -> MapPattern;
+        Delimited.top_level_byte(contents, 44) >= 0 -> TuplePattern;
+        true -> InvalidPattern
+    }.
+
+@pure
+classify_list(source: String): PatternClass ->
+    let contents = inner(source);
+    if {
+        Delimited.top_level_byte(contents, 124) >= 0 -> ListConsPattern;
+        true -> ListPattern
+    }.
+
+@pure
+classify(source: String): PatternClass ->
+    if {
+        source == "_" -> WildcardPattern;
+        String.contains(source, "]{") or String.contains(source, "] {") -> BinaryLayoutPattern;
+        not String.starts_with(source, "{") and String.contains(source, "{") -> NominalKeyedPattern;
+        String.starts_with(source, "[") -> classify_list(source);
+        String.starts_with(source, "{") -> classify_braced(source);
+        String.starts_with(source, "(") -> GroupedPattern;
+        String.starts_with(source, "\"") or String.starts_with(source, "'") -> StringPattern;
+        String.contains(source, "[\"") -> TypedStringPattern;
+        starts_digit(source) and String.contains(source, ".") -> FloatPattern;
+        starts_digit(source) -> IntegerPattern;
+        String.contains(source, "(") -> ConstructorPattern;
+        String.contains(source, ".") -> QualifiedNamePattern;
+        true -> NamePattern
+    }.
+
+@pure
+invalid(source: String, message: String): PatternParse ->
+    PatternParse(false, PatternSyntax(InvalidPattern, source, List.new[String]()), message).
+
+@pure
+has_invalid_map_fields(class: PatternClass, parts: List[String]): Bool ->
+    if {
+        class != MapPattern -> false;
+        true -> not all_map_fields(parts)
+    }.
+
+/** Parses one complete pattern according to canonical surface categories. */
+@pure
+pub parse(source: String): PatternParse ->
+    let normalized = String.trim(source);
+    let class = classify(normalized);
+    let parts = parts_for(normalized, class);
+    if {
+        normalized == "" -> invalid(source, "pattern is empty");
+        not Delimited.balanced(normalized) -> invalid(source, "pattern has unbalanced delimiters");
+        class == InvalidPattern -> invalid(source, "braced pattern must be a tuple or keyed map");
+        not all_nonempty(parts) -> invalid(source, "pattern contains an empty component");
+        class == TuplePattern and List.length(parts) < 2 -> invalid(source, "tuple pattern requires at least two items");
+        has_invalid_map_fields(class, parts) -> invalid(source, "map pattern requires keyed fields");
+        class == ListConsPattern and List.length(parts) != 2 -> invalid(source, "list-cons pattern requires one head and one tail");
+        true -> PatternParse(true, PatternSyntax(class, normalized, parts), "")
+    }.

@@ -1,0 +1,136 @@
+/** Lowers lossless surface declarations into stable typed identities. */
+module self_host.DeclarationLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, SurfaceDeclaration, SurfaceModule, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+find_arrow_at(source: String, index: Int): Int ->
+    if {
+        index + 1 >= source.byte_size() -> -1;
+        source.utf8_byte_at(index) == 45 and source.utf8_byte_at(index + 1) == 62 -> index;
+        true -> find_arrow_at(source, index + 1)
+    }.
+
+@pure
+first_separator_at(source: String, index: Int): Int ->
+    if {
+        index == source.byte_size() -> index;
+        source.utf8_byte_at(index) == 32
+            or source.utf8_byte_at(index) == 9
+            or source.utf8_byte_at(index) == 10
+            or source.utf8_byte_at(index) == 40
+            or source.utf8_byte_at(index) == 91
+            or source.utf8_byte_at(index) == 61
+            or source.utf8_byte_at(index) == 46 -> index;
+        true -> first_separator_at(source, index + 1)
+    }.
+
+@pure
+drop_prefix(source: String, count: Int): String ->
+    source.utf8_slice(count, source.byte_size() - count).
+
+@pure
+without_public(source: String): String ->
+    if {
+        String.starts_with(source, "pub ") -> drop_prefix(source, 4);
+        true -> source
+    }.
+
+@pure
+declaration_head_at(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            let head = String.trim(line);
+            if {
+                head == ""
+                    or String.starts_with(head, "//")
+                    or String.starts_with(head, "%")
+                    or String.starts_with(head, "/*")
+                    or String.starts_with(head, "*")
+                    or head == "*/"
+                    or String.starts_with(head, "@") -> declaration_head_at(rest);
+                true -> head
+            }
+    }.
+
+@pure
+declaration_head(source: String): String ->
+    declaration_head_at(String.split(source, "\n")).
+
+@pure
+word_after(source: String, prefix_size: Int): String ->
+    let tail = drop_prefix(source, prefix_size);
+    let end = first_separator_at(tail, 0);
+    tail.utf8_slice(0, end).
+
+@pure
+import_name(source: String): String ->
+    let tail = drop_prefix(source, 7);
+    let selector = find_selector_at(tail, 0);
+    if {
+        selector >= 0 -> tail.utf8_slice(0, selector);
+        String.ends_with(tail, ".") -> tail.utf8_slice(0, tail.byte_size() - 1);
+        true -> tail
+    }.
+
+@pure
+find_selector_at(source: String, index: Int): Int ->
+    if {
+        index + 1 >= source.byte_size() -> -1;
+        source.utf8_byte_at(index) == 46 and source.utf8_byte_at(index + 1) == 123 -> index;
+        true -> find_selector_at(source, index + 1)
+    }.
+
+@pure
+declaration_name(class: DeclarationClass, source: String): String ->
+    let head = without_public(declaration_head(source));
+    case class {
+        ImportDeclaration -> import_name(head);
+        ExportDeclaration -> "export";
+        ConstantDeclaration -> word_after(head, 6);
+        ConstFunctionDeclaration -> word_after(head, 6);
+        TypeDeclaration -> word_after(head, 5);
+        OpaqueTypeDeclaration -> word_after(head, 12);
+        StructDeclaration -> word_after(head, 7);
+        ConstructorDeclaration -> word_after(head, 12);
+        FunctionDeclaration -> word_after(head, 0);
+        MethodDeclaration -> word_after(head, 7);
+        TraitDeclaration -> word_after(head, 6);
+        TraitImplDeclaration -> "impl";
+        AnnotationSchemaDeclaration -> word_after(head, 11);
+        TemplateDeclaration -> word_after(head, 9);
+        ShapeDeclaration -> word_after(head, 6);
+        ConfigDeclaration -> word_after(head, 7);
+        NativeDeclaration -> word_after(head, 7);
+        _ -> ""
+    }.
+
+@pure
+header(source: String): String ->
+    let arrow = find_arrow_at(source, 0);
+    if {
+        arrow < 0 -> source;
+        true -> source.utf8_slice(0, arrow + 2)
+    }.
+
+@pure
+lower_declaration(source: SurfaceDeclaration): DeclarationSyntax ->
+    DeclarationSyntax(source.class, declaration_name(source.class, source.text), header(source.text), source.text, source.is_public, source.span).
+
+@pure
+lower_declarations(values: List[SurfaceDeclaration]): List[DeclarationSyntax] ->
+    case values {
+        [] -> List.new[DeclarationSyntax]();
+        [value | rest] -> [lower_declaration(value) | lower_declarations(rest)]
+    }.
+
+/** Converts the recovery tree into the typed declaration handoff. */
+@pure
+pub lower(source: SurfaceModule): ModuleSyntax ->
+    ModuleSyntax(source.valid, source.name, lower_declarations(source.declarations), source.errors, source.span).

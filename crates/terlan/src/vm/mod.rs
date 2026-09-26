@@ -5,11 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[path = "main/framing_benchmark.rs"]
 mod framing_benchmark;
-#[path = "main/http_attribution.rs"]
-#[cfg(test)]
-mod http_attribution;
 #[path = "main/inspection.rs"]
 mod inspection;
+#[cfg(test)]
 mod instrumentation;
 #[cfg(test)]
 mod instrumentation_tui;
@@ -20,8 +18,6 @@ use crate::runtime;
 use runtime::native_image::package_validation::{
     describe_packaged_tvm_image, validate_and_execute_release_package,
 };
-#[cfg(test)]
-use runtime::vm::http_metrics::VmHttpQueueMetrics;
 use runtime::vm::persistent_actor_restore::{
     build_cross_machine_actor_export, generate_minimal_actor_replay_fixture,
     plan_persistent_actor_restore, VmPersistentActorExport, VmPersistentActorRestoreCapabilities,

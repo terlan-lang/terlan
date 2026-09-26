@@ -49,7 +49,11 @@ impl ManagedLayoutRegistry {
             let semantic = SemanticTypeId::from_bytes(collection.semantic_id);
             let descriptor = Arc::new(
                 decode_collection_layout(&collection.encoded_layout).map_err(|error| {
-                    format!("error[managed_layout_registry.collection_decode]: {error}")
+                    format!(
+                        "error[managed_layout_registry.collection_decode]: {error}; semantic={:?}; encoded_bytes={}",
+                        collection.semantic_id,
+                        collection.encoded_layout.len(),
+                    )
                 })?,
             );
             if descriptor.semantic_id() != semantic {

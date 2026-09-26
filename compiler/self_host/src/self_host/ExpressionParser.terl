@@ -1,0 +1,200 @@
+/** Precedence-aligned, lossless parser for complete Terlan expressions. */
+module self_host.ExpressionParser.
+
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FixedArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.Delimited.
+
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [""] -> List.new[String]();
+        [value | rest] -> [value | drop_terminal_empty(rest)]
+    }.
+
+@pure
+all_nonempty(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> value != "" and all_nonempty(rest)
+    }.
+
+@pure
+inner(source: String): String ->
+    source.utf8_slice(1, source.byte_size() - 2).
+
+@pure
+starts_digit(source: String): Bool ->
+    source != "" and source.utf8_byte_at(0) >= 48 and source.utf8_byte_at(0) <= 57.
+
+@pure
+is_quoted(source: String): Bool ->
+    source.byte_size() >= 2
+        and ((source.utf8_byte_at(0) == 34 and source.utf8_byte_at(source.byte_size() - 1) == 34)
+            or (source.utf8_byte_at(0) == 39 and source.utf8_byte_at(source.byte_size() - 1) == 39)).
+
+@pure
+has_compare(source: String): Bool ->
+    Delimited.top_level_text(source, " == ") >= 0
+        or Delimited.top_level_text(source, " != ") >= 0
+        or Delimited.top_level_text(source, " >= ") >= 0
+        or Delimited.top_level_text(source, " > ") >= 0
+        or Delimited.top_level_text(source, " <= ") >= 0
+        or Delimited.top_level_text(source, " < ") >= 0
+        or Delimited.top_level_text(source, " in ") >= 0.
+
+@pure
+is_refutable_let(source: String): Bool ->
+    if {
+        not String.starts_with(source, "let ") -> false;
+        true -> Delimited.top_level_pair(source, 60, 45) >= 0
+    }.
+
+@pure
+is_lambda(source: String): Bool ->
+    if {
+        not String.starts_with(source, "(") -> false;
+        true -> Delimited.top_level_pair(source, 45, 62) >= 0
+    }.
+
+@pure
+is_binary_layout(source: String): Bool ->
+    if {
+        String.contains(source, "]{") -> true;
+        true -> String.contains(source, "] {")
+    }.
+
+@pure
+is_nominal_keyed(source: String): Bool ->
+    if {
+        String.starts_with(source, "{") -> false;
+        true -> String.contains(source, "{")
+    }.
+
+@pure
+is_add(source: String): Bool ->
+    if {
+        Delimited.top_level_text(source, " + ") >= 0 -> true;
+        Delimited.top_level_text(source, " - ") >= 0 -> true;
+        true -> Delimited.top_level_pair(source, 46, 46) >= 0
+    }.
+
+@pure
+is_multiply(source: String): Bool ->
+    if {
+        Delimited.top_level_text(source, " * ") >= 0 -> true;
+        Delimited.top_level_text(source, " / ") >= 0 -> true;
+        Delimited.top_level_text(source, " div ") >= 0 -> true;
+        true -> Delimited.top_level_text(source, " rem ") >= 0
+    }.
+
+@pure
+is_unary(source: String): Bool ->
+    if {
+        String.starts_with(source, "-") -> true;
+        String.starts_with(source, "!") -> true;
+        true -> String.starts_with(source, "not ")
+    }.
+
+@pure
+is_float_number(source: String): Bool ->
+    if {
+        not starts_digit(source) -> false;
+        String.contains(source, ".") -> true;
+        String.contains(source, "e") -> true;
+        true -> String.contains(source, "E")
+    }.
+
+@pure
+classify_braced(source: String): ExpressionClass ->
+    let contents = inner(source);
+    if {
+        String.trim(contents) == "" or Delimited.top_level_byte(contents, 58) >= 0 -> MapExpression;
+        Delimited.top_level_byte(contents, 44) >= 0 -> TupleExpression;
+        true -> InvalidExpression
+    }.
+
+@pure
+classify_list(source: String): ExpressionClass ->
+    let contents = inner(source);
+    let pipe = Delimited.top_level_byte(contents, 124);
+    if {
+        pipe < 0 -> ListExpression;
+        Delimited.top_level_pair(contents, 60, 45) >= 0 -> ListComprehensionExpression;
+        true -> ListConsExpression
+    }.
+
+@pure
+classify(source: String): ExpressionClass ->
+    let sequence = Delimited.split_top_level(source, 59);
+    if {
+        is_refutable_let(source) -> RefutableLetExpression;
+        String.starts_with(source, "let ") -> LetExpression;
+        is_lambda(source) -> LambdaExpression;
+        String.starts_with(source, "quote ") -> QuoteExpression;
+        String.starts_with(source, "case ") -> CaseExpression;
+        String.starts_with(source, "try ") -> TryExpression;
+        String.starts_with(source, "if {") -> IfExpression;
+        String.starts_with(source, "unquote(") -> UnquoteExpression;
+        String.starts_with(source, "?") -> MacroExpression;
+        is_quoted(source) -> StringExpression;
+        String.starts_with(source, "<<") -> BinaryExpression;
+        String.starts_with(source, "#[") -> FixedArrayExpression;
+        is_binary_layout(source) -> BinaryLayoutExpression;
+        is_nominal_keyed(source) -> NominalKeyedExpression;
+        String.starts_with(source, "[") -> classify_list(source);
+        String.starts_with(source, "{") -> classify_braced(source);
+        List.length(sequence) > 1 -> SequenceExpression;
+        Delimited.top_level_assignment(source) >= 0 -> AssignmentExpression;
+        Delimited.top_level_text(source, " with ") >= 0 -> ConstructorChainExpression;
+        Delimited.top_level_pair(source, 124, 62) >= 0 -> PipeExpression;
+        Delimited.top_level_text(source, " or ") >= 0 -> OrExpression;
+        Delimited.top_level_text(source, " and ") >= 0 -> AndExpression;
+        has_compare(source) -> CompareExpression;
+        is_add(source) -> AddExpression;
+        is_multiply(source) -> MultiplyExpression;
+        Delimited.top_level_text(source, " as ") >= 0 -> CastExpression;
+        is_unary(source) -> UnaryExpression;
+        is_float_number(source) -> FloatExpression;
+        starts_digit(source) -> IntegerExpression;
+        String.starts_with(source, "(") -> GroupExpression;
+        String.contains(source, "(") and String.ends_with(source, ")") -> CallExpression;
+        true -> NameExpression
+    }.
+
+@pure
+parts_for(source: String, class: ExpressionClass): List[String] ->
+    case class {
+        SequenceExpression -> drop_terminal_empty(Delimited.split_top_level(source, 59));
+        TupleExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        MapExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        ListExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        ListConsExpression -> Delimited.split_top_level(inner(source), 124);
+        ListComprehensionExpression -> Delimited.split_top_level(inner(source), 124);
+        _ -> List.new[String]()
+    }.
+
+@pure
+invalid(source: String, message: String): ExpressionParse ->
+    ExpressionParse(false, ExpressionSyntax(InvalidExpression, source, List.new[String]()), message).
+
+/** Parses one complete expression and preserves immediate precedence components. */
+@pure
+pub parse(source: String): ExpressionParse ->
+    let normalized = String.trim(source);
+    let class = classify(normalized);
+    let parts = parts_for(normalized, class);
+    if {
+        normalized == "" -> invalid(source, "expression is empty");
+        not Delimited.balanced(normalized) -> invalid(source, "expression has unbalanced delimiters");
+        class == InvalidExpression -> invalid(source, "braced expression must be a tuple or keyed map");
+        not all_nonempty(parts) -> invalid(source, "expression contains an empty component");
+        class == TupleExpression and List.length(parts) < 2 -> invalid(source, "tuple expression requires at least two items");
+        class == ListConsExpression and List.length(parts) != 2 -> invalid(source, "list-cons expression requires one head and one tail");
+        class == ListComprehensionExpression and List.length(parts) != 2 -> invalid(source, "list comprehension requires a value and qualifiers");
+        true -> ExpressionParse(true, ExpressionSyntax(class, normalized, parts), "")
+    }.

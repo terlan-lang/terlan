@@ -1,0 +1,88 @@
+/**
+ * Checked semantic-plan to ABI-1 JSON backend entry point.
+ */
+module self_host.SelfHostBackendCompile.
+
+
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.core.Option.{None, Option, Some}.
+import std.collections.List.
+import std.core.String.
+import self_host.SelfHostBackendEnvelope.
+import self_host.SelfHostIrJson.
+import self_host.SelfHostIrSyntax.
+import self_host.SelfHostIrSyntax.{IrDiagnostic}.
+import self_host.SelfHostIrValidation.
+import self_host.SelfHostSemanticIrLowering.
+import self_host.SelfHostSemanticIrSyntax.
+
+import self_host.SelfHostSemanticIrSyntax.{BackendCompilation, IrLoweringDiagnostic, SemanticModulePlan}.
+@pure
+lowering_messages_at(values: List[IrLoweringDiagnostic], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse_messages(output, List.new[String]());
+        [value | rest] -> lowering_messages_at(rest, [String.concat([
+                value.code,
+                " function=", value.function_name,
+                " block=", value.block_label,
+                " message=", value.message,
+            ]) | output])
+    }.
+
+@pure
+validation_messages_at(values: List[IrDiagnostic], output: List[String]): List[String] ->
+    case values {
+        [] -> reverse_messages(output, List.new[String]());
+        [value | rest] -> validation_messages_at(rest, [String.concat([
+                value.code,
+                " function=", value.function_name,
+                " block=", value.block_label,
+                " message=", value.message,
+            ]) | output])
+    }.
+
+@pure
+reverse_messages(values: List[String], output: List[String]): List[String] ->
+    case values { [] -> output; [value | rest] -> reverse_messages(rest, [value | output]) }.
+
+@pure
+lowering_messages(values: List[IrLoweringDiagnostic]): List[String] ->
+    lowering_messages_at(values, List.new[String]()).
+
+@pure
+validation_messages(values: List[IrDiagnostic]): List[String] ->
+    validation_messages_at(values, List.new[String]()).
+
+pub compile(plan: SemanticModulePlan, target: String): BackendCompilation ->
+    let lowered = SelfHostSemanticIrLowering.lower(plan);
+    case lowered.ir_module {
+        None -> BackendCompilation(
+            envelope = None,
+            json = None,
+            diagnostics = lowering_messages(lowered.diagnostics),
+        );
+        Some(ir_module) ->
+            let validation = SelfHostIrValidation.validate(ir_module);
+            if {
+                not validation.valid -> BackendCompilation(
+                    envelope = None,
+                    json = None,
+                    diagnostics = validation_messages(validation.diagnostics),
+                );
+                true -> let envelope = SelfHostBackendEnvelope.current(ir_module, target);
+                case SelfHostIrJson.encode(envelope) {
+                    Ok(json) -> BackendCompilation(
+                        envelope = Some(envelope),
+                        json = Some(json),
+                        diagnostics = List.new[String](),
+                    );
+                    Err(_) -> BackendCompilation(
+                        envelope = Some(envelope),
+                        json = None,
+                        diagnostics = ["backend-json-encoding-failed"],
+                    )
+                }
+            }
+    }.

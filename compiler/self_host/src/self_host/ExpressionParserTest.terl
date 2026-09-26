@@ -1,0 +1,39 @@
+/** Positive and negative contracts for self-hosted expression parsing. */
+module self_host.ExpressionParserTest.
+
+import self_host.ExpressionSyntax.{IfExpression, LambdaExpression, LetExpression, ListComprehensionExpression, PipeExpression, SequenceExpression}.
+
+import std.collections.List.
+import self_host.ExpressionParser.
+
+@pure
+positive_expressions(): Bool ->
+    let sequence = ExpressionParser.parse("prepare(); execute() ; finish()");
+    let lambda = ExpressionParser.parse("(value: String) -> value");
+    let pipeline = ExpressionParser.parse("source |> decode() |> validate()");
+    let comprehension = ExpressionParser.parse("[render(item) | item <- items, visible(item)]");
+    let conditional = ExpressionParser.parse("if { ready -> run(); true -> wait() }");
+    let binding = ExpressionParser.parse("let value = prepare(); consume(value)");
+    sequence.valid
+        and sequence.syntax.class == SequenceExpression
+        and List.length(sequence.syntax.parts) == 3
+        and lambda.valid
+        and lambda.syntax.class == LambdaExpression
+        and pipeline.valid
+        and pipeline.syntax.class == PipeExpression
+        and comprehension.valid
+        and comprehension.syntax.class == ListComprehensionExpression
+        and conditional.valid
+        and conditional.syntax.class == IfExpression
+        and binding.valid
+        and binding.syntax.class == LetExpression.
+
+@pure
+negative_expressions(): Bool ->
+    not ExpressionParser.parse("").valid
+        and not ExpressionParser.parse("[head | middle | tail]").valid
+        and not ExpressionParser.parse("call(value").valid
+        and not ExpressionParser.parse("{single}").valid.
+
+pub self_test(): Bool ->
+    positive_expressions() and negative_expressions().

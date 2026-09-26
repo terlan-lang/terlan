@@ -390,8 +390,53 @@ impl NativeModule {
                     }
                     call_membership.sort();
                     call_membership.dedup();
+                    let blocked_details = call_membership
+                        .iter()
+                        .filter(|(_, target_suspends, target_composes)| {
+                            *target_suspends && !*target_composes
+                        })
+                        .filter_map(|(identity, _, _)| {
+                            let target_index = *resolver.get(identity)?;
+                            let target = candidates.get(target_index)?;
+                            let target_resolver = &resolvers[&target.core.module];
+                            let target_suspending = resolved_names(target_resolver, &suspending);
+                            let target_composable = target_resolver
+                                .iter()
+                                .filter(|(_, candidate_index)| {
+                                    composable_candidates.contains(candidate_index)
+                                })
+                                .map(|(identity, _)| identity.clone())
+                                .collect::<HashSet<_>>();
+                            let target_body = target
+                                .function
+                                .clauses
+                                .first()
+                                .and_then(|clause| clause.body.core_expr.as_ref())?;
+                            let target_gap =
+                                super::call_composition::composable_suspension_gap_reason(
+                                    target_body,
+                                    &target_suspending,
+                                    &target_composable,
+                                );
+                            let mut target_calls = Vec::new();
+                            dynamic_targets::walk_calls(target_body, &mut |function, args| {
+                                let called = (function.to_string(), args.len());
+                                target_calls.push((
+                                    called.clone(),
+                                    target_suspending.contains(&called),
+                                    target_composable.contains(&called),
+                                ));
+                            });
+                            target_calls.sort();
+                            target_calls.dedup();
+                            Some(format!(
+                                "{}.{}/{}: gap={target_gap}; calls={target_calls:?}",
+                                target.core.module, target.function.name, target.function.arity,
+                            ))
+                        })
+                        .collect::<Vec<_>>();
                     return Err(format!(
-                        "error[native_ir.unsupported_application_function]: `{}.{}/{}` cannot be closed over the native application image; runtime CoreIR interpretation has been removed (gap={gap}; calls={call_membership:?}; composable={composable:?})",
+                        "error[native_ir.unsupported_application_function]: `{}.{}/{}` cannot be closed over the native application image; runtime CoreIR interpretation has been removed (gap={gap}; calls={call_membership:?}; blocked={blocked_details:?}; composable={composable:?})",
                         candidate.core.module, candidate.function.name, candidate.function.arity,
                     ));
                 }

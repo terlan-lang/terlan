@@ -1,0 +1,20 @@
+/** Program-aware projected semantic analysis using resolved import interfaces. */
+module self_host.ProjectedProgramSemantic.
+
+import self_host.ImportResolutionSyntax.{ResolvedCompilationBundle}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedSemanticSyntax.{ProjectedSemanticModule}.
+
+import self_host.ProjectedSemanticAnalysis.
+import self_host.ProjectedTypeEnvironment.
+
+
+@pure
+pub analyze(
+    source: ProjectedFrontendModule,
+    program: ResolvedCompilationBundle,
+): ProjectedSemanticModule ->
+    ProjectedSemanticAnalysis.analyze(
+        source,
+        ProjectedTypeEnvironment.for_module(program, source.surface.name),
+    ).

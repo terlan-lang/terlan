@@ -1,0 +1,39 @@
+/** Positive and negative contracts for composed canonical parsing. */
+module self_host.CanonicalParserTest.
+
+import std.collections.List.
+import self_host.CanonicalParser.
+
+@pure
+positive_composition(): Bool ->
+    let parsed = CanonicalParser.parse(
+        "module app.Main.\npub name(user: User): String -> user.profile.name.\n",
+    );
+    parsed.valid
+        and List.length(parsed.segments) == 2
+        and List.length(parsed.surface.declarations) == 1.
+
+@pure
+negative_lexical_composition(): Bool ->
+    let parsed = CanonicalParser.parse("module app.Main.\npub name(): String -> \"open.\n");
+    not parsed.valid and List.length(parsed.lexical_errors) == 1.
+
+@pure
+negative_boundary_composition(): Bool ->
+    let parsed = CanonicalParser.parse("module app.Main.\npub name(): String -> value\n");
+    not parsed.valid and parsed.has_unterminated_segment.
+
+@pure
+positive_multiline_trait_boundary(): Bool ->
+    let parsed = CanonicalParser.parse(
+        "module app.Main.\n\npub trait Named {\n    name(value: User): String.\n    visible(value: User): Bool -> value.name != \"\".\n}.\n",
+    );
+    parsed.valid
+        and List.length(parsed.segments) == 2
+        and List.length(parsed.surface.declarations) == 1.
+
+pub self_test(): Bool ->
+    positive_composition()
+        and positive_multiline_trait_boundary()
+        and negative_lexical_composition()
+        and negative_boundary_composition().

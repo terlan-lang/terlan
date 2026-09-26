@@ -1,0 +1,37 @@
+/** Serializes analyzed modules into an implementation-neutral backend contract. */
+module self_host.BackendHandoff.
+
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.SemanticSyntax.{SemanticModule, SemanticSymbol}.
+import self_host.TypedModuleSyntax.{TypedDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.ModuleInterface.
+
+
+@pure
+declarations(values: List[TypedDeclaration]): List[BackendDeclaration] ->
+    case values {
+        [] -> List.new[BackendDeclaration]();
+        [value | rest] -> [BackendDeclaration(value.class, value.symbol_name, value.semantic_identity, value.is_public, value.source_text, value.payload, value.annotations, value.docs, value.span) | declarations(rest)]
+    }.
+
+@pure
+render_symbols(values: List[SemanticSymbol]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.append(
+            String.append("symbol ", String.append(value.name, ".\n")),
+            render_symbols(rest),
+        )
+    }.
+
+/** Produces the v1 textual contract consumed by native backend implementations. */
+@pure
+pub lower(source: SemanticModule): BackendModule ->
+    let interface = ModuleInterface.lower(source);
+    BackendModule(source.valid, "terlan.self-host.backend/v1", source.name, source.source_kind, declarations(source.declarations), interface, ModuleInterface.render(interface), String.append(
+            "schema terlan.self-host.backend/v1.\nmodule ",
+            String.append(source.name, String.append(".\n", render_symbols(source.symbols))),
+        ), if { source.valid -> ""; true -> "semantic analysis failed" }).

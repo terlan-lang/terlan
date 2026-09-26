@@ -62,6 +62,11 @@ pub struct ActorHeap {
 }
 
 impl ActorHeap {
+    /// Returns bounded identity details for managed-boundary diagnostics.
+    pub(crate) fn diagnostic_identity(&self) -> (u64, u32, Option<u32>) {
+        (self.owner.get(), self.token, self.latest_retired_token)
+    }
+
     /// Creates an empty actor-local bump-allocation heap.
     pub fn new(owner: ActorId, limits: HeapLimits) -> Result<Self, ManagedMemoryError> {
         if usize::BITS != 64 {

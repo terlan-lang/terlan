@@ -187,7 +187,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
         }
 
         if ch == '\'' {
-            match parse_single_quoted(&chars, i) {
+            match parse_raw_quoted_text(&chars, i) {
                 Some((text, end)) => {
                     tokens.push(Token::new(
                         TokenKind::String,
@@ -535,7 +535,7 @@ fn parse_string(chars: &[char], start: usize) -> Option<(String, usize)> {
     None
 }
 
-/// Parses a single-quoted string/atom-compatible literal.
+/// Preserves single-quoted text for opaque embedded languages such as SQL.
 ///
 /// Inputs:
 /// - `chars`: complete source as characters.
@@ -546,7 +546,7 @@ fn parse_string(chars: &[char], start: usize) -> Option<(String, usize)> {
 ///
 /// Transformation:
 /// - Preserves source text and skips escaped characters without decoding them.
-fn parse_single_quoted(chars: &[char], start: usize) -> Option<(String, usize)> {
+fn parse_raw_quoted_text(chars: &[char], start: usize) -> Option<(String, usize)> {
     let mut i = start + 1;
     while i < chars.len() {
         if chars[i] == '\'' {

@@ -16,6 +16,283 @@ use rustls::{ClientConfig, ClientConnection, RootCertStore, ServerConfig, Stream
 use crate::runtime::vm::protocol_task_executor::start_protocol_tasks_with_topology;
 use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 
+fn restorable_pairing(retention_ms: u64, retained_room_capacity: usize) -> VmWebSocketPairingPlan {
+    use crate::runtime::vm::native_callable::VmNativeCallableRef;
+    use crate::runtime::vm::websocket::VmWebSocketPairRestorationPlan;
+
+    let callback = |function: &str, arity| VmNativeCallableRef {
+        module: "app.Socket".into(),
+        function: function.into(),
+        arity,
+    };
+    VmWebSocketPairingPlan {
+        waiting: "waiting".into(),
+        first_matched: String::new(),
+        second_matched: String::new(),
+        peer_left: "left".into(),
+        stateful: true,
+        restoration: Some(VmWebSocketPairRestorationPlan {
+            waiting: callback("waiting", 0),
+            peer_left: callback("peer_left", 0),
+            room_query: "room_id".into(),
+            player_query: "player_id".into(),
+            room_prefix: "room-".into(),
+            first_player: "player-1".into(),
+            second_player: "player-2".into(),
+            retention_ms,
+            retained_room_capacity,
+            matched: callback("matched", 4),
+            restored: callback("restored", 5),
+        }),
+        inbound: callback("inbound", 5),
+        cancellation: callback("cancelled", 1),
+    }
+}
+
+#[test]
+fn websocket_hub_pairs_broadcasts_and_notifies_disconnect() {
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = VmWebSocketPairingPlan {
+        waiting: "waiting".into(),
+        first_matched: "first".into(),
+        second_matched: "second".into(),
+        peer_left: "left".into(),
+        stateful: false,
+        restoration: None,
+        inbound: crate::runtime::vm::native_callable::VmNativeCallableRef {
+            module: "app.Socket".into(),
+            function: "inbound".into(),
+            arity: 1,
+        },
+        cancellation: crate::runtime::vm::native_callable::VmNativeCallableRef {
+            module: "app.Socket".into(),
+            function: "cancelled".into(),
+            arity: 1,
+        },
+    };
+    let first = hub
+        .join("/ws".into(), "/ws?player=first".into(), 4, &pairing)
+        .expect("join first peer");
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let second = hub
+        .join("/ws".into(), "/ws?player=second".into(), 4, &pairing)
+        .expect("join second peer");
+    assert_eq!(first.outbound.try_recv().unwrap(), "first");
+    assert_eq!(second.outbound.try_recv().unwrap(), "second");
+
+    second.broadcast("update".into()).expect("broadcast update");
+    assert_eq!(first.outbound.try_recv().unwrap(), "update");
+    assert_eq!(second.outbound.try_recv().unwrap(), "update");
+    drop(second);
+    assert_eq!(first.outbound.try_recv().unwrap(), "left");
+}
+
+#[test]
+fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = VmWebSocketPairingPlan {
+        waiting: "waiting".into(),
+        first_matched: "first".into(),
+        second_matched: "second".into(),
+        peer_left: "left".into(),
+        stateful: true,
+        restoration: None,
+        inbound: crate::runtime::vm::native_callable::VmNativeCallableRef {
+            module: "app.Socket".into(),
+            function: "inbound".into(),
+            arity: 5,
+        },
+        cancellation: crate::runtime::vm::native_callable::VmNativeCallableRef {
+            module: "app.Socket".into(),
+            function: "cancelled".into(),
+            arity: 1,
+        },
+    };
+    let first = hub
+        .join("/ws".into(), "/ws?player=Ada".into(), 4, &pairing)
+        .expect("join first peer");
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let second = hub
+        .join("/ws".into(), "/ws?player=Grace".into(), 4, &pairing)
+        .expect("join second peer");
+    assert_eq!(first.outbound.try_recv().unwrap(), "first");
+    assert_eq!(second.outbound.try_recv().unwrap(), "second");
+
+    second
+        .transition(|state, role, first_request, second_request| {
+            assert_eq!(state, "");
+            assert_eq!(role, 2);
+            assert_eq!(first_request, "/ws?player=Ada");
+            assert_eq!(second_request, "/ws?player=Grace");
+            Ok(("move-1".into(), "view-1a".into(), "view-1b".into()))
+        })
+        .expect("first transition");
+    assert_eq!(first.outbound.try_recv().unwrap(), "view-1a");
+    assert_eq!(second.outbound.try_recv().unwrap(), "view-1b");
+
+    first
+        .transition(|state, role, _, _| {
+            assert_eq!(state, "move-1");
+            assert_eq!(role, 1);
+            Ok(("move-2".into(), "view-2a".into(), "view-2b".into()))
+        })
+        .expect("second transition");
+    assert_eq!(first.outbound.try_recv().unwrap(), "view-2a");
+    assert_eq!(second.outbound.try_recv().unwrap(), "view-2b");
+}
+
+#[test]
+fn websocket_hub_restores_disconnected_seat_with_retained_state() {
+    let pairing = restorable_pairing(300_000, 1_024);
+    let hub = Arc::new(WebSocketHub::default());
+    let first = hub
+        .join("/ws".into(), "/ws?board=first".into(), 4, &pairing)
+        .expect("join first peer");
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let second = hub
+        .join("/ws".into(), "/ws?board=second".into(), 4, &pairing)
+        .expect("join second peer");
+    first
+        .transition(|state, role, first_request, second_request| {
+            assert_eq!(state, "");
+            assert_eq!(role, 1);
+            assert_eq!(first_request, "/ws?board=first");
+            assert_eq!(second_request, "/ws?board=second");
+            Ok(("1,5,5".into(), "first-view".into(), "second-view".into()))
+        })
+        .expect("retain first move");
+    assert_eq!(first.outbound.try_recv().unwrap(), "first-view");
+    assert_eq!(second.outbound.try_recv().unwrap(), "second-view");
+
+    drop(second);
+    assert_eq!(first.outbound.try_recv().unwrap(), "left");
+    let restored = hub
+        .join(
+            "/ws".into(),
+            "/ws?room_id=room-1&player_id=player-2".into(),
+            4,
+            &pairing,
+        )
+        .expect("restore second seat");
+    restored
+        .transition(|state, role, first_request, second_request| {
+            assert_eq!(state, "1,5,5");
+            assert_eq!(role, 2);
+            assert_eq!(first_request, "/ws?board=first");
+            assert_eq!(second_request, "/ws?board=second");
+            Ok((
+                "1,5,5;2,4,4".into(),
+                "next-first".into(),
+                "next-second".into(),
+            ))
+        })
+        .expect("transition restored seat");
+    assert_eq!(first.outbound.try_recv().unwrap(), "next-first");
+    assert_eq!(restored.outbound.try_recv().unwrap(), "next-second");
+}
+
+#[test]
+fn websocket_hub_retains_room_after_both_peers_disconnect() {
+    let pairing = restorable_pairing(300_000, 8);
+    let hub = Arc::new(WebSocketHub::default());
+    let first = hub
+        .join("/ws".into(), "/ws?board=first".into(), 4, &pairing)
+        .expect("join first peer");
+    let second = hub
+        .join("/ws".into(), "/ws?board=second".into(), 4, &pairing)
+        .expect("join second peer");
+    drop(first);
+    drop(second);
+
+    let restored_first = hub
+        .join(
+            "/ws".into(),
+            "/ws?room_id=room-1&player_id=player-1".into(),
+            4,
+            &pairing,
+        )
+        .expect("restore first seat");
+    let restored_second = hub
+        .join(
+            "/ws".into(),
+            "/ws?room_id=room-1&player_id=player-2".into(),
+            4,
+            &pairing,
+        )
+        .expect("restore second seat");
+    restored_second
+        .transition(|state, role, first_request, second_request| {
+            assert_eq!(state, "");
+            assert_eq!(role, 2);
+            assert_eq!(first_request, "/ws?board=first");
+            assert_eq!(second_request, "/ws?board=second");
+            Ok(("retained".into(), "first".into(), "second".into()))
+        })
+        .expect("transition retained room");
+    assert_eq!(restored_first.outbound.try_recv().unwrap(), "first");
+    assert_eq!(restored_second.outbound.try_recv().unwrap(), "second");
+}
+
+#[test]
+fn websocket_hub_expires_fully_disconnected_room() {
+    let pairing = restorable_pairing(10, 8);
+    let hub = Arc::new(WebSocketHub::default());
+    let first = hub
+        .join("/ws".into(), "/ws?board=first".into(), 4, &pairing)
+        .expect("join first peer");
+    let second = hub
+        .join("/ws".into(), "/ws?board=second".into(), 4, &pairing)
+        .expect("join second peer");
+    drop(first);
+    drop(second);
+
+    let error = hub
+        .join_at(
+            "/ws".into(),
+            "/ws?room_id=room-1&player_id=player-1".into(),
+            4,
+            &pairing,
+            std::time::Instant::now() + Duration::from_secs(1),
+        )
+        .err()
+        .expect("expired room must reject restoration");
+    assert!(error.contains("room not found"));
+}
+
+#[test]
+fn websocket_hub_evicts_oldest_fully_disconnected_room_at_capacity() {
+    let pairing = restorable_pairing(300_000, 1);
+    let hub = Arc::new(WebSocketHub::default());
+    for suffix in ["first", "second"] {
+        let first = hub
+            .join("/ws".into(), format!("/ws?board={suffix}-1"), 4, &pairing)
+            .expect("join first peer");
+        let second = hub
+            .join("/ws".into(), format!("/ws?board={suffix}-2"), 4, &pairing)
+            .expect("join second peer");
+        drop(first);
+        drop(second);
+    }
+
+    let oldest_error = hub
+        .join(
+            "/ws".into(),
+            "/ws?room_id=room-1&player_id=player-1".into(),
+            4,
+            &pairing,
+        )
+        .err()
+        .expect("oldest retained room must be evicted");
+    assert!(oldest_error.contains("room not found"));
+    hub.join(
+        "/ws".into(),
+        "/ws?room_id=room-2&player_id=player-1".into(),
+        4,
+        &pairing,
+    )
+    .expect("newest retained room remains restorable");
+}
+
 #[test]
 fn protocol_errors_are_hyper_responses() {
     let response = error_response(400, "bad request".to_string());
@@ -103,10 +380,11 @@ fn vm_owned_tls_serves_http2_selected_by_rustls_alpn() {
             .expect("bind protocol listener");
     let mut server = start_protocol_tasks_with_topology(
         listener,
-        tls_factory(
+        tls_io::factory(
             root.clone(),
             server_config,
             crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
+            Arc::new(WebSocketHub::default()),
         ),
         VmSchedulerTopology::new(1).expect("single test scheduler"),
     )
@@ -151,6 +429,50 @@ fn vm_owned_tls_serves_http2_selected_by_rustls_alpn() {
     server.stop().expect("stop VM TLS protocol server");
     let _ = connection_thread.join();
     std::fs::remove_dir_all(root).expect("remove HTTP/2 fixture");
+}
+
+#[test]
+fn vm_owned_tls_serves_http1_on_upgrade_capable_path() {
+    let root = temp_web_root();
+    std::fs::write(root.join("index.html"), "terlan-http1-tls-ok")
+        .expect("write HTTP/1 TLS fixture");
+    let (server_config, client_config) = tls_pair_with_client_alpn(b"http/1.1");
+    let listener =
+        crate::runtime::vm::protocol_task_executor::bind_protocol_listener("127.0.0.1", 0)
+            .expect("bind protocol listener");
+    let mut server = start_protocol_tasks_with_topology(
+        listener,
+        tls_io::factory(
+            root.clone(),
+            server_config,
+            crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
+            Arc::new(WebSocketHub::default()),
+        ),
+        VmSchedulerTopology::new(1).expect("single test scheduler"),
+    )
+    .expect("start VM TLS protocol server");
+
+    let tcp = std::net::TcpStream::connect(server.local_addr()).expect("connect TLS client");
+    tcp.set_read_timeout(Some(Duration::from_secs(5)))
+        .expect("set TLS client timeout");
+    let connection = ClientConnection::new(
+        client_config,
+        ServerName::try_from("localhost").expect("server name"),
+    )
+    .expect("create rustls client");
+    let mut stream = StreamOwned::new(connection, tcp);
+    std::io::Write::write_all(
+        &mut stream,
+        b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    .expect("write HTTPS request");
+    let mut response = String::new();
+    std::io::Read::read_to_string(&mut stream, &mut response).expect("read HTTPS response");
+    assert!(response.starts_with("HTTP/1.1 200"));
+    assert!(response.contains("terlan-http1-tls-ok"));
+
+    server.stop().expect("stop VM TLS protocol server");
+    std::fs::remove_dir_all(root).expect("remove HTTP/1 TLS fixture");
 }
 
 #[derive(Clone, Copy)]
@@ -252,6 +574,10 @@ impl Write for BlockingTlsIo {
 }
 
 fn tls_pair() -> (Arc<ServerConfig>, Arc<ClientConfig>) {
+    tls_pair_with_client_alpn(b"h2")
+}
+
+fn tls_pair_with_client_alpn(protocol: &[u8]) -> (Arc<ServerConfig>, Arc<ClientConfig>) {
     let generated =
         generate_simple_self_signed(vec!["localhost".to_string()]).expect("generate TLS fixture");
     let certificate = generated.cert.der().clone();
@@ -273,7 +599,7 @@ fn tls_pair() -> (Arc<ServerConfig>, Arc<ClientConfig>) {
         .expect("client TLS versions")
         .with_root_certificates(roots)
         .with_no_client_auth();
-    client.alpn_protocols = vec![b"h2".to_vec()];
+    client.alpn_protocols = vec![protocol.to_vec()];
     (Arc::new(server), Arc::new(client))
 }
 
