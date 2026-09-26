@@ -22,10 +22,12 @@ fn lowering_coverage_matrix_is_versioned() {
 #[test]
 fn call_families_have_explicit_lowering_dispositions() {
     let direct = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "inc".to_string(),
         args: vec![CoreExpr::Int(1)],
     };
     let remote = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "math".to_string(),
         function: "inc".to_string(),
         args: vec![CoreExpr::Int(1)],
@@ -62,6 +64,7 @@ fn call_families_have_explicit_lowering_dispositions() {
 #[test]
 fn closures_have_explicit_native_lowering() {
     let closure = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::Var("value".to_string())),
     };

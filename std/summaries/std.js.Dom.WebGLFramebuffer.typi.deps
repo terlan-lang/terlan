@@ -1,8 +1,8 @@
 module=std.js.Dom.WebGLFramebuffer
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13821636582297652961
-interface_hash=3131867803865044183
-interface_doc_hash=3131867803865044183
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=420652696490507704
+interface_hash=11047243972467873900
+interface_doc_hash=11047243972467873900
 deps=0

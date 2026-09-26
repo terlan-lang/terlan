@@ -636,6 +636,7 @@ fn emit_pure_tail_body(
                     allocator: params[1],
                     resolver: params[2],
                     lookup: params[3],
+                    callable_recorder: params[4],
                 },
                 super::indirect::IndirectInvocation {
                     closure: callee,

@@ -57,7 +57,7 @@ function Get-TerlanSha256 {
 }
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    $Version = "v0.0.8"
+    $Version = "v0.0.9"
 }
 
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {

@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSMathNegate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13061619666636512547
-interface_hash=10186605693870461052
-interface_doc_hash=10186605693870461052
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9827919559108952164
+interface_hash=1176421551104031595
+interface_doc_hash=1176421551104031595
 deps=0

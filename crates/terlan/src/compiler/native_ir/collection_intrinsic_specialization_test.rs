@@ -5,6 +5,175 @@ use crate::terlan_typeck::{
     CoreRecordExprField, CoreStructTypeField, CoreType,
 };
 
+/// Collection receivers retain their type and method identity through callback specialization.
+#[test]
+fn contextual_collection_receivers_execute_without_unqualified_method_fallback() {
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"
+module collection_callback.
+import std.collections.{List, Map, Set}.
+import std.core.Option.{Some, None}.
+apply[T](value: T, predicate: (T) -> Bool): Bool -> predicate(value).
+size(value: Int): Int -> value + 100.
+pub ordinary(): Int -> size(2).
+pub persistent(): Bool ->
+    let source = [1, 1];
+    let joined = source.concat([2]);
+    let reduced = source.subtract([1]);
+    source.length() == 2 and joined.length() == 3 and reduced.length() == 1.
+pub map_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1}); state.contains_key(key) and state.size() == 1).
+pub list_callback(): Bool -> apply(3, (value) ->
+    let state = [value]; state.concat([value]).length() == 2).
+pub shadowed_callback(): Bool ->
+    let state = Map({"outer", 7});
+    apply([1], (state) -> state.length() == 1) and state.size() == 1.
+pub empty_mutation(): Bool ->
+    apply(3, (value) -> let state = []; state.push(value); state.clear(); state.is_empty()).
+pub take_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1});
+    case Map.take(state, key) {
+        {Some(value), rest} -> value == 1 and state.contains_key(key) and not rest.contains_key(key) and rest.size() == 0;
+        {None, _rest} -> false
+    }).
+pub duplicate_callback(): Bool -> apply("key", (key) ->
+    let state = Map({key, 1}, {key, 2}); state.size() == 1 and state.get(key) == Some(2)).
+pub from_entries(): Bool ->
+    let entries = List({"key", 1});
+    let state = Map.from_entries(entries);
+    state.size() == 1 and state.get("key") == Some(1).
+entries[T](value: T): List[T] -> [value].
+pub from_generic_entries(): Bool ->
+    let values = entries({"key", 1});
+    let state = Map.from_entries(values);
+    state.size() == 1 and state.get("key") == Some(1).
+pub set_from_generic_values(): Bool ->
+    let values = entries("key");
+    let state = Set.from_list(values);
+    state.size() == 1 and state.contains("key").
+"#,
+    )
+    .expect("parse collection receiver callbacks");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = super::NativeModule::lower_application(&[&core])
+        .expect("lower collection receiver callbacks");
+    let object = super::emit_native_application_object("collection-callback", &modules)
+        .expect("emit collection receiver callbacks");
+    let invocations = [
+        ("ordinary", 102),
+        ("persistent", 1),
+        ("map_callback", 1),
+        ("list_callback", 1),
+        ("shadowed_callback", 1),
+        ("empty_mutation", 1),
+        ("take_callback", 1),
+        ("duplicate_callback", 1),
+        ("from_entries", 1),
+        ("from_generic_entries", 1),
+        ("set_from_generic_values", 1),
+    ]
+    .map(|(name, expected)| {
+        let function = modules
+            .iter()
+            .flat_map(|module| &module.functions)
+            .find(|function| function.name == name)
+            .expect("callback export");
+        super::native_object_test_support::NativeObjectInvocation {
+            export_id: function.export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(expected),
+        }
+    });
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "collection-callback",
+        &modules,
+        &object,
+        &invocations,
+    );
+}
+
+#[test]
+fn inferred_list_operands_visit_every_element_and_remain_idempotent() {
+    let mut expression = CoreExpr::List(vec![
+        CoreExpr::Int(1),
+        CoreExpr::Index {
+            base: Box::new(CoreExpr::Var("values".to_string())),
+            index: Box::new(CoreExpr::Int(0)),
+        },
+    ]);
+    let variables = HashMap::from([(
+        "values".to_string(),
+        CoreType::List(Box::new(CoreType::Int)),
+    )]);
+    let functions = HashMap::new();
+    let infer = |expression: &mut CoreExpr| {
+        super::collection_intrinsic_specialization::specialize_expr(
+            expression, &variables, &functions, "app.Test",
+        )
+    };
+    assert_eq!(
+        infer(&mut expression),
+        Some(CoreType::List(Box::new(CoreType::Int)))
+    );
+    let CoreExpr::Cast { expr, target_type } = &expression else {
+        panic!("inferred list schema was not retained");
+    };
+    assert_eq!(target_type, &CoreType::List(Box::new(CoreType::Int)));
+    let CoreExpr::List(items) = expr.as_ref() else {
+        panic!("annotated list literal changed shape");
+    };
+    assert!(matches!(&items[1], CoreExpr::Intrinsic(call)
+        if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListGet)));
+    let once = expression.clone();
+    infer(&mut expression);
+    assert_eq!(expression, once, "repeated specialization must be stable");
+}
+
+#[test]
+fn positional_collections_specialize_later_elements() {
+    for constructor in ["std.collections.List.List", "std.collections.Set.Set"] {
+        let mut expression = CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
+            constructor: constructor.to_string(),
+            constructor_identity: Some(constructor.to_string()),
+            args: vec![
+                CoreExpr::Int(1),
+                CoreExpr::Index {
+                    base: Box::new(CoreExpr::Var("values".to_string())),
+                    index: Box::new(CoreExpr::Int(0)),
+                },
+            ],
+        };
+        let variables = HashMap::from([(
+            "values".to_string(),
+            CoreType::List(Box::new(CoreType::Int)),
+        )]);
+        super::collection_intrinsic_specialization::specialize_expr(
+            &mut expression,
+            &variables,
+            &HashMap::new(),
+            "app.Test",
+        );
+        let list = match &expression {
+            CoreExpr::Cast { expr, .. } => expr.as_ref(),
+            CoreExpr::Intrinsic(call) => &call.args[0],
+            other => panic!("unexpected positional collection: {other:?}"),
+        };
+        let CoreExpr::List(items) = list else {
+            panic!("positional elements were not retained");
+        };
+        assert!(matches!(&items[1], CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListGet)));
+    }
+}
+
 #[test]
 fn expected_option_retargets_an_inferred_variant_cast() {
     let variant = CoreType::Tuple(vec![
@@ -17,6 +186,7 @@ fn expected_option_retargets_an_inferred_variant_cast() {
     };
     let mut expression = CoreExpr::Cast {
         expr: Box::new(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Some".to_string(),
             constructor_identity: Some("std.core.Option.Some".to_string()),
             args: vec![CoreExpr::Binary("value".to_string())],
@@ -50,6 +220,7 @@ fn expected_result_retargets_an_inferred_variant_cast_inside_if() {
             condition: CoreExpr::Atom("true".to_string()),
             body: CoreExpr::Cast {
                 expr: Box::new(CoreExpr::ConstructorCall {
+                    type_args: Vec::new(),
                     constructor: "Ok".to_string(),
                     constructor_identity: Some("std.core.Result.Ok".to_string()),
                     args: vec![CoreExpr::Int(1)],
@@ -123,6 +294,7 @@ fn map_receiver_reached_through_struct_field_becomes_typed_intrinsic() {
         }],
     };
     let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "app.__receiver__".to_string(),
         function: "get".to_string(),
         args: vec![
@@ -161,6 +333,7 @@ fn map_receiver_reached_through_struct_field_becomes_typed_intrinsic() {
 #[test]
 fn typed_string_variable_receiver_becomes_indexed_utf8_intrinsic() {
     let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "app.__receiver__".to_string(),
         function: "utf8_byte_at".to_string(),
         args: vec![CoreExpr::Var("value".to_string()), CoreExpr::Int(1)],
@@ -186,6 +359,65 @@ fn typed_string_variable_receiver_becomes_indexed_utf8_intrinsic() {
         call.args,
         vec![CoreExpr::Var("value".to_string()), CoreExpr::Int(1)]
     );
+}
+
+/// List destructuring must preserve the types used to resolve element receiver calls.
+#[test]
+fn list_pattern_element_receiver_keeps_its_intrinsic_identity() {
+    for list_type in [
+        CoreType::List(Box::new(CoreType::String)),
+        CoreType::Apply {
+            constructor: "std.collections.List.List".to_string(),
+            args: vec![CoreType::String],
+        },
+    ] {
+        for pattern in [
+            CorePattern::List(vec![CorePattern::Var("value".to_string())]),
+            CorePattern::ListCons {
+                head: Box::new(CorePattern::Var("value".to_string())),
+                tail: Box::new(CorePattern::Var("rest".to_string())),
+            },
+        ] {
+            let mut expression = CoreExpr::Case {
+                scrutinee: Box::new(CoreExpr::Var("values".to_string())),
+                clauses: vec![crate::terlan_typeck::CoreCaseClause {
+                    pattern,
+                    guard: None,
+                    body: CoreExpr::RemoteCall {
+                        type_args: Vec::new(),
+                        module: "app.__receiver__".to_string(),
+                        function: "utf8_slice".to_string(),
+                        args: vec![
+                            CoreExpr::Var("value".to_string()),
+                            CoreExpr::Int(1),
+                            CoreExpr::Int(2),
+                        ],
+                    },
+                }],
+            };
+            let variables = HashMap::from([("values".to_string(), list_type.clone())]);
+            let result = super::collection_intrinsic_specialization::specialize_expr(
+                &mut expression,
+                &variables,
+                &HashMap::new(),
+                "app",
+            );
+            assert_eq!(result, Some(CoreType::String));
+            let CoreExpr::Case { clauses, .. } = expression else {
+                panic!("expected case expression");
+            };
+            let CoreExpr::Intrinsic(call) = &clauses[0].body else {
+                panic!(
+                    "list element receiver remains unresolved: {:?}",
+                    clauses[0].body
+                );
+            };
+            assert_eq!(
+                call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8Slice)
+            );
+        }
+    }
 }
 
 #[test]
@@ -247,6 +479,7 @@ fn empty_collections_in_struct_binding_inherit_consumer_field_types() {
             },
         }],
         body: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "consume".to_string(),
             args: vec![CoreExpr::Var("index".to_string())],
         }),
@@ -254,6 +487,7 @@ fn empty_collections_in_struct_binding_inherit_consumer_field_types() {
     let functions = HashMap::from([(
         ("app".to_string(), "consume".to_string(), 1),
         super::collection_intrinsic_specialization::FunctionSignature {
+            generic_params: Vec::new(),
             params: vec![index_type.clone()],
             result: index_type.clone(),
         },
@@ -351,6 +585,7 @@ fn empty_list_binding_inherits_a_consumer_parameter_type() {
             CoreLetBinding {
                 pattern: CorePattern::Var("copied".to_string()),
                 value: CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "copy".to_string(),
                     args: vec![CoreExpr::Var("output".to_string())],
                 },
@@ -363,6 +598,7 @@ fn empty_list_binding_inherits_a_consumer_parameter_type() {
     let functions = HashMap::from([(
         ("app.Test".to_string(), "copy".to_string(), 1),
         super::collection_intrinsic_specialization::FunctionSignature {
+            generic_params: Vec::new(),
             params: vec![list_type.clone()],
             result: list_type.clone(),
         },
@@ -429,6 +665,7 @@ fn set_receiver_call_becomes_a_typed_intrinsic() {
         args: vec![CoreType::String],
     };
     let mut expression = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "size".to_string(),
         args: vec![CoreExpr::Var("values".to_string())],
     };

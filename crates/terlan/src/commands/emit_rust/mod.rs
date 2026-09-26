@@ -150,7 +150,7 @@ fn core_expr_to_rust(expr: &CoreExpr) -> Option<String> {
         }
         CoreExpr::Binary(value) | CoreExpr::Atom(value) => Some(rust_string_expr(value)),
         CoreExpr::Var(name) if is_rust_identifier(name) => Some(rust_identifier(name)),
-        CoreExpr::Call { function, args } => core_call_expr_to_rust(function, args),
+        CoreExpr::Call { function, args, .. } => core_call_expr_to_rust(function, args),
         CoreExpr::FunctionCall { callee, args } => core_function_call_expr_to_rust(callee, args),
         CoreExpr::Intrinsic(call) => core_intrinsic_call_expr_to_rust(call),
         CoreExpr::UnaryOp { operator, operand } if operator == "-" => {
@@ -341,7 +341,7 @@ fn core_function_call_expr_to_rust(callee: &CoreExpr, args: &[CoreExpr]) -> Opti
 ///   into `(f)(value, extra)`.
 fn core_pipe_forward_expr_to_rust(left: &CoreExpr, right: &CoreExpr) -> Option<String> {
     match right {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             if !is_rust_identifier(function) {
                 return None;
             }

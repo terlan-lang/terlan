@@ -1,9 +1,9 @@
 use crate::compiler::native_ir::{NativeModule, NativeType};
 use crate::runtime::native_image::managed::{decode_aggregate_layout, decode_collection_layout};
 use crate::runtime::native_image::{
-    host_tvm_target, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
-    TvmExecutableDescriptor, TvmExportDescriptor, TvmImageIdentity, TvmImageIntegrity,
-    TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
+    host_tvm_target, TvmBoundaryType, TvmContinuationDescriptor, TvmExecutableDescriptor,
+    TvmExportDescriptor, TvmImageIdentity, TvmImageIntegrity, TvmManagedCollectionDescriptor,
+    TvmManagedLayoutDescriptor,
 };
 
 use super::super::BuildOneError;
@@ -57,35 +57,7 @@ pub(super) fn native_application_image_descriptor(
         })
         .collect::<Vec<_>>();
     continuations.sort_by_key(|continuation| continuation.id);
-    let mut callables = natives
-        .iter()
-        .flat_map(|native| {
-            native
-                .functions
-                .iter()
-                .filter(|_| {
-                    !crate::compiler::native_ir::is_materialized_continuation_module(native)
-                })
-                .map(|function| TvmCallableDescriptor {
-                    id: function.export_id,
-                    parameters: function
-                        .params
-                        .iter()
-                        .skip(function.callable_captures.len())
-                        .copied()
-                        .map(native_boundary_type)
-                        .collect(),
-                    results: vec![native_boundary_type(function.return_type)],
-                    captures: function
-                        .callable_captures
-                        .iter()
-                        .copied()
-                        .map(native_boundary_type)
-                        .collect(),
-                })
-        })
-        .collect::<Vec<_>>();
-    callables.sort_by_key(|callable| callable.id);
+    let callables = crate::compiler::native_ir::native_callable_descriptors(natives);
     let mut managed_layouts = natives
         .iter()
         .flat_map(|native| native.managed_layouts.iter())

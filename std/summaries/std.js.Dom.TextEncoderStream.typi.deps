@@ -1,8 +1,8 @@
 module=std.js.Dom.TextEncoderStream
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4894614509366297376
-interface_hash=10167440828688235779
-interface_doc_hash=10167440828688235779
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=18324201927680122520
+interface_hash=9947205062805303017
+interface_doc_hash=9947205062805303017
 deps=0

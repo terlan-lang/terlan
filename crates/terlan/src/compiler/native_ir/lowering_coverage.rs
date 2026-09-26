@@ -119,9 +119,7 @@ pub(super) fn pattern_coverage(pattern: &CorePattern) -> LoweringCoverage {
         CorePattern::Int(_) => LoweringCoverage::rewritten("Pattern.Int"),
         CorePattern::Float(_) => LoweringCoverage::rewritten("Pattern.Float"),
         CorePattern::String(_) => LoweringCoverage::native("Pattern.String"),
-        CorePattern::StringPattern(_) => {
-            LoweringCoverage::rejected("Pattern.StringPattern", "native_ir.pattern.string_segments")
-        }
+        CorePattern::StringPattern(_) => LoweringCoverage::native("Pattern.StringPattern"),
         CorePattern::Atom(_) => LoweringCoverage::rewritten("Pattern.Atom"),
         CorePattern::Tuple(_) => LoweringCoverage::native("Pattern.Tuple"),
         CorePattern::Alias { .. } => LoweringCoverage::rewritten("Pattern.Alias"),
@@ -300,6 +298,8 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::MemoryLayoutOf(_) => {
             LoweringCoverage::native("Intrinsic.memory.layout_of")
         }
+        CoreIntrinsicId::ErasedValueIs(_) => LoweringCoverage::native("Intrinsic.erased.is"),
+        CoreIntrinsicId::VmEffectFail => LoweringCoverage::native("Intrinsic.vm.effect.fail"),
         CoreIntrinsicId::MemoryShallowSize(_) => {
             LoweringCoverage::native("Intrinsic.memory.shallow_size")
         }
@@ -372,7 +372,11 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatPi => LoweringCoverage::native("Intrinsic.core.float.pi"),
         P::FloatTau => LoweringCoverage::native("Intrinsic.core.float.tau"),
         P::BoolToString => LoweringCoverage::native("Intrinsic.core.bool.to_string"),
+        P::BoolEqual => LoweringCoverage::native("Intrinsic.core.bool.equal"),
+        P::BoolCompare => LoweringCoverage::native("Intrinsic.core.bool.compare"),
+        P::BoolFromString => LoweringCoverage::native("Intrinsic.core.bool.from_string"),
         P::ValueToString => LoweringCoverage::native("Intrinsic.core.value.to_string"),
+        P::AtomToString => LoweringCoverage::native("Intrinsic.core.atom.to_string"),
         P::IntToString => LoweringCoverage::native("Intrinsic.core.int.to_string"),
         P::IntFromString => LoweringCoverage::native("Intrinsic.core.int.from_string"),
         P::IntToStringBase => LoweringCoverage::native("Intrinsic.core.int.to_string_base"),
@@ -435,13 +439,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::VmBitStringToIntBe
         | P::VmBitStringToUintLe
         | P::VmBitStringToIntLe => LoweringCoverage::native("Intrinsic.vm.bitstring"),
-        P::TypeOf
-        | P::IsType
-        | P::BoolEqual
-        | P::BoolCompare
-        | P::BoolFromString
-        | P::AtomToString
-        | P::StringEqual
+        P::StringEqual
         | P::StringCompare
         | P::StringToString
         | P::StringFromString
@@ -466,7 +464,10 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::StringTrimEnd
         | P::StringReplace
         | P::StringSplit
-        | P::StringSplitOnce
+        | P::StringSplitOnce => LoweringCoverage::native("Intrinsic.core.string"),
+        P::VmEffectRun => LoweringCoverage::rewritten("Intrinsic.vm.effect.run"),
+        P::TypeOf
+        | P::IsType
         | P::CryptoSha256
         | P::ListConcat
         | P::ListSubtract
@@ -487,7 +488,6 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::TaskDone
         | P::TaskFailed
         | P::TaskResult
-        | P::VmEffectRun
         | P::VmNativeBridgeStart
         | P::VmNativeBridgeCall
         | P::VmNativeBridgeDispose

@@ -2,6 +2,21 @@
 
 use crate::terlan_typeck::{CoreExpr, CoreTupleTypeElem, CoreType};
 
+/// Attaches declared results before transparent aliases erase constructor identity.
+pub(in crate::compiler::native_ir) fn annotate_function_result_constructors(
+    core: &mut crate::terlan_typeck::CoreModule,
+) {
+    for function in &mut core.functions {
+        let Some(expected) = function.core_return_type.as_ref() else {
+            continue;
+        };
+        for clause in &mut function.clauses {
+            if let Some(body) = clause.body.core_expr.as_mut() {
+                annotate_expected_structural_constructors(body, expected);
+            }
+        }
+    }
+}
 pub(crate) fn annotate_expected_structural_constructors(expr: &mut CoreExpr, expected: &CoreType) {
     if let CoreExpr::Cast {
         expr: constructor,

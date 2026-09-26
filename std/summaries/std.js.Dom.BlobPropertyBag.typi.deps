@@ -1,8 +1,8 @@
 module=std.js.Dom.BlobPropertyBag
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=549470096201311248
-interface_hash=17746503405778696470
-interface_doc_hash=17746503405778696470
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=5032936634842760536
+interface_hash=2114775208077167940
+interface_doc_hash=2114775208077167940
 deps=0

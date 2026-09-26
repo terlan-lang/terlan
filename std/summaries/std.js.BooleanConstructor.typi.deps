@@ -1,8 +1,8 @@
 module=std.js.BooleanConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=191494890110902077
-interface_hash=2881372549676571926
-interface_doc_hash=2881372549676571926
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12995014818777765149
+interface_hash=18057181917506114913
+interface_doc_hash=18057181917506114913
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoDecoderEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9792169895038268589
-interface_hash=2461672531860706780
-interface_doc_hash=2461672531860706780
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12506889898737902866
+interface_hash=8580731766976068414
+interface_doc_hash=8580731766976068414
 deps=0

@@ -7,6 +7,13 @@ families while keeping every broader obligation explicit in the gap manifest.
 
 The gate is `make lean-proof-track-check`.
 
+Focused consumers use `target/debug/terlan-quality lean-proof-replay` followed by
+one or more exact `proofs/lean/*.lean` paths. This shares the track's isolated
+replicas and Linux checkpoints; it never overwrites complete track reports with
+a partial selection. Smoke and semantic-kernel checks batch their proof paths,
+then run their distinct runtime oracles. Rust oracles must execute one passing,
+non-ignored test: a successful process with zero matching tests is not evidence.
+
 ## Inventories
 
 - `docs/compiler/proof_track/lean_proof_inventory.tsv` classifies every Lean
@@ -71,6 +78,11 @@ The gate is `make lean-proof-track-check`.
   time, uses nondecreasing ISO dates and SHA-256 evidence, and must end at the
   status in the live gap manifest. Non-closed histories must end with the
   current blocker hash.
+- A blocked obligation may append a `blocked -> blocked` review without
+  rewriting its earlier history. It must have a later date, changed evidence,
+  and a non-empty `Review:` rationale; the latest review date must match the
+  blocker update date. Review is not remediation or closure and does not extend
+  an exception's expiry or the 30-day review policy.
 - A released exception uses `exception:<lane>@YYYY-MM-DD`, must name a fixed
   proof lane, must be approved by the remediation owner in the TOML record,
   and fails after its expiry while the gap is unresolved. The blocker update date
@@ -82,6 +94,9 @@ The gate is `make lean-proof-track-check`.
   without renewing the hash therefore fails the gate.
 - `lean-proof-gate.json` records maximum unresolved `gap_staleness_days`, aggregate
   `gap_classification_confidence`, unresolved-open count, and per-gap metrics.
+- `lean-proof-runtime-policy.json` separately records validated runner
+  configuration. Its limits are policy, not measured CPU, memory, or I/O usage;
+  running that check does not replace completed proof verdicts.
 - A proof gap planned gate must be an existing `*-check` Make target, and the
   owner must be one of the accepted proof-track owner groups.
 - `make lean-proof-track-gap-hygiene-check` rejects exact feature overlap
@@ -117,5 +132,5 @@ hygiene gate requires exactly one entry for every `closed` gap, verifies the
 digest against the current proof artifact inventory, and rejects entries for
 gaps that are not closed.
 
-- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:b1af86ef1a14129efe0e7497472d71ee23fb68fb356539de82cfb2c4335e2789`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary.
+- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:d5ef45a6ad1f4c5c40641f947a4e37aad5f4e573fd411e71ab0f443d17b31b18`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary. The September 25 review replayed the current artifact and synchronized this closure reference with the existing proof inventory.
 - Proof-gap closure: `native-boundary contracts` restored by `sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2`: executable theorems cover typed callsites, handle ownership and linearity, async policy, side-effect denial, and fail-closed usage, with row-level generated-manifest binding and VM runtime oracles.

@@ -18,6 +18,82 @@ fn native_handle_types_admit_only_direct_std_resources() {
 }
 
 #[test]
+fn direct_random_preserves_generator_tuples_and_typed_errors() {
+    let mut store = ResourceStore::new();
+    let invoke = |store: &mut ResourceStore, method: &str, args| {
+        let operation = format!("std.random.random.{method}");
+        assert!(supports(&operation));
+        call(
+            store,
+            OWNER_PROCESS_ID,
+            &PureNativeCapabilityRequest {
+                capability: "package-native".into(),
+                operation,
+                arguments: vec![],
+                package_arguments: Some(args),
+                result_type: TvmBoundaryType::Unit,
+            },
+        )
+        .unwrap()
+    };
+    let ReplValue::Record { name, fields } = invoke(&mut store, "seed", vec![ReplValue::Int(42)])
+    else {
+        panic!("typed result")
+    };
+    assert_eq!(name, "Ok");
+    let generator = fields[0].1.clone();
+    let first = invoke(&mut store, "int", vec![generator.clone()]);
+    let repeated = invoke(&mut store, "int", vec![generator.clone()]);
+    let (ReplValue::Tuple(first), ReplValue::Tuple(repeated)) = (first, repeated) else {
+        panic!("tuple draws")
+    };
+    assert_eq!(first[1], repeated[1]);
+    assert!(matches!(&first[0], ReplValue::Record { name, .. } if name == "Generator"));
+    let ReplValue::Record { name, fields } = invoke(
+        &mut store,
+        "bounded_int",
+        vec![generator, ReplValue::Int(1), ReplValue::Int(1)],
+    ) else {
+        panic!("typed error")
+    };
+    assert_eq!(name, "Err");
+    let ReplValue::Record { name, fields } = &fields[0].1 else {
+        panic!("random error")
+    };
+    assert_eq!(name, "RandomError");
+    assert!(fields.contains(&(
+        "code".into(),
+        ReplValue::Atom("random.invalid_bounds".into())
+    )));
+    assert!(!supports("std.random.random.unknown"));
+}
+
+/// Pure Rust MD5 runs through the same owner-local dispatcher as other safe codecs.
+#[test]
+fn call_supports_direct_md5_without_a_std_package_helper() {
+    let operation = "std.encoding.md5.digest";
+    assert!(supports(operation));
+    assert!(!supports("std.encoding.md5.unknown"));
+    assert_eq!(typed_result_error_name(operation), None);
+    let value = call(
+        &mut ResourceStore::new(),
+        OWNER_PROCESS_ID,
+        &PureNativeCapabilityRequest {
+            capability: "package-native".to_string(),
+            operation: operation.to_string(),
+            arguments: Vec::new(),
+            package_arguments: Some(vec![ReplValue::String("abc".to_string())]),
+            result_type: TvmBoundaryType::String,
+        },
+    )
+    .expect("MD5 digest succeeded");
+    assert_eq!(
+        value,
+        ReplValue::String("900150983cd24fb0d6963f7d28e17f72".to_string())
+    );
+}
+
+#[test]
 fn supports_http_and_uri_operations() {
     assert!(supports("std.encoding.base64.encode"));
     assert!(supports("std.encoding.base64.decode"));

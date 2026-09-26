@@ -37,6 +37,8 @@ mod normalization;
 mod overloads;
 mod record_forwarders;
 mod remote_calls;
+mod source_constructors;
+mod struct_instances;
 mod structural_patterns;
 mod transparent_aliases;
 
@@ -48,7 +50,7 @@ use native_packages::{
     native_package_aliases, native_transparent_record_layouts,
 };
 use normalization::{normalize_dynamic_callable_aliases, normalize_static_callables};
-use remote_calls::normalize_remote_calls;
+use remote_calls::{normalize_remote_calls, RemoteCallPhase};
 
 #[derive(Clone, Copy)]
 struct Candidate<'a> {
@@ -60,6 +62,17 @@ pub(super) fn normalize_application_remote_calls(
     cores: &mut [CoreModule],
     preserve_receivers: bool,
 ) {
+    normalize_application_calls(
+        cores,
+        if preserve_receivers {
+            RemoteCallPhase::Early
+        } else {
+            RemoteCallPhase::Final
+        },
+    );
+}
+
+fn normalize_application_calls(cores: &mut [CoreModule], phase: RemoteCallPhase) {
     let mut functions = HashMap::<(String, usize), Option<String>>::new();
     for core in cores.iter() {
         for function in &core.functions {
@@ -103,7 +116,7 @@ pub(super) fn normalize_application_remote_calls(
         })
         .collect::<Vec<_>>();
     for (core, visible) in cores.iter_mut().zip(&visible_functions) {
-        normalize_remote_calls(core, preserve_receivers, visible);
+        normalize_remote_calls(core, phase, visible);
     }
 }
 
@@ -120,25 +133,32 @@ impl NativeModule {
                 &duplicate[0].module,
             ));
         }
+        overloads::resolve_selected_imports(&mut normalized_cores)?;
         super::application_admission::reject_ambiguous_source_import_calls(&normalized_cores)?;
+        // Expose constructor-chain bases before resolving executable bodies or
+        // expanding transparent aliases, just as for direct constructor calls.
+        normalized_cores
+            .iter_mut()
+            .for_each(super::constructor_chain::lower_constructor_chains);
+        source_constructors::lower(&mut normalized_cores)?;
+        for core in &mut normalized_cores {
+            for function in &mut core.functions {
+                function.source = Some(function.source_declaration(&core.module));
+            }
+        }
         super::open_std_pruning::prune_compile_time_router_builders(&mut normalized_cores);
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        // Resolve source receiver names before overloads rename their declarations.
+        // Otherwise a method sharing a name with a free function loses its target.
+        normalize_application_remote_calls(&mut normalized_cores, true);
+        mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
         overloads::resolve_typed_overloads(&mut normalized_cores)?;
         let native_aliases = native_package_aliases(&normalized_cores);
         for core in &mut normalized_cores {
             lower_compiler_native_declarations(core)?;
         }
         canonicalize_native_package_types(&mut normalized_cores, &native_aliases)?;
-        normalize_application_remote_calls(&mut normalized_cores, true);
-        mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
-        // Constructor-chain bases can themselves be imported transparent
-        // aliases. Expose them as ordinary constructor calls before alias
-        // expansion so the same structural rewrite handles both direct calls
-        // and chain bases.
-        normalized_cores
-            .iter_mut()
-            .for_each(super::constructor_chain::lower_constructor_chains);
         normalized_cores.iter_mut().for_each(
             super::collection_intrinsic_specialization::annotate_function_result_constructors,
         );
@@ -153,7 +173,11 @@ impl NativeModule {
             super::template_values::lower_template_values(core)?;
             super::http_values::lower_http_values(core)?;
         }
-        normalize_application_remote_calls(&mut normalized_cores, false);
+        // Generated deferred collectors introduce checked Effect applications.
+        // Resolve those new witnesses before result-only generic inference;
+        // otherwise a no-argument producer can be specialized with an open T.
+        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        normalize_application_calls(&mut normalized_cores, RemoteCallPhase::BeforeSpecialization);
         // Monomorphization must observe typed constructor patterns before
         // scalar case lowering erases their payload types into managed words.
         super::generic_specialization::specialize_application_generics_with_budget(
@@ -165,6 +189,12 @@ impl NativeModule {
         // the idempotent resolver again so every generated mailbox boundary
         // and continuation uses the same concrete structural identity.
         transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
+        // Concrete producer signatures are available only after specialization;
+        // refresh dependent run results before choosing an Effect runner ABI.
+        super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
+            &mut normalized_cores,
+        );
+        super::effect_execution::lower(&mut normalized_cores, &mut specialization_budget)?;
         for core in &mut normalized_cores {
             super::higher_order_specialization::specialize_higher_order_helpers_with_budget(
                 core,
@@ -178,6 +208,11 @@ impl NativeModule {
         super::nested_closure_lifting::lift_nested_closure_arguments(&mut normalized_cores)?;
         list_builder_recursion::normalize_recursive_list_builders(&mut normalized_cores);
         record_forwarders::inline_record_forwarders(&mut normalized_cores);
+        // Specialization can introduce concrete trait adapters that are not
+        // reachable from any executable root. Remove those before requiring
+        // physical layouts for their signatures; reachable unsupported values
+        // must still fail normal native admission.
+        super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         structural_patterns::scalar_replace(&mut normalized_cores)?;
         for core in &mut normalized_cores {
             super::case_lowering::lower_scalar_cases(core)?;
@@ -191,6 +226,7 @@ impl NativeModule {
         super::collection_intrinsic_specialization::specialize_collection_intrinsic_results(
             &mut normalized_cores,
         );
+        super::task_values::lower(&mut normalized_cores)?;
         // Generic specialization can make collection receiver types concrete
         // only after the first target-owned normalization pass. Re-run the
         // idempotent HTTP/template lowerings so newly specialized Map/Option
@@ -215,6 +251,11 @@ impl NativeModule {
         super::short_circuit_normalization::right_associate_short_circuit_chains(
             &mut normalized_cores,
         );
+        super::dynamic_return::close_application_returns(&mut normalized_cores);
+        // Late receiver specialization and contextual constructor annotations
+        // introduce fresh Option/collection aliases after generic expansion.
+        // Close those generated types before admitting managed image layouts.
+        transparent_aliases::expand_transparent_aliases(&mut normalized_cores);
         super::open_std_pruning::prune_unreachable_open_std_functions(&mut normalized_cores);
         for core in &mut normalized_cores {
             // Specialization may clone a typed constructor-chain expression
@@ -224,6 +265,7 @@ impl NativeModule {
             super::constructor_chain::lower_constructor_chains(core);
             core.termination = crate::terlan_typeck::analyze_core_termination(core);
         }
+        struct_instances::retain(&mut normalized_cores, &mut specialization_budget)?;
         let ordered_cores = normalized_cores.iter().collect::<Vec<_>>();
         let constructor_modules = ordered_cores
             .iter()

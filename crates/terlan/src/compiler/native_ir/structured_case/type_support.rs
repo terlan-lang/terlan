@@ -8,13 +8,51 @@ use crate::terlan_typeck::{
 
 use super::super::{native_type, NativeExpr, NativeType};
 
-pub(super) fn native_core_type(ty: &CoreType) -> Result<NativeType, String> {
-    native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
+/// Shared grouped-let fallbacks span different closed unions and scalar guards.
+/// Disjoint arms must not project fields or lower unreachable bindings. Unknown
+/// and nominal types stay conservative: a missing layout is not disjointness.
+pub(super) fn type_excludes_pattern(pattern: &CorePattern, core_type: Option<&CoreType>) -> bool {
+    if let CorePattern::Alias { pattern, .. } = pattern {
+        return type_excludes_pattern(pattern, core_type);
+    }
+    match (pattern, core_type) {
+        (_, Some(CoreType::Union(variants))) => variants
+            .iter()
+            .all(|ty| type_excludes_pattern(pattern, Some(ty))),
+        (CorePattern::Atom(expected), Some(CoreType::AtomLiteral(actual))) => expected != actual,
+        (CorePattern::Atom(_), Some(CoreType::Tuple(_))) => true,
+        (CorePattern::Tuple(patterns), Some(CoreType::Tuple(elements))) => {
+            patterns.len() != elements.len()
+                || patterns.iter().zip(elements).any(|(pattern, element)| {
+                    type_excludes_pattern(pattern, Some(tuple_element_type(element)))
+                })
+        }
+        (
+            CorePattern::Tuple(_),
+            Some(
+                CoreType::Bool
+                | CoreType::Int
+                | CoreType::Float
+                | CoreType::Number
+                | CoreType::String
+                | CoreType::Binary
+                | CoreType::Atom
+                | CoreType::AtomLiteral(_),
+            ),
+        ) => true,
+        _ => false,
+    }
+}
+
+pub(super) fn native_core_type(
+    ty: &CoreType,
+) -> Result<NativeType, crate::compiler::native_ir::NativeIrError> {
+    Ok(native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
         format!(
             "error[native_ir.structured_pattern_type]: unsupported `{}`",
             ty.contract_text()
         )
-    })
+    })?)
 }
 
 pub(super) fn core_expr_type(
@@ -27,10 +65,11 @@ pub(super) fn core_expr_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(_) => Some(CoreType::Atom),
+        CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
+        CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
         CoreExpr::Var(name) => types.get(name).cloned(),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).cloned()
         }
         CoreExpr::FunctionCall { callee, args } => {
@@ -71,13 +110,9 @@ pub(super) fn core_expr_type(
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
-        CoreExpr::List(items) if !items.is_empty() => {
-            let first = core_expr_type(&items[0], types, functions)?;
-            items[1..]
-                .iter()
-                .all(|item| core_expr_type(item, types, functions) == Some(first.clone()))
-                .then(|| CoreType::List(Box::new(first)))
-        }
+        CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
+            core_expr_type(item, types, functions)
+        }),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base = core_expr_type(base, types, functions)?;
             let CoreType::Struct { fields, .. } = base else {
@@ -157,7 +192,9 @@ pub(super) fn core_expr_type(
                 let CorePattern::Var(name) = &binding.pattern else {
                     return None;
                 };
-                if let Some(ty) = core_expr_type(&binding.value, &lexical, functions) {
+                let inferred = core_expr_type(&binding.value, &lexical, functions);
+                lexical.remove(name);
+                if let Some(ty) = inferred {
                     lexical.insert(name.clone(), ty);
                 }
             }
@@ -171,7 +208,7 @@ pub(super) fn core_expr_type(
         }
         _ => None,
     };
-    inferred.map(transparent_message_payload)
+    inferred.map(normalize_inferred_type)
 }
 
 /// Recovers a case result while adding the variables introduced by each
@@ -330,8 +367,33 @@ fn control_result_type<'a>(
 
 /// Reconstructs a checked tagged union whose transparent constructors were
 /// lowered to distinct tuple or atom variants in CoreIR.
-fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> {
+/// Joins compatible values while retaining closed constructor variants and labels.
+pub(in crate::compiler::native_ir) fn merge_control_types(
+    expected: CoreType,
+    found: CoreType,
+) -> Option<CoreType> {
     if expected == found {
+        return Some(expected);
+    }
+    if expected == CoreType::Never {
+        return Some(found);
+    }
+    if found == CoreType::Never {
+        return Some(expected);
+    }
+    if let (CoreType::List(left), CoreType::List(right)) = (&expected, &found) {
+        return merge_control_types((**left).clone(), (**right).clone())
+            .map(|element| CoreType::List(Box::new(element)));
+    }
+    // Constructor expressions recover positional payloads, while checked
+    // signatures retain payload labels. Prefer the covering signature's
+    // layout instead of manufacturing duplicate variants with different IDs.
+    if union_covers(&found, &expected)
+        && (!union_covers(&expected, &found) || payload_labels(&found) > payload_labels(&expected))
+    {
+        return Some(found);
+    }
+    if union_covers(&expected, &found) {
         return Some(expected);
     }
     let mut variants = match expected {
@@ -349,7 +411,57 @@ fn merge_control_types(expected: CoreType, found: CoreType) -> Option<CoreType> 
             variants.push(variant);
         }
     }
-    Some(CoreType::Union(variants))
+    Some(CoreType::Union(canonical_atom_union(variants)))
+}
+
+/// Gives equivalent closed atom domains one order, without reordering payload layouts.
+pub(in crate::compiler::native_ir) fn canonical_atom_union(
+    mut variants: Vec<CoreType>,
+) -> Vec<CoreType> {
+    if variants
+        .iter()
+        .all(|ty| matches!(ty, CoreType::AtomLiteral(_)))
+    {
+        variants.sort_by_cached_key(CoreType::contract_text);
+        variants.dedup();
+    }
+    variants
+}
+
+fn union_covers(cover: &CoreType, candidate: &CoreType) -> bool {
+    let CoreType::Union(variants) = cover else {
+        return false;
+    };
+    if variants.is_empty() || !variants.iter().all(is_tagged_variant) {
+        return false;
+    }
+    let covered = |candidate: &CoreType| {
+        variants.iter().any(|variant| match (variant, candidate) {
+            (CoreType::Tuple(left), CoreType::Tuple(right)) => {
+                left.len() == right.len()
+                    && left
+                        .iter()
+                        .zip(right)
+                        .all(|(left, right)| tuple_element_type(left) == tuple_element_type(right))
+            }
+            _ => variant == candidate,
+        })
+    };
+    match candidate {
+        CoreType::Union(candidates) => candidates.iter().all(covered),
+        candidate => covered(candidate),
+    }
+}
+
+fn payload_labels(ty: &CoreType) -> usize {
+    match ty {
+        CoreType::Union(variants) => variants.iter().map(payload_labels).sum(),
+        CoreType::Tuple(elements) => elements
+            .iter()
+            .filter(|element| matches!(element, CoreTupleTypeElem::Field { .. }))
+            .count(),
+        _ => 0,
+    }
 }
 
 /// Reports whether a type is one transparent constructor variant.
@@ -414,12 +526,21 @@ fn tagged_some_tuple(ty: &CoreType) -> bool {
     )
 }
 
-fn transparent_message_payload(ty: CoreType) -> CoreType {
-    match ty {
+fn normalize_inferred_type(ty: CoreType) -> CoreType {
+    let ty = match ty {
         CoreType::Apply {
             constructor,
             mut args,
         } if constructor.rsplit('.').next() == Some("Message") && args.len() == 1 => args.remove(0),
+        other => other,
+    };
+    // Source Unit expressions retain their native sentinel spelling, while
+    // transparent aliases and intrinsic signatures carry the lowercase atom.
+    // Both denote one zero-width result, never two variants of an atom union.
+    match ty {
+        CoreType::AtomLiteral(name) if matches!(name.as_str(), "Unit" | "unit") => {
+            CoreType::Named("Unit".into())
+        }
         other => other,
     }
 }
@@ -430,7 +551,9 @@ pub(super) fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
     }
 }
 
-pub(super) fn list_element_type(core_type: Option<&CoreType>) -> Result<&CoreType, String> {
+pub(super) fn list_element_type(
+    core_type: Option<&CoreType>,
+) -> Result<&CoreType, crate::compiler::native_ir::NativeIrError> {
     match list_variant_type(core_type)? {
         CoreType::List(element) => Ok(element),
         CoreType::Apply { args, .. } => Ok(&args[0]),
@@ -439,7 +562,9 @@ pub(super) fn list_element_type(core_type: Option<&CoreType>) -> Result<&CoreTyp
 }
 
 /// Selects the unique concrete list member of a structural union.
-pub(super) fn list_variant_type(core_type: Option<&CoreType>) -> Result<&CoreType, String> {
+pub(super) fn list_variant_type(
+    core_type: Option<&CoreType>,
+) -> Result<&CoreType, crate::compiler::native_ir::NativeIrError> {
     match core_type {
         Some(CoreType::List(_)) => Ok(core_type.expect("matched concrete list type")),
         Some(CoreType::Apply { constructor, args })
@@ -456,11 +581,9 @@ pub(super) fn list_variant_type(core_type: Option<&CoreType>) -> Result<&CoreTyp
                             if constructor.rsplit('.').next() == Some("List") && args.len() == 1
                     )
             });
-            let list = lists.next();
-            if list.is_some() && lists.next().is_none() {
-                Ok(list.expect("unique list variant checked"))
-            } else {
-                Err("error[native_ir.list_pattern_type]: structural union must contain exactly one List variant".into())
+            match (lists.next(), lists.next()) {
+                (Some(list), None) => Ok(list),
+                _ => Err("error[native_ir.list_pattern_type]: structural union must contain exactly one List variant".into()),
             }
         }
         _ => Err("error[native_ir.list_pattern_type]: concrete List type is unavailable".into()),
@@ -494,7 +617,9 @@ pub(super) fn option_element_type(core_type: Option<&CoreType>) -> Option<&CoreT
     }
 }
 
-pub(super) fn map_types(core_type: Option<&CoreType>) -> Result<(&CoreType, &CoreType), String> {
+pub(super) fn map_types(
+    core_type: Option<&CoreType>,
+) -> Result<(&CoreType, &CoreType), crate::compiler::native_ir::NativeIrError> {
     match core_type {
         Some(CoreType::Apply { constructor, args })
             if constructor.rsplit('.').next() == Some("Map") && args.len() == 2 =>
@@ -518,7 +643,10 @@ pub(super) fn struct_field_type<'a>(
         .map(|field| &field.ty)
 }
 
-pub(super) fn map_key(key: &str, ty: &CoreType) -> Result<NativeExpr, String> {
+pub(super) fn map_key(
+    key: &str,
+    ty: &CoreType,
+) -> Result<NativeExpr, crate::compiler::native_ir::NativeIrError> {
     match ty {
         CoreType::String => {
             let encoded = crate::runtime::native_image::managed::encode_string_literal(key)
@@ -527,13 +655,14 @@ pub(super) fn map_key(key: &str, ty: &CoreType) -> Result<NativeExpr, String> {
                 encoded: encoded.into(),
             })
         }
-        CoreType::Int => key
+        CoreType::Int => Ok(key
             .parse::<i64>()
             .map(NativeExpr::Int)
-            .map_err(|error| format!("error[native_ir.map_pattern_key]: {error}")),
-        _ => Err(format!(
+            .map_err(|error| format!("error[native_ir.map_pattern_key]: {error}"))?),
+        _ => Err((format!(
             "error[native_ir.map_pattern_key]: unsupported key type `{}`",
             ty.contract_text()
-        )),
+        ))
+        .into()),
     }
 }

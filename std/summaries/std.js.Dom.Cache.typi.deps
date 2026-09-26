@@ -1,8 +1,8 @@
 module=std.js.Dom.Cache
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5343303138677965216
-interface_hash=9435631588238792419
-interface_doc_hash=9435631588238792419
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11054943269956622896
+interface_hash=1194175435071147631
+interface_doc_hash=1194175435071147631
 deps=0

@@ -148,14 +148,11 @@ pub(super) fn lower_owned_expr_with_yields(
             },
         )
     };
-    if let CoreExpr::Call { function, args } = expr {
+    if let CoreExpr::Call { function, args, .. } = expr {
         let identity = (function.clone(), args.len());
         if suspending_functions.contains(&identity)
             && completion.is_none()
-            && args.iter().all(|argument| {
-                !expr_calls_suspending(argument, suspending_functions)
-                    && !contains_process_yield(argument)
-            })
+            && super::application_calls::arguments_are_non_suspending(args, suspending_functions)
         {
             let function = functions.get(&identity).copied().ok_or_else(|| {
                 format!(
@@ -289,6 +286,14 @@ pub(super) fn lower_owned_expr_with_yields(
     if let CoreExpr::Let { bindings, body } = expr {
         if super::contains_process_yield(body)
             || super::expr_calls_suspending(body, suspending_functions)
+            // A resumed lexical prefix can be synchronous while its terminal
+            // value still needs the enclosing managed representation. Lower
+            // that terminal value with this scope instead of erasing its
+            // expected type inside the untyped lexical-expression route.
+            || matches!(
+                completion.map_or(return_type, |target| target.result_type),
+                NativeType::ManagedRef(_)
+            )
         {
             let mut entry_names = param_names.to_vec();
             let mut entry_vars = params.clone();

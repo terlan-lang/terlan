@@ -800,7 +800,6 @@ fn summarize_phase(mut values: Vec<u128>) -> PhaseLatency {
     }
 }
 
-
 fn execute_sample(sample: usize, event_count: usize) -> Result<(), String> {
     let actor_id = VmPersistentActorId::new(format!("benchmark-{sample}"))?;
     let schema = VmPersistentActorSchema::new("benchmark-state", 1)?;
@@ -865,7 +864,6 @@ fn summarize(durations: &[u128], events_per_sample: usize) -> PersistentActorRun
         throughput_events_per_second: (operation_count as u128 * 1_000_000_000) / total_ns,
     }
 }
-
 
 fn env_usize(name: &str, default: usize) -> Result<usize, String> {
     let Some(value) = env::var_os(name) else {

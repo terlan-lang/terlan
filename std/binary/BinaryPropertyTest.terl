@@ -174,7 +174,11 @@ pub generated_protocol_aliases_reject_direct_name_collisions(): Bool ->
 pub generated_protocol_alias_collision_is_rejected(alias_name: String): Bool ->
     let frame = protocol_shape("frame", BigEndian, List(protocol_field("kind", make_uint(8))), false);
     let frame_v2 = protocol_shape("frame_v2", BigEndian, List(protocol_field("kind", make_uint(16))), false);
-    case protocol_shape_set("frames", List(frame, frame_v2), List(protocol_shape_alias(alias_name, "frame"))) {
+    case protocol_shape_set(
+        "frames",
+        List(frame, frame_v2),
+        List(protocol_shape_alias(alias_name, "frame")),
+    ) {
         Err(reason) -> assert_equal(DuplicateShape, reason);
         Ok(_set) -> false
     }.

@@ -482,6 +482,28 @@ ast_parse_diagnostics(report: Json): List[String] ->
         true -> ["Rust boundary AST report contains parse failures"]
     }.
 
+/**
+ * Reviewed on 2026-09-24: local durability adds terlan-storage and Linux
+ * rustix filesystem admission to the former 56-dependency envelope.
+ * This is a fixed limit, not an automatically growing baseline.
+ */
+@pure
+maximum_direct_dependencies(): Int -> 58.
+
+@pure
+dependency_budget_diagnostics(count: Int, previous: List[String]): List[String] ->
+    if {
+        count <= maximum_direct_dependencies() -> previous;
+        true -> [String.concat(
+    [
+        "main-package non-optional normal dependency count ",
+        Int.to_string(count),
+        " exceeds ",
+        Int.to_string(maximum_direct_dependencies()),
+    ],
+) | previous]
+    }.
+
 @pure
 budget_diagnostics(
     direct_dependencies: Int,
@@ -500,17 +522,7 @@ budget_diagnostics(
             workspace_cycle_count == 0 -> diagnostics;
             true -> ["workspace dependency graph contains a cycle" | diagnostics]
         };
-    let dependencies =
-        if {
-            direct_dependencies <= 56 -> workspace;
-            true -> [String.concat(
-    [
-        "main-package non-optional normal dependency count ",
-        Int.to_string(direct_dependencies),
-        " exceeds 56",
-    ],
-) | workspace]
-        };
+    let dependencies = dependency_budget_diagnostics(direct_dependencies, workspace);
     let duplicates =
         if {
             duplicate_count <= 34 -> dependencies;
@@ -584,8 +596,9 @@ build_report(
     let fanout_policy =
         String.concat(
             [
-                "{\"maximum_non_optional_normal_dependencies\":56,",
-                "\"maximum_resolved_duplicate_families\":34,",
+                "{\"maximum_non_optional_normal_dependencies\":",
+                Int.to_string(maximum_direct_dependencies()),
+                ",\"maximum_resolved_duplicate_families\":34,",
                 "\"milestone\":\"0.0.9\",",
                 "\"non_optional_normal_dependencies\":",
                 Int.to_string(DependencyImpactCargo.analysis_direct_dependency_count(cargo)),
@@ -840,7 +853,10 @@ pub record(root: String): Bool ->
     }.
 
 pub self_test(): Bool ->
-    CompilationInputs.self_test()
+    dependency_budget_diagnostics(56, []) == []
+        and dependency_budget_diagnostics(58, ["existing diagnostic"]) == ["existing diagnostic"]
+        and dependency_budget_diagnostics(59, ["existing diagnostic"]) == ["main-package non-optional normal dependency count 59 exceeds 58", "existing diagnostic"]
+        and CompilationInputs.self_test()
         and DependencyClassifications.self_test()
         and DependencyImpactCargo.self_test()
         and DependencyImpactGraph.self_test()

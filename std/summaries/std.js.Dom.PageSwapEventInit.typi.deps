@@ -1,8 +1,8 @@
 module=std.js.Dom.PageSwapEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12913606919220214885
-interface_hash=1317325985973944438
-interface_doc_hash=1317325985973944438
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13526174954209410099
+interface_hash=7694573361638292949
+interface_doc_hash=7694573361638292949
 deps=0

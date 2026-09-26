@@ -1,8 +1,8 @@
 module=std.js.Dom.ImageCapture
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9523070855053051336
-interface_hash=12811029946791513730
-interface_doc_hash=12811029946791513730
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2018259614176723916
+interface_hash=16696032364574373540
+interface_doc_hash=16696032364574373540
 deps=0

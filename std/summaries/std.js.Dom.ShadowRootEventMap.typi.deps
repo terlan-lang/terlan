@@ -1,8 +1,8 @@
 module=std.js.Dom.ShadowRootEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10512090903472644136
-interface_hash=14807046042535723531
-interface_doc_hash=14807046042535723531
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17334969697957365913
+interface_hash=1626316894747607788
+interface_doc_hash=1626316894747607788
 deps=0

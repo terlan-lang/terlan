@@ -1,0 +1,203 @@
+/**
+ * Real filesystem transitions exercise generation replacement and recovery.
+ */
+module release_promotion.OwnerDirectoryTest.
+
+import release_promotion.{OwnerDirectory, OwnerStorage}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+
+import type std.data.Json.
+
+staged(): String -> "target/quality/preparation/candidate/directory.work/output-1.json".
+
+destination(): String -> "target/quality/proof-artifacts/native_boundaries".
+
+write(root: String, path: String, source: String): Bool ->
+    File.write_text(OwnerStorage.child(root, path), source) == Ok(Unit).
+
+move(root: String, source: String, target: String): Bool ->
+    OwnerStorage.command(
+        root,
+        "/usr/bin/mv",
+        ["-T", "--", OwnerStorage.child(root, source), OwnerStorage.child(root, target)],
+    ).
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_stage) <- Directory.create_all(OwnerStorage.child(root, staged()));
+        Ok(_final) <- Directory.create_all(OwnerStorage.child(root, destination()))
+    } else {
+        _ -> false
+    };
+    write(root, String.append(staged(), "/current.json"), "new")
+        and write(root, String.append(destination(), "/obsolete.json"), "old").
+
+advance(root: String, mode: String, expected: Json): Bool ->
+    case mode {
+        "prepared" -> true;
+        "old-moved" -> move(root, destination(), OwnerDirectory.backup(staged()));
+        "new-moved" ->
+            move(root, destination(), OwnerDirectory.backup(staged()))
+                and move(root, staged(), destination());
+        "wrong-final" ->
+            move(root, destination(), OwnerDirectory.backup(staged()))
+                and move(root, staged(), destination())
+                and write(root, String.append(destination(), "/current.json"), "corrupt");
+        "wrong-path" ->
+            not OwnerDirectory.publish(root, staged(), "target/quality/other", expected);
+        "unsafe-path" ->
+            not OwnerDirectory.publish(root, staged(), "target/quality/../outside", expected);
+        "parent-symlink" ->
+            move(root, "target/quality/proof-artifacts", "target/quality/proof-artifacts-saved")
+                and Directory.create_symbolic_link(
+    OwnerStorage.child(root, "target/quality/proof-artifacts-saved"),
+    OwnerStorage.child(root, "target/quality/proof-artifacts"),
+) == Ok(Unit);
+        _ -> corrupt_stage(root, mode)
+    }.
+
+corrupt_stage(root: String, mode: String): Bool ->
+    case mode {
+        "corrupt-stage" -> write(root, String.append(staged(), "/current.json"), "corrupt");
+        "extra-file" -> write(root, String.append(staged(), "/extra.json"), "unexpected");
+        "missing-member" ->
+            File.delete(OwnerStorage.child(root, String.append(staged(), "/current.json"))) == Ok(Unit);
+        "backup-collision" ->
+            Directory.create_all(OwnerStorage.child(root, OwnerDirectory.backup(staged()))) == Ok(Unit);
+        _ -> invalid_entry(root, mode)
+    }.
+
+invalid_entry(root: String, mode: String): Bool ->
+    case mode {
+        "stage-symlink" ->
+            move(root, staged(), String.append(staged(), ".saved"))
+                and Directory.create_symbolic_link(
+    OwnerStorage.child(root, String.append(staged(), ".saved")),
+    OwnerStorage.child(root, staged()),
+) == Ok(Unit);
+        "member-symlink" ->
+            OwnerStorage.command(
+                root,
+                "/usr/bin/ln",
+                [
+                    "-s",
+                    "--",
+                    OwnerStorage.child(root, String.append(destination(), "/obsolete.json")),
+                    OwnerStorage.child(root, String.append(staged(), "/link.json")),
+                ],
+            );
+        "nested-directory" ->
+            Directory.create_all(OwnerStorage.child(root, String.append(staged(), "/nested"))) == Ok(Unit);
+        "fifo" ->
+            OwnerStorage.command(
+                root,
+                "/usr/bin/mkfifo",
+                ["--", OwnerStorage.child(root, String.append(staged(), "/pipe"))],
+            );
+        _ -> false
+    }.
+
+rejected(mode: String): Bool ->
+    case mode {
+        "prepared" -> false;
+        "old-moved" -> false;
+        "new-moved" -> false;
+        "wrong-path" -> false;
+        "unsafe-path" -> false;
+        _ -> true
+    }.
+
+old_preserved(root: String, mode: String): Bool ->
+    let directory =
+        if {
+            mode == "wrong-final" -> OwnerDirectory.backup(staged());
+            true -> destination()
+        };
+    File.read_text(OwnerStorage.child(root, String.append(directory, "/obsolete.json"))) == Ok("old").
+
+exercise(root: String, mode: String): Bool ->
+    let {
+        true <- fixture(root);
+        Ok(expected) <- OwnerDirectory.row(root, staged(), destination());
+        true <- advance(root, mode, expected)
+    } else {
+        _ -> false
+    };
+    if {
+        rejected(mode) -> not OwnerDirectory.ready(root, staged(), destination(), expected)
+            and not OwnerDirectory.publish(root, staged(), destination(), expected)
+            and old_preserved(root, mode);
+        true -> published(root, expected)
+    }.
+
+published(root: String, expected: Json): Bool ->
+    let {
+        true <- OwnerDirectory.ready(root, staged(), destination(), expected);
+        true <- OwnerDirectory.publish(root, staged(), destination(), expected);
+        true <- OwnerDirectory.publish(root, staged(), destination(), expected);
+        Ok(actual) <- OwnerDirectory.row(root, destination(), destination());
+        Ok("new") <- File.read_text(OwnerStorage.child(root, String.append(destination(), "/current.json")));
+        Err(_absent) <- File.read_text(OwnerStorage.child(root, String.append(destination(), "/obsolete.json")));
+        Ok("old") <-
+            File.read_text(
+                OwnerStorage.child(
+                    root,
+                    String.append(OwnerDirectory.backup(staged()), "/obsolete.json"),
+                ),
+            )
+    } else {
+        _ -> false
+    };
+    OwnerStorage.digest(expected) == OwnerStorage.digest(actual).
+
+scenario(mode: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-directory-publication-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, mode);
+let removed = Directory.remove_all(root) == Ok(Unit);
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[directory publication] ",
+                mode,
+                if {
+                    valid and removed -> ": passed";
+                    true -> ": failed"
+                },
+            ],
+        ),
+    );
+valid and removed).
+
+scenarios(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> scenario(value) and scenarios(rest)
+    }.
+
+@test
+pub self_test(): Bool ->
+    scenarios(
+        [
+            "prepared",
+            "old-moved",
+            "new-moved",
+            "corrupt-stage",
+            "extra-file",
+            "missing-member",
+            "backup-collision",
+            "wrong-final",
+            "wrong-path",
+            "unsafe-path",
+            "parent-symlink",
+            "stage-symlink",
+            "member-symlink",
+            "nested-directory",
+            "fifo",
+        ],
+    ).

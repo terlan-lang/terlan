@@ -1,8 +1,8 @@
 module=std.js.Dom.SpeechRecognitionResult
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7178971047413985361
-interface_hash=5665945289852738023
-interface_doc_hash=5665945289852738023
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17604272629712585592
+interface_hash=8109451132360635752
+interface_doc_hash=8109451132360635752
 deps=0

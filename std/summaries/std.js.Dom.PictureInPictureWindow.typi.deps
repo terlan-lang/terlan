@@ -1,8 +1,8 @@
 module=std.js.Dom.PictureInPictureWindow
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9028942036265369995
-interface_hash=11694053430927773277
-interface_doc_hash=11694053430927773277
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6801464790404422917
+interface_hash=14836327975968805228
+interface_doc_hash=14836327975968805228
 deps=0

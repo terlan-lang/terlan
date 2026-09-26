@@ -45,10 +45,12 @@ fn replace_nested(
             }
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => CoreExpr::ConstructorCall {
+            type_args: type_args.clone(),
             constructor: constructor.clone(),
             constructor_identity: constructor_identity.clone(),
             args: args
@@ -115,9 +117,11 @@ fn replace_nested(
                 }
             }
         }
-        CoreExpr::Call { function, args }
-            if function == "IndexGet.get_at" && matches!(args.as_slice(), [_, _]) =>
-        {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } if function == "IndexGet.get_at" && matches!(args.as_slice(), [_, _]) => {
             let base = replace_nested(&args[0], layouts, ordinal);
             let index = replace_nested(&args[1], layouts, ordinal);
             if direct_fixed_index(&base, &index).is_some() {
@@ -128,6 +132,7 @@ fn replace_nested(
                         value: base,
                     }],
                     CoreExpr::Call {
+                        type_args: type_args.clone(),
                         function: function.clone(),
                         args: vec![CoreExpr::Var(source), index],
                     },
@@ -136,12 +141,18 @@ fn replace_nested(
                 )
             } else {
                 CoreExpr::Call {
+                    type_args: type_args.clone(),
                     function: function.clone(),
                     args: vec![base, index],
                 }
             }
         }
-        CoreExpr::Call { function, args } => CoreExpr::Call {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => CoreExpr::Call {
+            type_args: type_args.clone(),
             function: function.clone(),
             args: args
                 .iter()
@@ -288,6 +299,15 @@ fn local_fixed_destructuring(
     }
     for (consumer, binding) in bindings.iter().enumerate().skip(producer + 1) {
         if matches!(&binding.value, CoreExpr::Var(name) if name == target) {
+            // An alias is not destructuring. Replacing `alias = producer`
+            // merely renames a constructor producer, so retrying this index
+            // would manufacture fresh aliases forever without removing shape.
+            if !matches!(
+                binding.pattern,
+                CorePattern::Tuple(_) | CorePattern::Constructor { .. }
+            ) {
+                return None;
+            }
             let mut leaves = Vec::new();
             flatten_fixed_pattern(&binding.pattern, value, &mut leaves)?;
             if local_observed_after_binding(bindings, body, consumer, target) {
@@ -377,6 +397,7 @@ fn projection_layout(
 ) -> Option<ProjectionLayout> {
     match expr {
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -477,6 +498,7 @@ fn flatten_fixed_pattern(
                 args: patterns,
             },
             CoreExpr::ConstructorCall {
+                type_args: _,
                 constructor,
                 constructor_identity: value_identity,
                 args: values,

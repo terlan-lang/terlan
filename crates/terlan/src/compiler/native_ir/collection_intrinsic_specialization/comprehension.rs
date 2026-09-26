@@ -30,7 +30,14 @@ pub(super) fn specialize_comprehension(
         bind_pattern(&generator.pattern, &element, &mut scoped);
     }
     for guard in guards {
-        specialize_expr(guard, &scoped, functions, module);
+        if let Some(ty) = specialize_expr(guard, &scoped, functions, module) {
+            if !matches!(guard, CoreExpr::Cast { .. }) {
+                *guard = CoreExpr::Cast {
+                    expr: Box::new(guard.clone()),
+                    target_type: ty,
+                };
+            }
+        }
     }
     let yielded_type = specialize_expr(yielded, &scoped, functions, module)?;
     if !matches!(yielded, CoreExpr::Cast { .. }) {

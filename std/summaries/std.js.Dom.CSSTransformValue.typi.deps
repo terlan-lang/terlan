@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSTransformValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14973967349787810254
-interface_hash=5339067907159798594
-interface_doc_hash=5339067907159798594
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=773493147260056461
+interface_hash=13680572331707171557
+interface_doc_hash=13680572331707171557
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLTextAreaElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10025038704004924919
-interface_hash=13742062960671507728
-interface_doc_hash=13742062960671507728
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17896535439348310341
+interface_hash=14296316725595320134
+interface_doc_hash=14296316725595320134
 deps=0

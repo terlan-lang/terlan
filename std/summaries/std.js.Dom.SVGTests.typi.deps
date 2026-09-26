@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGTests
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=684434152738151966
-interface_hash=10758926515696107871
-interface_doc_hash=10758926515696107871
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3871438613339096952
+interface_hash=6013369448928305656
+interface_doc_hash=6013369448928305656
 deps=0

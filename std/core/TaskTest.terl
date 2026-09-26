@@ -3,6 +3,7 @@ module std.core.TaskTest.
 import std.core.Result.{Ok}.
 import std.core.Task.
 import std.test.Test.{assert_equal}.
+import std.vm.Process.
 
 import type std.core.{Error, Result, Task}.
 
@@ -19,3 +20,32 @@ pub done_creates_completed_task_result(): Bool ->
 @test
 pub result_observes_completed_task(): Bool ->
     assert_equal(Ok(7), observe(completed_task())).
+
+@test
+pub completed_task_retains_managed_values(): Bool ->
+    Task.done("completed").result() == Ok("completed") and Task.done([1, 2]).result() == Ok([1, 2]).
+
+pub observe_after_yield(task: Task[List[Int]]): Bool ->
+    let alias = task;
+    let _parked = Process.yield_now();
+    alias.result() == Ok([1, 2]) and task.result() == Ok([1, 2]).
+
+@test
+pub completed_task_survives_suspension_and_repeated_reads(): Bool ->
+    observe_after_yield(Task.done([1, 2])).
+
+pub empty_task_after_yield(): Task[List[Int]] ->
+    let _parked = Process.yield_now();
+    Task.done([]).
+
+@test
+pub completed_task_keeps_expected_empty_payload_type(): Bool ->
+    empty_task_after_yield().result() == Ok([]).
+
+@test
+pub completed_task_retains_nested_task(): Bool ->
+    let nested = Task.done(Task.done(7));
+    case nested.result() {
+        Ok(inner) -> inner.result() == Ok(7);
+        _ -> false
+    }.

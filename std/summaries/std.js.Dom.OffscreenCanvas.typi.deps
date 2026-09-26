@@ -1,8 +1,8 @@
 module=std.js.Dom.OffscreenCanvas
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7354053075939375046
-interface_hash=1138364007289474487
-interface_doc_hash=1138364007289474487
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8151263776719050871
+interface_hash=13524618232821107152
+interface_doc_hash=13524618232821107152
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.ScriptProcessorNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4101348310445087645
-interface_hash=3008236720923396320
-interface_doc_hash=3008236720923396320
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14115060471691408352
+interface_hash=6794865981087340534
+interface_doc_hash=6794865981087340534
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtpHeaderExtensionCapability
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=8210676386338253447
-interface_hash=15868722620429595255
-interface_doc_hash=15868722620429595255
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3932858573975919638
+interface_hash=16512656135058661556
+interface_doc_hash=16512656135058661556
 deps=0

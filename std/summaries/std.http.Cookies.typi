@@ -63,7 +63,7 @@ pub struct Options {
 pub type SameSite =
     Lax
   | Strict
-  | None.
+  | std.core.Option.None.
 
 /// Strict represents the strict SameSite cookie policy.
 ///

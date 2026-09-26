@@ -122,11 +122,11 @@ pub(super) fn hir_extracts_release_traversal_contracts_as_interfaces() {
     );
     assert_eq!(
         iterator_source_interface.functions[&("next".to_string(), 1)].return_type,
-        "Option[Step[T]]"
+        "std.core.Option.Option[Step[T]]"
     );
     assert_eq!(
         iterator_summary_interface.functions[&("next".to_string(), 1)].return_type,
-        "Option[Step[T]]"
+        "std.core.Option.Option[Step[T]]"
     );
 
     let iterable_source = parse_module_as_syntax_output(include_str!(

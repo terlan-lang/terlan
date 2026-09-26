@@ -1,8 +1,8 @@
 module=std.js.Dom.EventSource
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16924199993200922310
-interface_hash=5548757193359279556
-interface_doc_hash=5548757193359279556
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13832274816275821280
+interface_hash=2531248637805367772
+interface_doc_hash=2531248637805367772
 deps=0

@@ -48,6 +48,7 @@ fn is_managed_string_expr_with_bindings<'a>(
             module,
             function,
             args,
+            ..
         } if module == MANAGED_HTTP_MODULE => matches!(
             (function.as_str(), args.len()),
             (

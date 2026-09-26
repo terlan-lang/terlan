@@ -1,8 +1,8 @@
 module=std.js.Dom.DelayNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12101150502684782337
-interface_hash=15314329112176207515
-interface_doc_hash=15314329112176207515
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8043261135374249012
+interface_hash=2776213136649754891
+interface_doc_hash=2776213136649754891
 deps=0

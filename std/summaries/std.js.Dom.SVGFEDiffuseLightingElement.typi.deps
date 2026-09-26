@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEDiffuseLightingElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7023486350464629619
-interface_hash=6540803141367135244
-interface_doc_hash=6540803141367135244
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4199323289809651529
+interface_hash=12907278643438101415
+interface_doc_hash=12907278643438101415
 deps=0

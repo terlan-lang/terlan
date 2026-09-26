@@ -26,9 +26,9 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(arguments: Vec<String>) -> Result<(), String> {
+fn run(arguments: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     let [input, output] = arguments.as_slice() else {
-        return Err("usage: terlan-concrete-oracle INPUT OUTPUT".to_owned());
+        return Err(("usage: terlan-concrete-oracle INPUT OUTPUT".to_owned()).into());
     };
     let source =
         fs::read_to_string(input).map_err(|error| format!("cannot read {input}: {error}"))?;
@@ -50,28 +50,28 @@ fn run(arguments: Vec<String>) -> Result<(), String> {
         .collect::<Result<Vec<_>, String>>()?;
     let (nodes, consumed) = parse_nodes(&leaves, 0, None)?;
     if consumed != leaves.len() {
-        return Err("concrete parser left projected tokens unconsumed".to_owned());
+        return Err(("concrete parser left projected tokens unconsumed".to_owned()).into());
     }
     let mut rendered = String::from(
         "schema terlan.self-host.concrete-syntax/v1\nvalid\ttrue\nmessage_bytes\t0\ndepth\tterminal\tstart\tend\tlexeme_bytes\n",
     );
     render_nodes(&nodes, 0, &mut rendered)
         .map_err(|_| "cannot render concrete syntax evidence".to_owned())?;
-    fs::write(output, rendered).map_err(|error| format!("cannot write {output}: {error}"))
+    Ok(fs::write(output, rendered).map_err(|error| format!("cannot write {output}: {error}"))?)
 }
 
 fn parse_nodes(
     tokens: &[(String, usize, usize, String)],
     mut index: usize,
     expected_close: Option<&str>,
-) -> Result<(Vec<Node>, usize), String> {
+) -> Result<(Vec<Node>, usize), Box<dyn std::error::Error>> {
     let mut nodes = Vec::new();
     while let Some((terminal, start, end, text)) = tokens.get(index) {
         if expected_close == Some(text.as_str()) {
             return Ok((nodes, index + 1));
         }
         if matches!(text.as_str(), ")" | "]" | "}") {
-            return Err(format!("unexpected closing delimiter {text:?} at {start}"));
+            return Err((format!("unexpected closing delimiter {text:?} at {start}")).into());
         }
         let close = match text.as_str() {
             "(" => Some((")", "group-()")),
@@ -105,7 +105,7 @@ fn parse_nodes(
         }
     }
     if let Some(close) = expected_close {
-        Err(format!("missing closing delimiter {close:?}"))
+        Err((format!("missing closing delimiter {close:?}")).into())
     } else {
         Ok((nodes, index))
     }

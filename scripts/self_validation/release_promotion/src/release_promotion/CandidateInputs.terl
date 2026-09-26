@@ -1,0 +1,158 @@
+/**
+ * One complete candidate inventory for sealing and preparation invalidation.
+ */
+module release_promotion.CandidateInputs.
+
+import release_promotion.{CandidateEvidence, CandidateFiles, PublishableDocs}.
+import std.collections.List.{is_empty}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.core.Result.
+
+/**
+ * Candidate identity read from the retained distribution metadata.
+ */
+pub struct Identity {
+    version: String,
+    revision: String,
+    target: String,
+    operating_system: String,
+}.
+
+/**
+ * Files contributing to component tree hashes.
+ */
+pub struct Components {
+    stdlib: List[String],
+    docs: List[String],
+    editor: List[String],
+}.
+
+/**
+ * All dynamically selected candidate surfaces, before content hashing.
+ */
+pub struct Inputs {
+    identity: Identity,
+    archives: List[String],
+    assets: List[String],
+    benchmarks: List[String],
+    reports: List[String],
+    components: Components,
+}.
+
+@pure
+identity_present(version: String, revision: String, target: String): Bool ->
+    version != "" and revision != "" and target != "".
+
+identity_fields(fields: List[String], expected: String): Result[Identity, String] ->
+    let [version, revision, target, operating_system] <- fields else {
+        _ -> Err("release metadata fields have an unsupported shape")
+    };
+    if {
+        not identity_present(version, revision, target) -> Err("release metadata has an empty version, revision or target");
+        expected != "" and expected != version -> Err("release version does not match the requested candidate");
+        true -> Ok(
+            Identity(
+                version = version,
+                revision = revision,
+                target = target,
+                operating_system = operating_system,
+            ),
+        )
+    }.
+
+load_identity(root: String, expected: String): Result[Identity, String] ->
+    let {
+        Ok(source) <- read_text(CandidateFiles.child(root, "dist/terlan-release.json"));
+        Ok(document) <- Json.parse(source);
+        Ok(schema) <- document.get("schema");
+        Ok("terlan.release-artifact.v1") <- schema.as_string();
+        Ok(fields) <- document.required_fields(["version", "source_revision", "target_triple", "os"], [], [])
+    } else {
+        _ -> Err("release metadata is missing, malformed or has an unsupported schema")
+    };
+    fields
+    |> Json.required_field_strings()
+    |> identity_fields(expected).
+
+collect_components(root: String): Result[Components, String] ->
+    let manifest = PublishableDocs.load(root);
+    let true <- PublishableDocs.valid(manifest) else {
+        _ -> Err(PublishableDocs.message(manifest))
+    };
+    (let {
+    Ok(stdlib) <- CandidateFiles.directory_files(root, "std");
+    Ok(editors) <- CandidateFiles.directory_files(root, "editors");
+    Ok(tree_sitter) <- CandidateFiles.directory_files(root, "tree-sitter-terlan")
+} else {
+    Err(reason) -> Err(reason)
+};
+Ok(
+    Components(
+        stdlib = stdlib,
+        docs = PublishableDocs.paths(manifest),
+        editor = CandidateFiles.merge_unique(editors, tree_sitter),
+    ),
+)).
+
+/**
+ * Discovers paths on every invocation, so added and removed files invalidate reuse.
+ */
+pub collect(root: String, expected: String): Result[Inputs, String] ->
+    let {
+        Ok(identity) <- load_identity(root, expected);
+        Ok(archives) <- CandidateFiles.release_archives(root);
+        true <- not is_empty(archives);
+        Ok(benchmarks) <- CandidateFiles.matching_files(root, "benchmarks", [".baseline.json", ".latest.json"]);
+        Ok(reports) <- CandidateEvidence.paths(root);
+        Ok(components) <- collect_components(root)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("no release archives found under dist")
+    };
+    Ok(
+        Inputs(
+            identity = identity,
+            archives = archives,
+            assets = CandidateFiles.release_assets(archives, []),
+            benchmarks = benchmarks,
+            reports = reports,
+            components = components,
+        ),
+    ).
+
+/**
+ * Runtime binaries are selected from the same metadata used by the seal.
+ */
+@pure
+pub runtime_files(identity: Identity): {String, String} ->
+    if {
+        identity.operating_system == "windows" -> {"dist/terlan-vm.exe", "dist/terlan-native-worker.exe"};
+        true -> {"dist/terlan-vm", "dist/terlan-native-worker"}
+    }.
+
+/**
+ * Includes selector metadata as well as every selected artifact and component.
+ * Candidate/readiness outputs and mutable owner bookkeeping are never inputs.
+ */
+@pure
+pub all_files(inputs: Inputs): List[String] ->
+    let {vm, worker} = runtime_files(inputs.identity);
+    let metadata =
+        [
+            "dist/terlan-release.json",
+            "docs/release/PUBLISHABLE_DOCUMENTATION.tsv",
+            "CHANGELOG.md",
+            vm,
+            worker,
+        ];
+    let components =
+        CandidateFiles.merge_unique(
+            inputs.components.stdlib,
+            CandidateFiles.merge_unique(inputs.components.docs, inputs.components.editor),
+        );
+    let reports = CandidateFiles.merge_unique(inputs.benchmarks, inputs.reports);
+    let artifacts = CandidateFiles.merge_unique(CandidateFiles.sort_unique(metadata), inputs.assets);
+    CandidateFiles.merge_unique(artifacts, CandidateFiles.merge_unique(components, reports)).

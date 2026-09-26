@@ -1,8 +1,8 @@
 module=std.js.Dom.MIDIConnectionEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12652826498694448800
-interface_hash=15385230846129653269
-interface_doc_hash=15385230846129653269
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6047651945794786419
+interface_hash=3739228980952205153
+interface_doc_hash=3739228980952205153
 deps=0

@@ -1,5 +1,6 @@
 //! Generated C++ adapters for finite symbolic enum results.
 
+use crate::commands::bind::cpp_binding_generator::error::CppBindingError;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -31,7 +32,7 @@ pub(super) fn enum_adapter_name(
 pub(super) fn render_enum_adapter_header(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let header = Path::new(&manifest.cpp_metadata.header)
         .file_name()
         .and_then(|name| name.to_str())
@@ -62,7 +63,7 @@ pub(super) fn render_enum_adapter_header(
 pub(super) fn render_enum_adapter_source(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#include \"include/terlan_enum_adapters.hpp\"\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -109,7 +110,7 @@ fn enum_projection_parts<'a>(
     module: &'a NativeBindingModule,
     function: &'a NativeBindingFunction,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<(&'a NativeBindingType, &'a NativeBindingType, &'a CppSymbol), String> {
+) -> Result<(&'a NativeBindingType, &'a NativeBindingType, &'a CppSymbol), CppBindingError> {
     let resource = function
         .args
         .first()
@@ -140,9 +141,9 @@ fn enum_projection_parts<'a>(
 fn symbol_for_type<'a>(
     ty: &NativeBindingType,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<&'a CppSymbol, String> {
-    symbols
+) -> Result<&'a CppSymbol, CppBindingError> {
+    Ok(symbols
         .get(ty.cpp_symbol.as_str())
         .copied()
-        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))
+        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))?)
 }

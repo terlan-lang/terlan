@@ -1,0 +1,96 @@
+/**
+ * One recoverable owner for proof evidence, baseline diff and readiness mode.
+ */
+module release_promotion.PrepareProofRelease.
+
+import release_promotion.{CandidateFiles, OwnerArtifacts, OwnerStorage, OwnerTools, PreparationContext, PreparationOwner, ProofInputs}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{concat}.
+import std.io.Console.
+
+import type release_promotion.OwnerTools.BuildIdentity.
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationOwner.{Decision, Owner}.
+import type std.core.Result.
+
+/**
+ * Declares all source/metadata inputs and all three final output schemas.
+ */
+pub declare(
+    root: String,
+    vm: String,
+    image: String,
+    context: Context,
+    version: String,
+    tools: BuildIdentity,
+    inputs: List[String],
+): Owner ->
+    PreparationOwner.with_additional_outputs(
+        PreparationOwner.owner(
+            "proof-release",
+            context.revision,
+            "x86_64-unknown-linux-gnu",
+            "proof-composition",
+            concat([version, "\n", tools.rustc, "\n", tools.digest]),
+            CandidateFiles.merge_unique(context.sources, inputs),
+            [vm, image],
+            OwnerStorage.child(root, vm),
+            ["run", OwnerStorage.child(root, image), "--script-eval", "--", "closeout"],
+            context.environment,
+            "target/quality/proof-artifacts/proof-release-evidence.json",
+            "TERLAN_PROOF_EVIDENCE_OUTPUT",
+            "terlan.proof-release-evidence.v1",
+            "Proof readiness release mode passed:",
+            300000,
+        ),
+        [
+            OwnerArtifacts.declare_artifact(
+                "target/quality/proof-artifacts/proof-release-evidence-diff.json",
+                "TERLAN_PROOF_DIFF_OUTPUT",
+                "terlan.proof-release-evidence-diff.v1",
+            ),
+            OwnerArtifacts.declare_artifact(
+                "target/quality/proof-artifacts/proof-readiness-release-mode.json",
+                "TERLAN_PROOF_READINESS_OUTPUT",
+                "terlan.proof-readiness-release-mode.v1",
+            ),
+        ],
+    ).
+
+/**
+ * Clean source and exact usable tools are admitted before any output changes.
+ */
+pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
+    let {
+        true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image);
+        Ok(context) <-
+            PreparationContext.capture(
+                root,
+                ["PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
+            );
+        Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment);
+        Ok(tools) <- OwnerTools.build_identity(root, context.environment, context.runtime_tools);
+        Ok(inputs) <- ProofInputs.collect(root)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("proof preparation tools must be inside target/")
+    };
+    Ok(PreparationOwner.run_locked(root, declare(root, vm, image, context, version, tools, inputs))).
+
+/**
+ * Publication calls this only while holding its exclusive preparation flock.
+ */
+pub run_locked(root: String, vm: String, image: String): Bool ->
+    let Ok(result) <- prepare(root, vm, image) else {
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    };
+    (let message =
+    if {
+        not result.valid -> result.message;
+        result.reused -> "[preparation] proof release reused: zero composer launches";
+        true -> "[preparation] proof release completed and checkpointed"
+    };
+let _printed = Console.println(message);
+result.valid).

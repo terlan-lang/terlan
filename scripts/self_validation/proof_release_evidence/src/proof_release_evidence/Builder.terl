@@ -242,7 +242,12 @@ json_array(root: String, relative: String, field: String): Option[Json] ->
 
 read_repros(root: String): Option[List[Repro]] ->
     let {
-        Some(values) <- json_array(root, "build/artifacts/lean-proof-repro-report.json", "families");
+        Some(values) <-
+            json_array(
+                root,
+                "target/quality/proof-artifacts/lean-proof-repro-report.json",
+                "families",
+            );
         Ok(count) <- values.length()
     } else {
         _ -> None
@@ -279,7 +284,7 @@ repro_rows(values: Json, index: Int, count: Int, collected: List[Repro]): Option
 
 read_lanes(root: String): Option[List[Lane]] ->
     let {
-        Some(values) <- json_array(root, "build/artifacts/lean-proof-lanes.json", "lanes");
+        Some(values) <- json_array(root, "target/quality/proof-artifacts/lean-proof-lanes.json", "lanes");
         Ok(count) <- values.length()
     } else {
         _ -> None
@@ -324,7 +329,12 @@ lane_rows(values: Json, index: Int, count: Int, collected: List[Lane]): Option[L
 
 read_semantics(root: String): Option[List[Semantic]] ->
     let {
-        Some(values) <- json_array(root, "build/artifacts/lean-semantic-kernels.json", "families");
+        Some(values) <-
+            json_array(
+                root,
+                "target/quality/proof-artifacts/lean-semantic-kernels.json",
+                "families",
+            );
         Ok(count) <- values.length()
     } else {
         _ -> None

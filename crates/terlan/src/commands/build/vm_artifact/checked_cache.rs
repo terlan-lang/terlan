@@ -1,5 +1,6 @@
 //! Verified compiler-private checked implementation cache.
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -14,6 +15,7 @@ use crate::terlan_syntax::syntax_contract_identity_matches_current;
 use crate::CliState;
 
 use super::super::{write_build_file, BuildOneError};
+use super::artifact_cache_retention::{Budget, CacheFamily, RetainedCache};
 use super::native_cache;
 
 const CHECKED_CACHE_SCHEMA: &str = "terlan-checked-implementation-v1";
@@ -21,6 +23,20 @@ const CHECKED_CACHE_BACKEND: &str = "terlan-frontend-v1";
 const CHECKED_CACHE_FILE: &str = "checked.json";
 const CHECKED_CACHE_TARGET: &str = "terlan-vm";
 const MAX_CHECKED_CACHE_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Sixteen independently locked buckets bound total storage to 4 GiB/4096
+/// generations without scanning every checked implementation for each module.
+fn retention_budget() -> Budget {
+    Budget {
+        bytes: 256 * 1024 * 1024,
+        entries: 256,
+        ..Budget::default()
+    }
+}
+
+fn retention_root(cache_dir: &Path, identity: &str) -> PathBuf {
+    cache_dir.join("checked-v2").join(&identity[..1])
+}
 
 /// Lossless compiler-private implementation payload retained between builds.
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,6 +67,7 @@ struct CheckedImplementationCache {
 /// Output:
 /// - Reconstructed checked artifacts for a verified cache hit.
 /// - `None` for a miss, malformed entry, stale dependency, or poisoned file.
+/// - An error for retention, ownership, or filesystem policy failure.
 ///
 /// Transformation:
 /// - Verifies the content-addressed cache publication, compiler/schema/policy,
@@ -61,24 +78,55 @@ pub(super) fn load_checked_implementation(
     path: &str,
     source: &str,
     state: &CliState,
-) -> Option<CheckedSyntaxModuleArtifacts> {
-    let cache_dir = state.cache_dir.as_deref()?;
+) -> Result<Option<CheckedSyntaxModuleArtifacts>, BuildOneError> {
+    let Some(cache_dir) = state.cache_dir.as_deref() else {
+        return Ok(None);
+    };
     let source_sha256 = native_cache::sha256_hex(source.as_bytes());
     let (identity, directory) = checked_cache_location(cache_dir, &source_sha256, state);
+    let cache = RetainedCache::open(
+        &retention_root(cache_dir, &identity),
+        CacheFamily::CheckedImplementations,
+        BTreeSet::from([identity.clone()]),
+        retention_budget(),
+    )?;
+    let bytes = load_checked_bytes(&directory, &identity);
+    if bytes.is_some() {
+        cache.touch(&identity)?;
+    }
+    // Verified bytes are owned now. Parsing and dependency discovery must not
+    // serialize unrelated readers or hold a retention lease across frontend work.
+    drop(cache);
+    Ok(bytes.and_then(|bytes| decode_checked_entry(path, source, state, &source_sha256, &bytes)))
+}
+
+/// Copies verified payload bytes while a bucket lease prevents retirement.
+fn load_checked_bytes(directory: &Path, identity: &str) -> Option<Vec<u8>> {
     let metadata = fs::metadata(directory.join(CHECKED_CACHE_FILE)).ok()?;
     if metadata.len() > MAX_CHECKED_CACHE_BYTES {
         return None;
     }
-    let bytes = native_cache::load_verified_entry(
-        &directory,
-        &identity,
+    native_cache::load_verified_entry(
+        directory,
+        identity,
         CHECKED_CACHE_TARGET,
         CHECKED_CACHE_BACKEND,
         &[CHECKED_CACHE_FILE],
         CHECKED_CACHE_FILE,
-    )?;
+    )
+}
+
+/// Reconstructs checked state from owned bytes after releasing the disk lease.
+fn decode_checked_entry(
+    path: &str,
+    source: &str,
+    state: &CliState,
+    source_sha256: &str,
+    bytes: &[u8],
+) -> Option<CheckedSyntaxModuleArtifacts> {
+    let cache_dir = state.cache_dir.as_deref()?;
     let mut cached =
-        crate::support::deserialize_json_with_depth_limit::<CheckedImplementationCache>(&bytes)
+        crate::support::deserialize_json_with_depth_limit::<CheckedImplementationCache>(bytes)
             .ok()?;
     if cached.schema != CHECKED_CACHE_SCHEMA
         || cached.compiler != compiler_identity()
@@ -177,13 +225,7 @@ pub(super) fn publish_checked_implementation(
     .map_err(BuildOneError::Message)?;
 
     let source_sha256 = native_cache::sha256_hex(source.as_bytes());
-    let (identity, directory) = checked_cache_location(cache_dir, &source_sha256, state);
-    fs::create_dir_all(&directory).map_err(|error| {
-        BuildOneError::Message(format!(
-            "error[build.checked_cache_directory]: cannot create `{}`: {error}",
-            directory.display()
-        ))
-    })?;
+    let (identity, _) = checked_cache_location(cache_dir, &source_sha256, state);
     let cached = CheckedImplementationCache {
         schema: CHECKED_CACHE_SCHEMA.to_string(),
         compiler: compiler_identity(),
@@ -198,18 +240,25 @@ pub(super) fn publish_checked_implementation(
             "error[build.checked_cache_encode]: cannot encode checked implementation: {error}"
         ))
     })?;
-    let _lock = native_cache::CacheBuildLock::acquire(&directory)?;
-    native_cache::publish_file(&directory.join(CHECKED_CACHE_FILE), &bytes)?;
+    if bytes.len() as u64 > MAX_CHECKED_CACHE_BYTES {
+        return Err(BuildOneError::Message(
+            "error[build.checked_cache_size]: checked implementation exceeds its 64 MiB limit"
+                .into(),
+        ));
+    }
+    let cache = RetainedCache::open(
+        &retention_root(cache_dir, &identity),
+        CacheFamily::CheckedImplementations,
+        BTreeSet::from([identity.clone()]),
+        retention_budget(),
+    )?;
     let manifest = native_cache::cache_manifest_bytes(
         &identity,
         CHECKED_CACHE_TARGET,
         CHECKED_CACHE_BACKEND,
         &[(CHECKED_CACHE_FILE, bytes.as_slice())],
     );
-    native_cache::publish_file(
-        &directory.join(native_cache::CACHE_MANIFEST_NAME),
-        &manifest,
-    )?;
+    cache.publish(&identity, CHECKED_CACHE_FILE, &bytes, &manifest)?;
     Ok(())
 }
 
@@ -227,7 +276,10 @@ fn checked_cache_location(
         )
         .as_bytes(),
     );
-    (identity.clone(), cache_dir.join("checked").join(identity))
+    let directory = retention_root(cache_dir, &identity)
+        .join("entries")
+        .join(&identity);
+    (identity, directory)
 }
 
 /// Returns the current compiler identity embedded into checked cache entries.

@@ -1,3 +1,14 @@
+#[path = "generator/return_mapping.rs"]
+mod return_mapping;
+use return_mapping::*;
+mod argument_mapping;
+use argument_mapping::*;
+#[path = "generator/projection_validation.rs"]
+mod projection_validation;
+use projection_validation::*;
+#[path = "generator/cxx_bridge.rs"]
+mod cxx_bridge;
+use cxx_bridge::*;
 mod bridge_rendering;
 mod collection_adapter;
 mod consumer_output;
@@ -11,6 +22,7 @@ mod owned_value_adapter;
 mod string_adapter;
 mod type_mapping_validation;
 
+use super::error::CppBindingError;
 use bridge_rendering::*;
 use collection_adapter::{
     collection_adapter_name, render_collection_adapter_header, render_collection_adapter_source,
@@ -748,7 +760,7 @@ impl ValidatedCppSymbols<'_> {
 pub(in crate::commands::bind) fn generate_cpp_bindings(
     manifest_path: &Path,
     out_dir: &Path,
-) -> Result<CppBindingGenerationSummary, String> {
+) -> Result<CppBindingGenerationSummary, CppBindingError> {
     refuse_non_empty_output(out_dir)?;
     let manifest_text = fs::read_to_string(manifest_path).map_err(|err| {
         format!(
@@ -807,12 +819,14 @@ pub(in crate::commands::bind) fn generate_cpp_bindings(
         &render_cxx_build(
             &manifest.cpp_metadata,
             &manifest.build,
-            has_enum_adapters(&manifest),
-            has_string_adapters(&manifest),
-            has_collection_adapters(&manifest),
-            has_exception_adapters(&manifest),
-            has_owned_value_adapters(&manifest, &symbols.declarations),
-            has_mutation_adapters(&manifest),
+            CxxBuildAdapters {
+                enum_adapters: has_enum_adapters(&manifest),
+                string_adapters: has_string_adapters(&manifest),
+                collection_adapters: has_collection_adapters(&manifest),
+                exception_adapters: has_exception_adapters(&manifest),
+                owned_value_adapters: has_owned_value_adapters(&manifest, &symbols.declarations),
+                mutation_adapters: has_mutation_adapters(&manifest),
+            },
         ),
     )?;
     write_file(

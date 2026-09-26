@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFitToViewBox
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9156857903197302835
-interface_hash=11817134135251886880
-interface_doc_hash=11817134135251886880
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2282039423236644889
+interface_hash=3742498550172028394
+interface_doc_hash=3742498550172028394
 deps=0

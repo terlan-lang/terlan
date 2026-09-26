@@ -1,8 +1,8 @@
 module=std.js.Dom.XMLSerializer
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14945873680649633687
-interface_hash=14072663662262540931
-interface_doc_hash=14072663662262540931
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17406354035905266037
+interface_hash=5345285317597512311
+interface_doc_hash=5345285317597512311
 deps=0

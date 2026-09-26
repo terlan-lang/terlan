@@ -10,6 +10,7 @@ import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
+import std.io.Directory.{create_all}.
 import std.io.File.{exists, read_text_many, write_text}.
 import std.system.Environment.
 
@@ -72,8 +73,8 @@ input_paths(root: String): List[String] ->
         child(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
         child(root, "proofs/lean/feature_binding/lean_feature_slice_index.json"),
         child(root, "proofs/lean/feature_binding/lean-proof-coverage-baseline.tsv"),
-        child(root, "build/artifacts/lean-proof-gate.json"),
-        child(root, "build/artifacts/lean-proof-repro-report.json"),
+        child(root, "target/quality/proof-artifacts/lean-proof-gate.json"),
+        child(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
         child(root, "Makefile"),
     ].
 
@@ -366,17 +367,23 @@ pub repository_feature_binding_holds(): Bool ->
         Err(_reason) -> fail("feature binding inputs could not be read")
     }.
 
+matrix_output(root: String): String ->
+    environment_or(
+        "TERLAN_PROOF_BINDING_MATRIX_OUTPUT",
+        child(root, "target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv"),
+    ).
+
 write_matrix(root: String, gaps: String): Bool ->
-    case write_text(
-    child(root, "build/artifacts/lean-proof-coverage-matrix.tsv"),
-    current_expected_matrix(gaps),
-) {
+    let Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts")) else {
+        _ -> fail("coverage matrix directory could not be created")
+    };
+    case write_text(matrix_output(root), current_expected_matrix(gaps)) {
         Ok(Unit) -> report_success(root);
         Err(_reason) -> fail("coverage matrix could not be written")
     }.
 
 report_success(root: String): Bool ->
-    case Hash.sha256_file(child(root, "build/artifacts/lean-proof-coverage-matrix.tsv")) {
+    case Hash.sha256_file(matrix_output(root)) {
         Ok(digest) ->
             let _printed =
                 println(

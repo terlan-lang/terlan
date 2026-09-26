@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSPerspective
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=8025151547821086082
-interface_hash=11162045637169858899
-interface_doc_hash=11162045637169858899
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=5299106404178313642
+interface_hash=5021668258728111165
+interface_doc_hash=5021668258728111165
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.StereoPannerNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11172219983668021314
-interface_hash=16684875119421791471
-interface_doc_hash=16684875119421791471
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14866249294647705851
+interface_hash=3516925847999270465
+interface_doc_hash=3516925847999270465
 deps=0

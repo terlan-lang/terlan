@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::runtime::vm::package_native_helper::{execute_call, VmPackageNativeHelpers};
+use crate::runtime::vm::package_native_helper::{
+    execute_call, VmPackageNativeHelpers, VmStorageBinding,
+};
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
 use crate::runtime::vm::ReplValue;
 
@@ -19,10 +21,14 @@ pub(super) fn run_tvm_image(
     entry: &str,
     result_mode: RunResultMode,
     program_arguments: &[String],
+    storage_bindings: &[VmStorageBinding],
     output: &mut dyn FnMut(&str),
 ) -> Result<(), String> {
     let mut shard = PureNativeExecutionShard::load_image(path)?;
     let mut helpers = VmPackageNativeHelpers::with_program_arguments(program_arguments.to_vec());
+    helpers
+        .configure_storage(storage_bindings)
+        .map_err(String::from)?;
     let result: Result<ReplValue, String> =
         execute_call(&mut shard, &mut helpers, entry, &[]).map_err(String::from);
     let shutdown = shard.shutdown();

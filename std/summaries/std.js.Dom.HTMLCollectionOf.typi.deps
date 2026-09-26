@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLCollectionOf
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14724402307421462058
-interface_hash=849976398507377828
-interface_doc_hash=849976398507377828
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15108818236946642884
+interface_hash=4264621990410513696
+interface_doc_hash=4264621990410513696
 deps=0

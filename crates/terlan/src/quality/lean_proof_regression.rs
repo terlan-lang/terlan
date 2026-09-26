@@ -12,7 +12,7 @@ use crate::terlan_quality::{render_failure, QualityResult};
 const BASELINE_PATH: &str = "docs/compiler/LEAN_PROOF_METRICS.tsv";
 const INVENTORY_PATH: &str = "docs/compiler/proof_track/lean_proof_inventory.tsv";
 const POLICY_PATH: &str = "docs/runtime/lean-proof-regression-policy.tsv";
-const HISTORY_DIR: &str = "build/artifacts/lean-proof-history";
+const HISTORY_DIR: &str = "target/quality/proof-artifacts/lean-proof-history";
 
 const BASELINE_HEADER: &str = "feature_class\tcurrent_proof_count\tstale_count\tgap_count\tnondeterministic_count\trepro_fail_count\trepro_pass_rate_7d\tlane_pass_rate_30d";
 const INVENTORY_HEADER: &str = "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes";
@@ -47,6 +47,7 @@ struct Policy {
 
 #[derive(Debug, Serialize)]
 struct LeanProofRegressionReport {
+    schema: &'static str,
     generated_date: String,
     warning_threshold_percent: u64,
     hard_threshold_percent: u64,
@@ -70,6 +71,23 @@ struct LeanProofRegressionReport {
 /// - Converts proof-track TSV data into machine-readable trend evidence without
 ///   treating missing formal proofs as completed coverage.
 pub fn run_lean_proof_regression(root: &Path) -> QualityResult<LeanProofRegressionSummary> {
+    let date = today_utc();
+    let declared_date = std::env::var_os("TERLAN_PROOF_POLICY_DATE");
+    validate_date(&date, declared_date.as_deref())?;
+    let default = format!("{HISTORY_DIR}/{date}.json");
+    let path =
+        super::lean_proof_track::outputs::single(root, &default, "TERLAN_PROOF_POLICY_OUTPUT")?;
+    run_to(root, &path, &date)
+}
+
+fn validate_date(date: &str, declared: Option<&std::ffi::OsStr>) -> QualityResult<()> {
+    if declared.is_some_and(|value| value != std::ffi::OsStr::new(date)) {
+        return Err("proof regression admission date differs from current UTC date".into());
+    }
+    Ok(())
+}
+
+fn run_to(root: &Path, path: &Path, date: &str) -> QualityResult<LeanProofRegressionSummary> {
     let baseline = parse_metrics(&read_text(root, BASELINE_PATH)?)?;
     let inventory = parse_inventory(&read_text(root, INVENTORY_PATH)?)?;
     let gaps = parse_gaps(&read_text(root, GAP_PATH)?)?;
@@ -87,9 +105,10 @@ pub fn run_lean_proof_regression(root: &Path) -> QualityResult<LeanProofRegressi
     let warnings = collect_warnings(&baseline, &current, &policy);
     let feature_class_count = current.len();
     let report_path = write_history_report(
-        root,
+        path,
         &LeanProofRegressionReport {
-            generated_date: today_utc(),
+            schema: "terlan.lean-proof-regression.v1",
+            generated_date: date.to_owned(),
             warning_threshold_percent: policy.warning_threshold_percent,
             hard_threshold_percent: policy.hard_threshold_percent,
             baseline,
@@ -323,19 +342,20 @@ fn collect_warnings(baseline: &[MetricRow], current: &[MetricRow], policy: &Poli
         .collect()
 }
 
-fn write_history_report(root: &Path, report: &LeanProofRegressionReport) -> QualityResult<PathBuf> {
-    let path = root
-        .join(HISTORY_DIR)
-        .join(format!("{}.json", report.generated_date));
+fn write_history_report(path: &Path, report: &LeanProofRegressionReport) -> QualityResult<PathBuf> {
+    validate_date(
+        &today_utc(),
+        Some(std::ffi::OsStr::new(&report.generated_date)),
+    )?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|err| format!("{}: failed to create directory: {err}", parent.display()))?;
     }
     let text = serde_json::to_string_pretty(report)
         .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(&path, format!("{text}\n"))
+    fs::write(path, format!("{text}\n"))
         .map_err(|err| format!("{}: failed to write report: {err}", path.display()))?;
-    Ok(path)
+    Ok(path.to_path_buf())
 }
 
 fn today_utc() -> String {

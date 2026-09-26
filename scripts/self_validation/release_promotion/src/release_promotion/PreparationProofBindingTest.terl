@@ -1,0 +1,113 @@
+/**
+ * Real subprocess recovery tests for the matrix and daily snapshot owners.
+ */
+module release_promotion.PreparationProofBindingTest.
+
+import release_promotion.{OwnerStorage, PreparationContext, PreparationGraph, PrepareProofBinding}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationContext.Context.
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+compiler_source(): String ->
+    "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest $# = 3\nemit() { printf '{\"schema\":\"%s\"}\\n' \"$2\" > \"$1\"; }\nmatrix() { printf 'slice_id\\tfeature_class\\tlane_id\\tcoverage_status\\towner\\tproof_family_ids\\tgap_ids\\tblocker_hash\\nSlice 1\\tcoreir\\tcoreir\\tproof_current\\tcompiler\\tproof\\t\\tnone\\n' > \"$1\"; }\ncase \"$3\" in\nscripts/self_validation/LeanProofFeatureBindingTest.terl)\n  echo matrix >> calls\n  matrix \"$TERLAN_PROOF_BINDING_MATRIX_OUTPUT\"\n  echo 'Lean proof feature binding passed: fixture'\n  ;;\nscripts/self_validation/LeanProofSnapshotTest.terl)\n  test \"$TERLAN_LEAN_SNAPSHOT_TASK\" = all\n  test -n \"$TERLAN_PROOF_BINDING_DATE\"\n  test -s target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv\n  echo snapshot >> calls\n  emit \"$TERLAN_PROOF_BINDING_DIFF_OUTPUT\" terlan.lean-proof-binding-diff.v1\n  test \"$(cat input.txt)\" != fail\n  emit \"$TERLAN_PROOF_BINDING_IMPACT_OUTPUT\" terlan.lean-proof-change-impact.v1\n  emit \"$TERLAN_PROOF_BINDING_REVIEW_OUTPUT\" terlan.lean-proof-binding-review.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT\" terlan.lean-proof-snapshot.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_DIFF_OUTPUT\" terlan.lean-proof-binding-diff.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_IMPACT_OUTPUT\" terlan.lean-proof-change-impact.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_REVIEW_OUTPUT\" terlan.lean-proof-binding-review.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_POLICY_OUTPUT\" terlan.lean-proof-policy-result.v1\n  matrix \"$TERLAN_PROOF_SNAPSHOT_MATRIX_OUTPUT\"\n  echo '[lean-proof-snapshot] consistency passed: fixture'\n  ;;\n*) exit 9;;\nesac\n".
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        true <- write(root, "input.txt", "first");
+        true <- write(root, "target/tools/compiler", compiler_source());
+        true <- write(root, "target/quality/proof-artifacts/lean-proof-gate.json", "{}");
+        true <- write(root, "target/quality/proof-artifacts/lean-proof-repro-report.json", "{}")
+    } else {
+        _ -> false
+    };
+    OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/compiler"]).
+
+stage(root: String, context: Context, day: String, completed: Int, reused: Int): Bool ->
+    let Ok(nodes) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, day) else {
+        _ -> false
+    };
+    (let result = PreparationGraph.run_locked(root, "proof-binding", nodes);
+if {
+    not result.valid -> let _printed = Console.eprintln(result.message);
+    false;
+    true -> result.completed == completed and result.reused == reused
+}).
+
+snapshot_paths(day: String): List[String] ->
+    let prefix = String.concat(["target/quality/proof-artifacts/lean-proof-snapshots/", day, "/"]);
+    [
+        "target/quality/proof-artifacts/lean-proof-binding-diff.json",
+        "target/quality/proof-artifacts/lean-proof-change-impact.json",
+        "target/quality/proof-artifacts/lean-proof-binding-review.json",
+        String.append(prefix, "canonical-index.json"),
+        String.append(prefix, "diff.json"),
+        String.append(prefix, "impact.json"),
+        String.append(prefix, "review.json"),
+        String.append(prefix, "policy-result.json"),
+        String.append(prefix, "coverage-matrix.tsv"),
+    ].
+
+exercise(root: String): Bool ->
+    let context =
+        PreparationContext.from_parts(
+            revision = "candidate",
+            sources = ["input.txt"],
+            environment = [environment_entry("PATH", "/usr/bin:/bin")],
+            runtime_tools = "fixture-v1",
+        );
+    let {
+        true <- fixture(root);
+        Err(_path) <- PrepareProofBinding.declare(root, "../compiler", context, "2026-09-25");
+        Err(_date) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, "invalid");
+        true <- stage(root, context, "2026-09-25", 2, 0);
+        true <- stage(root, context, "2026-09-25", 0, 2);
+        Ok("matrix\nsnapshot\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        true <- stage(root, context, "2026-09-26", 1, 1);
+        Ok("matrix\nsnapshot\nsnapshot\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Ok(before) <- OwnerStorage.files(root, snapshot_paths("2026-09-26"));
+        true <- write(root, "input.txt", "fail");
+        Ok(nodes) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, "2026-09-26");
+        false <- PreparationGraph.run_locked(root, "proof-binding", nodes).valid;
+        Ok(retained) <- OwnerStorage.files(root, snapshot_paths("2026-09-26"));
+        true <- OwnerStorage.digest(before) == OwnerStorage.digest(retained);
+        true <- write(root, "input.txt", "changed");
+        true <- stage(root, context, "2026-09-26", 2, 0);
+        true <- stage(root, context, "2026-09-26", 0, 2);
+        true <- write(root, "target/quality/proof-artifacts/lean-proof-binding-diff.json", "corrupt");
+        true <- stage(root, context, "2026-09-26", 1, 1);
+        true <- stage(root, context, "2026-09-26", 0, 2);
+        Ok("matrix\nsnapshot\nsnapshot\nmatrix\nsnapshot\nmatrix\nsnapshot\nsnapshot\n") <- File.read_text(OwnerStorage.child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    true.
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-binding-owner-") else {
+        _ -> false
+    };
+    (let valid = exercise(root);
+let removed = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "proof binding owner rehearsal passed";
+            true -> "proof binding owner rehearsal failed"
+        },
+    );
+valid
+    and case removed {
+    Ok(_removed) -> true;
+    _ -> false
+}).

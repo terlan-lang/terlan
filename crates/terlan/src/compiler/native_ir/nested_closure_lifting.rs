@@ -81,8 +81,16 @@ pub(super) fn lift_nested_closure_arguments(cores: &mut [CoreModule]) -> Result<
             }
             for clause in &mut core.functions[cursor].clauses {
                 if let Some(body) = clause.body.core_expr.as_mut() {
+                    // Whole-result references already use the ordinary closure
+                    // lowerer; lifting a generated factory's result again would
+                    // manufacture an unbounded chain of identical factories.
+                    if matches!(owner.core_return_type, Some(CoreType::Arrow { .. }))
+                        && named_function_reference(body, &variables)
+                    {
+                        continue;
+                    }
                     if let (
-                        CoreExpr::Lam { params, body },
+                        CoreExpr::Lam { params, body, .. },
                         Some(CoreType::Arrow {
                             params: parameter_types,
                             ..
@@ -142,7 +150,17 @@ fn rewrite(
         module,
         owner,
     } = environment;
-    if matches!(expr, CoreExpr::Lam { .. }) && matches!(expected, Some(CoreType::Arrow { .. })) {
+    if let CoreExpr::Call { function, args, .. } = expr {
+        if matches!(variables.get(function), Some(CoreType::Arrow { .. })) {
+            *expr = CoreExpr::FunctionCall {
+                callee: Box::new(CoreExpr::Var(function.clone())),
+                args: std::mem::take(args),
+            };
+        }
+    }
+    if (matches!(expr, CoreExpr::Lam { .. }) || named_function_reference(expr, variables))
+        && matches!(expected, Some(CoreType::Arrow { .. }))
+    {
         let lambda = expr.clone();
         let mut captures = super::free_variables(&lambda)
             .into_iter()
@@ -157,11 +175,12 @@ fn rewrite(
             name.clone(),
             &captures,
             variables,
-            expected.expect("lambda expected type"),
+            expected.expect("callable expected type"),
             lambda,
         )?;
         generated.push(factory);
         *expr = CoreExpr::Call {
+            type_args: Vec::new(),
             function: name,
             args: captures.into_iter().map(CoreExpr::Var).collect(),
         };
@@ -169,7 +188,7 @@ fn rewrite(
     }
 
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let expected = signature(signatures, module, function, args.len())
                 .map(|signature| signature.0.clone());
             if args
@@ -207,24 +226,64 @@ fn rewrite(
         }
         CoreExpr::Let { bindings, body } => {
             let mut variables = variables.clone();
+            // Calls name their callee separately; a variable occurrence means
+            // a callable may be stored or passed onward. Conservatively retain
+            // an owned closure for those uses, while immediate calls can still
+            // use static beta reduction. This scan does not mutate the tree.
+            let mut value_uses = std::collections::HashSet::new();
+            let mut aliases = Vec::new();
+            for binding in bindings.iter_mut() {
+                if let (CorePattern::Var(name), CoreExpr::Var(source)) =
+                    (&binding.pattern, &binding.value)
+                {
+                    aliases.push((name.clone(), source.clone()));
+                } else {
+                    stored_callable_uses(&mut binding.value, &mut value_uses);
+                }
+            }
+            let terminal_alias = matches!((bindings.last(), body.as_ref()),
+                (Some(binding), CoreExpr::Var(name)) if matches!(&binding.pattern, CorePattern::Var(bound) if bound == name));
+            if !terminal_alias {
+                stored_callable_uses(body, &mut value_uses);
+            }
+            for (name, source) in aliases.into_iter().rev() {
+                if value_uses.contains(&name) {
+                    value_uses.insert(source);
+                }
+            }
             for binding in bindings {
+                let binding_type = infer(&binding.value, &variables, signatures, module);
+                // A lambda used only as a callee stays eligible for static
+                // beta reduction; stored or passed values need an owned factory.
+                let expected_binding = if matches!(binding.value, CoreExpr::Lam { .. })
+                    && matches!(&binding.pattern, CorePattern::Var(name) if !value_uses.contains(name))
+                {
+                    None
+                } else {
+                    binding_type.as_ref()
+                };
                 rewrite(
                     &mut binding.value,
-                    None,
+                    expected_binding,
                     &variables,
                     environment,
                     generated,
                     ordinal,
                 )?;
-                if let CorePattern::Var(name) = &binding.pattern {
-                    if let Some(ty) = infer(&binding.value, &variables, signatures, module) {
-                        variables.insert(name.clone(), ty);
-                    }
+                let ty =
+                    binding_type.or_else(|| infer(&binding.value, &variables, signatures, module));
+                for name in
+                    super::expression::free_variable_analysis::pattern_bound_names(&binding.pattern)
+                {
+                    variables.remove(&name);
+                }
+                if let Some(ty) = ty {
+                    bind_pattern_variables(&binding.pattern, &ty, &mut variables);
                 }
             }
             rewrite(body, expected, &variables, environment, generated, ordinal)?;
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             let mut variables = variables.clone();
             if let Some(CoreType::Arrow {
                 params: parameter_types,
@@ -239,9 +298,26 @@ fn rewrite(
             }
             rewrite(body, None, &variables, environment, generated, ordinal)?;
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) => {
+            let types = expected.and_then(|ty| {
+                super::collection_intrinsic_specialization::contextual_tuple_elements(items, ty)
+            });
+            for (index, item) in items.iter_mut().enumerate() {
+                rewrite(
+                    item,
+                    types.as_ref().and_then(|types| types.get(index).copied()),
+                    variables,
+                    environment,
+                    generated,
+                    ordinal,
+                )?;
+            }
+        }
+        CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+            let element =
+                expected.and_then(super::collection_intrinsic_specialization::list_element);
             for item in items {
-                rewrite(item, None, variables, environment, generated, ordinal)?;
+                rewrite(item, element, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -258,8 +334,15 @@ fn rewrite(
             rewrite(tail, None, variables, environment, generated, ordinal)?;
         }
         CoreExpr::Intrinsic(call) => {
+            let expected = matches!(
+                call.id,
+                crate::terlan_typeck::CoreIntrinsicId::Primitive(
+                    crate::terlan_typeck::CorePrimitiveIntrinsic::ListNew
+                )
+            )
+            .then_some(&call.return_type);
             for arg in &mut call.args {
-                rewrite(arg, None, variables, environment, generated, ordinal)?;
+                rewrite(arg, expected, variables, environment, generated, ordinal)?;
             }
         }
         CoreExpr::RemoteCall { args, .. } | CoreExpr::ConstructorCall { args, .. } => {
@@ -318,10 +401,17 @@ fn rewrite(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::Cast { expr: base, .. }
         | CoreExpr::UnaryOp { operand: base, .. } => {
             rewrite(base, None, variables, environment, generated, ordinal)?
         }
+        CoreExpr::Cast { expr, target_type } => rewrite(
+            expr,
+            Some(target_type),
+            variables,
+            environment,
+            generated,
+            ordinal,
+        )?,
         CoreExpr::Case { scrutinee, clauses } => {
             let scrutinee_type = infer(scrutinee, variables, signatures, module);
             rewrite(scrutinee, None, variables, environment, generated, ordinal)?;
@@ -408,42 +498,37 @@ fn rewrite(
     Ok(())
 }
 
+fn named_function_reference(expr: &CoreExpr, variables: &HashMap<String, CoreType>) -> bool {
+    match expr {
+        CoreExpr::Var(name) => !variables.contains_key(name),
+        CoreExpr::RemoteFunRef { .. } => true,
+        _ => false,
+    }
+}
+
+/// Records value uses while leaving direct calls eligible for static lowering.
+fn stored_callable_uses(expr: &mut CoreExpr, names: &mut std::collections::HashSet<String>) {
+    match expr {
+        CoreExpr::Var(name) => {
+            names.insert(name.clone());
+        }
+        CoreExpr::FunctionCall { callee, args } if matches!(callee.as_ref(), CoreExpr::Var(_)) => {
+            for arg in args {
+                stored_callable_uses(arg, names);
+            }
+        }
+        _ => crate::terlan_typeck::visit_core_expr_children_mut(expr, &mut |child| {
+            stored_callable_uses(child, names);
+        }),
+    }
+}
+
 fn bind_pattern_variables(
     pattern: &CorePattern,
     ty: &CoreType,
     variables: &mut HashMap<String, CoreType>,
 ) {
-    match pattern {
-        CorePattern::Var(name) => {
-            variables.insert(name.clone(), ty.clone());
-        }
-        CorePattern::Alias { alias, pattern } => {
-            variables.insert(alias.clone(), ty.clone());
-            bind_pattern_variables(pattern, ty, variables);
-        }
-        CorePattern::Tuple(patterns) => {
-            let CoreType::Tuple(elements) = ty else {
-                return;
-            };
-            for (pattern, element) in patterns.iter().zip(elements) {
-                let element = match element {
-                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
-                };
-                bind_pattern_variables(pattern, element, variables);
-            }
-        }
-        CorePattern::Map(patterns) => {
-            let CoreType::Map(fields) = ty else {
-                return;
-            };
-            for pattern in patterns {
-                if let Some(field) = fields.iter().find(|field| field.key == pattern.key) {
-                    bind_pattern_variables(&pattern.value, &field.value, variables);
-                }
-            }
-        }
-        _ => {}
-    }
+    super::generic_specialization::bind_pattern_types(pattern, ty, variables);
 }
 
 fn closure_factory(
@@ -459,6 +544,8 @@ fn closure_factory(
     factory.public = false;
     factory.generic_params.clear();
     factory.native_operation = None;
+    factory.trait_method = None;
+    factory.receiver_method = false;
     factory.params = captures
         .iter()
         .map(|name| {
@@ -532,10 +619,52 @@ fn infer(
         CoreExpr::Atom(_) => Some(CoreType::Atom),
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             signature(signatures, module, function, args.len()).map(|signature| signature.1.clone())
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            if params.len() != parameter_types.len() {
+                return None;
+            }
+            let parameter_types = parameter_types
+                .iter()
+                .cloned()
+                .collect::<Option<Vec<_>>>()?;
+            let mut variables = variables.clone();
+            for (pattern, ty) in params.iter().zip(&parameter_types) {
+                bind_pattern_variables(pattern, ty, &mut variables);
+            }
+            Some(CoreType::Arrow {
+                params: parameter_types,
+                return_type: Box::new(infer(body, &variables, signatures, module)?),
+            })
+        }
+        CoreExpr::If { clauses } => {
+            let mut types = clauses
+                .iter()
+                .map(|clause| infer(&clause.body, variables, signatures, module));
+            let first = types.next()??;
+            types.all(|ty| ty.as_ref() == Some(&first)).then_some(first)
+        }
+        CoreExpr::FunctionCall { callee, .. } => {
+            match infer(callee, variables, signatures, module)? {
+                CoreType::Arrow { return_type, .. } => Some(*return_type),
+                _ => None,
+            }
+        }
+        CoreExpr::Let { bindings, body } => {
+            let mut variables = variables.clone();
+            for binding in bindings {
+                let ty = infer(&binding.value, &variables, signatures, module)?;
+                bind_pattern_variables(&binding.pattern, &ty, &mut variables);
+            }
+            infer(body, &variables, signatures, module)
+        }
         CoreExpr::List(items) if !items.is_empty() => {
             infer(&items[0], variables, signatures, module).map(|ty| CoreType::List(Box::new(ty)))
         }

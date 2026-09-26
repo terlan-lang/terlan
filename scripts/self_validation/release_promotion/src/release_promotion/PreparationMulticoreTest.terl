@@ -1,0 +1,172 @@
+/**
+ * Real multicore composer admission and recovery against disposable evidence.
+ */
+module release_promotion.PreparationMulticoreTest.
+
+import release_promotion.{OwnerStorage, PreparationFixture, PrepareMulticoreRelease}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+import std.vcs.Git.
+
+import type release_promotion.PreparationOwner.Decision.
+import type std.core.Result.
+
+vm_path(): String -> "target/tools/terlan-vm".
+
+image_path(): String -> "target/tools/matrix.tvm".
+
+output_path(): String -> "target/quality/vm-multicore-release-closeout.json".
+
+stage(root: String, label: String): Result[Decision, String] ->
+    let _printed = Console.println(label);
+    case PrepareMulticoreRelease.prepare(root, vm_path(), image_path()) {
+        Ok(result) -> Ok(result);
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            Err(reason)
+    }.
+
+evidence(root: String): Bool ->
+    let Ok(identity) <- Git.source_tree_identity(root) else {
+        _ -> false
+    };
+    OwnerStorage.atomic_json(
+    root,
+    "target/quality/hosted-candidate-validation.json",
+    Json.object().put("schema", Json.string("fixture.hosted.v1")),
+)
+        and OwnerStorage.atomic_json(
+    root,
+    "target/quality/vm-multicore-memory-model.json",
+    Json.object()
+        .put("schema", Json.string("terlan.vm-multicore-memory-model.v1"))
+        .put("decision", Json.string("pass")),
+)
+        and OwnerStorage.atomic_json(
+    root,
+    "target/quality/vm-multicore-thread-sanitizer-report.json",
+    Json.object()
+        .put("schema", Json.string("terlan.vm-multicore-thread-sanitizer.v1"))
+        .put("decision", Json.string("pass"))
+        .put("source_revision", Json.string(Git.revision(identity)))
+        .put("source_tree_sha256", Json.string(Git.sha256(identity))),
+).
+
+pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/runtime"));
+        Ok(_ignore) <- File.write_text(OwnerStorage.child(root, ".gitignore"), "/target/\n");
+        Ok(_source) <- File.write_text(OwnerStorage.child(root, "source.txt"), "fixture source\n");
+        Ok(_inventory) <-
+            File.copy(
+                OwnerStorage.child(origin, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"),
+                OwnerStorage.child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"),
+            );
+        Ok(_contract) <-
+            File.copy(
+                OwnerStorage.child(origin, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"),
+                OwnerStorage.child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md"),
+            );
+        true <-
+            OwnerStorage.command(
+                root,
+                "/usr/bin/ln",
+                ["-s", "--", OwnerStorage.child(origin, vm), OwnerStorage.child(root, vm_path())],
+            );
+        Ok(_image) <- File.copy(OwnerStorage.child(origin, image), OwnerStorage.child(root, image_path()));
+        true <- PreparationFixture.commit(root)
+    } else {
+        _ -> false
+    };
+    evidence(root).
+
+exercise(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        true <- fixture(root, origin, vm, image);
+        Err(_unsafe_path) <- PrepareMulticoreRelease.prepare(root, "../outside-vm", image_path());
+        Ok(cold) <- stage(root, "[multicore rehearsal] cold composition");
+        true <- cold.valid and not cold.reused;
+        Ok(first) <- File.read_text(OwnerStorage.child(root, output_path()));
+        Ok(warm) <- stage(root, "[multicore rehearsal] unchanged warm reuse");
+        true <- warm.valid and warm.reused;
+        Ok(_dirty) <- File.write_text(OwnerStorage.child(root, "source.txt"), "changed source\n");
+        Err(_dirty_source) <- stage(root, "[multicore rehearsal] dirty source (expected rejection)");
+        Ok(_restored_source) <- File.write_text(OwnerStorage.child(root, "source.txt"), "fixture source\n");
+        Ok(clean) <- stage(root, "[multicore rehearsal] unchanged source restored");
+        true <- clean.valid and clean.reused;
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                "target/quality/hosted-candidate-validation.json",
+                Json.object()
+                    .put("schema", Json.string("fixture.hosted.v1"))
+                    .put("attempt", Json.int(2)),
+            );
+        Ok(attempt) <- stage(root, "[multicore rehearsal] changed hosted attempt");
+        true <- attempt.valid and not attempt.reused;
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                "target/quality/vm-multicore-memory-model.json",
+                Json.object()
+                    .put("schema", Json.string("terlan.vm-multicore-memory-model.v1"))
+                    .put("decision", Json.string("pass"))
+                    .put("generation", Json.int(2)),
+            );
+        Ok(changed) <- stage(root, "[multicore rehearsal] changed evidence");
+        true <- changed.valid and not changed.reused;
+        Ok(second) <- File.read_text(OwnerStorage.child(root, output_path()));
+        true <- first != second;
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                "target/quality/vm-multicore-thread-sanitizer-report.json",
+                Json.object()
+                    .put("schema", Json.string("terlan.vm-multicore-thread-sanitizer.v1"))
+                    .put("decision", Json.string("fail")),
+            );
+        Ok(failed) <- stage(root, "[multicore rehearsal] failed evidence (expected rejection)");
+        true <- not failed.valid;
+        Ok(preserved) <- File.read_text(OwnerStorage.child(root, output_path()));
+        true <- second == preserved;
+        true <- evidence(root);
+        Ok(resumed) <- stage(root, "[multicore rehearsal] evidence recovery");
+        true <- resumed.valid and not resumed.reused;
+        Ok(restored) <- File.read_text(OwnerStorage.child(root, output_path()));
+        true <- first == restored;
+        Ok(_corrupt) <- File.write_text(OwnerStorage.child(root, image_path()), "invalid TVM image");
+        Ok(rejected) <- stage(root, "[multicore rehearsal] corrupted image (expected rejection)");
+        true <- not rejected.valid;
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, output_path()));
+        true <- first == retained;
+        Ok(_removed_corrupt_copy) <- File.delete(OwnerStorage.child(root, image_path()));
+        Ok(_repaired) <- File.copy(OwnerStorage.child(origin, image), OwnerStorage.child(root, image_path()));
+        Ok(recovered) <- stage(root, "[multicore rehearsal] image recovery");
+        true <- recovered.valid and not recovered.reused;
+        Ok(final) <- File.read_text(OwnerStorage.child(root, output_path()))
+    } else {
+        _ -> false
+    };
+    first == final.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-multicore-preparation-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, origin, vm, image);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "multicore preparation rehearsal passed: cold, warm, dirty source, hosted attempt, changed/failed evidence, corrupt image, recovery";
+            true -> "multicore preparation rehearsal failed"
+        },
+    );
+valid and removed).

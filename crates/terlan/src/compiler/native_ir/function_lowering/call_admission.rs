@@ -50,12 +50,17 @@ pub(in super::super) fn expr_calls_are_supported(
         );
     }
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => {
             let identity = (function.clone(), args.len());
             let is_local = identities
                 .iter()
                 .any(|(name, arity)| *name == function && *arity == args.len());
-            is_local
+            type_args.is_empty()
+                && is_local
                 && (!suspending.contains(&identity) || tail_position)
                 && args.iter().all(|arg| {
                     !expr_calls_suspending(arg, suspending) && expr_calls_are_local(arg, identities)

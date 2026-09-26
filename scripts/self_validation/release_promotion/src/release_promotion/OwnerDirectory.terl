@@ -1,0 +1,187 @@
+/**
+ * Recoverable publication of a bounded, flat evidence directory under flock.
+ * Old evidence stays in private staging until the enclosing owner commits.
+ */
+module release_promotion.OwnerDirectory.
+
+import release_promotion.OwnerStorage.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Directory.
+import std.io.Directory.{NotFound}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+safe_member(name: String): Bool ->
+    name != ""
+        and name != "."
+        and name != ".."
+        and not String.contains(name, "/")
+        and not String.contains(name, "\\")
+        and not String.contains(name, "\n")
+        and not String.contains(name, "\r").
+
+member_names(paths: List[String], prefix: String, remaining: Int): Result[List[String], String] ->
+    case paths {
+        [] -> Ok([]);
+        [path | rest] ->
+            let {
+                true <- remaining > 0 and String.starts_with(path, prefix);
+                name <- path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+                true <- safe_member(name);
+                Ok(names) <- member_names(rest, prefix, remaining - 1)
+            } else {
+                _ -> Err("invalid or oversized evidence directory inventory")
+            };
+            Ok([name | names])
+    }.
+
+count(names: List[String]): Int ->
+    case names {
+        [] -> 0;
+        [_name | rest] -> 1 + count(rest)
+    }.
+
+/**
+ * Every entry must be a regular file. Extra files, symlinks, subdirectories,
+ * and special files cannot disappear silently from the sealed inventory.
+ */
+pub inventory(path: String): Result[Json, String] ->
+    let {
+        Ok(entries) <- Directory.entries(path);
+        Ok(names) <- member_names(entries, String.append(path, "/"), 256);
+        Ok(usage) <- Directory.tree_usage(path);
+        true <- usage.directory_count == 1 and usage.symbolic_link_count == 0;
+        true <- usage.regular_file_count > 0 and usage.regular_file_count <= 256;
+        true <- count(names) == usage.regular_file_count;
+        true <- usage.logical_file_bytes <= 16777216;
+        Ok(files) <- OwnerStorage.files(path, names);
+        true <- files.length() == Ok(usage.regular_file_count)
+    } else {
+        _ -> Err("evidence directory must contain 1..256 regular files within 16 MiB")
+    };
+    Ok(files).
+
+/**
+ * The final path, member names, sizes and hashes are all checkpoint-bound.
+ */
+pub row(root: String, path: String, destination: String): Result[Json, String] ->
+    let Ok(files) <- inventory(OwnerStorage.child(root, path)) else {
+        Err(reason) -> Err(reason)
+    };
+    sealed_row(destination, files).
+
+sealed_row(destination: String, files: Json): Result[Json, String] ->
+    let identity =
+        Json.object()
+            .put("path", Json.string(destination))
+            .put("format", Json.string("flat-directory"));
+    Ok(identity.put("files", files)).
+
+matches(root: String, path: String, destination: String, expected: Json): Bool ->
+    let {
+        Some(bound) <- OwnerStorage.text(expected, "path");
+        true <- bound == destination;
+        Ok(actual) <- row(root, path, destination);
+        Ok(actual_hash) <- OwnerStorage.digest(actual);
+        Ok(expected_hash) <- OwnerStorage.digest(expected)
+    } else {
+        _ -> false
+    };
+    actual_hash == expected_hash.
+
+/**
+ * Distinguish absence from a malformed directory or a symlink at its root.
+ */
+missing(root: String, path: String): Bool ->
+    case Directory.tree_usage(OwnerStorage.child(root, path)) {
+        Err(reason) -> Directory.code(reason) == NotFound;
+        Ok(_usage) -> false
+    }.
+
+prior_directory(root: String, path: String): Bool ->
+    case inventory(OwnerStorage.child(root, path)) {
+        Ok(_files) -> true;
+        Err(_reason) -> false
+    }.
+
+/**
+ * The retained old generation has a deterministic private name.
+ */
+pub backup(staged: String): String ->
+    String.append(staged, ".previous").
+
+canonical(path: String): Bool ->
+    not String.contains(path, "..")
+        and not String.contains(path, "\\")
+        and not String.contains(path, "/./")
+        and not String.contains(path, "//")
+        and not String.ends_with(path, "/")
+        and not String.ends_with(path, "/.").
+
+paths_valid(staged: String, destination: String): Bool ->
+    String.starts_with(staged, "target/quality/preparation/")
+        and String.contains(staged, ".work/output")
+        and String.starts_with(destination, "target/quality/")
+        and not String.starts_with(destination, "target/quality/preparation/")
+        and canonical(staged)
+        and canonical(destination).
+
+unlinked_paths(root: String, staged: String, destination: String): Bool ->
+    OwnerStorage.command(
+        root,
+        "/bin/sh",
+        [
+            "-c",
+            "set -eu; for entry in \"$1\" \"$2\"; do current=$entry; while :; do test ! -L \"$current\"; case $current in */*) current=${current%/*};; *) break;; esac; done; done",
+            "check-evidence-paths",
+            staged,
+            destination,
+        ],
+    ).
+
+/**
+ * The only accepted intermediate state has the old generation in its private
+ * backup and the final destination absent. Never overwrite an existing backup.
+ */
+pub ready(root: String, staged: String, destination: String, expected: Json): Bool ->
+    paths_valid(staged, destination)
+        and unlinked_paths(root, staged, destination)
+        and if {
+    missing(root, staged) -> matches(root, destination, destination, expected);
+    true -> matches(root, staged, destination, expected)
+        and if {
+    missing(root, backup(staged)) -> missing(root, destination) or prior_directory(root, destination);
+    true -> missing(root, destination) and prior_directory(root, backup(staged))
+}
+}.
+
+move(root: String, source: String, destination: String): Bool ->
+    OwnerStorage.command(
+        root,
+        "/bin/sh",
+        [
+            "-c",
+            "set -eu; source_device=$(/usr/bin/stat -c %d -- \"$1\"); parent=$(/usr/bin/dirname -- \"$2\"); destination_device=$(/usr/bin/stat -c %d -- \"$parent\"); test \"$source_device\" = \"$destination_device\"; exec /usr/bin/mv -n -T -- \"$1\" \"$2\"",
+            "publish-evidence-directory",
+            OwnerStorage.child(root, source),
+            OwnerStorage.child(root, destination),
+        ],
+    ).
+
+/**
+ * Call only after the enclosing prepared ledger seals this expected row.
+ * Both renames stay on the same filesystem. Readers hold the enclosing lock;
+ * this is process-crash recovery, not a claim of atomic directory exchange.
+ */
+pub publish(root: String, staged: String, destination: String, expected: Json): Bool ->
+    ready(root, staged, destination, expected)
+        and if {
+    missing(root, staged) -> true;
+    true -> (missing(root, destination) or move(root, destination, backup(staged)))
+        and move(root, staged, destination)
+        and matches(root, destination, destination, expected)
+}.

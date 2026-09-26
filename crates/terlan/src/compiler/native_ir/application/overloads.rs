@@ -1,14 +1,22 @@
 //! Typed overload identity normalization before NativeIR admission.
 
+use super::super::NativeIrResult;
 use super::super::QualifiedFunctionIdentity as OverloadKey;
 use super::*;
 use crate::terlan_typeck::{core_type_contract_text, CoreTupleTypeElem};
+
+mod selected_imports;
+mod trait_methods;
+mod type_scoring;
+pub(super) use selected_imports::resolve as resolve_selected_imports;
+use type_scoring::type_match_score;
 
 #[derive(Clone)]
 /// One source overload and its deterministic NativeIR-facing identity.
 struct OverloadCandidate {
     module: String,
-    source_name: String,
+    private_trait_impl: bool,
+    generic_trait_method: bool,
     arity: usize,
     internal_name: String,
     parameters: Vec<CoreType>,
@@ -27,13 +35,22 @@ fn has_target_owned_overload_lowering(module: &str) -> bool {
 /// Source interfaces remain keyed by their public Terlan name. The native
 /// application closure instead receives a distinct name for every parameter
 /// vector so its compact `(name, arity)` resolver cannot merge overloads.
-pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), String> {
-    let groups = collect_overload_groups(cores)?;
+pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> NativeIrResult<()> {
+    let mut groups = collect_overload_groups(cores)?;
+    rename_overload_declarations(cores, &groups)?;
+    trait_methods::collect(cores, &mut groups);
+    rewrite_application(cores, &groups)
+}
+
+/// Resolves collected candidates using the same lexical type propagation.
+fn rewrite_application(
+    cores: &mut [CoreModule],
+    groups: &HashMap<OverloadKey, Vec<OverloadCandidate>>,
+) -> NativeIrResult<()> {
     if groups.is_empty() {
         return Ok(());
     }
     let aliases = collect_alias_bodies(cores);
-    rename_overload_declarations(cores, &groups)?;
     let returns = collect_return_types(cores);
     for core in cores {
         for function in &mut core.functions {
@@ -62,7 +79,7 @@ pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), St
                             expr,
                             &core.module,
                             &mut clause_environment,
-                            &groups,
+                            groups,
                             &returns,
                             &aliases,
                         )?;
@@ -73,7 +90,7 @@ pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> Result<(), St
                         expr,
                         &core.module,
                         &mut clause_environment,
-                        &groups,
+                        groups,
                         &returns,
                         &aliases,
                     )?;
@@ -148,7 +165,8 @@ fn collect_overload_groups(
             .enumerate()
             .map(|(index, (parameters, result))| OverloadCandidate {
                 module: module.clone(),
-                source_name: name.clone(),
+                private_trait_impl: false,
+                generic_trait_method: false,
                 arity,
                 internal_name: format!("{name}__terlan_overload_{index}"),
                 parameters,
@@ -278,15 +296,39 @@ fn rewrite_expr(
                 args: vec![common_type(&item_types)],
             })
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;
             if let Some(candidates) =
                 local_overload_candidates(current_module, function, args.len(), groups)
             {
-                let selected = select_candidate(candidates, &argument_types, function, aliases)?;
-                function.clone_from(&selected.internal_name);
-                Some(selected.result.clone())
+                let selected = select_candidate(
+                    candidates,
+                    &argument_types,
+                    function,
+                    current_module,
+                    aliases,
+                )?;
+                let result = Some(selected.result.clone());
+                if crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic(
+                    &selected.module,
+                    &selected.internal_name,
+                    args.len(),
+                )
+                .is_some()
+                {
+                    *expr = crate::terlan_typeck::core_intrinsic_lowering::core_intrinsic_expr_from_parts(
+                        &selected.module, &selected.internal_name, std::mem::take(args),
+                        crate::terlan_syntax::span::Span { start: 0, end: 0 },
+                    ).expect("registered selected primitive retains its lowering");
+                } else {
+                    *function = if selected.module == current_module {
+                        selected.internal_name.clone()
+                    } else {
+                        format!("{}.{}", selected.module, selected.internal_name)
+                    };
+                }
+                result
             } else {
                 lookup_call_return(current_module, function, args.len(), returns)
             }
@@ -295,12 +337,20 @@ fn rewrite_expr(
             module,
             function,
             args,
+            ..
         } => {
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;
             if let Some(candidates) = groups.get(&(module.clone(), function.clone(), args.len())) {
-                let selected = select_candidate(candidates, &argument_types, function, aliases)?;
+                let selected = select_candidate(
+                    candidates,
+                    &argument_types,
+                    function,
+                    current_module,
+                    aliases,
+                )?;
                 function.clone_from(&selected.internal_name);
+                module.clone_from(&selected.module);
                 Some(selected.result.clone())
             } else {
                 returns
@@ -597,8 +647,17 @@ fn rewrite_expr(
             )?;
             Some(result_core_type.clone())
         }
-        CoreExpr::Lam { body, .. } => {
-            rewrite_expr(body, current_module, environment, groups, returns, aliases)?;
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let mut locals = super::super::generic_specialization::lambda_type_scope(
+                params,
+                parameter_types,
+                environment,
+            );
+            rewrite_expr(body, current_module, &mut locals, groups, returns, aliases)?;
             None
         }
         CoreExpr::RemoteFunRef { .. } => None,
@@ -654,12 +713,12 @@ fn local_overload_candidates<'a>(
     {
         return Some(candidates);
     }
-    groups.values().find_map(|candidates| {
-        let candidate = candidates.first()?;
-        (candidate.arity == arity
-            && format!("{}.{}", candidate.module, candidate.source_name) == function)
-            .then_some(candidates.as_slice())
-    })
+    groups
+        .iter()
+        .find_map(|((module, name, candidate_arity), candidates)| {
+            (*candidate_arity == arity && format!("{module}.{name}") == function)
+                .then_some(candidates.as_slice())
+        })
 }
 
 /// Selects the unique most-specific candidate accepted by inferred arguments.
@@ -667,11 +726,25 @@ fn select_candidate<'a>(
     candidates: &'a [OverloadCandidate],
     arguments: &[Option<CoreType>],
     source_name: &str,
+    current_module: &str,
     aliases: &AliasBodies,
 ) -> Result<&'a OverloadCandidate, String> {
+    // A uniquely identified trait implementation is a callable template, not
+    // an overload on its method's generic arguments. Those arguments (including
+    // constructors and callback signatures) are checked by monomorphization.
+    if let [candidate] = candidates {
+        if candidate.generic_trait_method
+            && (!candidate.private_trait_impl || candidate.module == current_module)
+        {
+            return Ok(candidate);
+        }
+    }
     let mut matches = candidates
         .iter()
         .filter_map(|candidate| {
+            if candidate.private_trait_impl && candidate.module != current_module {
+                return None;
+            }
             let mut score = 0usize;
             for (expected, actual) in candidate.parameters.iter().zip(arguments) {
                 let Some(actual) = actual else {
@@ -698,79 +771,6 @@ fn select_candidate<'a>(
         ));
     }
     Ok(best)
-}
-
-/// Scores structural compatibility, preferring exact nested type matches.
-fn type_match_score(
-    expected: &CoreType,
-    actual: &CoreType,
-    aliases: &AliasBodies,
-) -> Option<usize> {
-    type_match_score_at(expected, actual, aliases, 0)
-}
-
-/// Scores structural compatibility while resolving bounded transparent aliases.
-fn type_match_score_at(
-    expected: &CoreType,
-    actual: &CoreType,
-    aliases: &AliasBodies,
-    depth: usize,
-) -> Option<usize> {
-    if expected == actual {
-        return Some(8);
-    }
-    if depth < 16 {
-        if let CoreType::Named(name) = expected {
-            if let Some(body) = aliases
-                .get(name)
-                .or_else(|| aliases.get(name.rsplit('.').next().unwrap_or(name)))
-            {
-                return type_match_score_at(body, actual, aliases, depth + 1)
-                    .map(|score| score.saturating_sub(1));
-            }
-        }
-        if let CoreType::Named(name) = actual {
-            if let Some(body) = aliases
-                .get(name)
-                .or_else(|| aliases.get(name.rsplit('.').next().unwrap_or(name)))
-            {
-                return type_match_score_at(expected, body, aliases, depth + 1)
-                    .map(|score| score.saturating_sub(1));
-            }
-        }
-    }
-    match (expected, actual) {
-        (CoreType::Dynamic | CoreType::Term, _) | (_, CoreType::Dynamic) => Some(1),
-        (CoreType::Number, CoreType::Int | CoreType::Float | CoreType::Number) => Some(2),
-        (CoreType::Atom, CoreType::AtomLiteral(_)) => Some(4),
-        (CoreType::Union(variants), actual) => variants
-            .iter()
-            .filter_map(|variant| type_match_score_at(variant, actual, aliases, depth + 1))
-            .max()
-            .map(|score| score + 2),
-        (CoreType::List(expected), CoreType::List(actual)) => {
-            type_match_score_at(expected, actual, aliases, depth).map(|score| score + 4)
-        }
-        (
-            CoreType::Apply {
-                constructor: expected_constructor,
-                args: expected_args,
-            },
-            CoreType::Apply {
-                constructor: actual_constructor,
-                args: actual_args,
-            },
-        ) if expected_constructor == actual_constructor
-            && expected_args.len() == actual_args.len() =>
-        {
-            let mut score = 4;
-            for (expected, actual) in expected_args.iter().zip(actual_args) {
-                score += type_match_score_at(expected, actual, aliases, depth)?;
-            }
-            Some(score)
-        }
-        _ => None,
-    }
 }
 
 /// Looks up a non-overloaded local or qualified call result.

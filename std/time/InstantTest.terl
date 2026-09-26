@@ -1,6 +1,7 @@
 module std.time.InstantTest.
 
 import std.test.Test.{assert_equal}.
+import std.time.Duration.
 import std.time.Instant.{Instant, add_duration, duration_since, from_milliseconds, subtract_duration}.
 
 @test

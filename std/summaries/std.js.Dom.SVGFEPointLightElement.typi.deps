@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGFEPointLightElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4684049195614347918
-interface_hash=4223593157279513165
-interface_doc_hash=4223593157279513165
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16006634258104738275
+interface_hash=4566546719597254111
+interface_doc_hash=4566546719597254111
 deps=0

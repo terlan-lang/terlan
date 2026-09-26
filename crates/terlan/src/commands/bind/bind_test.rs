@@ -278,7 +278,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_source.contains("@generated true"));
     assert!(document_source.contains("@do-not-edit true"));
     assert!(document_source.contains("@generator terlc"));
-    assert!(document_source.contains("@generator-version 0.0.8"));
+    assert!(document_source.contains(&format!("@generator-version {}", env!("CARGO_PKG_VERSION"))));
     assert!(document_source.contains("@generator-profile typescript-standard-js-dom"));
     assert!(document_source.contains("@artifact-kind source"));
     assert!(document_source.contains("@input-manifest std/js/manifests/std_js_dom_inputs.json"));
@@ -308,7 +308,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_test.contains("@generated true"));
     assert!(document_test.contains("@do-not-edit true"));
     assert!(document_test.contains("@generator terlc"));
-    assert!(document_test.contains("@generator-version 0.0.8"));
+    assert!(document_test.contains(&format!("@generator-version {}", env!("CARGO_PKG_VERSION"))));
     assert!(document_test.contains("@generator-profile typescript-standard-js-dom"));
     assert!(document_test.contains("@artifact-kind test"));
     assert!(document_test.contains("@input-manifest std/js/manifests/std_js_dom_inputs.json"));
@@ -465,6 +465,7 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
 "#;
     fs::write(&namespace_path, namespace_source).expect("write namespace fixture");
     let namespace_hash = test_sha256_hex(namespace_source.as_bytes());
+    let generator_version = env!("CARGO_PKG_VERSION");
     let manifest_path = root.join("manifest.json");
     fs::write(
         &manifest_path,
@@ -473,7 +474,7 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
   "schema": "terlan.std.js.input-manifest.v1",
   "generator": {{
     "name": "terlc",
-    "version": "0.0.8",
+    "version": "{generator_version}",
     "profile": "angular-ts-namespace",
     "oxc_parser": true
   }},

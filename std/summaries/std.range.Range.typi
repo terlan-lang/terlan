@@ -91,7 +91,7 @@ pub length(range: Range): Int.
 /// Output: `Ok(range)` for valid steps or `Err(InvalidStep)` for zero.
 /// Transformation: validates the step before exposing a range value.
 
-pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): Result[Range, RangeError].
+pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): std.core.Result.Result[Range, RangeError].
 
 /// Converts a range to a list of integers in traversal order.
 ///

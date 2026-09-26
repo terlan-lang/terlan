@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasFillStrokeStyles
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4266711098725388581
-interface_hash=14465506814555861958
-interface_doc_hash=14465506814555861958
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11070105728514300557
+interface_hash=7838695947523814250
+interface_doc_hash=7838695947523814250
 deps=0

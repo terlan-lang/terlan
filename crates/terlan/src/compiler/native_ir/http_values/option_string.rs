@@ -70,7 +70,7 @@ pub(super) fn lower_request_option_default(
 fn is_request_string_option(expr: &CoreExpr) -> bool {
     matches!(
         expr,
-        CoreExpr::RemoteCall { module, function, args }
+        CoreExpr::RemoteCall { module, function, args, .. }
             if module == MANAGED_HTTP_MODULE
                 && matches!(function.as_str(), "param" | "query" | "header" | "cookie" | "jar_get")
                 && args.len() == 2
@@ -248,6 +248,7 @@ fn bind_option_payload(
 /// Creates one compiler-private managed HTTP operation.
 fn managed_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
     CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_HTTP_MODULE.to_string(),
         function: function.to_string(),
         args,

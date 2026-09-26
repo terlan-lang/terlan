@@ -1,35 +1,35 @@
 {
-  "schema": "terlan.std.js.input-manifest.v1",
   "generator": {
     "name": "terlc",
-    "version": "0.0.8",
+    "oxc_parser": true,
     "profile": "typescript-standard-js-dom",
-    "oxc_parser": true
-  },
-  "target_profile": "js.browser",
-  "source_package": {
-    "name": "typescript",
-    "version": "5.9.3",
-    "resolution": "committed-lib-fixture"
+    "version": "0.0.9"
   },
   "inputs": [
     {
+      "kind": "typescript-declaration",
+      "namespace": "std.js",
       "path": "std/js/fixtures/lib.es5.d.ts",
-      "sha256": "c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1",
-      "kind": "typescript-declaration",
-      "namespace": "std.js"
+      "sha256": "c430d44666289dae81f30fa7b2edebf186ecc91a2d4c71266ea6ae76388792e1"
     },
     {
+      "kind": "typescript-declaration",
+      "namespace": "std.js",
       "path": "std/js/fixtures/lib.es2015.collection.d.ts",
-      "sha256": "dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44",
-      "kind": "typescript-declaration",
-      "namespace": "std.js"
+      "sha256": "dc2df20b1bcdc8c2d34af4926e2c3ab15ffe1160a63e58b7e09833f616efff44"
     },
     {
-      "path": "std/js/fixtures/lib.dom.d.ts",
-      "sha256": "080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9",
       "kind": "typescript-declaration",
-      "namespace": "std.js.Dom"
+      "namespace": "std.js.Dom",
+      "path": "std/js/fixtures/lib.dom.d.ts",
+      "sha256": "080941d9f9ff9307f7e27a83bcd888b7c8270716c39af943532438932ec1d0b9"
     }
-  ]
+  ],
+  "schema": "terlan.std.js.input-manifest.v1",
+  "source_package": {
+    "name": "typescript",
+    "resolution": "committed-lib-fixture",
+    "version": "5.9.3"
+  },
+  "target_profile": "js.browser"
 }

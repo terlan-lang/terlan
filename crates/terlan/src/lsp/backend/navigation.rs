@@ -176,7 +176,7 @@ impl Backend {
     ///   requiring non-identifier boundaries on both sides, preventing partial
     ///   matches such as `id` inside `user_id`.
     pub(in super::super) fn reference_locations_for_position(
-        uri: &Url,
+        uri: &Uri,
         document: &OpenDocument,
         position: Position,
     ) -> Vec<Location> {
@@ -317,7 +317,7 @@ impl Backend {
     /// - Uses the syntax lexer so comments, strings, binaries, punctuation, and
     ///   keywords are not reported as references.
     pub(in super::super) fn reference_locations_for_identifier(
-        uri: &Url,
+        uri: &Uri,
         text: &str,
         identifier: &str,
     ) -> Vec<Location> {
@@ -358,7 +358,7 @@ impl Backend {
     ///   imported public symbols when a provider interface/source file is
     ///   available beside the current document.
     pub(in super::super) fn definition_locations_for_position(
-        uri: &Url,
+        uri: &Uri,
         document: &OpenDocument,
         position: Position,
     ) -> Vec<Location> {
@@ -427,7 +427,7 @@ impl Backend {
     ///   receiver parameter annotation and selected import before reading the
     ///   provider source/interface symbol tree.
     pub(in super::super) fn imported_receiver_field_definition_location(
-        uri: &Url,
+        uri: &Uri,
         module: &SyntaxModuleOutput,
         text: &str,
         field_start: usize,
@@ -447,7 +447,7 @@ impl Backend {
         {
             return None;
         }
-        let current_path = uri.to_file_path().ok()?;
+        let current_path = crate::lsp::uri::to_file_path(uri)?;
         let current_dir = current_path.parent()?;
         Self::provider_struct_field_definition_location(
             current_dir,
@@ -591,12 +591,12 @@ impl Backend {
     /// - Keeps cross-file navigation tied to generated interface visibility
     ///   rather than guessing from arbitrary source files.
     pub(in super::super) fn imported_definition_location(
-        uri: &Url,
+        uri: &Uri,
         module: &SyntaxModuleOutput,
         identifier: &str,
     ) -> Option<Location> {
         let interfaces = OpenDocuments::imported_interfaces_for_uri(uri, module);
-        let current_path = uri.to_file_path().ok()?;
+        let current_path = crate::lsp::uri::to_file_path(uri)?;
         let current_dir = current_path.parent()?;
 
         let mut resolved_locations = Vec::new();
@@ -809,7 +809,7 @@ impl Backend {
                 field_name,
                 SymbolKind::FIELD,
             ) {
-                let uri = Url::from_file_path(path).ok()?;
+                let uri = crate::lsp::uri::from_file_path(path).ok()?;
                 return Some(Location::new(uri, range));
             }
         }
@@ -848,7 +848,7 @@ impl Backend {
             };
             let symbols = Self::provider_document_symbols_for_text(&text);
             if let Some(range) = Self::find_symbol_selection_range(&symbols, identifier) {
-                let uri = Url::from_file_path(path).ok()?;
+                let uri = crate::lsp::uri::from_file_path(path).ok()?;
                 return Some(Location::new(uri, range));
             }
             if let Some((source_module, source_name)) =

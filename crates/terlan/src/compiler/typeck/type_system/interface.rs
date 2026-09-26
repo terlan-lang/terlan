@@ -146,7 +146,9 @@ pub(crate) fn parse_interface_signature(
 /// - Lets interface signatures parse imported dependency types as named types
 ///   before global alias expansion. Ambiguous short names remain unresolved
 ///   rather than acquiring whichever provider appears first in a hash map.
-fn unique_global_alias_short_names(global_aliases: &HashMap<String, TypeAlias>) -> HashSet<String> {
+pub(crate) fn unique_global_alias_short_names(
+    global_aliases: &HashMap<String, TypeAlias>,
+) -> HashSet<String> {
     let mut counts = HashMap::<&str, usize>::new();
     for qualified in global_aliases.keys() {
         let Some((_, short)) = qualified.rsplit_once('.') else {
@@ -413,7 +415,7 @@ pub(crate) fn parse_interface_constructor_schemes(
 
     let schemes = signatures
         .iter()
-        .filter(|signature| signature.public && signature.min_arity == signature.params.len())
+        .filter(|signature| signature.public)
         .map(|signature| {
             let mut vars = HashMap::new();
             let mut next_var: TypeVarId = 0;

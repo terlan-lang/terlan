@@ -304,9 +304,13 @@ pub(super) fn module_with_core_body_and_evidence(
             syntax_contract_fingerprint: None,
         },
         imports: Vec::new(),
+        selected_function_imports: Vec::new(),
         exports: Vec::new(),
         types: Vec::new(),
         functions: vec![CoreFunction {
+            receiver_method: false,
+            trait_method: None,
+            source: None,
             name: "value".to_string(),
             arity: 1,
             public: true,
@@ -394,6 +398,7 @@ pub(super) fn target_profile_accepts_documented_core_v0_shape_matrix() {
                                 right: Box::new(CoreExpr::Int(0)),
                             },
                             body: CoreExpr::Call {
+                                type_args: Vec::new(),
                                 function: "identity".to_string(),
                                 args: vec![CoreExpr::ListCons {
                                     head: Box::new(CoreExpr::Int(1)),
@@ -404,9 +409,11 @@ pub(super) fn target_profile_accepts_documented_core_v0_shape_matrix() {
                         CoreIfClause {
                             condition: CoreExpr::Atom("true".to_string()),
                             body: CoreExpr::ConstructorCall {
+                                type_args: Vec::new(),
                                 constructor: "Ok".to_string(),
                                 constructor_identity: Some("Ok/1".to_string()),
                                 args: vec![CoreExpr::Lam {
+                                    parameter_types: Vec::new(),
                                     params: vec![CorePattern::Var("x".to_string())],
                                     body: Box::new(CoreExpr::FieldAccess {
                                         base: Box::new(CoreExpr::Var("x".to_string())),

@@ -19,6 +19,14 @@
  * compatible, unfenced profile and preserves its declared roles. Leadership
  * hints are deterministic routing hints over active role tags; they are not a
  * consensus or replicated-state guarantee.
+ *
+ * Native AOT executes profiles, membership, and in-memory transport sessions.
+ * Updates produce immutable actor-owned snapshots. Frames use the VM's TETF
+ * codec and the admitted image's atom vocabulary; no operation here discovers
+ * peers or opens network connections. Scalar, byte/string, record, list, and
+ * tuple, Map, Set, and Binary bitstring payloads are supported. Actor-local
+ * handles are rejected. VM-owned calls preserve typed values directly;
+ * external workers retain their separate, narrower wire vocabulary.
  */
 module std.vm.Cluster.
 
@@ -338,6 +346,7 @@ pub impl SendAcrossNode[T] for T {
  * VM-owned distributed transport session.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.profile}
 pub profile(
     app_id: String,
     vm_id: String,
@@ -357,6 +366,7 @@ pub profile(
  * process-global state or synthesizing an implicit local node name.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.profile_node_id}
 pub (profile: Profile) node_id(): String ->
     native.
 
@@ -364,6 +374,7 @@ pub (profile: Profile) node_id(): String ->
  * Returns the positive restart epoch carried by one profile.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.profile_epoch}
 pub (profile: Profile) epoch(): Int ->
     native.
 
@@ -376,6 +387,7 @@ pub (profile: Profile) epoch(): Int ->
  * application, VM, node, cluster, runtime, or capability metadata.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.profile_next_epoch}
 pub (profile: Profile) next_epoch(): Profile ->
     native.
 
@@ -388,6 +400,7 @@ pub (profile: Profile) next_epoch(): Profile ->
  * layer before source code can join peers.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership}
 pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership ->
     native.
 
@@ -399,6 +412,7 @@ pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership ->
  * Transformation: applies VM-owned compatibility and role-tag ordering rules.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_join}
 pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membership ->
     native.
 
@@ -411,6 +425,7 @@ pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membe
  * identities before replacing restart state.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_restart}
 pub (membership: Membership) restart(peer: Profile, tick: Int): Membership ->
     native.
 
@@ -423,6 +438,7 @@ pub (membership: Membership) restart(peer: Profile, tick: Int): Membership ->
  * VM-owned membership state machine used by distributed scheduling.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_heartbeat}
 pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership ->
     native.
 
@@ -435,6 +451,7 @@ pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership -
  * behavior deterministic and observable to placement and failover policy.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_partition}
 pub (membership: Membership) partition(node_id: String, tick: Int): Membership ->
     native.
 
@@ -447,6 +464,7 @@ pub (membership: Membership) partition(node_id: String, tick: Int): Membership -
  * epoch, and role tags across the simulated partition interval.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_heal}
 pub (membership: Membership) heal(node_id: String, tick: Int): Membership ->
     native.
 
@@ -459,6 +477,7 @@ pub (membership: Membership) heal(node_id: String, tick: Int): Membership ->
  * while preserving the peer snapshot for deterministic diagnostics.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_leave}
 pub (membership: Membership) leave(node_id: String, tick: Int): Membership ->
     native.
 
@@ -471,6 +490,7 @@ pub (membership: Membership) leave(node_id: String, tick: Int): Membership ->
  * administrative isolation explicit in source-level cluster control.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_fence}
 pub (membership: Membership) fence(node_id: String, tick: Int): Membership ->
     native.
 
@@ -483,6 +503,7 @@ pub (membership: Membership) fence(node_id: String, tick: Int): Membership ->
  * local node active and retaining peer identity for later recovery.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_expire}
 pub (membership: Membership) expire(current_tick: Int): Membership ->
     native.
 
@@ -496,6 +517,7 @@ pub (membership: Membership) expire(current_tick: Int): Membership ->
  * pruning occurs only after the exact retention boundary has passed.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_prune}
 pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Membership ->
     native.
 
@@ -508,6 +530,7 @@ pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Mem
  * internal membership table representation.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_state}
 pub (membership: Membership) state(node_id: String): NodeState ->
     native.
 
@@ -520,6 +543,7 @@ pub (membership: Membership) state(node_id: String): NodeState ->
  * immutable Terlan records.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_view}
 pub (membership: Membership) view(): List[Node] ->
     native.
 
@@ -531,6 +555,7 @@ pub (membership: Membership) view(): List[Node] ->
  * Transformation: derives health only from typed membership state.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_health}
 pub (membership: Membership) health(): ClusterHealth ->
     native.
 
@@ -543,6 +568,7 @@ pub (membership: Membership) health(): ClusterHealth ->
  * or claim authoritative leadership.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.membership_leader_hint}
 pub (membership: Membership) leader_hint(): Option[String] ->
     native.
 
@@ -555,6 +581,7 @@ pub (membership: Membership) leader_hint(): Option[String] ->
  * through the VM distributed transport layer.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.open}
 pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session ->
     native.
 
@@ -567,6 +594,7 @@ pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session ->
  * identity, validate target capability, and produce a bounded frame.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.send}
 pub (session: Session) send[Payload](capability: String, payload: Payload)[SendAcrossNode[Payload]]: SendResult ->
     native.
 
@@ -580,6 +608,7 @@ pub (session: Session) send[Payload](capability: String, payload: Payload)[SendA
  * session snapshot until `acknowledge` consumes it.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.send_with}
 pub (session: Session) send_with[Payload](
     capability: String,
     payload: Payload,
@@ -596,6 +625,7 @@ pub (session: Session) send_with[Payload](
  * transport session.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.accept}
 pub (session: Session) accept(frame: Frame): AcceptResult ->
     native.
 
@@ -603,6 +633,7 @@ pub (session: Session) accept(frame: Frame): AcceptResult ->
  * Returns the stable message id assigned to one frame.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.frame_message_id}
 pub (frame: Frame) message_id(): Int ->
     native.
 
@@ -610,6 +641,7 @@ pub (frame: Frame) message_id(): Int ->
  * Returns the closed delivery policy encoded in one frame.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.frame_delivery}
 pub (frame: Frame) delivery(): Delivery ->
     native.
 
@@ -617,6 +649,7 @@ pub (frame: Frame) delivery(): Delivery ->
  * Returns whether one outbound frame still requires acknowledgement.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.needs_ack}
 pub (session: Session) needs_ack(frame: Frame): Bool ->
     native.
 
@@ -624,6 +657,7 @@ pub (session: Session) needs_ack(frame: Frame): Bool ->
  * Returns the number of outstanding acknowledgements retained by the session.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.pending_ack_count}
 pub (session: Session) pending_ack_count(): Int ->
     native.
 
@@ -636,6 +670,7 @@ pub (session: Session) pending_ack_count(): Int ->
  * duplicate or unrelated acknowledgements fail with a stable VM diagnostic.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.acknowledge}
 pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult ->
     native.
 
@@ -647,6 +682,7 @@ pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult ->
  * Transformation: exposes lifecycle state without leaking descriptor fields.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.session_state}
 pub (session: Session) state(): SessionState ->
     native.
 
@@ -659,6 +695,7 @@ pub (session: Session) state(): SessionState ->
  * message operations until a valid reconnect.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.disconnect}
 pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): DisconnectResult ->
     native.
 
@@ -671,5 +708,6 @@ pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): Disconne
  * continuity state across the disconnected interval.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.cluster.reconnect}
 pub (session: Session) reconnect(remote: Profile, tick: Int): ReconnectResult ->
     native.

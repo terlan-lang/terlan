@@ -144,6 +144,18 @@ self_test_assertions(
 ): Bool ->
     let normalized_ci = String.replace(ci, "\r\n", "\n");
     let crlf_ci = String.replace(normalized_ci, "\n", "\r\n");
+    let shared_aggregation =
+        String.replace(
+            normalized_ci,
+            "make tvm-aot-platform-aggregate-check",
+            "make release-hosted-validation-check",
+        );
+    let missing_aggregation =
+        String.replace(
+            shared_aggregation,
+            "make release-hosted-validation-check",
+            "make unrelated-check",
+        );
     let missing_dispatch = String.replace(normalized_ci, "  workflow_dispatch:\n", "");
     let wrong_runner = String.replace(normalized_ci, "runner: windows-11-arm", "runner: windows-2025");
     let missing_row = String.replace(normalized_ci, "          - target: linux-x86_64\n", "");
@@ -158,6 +170,8 @@ self_test_assertions(
     if {
         not workflow_contract() -> false;
         not workflow_text_valid(crlf_ci) -> failure("workflow checker rejected Windows line endings");
+        not workflow_text_valid(shared_aggregation) -> failure("workflow checker rejected shared aggregation");
+        workflow_text_valid(missing_aggregation) -> failure("workflow checker admitted missing aggregation");
         workflow_text_valid(missing_dispatch)
             or workflow_text_valid(wrong_runner)
             or workflow_text_valid(missing_row)

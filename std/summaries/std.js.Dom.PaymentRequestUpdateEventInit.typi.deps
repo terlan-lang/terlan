@@ -1,8 +1,8 @@
 module=std.js.Dom.PaymentRequestUpdateEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12518471953520233499
-interface_hash=8631486716710312561
-interface_doc_hash=8631486716710312561
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11463744381546987526
+interface_hash=10467367405070794909
+interface_doc_hash=10467367405070794909
 deps=0

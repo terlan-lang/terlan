@@ -70,6 +70,15 @@ CI runs only the general compiler/release-candidate job. The release workflow
 starts automatically for `main` pushes and is the sole owner of that commit's
 dependency audit, native AOT matrix, and sanitizer families; launching those
 jobs from both workflows is a validation error.
+On `main`, a separate short attestation job signs the three completed compiler
+coverage records. Only this job receives attestation/OIDC write permissions; it
+does not execute downloaded code or rebuild/retest the compiler. It consumes the
+successful compiler job's immutable artifact ID, including on a signing-only
+retry. Preparation verifies the records' signatures, source commit/ref and
+workflow, and checks the compiler job's actual producing attempt through the
+GitHub job API before admitting its coverage bundle. The workflow's latest
+attempt is not substituted for the completed compiler job's attempt.
+
 The compiler job installs the exact Lean channel named by
 `proofs/lean/lean-toolchain` before any executable proof gate runs; a missing
 host toolchain is an infrastructure failure, not a failed theorem.
@@ -84,6 +93,11 @@ For an actual release-validation run, every native runner also builds and
 installer-smokes its own archive. The final job rejects anything other than the
 exact six archives and six matching checksum sidecars, then retains that joined
 distribution under the successful run.
+Matrix aggregation and final archive/contract validation share that job and
+`make release-hosted-validation-check`. The single Make graph executes their
+common compiler and validator prerequisites once. It retains the matrix report,
+hosted evidence bundle, and distribution uploads; any prerequisite or validation
+failure prevents distribution attestation and promotion.
 Final AOT roadmap retirement runs
 `make tvm-aot-roadmap-reconciliation-check` only after every owned AOT slice is
 complete. Ordinary compiler CI keeps running the implementation gates while an
@@ -152,10 +166,29 @@ build/release contract are part of `release-candidate-check`; they are not run
 in preliminary steps that would build the compiler and typed validators only
 to discard them during the candidate's clean artifact measurement.
 
-The Ubuntu 24.04 compiler runner explicitly enables unprivileged user
-namespaces before the candidate gate. This is a host prerequisite for the real
-bubblewrap capability-worker test, not a sandbox bypass: worker launch remains
-fail-closed and still executes through the declared bubblewrap profile.
+The shared native-dependency action installs bubblewrap and enables unprivileged
+user namespaces on the ephemeral Ubuntu 24.04 runners. Both validation-tool
+bootstrap and capability-worker execution require the actual sandbox; failure
+to create it stops the build. Local Make never changes the host's namespace policy.
+
+On Linux, the first validation-tool build runs through
+`mk/hermetic-support.mk`: Git-listed working files are frozen into a read-only
+snapshot, the numeric workspace Rust toolchain is selected explicitly, and
+Cargo receives a fresh configuration home and a cleared environment. Checkout
+and ambient Cargo configuration, credentials, wrappers, and flags are not
+imported. Compiler/runtime builds continue using their normal configuration.
+Only locked registry/git caches and the dedicated `target/hermetic-support`
+output tree persist. Incremental compilation is disabled for these small tools.
+The sandbox uses the host's read-only system SDK, not a pinned OS image; selected
+compiler/linker executable identities are bound into the input digest.
+
+One bootstrap lease covers snapshot creation, Cargo, receipt verification, and
+installation. The first successful build seals its actual Cargo artifact log;
+unchanged retries validate output hashes without another Cargo invocation.
+Working-source bytes, including changes hidden from Git status, are checked
+again before installation. Failed/interrupted builds cannot install new tools.
+Reserved scratch is recovered under that same lease, and the lifecycle check
+reports any surviving scratch. No build receipt substitutes for release evidence.
 
 Non-AOT feature jobs remain paused during the hard AOT cutover.
 
@@ -228,6 +261,13 @@ including the generated C++ package proof, so later gates consume reports
 without replaying tests or accidentally suppressing their producers.
 Every orchestrated build or test phase receives closed stdin and a bounded deadline,
 preventing an accidental interactive read from stalling release validation.
+The encompassing `check-gates` Make graph has its own 3,600-second deadline,
+selected by `TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS`; individual Rust phase deadlines
+remain 1,800 seconds. The graph option accepts only 1–7,200 seconds and its actual
+value is recorded with the Make execution evidence. Cancellation still stops the
+owned process tree. This separates aggregate runtime from a single phase's limit:
+the September 25 hosted run exhausted 30 minutes after 115 coverage requests
+without a failing assertion, while processing the Lean proof gates.
 The orchestrator atomically seals `target/quality/rust-test-suite-report.json`
 with one explicit tier, ordered outcome, and wall time for every phase; a
 missing report is a gate failure.
@@ -321,10 +361,12 @@ variable-level debug metadata. Compiler and VM backtraces remain attributable,
 while routine local binaries, rlibs, and link steps no longer pay for full Rust
 debug information that Terlan's source debugger does not consume.
 
-`make clean` removes Cargo outputs and every repository-owned generated tree:
-release archives, AOT and `_build` caches, proof/editor outputs, generated
-Erlang summaries, and installed JavaScript dependencies. Audit the exact cleanup
-set without deleting anything with `bash scripts/clean_build_outputs.sh --dry-run`.
+`make clean` currently refuses blanket deletion: a directory name cannot prove
+that its build is inactive or its recovery evidence disposable. Inspect generated
+outputs without deleting them with `bash scripts/clean_build_outputs.sh --dry-run`.
+Use `make rust-incremental-cache-prune` for lease-checked Rust cache retention;
+resume interrupted preparation owners to recover their staged publications.
+Do not delete writer-lease files or pending publication journals manually.
 
 Review the staged local distribution plan without contacting GitHub with:
 
@@ -342,6 +384,7 @@ Publication is an explicit local promotion after the exact commit has passed
 the hosted `release-validation/run` status. From a clean `main` checkout:
 
 ```sh
+make publish-prepare
 make publish
 ```
 
@@ -352,19 +395,61 @@ to be successful for the exact candidate commit. Candidate validation happens
 once in those hosted workflows; publication does not replay the full Rust test
 suite.
 
-The publisher downloads the exact six-platform distribution from the successful
+Preparation downloads the exact six-platform distribution from the successful
 status-bearing run, verifies its workflow identity, archive checksums, and
 Sigstore-backed GitHub build-provenance attestations. It also downloads the
 hosted platform and sanitizer evidence. If candidate-bound local evidence is
-missing or stale, the first invocation builds the required tools once and seals
-deterministic multicore and AOT closeout. Later invocations verify that evidence
-read-only, so an interrupted upload does not repeat compilation or tests. No
+missing or stale, preparation builds the required tools and seals multicore and
+AOT closeout. `make publish` only verifies that evidence; it never launches
+preparation or downloads the archives. Missing or stale evidence is a loud error
+with an explicit preparation command, so an interrupted upload cannot trigger
+compilation or tests. Preparation checks host tools before expensive work. No
 publication step measures or qualifies host performance.
+
+Verified downloads have an atomic checkpoint in `target/publication-downloads/`.
+The key binds the repository, commit, both successful workflow runs and attempts,
+and the download verifier implementation. A preparation retry checks live workflow
+status and hashes the entire cached inventory, then reuses the archives, extracted
+payload, and hosted evidence without downloading or rechecking attestations.
+Changed producer attempts require a new checkpoint; corruption stops before
+replacing the active distribution. The checkpoint is saved before local checks,
+so a later local failure does not discard successful hosted verification.
+Concurrent download/restore owners are rejected with a nonblocking worktree lock.
+These local caches are not independently signed evidence and never replace the
+candidate seal or final distribution checks. They retain full payloads on disk;
+retire obsolete checkpoints after publication when reclaiming disk space.
 
 The publisher then creates an annotated release tag
 and uploads every archive, detached checksum, and the sealed candidate manifest
-to a draft release. It verifies that GitHub contains exactly
-the sealed asset names and only then makes the release public. Interrupted
+to a draft release. One verified publication plan supplies the asset inventory,
+sizes, hashes, and candidate seal. Draft asset lookup uses the numeric release
+ID, not GitHub's unreliable draft tag endpoint. Matching uploads are reused.
+Failed tag lookups require a successful authenticated release-list lookup;
+network or authentication failures stop publication instead of implying that
+a release is absent.
+It verifies that GitHub contains exactly the sealed asset names, sizes, and
+SHA-256 digests before making the release public. Interrupted
 uploads remain drafts; rerunning is safe, while an already-public release is
 never mutated unless it already exactly matches the candidate (in which case
 the command exits successfully without changes).
+
+Release announcements use the title `Terlan <version>` and the matching curated
+`CHANGELOG.md` section. Include only what changes for users, who is affected,
+and any action required when upgrading. Describe observable behavior, useful new
+capabilities, compatibility, and security impact—not the implementation work
+performed. Omit unchanged platform recaps, progress reports, refactoring stories,
+workflow logs, candidate hashes, gate counts, and internal build repairs. A
+release with few user-facing changes should have short notes, not filler.
+Cryptographic identity belongs in `release-candidate.json`; publication
+verifies its uploaded digest, independently of the announcement's wording.
+
+Remaining preparation hardening is separate from upload retry correctness:
+
+- Move generated proof/evidence metadata out of tracked source paths into a
+  candidate-specific output root. Preparation is not yet transactional and
+  must not be described as fully resumable.
+- Record completed build/evidence owners and their input fingerprints in a
+  durable execution ledger. Recipe dry-runs cannot detect subprocess builds
+  hidden inside validators or safely resume an interrupted preparation.
+- Isolate container Gradle caches from host daemons; do not share writable
+  caches across environments that cannot coordinate daemon locks.

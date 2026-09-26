@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCIceCandidatePairStats
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12002124671520006507
-interface_hash=11468663804058230878
-interface_doc_hash=11468663804058230878
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15037314151675634640
+interface_hash=7072454248712953291
+interface_doc_hash=7072454248712953291
 deps=0

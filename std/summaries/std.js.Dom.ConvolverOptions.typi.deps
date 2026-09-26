@@ -1,8 +1,8 @@
 module=std.js.Dom.ConvolverOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2877214158607853579
-interface_hash=985272040468683459
-interface_doc_hash=985272040468683459
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12046764113607505635
+interface_hash=18053543041161832683
+interface_doc_hash=18053543041161832683
 deps=0

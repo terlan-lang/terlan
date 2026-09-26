@@ -165,11 +165,26 @@ fn assert_managed_metadata_records(descriptor: &[u8]) {
         "managed collection payload must use canonical collection ABI"
     );
     let atoms = atoms.expect("finite atom table record");
-    assert_eq!(
-        u16::from_le_bytes(atoms[..2].try_into().expect("atom count")),
-        1,
-        "atom table must contain the checked Ready identity"
+    let count = u16::from_le_bytes(atoms[..2].try_into().expect("atom count"));
+    let mut names = Vec::new();
+    let mut offset = 2;
+    for _ in 0..count {
+        let length =
+            u16::from_le_bytes(atoms[offset..offset + 2].try_into().expect("atom length")) as usize;
+        offset += 2;
+        let name = std::str::from_utf8(&atoms[offset..offset + length]).expect("UTF-8 atom");
+        names.push(name);
+        offset += length;
+    }
+    assert_eq!(offset, atoms.len(), "atom names must fill their record");
+    assert!(
+        names.windows(2).all(|pair| pair[0] < pair[1]),
+        "canonical atom order"
     );
-    let length = u16::from_le_bytes(atoms[2..4].try_into().expect("atom length")) as usize;
-    assert_eq!(&atoms[4..4 + length], b"ready");
+    // Reachable collection operations also contribute their own finite tags.
+    // Check the Ready identity without assuming it is the image's only atom.
+    assert!(
+        names.contains(&"ready"),
+        "missing checked Ready identity: {names:?}"
+    );
 }

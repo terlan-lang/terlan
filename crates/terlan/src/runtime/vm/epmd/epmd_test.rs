@@ -86,7 +86,7 @@ fn epmd_protocol_round_trips_alive2_and_rejects_malformed_frames() {
 #[test]
 fn epmd_protocol_rejects_invalid_names_and_response_fields() {
     assert_eq!(
-        parse_payload(&[b'z']),
+        parse_payload(b"z"),
         Err(ProtocolError::EmptyName)
     );
     assert_eq!(

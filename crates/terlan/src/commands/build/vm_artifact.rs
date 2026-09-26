@@ -1,9 +1,15 @@
+mod artifact_cache_retention;
+#[cfg(test)]
+#[path = "vm_artifact/artifact_cache_retention_test.rs"]
+mod artifact_cache_retention_test;
+mod build_activity;
 mod checked_cache;
 #[cfg(test)]
 #[path = "vm_artifact/checked_cache_test.rs"]
 #[cfg(test)]
 mod checked_cache_test;
 mod compile;
+mod linker_identity;
 mod native_cache;
 #[cfg(test)]
 #[path = "vm_artifact/native_cache_test.rs"]

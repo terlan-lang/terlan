@@ -1,8 +1,8 @@
 module=std.js.Dom.AbortSignalEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16569111920277080137
-interface_hash=17516463831635485546
-interface_doc_hash=17516463831635485546
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10370500397030288913
+interface_hash=16131349733703898701
+interface_doc_hash=16131349733703898701
 deps=0

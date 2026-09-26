@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoFrameCopyToOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4981900942529942329
-interface_hash=5721934426811082077
-interface_doc_hash=5721934426811082077
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2210298767592968280
+interface_hash=3090218973403303668
+interface_doc_hash=3090218973403303668
 deps=0

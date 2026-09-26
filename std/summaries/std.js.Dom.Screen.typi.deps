@@ -1,8 +1,8 @@
 module=std.js.Dom.Screen
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5819184794702340757
-interface_hash=17557955232643738206
-interface_doc_hash=17557955232643738206
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9488547716052480699
+interface_hash=12121457802036777170
+interface_doc_hash=12121457802036777170
 deps=0

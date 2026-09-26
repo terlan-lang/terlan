@@ -312,9 +312,9 @@ pub protocol_shape_set_resolves_prefix_collisions_exactly(): Bool ->
 @test
 pub protocol_shape_set_rejects_missing_metadata(): Bool ->
     case {
-    protocol_shape_set("", List(tcp_header_shape()), List.new[ProtocolShapeAlias]()),
-    protocol_shape_set("empty", List.new[ProtocolShape](), List.new[ProtocolShapeAlias]()),
-} {
+        protocol_shape_set("", List(tcp_header_shape()), List.new[ProtocolShapeAlias]()),
+        protocol_shape_set("empty", List.new[ProtocolShape](), List.new[ProtocolShapeAlias]()),
+    } {
         {Err(InvalidShapeSet), Err(InvalidShapeSet)} -> true;
         _ -> false
     }.
@@ -322,10 +322,10 @@ pub protocol_shape_set_rejects_missing_metadata(): Bool ->
 @test
 pub protocol_shape_set_rejects_duplicate_direct_names(): Bool ->
     case protocol_shape_set(
-    "duplicate",
-    List(tcp_header_shape(), tcp_header_shape()),
-    List.new[ProtocolShapeAlias](),
-) {
+        "duplicate",
+        List(tcp_header_shape(), tcp_header_shape()),
+        List.new[ProtocolShapeAlias](),
+    ) {
         Err(reason) -> assert_equal(DuplicateShape, reason);
         Ok(_set) -> false
     }.
@@ -340,9 +340,9 @@ pub protocol_shape_set_rejects_duplicate_and_colliding_aliases(): Bool ->
     let colliding_alias = List(protocol_shape_alias("tcp_header", "compact_frame"));
     let shapes = List(tcp_header_shape(), compact_frame_shape());
     case {
-    protocol_shape_set("duplicate_alias", shapes, duplicate_aliases),
-    protocol_shape_set("colliding_alias", shapes, colliding_alias),
-} {
+        protocol_shape_set("duplicate_alias", shapes, duplicate_aliases),
+        protocol_shape_set("colliding_alias", shapes, colliding_alias),
+    } {
         {Err(DuplicateShape), Err(DuplicateShape)} -> true;
         _ -> false
     }.
@@ -351,9 +351,9 @@ pub protocol_shape_set_rejects_duplicate_and_colliding_aliases(): Bool ->
 pub protocol_shape_set_rejects_invalid_alias_metadata(): Bool ->
     let shapes = List(tcp_header_shape());
     case {
-    protocol_shape_set("empty_name", shapes, List(protocol_shape_alias("", "tcp_header"))),
-    protocol_shape_set("empty_target", shapes, List(protocol_shape_alias("current", ""))),
-} {
+        protocol_shape_set("empty_name", shapes, List(protocol_shape_alias("", "tcp_header"))),
+        protocol_shape_set("empty_target", shapes, List(protocol_shape_alias("current", ""))),
+    } {
         {Err(InvalidShapeAlias), Err(InvalidShapeAlias)} -> true;
         _ -> false
     }.
@@ -727,11 +727,11 @@ pub decode_prefixed_body_rejects_truncated_oversized_and_unaligned_fields(): Boo
             true,
         );
     case {
-    decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0])),
-    decode_prefixed_body(oversized, Bytes.from_list([0, 0, 0, 0, 0, 0, 0, 0])),
-    decode_prefixed_body(truncated_bits, Bytes.from_list([255])),
-    decode_prefixed_body(unaligned_rest, Bytes.from_list([16])),
-} {
+        decode_prefixed_body(compact_frame_shape(), Bytes.from_list([18, 0])),
+        decode_prefixed_body(oversized, Bytes.from_list([0, 0, 0, 0, 0, 0, 0, 0])),
+        decode_prefixed_body(truncated_bits, Bytes.from_list([255])),
+        decode_prefixed_body(unaligned_rest, Bytes.from_list([16])),
+    } {
         {Err(truncated), Err(invalid_width), Err(bit_truncated), Err(invalid_alignment)} ->
             assert_equal(TruncatedPayload, truncated)
                 and assert_equal(InvalidWidth, invalid_width)
@@ -850,11 +850,11 @@ pub encode_rejects_invalid_values_and_bit_value_types(): Bool ->
     let unaligned_shape = protocol_shape("unaligned", BigEndian, List(protocol_field("value", make_uint(7))), false);
     let unaligned = test_decoded_protocol(List(test_decoded_int_field("value", 1)), Bytes.from_list([]));
     case {
-    encode_exact(compact_frame_shape(), overflow),
-    encode_exact(compact_frame_shape(), missing),
-    encode_exact(bits_shape, bits),
-    encode_exact(unaligned_shape, unaligned),
-} {
+        encode_exact(compact_frame_shape(), overflow),
+        encode_exact(compact_frame_shape(), missing),
+        encode_exact(bits_shape, bits),
+        encode_exact(unaligned_shape, unaligned),
+    } {
         {Err(invalid_width), Err(unknown), Err(bit_type), Err(invalid_alignment)} ->
             assert_equal(InvalidWidth, invalid_width)
                 and assert_equal(UnknownDescriptor, unknown)

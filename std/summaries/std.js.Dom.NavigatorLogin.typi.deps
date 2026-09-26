@@ -1,8 +1,8 @@
 module=std.js.Dom.NavigatorLogin
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17110874825330847819
-interface_hash=271940261207170361
-interface_doc_hash=271940261207170361
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2602803838180062905
+interface_hash=11682908692010253705
+interface_doc_hash=11682908692010253705
 deps=0

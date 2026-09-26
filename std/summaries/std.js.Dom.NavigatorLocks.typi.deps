@@ -1,8 +1,8 @@
 module=std.js.Dom.NavigatorLocks
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3376491315064358548
-interface_hash=16291372970578263842
-interface_doc_hash=16291372970578263842
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9341279831515505077
+interface_hash=6173040797607964247
+interface_doc_hash=6173040797607964247
 deps=0

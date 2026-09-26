@@ -1,8 +1,8 @@
 module=std.js.Dom.ConstrainBooleanParameters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3050883886262229663
-interface_hash=8264262479528128613
-interface_doc_hash=8264262479528128613
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11800078591125567718
+interface_hash=16825548995190042265
+interface_doc_hash=16825548995190042265
 deps=0

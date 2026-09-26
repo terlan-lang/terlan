@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoFrameRequestCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5861927627833148940
-interface_hash=15914765714074046434
-interface_doc_hash=15914765714074046434
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8975862093605009737
+interface_hash=106488928855627249
+interface_doc_hash=106488928855627249
 deps=0

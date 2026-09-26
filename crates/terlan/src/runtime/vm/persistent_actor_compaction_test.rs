@@ -351,8 +351,8 @@ fn snapshot(
         mailbox_checkpoint,
         timer_checkpoint,
         VmPersistentActorDurability {
-            resource_handles: resource_handles,
-            last_event_sequence: last_event_sequence,
+            resource_handles,
+            last_event_sequence,
         },
     )
     .expect("snapshot should be valid")

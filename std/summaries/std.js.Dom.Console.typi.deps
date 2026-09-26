@@ -1,8 +1,8 @@
 module=std.js.Dom.Console
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2206140234016873734
-interface_hash=7286249850172729258
-interface_doc_hash=7286249850172729258
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2727948919179745450
+interface_hash=12488928198384171215
+interface_doc_hash=12488928198384171215
 deps=0

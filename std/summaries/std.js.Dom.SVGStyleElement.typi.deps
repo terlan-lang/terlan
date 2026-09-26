@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGStyleElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10732595422936956359
-interface_hash=16012709797472263337
-interface_doc_hash=16012709797472263337
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=5110517518854154049
+interface_hash=11872798340607954920
+interface_doc_hash=11872798340607954920
 deps=0

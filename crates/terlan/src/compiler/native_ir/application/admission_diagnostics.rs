@@ -3,7 +3,7 @@
 use crate::terlan_typeck::{CoreExprSummary, CoreFunction, CorePattern};
 
 use super::super::{
-    expr_is_native_control, native_return_type_with_constructors, native_type,
+    expr_is_native_control, native_return_type_with_constructors, native_type_with_constructors,
     scalar_replacement::scalar_replace_fixed_aggregates,
 };
 
@@ -30,10 +30,9 @@ pub(super) fn candidate_admission_summary(
     function: &CoreFunction,
     constructors: &super::super::constructors::NativeConstructorLayouts,
 ) -> String {
-    let parameters = function
-        .params
-        .iter()
-        .all(|param| native_type(param.core_ty.as_ref(), &param.ty).is_some());
+    let parameters = function.params.iter().all(|param| {
+        native_type_with_constructors(param.core_ty.as_ref(), &param.ty, constructors).is_some()
+    });
     let clause = matches!(function.clauses.as_slice(), [clause]
     if clause.guard.is_none()
         && clause.core_patterns.len() == function.params.len()

@@ -9,7 +9,7 @@ use super::*;
 pub(super) fn render_consumer_test(
     module: &NativeBindingModule,
     modules: &[NativeBindingModule],
-) -> Result<Option<String>, String> {
+) -> Result<Option<String>, CppBindingError> {
     let test_module = format!("{}Test", module.module);
     let Some(constructor) = optional_role_function(module, NativeFunctionRole::Constructor) else {
         return Ok(None);
@@ -309,7 +309,7 @@ fn render_constructor_sample_args(
     module: &NativeBindingModule,
     modules: &[NativeBindingModule],
     constructor: &NativeBindingFunction,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     render_constructor_sample_args_with(module, modules, constructor, "40", "[40]")
 }
 
@@ -319,7 +319,7 @@ fn render_ownership_constructor_sample_args(
     module: &NativeBindingModule,
     modules: &[NativeBindingModule],
     constructor: &NativeBindingFunction,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     render_constructor_sample_args_with(module, modules, constructor, "1", "[1]")
 }
 
@@ -329,8 +329,8 @@ fn render_constructor_sample_args_with(
     constructor: &NativeBindingFunction,
     integer: &'static str,
     integer_list: &'static str,
-) -> Result<String, String> {
-    constructor
+) -> Result<String, CppBindingError> {
+    Ok(constructor
         .args
         .iter()
         .map(|argument| match argument.ty.as_str() {
@@ -341,7 +341,7 @@ fn render_constructor_sample_args_with(
             }),
         })
         .collect::<Result<Vec<_>, String>>()
-        .map(|arguments| arguments.join(", "))
+        .map(|arguments| arguments.join(", "))?)
 }
 
 /// Returns a deterministic constructor value, resolving qualified enum types
@@ -405,14 +405,14 @@ fn sample_enum_variant<'a>(
 pub(super) fn render_skipped_symbols(
     producer: &CppMetadataProducer,
     skipped: &[SkippedSymbol],
-) -> Result<String, String> {
-    serde_json::to_string_pretty(&SkippedSymbolsManifest {
+) -> Result<String, CppBindingError> {
+    Ok(serde_json::to_string_pretty(&SkippedSymbolsManifest {
         schema: SKIPPED_SYMBOLS_SCHEMA,
         metadata_producer: producer,
         skipped,
     })
     .map(|text| text + "\n")
-    .map_err(|err| format!("failed to render skipped native symbols manifest: {err}"))
+    .map_err(|err| format!("failed to render skipped native symbols manifest: {err}"))?)
 }
 
 /// Returns the first function with `role` without requiring fixture-style roles.
@@ -429,15 +429,15 @@ pub(super) fn optional_role_function(
 pub(super) fn function_symbol<'a>(
     function: &NativeBindingFunction,
     symbols: &BTreeMap<&str, &'a CppSymbol>,
-) -> Result<&'a CppSymbol, String> {
+) -> Result<&'a CppSymbol, CppBindingError> {
     let id = function
         .cpp_symbol
         .as_deref()
         .ok_or_else(|| format!("function `{}` has no C++ symbol", function.name))?;
-    symbols
+    Ok(symbols
         .get(id)
         .copied()
-        .ok_or_else(|| format!("unknown C++ symbol `{id}`"))
+        .ok_or_else(|| format!("unknown C++ symbol `{id}`"))?)
 }
 
 pub(super) fn role_name(role: NativeFunctionRole) -> &'static str {
@@ -506,21 +506,26 @@ pub(super) fn resource_policy_name(policy: &NativeResourcePolicy) -> &'static st
     }
 }
 
-pub(super) fn reject_terlan_pointer_or_reference(function: &str, ty: &str) -> Result<(), String> {
+pub(super) fn reject_terlan_pointer_or_reference(
+    function: &str,
+    ty: &str,
+) -> Result<(), CppBindingError> {
     if ty.contains('*') {
-        return Err(format!(
+        return Err((format!(
             "error[cpp.pointer.unsupported]: function `{function}` exposes `{ty}`"
-        ));
+        ))
+        .into());
     }
     if ty.contains('&') {
-        return Err(format!(
+        return Err((format!(
             "error[cpp.lifetime.borrowed]: function `{function}` exposes `{ty}`"
-        ));
+        ))
+        .into());
     }
     Ok(())
 }
 
-pub(super) fn validate_input_path(input_dir: &Path, value: &str) -> Result<(), String> {
+pub(super) fn validate_input_path(input_dir: &Path, value: &str) -> Result<(), CppBindingError> {
     let path = Path::new(value);
     if value.trim().is_empty()
         || path.is_absolute()
@@ -528,70 +533,62 @@ pub(super) fn validate_input_path(input_dir: &Path, value: &str) -> Result<(), S
             .components()
             .any(|component| !matches!(component, Component::Normal(_)))
     {
-        return Err(format!(
-            "C++ input path `{value}` must be a package-relative file"
-        ));
+        return Err((format!("C++ input path `{value}` must be a package-relative file")).into());
     }
     if !input_dir.join(path).is_file() {
-        return Err(format!(
-            "structured C++ metadata input `{value}` does not exist"
-        ));
+        return Err((format!("structured C++ metadata input `{value}` does not exist")).into());
     }
     Ok(())
 }
 
-pub(super) fn file_name(value: &str) -> Result<String, String> {
-    Path::new(value)
+pub(super) fn file_name(value: &str) -> Result<String, CppBindingError> {
+    Ok(Path::new(value)
         .file_name()
         .map(|name| name.to_string_lossy().into_owned())
-        .ok_or_else(|| format!("C++ input path `{value}` has no file name"))
+        .ok_or_else(|| format!("C++ input path `{value}` has no file name"))?)
 }
 
-pub(super) fn validate_identifier_path(kind: &str, value: &str) -> Result<(), String> {
+pub(super) fn validate_identifier_path(kind: &str, value: &str) -> Result<(), CppBindingError> {
     if value.split('.').all(is_identifier_segment) {
         Ok(())
     } else {
-        Err(format!("{kind} `{value}` must be a dotted identifier path"))
+        Err((format!("{kind} `{value}` must be a dotted identifier path")).into())
     }
 }
 
-pub(super) fn validate_cpp_identifier_path(kind: &str, value: &str) -> Result<(), String> {
+pub(super) fn validate_cpp_identifier_path(kind: &str, value: &str) -> Result<(), CppBindingError> {
     if value.split("::").all(is_identifier_segment) {
         Ok(())
     } else {
-        Err(format!("{kind} `{value}` must be a C++ identifier path"))
+        Err((format!("{kind} `{value}` must be a C++ identifier path")).into())
     }
 }
 
-pub(super) fn validate_cpp_identifier(kind: &str, value: &str) -> Result<(), String> {
+pub(super) fn validate_cpp_identifier(kind: &str, value: &str) -> Result<(), CppBindingError> {
     if is_identifier_segment(value) {
         Ok(())
     } else {
-        Err(format!("{kind} `{value}` must be a C++ identifier"))
+        Err((format!("{kind} `{value}` must be a C++ identifier")).into())
     }
 }
 
-pub(super) fn validate_upper_identifier(kind: &str, value: &str) -> Result<(), String> {
+pub(super) fn validate_upper_identifier(kind: &str, value: &str) -> Result<(), CppBindingError> {
     if is_identifier_segment(value) && value.chars().next().is_some_and(char::is_uppercase) {
         Ok(())
     } else {
-        Err(format!(
-            "{kind} `{value}` must start with an uppercase letter"
-        ))
+        Err((format!("{kind} `{value}` must start with an uppercase letter")).into())
     }
 }
 
-pub(super) fn validate_lower_identifier(kind: &str, value: &str) -> Result<(), String> {
+pub(super) fn validate_lower_identifier(kind: &str, value: &str) -> Result<(), CppBindingError> {
     if is_identifier_segment(value) && value.chars().next().is_some_and(char::is_lowercase) {
         Ok(())
     } else {
-        Err(format!(
-            "{kind} `{value}` must start with a lowercase letter"
-        ))
+        Err((format!("{kind} `{value}` must start with a lowercase letter")).into())
     }
 }
 
-pub(super) fn validate_cargo_package_name(value: &str) -> Result<(), String> {
+pub(super) fn validate_cargo_package_name(value: &str) -> Result<(), CppBindingError> {
     let mut chars = value.chars();
     let Some(first) = chars.next() else {
         return Err("native binding package crate_name cannot be empty".into());
@@ -599,7 +596,7 @@ pub(super) fn validate_cargo_package_name(value: &str) -> Result<(), String> {
     if !(first.is_ascii_lowercase() || first.is_ascii_digit())
         || !chars.all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-' || ch == '_')
     {
-        return Err(format!("invalid Cargo package name `{value}`"));
+        return Err((format!("invalid Cargo package name `{value}`")).into());
     }
     Ok(())
 }
@@ -639,7 +636,7 @@ pub(super) fn consumer_test_path(module: &str) -> PathBuf {
     path
 }
 
-pub(super) fn refuse_non_empty_output(out_dir: &Path) -> Result<(), String> {
+pub(super) fn refuse_non_empty_output(out_dir: &Path) -> Result<(), CppBindingError> {
     if !out_dir.exists() {
         return Ok(());
     }
@@ -660,33 +657,34 @@ pub(super) fn refuse_non_empty_output(out_dir: &Path) -> Result<(), String> {
         })?
         .is_some()
     {
-        return Err(format!(
+        return Err((format!(
             "refusing to generate into non-empty output directory `{}`",
             out_dir.display()
-        ));
+        ))
+        .into());
     }
     Ok(())
 }
 
-pub(super) fn copy_file(source: &Path, destination: &Path) -> Result<(), String> {
+pub(super) fn copy_file(source: &Path, destination: &Path) -> Result<(), CppBindingError> {
     if let Some(parent) = destination.parent() {
         fs::create_dir_all(parent)
             .map_err(|err| format!("failed to create directory `{}`: {err}", parent.display()))?;
     }
-    fs::copy(source, destination).map(|_| ()).map_err(|err| {
+    Ok(fs::copy(source, destination).map(|_| ()).map_err(|err| {
         format!(
             "failed to copy C++ input `{}` to `{}`: {err}",
             source.display(),
             destination.display()
         )
-    })
+    })?)
 }
 
-pub(super) fn write_file(path: &Path, contents: &str) -> Result<(), String> {
+pub(super) fn write_file(path: &Path, contents: &str) -> Result<(), CppBindingError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|err| format!("failed to create directory `{}`: {err}", parent.display()))?;
     }
-    fs::write(path, contents)
-        .map_err(|err| format!("failed to write generated file `{}`: {err}", path.display()))
+    Ok(fs::write(path, contents)
+        .map_err(|err| format!("failed to write generated file `{}`: {err}", path.display()))?)
 }

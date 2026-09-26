@@ -19,15 +19,14 @@ use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmD
 use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
 use crate::runtime::native_image::{
     SealedTvmImage, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
-    TvmExportDescriptor, TVM_COMPLETION_TRANSITION_WORD_CAPACITY, TVM_DISPATCH_SYMBOL_V4,
-    TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+    TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V4,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
 use super::{
-    decode_native_value, NativeDecodedResult, NativeImageBackend, NativeResultProjection,
-    PendingNativeCompletionFrame, PureNativeExecutionContext,
+    decode_native_value, NativeContinuationTable, NativeDecodedResult, NativeImageBackend,
+    NativeResultProjection, PendingNativeCompletionFrame, PureNativeExecutionContext,
 };
 use frames::{capability_result_type, frame_from_status};
 use managed_values::{allocate_public_managed, materialize_public_managed};
@@ -60,7 +59,7 @@ struct LoadedDirectImage {
     /// Exact callable export signatures admitted with the image.
     exports: Vec<TvmExportDescriptor>,
     /// Exact generated continuation signatures admitted with the image.
-    continuations: Vec<TvmContinuationDescriptor>,
+    continuations: NativeContinuationTable,
     /// Stable descriptor identity used by lifecycle and diagnostic records.
     image_identity: String,
     /// Descriptor digest validated against the sealed executable mapping.
@@ -133,7 +132,7 @@ impl DirectNativeBackend {
                     dispatch,
                     transition_capacity,
                     exports: descriptor.exports,
-                    continuations: descriptor.continuations,
+                    continuations: descriptor.continuations.into(),
                     image_identity,
                     descriptor_digest,
                     http_response_schema,
@@ -279,8 +278,7 @@ impl DirectNativeBackend {
             .or_else(|| {
                 self.image
                     .continuations
-                    .iter()
-                    .find(|entry| entry.id == entry_id)
+                    .get(entry_id)
                     .map(|entry| entry.results.as_slice())
             })
             .ok_or_else(|| {
@@ -304,8 +302,7 @@ impl DirectNativeBackend {
             .or_else(|| {
                 self.image
                     .continuations
-                    .iter()
-                    .find(|entry| entry.id == entry_id)
+                    .get(entry_id)
                     .map(|entry| entry.parameters.as_slice())
             })
             .ok_or_else(|| format!("error[execution_shard.entry]: image has no entry {entry_id}"))
@@ -424,8 +421,7 @@ impl DirectNativeBackend {
     fn continuation(&self, continuation_id: u64) -> Result<&TvmContinuationDescriptor, String> {
         self.image
             .continuations
-            .iter()
-            .find(|entry| entry.id == continuation_id)
+            .get(continuation_id)
             .ok_or_else(|| {
                 format!(
                     "error[execution_shard.continuation_unknown]: image has no continuation {continuation_id}"
@@ -480,9 +476,7 @@ fn transition_capacity(
         }))
         .max()
         .unwrap_or(0);
-    TVM_INDIRECT_TRANSITION_WORD_CAPACITY
-        .saturating_add(callable_width.saturating_mul(5).saturating_add(6))
-        .max(TVM_COMPLETION_TRANSITION_WORD_CAPACITY)
+    crate::runtime::native_image::transition_scratch_capacity(callable_width)
 }
 
 impl NativeImageBackend for DirectNativeBackend {
@@ -796,3 +790,7 @@ fn transition_injected_type(
 #[path = "direct_backend_test.rs"]
 #[cfg(test)]
 mod direct_backend_test;
+
+#[cfg(test)]
+#[path = "direct_backend_compiled_test.rs"]
+mod direct_backend_compiled_test;

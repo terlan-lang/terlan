@@ -121,3 +121,68 @@ fn lean_proof_gap_hygiene_transition_rejects_orphaned_history() {
         .iter()
         .any(|item| item.contains("proof_gap[orphaned-transition]")));
 }
+
+fn reviewed_gap_and_history() -> (LeanProofGap, Vec<GapTransition>) {
+    let mut current = gap("blocked");
+    current.blocker_hash = format!("sha256:{}", "b".repeat(64));
+    current.blocker_updated_at = "2026-07-17".to_string();
+    let mut history = blocked_history();
+    let mut review = transition("blocked", "blocked", "2026-07-17");
+    review.evidence_hash = current.blocker_hash.clone();
+    review.rationale =
+        "Review: Arithmetic remains the only modeled constructor family.".to_string();
+    history.push(review);
+    (current, history)
+}
+
+#[test]
+fn lean_proof_gap_hygiene_transition_accepts_append_only_blocker_review() {
+    let (current, history) = reviewed_gap_and_history();
+    let diagnostics = validate_gap_transitions(&[current], &history, today());
+    assert!(diagnostics.is_empty(), "diagnostics = {diagnostics:?}");
+    assert_eq!(history[2].evidence_hash, HASH);
+}
+
+#[test]
+fn lean_proof_gap_hygiene_transition_rejects_review_without_new_evidence_or_rationale() {
+    for missing_evidence in [true, false] {
+        let (mut current, mut history) = reviewed_gap_and_history();
+        if missing_evidence {
+            current.blocker_hash = HASH.to_string();
+            history[3].evidence_hash = HASH.to_string();
+        } else {
+            history[3].rationale = "Review: ".to_string();
+        }
+        let diagnostics = validate_gap_transitions(&[current], &history, today());
+        assert!(diagnostics
+            .iter()
+            .any(|item| item.contains("proof_gap[invalid-blocker-review]")));
+    }
+}
+
+#[test]
+fn lean_proof_gap_hygiene_transition_rejects_review_date_drift_or_replay() {
+    let (mut current, history) = reviewed_gap_and_history();
+    current.blocker_updated_at = "2026-07-16".to_string();
+    assert!(validate_gap_transitions(&[current], &history, today())
+        .iter()
+        .any(|item| item.contains("proof_gap[review-date-drift]")));
+
+    let (current, mut history) = reviewed_gap_and_history();
+    history[3].changed_at = "2026-07-16".to_string();
+    assert!(validate_gap_transitions(&[current], &history, today())
+        .iter()
+        .any(|item| item.contains("proof_gap[invalid-review-date]")));
+}
+
+#[test]
+fn lean_proof_gap_hygiene_transition_rejects_reviews_of_nonblocked_states() {
+    for status in ["open", "triaged", "remediated", "closed"] {
+        let (current, mut history) = reviewed_gap_and_history();
+        history[3].previous_status = status.to_string();
+        history[3].next_status = status.to_string();
+        assert!(validate_gap_transitions(&[current], &history, today())
+            .iter()
+            .any(|item| item.contains("proof_gap[invalid-transition]")));
+    }
+}

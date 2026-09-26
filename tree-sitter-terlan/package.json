@@ -1,18 +1,26 @@
 {
-  "name": "tree-sitter-terlan",
-  "version": "0.0.8",
   "description": "Tree-sitter grammar scaffold for Terlan source and template headers.",
-  "license": "MIT OR Apache-2.0",
-  "main": "grammar.js",
+  "devDependencies": {
+    "tree-sitter-cli": "^0.22.6"
+  },
   "files": [
     "README.md",
     "grammar.js",
     "queries",
     "test/corpus"
   ],
+  "license": "MIT OR Apache-2.0",
+  "main": "grammar.js",
+  "name": "tree-sitter-terlan",
+  "scripts": {
+    "check": "node -c grammar.js && node -c test/pack_dry_run_test.js && node test/package_smoke_test.js",
+    "check:cli": "npm run generate && npm test",
+    "generate": "tree-sitter generate --no-bindings",
+    "pack:dry-run": "npm pack --dry-run --json",
+    "test": "tree-sitter test"
+  },
   "tree-sitter": [
     {
-      "scope": "source.terlan",
       "file-types": [
         "terl",
         "terls",
@@ -26,17 +34,9 @@
         "terl.txt"
       ],
       "highlights": "queries/highlights.scm",
-      "injections": "queries/injections.scm"
+      "injections": "queries/injections.scm",
+      "scope": "source.terlan"
     }
   ],
-  "devDependencies": {
-    "tree-sitter-cli": "^0.22.6"
-  },
-  "scripts": {
-    "check": "node -c grammar.js && node -c test/pack_dry_run_test.js && node test/package_smoke_test.js",
-    "check:cli": "npm run generate && npm test",
-    "generate": "tree-sitter generate --no-bindings",
-    "pack:dry-run": "npm pack --dry-run --json",
-    "test": "tree-sitter test"
-  }
+  "version": "0.0.9"
 }

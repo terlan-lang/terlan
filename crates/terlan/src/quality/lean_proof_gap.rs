@@ -12,7 +12,6 @@ pub(crate) const GAP_PATH: &str = "docs/compiler/proof_track/lean_proof_gaps.tsv
 pub(crate) const GAP_HEADER: &str = "feature\tlifecycle_status\tproof_gap_category\tgap_reason\tremediation_owner\tplanned_gate\tdeadline_or_exception\tblocker_updated_at\tblocker_hash\tcovered_manifests";
 pub(crate) const GAP_TOML_DIR: &str = "proofs/lean/gaps";
 const GAP_POLICY_PATH: &str = "docs/compiler/proof_track/lean_proof_gap_policy.toml";
-const GATE_REPORT_PATH: &str = "build/artifacts/lean-proof-gate.json";
 
 const LIFECYCLE_STATUSES: &[&str] = &["open", "triaged", "blocked", "remediated", "closed"];
 const GAP_CATEGORIES: &[&str] = &[
@@ -342,12 +341,11 @@ pub(crate) fn blocker_hash(
     format!("sha256:{hexadecimal}")
 }
 
-pub(crate) fn write_gap_metrics(
-    root: &Path,
+pub(crate) fn gap_metrics(
     gaps: &[LeanProofGap],
     policy: &GapPolicy,
     today: Date,
-) -> QualityResult<()> {
+) -> QualityResult<Value> {
     let metrics = gaps
         .iter()
         .map(|gap| {
@@ -376,49 +374,19 @@ pub(crate) fn write_gap_metrics(
             / metrics.len() as f64
     };
 
-    let path = root.join(GATE_REPORT_PATH);
-    let mut report = serde_json::from_str::<Value>(&fs::read_to_string(&path).map_err(|err| {
-        format!(
-            "{}: failed to read proof gate report: {err}",
-            path.display()
-        )
-    })?)
-    .map_err(|err| format!("{}: invalid proof gate report JSON: {err}", path.display()))?;
-    let object = report
-        .as_object_mut()
-        .ok_or_else(|| format!("{}: proof gate report must be an object", path.display()))?;
-    object.insert(
-        "proof_gap_metrics".to_string(),
-        json!({
-            "policy": {
-                "max_blocker_age_days": policy.max_blocker_age_days,
-            },
-            "gap_count": metrics.len(),
-            "gap_staleness_days": max_staleness,
-            "gap_classification_confidence": confidence,
-            "unresolved_open_count": metrics
-                .iter()
-                .filter(|metric| metric.lifecycle_status == "open")
-                .count(),
-            "gaps": metrics,
-        }),
-    );
-    fs::write(
-        &path,
-        format!(
-            "{}\n",
-            serde_json::to_string_pretty(&report).map_err(|err| format!(
-                "{}: failed to serialize proof gate report: {err}",
-                path.display()
-            ))?
-        ),
-    )
-    .map_err(|err| {
-        format!(
-            "{}: failed to write proof gate report: {err}",
-            path.display()
-        )
-    })
+    Ok(json!({
+        "policy": {
+            "max_blocker_age_days": policy.max_blocker_age_days,
+        },
+        "gap_count": metrics.len(),
+        "gap_staleness_days": max_staleness,
+        "gap_classification_confidence": confidence,
+        "unresolved_open_count": metrics
+            .iter()
+            .filter(|metric| metric.lifecycle_status == "open")
+            .count(),
+        "gaps": metrics,
+    }))
 }
 
 pub(super) fn parse_date(value: &str) -> QualityResult<Date> {

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebKitCSSMatrix
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10315873421867238500
-interface_hash=4824438310750818789
-interface_doc_hash=4824438310750818789
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3753483236770800587
+interface_hash=10476785110262231835
+interface_doc_hash=10476785110262231835
 deps=0

@@ -14,7 +14,9 @@ use super::compile::{compile_vm_module, CompiledVmModule};
 ///
 /// Interface summaries establish types, but application images also need the
 /// bodies of non-intrinsic helpers such as `std.system.Process.command/1`.
-/// This traversal follows module imports transitively and removes only
+/// This traversal follows value and type imports transitively: type-only
+/// providers still own the canonical schemas used at managed boundaries.
+/// It removes only
 /// compiler-owned primitive declarations whose executable behavior is
 /// supplied directly by lowering.
 pub(super) fn compile_imported_std_source_modules(
@@ -27,7 +29,12 @@ pub(super) fn compile_imported_std_source_modules(
     let mut pending = roots
         .iter()
         .flat_map(|core| &core.imports)
-        .filter(|import| import.kind == CoreImportKind::Module)
+        .filter(|import| {
+            matches!(
+                import.kind,
+                CoreImportKind::Module | CoreImportKind::TypeModule
+            )
+        })
         .map(|import| import.module.clone())
         .collect::<VecDeque<_>>();
     let active_file = std::fs::canonicalize(active_path).ok();
@@ -56,13 +63,18 @@ pub(super) fn compile_imported_std_source_modules(
                 .core
                 .imports
                 .iter()
-                .filter(|import| import.kind == CoreImportKind::Module)
+                .filter(|import| {
+                    matches!(
+                        import.kind,
+                        CoreImportKind::Module | CoreImportKind::TypeModule
+                    )
+                })
                 .map(|import| import.module.clone()),
         );
         remove_compiler_intrinsic_functions(&mut compiled.compiled.core);
-        if !compiled.compiled.core.functions.is_empty() {
-            modules.push(compiled);
-        }
+        // Intrinsic-only modules still own aliases and constructor signatures
+        // needed by application-wide type normalization.
+        modules.push(compiled);
     }
     modules.sort_by(|left, right| left.compiled.core.module.cmp(&right.compiled.core.module));
     Ok(modules)
@@ -108,3 +120,7 @@ fn repository_root_from_std_path(path: &Path) -> Option<PathBuf> {
     }
     None
 }
+
+#[cfg(test)]
+#[path = "std_source_test.rs"]
+mod tests;

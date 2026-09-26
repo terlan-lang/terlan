@@ -182,14 +182,14 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
 /// - Synthetic discovered test metadata.
 ///
 /// Output:
-/// - A pass-only report with explicit validation messages and original spans.
+/// - A not-executed report with validation messages and original spans.
 ///
 /// Transformation:
 /// - Converts discovered source tests into runner result entries without
 ///   executing target code.
 #[test]
-fn validation_pass_report_marks_all_tests_as_validated() {
-    let report = validation_pass_report(&[DiscoveredTest {
+fn validation_report_does_not_count_compilation_as_execution() {
+    let report = validation_report(&[DiscoveredTest {
         name: "smoke".to_string(),
         kind: TestKind::Test,
         span_start: 7,
@@ -197,10 +197,11 @@ fn validation_pass_report_marks_all_tests_as_validated() {
         literal_bool_result: Some(true),
     }]);
 
-    assert_eq!(report.passed, 1);
+    assert_eq!(report.passed, 0);
     assert_eq!(report.failed, 0);
+    assert!(!report.is_success());
     assert_eq!(report.results[0].name, "smoke");
-    assert_eq!(report.results[0].status, TestRunStatus::Passed);
+    assert_eq!(report.results[0].status, TestRunStatus::NotExecuted);
     assert_eq!(
         report.results[0].message.as_deref(),
         Some("validated without runtime execution")
@@ -292,13 +293,13 @@ fn select_tests_rejects_missing_test_name() {
 ///   output flags.
 ///
 /// Output:
-/// - Assertions over command success and decoded manifest fields.
+/// - A nonzero command exit and manifest entries marked not executed.
 ///
 /// Transformation:
 /// - Runs the public test command entry point with `--target js`, then checks
 ///   that validation-only metadata is serialized with the JS target identity.
 #[test]
-fn run_js_tests_writes_validation_manifests() {
+fn run_js_tests_writes_incomplete_manifests_and_fails_closed() {
     let root = std::env::temp_dir().join(format!(
         "terlan_js_test_manifest_{}_{}",
         std::process::id(),
@@ -313,7 +314,7 @@ fn run_js_tests_writes_validation_manifests() {
     let result_path = root.join("test-results.json");
     fs::write(
         &source_path,
-        "module tests.js.ManifestTest.\n\n@test\npub smoke(): Bool ->\n    true.\n",
+        "module tests.js.ManifestTest.\n\n@test\npub smoke(): Bool ->\n    false.\n",
     )
     .expect("write js validation test source");
 
@@ -335,7 +336,7 @@ fn run_js_tests_writes_validation_manifests() {
             ..CliState::default()
         },
     );
-    assert_eq!(exit_code, ExitCode::SUCCESS);
+    assert_eq!(exit_code, ExitCode::from(1));
 
     let manifest: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&manifest_path).expect("manifest text"))
@@ -351,9 +352,10 @@ fn run_js_tests_writes_validation_manifests() {
     assert_eq!(manifest["tests"][0]["name"], "smoke");
     assert_eq!(results["target"], "js");
     assert_eq!(results["target_profile"], "js.shared");
-    assert_eq!(results["passed"], 1);
+    assert_eq!(results["passed"], 0);
     assert_eq!(results["failed"], 0);
-    assert_eq!(results["tests"][0]["status"], "passed");
+    assert_eq!(results["not_executed"], 1);
+    assert_eq!(results["tests"][0]["status"], "not_executed");
     assert_eq!(
         results["tests"][0]["message"],
         "validated without runtime execution"
@@ -608,6 +610,48 @@ source_roots = ["src"]
     let _ = fs::remove_dir_all(&root);
 
     assert_eq!(exit_code, ExitCode::SUCCESS);
+}
+
+/// Tests inside a source root have one application owner, even with overlapping roots.
+#[test]
+fn run_project_test_inside_source_root_compiles_active_module_once() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_vm_test_source_owner_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos(),
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("source root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\", \"src/.\"]\n",
+    )
+    .expect("project manifest");
+    fs::write(
+        root.join("src/app/Math.terl"),
+        "module app.Math.\npub answer(): Int -> 42.\n",
+    )
+    .expect("support source");
+    let test = root.join("src/app/MathTest.terl");
+    fs::write(
+        &test,
+        "module app.MathTest.\nimport app.Math.\n@test\npub answer_is_correct(): Bool -> Math.answer() == 42.\n",
+    )
+    .expect("test source");
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![test.to_string_lossy().into_owned()],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            ..CliState::default()
+        },
+    );
+    fs::remove_dir_all(root).expect("remove private project and AOT workspace");
+    assert_eq!(result, ExitCode::SUCCESS);
 }
 
 /// Verifies project tests resolve local package dependencies through build semantics.

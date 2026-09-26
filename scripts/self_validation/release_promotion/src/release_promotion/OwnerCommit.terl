@@ -1,0 +1,285 @@
+/**
+ * Recoverable output-set publication under the preparation owner's exclusive lock.
+ * The prepared ledger seals every staged file before any final name changes.
+ */
+module release_promotion.OwnerCommit.
+
+import release_promotion.{CandidateFiles, OwnerDirectory, OwnerNative, OwnerStorage}.
+import std.collections.List.{concat}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.File.{NotFound}.
+import std.io.{Directory, File, Path}.
+
+import type release_promotion.OwnerNative.Snapshot.
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Paths come from the validated producer declaration, never from its ledger.
+ */
+pub struct Publication {
+    staged: String,
+    destination: String,
+    directory: Bool,
+}.
+
+/**
+ * Declares one move from private staging to a known final destination.
+ */
+pub declare_publication(staged: String, destination: String): Publication ->
+    Publication(staged = staged, destination = destination, directory = false).
+
+/**
+ * A complete flat directory is one generation, including removed members.
+ */
+pub declare_directory(staged: String, destination: String): Publication ->
+    Publication(staged = staged, destination = destination, directory = true).
+
+rows(root: String, values: List[Publication], result: Json): Result[Json, String] ->
+    case values {
+        [] -> Ok(result);
+        [value | rest] ->
+            let Ok(output) <- publication_row(root, value, false) else {
+                Err(reason) -> Err(reason)
+            };
+            rows(root, rest, result.push(output))
+    }.
+
+publication_row(root: String, value: Publication, final_path: Bool): Result[Json, String] ->
+    let path =
+        if {
+            final_path -> value.destination;
+            true -> value.staged
+        };
+    if {
+        value.directory -> OwnerDirectory.row(root, path, value.destination);
+        true -> row(root, path, value.destination)
+    }.
+
+/**
+ * Reads final generations using the same representation as the checkpoint.
+ */
+pub final_rows(root: String, values: List[Publication]): Result[Json, String] ->
+    final_rows_at(root, values, Json.array()).
+
+final_rows_at(root: String, values: List[Publication], result: Json): Result[Json, String] ->
+    case values {
+        [] -> Ok(result);
+        [value | rest] ->
+            let Ok(output) <- publication_row(root, value, true) else {
+                Err(reason) -> Err(reason)
+            };
+            final_rows_at(root, rest, result.push(output))
+    }.
+
+row(root: String, staged: String, destination: String): Result[Json, String] ->
+    let {
+        Ok(rows) <- OwnerStorage.files(root, [staged]);
+        Ok(value) <- rows.at(0)
+    } else {
+        _ -> Err("cannot hash prepared owner output")
+    };
+    Ok(value.put("path", Json.string(destination))).
+
+/**
+ * No final output is touched unless the prepared checkpoint is durable as a
+ * process-crash recovery record. This does not claim power-loss durability.
+ */
+pub prepare(
+    root: String,
+    ledger: String,
+    staged: String,
+    destination: String,
+    staged_native: String,
+    native_destination: String,
+    state: Json,
+    snapshot: Snapshot,
+): Bool ->
+    prepare_many(
+        root,
+        ledger,
+        [declare_publication(staged, destination)],
+        staged_native,
+        native_destination,
+        state,
+        snapshot,
+    ).
+
+/**
+ * A single prepared checkpoint binds the whole output set and native log.
+ */
+pub prepare_many(
+    root: String,
+    ledger: String,
+    artifacts: List[Publication],
+    staged_native: String,
+    native_destination: String,
+    state: Json,
+    snapshot: Snapshot,
+): Bool ->
+    let {
+        true <- OwnerNative.publish(root, staged_native, snapshot);
+        Ok(outputs) <- rows(root, artifacts, Json.array());
+        Ok(native) <- row(root, staged_native, native_destination)
+    } else {
+        _ -> false
+    };
+    OwnerStorage.atomic_json(
+        root,
+        ledger,
+        state.put("outcome", Json.string("prepared")).put("outputs", outputs.push(native)),
+    ).
+
+matches(root: String, path: String, destination: String, expected: Json): Bool ->
+    let {
+        Some(expected_path) <- OwnerStorage.text(expected, "path");
+        true <- expected_path == destination;
+        Ok(actual) <- row(root, path, destination);
+        Ok(actual_digest) <- OwnerStorage.digest(actual);
+        Ok(expected_digest) <- OwnerStorage.digest(expected)
+    } else {
+        _ -> false
+    };
+    actual_digest == expected_digest.
+
+/**
+ * Missing staging bytes are acceptable only when the exact sealed final bytes
+ * already exist. A corrupt staged file cannot hide behind an older final file.
+ */
+pub publish_file(root: String, staged: String, destination: String, expected: Json): Bool ->
+    case File.size(OwnerStorage.child(root, staged)) {
+        Err(reason) ->
+            File.code(reason) == NotFound and matches(root, destination, destination, expected);
+        Ok(_size) ->
+            matches(root, staged, destination, expected)
+                and OwnerStorage.command(
+    root,
+    "/usr/bin/mv",
+    ["-f", "-T", "--", OwnerStorage.child(root, staged), OwnerStorage.child(root, destination)],
+)
+    }.
+
+ready(root: String, staged: String, destination: String, expected: Json): Bool ->
+    case File.size(OwnerStorage.child(root, staged)) {
+        Err(reason) ->
+            File.code(reason) == NotFound and matches(root, destination, destination, expected);
+        Ok(_size) -> matches(root, staged, destination, expected)
+    }.
+
+/**
+ * Finishes a prepared transaction without executing the producer again.
+ * Destinations are supplied by the validated owner, not taken from the ledger.
+ */
+pub complete(
+    root: String,
+    ledger: String,
+    staged: String,
+    destination: String,
+    staged_native: String,
+    native_destination: String,
+    state: Json,
+): Result[Json, String] ->
+    complete_many(
+        root,
+        ledger,
+        [declare_publication(staged, destination)],
+        staged_native,
+        native_destination,
+        state,
+    ).
+
+/**
+ * Preflight the entire sealed set before moving its first remaining file.
+ */
+ready_all(root: String, values: List[Publication], expected: Json, index: Int): Bool ->
+    case values {
+        [] -> expected.length() == Ok(index);
+        [value | rest] ->
+            let Ok(output) <- expected.at(index) else {
+                _ -> false
+            };
+            if {
+    value.directory -> OwnerDirectory.ready(root, value.staged, value.destination, output);
+    true -> ready(root, value.staged, value.destination, output)
+}
+                and ready_all(root, rest, expected, index + 1)
+    }.
+
+publish_all(root: String, values: List[Publication], expected: Json, index: Int): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let Ok(output) <- expected.at(index) else {
+                _ -> false
+            };
+            if {
+    value.directory -> OwnerDirectory.publish(root, value.staged, value.destination, output);
+    true -> publish_file(root, value.staged, value.destination, output)
+}
+                and publish_all(root, rest, expected, index + 1)
+    }.
+
+parents(
+    root: String,
+    values: List[Publication],
+    paths: List[String],
+): Result[List[String], String] ->
+    case values {
+        [] -> Ok(CandidateFiles.sort_unique(paths));
+        [value | rest] ->
+            let {
+                Ok(destination) <- Path.from_string(OwnerStorage.child(root, value.destination));
+                Some(parent) <- destination.parent()
+            } else {
+                _ -> Err("owner destination has no valid parent")
+            };
+            parents(root, rest, [parent.to_string() | paths])
+    }.
+
+prepare_parents(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(_directory) <- Directory.create_all(path) else {
+                _ -> false
+            };
+            prepare_parents(rest)
+    }.
+
+/**
+ * Recovery accepts a mix of matching staged and already-published bytes.
+ * Readers must hold the enclosing lock; this is not a multi-file atomic rename.
+ */
+pub complete_many(
+    root: String,
+    ledger: String,
+    artifacts: List[Publication],
+    staged_native: String,
+    native_destination: String,
+    state: Json,
+): Result[Json, String] ->
+    let files = concat(artifacts, [declare_publication(staged_native, native_destination)]);
+    let {
+        Some("prepared") <- OwnerStorage.text(state, "outcome");
+        Ok(expected) <- state.get("outputs");
+        Ok(inventory) <- state.get("native_inventory");
+        Some("pass") <- OwnerStorage.text(inventory, "decision");
+        true <- ready_all(root, files, expected, 0);
+        Ok(directories) <- parents(root, files, []);
+        true <- prepare_parents(directories);
+        true <- publish_all(root, files, expected, 0);
+        Ok(actual) <- final_rows(root, files);
+        Ok(expected_digest) <- OwnerStorage.digest(expected);
+        Ok(actual_digest) <- OwnerStorage.digest(actual);
+        true <- expected_digest == actual_digest;
+        Ok(inspected) <- OwnerNative.inspect_file(OwnerStorage.child(root, native_destination));
+        Ok(inventory_digest) <- OwnerStorage.digest(inventory);
+        Ok(inspected_digest) <- OwnerStorage.digest(inspected);
+        true <- inventory_digest == inspected_digest;
+        true <- OwnerStorage.atomic_json(root, ledger, state.put("outcome", Json.string("pass")))
+    } else {
+        _ -> Err("prepared owner publication is incomplete or corrupt; checkpoint preserved")
+    };
+    Ok(inventory).

@@ -27,3 +27,4 @@ pub(crate) const RECEIVE_TYPED: i32 = 23;
 pub(crate) const CAPABILITY: i32 = 24;
 pub(crate) const DEBUG: i32 = 25;
 pub(crate) const IDENTITY: i32 = 26;
+pub(crate) const FAILURE_TYPED: i32 = 27;

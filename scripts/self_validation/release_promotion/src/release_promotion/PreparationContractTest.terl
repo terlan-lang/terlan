@@ -1,0 +1,233 @@
+/**
+ * Executes real prebuilt contract validators in a disposable committed fixture.
+ * A fixture-only VM launcher counts executions independently of owner receipts.
+ */
+module release_promotion.PreparationContractTest.
+
+import release_promotion.{OwnerStorage, PreparationContext, PreparationFixture, PreparationOwner, PrepareContracts}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+
+import type release_promotion.PreparationContext.Context.
+
+fail(message: String): Bool ->
+    let _printed = Console.eprintln(String.append("[contract owner diagnostic] ", message));
+    false.
+
+directories(root: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, path)) else {
+                _ -> fail("fixture directory creation")
+            };
+            directories(root, rest)
+    }.
+
+copy_sources(root: String, origin: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(_copied) <- File.copy(OwnerStorage.child(origin, path), OwnerStorage.child(root, path)) else {
+                _ -> fail("fixture source copy")
+            };
+            copy_sources(root, origin, rest)
+    }.
+
+fixture(root: String, origin: String, vm: String, image: String): Bool ->
+    let {
+        true <-
+            directories(
+                root,
+                [
+                    "target/tools",
+                    "target/quality",
+                    ".github/workflows",
+                    ".github/actions/setup-native-dependencies",
+                    "docs/runtime",
+                ],
+            );
+        true <-
+            copy_sources(
+                root,
+                origin,
+                [
+                    "Makefile",
+                    ".github/workflows/ci.yml",
+                    ".github/workflows/release.yml",
+                    ".github/actions/setup-native-dependencies/action.yml",
+                    "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json",
+                    "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md",
+                ],
+            );
+        Ok(_ignore) <- File.write_text(OwnerStorage.child(root, ".gitignore"), "/target/\n");
+        Ok(_image) <-
+            File.copy(
+                OwnerStorage.child(origin, image),
+                OwnerStorage.child(root, "target/tools/matrix.tvm"),
+            );
+        Ok(_launcher) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/tools/vm"),
+                String.concat(
+                    [
+                        "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$5\" >> target/contract-launches\nexec ",
+                        "'",
+                        String.replace(OwnerStorage.child(origin, vm), "'", "'\\''"),
+                        "' \"$@\"\n",
+                    ],
+                ),
+            );
+        true <- OwnerStorage.command(root, "/usr/bin/chmod", ["+x", "target/tools/vm"]);
+        true <- PreparationFixture.commit(root)
+    } else {
+        _ -> fail("fixture setup")
+    };
+    true.
+
+commands(root: String, context: Context, names: List[String], reused: Bool): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let Ok(owner) <-
+                PrepareContracts.declare(
+                    root,
+                    "target/tools/vm",
+                    "target/tools/matrix.tvm",
+                    context,
+                    name,
+                ) else {
+                _ -> fail(String.append("declare ", name))
+            };
+            (let result = PreparationOwner.run_locked(root, owner);
+(let {
+    true <-
+        if {
+            result.valid and result.reused == reused -> true;
+            true -> fail(String.concat(["result invalid ", name, ": ", result.message]))
+        };
+    Ok(receipt) <- OwnerStorage.read_json(OwnerStorage.child(root, owner.output));
+    Some(actual) <- OwnerStorage.text(receipt, "command");
+    true <-
+        if {
+            actual == name -> true;
+            true -> fail(String.append("receipt command mismatch ", name))
+        };
+    Some("pass") <- OwnerStorage.text(receipt, "decision")
+} else {
+    _ -> fail(String.append("validate ", name))
+};
+commands(root, context, rest, reused)))
+    }.
+
+launches(root: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/contract-launches")) else {
+        _ -> fail("read contract launches")
+    };
+    if {
+        actual == expected -> true;
+        true -> fail("contract launch sequence mismatch")
+    }.
+
+exercise(root: String): Bool ->
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        true <- commands(root, context, PrepareContracts.commands(), false);
+        true <- commands(root, context, PrepareContracts.commands(), true)
+    } else {
+        _ -> fail("initial contract commands")
+    };
+    (let cold = "self-test\ntsan-self-test\nrelease-self-test\nmulticore-release-self-test\n";
+let expected = String.append(cold, "tsan-self-test\n");
+(let {
+    true <- launches(root, cold);
+    Ok(owner) <-
+        PrepareContracts.declare(
+            root,
+            "target/tools/vm",
+            "target/tools/matrix.tvm",
+            context,
+            "tsan-self-test",
+        );
+    Ok(_corrupt) <- File.write_text(OwnerStorage.child(root, owner.output), "corrupt");
+    true <- commands(root, context, ["tsan-self-test"], false);
+    true <- commands(root, context, PrepareContracts.commands(), true);
+    true <- launches(root, expected);
+    Ok(_removed) <- File.delete(OwnerStorage.child(root, owner.output));
+    Ok(_obstruction) <- Directory.create_all(OwnerStorage.child(root, owner.output))
+} else {
+    _ -> fail("repair contract commands")
+};
+(let failed = PreparationOwner.run_locked(root, owner);
+(let {
+    false <- failed.valid;
+    true <- launches(root, String.append(expected, "tsan-self-test\n"));
+    Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
+    Some("prepared") <- OwnerStorage.text(ledger, "outcome");
+    Ok(_cleared) <- Directory.remove_all(OwnerStorage.child(root, owner.output));
+    true <- commands(root, context, PrepareContracts.commands(), true);
+    true <- launches(root, String.append(expected, "tsan-self-test\n"))
+} else {
+    _ -> false
+};
+candidate_isolation(root, context)
+    and launches(root, String.append(expected, "tsan-self-test\ntsan-self-test\n")))))).
+
+candidate_isolation(root: String, prior: Context): Bool ->
+    let {
+        Ok(old_owner) <-
+            PrepareContracts.declare(
+                root,
+                "target/tools/vm",
+                "target/tools/matrix.tvm",
+                prior,
+                "tsan-self-test",
+            );
+        Ok(old_bytes) <- File.read_text(OwnerStorage.child(root, old_owner.output));
+        Ok(makefile) <- File.read_text(OwnerStorage.child(root, "Makefile"));
+        Ok(_changed) <-
+            File.write_text(
+                OwnerStorage.child(root, "Makefile"),
+                String.append(makefile, "\n# next fixture candidate\n"),
+            );
+        true <- PreparationFixture.commit(root);
+        Ok(current) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        true <- current.revision != prior.revision;
+        Ok(new_owner) <-
+            PrepareContracts.declare(
+                root,
+                "target/tools/vm",
+                "target/tools/matrix.tvm",
+                current,
+                "tsan-self-test",
+            );
+        true <- new_owner.output != old_owner.output;
+        true <- commands(root, current, ["tsan-self-test"], false);
+        true <- commands(root, current, ["tsan-self-test"], true);
+        Ok(_corrupted) <- File.write_text(OwnerStorage.child(root, new_owner.output), "corrupt new candidate");
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, old_owner.output))
+    } else {
+        _ -> fail("candidate isolation")
+    };
+    retained == old_bytes.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-contract-owners-") else {
+        _ -> fail("temporary fixture directory")
+    };
+    (let passed = fixture(root, origin, vm, image) and exercise(root);
+let cleaned =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            passed and cleaned -> "contract owner rehearsal passed: four cold launches, zero warm launches, selective repair, interrupted publication without replay, candidate isolation";
+            true -> "contract owner rehearsal failed"
+        },
+    );
+passed and cleaned).

@@ -9,13 +9,14 @@ import std.core.{Int, String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
-import std.io.File.{read_text_many, read_text_tree_matching, write_text}.
+import std.io.Directory.{create_all}.
+import std.io.File.{NotFound, PermissionDenied, code, new, read_text, read_text_many, read_text_tree_matching, write_text}.
 import std.regex.Regex.
 import std.system.Environment.
 
-import type std.core.Option.
+import type std.core.{Option, Result}.
 import type std.data.Json.
-import type std.io.File.TextFile.
+import type std.io.File.{FileError, TextFile}.
 
 struct MatrixRow {
     order: String,
@@ -1051,23 +1052,17 @@ input_checksum(
     ).
 
 prior_holds(source: String, checksum: String, results: Json): Bool ->
-    case Json.parse(source) {
-        Ok(prior) ->
-            let prior_checksum =
-                case json_string(prior, "input_checksum") {
-                    Some(value) -> value;
-                    None -> ""
-                };
-            if {
-                prior_checksum != checksum -> true;
-                true -> case json_member(prior, "lanes") {
-                    Some(old_lanes) ->
-                        prior_rows_hold(named_json(old_lanes, "lane"), named_json(results, "lane"));
-                    None -> false
-                }
-            };
-        Err(_reason) -> true
-    }.
+    let {
+        Ok(prior) <- Json.parse(source);
+        true <- json_string_is(prior, "schema", "terlan.lean-proof-lanes.v1");
+        Some(prior_checksum) <- json_string(prior, "input_checksum");
+        Some(old_lanes) <- json_member(prior, "lanes");
+        Ok(_count) <- old_lanes.length()
+    } else {
+        _ -> false
+    };
+    prior_checksum != checksum
+        or prior_rows_hold(named_json(old_lanes, "lane"), named_json(results, "lane")).
 
 prior_rows_hold(old_rows: List[NamedJson], new_rows: List[NamedJson]): Bool ->
     case new_rows {
@@ -1113,6 +1108,7 @@ render_reports(
             .put("schema", Json.string("terlan.lean-proof-lanes.v1"));
     let updated_gate =
         gate
+            .put("schema", Json.string("terlan.lean-proof-gate.v1"))
             .put("lane_checksums", lanes.checksums)
             .put("lane_matrix_checksum", Json.string(matrix_digest));
     let {
@@ -1145,6 +1141,7 @@ compute_lane_seal(
         Some(features) <- feature_rows(inputs.features);
         Some(gap_index) <- gap_rows(inputs.gaps);
         Ok(gate) <- Json.parse(inputs.gate);
+        true <- json_string_is(gate, "schema", "terlan.lean-proof-track.v1");
         Ok(replay) <- Json.parse(inputs.replay);
         Ok(smoke) <- Json.parse(inputs.smoke)
     } else {
@@ -1208,38 +1205,189 @@ lane_lines(): String ->
 
 run_repository_check(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_LANES_ROOT", Environment.current_directory());
+    let Some(prior) <- comparison_input(root) else {
+        _ -> fail("prior lane report is unreadable or empty")
+    };
     case read_text_many(
     [
         root_path(root, "docs/compiler/LEAN_PROOF_SLICE_MATRIX.tsv"),
         root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
         root_path(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
-        root_path(root, "build/artifacts/lean-proof-gate.json"),
-        root_path(root, "build/artifacts/lean-proof-repro-report.json"),
-        root_path(root, "build/artifacts/lean-proof-smoke.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-track.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-smoke.json"),
+        root_path(root, "target/quality/proof-artifacts/lean-proof-smoke-attempt.json"),
         root_path(root, "Makefile"),
         root_path(root, "docs/roadmap/ROADMAP_0_0_7.md"),
         root_path(root, "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md"),
-        root_path(root, "build/artifacts/lean-proof-lanes.json"),
     ],
 ) {
-        Ok([matrix, features, gaps, gate, replay, smoke, makefile, roadmap, archive, prior]) ->
-            let inputs =
-                Inputs(
-                    matrix = matrix.contents,
-                    features = features.contents,
-                    gaps = gaps.contents,
-                    gate = gate.contents,
-                    replay = replay.contents,
-                    smoke = smoke.contents,
-                    makefile = makefile.contents,
-                    roadmap = roadmap.contents,
-                    archive = archive.contents,
-                    prior_lanes = prior.contents,
-                );
-            read_dynamic_lane_inputs(root, inputs);
+        Ok([matrix, features, gaps, gate, replay, smoke, smoke_attempt, makefile, roadmap, archive]) ->
+            let true <- smoke_attempt_holds(smoke_attempt.contents, smoke.contents) else {
+                _ -> fail("smoke report has no matching completed current attempt")
+            };
+            (let inputs =
+    Inputs(
+        matrix = matrix.contents,
+        features = features.contents,
+        gaps = gaps.contents,
+        gate = gate.contents,
+        replay = replay.contents,
+        smoke = smoke.contents,
+        makefile = makefile.contents,
+        roadmap = roadmap.contents,
+        archive = archive.contents,
+        prior_lanes = prior,
+    );
+read_dynamic_lane_inputs(root, inputs));
         Ok(_files) -> fail("lane input batch has an unexpected shape");
         Err(_reason) -> fail("lane inputs could not be read")
     }.
+
+smoke_attempt_holds(source: String, smoke: String): Bool ->
+    let {
+        Ok(attempt) <- Json.parse(source);
+        Ok(schema) <- attempt.get("schema");
+        Ok("terlan.lean-proof-smoke-attempt.v1") <- schema.as_string();
+        Ok(decision) <- attempt.get("decision");
+        Ok("pass") <- decision.as_string();
+        Ok(digest) <- attempt.get("report_sha256");
+        Ok(expected) <- digest.as_string()
+    } else {
+        _ -> false
+    };
+    expected == String.append("sha256:", Hash.sha256(smoke)).
+
+@test
+pub smoke_attempt_rejects_stale_running_and_mismatched_reports(): Bool ->
+    let smoke = "fixture report";
+    let receipt =
+        Json.object()
+            .put("schema", Json.string("terlan.lean-proof-smoke-attempt.v1"))
+            .put("decision", Json.string("pass"))
+            .put("report_sha256", Json.string(String.append("sha256:", Hash.sha256(smoke))));
+    let Ok(passed) <- Json.stringify(receipt) else {
+        _ -> false
+    };
+    smoke_attempt_holds(passed, smoke)
+        and not smoke_attempt_holds(passed, "changed report")
+        and not smoke_attempt_holds(
+    "{\"schema\":\"terlan.lean-proof-smoke-attempt.v1\",\"decision\":\"running\"}",
+    smoke,
+)
+        and not smoke_attempt_holds("{}", smoke).
+
+comparison_input(root: String): Option[String] ->
+    case Environment.get("TERLAN_PROOF_LANES_HISTORY") {
+        None ->
+            prior_lane_input(
+                read_text(root_path(root, "target/quality/proof-artifacts/lean-proof-lanes.json")),
+            );
+        Some(path) ->
+            let Ok(source) <- read_text(path) else {
+                _ -> None
+            };
+            history_input(source)
+    }.
+
+history_input(source: String): Option[String] ->
+    let {
+        Ok(document) <- Json.parse(source);
+        true <- json_string_is(document, "schema", "terlan.preparation-output-history.v1");
+        Some(body) <- json_member(document, "body");
+        Some(expected) <- json_string(document, "body_sha256");
+        Ok(encoded) <- Json.stringify(body);
+        true <- expected == Hash.sha256(encoded);
+        true <- json_string_is(body, "owner", "proof-lanes");
+        true <-
+            json_string_is(
+                body,
+                "source_path",
+                "target/quality/proof-artifacts/lean-proof-lanes.json",
+            );
+        Some(prior) <- json_string(body, "prior")
+    } else {
+        _ -> None
+    };
+    if {
+        prior == "" -> Some("");
+        true -> prior_lane_input(Ok(prior))
+    }.
+
+@test
+pub immutable_history_requires_matching_identity_and_content(): Bool ->
+    let body =
+        Json.object()
+            .put("candidate", Json.string("candidate"))
+            .put("owner", Json.string("proof-lanes"))
+            .put("source_path", Json.string("target/quality/proof-artifacts/lean-proof-lanes.json"))
+            .put("prior", Json.string(""));
+    let Ok(encoded) <- Json.stringify(body) else {
+        _ -> false
+    };
+    (let document =
+    Json.object()
+        .put("schema", Json.string("terlan.preparation-output-history.v1"))
+        .put("body", body)
+        .put("body_sha256", Json.string(Hash.sha256(encoded)));
+(let Ok(source) <- Json.stringify(document) else {
+    _ -> false
+};
+(let Ok(corrupt) <- Json.stringify(document.put("body_sha256", Json.string("wrong"))) else {
+    _ -> false
+};
+history_input(source) == Some("")
+    and history_input(corrupt) == None
+    and history_input("{}") == None
+    and history_input("broken") == None))).
+
+prior_lane_input(result: Result[String, FileError]): Option[String] ->
+    case result {
+        Ok(source) ->
+            if {
+                String.trim(source) == "" -> None;
+                true -> Some(source)
+            };
+        Err(reason) ->
+            if {
+                code(reason) == NotFound -> Some("");
+                true -> None
+            }
+    }.
+
+@test
+pub first_lane_run_does_not_require_historical_output(): Bool ->
+    prior_lane_input(Err(new(NotFound, "missing", "report"))) == Some("").
+
+@test
+pub unreadable_prior_lane_output_is_not_a_cold_run(): Bool ->
+    prior_lane_input(Err(new(PermissionDenied, "denied", "report"))) == None.
+
+@test
+pub empty_prior_lane_output_is_not_a_cold_run(): Bool ->
+    prior_lane_input(Ok("  \n")) == None.
+
+@test
+pub unreadable_prior_lane_output_returns_missing_pattern(): Bool ->
+    case prior_lane_input(Err(new(PermissionDenied, "denied", "report"))) {
+        None -> true;
+        Some(_value) -> false
+    }.
+
+@test
+pub empty_prior_lane_output_returns_missing_pattern(): Bool ->
+    case prior_lane_input(Ok("  \n")) {
+        None -> true;
+        Some(_value) -> false
+    }.
+
+@test
+pub existing_prior_lane_output_is_preserved(): Bool ->
+    prior_lane_input(Ok("{\"schema\":\"prior\"}")) == Some("{\"schema\":\"prior\"}").
+
+@test
+pub malformed_prior_lane_output_is_rejected(): Bool ->
+    not prior_holds("{", "current", Json.array()) and not prior_holds("{}", "current", Json.array()).
 
 read_dynamic_lane_inputs(root: String, inputs: Inputs): Bool ->
     let {
@@ -1270,19 +1418,32 @@ read_dynamic_lane_inputs(root: String, inputs: Inputs): Bool ->
     }.
 
 persist_lane_seal(root: String, inputs: Inputs, matrix: List[MatrixRow], seal: SealData): Bool ->
+    let Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts")) else {
+        _ -> fail("lane report directory could not be created")
+    };
     if {
         not seal.valid -> fail(seal.report);
-        true -> case write_text(root_path(root, "build/artifacts/lean-proof-lanes.json"), seal.report) {
-            Ok(Unit) ->
-                case write_text(root_path(root, "build/artifacts/lean-proof-gate.json"), seal.gate) {
-                    Ok(Unit) ->
-                        let _lines = println(lane_lines());
-                        let _printed = println("Lean proof lanes passed: 8 ordered hard lanes sealed");
-                        true;
-                    Err(_reason) -> fail("proof gate report could not be written")
-                };
-            Err(_reason) -> fail("lane report could not be written")
-        }
+        true -> let {
+            Ok(Unit) <-
+                write_text(
+                    environment_or(
+                        "TERLAN_PROOF_LANES_OUTPUT",
+                        root_path(root, "target/quality/proof-artifacts/lean-proof-lanes.json"),
+                    ),
+                    seal.report,
+                );
+            Ok(Unit) <-
+                write_text(
+                    environment_or(
+                        "TERLAN_PROOF_LANE_GATE_OUTPUT",
+                        root_path(root, "target/quality/proof-artifacts/lean-proof-gate.json"),
+                    ),
+                    seal.gate,
+                )
+        } else {
+            _ -> fail("lane or proof gate report could not be written")
+        };
+        (let _lines = println(lane_lines()); let _printed = println("Lean proof lanes passed: 8 ordered hard lanes sealed"); true)
     }.
 
 @test

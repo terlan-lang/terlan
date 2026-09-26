@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSVariableReferenceValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11770625090140653966
-interface_hash=2965001517634446401
-interface_doc_hash=2965001517634446401
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=154117348549485137
+interface_hash=9682489527606807727
+interface_doc_hash=9682489527606807727
 deps=0

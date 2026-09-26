@@ -3,7 +3,6 @@
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
-use std::process::Command;
 
 use sha2::Digest;
 
@@ -111,11 +110,7 @@ pub(super) fn source_tree_identity(
 }
 
 fn git(operation: &str, root: &str, arguments: &[&str]) -> Result<Vec<u8>, DispatchError> {
-    let output = Command::new("git")
-        .current_dir(root)
-        .args(arguments)
-        .output()
-        .map_err(|failure| error(operation, format!("failed to launch Git: {failure}")))?;
+    let output = super::process::capture_git(root, arguments, None)?;
     if !output.status.success() {
         return Err(error(
             operation,

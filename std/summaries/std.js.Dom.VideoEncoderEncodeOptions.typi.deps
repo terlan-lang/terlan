@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoEncoderEncodeOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4410594900409878539
-interface_hash=8917315794996472973
-interface_doc_hash=8917315794996472973
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11236648792313121595
+interface_hash=9864886060469149514
+interface_doc_hash=9864886060469149514
 deps=0

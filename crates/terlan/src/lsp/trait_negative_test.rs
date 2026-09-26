@@ -1,4 +1,5 @@
-use tower_lsp::lsp_types::{SymbolKind, Url};
+use std::str::FromStr;
+use tower_lsp_server::ls_types::{SymbolKind, Uri};
 
 use super::document::OpenDocuments;
 use super::Backend;
@@ -29,7 +30,7 @@ pub impl not Log[SecretKey].
 #[test]
 fn open_document_reports_denied_generic_trait_fallback() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/negative-trait-diagnostic.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/negative-trait-diagnostic.terl").expect("uri");
     store.open(
         uri.clone(),
         "\
@@ -61,7 +62,7 @@ pub leak(value: SecretKey): String -> encode_any(value).
 #[test]
 fn open_document_reports_conflicting_comprehension_guard_containers() {
     let store = OpenDocuments::default();
-    let uri = Url::parse("file:///tmp/comprehension-guard-diagnostic.terl").expect("uri");
+    let uri = Uri::from_str("file:///tmp/comprehension-guard-diagnostic.terl").expect("uri");
     store.open(
         uri.clone(),
         r#"

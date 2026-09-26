@@ -18,6 +18,14 @@
 //! compatible, unfenced profile and preserves its declared roles. Leadership
 //! hints are deterministic routing hints over active role tags; they are not a
 //! consensus or replicated-state guarantee.
+//!
+//! Native AOT executes profiles, membership, and in-memory transport sessions.
+//! Updates produce immutable actor-owned snapshots. Frames use the VM's TETF
+//! codec and the admitted image's atom vocabulary; no operation here discovers
+//! peers or opens network connections. Scalar, byte/string, record, list, and
+//! tuple, Map, Set, and Binary bitstring payloads are supported. Actor-local
+//! handles are rejected. VM-owned calls preserve typed values directly;
+//! external workers retain their separate, narrower wire vocabulary.
 
 module std.vm.Cluster.
 

@@ -1,6 +1,34 @@
 use super::*;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+/// Case and if results must satisfy the return annotation on every branch.
+#[test]
+fn syntax_output_return_annotation_checks_all_control_flow_branches() {
+    for expression in [
+        "case flag { true -> 1; false -> false }",
+        "case flag { true -> false; false -> 1 }",
+        "if { flag -> 1; _ -> false }",
+        "if { flag -> false; _ -> 1 }",
+    ] {
+        let diagnostics = check_syntax_output(&format!(
+            "module branch_return. pub inspect(flag: Bool): Int -> {expression}."
+        ));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d.message.contains("expected Int found") && d.message.contains("Bool")),
+            "must reject mixed result {expression}: {diagnostics:?}"
+        );
+        let diagnostics = check_syntax_output(&format!(
+            "module branch_return. pub inspect(flag: Bool): Int | Bool -> {expression}."
+        ));
+        assert!(
+            diagnostics.is_empty(),
+            "declared union {expression}: {diagnostics:?}"
+        );
+    }
+}
+
 /// Verifies that syntax-output boolean operators typecheck as Bool.
 ///
 /// Inputs:
@@ -605,6 +633,29 @@ pub demo(): Unit ->\n\
     );
 }
 
+#[test]
+fn explicit_lambda_parameter_types_are_checked_at_callback_boundaries() {
+    for source in [
+        "module typed_lambda_bad_return. pub incompatible(): (Int) -> Int -> ((value: String) -> value).",
+        "module typed_lambda_bad_argument. consume(callback: (Int) -> Int): Int -> callback(1). pub main(): Int -> consume((value: String) -> 1).",
+        "module typed_lambda_bad_body. pub main(): (Int) -> Int -> ((value: Int) -> value + \"suffix\").",
+    ] {
+        let diagnostics = check_syntax_output(source);
+        assert!(!diagnostics.is_empty(), "explicit annotation was discarded: {source}");
+    }
+}
+
+#[test]
+fn explicit_lambda_parameters_preserve_precise_local_function_types() {
+    let diagnostics = check_syntax_output("module typed_lambda_local. pub main(choice: Bool): Int -> let operation = if { choice -> ((value: Int) -> value + 1); true -> ((value: Int) -> value - 1) }; operation(10).");
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let diagnostics = check_syntax_output("module typed_lambda_local_bad. pub main(): Int -> let operation = ((value: Int) -> value + 1); operation(\"wrong\").");
+    assert!(
+        !diagnostics.is_empty(),
+        "typed local callback accepted a String argument"
+    );
+}
+
 /// Verifies callback return types are covariant.
 ///
 /// Inputs:
@@ -879,4 +930,23 @@ pub values(items: List[Int]): List[Int] ->\n\
         "unexpected diagnostics: {:?}",
         diagnostics
     );
+}
+
+#[test]
+fn shared_generic_arguments_keep_the_full_union_in_either_order() {
+    let diagnostics = check_syntax_output(
+        "module shared_generic. pub type Left. pub type Right. \
+         pub type Choice = Left | Right. \
+         pub same[A](left: A, right: A): Bool -> left == right. \
+         pub check(value: Choice): Bool -> same(Left, value) and same(value, Left).",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    for expression in ["same(1, true)", "same[Int](1, true)"] {
+        let diagnostics = check_syntax_output(&format!(
+            "module shared_generic_negative. \
+             pub same[A](left: A, right: A): Bool -> left == right. \
+             pub check(): Bool -> {expression}."
+        ));
+        assert!(!diagnostics.is_empty(), "must reject {expression}");
+    }
 }

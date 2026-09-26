@@ -519,6 +519,10 @@ impl CoreRuntimeCapability {
 pub enum CoreIntrinsicId {
     Primitive(CorePrimitiveIntrinsic),
     Runtime(CoreRuntimeCapability),
+    /// Compiler-owned checked query of an existential's concrete native type.
+    ErasedValueIs(CoreType),
+    /// Terminates the current VM actor with a checked, boxed error value.
+    VmEffectFail,
     /// Type-directed physical layout inspection retained through specialization.
     MemoryLayoutOf(CoreType),
     /// Type-directed direct memory accounting for one value.
@@ -567,6 +571,10 @@ impl CoreIntrinsicId {
         match self {
             Self::Primitive(intrinsic) => intrinsic.registry_key().to_string(),
             Self::Runtime(capability) => capability.registry_key().to_string(),
+            Self::ErasedValueIs(value_type) => {
+                format!("core.erased.is[{}]", value_type.contract_text())
+            }
+            Self::VmEffectFail => "vm.effect.fail".to_string(),
             Self::MemoryLayoutOf(value_type) => {
                 format!("core.memory.layout_of[{}]", value_type.contract_text())
             }

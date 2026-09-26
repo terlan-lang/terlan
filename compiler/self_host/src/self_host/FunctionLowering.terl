@@ -3,9 +3,11 @@ module self_host.FunctionLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration}.
 
-import std.core.{Int, String}.
+import std.collections.List.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.ParameterParser.
@@ -25,6 +27,22 @@ without_terminal_dot(source: String): String ->
 failure(source: DeclarationSyntax, message: String): FunctionSyntax ->
     FunctionSyntax(false, source.name, "", ParameterParser.parse_all(""), TypeParser.parse(""), ExpressionParser.parse(""), source.is_public, source.class == ConstFunctionDeclaration, source.span, message).
 
+@pure
+validation_message(
+    parameters: List[ParameterSyntax],
+    parameters_valid: Bool,
+    return_valid: Bool,
+    return_message: String,
+    body_valid: Bool,
+    body_message: String,
+): String ->
+    if {
+        not parameters_valid -> ParameterParser.first_error(parameters);
+        not return_valid -> return_message;
+        not body_valid -> body_message;
+        true -> ""
+    }.
+
 /** Lowers one function declaration through nested type/expression parsers. */
 @pure
 pub lower(source: DeclarationSyntax): FunctionSyntax ->
@@ -42,10 +60,24 @@ pub lower(source: DeclarationSyntax): FunctionSyntax ->
             let body_text = without_terminal_dot(source.body.utf8_slice(arrow + 2, source.body.byte_size() - arrow - 2));
             let return_type = TypeParser.parse(return_text);
             let body = ExpressionParser.parse(body_text);
-            FunctionSyntax(ParameterParser.all_valid(typed_parameters) and return_type.valid and body.valid, source.name, parameters, typed_parameters, return_type, body, source.is_public, source.class == ConstFunctionDeclaration, source.span, if {
-                    not ParameterParser.all_valid(typed_parameters) -> ParameterParser.first_error(typed_parameters);
-                    not return_type.valid -> return_type.message;
-                    not body.valid -> body.message;
-                    true -> ""
-                })
+            let parameters_valid = ParameterParser.all_valid(typed_parameters);
+            FunctionSyntax(
+                parameters_valid and return_type.valid and body.valid,
+                source.name,
+                parameters,
+                typed_parameters,
+                return_type,
+                body,
+                source.is_public,
+                source.class == ConstFunctionDeclaration,
+                source.span,
+                validation_message(
+                    typed_parameters,
+                    parameters_valid,
+                    return_type.valid,
+                    return_type.message,
+                    body.valid,
+                    body.message,
+                ),
+            )
     }.

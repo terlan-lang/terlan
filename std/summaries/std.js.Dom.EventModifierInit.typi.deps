@@ -1,8 +1,8 @@
 module=std.js.Dom.EventModifierInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3693889462418721399
-interface_hash=9112223622361124342
-interface_doc_hash=9112223622361124342
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1764651234699246964
+interface_hash=11578999928005057107
+interface_doc_hash=11578999928005057107
 deps=0

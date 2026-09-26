@@ -1,8 +1,8 @@
 module=std.js.Dom.AuthenticationExtensionsPRFOutputs
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17431380688353962828
-interface_hash=15771858048122769543
-interface_doc_hash=15771858048122769543
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13223644341113936966
+interface_hash=2379329156858757436
+interface_doc_hash=2379329156858757436
 deps=0

@@ -1,0 +1,87 @@
+/**
+ * Candidate evidence excludes mutable preparation bookkeeping and documents
+ * derived from the candidate itself. Other gate reports remain sealed.
+ */
+module release_promotion.CandidateEvidence.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Directory.
+
+import type std.core.Result.
+
+@pure
+excluded_record(path: String): Bool ->
+    case path {
+        "target/quality/rust-cargo-metadata.json" -> true;
+        "target/quality/rust-cargo-metadata.json.attempt.json" -> true;
+        "target/quality/release-promotion-pipeline-report.json" -> true;
+        "target/quality/release-readiness-attestation-report.json" -> true;
+        "target/quality/release-staged-distribution-verification-report.json" -> true;
+        "target/quality/release-support-manifest.json" -> true;
+        "target/quality/release-preflight-report.json" -> true;
+        _ -> false
+    }.
+
+@pure
+included(path: String): Bool ->
+    String.ends_with(path, ".json")
+        and not String.starts_with(path, "target/quality/preparation/")
+        and not excluded_record(path).
+
+@pure
+selected_entry(path: String, prefix: String, tail: List[String]): List[String] ->
+    let relative =
+        String.append(
+            "target/quality/",
+            path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()),
+        );
+    if {
+        included(relative) -> [relative | tail];
+        true -> tail
+    }.
+
+select(paths: List[String], prefix: String): Result[List[String], String] ->
+    case paths {
+        [] -> Ok([]);
+        [path | rest] ->
+            let {
+                true <- String.starts_with(path, prefix);
+                Ok(tail) <- select(rest, prefix)
+            } else {
+                Err(reason) -> Err(reason);
+                _ -> Err("candidate evidence path escaped target/quality")
+            };
+            Ok(selected_entry(path, prefix, tail))
+    }.
+
+@pure
+directory(root: String): String ->
+    if {
+        String.starts_with(root, "./") -> directory(root.utf8_slice(2, root.byte_size() - 2));
+        root == "" or root == "." -> "target/quality";
+        String.ends_with(root, "/") -> String.append(root, "target/quality");
+        true -> String.append(root, "/target/quality")
+    }.
+
+/**
+ * The filesystem normalizes leading dot components in returned entry names.
+ */
+pub relative_root_self_test(): Bool ->
+    directory("") == "target/quality"
+        and directory(".") == "target/quality"
+        and directory("./") == "target/quality"
+        and directory("././project/") == "project/target/quality"
+        and directory("/project/") == "/project/target/quality".
+
+/**
+ * Failure to enumerate evidence cannot be mistaken for an empty gate inventory.
+ * Directory enumeration returns sorted regular files without following symlinks.
+ */
+pub paths(root: String): Result[List[String], String] ->
+    let directory = directory(root.replace("\\", "/"));
+    let Ok(files) <- Directory.files_recursive_excluding(directory, []) else {
+        Err(reason) ->
+            Err(String.append("cannot inventory candidate evidence: ", Directory.message(reason)))
+    };
+    select(files, String.append(directory, "/")).

@@ -1,8 +1,8 @@
 module=std.js.Dom.FragmentDirective
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13261461442113596855
-interface_hash=2503551141265453029
-interface_doc_hash=2503551141265453029
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=18367842567948703594
+interface_hash=12850071460988630714
+interface_doc_hash=12850071460988630714
 deps=0

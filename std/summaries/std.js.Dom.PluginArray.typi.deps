@@ -1,8 +1,8 @@
 module=std.js.Dom.PluginArray
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5885486846666536283
-interface_hash=8303298180047860473
-interface_doc_hash=8303298180047860473
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17931842627513280448
+interface_hash=10868841858873619891
+interface_doc_hash=10868841858873619891
 deps=0

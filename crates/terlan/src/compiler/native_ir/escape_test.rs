@@ -31,6 +31,7 @@ fn layouts() -> NativeConstructorLayouts {
     let declarations = vec![
         CoreConstructorDecl {
             name: "Ok".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {
@@ -44,6 +45,7 @@ fn layouts() -> NativeConstructorLayouts {
         },
         CoreConstructorDecl {
             name: "Error".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {
@@ -57,6 +59,7 @@ fn layouts() -> NativeConstructorLayouts {
         },
         CoreConstructorDecl {
             name: "Some".to_owned(),
+            implementation: None,
             public: true,
             min_arity: 1,
             params: vec![CoreParam {
@@ -76,6 +79,7 @@ fn layouts() -> NativeConstructorLayouts {
 /// Creates one fully resolved constructor call.
 fn constructor(name: &str, argument: CoreExpr) -> CoreExpr {
     CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: name.to_owned(),
         constructor_identity: Some(format!("escape.{name}")),
         args: vec![argument],
@@ -97,6 +101,9 @@ fn lower(expr: &CoreExpr) -> Result<NativeExpr, String> {
 /// Wraps one body in the production native-function input contract.
 fn function(body: CoreExpr, return_type: &str, core_return_type: CoreType) -> CoreFunction {
     CoreFunction {
+        receiver_method: false,
+        trait_method: None,
+        source: None,
         name: "optimized".to_owned(),
         arity: 0,
         public: true,
@@ -202,6 +209,7 @@ fn constructor_with_unproven_field_effect_is_not_eliminated() {
             value: constructor(
                 "Ok",
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "observe".to_owned(),
                     args: Vec::new(),
                 },
@@ -365,6 +373,7 @@ fn constructor_fields_cannot_hide_suspending_calls_from_admission() {
     let expression = constructor(
         "Ok",
         CoreExpr::Call {
+            type_args: Vec::new(),
             function: "pause".to_owned(),
             args: Vec::new(),
         },

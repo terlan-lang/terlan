@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaSettingsRange
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7904055532791419614
-interface_hash=5528938379453976901
-interface_doc_hash=5528938379453976901
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4203234438971198740
+interface_hash=10465733693997032091
+interface_doc_hash=10465733693997032091
 deps=0

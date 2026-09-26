@@ -3,6 +3,9 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
+use std::time::Duration;
+
+use crate::runtime::native_boundary::dispatch::capture_tool_command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
@@ -380,18 +383,28 @@ impl GitPackageFetcher {
             rev.to_ascii_lowercase(),
             std::process::id()
         ));
-        let _ = fs::remove_dir_all(&temporary);
-        let clone = Command::new("git")
-            .args(["clone", "--quiet", "--no-checkout", "--"])
-            .arg(url)
-            .arg(&temporary)
-            .current_dir(depending_dir)
-            .output()
-            .map_err(|error| {
-                format!(
-                    "error[package_git_unavailable]: failed to launch git for `{alias}`: {error}"
-                )
-            })?;
+        // Claim a fresh empty directory; never erase a colliding cache entry.
+        fs::create_dir(&temporary).map_err(|error| {
+            format!(
+                "error[package_cache_create_failed]: cannot reserve {}: {error}",
+                temporary.display()
+            )
+        })?;
+        let clone = capture_tool_command(
+            Command::new("git")
+                .args(["clone", "--quiet", "--no-checkout", "--"])
+                .arg(url)
+                .arg(&temporary)
+                .env("GIT_TERMINAL_PROMPT", "0")
+                .current_dir(depending_dir),
+            &format!("Git dependency clone `{alias}`"),
+            Duration::from_secs(300),
+            16 * 1024 * 1024,
+        )
+        .map_err(|error| {
+            let _ = fs::remove_dir_all(&temporary);
+            format!("error[package_git_unavailable]: failed to launch git for `{alias}`: {error}")
+        })?;
         if !clone.status.success() {
             let _ = fs::remove_dir_all(&temporary);
             return Err(format!(
@@ -517,12 +530,17 @@ fn validate_checkout_identity(checkout: &Path, url: &str, rev: &str) -> Result<(
 }
 
 fn git_output(repository: &Path, args: &[&str]) -> Result<String, String> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(repository)
-        .args(args)
-        .output()
-        .map_err(|error| format!("failed to launch git: {error}"))?;
+    let output = capture_tool_command(
+        Command::new("git")
+            .arg("-C")
+            .arg(repository)
+            .args(args)
+            .env("GIT_TERMINAL_PROMPT", "0"),
+        "Git dependency inspection",
+        Duration::from_secs(30),
+        16 * 1024 * 1024,
+    )
+    .map_err(|error| format!("failed to launch git: {error}"))?;
     if !output.status.success() {
         return Err(format!(
             "git {} failed in {}: {}",

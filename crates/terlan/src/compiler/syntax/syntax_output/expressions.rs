@@ -92,6 +92,9 @@ pub struct SyntaxExprFieldOutput {
 /// - Normalizes branch components into one payload shape for downstream phases.
 pub struct SyntaxClauseOutput {
     pub patterns: Vec<SyntaxPatternOutput>,
+    /// Lambda annotations are semantic input, not disposable formatting text.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parameter_types: Vec<Option<SyntaxTypeOutput>>,
     pub guard: Option<Box<SyntaxExprOutput>>,
     pub body: Box<SyntaxExprOutput>,
 }

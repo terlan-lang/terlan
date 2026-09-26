@@ -1,8 +1,8 @@
 module=std.js.Dom.PerformanceEventTiming
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=8091562884174066160
-interface_hash=7862594105739319665
-interface_doc_hash=7862594105739319665
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15776808661016580474
+interface_hash=7204657881678820337
+interface_doc_hash=7204657881678820337
 deps=0

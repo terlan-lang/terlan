@@ -121,7 +121,7 @@ pub struct VmWebSocketEndpointPlan {
     pub(crate) binary_payload_policy: VmWebSocketBinaryPayloadPolicy,
     pub(crate) callbacks: Option<VmWebSocketCallbackPlan>,
     #[serde(default)]
-    pub(crate) pairing: Option<VmWebSocketPairingPlan>,
+    pub(crate) pairing: Option<Box<VmWebSocketPairingPlan>>,
 }
 
 /// Complete static callback set for one generated WebSocket endpoint.
@@ -228,13 +228,13 @@ impl VmWebSocketEndpointPlan {
         if self.pairing.is_some() {
             return Err("error[vm_websocket_endpoint]: pairing already configured".to_string());
         }
-        self.pairing = Some(pairing);
+        self.pairing = Some(Box::new(pairing));
         Ok(self)
     }
 
     /// Returns the optional source-declared two-peer delivery policy.
     pub(crate) fn pairing(&self) -> Option<&VmWebSocketPairingPlan> {
-        self.pairing.as_ref()
+        self.pairing.as_deref()
     }
 
     /// Returns the binary payload policy for this endpoint plan.

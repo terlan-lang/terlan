@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCErrorEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6546425398766586806
-interface_hash=16566270873529630654
-interface_doc_hash=16566270873529630654
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14268415081796250245
+interface_hash=2261883503031325703
+interface_doc_hash=2261883503031325703
 deps=0

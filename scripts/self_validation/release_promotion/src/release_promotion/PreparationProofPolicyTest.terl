@@ -1,0 +1,214 @@
+/**
+ * Independent policy producers preserve evidence on failure and reuse only
+ * matching bytes, tools and the current regression day.
+ */
+module release_promotion.PreparationProofPolicyTest.
+
+import release_promotion.{OwnerStorage, PreparationContext, PreparationFixture, PreparationOwner, PrepareProofPolicy}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.time.Date.
+
+write(root: String, path: String, value: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), value) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        true <- write(root, ".gitignore", "/target/\n");
+        true <- write(root, "policy", "tracked policy");
+        true <-
+            write(
+                root,
+                "target/tools/quality",
+                "#!/bin/sh\nset -eu\necho run >> target/calls\nif test -f target/fail; then exit 7; fi\ncase $1 in\nlean-proof-runtime) schema=terlan.lean-proof-runtime-policy.v1;;\nlean-proof-pr) schema=terlan.lean-proof-pr.v1;;\nlean-proof-regression) schema=terlan.lean-proof-regression.v1; test -n \"$TERLAN_PROOF_POLICY_DATE\";;\n*) exit 8;;\nesac\nprintf '{\"schema\":\"%s\"}\\n' \"$schema\" > \"$TERLAN_PROOF_POLICY_OUTPUT\"\necho \"[$1] completed\"\n",
+            );
+        true <- OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/quality"])
+    } else {
+        _ -> false
+    };
+    PreparationFixture.commit(root).
+
+stage(root: String, command: String, valid: Bool, reused: Bool): Bool ->
+    case PrepareProofPolicy.prepare(root, "target/tools/quality", command) {
+        Ok(result) -> result.valid == valid and result.reused == reused;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    }.
+
+exercise(root: String, command: String): Bool ->
+    let day = Date.to_iso(Date.today_utc());
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(tool) <- File.read_text(OwnerStorage.child(root, "target/tools/quality"));
+        Ok(owner) <- PrepareProofPolicy.declare(root, "target/tools/quality", context, command, day);
+        Err(_unknown) <- PrepareProofPolicy.declare(root, "target/tools/quality", context, "unknown", day);
+        Err(_path) <- PrepareProofPolicy.declare(root, "../quality", context, command, day);
+        Err(_date) <- PrepareProofPolicy.declare(root, "target/tools/quality", context, command, "bad-date");
+        true <- stage(root, command, true, false);
+        true <- stage(root, command, true, true);
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "target/calls"));
+        Ok(verified) <- File.read_text(OwnerStorage.child(root, owner.output));
+        true <-
+            write(
+                root,
+                "target/tools/quality",
+                String.append("#!/bin/sh\nexit 7\n", "# changed tool"),
+            );
+        true <- stage(root, command, false, false);
+        Ok(retained) <- File.read_text(OwnerStorage.child(root, owner.output));
+        true <- retained == verified;
+        true <- write(root, "target/tools/quality", tool);
+        true <- stage(root, command, true, false);
+        true <- write(root, owner.output, "corrupt output");
+        true <- stage(root, command, true, false);
+        true <- stage(root, command, true, true);
+        Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
+        _ -> false
+    };
+    if {
+        command != "lean-proof-regression" -> true;
+        true -> let {
+            Ok(prior) <-
+                PrepareProofPolicy.declare(
+                    root,
+                    "target/tools/quality",
+                    context,
+                    command,
+                    "2000-01-01",
+                );
+            true <- PreparationOwner.run_locked(root, prior).valid;
+            true <- stage(root, command, true, false);
+            true <- stage(root, command, true, true);
+            Ok("run\nrun\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"))
+        } else {
+            _ -> false
+        };
+        true
+    }.
+
+scenario(command: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-policy-owner-") else {
+        _ -> false
+    };
+    (let valid = fixture(root) and exercise(root, command);
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        String.concat(
+            [
+                "[proof policy owner test] ",
+                command,
+                if {
+                    valid -> " passed";
+                    true -> " failed"
+                },
+            ],
+        ),
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).
+
+pub self_test(): Bool ->
+    scenario("lean-proof-runtime")
+        and scenario("lean-proof-pr")
+        and scenario("lean-proof-regression")
+        and prepared_day_rollover()
+        and shared_preflight().
+
+batch(root: String, valid: Bool, completed: Int, reused: Int): Bool ->
+    case PrepareProofPolicy.prepare_all(root, "target/tools/quality") {
+        Ok(result) ->
+            result.valid == valid and result.completed == completed and result.reused == reused;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    }.
+
+batch_recovery(root: String): Bool ->
+    let {
+        true <- batch(root, true, 3, 0);
+        true <- batch(root, true, 0, 3);
+        Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"));
+        true <- write(root, "target/quality/proof-artifacts/lean-proof-pr-report.json", "damaged");
+        true <- write(root, "target/fail", "fail");
+        true <- batch(root, false, 0, 1);
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/fail"));
+        true <- batch(root, true, 1, 2);
+        true <- batch(root, true, 0, 3);
+        Ok("run\nrun\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
+        _ -> false
+    };
+    true.
+
+shared_preflight(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-policies-") else {
+        _ -> false
+    };
+    (let valid = fixture(root) and batch_recovery(root);
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "[proof policies shared preflight] passed";
+            true -> "[proof policies shared preflight] failed"
+        },
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).
+
+rollover(root: String): Bool ->
+    let {
+        Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
+        Ok(prior) <-
+            PrepareProofPolicy.declare(
+                root,
+                "target/tools/quality",
+                context,
+                "lean-proof-regression",
+                "2000-01-01",
+            );
+        Ok(_parent) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        true <- write(root, "target/quality/proof-artifacts", "blocked parent");
+        false <- PreparationOwner.run_locked(root, prior).valid;
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "target/calls"));
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        true <- stage(root, "lean-proof-regression", true, false);
+        true <- stage(root, "lean-proof-regression", true, true);
+        Ok("run\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
+        _ -> false
+    };
+    true.
+
+prepared_day_rollover(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-policy-rollover-") else {
+        _ -> false
+    };
+    (let valid = fixture(root) and rollover(root);
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "[proof policy midnight recovery] passed";
+            true -> "[proof policy midnight recovery] failed"
+        },
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).

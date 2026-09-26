@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGGradientElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=53943415074919053
-interface_hash=3955308706372535873
-interface_doc_hash=3955308706372535873
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=18039767582648542488
+interface_hash=9900331141076663854
+interface_doc_hash=9900331141076663854
 deps=0

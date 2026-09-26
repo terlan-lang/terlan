@@ -25,10 +25,16 @@ pub(crate) struct PureNativeCapabilityWait {
     request_id: u64,
     continuation_id: u64,
     request: PureNativeCapabilityRequest,
+    admitted_atoms: Vec<String>,
     completion: VmShardEpochOperation,
 }
 
 impl PureNativeCapabilityWait {
+    /// Returns the compiler-declared atom vocabulary of this exact image generation.
+    pub(crate) fn admitted_atoms(&self) -> &[String] {
+        &self.admitted_atoms
+    }
+
     /// Returns the decoded worker request without exposing the parked continuation.
     pub(crate) fn request(&self) -> &PureNativeCapabilityRequest {
         &self.request
@@ -105,6 +111,24 @@ impl PureNativeExecutionShard {
             context.collect_parked_owner_at_safepoint()?;
             request
         };
+        let admitted_atoms = if matches!(
+            request.operation.as_str(),
+            "std.vm.cluster.send"
+                | "std.vm.cluster.send_with"
+                | "std.vm.cluster.accept"
+                | "std.vm.distributed_storage.checkpoint"
+                | "std.vm.distributed_storage.checkpoint_with_schema"
+                | "std.vm.distributed_storage.restore"
+        ) {
+            self.execution
+                .managed_ref()
+                .layout_registry()
+                .atom_identities()
+                .map(str::to_owned)
+                .collect()
+        } else {
+            Vec::new()
+        };
         let completion = self.begin_epoch_operation(
             "capability completion",
             VmShardOperationKind::CapabilityCompletion,
@@ -117,6 +141,7 @@ impl PureNativeExecutionShard {
             request_id: suspension.request_id(),
             continuation_id: suspension.continuation_id(),
             request,
+            admitted_atoms,
             completion,
         })
     }

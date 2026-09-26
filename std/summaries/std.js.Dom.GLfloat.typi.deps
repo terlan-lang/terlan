@@ -1,8 +1,8 @@
 module=std.js.Dom.GLfloat
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13017238902673129202
-interface_hash=15803441623878280546
-interface_doc_hash=15803441623878280546
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17239451190658322166
+interface_hash=11778734576531069180
+interface_doc_hash=11778734576531069180
 deps=0

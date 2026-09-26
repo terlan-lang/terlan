@@ -2,23 +2,16 @@ use std::path::Path;
 
 use super::*;
 
-/// Verifies deleted Erlang/BEAM backend paths are no longer accepted.
-///
-/// Inputs:
-/// - Representative path from the deleted Erlang backend tree.
-///
-/// Output:
-/// - Test passes when the deleted path does not resolve to a classification.
-///
-/// Transformation:
-/// - Keeps the old backend path from becoming accepted migration debt again.
+/// The public gate rejects a reintroduced backend source file.
 #[test]
 fn classification_for_path_rejects_deleted_backend_paths() {
-    let path = "crates/terlan/src/backends/erlang/emit/core.rs";
-    assert!(
-        classification_for_path(Path::new(path)).is_none(),
-        "{path} should not be classified after backend deletion"
-    );
+    let root = tempfile::tempdir().unwrap();
+    let relative = "crates/terlan/src/backends/erlang/emit/core.rs";
+    let path = root.path().join(relative);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, "").unwrap();
+    let error = run_erlang_backend_classification(root.path()).unwrap_err();
+    assert!(error.contains(relative), "{error}");
 }
 
 /// Verifies the gate does not classify itself as backend code.
@@ -58,20 +51,10 @@ fn scanner_ignores_otp_reference_inventory_gate() {
     )));
 }
 
-/// Verifies the scanner ignores the OTP runtime-exit quality gate.
-///
-/// Inputs:
-/// - The OTP runtime-exit quality gate source path.
-///
-/// Output:
-/// - Test passes when the path is not treated as Erlang/BEAM backend code.
-///
-/// Transformation:
-/// - Keeps runtime-exit policy files separate from backend migration
-///   implementation paths even though their names contain `otp`.
+/// The removed OTP runtime-exit gate cannot reintroduce a backend path.
 #[test]
-fn scanner_ignores_otp_runtime_exit_gate() {
-    assert!(!is_erlang_backend_candidate(Path::new(
+fn scanner_rejects_deleted_otp_runtime_exit_gate() {
+    assert!(is_erlang_backend_candidate(Path::new(
         "crates/terlan/src/quality/otp_runtime_exit.rs"
     )));
 }
@@ -94,25 +77,19 @@ fn scanner_ignores_otp_test_pipeline_inventory_gate() {
     )));
 }
 
-/// Verifies summary category counts stay coherent.
-///
-/// Inputs:
-/// - Static classification table.
-///
-/// Output:
-/// - Test passes when category counts add up to the classified path count.
-///
-/// Transformation:
-/// - Locks the success summary to the table contents so command output remains
-///   internally consistent as categories are edited.
+/// Reports every forbidden path and accepts the tree after their removal.
 #[test]
-fn summary_counts_cover_all_classifications() {
-    let summary = summary();
-    assert_eq!(
-        summary.classified_count,
-        summary.remove_count
-            + summary.reference_only_count
-            + summary.temporary_bridge_count
-            + summary.historical_artifact_count
-    );
+fn scanner_reports_all_forbidden_paths() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("crates/terlan/src");
+    fs::create_dir_all(&source).unwrap();
+    for name in ["beam.rs", "otp.rs"] {
+        fs::write(source.join(name), "").unwrap();
+    }
+    let error = run_erlang_backend_classification(root.path()).unwrap_err();
+    for name in ["beam.rs", "otp.rs"] {
+        assert!(error.contains(name), "{error}");
+        fs::remove_file(source.join(name)).unwrap();
+    }
+    run_erlang_backend_classification(root.path()).unwrap();
 }

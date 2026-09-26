@@ -674,7 +674,7 @@ fn scheduler_reclassifies_blocked_process_without_waking_it() {
     assert_eq!(scheduler.queued_len(), 1);
     let transition = scheduler
         .metrics()
-        .queue_transitions
+        .queue_transitions()
         .last()
         .expect("wake should record an enqueue transition");
     assert_eq!(transition.action, "enqueue");

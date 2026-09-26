@@ -1,8 +1,8 @@
 module=std.js.Dom.BlobCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5381145509319836986
-interface_hash=11703013958510903876
-interface_doc_hash=11703013958510903876
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15965796730665275287
+interface_hash=3869754742544272102
+interface_doc_hash=3869754742544272102
 deps=0

@@ -2,18 +2,18 @@
 
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
-use std::sync::{OnceLock, RwLock};
+use std::sync::OnceLock;
 
 use crate::terlan_hir::{
-    load_interfaces_from_dir, syntax_module_output_to_interface, ModuleInterface,
+    load_interfaces_from_dir, parse_interface_dependency_entries, parse_interface_text,
+    ModuleInterface,
 };
 use crate::terlan_syntax::{
-    parse_interface_module_as_syntax_output, syntax_module_import_identities,
-    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxImportKind,
-    SyntaxModuleOutput, SyntaxParamOutput,
+    syntax_module_import_identities, SyntaxDeclarationPayload, SyntaxExprOutput,
+    SyntaxFunctionClauseOutput, SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput,
 };
 
-use super::EMBEDDED_STD_INTERFACE_SUMMARIES;
+use super::EMBEDDED_STD_INTERFACES;
 
 /// Loads the full visible interface inventory for audits and compatibility
 /// callers that do not yet have parsed module evidence.
@@ -26,7 +26,7 @@ pub(crate) fn load_external_interfaces(
     interfaces
 }
 
-/// Loads only embedded standard-library modules imported by one parsed module.
+/// Loads imported embedded modules and their transitive manifest dependencies.
 pub(crate) fn load_external_interfaces_for_module(
     path: &str,
     cache_dir: Option<&Path>,
@@ -53,15 +53,31 @@ pub(crate) fn load_external_interfaces_for_module(
         );
     }
     collect_remote_modules(module, &mut required);
-    for summary in EMBEDDED_STD_INTERFACE_SUMMARIES {
-        let Some(module_name) = embedded_summary_module_name(summary) else {
+    required.extend(
+        EMBEDDED_STD_INTERFACES
+            .iter()
+            .filter(|entry| entry.module == "std.core" || entry.module.starts_with("std.core."))
+            .map(|entry| entry.module.to_string()),
+    );
+    let mut visited = BTreeSet::new();
+    while let Some(module_name) = required.pop_first() {
+        if !visited.insert(module_name.clone()) {
+            continue;
+        }
+        let Some(entry) = EMBEDDED_STD_INTERFACES
+            .iter()
+            .find(|entry| entry.module == module_name)
+        else {
             continue;
         };
-        let compiler_prelude = module_name == "std.core" || module_name.starts_with("std.core.");
-        if (compiler_prelude || required.contains(module_name))
-            && !interfaces.contains_key(module_name)
-        {
-            if let Some((module_name, interface)) = cached_embedded_std_interface(summary) {
+        let Some(manifest) = entry.dependencies else {
+            continue; // Namespace indexes are not callable module interfaces.
+        };
+        let dependencies = parse_interface_dependency_entries(manifest)
+            .expect("embedded standard dependency manifest is valid");
+        required.extend(dependencies.into_iter().map(|(dependency, _)| dependency));
+        if !interfaces.contains_key(entry.module) {
+            if let Some((module_name, interface)) = cached_embedded_std_interface(entry.summary) {
                 interfaces.insert(module_name, interface);
             }
         }
@@ -210,9 +226,10 @@ fn load_adjacent_and_cached_interfaces(
 pub(crate) fn load_embedded_std_interfaces(interfaces: &mut HashMap<String, ModuleInterface>) {
     static EMBEDDED_INTERFACES: OnceLock<HashMap<String, ModuleInterface>> = OnceLock::new();
     let embedded = EMBEDDED_INTERFACES.get_or_init(|| {
-        EMBEDDED_STD_INTERFACE_SUMMARIES
+        EMBEDDED_STD_INTERFACES
             .iter()
-            .filter_map(|summary| cached_embedded_std_interface(summary))
+            .filter(|entry| entry.dependencies.is_some())
+            .filter_map(|entry| cached_embedded_std_interface(entry.summary))
             .collect()
     });
     for (module_name, interface) in embedded {
@@ -222,38 +239,9 @@ pub(crate) fn load_embedded_std_interfaces(interfaces: &mut HashMap<String, Modu
     }
 }
 
-/// Reads a module identity without invoking the interface parser.
-fn embedded_summary_module_name(summary: &str) -> Option<&str> {
-    summary.lines().find_map(|line| {
-        line.strip_prefix("module ")
-            .and_then(|name| name.strip_suffix('.'))
-    })
-}
-
-/// Parses one embedded interface through the canonical syntax and HIR path.
-fn parse_embedded_std_interface(summary: &str) -> Option<(String, ModuleInterface)> {
-    let parsed = parse_interface_module_as_syntax_output(summary).ok()?;
-    let module_name = parsed.module_name.clone();
-    Some((module_name, syntax_module_output_to_interface(&parsed)))
-}
-
-/// Parses each embedded summary at most once while allowing source-scoped
-/// callers to clone only their admitted interface subset.
+/// Uses the same content-keyed, synchronized parsing as file-backed interfaces.
 fn cached_embedded_std_interface(summary: &'static str) -> Option<(String, ModuleInterface)> {
-    static CACHE: OnceLock<RwLock<HashMap<&'static str, ModuleInterface>>> = OnceLock::new();
-    let module_name = embedded_summary_module_name(summary)?;
-    let cache = CACHE.get_or_init(|| RwLock::new(HashMap::new()));
-    if let Ok(interfaces) = cache.read() {
-        if let Some(interface) = interfaces.get(module_name) {
-            return Some((module_name.to_string(), interface.clone()));
-        }
-    }
-    let (_, parsed) = parse_embedded_std_interface(summary)?;
-    let interface = match cache.write() {
-        Ok(mut interfaces) => interfaces.entry(module_name).or_insert(parsed).clone(),
-        Err(_) => parsed,
-    };
-    Some((module_name.to_string(), interface))
+    parse_interface_text(summary)
 }
 
 #[cfg(test)]

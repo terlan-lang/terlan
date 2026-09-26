@@ -6,6 +6,14 @@
 TERLAN_PREBUILT_BINARY := bash scripts/run_prebuilt_terlan_binary.sh
 TERLC := $(TERLAN_PREBUILT_BINARY) terlc none --
 TERLAN_QUALITY := $(TERLAN_PREBUILT_BINARY) terlan-quality quality-tools --
+ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
+TERLC := $(CURDIR)/target/debug/terlc
+endif
+ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+# The bootstrap already built the canonical quality feature profile. Reusing
+# its executable must not enter the standalone wrapper's separate build owner.
+TERLAN_QUALITY := $(CURDIR)/target/debug/terlan-quality
+endif
 TERLAN_BENCHMARK := $(TERLAN_PREBUILT_BINARY) terlan-benchmark benchmark-tools --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan --lib
@@ -24,7 +32,7 @@ abi1-pre-freeze-check:
 
 abi1-continuous-fuzz-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_continuous_fuzz_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_continuous_fuzz_producer -- --exact
 	$(TERLAN_QUALITY) abi1-continuous-fuzz
 
 abi1-cross-target-conformance-check:
@@ -33,7 +41,7 @@ abi1-cross-target-conformance-check:
 
 abi1-tail-latency-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_tail_latency_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_tail_latency_producer -- --exact
 	$(TERLAN_QUALITY) abi1-tail-latency
 
 abi1-zero-copy-conformance-check:
@@ -42,7 +50,7 @@ abi1-zero-copy-conformance-check:
 
 abi1-specialization-equivalence-check:
 	test -n "$$TERLAN_ABI1_REVISION"
-	TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_specialization_equivalence_producer -- --exact
+	TERLAN_ABI1_EMIT_EVIDENCE=1 TERLAN_ABI1_REVISION="$$TERLAN_ABI1_REVISION" $(EXACT_CARGO_TEST) --locked --release -p terlan --test abi1_evidence_producers abi1_specialization_equivalence_producer -- --exact
 	$(TERLAN_QUALITY) abi1-specialization-equivalence
 
 abi1-trusted-adapter-audit-check:
@@ -190,12 +198,7 @@ cli-test-fast:
 cli-test-full:
 	PATH="$(CURDIR)/target/debug:$$PATH" $(RUST_TEST) --workspace
 
-ifeq ($(TERLAN_RUST_SUITE_ALREADY_RUN),1)
-cli-test-release:
-	@echo "[cli-test-release] canonical Rust suite already passed."
-else
 cli-test-release: cli-test-full
-endif
 
 formatter-pipe-canonicalization-selector-inventory:
 	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_preserves_nested_module_calls_without_pipe_promotion -- --exact
@@ -532,7 +535,6 @@ cli-release-artifact-linux: export TERLAN_RELEASE_ARCH = x86_64
 cli-release-artifact-linux: cli-release-artifact-current
 
 cli-clean:
-	$(CARGO) clean
 	bash scripts/clean_build_outputs.sh
 
 vm-artifact-check:
@@ -797,12 +799,8 @@ comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
 	$(RUST_TEST) -p terlan --lib comprehension
 	$(RUST_TEST) -p terlan --lib --features editor-lsp comprehension
-	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_typed_guard_failure 2>&1); then \
-		echo "expected typed guard failure" >&2; exit 1; \
-	else echo "$$output" | grep -F 'error[vm_comprehension_guard_failed]'; fi
-	@if output=$$($(TERLC) test tests/language/EffectfulComprehensionFailureTest.terl --name propagates_guard_cancellation 2>&1); then \
-		echo "expected guard cancellation" >&2; exit 1; \
-	else echo "$$output" | grep -F 'error[vm_comprehension_guard_cancelled]'; fi
+	# The comprehension Rust tier compiles the failure fixture and verifies the
+	# owning actor's terminal reason; a compiler rejection is not runtime evidence.
 
 flexible-shape-guards-check: compiler-purity-metadata-check pattern-matching-support-check
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_expr_test::literals_and_comprehensions::formal_keyword_exprs_preserve_clause_guards -- --exact

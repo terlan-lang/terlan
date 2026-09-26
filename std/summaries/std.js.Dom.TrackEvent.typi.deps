@@ -1,8 +1,8 @@
 module=std.js.Dom.TrackEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5635160330134707528
-interface_hash=11661472518023821859
-interface_doc_hash=11661472518023821859
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1822806229981275682
+interface_hash=16698930058468937667
+interface_doc_hash=16698930058468937667
 deps=0

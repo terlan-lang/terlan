@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemHandle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1857396454424831363
-interface_hash=14388165614724070591
-interface_doc_hash=14388165614724070591
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17127727624011687871
+interface_hash=11612427197986597821
+interface_doc_hash=11612427197986597821
 deps=0

@@ -69,7 +69,7 @@ pub type Flag = Bool.
     /// - Exercises the interface declaration router after `pub` and proves
     ///   conformance summaries preserve signatures without requiring method
     ///   bodies.
-
+    ///
     /// Verifies interface files can summarize explicit trait conformance
     /// declarations.
     ///
@@ -121,7 +121,7 @@ pub impl Show[Int] for Int {
     /// Transformation:
     /// - Exercises interface-only type parsing so generated `.typi` files can
     ///   preserve nominal public types without requiring source-form bodies.
-
+    ///
     /// Verifies interface files may summarize public type headers.
     ///
     /// Inputs:

@@ -24,6 +24,36 @@ fn unqualified_call_resolves_only_through_the_callers_imports() {
     );
 }
 
+/// Free-function receiver syntax retains only an explicitly visible provider.
+#[test]
+fn receiver_builder_reachability_preserves_import_scope() {
+    let mut cores = [
+        "module app.Main. import std.builder.Visible. \
+         pub main(): Int -> let value = 41; value.bump().",
+        "module std.builder.Visible. pub bump(value: Int): Int -> value + 1.",
+        "module std.builder.Unrelated. pub bump(value: Int): Int -> value + 100.",
+    ]
+    .map(|source| {
+        let syntax = parse_module_as_syntax_output(source).expect("parse receiver graph");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        lower_syntax_module_output_to_core(&syntax, &resolved)
+    });
+    for imported in [true, false] {
+        if !imported {
+            cores[0].imports.clear();
+        }
+        let mut rooted = cores.clone();
+        prune_application_to_function_roots(&mut rooted, &[function("app.Main", "main", 0)])
+            .expect("prune imported builder closure");
+        assert_eq!(rooted[1].functions.len(), usize::from(imported));
+        assert!(rooted[2].functions.is_empty());
+        let mut open = cores.clone();
+        prune_unreachable_open_std_functions(&mut open);
+        assert_eq!(open[1].functions.len(), usize::from(imported));
+        assert!(open[2].functions.is_empty());
+    }
+}
+
 #[test]
 fn unqualified_call_resolves_through_a_symbol_import() {
     let providers = vec![
@@ -239,4 +269,105 @@ pub router(): Router -> users(Router.new()).
 
 fn function(module: &str, name: &str, arity: usize) -> FunctionKey {
     (module.to_string(), name.to_string(), arity)
+}
+
+/// Parameter reads must not pull an identically named native placeholder into
+/// any of the three independently used reachability passes.
+#[test]
+fn reachability_does_not_treat_parameters_as_function_values() {
+    let syntax = parse_module_as_syntax_output(
+        "module app.Main. import std.shadow.Ops.\n\
+         pub main(): Int -> hold(3).\n\
+         hold(timer: Int): Int -> timer.\n",
+    )
+    .expect("parse caller");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let caller = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let syntax = parse_module_as_syntax_output(
+        "module std.shadow.Ops. pub timer(value: Int): Int -> value.\n",
+    )
+    .expect("parse provider");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let provider = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let mut rooted = vec![caller.clone(), provider.clone()];
+    prune_application_to_function_roots(&mut rooted, &[function("app.Main", "main", 0)])
+        .expect("prune application");
+    assert!(rooted[1].functions.is_empty());
+    let mut open = vec![caller.clone(), provider];
+    prune_unreachable_open_std_functions(&mut open);
+    assert!(open[1].functions.is_empty());
+
+    let mut local = caller;
+    let mut shadow = open[0].functions[0].clone();
+    shadow.name = "timer".into();
+    local.functions.push(shadow);
+    prune_module_to_function_roots(&mut local, &["main"]);
+    assert_eq!(
+        local
+            .functions
+            .iter()
+            .map(|function| function.name.as_str())
+            .collect::<HashSet<_>>(),
+        HashSet::from(["main", "hold"]),
+    );
+}
+
+#[test]
+fn reachability_keeps_free_callbacks_but_not_lexically_shadowed_values() {
+    use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern};
+    let syntax = parse_module_as_syntax_output(
+        "module app.Callbacks. pub main(): Int -> 0. pub callback(): Int -> 7.\n",
+    )
+    .expect("parse callback inventory");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let original = lower_syntax_module_output_to_core(&syntax, &resolved);
+    for (expression, keep) in [
+        (CoreExpr::Var("callback".into()), true),
+        (
+            CoreExpr::Let {
+                bindings: vec![CoreLetBinding {
+                    pattern: CorePattern::Var("callback".into()),
+                    value: CoreExpr::Int(3),
+                }],
+                body: Box::new(CoreExpr::Var("callback".into())),
+            },
+            false,
+        ),
+        // A binding's initializer is outside its own scope: a real callback
+        // referenced there remains reachable even though its name is reused.
+        (
+            CoreExpr::Let {
+                bindings: vec![CoreLetBinding {
+                    pattern: CorePattern::Var("callback".into()),
+                    value: CoreExpr::Var("callback".into()),
+                }],
+                body: Box::new(CoreExpr::Var("callback".into())),
+            },
+            true,
+        ),
+        (
+            CoreExpr::Lam {
+                params: vec![CorePattern::Var("callback".into())],
+                parameter_types: Vec::new(),
+                body: Box::new(CoreExpr::Var("callback".into())),
+            },
+            false,
+        ),
+    ] {
+        let mut core = original.clone();
+        core.functions
+            .iter_mut()
+            .find(|function| function.name == "main")
+            .expect("main")
+            .clauses[0]
+            .body
+            .core_expr = Some(expression);
+        prune_module_to_function_roots(&mut core, &["main"]);
+        assert_eq!(
+            core.functions
+                .iter()
+                .any(|function| function.name == "callback"),
+            keep
+        );
+    }
 }

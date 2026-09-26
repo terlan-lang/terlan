@@ -1,0 +1,244 @@
+/**
+ * Validates observations, not successful-build identities. Expected nonzero
+ * exits and failed command probes remain distinguishable from missing records.
+ */
+module release_promotion.ProcessActivity.
+
+import release_promotion.ActivityField.{flag, hex, integer, nullable, put_count}.
+import release_promotion.OwnerStorage.
+import std.collections.Map.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.{contains}.
+import std.data.Json.
+
+import type std.collections.Map.
+import type std.core.Result.
+import type std.data.Json.
+
+struct Event {
+    attempt: String,
+    declaration: String,
+    program: String,
+    owner: Int,
+    child: Int,
+    elapsed: Int,
+    phase: String,
+    nonzero: Bool,
+}.
+
+/**
+ * Retains attempt state without identifying commands as reusable build work.
+ */
+pub struct ProcessInventory {
+    attempts: Map[String, Event],
+    events: Int,
+    launches: Int,
+    reaped: Int,
+    spawn_failed: Int,
+    pending: Int,
+    abandoned: Int,
+    nonzero: Int,
+}.
+
+/**
+ * Starts an empty explicitly owned observation scope.
+ */
+pub empty(): ProcessInventory ->
+    ProcessInventory(
+        attempts = Map.new[String, Event](),
+        events = 0,
+        launches = 0,
+        reaped = 0,
+        spawn_failed = 0,
+        pending = 0,
+        abandoned = 0,
+        nonzero = 0,
+    ).
+
+valid_program(value: String): Bool ->
+    case value {
+        "cargo" -> true;
+        "rustc" -> true;
+        "terlc" -> true;
+        "terlan-vm" -> true;
+        "git" -> true;
+        "make" -> true;
+        "shell" -> true;
+        "native-tool" -> true;
+        "other" -> true;
+        _ -> false
+    }.
+
+empty_outcome(code: Json, success: Json, error: Json): Bool ->
+    code.is_null() and success.is_null() and error.is_null().
+
+error_name(reason: String, offset: Int): Bool ->
+    if {
+        offset == reason.byte_size() -> offset > 0;
+        true -> contains("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", reason.utf8_slice(offset, 1))
+            and error_name(reason, offset + 1)
+    }.
+
+valid_code(code: Json, success: Bool): Bool ->
+    if {
+        code.is_null() -> not success;
+        true -> let Ok(number) <- code.as_int() else {
+            _ -> false
+        };
+        number >= -2147483648 and number <= 2147483647 and success == (number == 0)
+    }.
+
+outcome(document: Json, phase: String): Result[Bool, String] ->
+    let {
+        Ok(code) <- document.get("exit_code");
+        Ok(success) <- document.get("exit_success");
+        Ok(error) <- document.get("error_kind")
+    } else {
+        _ -> Err("missing process outcome fields")
+    };
+    if {
+        phase == "reaped" -> let {
+            Ok(passed) <- success.as_bool();
+            true <- error.is_null() and valid_code(code, passed)
+        } else {
+            _ -> Err("invalid reaped process outcome")
+        };
+        Ok(not passed);
+        phase == "spawn_failed" -> let {
+            Ok(reason) <- error.as_string();
+            true <- reason.byte_size() <= 64 and error_name(reason, 0);
+            true <- code.is_null() and success.is_null()
+        } else {
+            _ -> Err("invalid process spawn failure")
+        };
+        Ok(false);
+        true -> if {
+            empty_outcome(code, success, error) -> Ok(false);
+            true -> Err("process outcome precedes termination")
+        }
+    }.
+
+parse(document: Json): Result[Event, String] ->
+    let {
+        Ok(11) <- document.object_length();
+        Some("terlan.process-activity.v1") <- OwnerStorage.text(document, "schema");
+        Some(attempt) <- OwnerStorage.text(document, "attempt");
+        true <- OwnerStorage.safe_name(attempt);
+        Some(declaration) <- OwnerStorage.text(document, "declaration_sha256");
+        true <- declaration.byte_size() == 64 and hex(declaration, 0);
+        Some(program) <- OwnerStorage.text(document, "program_kind");
+        true <- valid_program(program);
+        Some(phase) <- OwnerStorage.text(document, "state");
+        Ok(owner) <- integer(document, "owner_pid");
+        true <- owner > 0;
+        Ok(child) <- nullable(document, "child_pid");
+        Ok(elapsed) <- integer(document, "elapsed_micros");
+        Ok(nonzero) <- outcome(document, phase)
+    } else {
+        _ -> Err("malformed process activity record")
+    };
+    Ok(
+        Event(
+            attempt = attempt,
+            declaration = declaration,
+            program = program,
+            owner = owner,
+            child = child,
+            elapsed = elapsed,
+            phase = phase,
+            nonzero = nonzero,
+        ),
+    ).
+
+terminal(phase: String): Bool ->
+    phase == "reaped" or phase == "spawn_failed" or phase == "abandoned".
+
+compatible(previous: Event, event: Event): Bool ->
+    previous.declaration == event.declaration
+        and previous.program == event.program
+        and previous.owner == event.owner
+        and previous.elapsed <= event.elapsed.
+
+transition(previous: Event, event: Event): Bool ->
+    not terminal(previous.phase)
+        and if {
+    event.phase == "spawned" -> previous.phase == "started" and event.child > 0;
+    event.phase == "spawn_failed" -> previous.phase == "started" and event.child == -1;
+    event.phase == "reaped" -> previous.phase == "spawned" and event.child == previous.child;
+    event.phase == "abandoned" -> event.child == previous.child;
+    true -> false
+}.
+
+save(inventory: ProcessInventory, event: Event, fresh: Bool): ProcessInventory ->
+    let attempts = inventory.attempts;
+    let _saved = attempts.put(event.attempt, event);
+    ProcessInventory(
+        attempts = attempts,
+        events = inventory.events + 1,
+        launches = inventory.launches + flag(event.phase == "spawned"),
+        reaped = inventory.reaped + flag(event.phase == "reaped"),
+        spawn_failed = inventory.spawn_failed + flag(event.phase == "spawn_failed"),
+        pending = inventory.pending + flag(fresh) - flag(terminal(event.phase)),
+        abandoned = inventory.abandoned + flag(event.phase == "abandoned"),
+        nonzero = inventory.nonzero + flag(event.nonzero),
+    ).
+
+/**
+ * Admits exactly one valid state transition with stable attempt identity.
+ */
+pub accept(inventory: ProcessInventory, document: Json): Result[ProcessInventory, String] ->
+    let Ok(event) <- parse(document) else {
+        Err(reason) -> Err(reason)
+    };
+    case inventory.attempts.get(event.attempt) {
+        None ->
+            if {
+                event.phase == "started" and event.child == -1 -> Ok(save(inventory, event, true));
+                true -> Err("process activity lacks a valid start event")
+            };
+        Some(previous) ->
+            if {
+                compatible(previous, event) and transition(previous, event) -> Ok(save(inventory, event, false));
+                true -> Err("invalid process transition or changed attempt identity")
+            }
+    }.
+
+/**
+ * Incomplete observation is never converted to a successful receipt.
+ */
+pub complete(inventory: ProcessInventory): Bool ->
+    inventory.pending == 0 and inventory.abandoned == 0.
+
+/**
+ * Reports observed counts separately from producer exit semantics.
+ */
+pub summary(inventory: ProcessInventory): Json ->
+    summary_header(inventory)
+    |> summary_counts(inventory)
+    |> summary_remaining(inventory).
+
+summary_header(inventory: ProcessInventory): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.process-inventory.v1"))
+        .put("decision", Json.string(decision(inventory)))
+        .put("events", Json.int(inventory.events)).
+
+summary_counts(report: Json, inventory: ProcessInventory): Json ->
+    report
+    |> put_count("launches", inventory.launches)
+    |> put_count("reaped", inventory.reaped)
+    |> put_count("spawn_failed", inventory.spawn_failed).
+
+summary_remaining(counts: Json, inventory: ProcessInventory): Json ->
+    counts
+    |> put_count("pending", inventory.pending)
+    |> put_count("abandoned", inventory.abandoned)
+    |> put_count("nonzero_exits", inventory.nonzero)
+    |> put_count("attempts", inventory.attempts.size()).
+
+decision(inventory: ProcessInventory): String ->
+    if {
+        complete(inventory) -> "pass";
+        true -> "interrupted"
+    }.

@@ -13,7 +13,7 @@
   ],
   "family": "templates-routes",
   "manifest_fingerprints": {
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:dedd50f58642093b83f7d358d5f50a3a353056600fac1df6e046c8b90f0e5fa7"
   },
   "output_signature": {
     "exit_class": "success",

@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimateElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3038222829341759119
-interface_hash=9584459943324660393
-interface_doc_hash=9584459943324660393
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2324809633849873521
+interface_hash=16165479684424660763
+interface_doc_hash=16165479684424660763
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.FunctionStringCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1885956065649107084
-interface_hash=10949480783612603792
-interface_doc_hash=10949480783612603792
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9789690358786678390
+interface_hash=7385956169263521731
+interface_doc_hash=7385956169263521731
 deps=0

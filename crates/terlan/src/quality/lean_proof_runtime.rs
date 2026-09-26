@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const RUNNER_CONFIG_PATH: &str = "proofs/lean/ci/lean-proof-runner.toml";
-const REPORT_PATH: &str = "build/artifacts/lean-proof-gate.json";
+const REPORT_PATH: &str = "target/quality/proof-artifacts/lean-proof-runtime-policy.json";
 
 const REQUIRED_GROUPS: &[&str] = &["foundational", "lowering", "runtime", "std-boundary"];
 
@@ -58,34 +58,9 @@ struct GroupConfig {
 
 #[derive(Debug, Serialize)]
 struct LeanProofRuntimeReport {
+    schema: &'static str,
     config_path: &'static str,
-    lockstep_mode: bool,
-    clean_env: bool,
-    temp_root: String,
-    lean_version: String,
-    elan_channel: String,
-    lake_flags: Vec<String>,
-    dependency_lockfile: String,
-    groups: Vec<GroupResourceReport>,
-    cleanup_contract: CleanupContract,
-}
-
-#[derive(Debug, Serialize)]
-struct GroupResourceReport {
-    name: String,
-    max_parallelism: u64,
-    timeout_ms: u64,
-    cpu_ms: u64,
-    peak_rss_mb: u64,
-    io_wait_ms: u64,
-    retry_count: u64,
-}
-
-#[derive(Debug, Serialize)]
-struct CleanupContract {
-    forbidden_env: Vec<String>,
-    shared_lean_path_allowed: bool,
-    temp_dirs_are_group_scoped: bool,
+    configured_policy: LeanProofRunnerConfig,
 }
 
 /// Runs Lean proof runtime-profile validation.
@@ -99,16 +74,22 @@ struct CleanupContract {
 ///   malformed budgets, or non-deterministic closeout settings.
 ///
 /// Transformation:
-/// - Converts proof-runner runtime assumptions into executable policy without
-///   requiring an active Lean proof tree in this repository.
+/// - Validates configured limits without executing proofs or claiming measured
+///   resource usage, and writes a policy report separate from proof verdicts.
 pub fn run_lean_proof_runtime(root: &Path) -> QualityResult<LeanProofRuntimeSummary> {
+    let path =
+        super::lean_proof_track::outputs::single(root, REPORT_PATH, "TERLAN_PROOF_POLICY_OUTPUT")?;
+    run_to(root, &path)
+}
+
+fn run_to(root: &Path, path: &Path) -> QualityResult<LeanProofRuntimeSummary> {
     let config = parse_config(&read_text(root, RUNNER_CONFIG_PATH)?)?;
     let diagnostics = validate_config(&config);
     if !diagnostics.is_empty() {
         return Err(render_failure("lean-proof-runtime", &diagnostics));
     }
 
-    let report_path = write_report(root, &runtime_report(&config))?;
+    let report_path = write_report(path, &runtime_report(&config))?;
     Ok(LeanProofRuntimeSummary {
         group_count: config.groups.len(),
         report_path,
@@ -251,46 +232,22 @@ fn validate_group(group: &GroupConfig) -> Vec<String> {
 
 fn runtime_report(config: &LeanProofRunnerConfig) -> LeanProofRuntimeReport {
     LeanProofRuntimeReport {
+        schema: "terlan.lean-proof-runtime-policy.v1",
         config_path: RUNNER_CONFIG_PATH,
-        lockstep_mode: config.runner.lockstep_mode,
-        clean_env: config.runner.clean_env,
-        temp_root: config.runner.temp_root.clone(),
-        lean_version: config.runner.lean_version.clone(),
-        elan_channel: config.runner.elan_channel.clone(),
-        lake_flags: config.runner.lake_flags.clone(),
-        dependency_lockfile: config.runner.dependency_lockfile.clone(),
-        groups: config
-            .groups
-            .iter()
-            .map(|group| GroupResourceReport {
-                name: group.name.clone(),
-                max_parallelism: group.max_parallelism,
-                timeout_ms: group.timeout_ms,
-                cpu_ms: group.cpu_ms,
-                peak_rss_mb: group.memory_mb,
-                io_wait_ms: 0,
-                retry_count: group.retry_count,
-            })
-            .collect(),
-        cleanup_contract: CleanupContract {
-            forbidden_env: config.runner.forbidden_env.clone(),
-            shared_lean_path_allowed: false,
-            temp_dirs_are_group_scoped: true,
-        },
+        configured_policy: config.clone(),
     }
 }
 
-fn write_report(root: &Path, report: &LeanProofRuntimeReport) -> QualityResult<PathBuf> {
-    let path = root.join(REPORT_PATH);
+fn write_report(path: &Path, report: &LeanProofRuntimeReport) -> QualityResult<PathBuf> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|err| format!("{}: failed to create directory: {err}", parent.display()))?;
     }
     let text = serde_json::to_string_pretty(report)
         .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(&path, format!("{text}\n"))
+    fs::write(path, format!("{text}\n"))
         .map_err(|err| format!("{}: failed to write report: {err}", path.display()))?;
-    Ok(path)
+    Ok(path.to_path_buf())
 }
 
 #[cfg(test)]

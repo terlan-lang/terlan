@@ -1,8 +1,8 @@
 module=std.js.Dom.StorageEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16767994194168792370
-interface_hash=18229768449859734938
-interface_doc_hash=18229768449859734938
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4995662009231914845
+interface_hash=14044231347169885351
+interface_doc_hash=14044231347169885351
 deps=0

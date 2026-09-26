@@ -1,8 +1,8 @@
 module=std.js.Dom.WebGL2RenderingContext
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14758353317350505195
-interface_hash=9049143427040839399
-interface_doc_hash=9049143427040839399
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7705164002960462766
+interface_hash=17648580089957937114
+interface_doc_hash=17648580089957937114
 deps=0

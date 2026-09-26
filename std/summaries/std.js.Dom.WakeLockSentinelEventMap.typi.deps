@@ -1,8 +1,8 @@
 module=std.js.Dom.WakeLockSentinelEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5995316705748853149
-interface_hash=12248065179974643092
-interface_doc_hash=12248065179974643092
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13962213694620405305
+interface_hash=12775880520887320239
+interface_doc_hash=12775880520887320239
 deps=0

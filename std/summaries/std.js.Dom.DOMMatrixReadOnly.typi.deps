@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMMatrixReadOnly
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=798026473931789673
-interface_hash=18148338586744401975
-interface_doc_hash=18148338586744401975
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=538515354936439665
+interface_hash=6630224063228675853
+interface_doc_hash=6630224063228675853
 deps=0

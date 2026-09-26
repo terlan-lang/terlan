@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtpReceiver
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17692920517115478798
-interface_hash=16713019581718955422
-interface_doc_hash=16713019581718955422
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10436072222602948099
+interface_hash=7807546533443091515
+interface_doc_hash=7807546533443091515
 deps=0

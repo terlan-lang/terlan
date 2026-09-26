@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGSymbolElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13620113057742679923
-interface_hash=1280348909580236154
-interface_doc_hash=1280348909580236154
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7255268794893503699
+interface_hash=11385246957412967495
+interface_doc_hash=11385246957412967495
 deps=0

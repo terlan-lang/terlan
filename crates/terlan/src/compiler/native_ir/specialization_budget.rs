@@ -14,6 +14,8 @@ pub(super) enum SpecializationKind {
     StaticCallable,
     /// Inlining of a private projection-only helper.
     Projection,
+    /// One concrete native Effect runner shared by every plan of its result type.
+    Effect,
 }
 
 impl SpecializationKind {
@@ -24,6 +26,7 @@ impl SpecializationKind {
             Self::HigherOrder => "higher-order",
             Self::StaticCallable => "static-callable",
             Self::Projection => "projection",
+            Self::Effect => "effect",
         }
     }
 }

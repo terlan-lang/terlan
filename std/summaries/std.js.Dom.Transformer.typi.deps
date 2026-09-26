@@ -1,8 +1,8 @@
 module=std.js.Dom.Transformer
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17855700973663313350
-interface_hash=3521330725643737162
-interface_doc_hash=3521330725643737162
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=201945451860455197
+interface_hash=15430032832876659567
+interface_doc_hash=15430032832876659567
 deps=0

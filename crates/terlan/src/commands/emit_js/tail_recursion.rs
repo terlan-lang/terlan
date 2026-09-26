@@ -231,7 +231,7 @@ fn emit_terminal(
 ) -> Option<()> {
     let padding = " ".repeat(indent);
     match expr {
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if indexes
                 .get(function.as_str())
                 .is_some_and(|target| component_set.contains(target)) =>

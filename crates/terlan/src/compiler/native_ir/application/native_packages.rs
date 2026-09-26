@@ -77,7 +77,7 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
         .flat_map(|core| {
             core.types.iter().filter_map(move |declaration| {
                 let canonical = format!("{}.{}", core.module, declaration.name);
-                if is_compiler_managed_value_facade(&canonical) {
+                if is_compiler_owned_value_facade(&canonical) {
                     return None;
                 }
                 let body = if matches!(
@@ -126,10 +126,33 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 /// an owner-local managed string by template lowering. Treating it as a native
 /// resource would replace list element types with the four-field capability
 /// handle layout before that lowering runs.
-fn is_compiler_managed_value_facade(canonical: &str) -> bool {
+/// Process identities and lifecycle tokens likewise retain the scalar ABI
+/// owned by VM intrinsic lowering, not a native worker's resource layout.
+/// Byte and bit buffers retain their managed-buffer ABI even when their opaque
+/// declarations are loaded alongside an explicitly qualified container type.
+/// Standard collections likewise belong to image-local collection schemas,
+/// including fresh constructors whose generic slots are not yet inferred.
+fn is_compiler_owned_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
-        "std.template.Template.Html" | "std.http.Request.Request" | "std.http.Response.Response"
+        "std.template.Template.Html"
+            | "std.core.Task.Task"
+            | "std.collections.List.List"
+            | "std.collections.Map.Map"
+            | "std.collections.Set.Set"
+            | "std.collections.Iterator.Iterator"
+            | "std.http.Request.Request"
+            | "std.http.Response.Response"
+            | "std.vm.Bytes.Bytes"
+            | "std.vm.BitString.BitString"
+            | "std.vm.Process.Process"
+            | "std.vm.Process.Entry"
+            | "std.vm.Process.Timer"
+            | "std.vm.Process.Monitor"
+            | "std.vm.Process.ResourceKind"
+            | "std.vm.Process.Resource"
+            | "std.vm.Process.ExitReason"
+            | "std.vm.Process.SchedulingClass"
     )
 }
 
@@ -417,7 +440,8 @@ fn canonicalize_native_package_expr(
                 | CoreIntrinsicId::VmProcessCancel(ty)
                 | CoreIntrinsicId::MemoryLayoutOf(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
-                | CoreIntrinsicId::MemoryRetainedSize(ty) => canonicalize(ty)?,
+                | CoreIntrinsicId::MemoryRetainedSize(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty) => canonicalize(ty)?,
                 CoreIntrinsicId::NativeOperation {
                     parameter_types, ..
                 } => {
@@ -425,7 +449,9 @@ fn canonicalize_native_package_expr(
                         canonicalize(ty)?;
                     }
                 }
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
@@ -482,14 +508,31 @@ fn canonicalize_native_package_expr(
                 canonicalize_native_package_expr(&mut field.value, module, imports, aliases)?;
             }
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => {
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::ConstructorCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                canonicalize(ty)?;
+            }
             for arg in args {
                 canonicalize_native_package_expr(arg, module, imports, aliases)?;
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            for ty in type_args {
+                canonicalize(ty)?;
+            }
             for arg in args {
                 canonicalize_native_package_expr(arg, module, imports, aliases)?;
             }
@@ -579,7 +622,7 @@ pub(super) fn native_handle_layouts(
                 declaration.visibility,
                 crate::terlan_typeck::CoreVisibility::Opaque
             ) && declaration.core_body.is_none()
-                && !is_compiler_managed_value_facade(&canonical)
+                && !is_compiler_owned_value_facade(&canonical)
         })
         .map(|declaration| {
             let canonical = format!("Named({}.{})", core.module, declaration.name);

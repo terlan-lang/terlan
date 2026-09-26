@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioScheduledSourceNode
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1005310621729834329
-interface_hash=15517216294880588662
-interface_doc_hash=15517216294880588662
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3391425829868510333
+interface_hash=7349814513336603700
+interface_doc_hash=7349814513336603700
 deps=0

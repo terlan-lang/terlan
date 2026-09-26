@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSGroupingRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16983963293756130112
-interface_hash=2274145714383175892
-interface_doc_hash=2274145714383175892
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15416349448551280360
+interface_hash=13972743052948458631
+interface_doc_hash=13972743052948458631
 deps=0

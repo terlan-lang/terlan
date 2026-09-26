@@ -1,8 +1,8 @@
 module=std.js.Dom.CheckVisibilityOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13266353296443628726
-interface_hash=2656132793868360864
-interface_doc_hash=2656132793868360864
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7471951148883234800
+interface_hash=7787748379323997919
+interface_doc_hash=7787748379323997919
 deps=0

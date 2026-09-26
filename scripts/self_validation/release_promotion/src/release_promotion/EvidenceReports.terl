@@ -1,0 +1,211 @@
+/**
+ * Structural admission of release outcomes and their candidate/artifact bindings.
+ * Unrelated strings and nested decisions never establish a passing outcome.
+ */
+module release_promotion.EvidenceReports.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.data.Json.
+
+import type std.core.Option.
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+
+@pure
+pub readiness_reports(): List[{String, String}] ->
+    [
+        {
+            "target/quality/release-example-projects-report.json",
+            "terlan.release-example-projects-report.v1",
+        },
+        {
+            "target/quality/release-project-upgrade-matrix-report.json",
+            "terlan.release-project-upgrade-matrix-report.v1",
+        },
+        {
+            "target/quality/release-reference-app-suite-report.json",
+            "terlan.release-reference-app-suite-report.v1",
+        },
+        {
+            "target/quality/release-diagnostic-catalog-report.json",
+            "terlan.release-diagnostic-catalog-report.v1",
+        },
+        {
+            "target/quality/release-compatibility-baseline-report.json",
+            "terlan.release-compatibility-baseline-report.v1",
+        },
+        {
+            "target/quality/release-notes-accuracy-report.json",
+            "terlan.release-notes-accuracy-report.v1",
+        },
+        {
+            "target/quality/release-supply-chain-provenance-report.json",
+            "terlan.release-supply-chain-provenance-report.v1",
+        },
+        {
+            "target/quality/release-security-hardening-report.json",
+            "terlan.release-security-hardening-report.v1",
+        },
+        {
+            "target/quality/release-support-bundle-report.json",
+            "terlan.release-support-bundle-report.v1",
+        },
+        {
+            "target/quality/release-performance-baseline-report.json",
+            "terlan.release-performance-baseline-report.v1",
+        },
+        {
+            "target/quality/release-adversarial-corpus-report.json",
+            "terlan.release-adversarial-corpus-report.v1",
+        },
+        {
+            "target/quality/release-mutation-check-report.json",
+            "terlan.release-mutation-check-report.v1",
+        },
+        {
+            "target/quality/release-fault-injection-report.json",
+            "terlan.release-fault-injection-report.v1",
+        },
+        {
+            "target/quality/vm-release-artifact-matrix-report.json",
+            "terlan.vm-release-artifact-matrix-report.v1",
+        },
+        {
+            "target/quality/vm-multicore-release-closeout.json",
+            "terlan.vm-multicore-release-closeout.v4",
+        },
+    ].
+
+@pure
+pub preflight_reports(): List[{String, String}] ->
+    List.concat(
+        readiness_reports(),
+        [
+            {
+                "target/quality/release-readiness-attestation-report.json",
+                "terlan.release-readiness-attestation.v1",
+            },
+            {
+                "target/quality/release-staged-distribution-verification-report.json",
+                "terlan.release-staged-distribution-verification.v1",
+            },
+        ],
+    ).
+
+pub string_field(document: Json, key: String): Option[String] ->
+    let {
+        Ok(value) <- document.get(key);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+pub admitted(source: String, schema: String): Option[Json] ->
+    let {
+        Ok(document) <- Json.parse(source);
+        Some(actual) <- string_field(document, "schema");
+        true <- actual == schema;
+        Some("pass") <- string_field(document, "decision")
+    } else {
+        _ -> None
+    };
+    Some(document).
+
+pub passes(source: String, schema: String): Bool ->
+    case admitted(source, schema) {
+        Some(_document) -> true;
+        None -> false
+    }.
+
+pub seal_matches(source: String, schema: String, seal: String): Bool ->
+    let {
+        true <- seal != "";
+        Some(document) <- admitted(source, schema);
+        Some(actual) <- string_field(document, "candidate_seal")
+    } else {
+        _ -> false
+    };
+    actual == seal.
+
+@pure
+pub targets(): List[String] ->
+    [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "aarch64-pc-windows-msvc",
+    ].
+
+matrix(source: String): Option[Json] ->
+    let {
+        Some(document) <- admitted(source, "terlan.vm-release-artifact-matrix-report.v1");
+        Ok(count) <- document.get("target_count");
+        Ok(6) <- count.as_int();
+        Ok(rows) <- document.get("targets");
+        Ok(6) <- rows.length();
+        Ok(projected) <- Json.required_field_rows(rows, ["target_triple"], [], []);
+        true <- exact_targets(projected, targets())
+    } else {
+        _ -> None
+    };
+    Some(document).
+
+pub platforms_hold(source: String): Bool ->
+    case matrix(source) {
+        Some(_document) -> true;
+        None -> false
+    }.
+
+exact_targets(rows: List[RequiredFieldRow], remaining: List[String]): Bool ->
+    case rows {
+        [] -> remaining == [];
+        [row | rest] ->
+            let [triple] <- Json.required_field_row_strings(row) else {
+                _ -> false
+            };
+            (let next = List.subtract(remaining, [triple]); List.length(next) + 1 == List.length(remaining) and exact_targets(rest, next))
+    }.
+
+pub supply_chain_matches(source: String, digest: String): Bool ->
+    let {
+        Some(document) <- admitted(source, "terlan.release-supply-chain-provenance-report.v1");
+        Ok(checksums) <- document.get("checksums");
+        Some(actual) <- string_field(checksums, "installed_archive")
+    } else {
+        _ -> false
+    };
+    digest != "" and actual == digest.
+
+pub matrix_archive_matches(source: String, path: String, digest: String): Bool ->
+    let {
+        Some(document) <- matrix(source);
+        Ok(rows) <- document.get("targets");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> false
+    };
+    digest != "" and host_archive_count(rows, path, digest, 0, count) == 1.
+
+host_archive_count(rows: Json, path: String, digest: String, index: Int, count: Int): Int ->
+    if {
+        index == count -> 0;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(host) <- row.get("host_validation")
+        } else {
+            _ -> -100
+        };
+        (let matches =
+    string_field(host, "path") == Some(path)
+        and string_field(host, "sha256") == Some(digest)
+        and string_field(host, "installed_smoke") == Some("passed");
+host_archive_count(rows, path, digest, index + 1, count) + if {
+    matches -> 1;
+    true -> 0
+})
+    }.

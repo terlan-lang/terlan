@@ -18,6 +18,7 @@ use crate::runtime;
 use runtime::native_image::package_validation::{
     describe_packaged_tvm_image, validate_and_execute_release_package,
 };
+use runtime::vm::package_native_helper::VmStorageBinding;
 use runtime::vm::persistent_actor_restore::{
     build_cross_machine_actor_export, generate_minimal_actor_replay_fixture,
     plan_persistent_actor_restore, VmPersistentActorExport, VmPersistentActorRestoreCapabilities,

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebAssembly.CompileError
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5526158747219602547
-interface_hash=17142359567393942249
-interface_doc_hash=17142359567393942249
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9194478366982980681
+interface_hash=15622414339395754793
+interface_doc_hash=15622414339395754793
 deps=0
