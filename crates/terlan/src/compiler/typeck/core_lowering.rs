@@ -1,8 +1,10 @@
 use super::*;
 use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 
+mod constructor_functions;
 #[path = "core_lowering/default_arguments.rs"]
 mod default_arguments;
+mod imported_atoms;
 
 /// Lowers resolved formal compiler state to the current core boundary.
 ///
@@ -34,6 +36,7 @@ pub fn lower_resolved_module_to_core(resolved: &ResolvedModule) -> CoreModule {
             syntax_contract_fingerprint: None,
         },
         imports,
+        selected_function_imports: Vec::new(),
         exports,
         types,
         functions,
@@ -73,19 +76,56 @@ pub fn lower_syntax_module_output_to_core(
         &macro_expanded_module,
         &resolved.interface_map,
     );
-    let import_maps = super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    let mut core = lower_resolved_module_to_core(resolved);
+    constructor_functions::materialize(&mut prepared_module, &mut core.constructors);
+    let mut import_maps =
+        super::collect_syntax_import_maps(&prepared_module, &resolved.interface_map);
+    core.selected_function_imports = import_maps
+        .function_imports
+        .iter()
+        .flat_map(|(local_name, targets)| {
+            targets.iter().map(|target| CoreSelectedFunctionImport {
+                local_name: local_name.clone(),
+                module: target.module.clone(),
+                function: target.function.clone(),
+            })
+        })
+        .collect();
+    core.selected_function_imports.sort();
+    core.selected_function_imports.dedup();
+    for (name, arity) in resolved.interface.functions.keys() {
+        if super::core_intrinsic_lowering::core_primitive_intrinsic(&resolved.name, name, *arity)
+            .is_some()
+        {
+            import_maps.function_imports.insert(
+                name.clone(),
+                vec![ImportedFunctionTarget {
+                    module: resolved.name.clone(),
+                    function: name.clone(),
+                    arity: Some(*arity),
+                    span: Span { start: 0, end: 0 },
+                }],
+            );
+        }
+    }
     canonicalize_core_module_aliases(&mut prepared_module, &import_maps.module_aliases);
     canonicalize_core_selected_function_imports(
         &mut prepared_module,
         &import_maps.function_imports,
     );
-    default_arguments::materialize_default_call_arguments(&mut prepared_module, resolved);
+    default_arguments::materialize_default_call_arguments(
+        &mut prepared_module,
+        resolved,
+        &core.constructors,
+    );
     let (mut prepared_module, _) =
         super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
+    let binding_identities = analyze_syntax_bindings(&prepared_module).evidence;
+    imported_atoms::canonicalize(&mut prepared_module, resolved);
     let module = &prepared_module;
-    let mut core = lower_resolved_module_to_core(resolved);
     core.functions = core_syntax_functions(module);
+    constructor_functions::retain_sources(&mut core);
     let macro_functions = module
         .declarations
         .iter()
@@ -121,13 +161,13 @@ pub fn lower_syntax_module_output_to_core(
     );
     merge_core_imports(&mut core.imports, core_resolved_imported_modules(resolved));
     core.trait_conformances = core_syntax_trait_conformances(module);
-    let syntax_struct_bodies = core_syntax_struct_type_bodies(module);
-    let syntax_opaque_bodies = core_syntax_opaque_type_bodies(module);
+    let syntax_types = core_syntax_type_representations(module);
     for type_decl in &mut core.types {
-        if let Some(core_body) = syntax_struct_bodies.get(&type_decl.name) {
-            type_decl.core_body = Some(core_body.clone());
-        } else if let Some(core_body) = syntax_opaque_bodies.get(&type_decl.name) {
-            type_decl.core_body = Some(core_body.clone());
+        if let Some((params, core_body)) = syntax_types.get(&type_decl.name) {
+            type_decl.params = params.clone();
+            if let Some(core_body) = core_body {
+                type_decl.core_body = Some(core_body.clone());
+            }
         }
     }
 
@@ -146,6 +186,12 @@ pub fn lower_syntax_module_output_to_core(
             &receiver_methods,
             &template_prop_order,
         );
+    structural_impl_functions.extend(core_syntax_concrete_impl_functions(
+        module,
+        resolved,
+        &receiver_methods,
+        &template_prop_order,
+    ));
     for function in &mut structural_impl_functions {
         function_clauses.insert(
             core_callable_signature_from_function(function),
@@ -168,13 +214,14 @@ pub fn lower_syntax_module_output_to_core(
         function.native_operation = native_operations.get(&signature).cloned();
     }
     rewrite_structural_impl_calls(&mut core.functions, &structural_impl_dispatch);
+    rewrite_concrete_trait_calls(&mut core.functions, resolved);
     core.functions.sort_by(|left, right| {
         left.name
             .cmp(&right.name)
             .then_with(|| left.arity.cmp(&right.arity))
     });
     core.metadata = core_module_metadata(&core.functions, &core.types, &core.constructors);
-    core.binding_identities = analyze_syntax_bindings(module).evidence;
+    core.binding_identities = binding_identities;
     core.termination = analyze_core_termination(&core);
     core
 }
@@ -646,6 +693,9 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 is_macro: false,
                 ..
             } => Some(CoreFunction {
+                receiver_method: false,
+                trait_method: None,
+                source: None,
                 name: name.clone(),
                 arity: params.len(),
                 public: *is_public,
@@ -669,6 +719,9 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 core_params.push(core_syntax_param(receiver));
                 core_params.extend(params.iter().map(core_syntax_param));
                 Some(CoreFunction {
+                    receiver_method: true,
+                    trait_method: None,
+                    source: None,
                     name: name.clone(),
                     arity: core_params.len(),
                     public: *is_public,

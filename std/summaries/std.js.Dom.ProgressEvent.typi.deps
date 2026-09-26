@@ -1,8 +1,8 @@
 module=std.js.Dom.ProgressEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13861551999704893537
-interface_hash=11706498101875497133
-interface_doc_hash=11706498101875497133
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11226116962129900510
+interface_hash=6336229325014166135
+interface_doc_hash=6336229325014166135
 deps=0

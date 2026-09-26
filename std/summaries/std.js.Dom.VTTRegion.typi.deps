@@ -1,8 +1,8 @@
 module=std.js.Dom.VTTRegion
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14239501399065942352
-interface_hash=5281658340354587428
-interface_doc_hash=5281658340354587428
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12815877337651730733
+interface_hash=6601323476447239287
+interface_doc_hash=6601323476447239287
 deps=0

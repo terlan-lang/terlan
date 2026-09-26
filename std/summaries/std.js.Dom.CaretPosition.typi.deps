@@ -1,8 +1,8 @@
 module=std.js.Dom.CaretPosition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12432796065199410794
-interface_hash=5178102572287692462
-interface_doc_hash=5178102572287692462
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15523829390190472449
+interface_hash=10932211851744543017
+interface_doc_hash=10932211851744543017
 deps=0

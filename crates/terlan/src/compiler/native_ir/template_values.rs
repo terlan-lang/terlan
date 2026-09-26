@@ -59,6 +59,7 @@ pub(super) fn managed_template_operation_type(expr: &CoreExpr) -> Option<NativeT
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return None;
@@ -80,6 +81,7 @@ pub(super) fn lower_managed_template_operation(
         module,
         function,
         args,
+        ..
     } = expr
     else {
         return Ok(None);
@@ -163,13 +165,21 @@ fn rewrite(
         return render::render_template_instantiation(name, fields, templates, types);
     }
     let (function, args) = match rewritten {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            type_args,
+            function,
+            args,
+        } => {
             let Some(function) = function
                 .strip_prefix(TEMPLATE_MODULE)
                 .and_then(|function| function.strip_prefix('.'))
                 .map(str::to_owned)
             else {
-                return Ok(CoreExpr::Call { function, args });
+                return Ok(CoreExpr::Call {
+                    type_args,
+                    function,
+                    args,
+                });
             };
             (function, args)
         }
@@ -177,6 +187,7 @@ fn rewrite(
             module,
             function,
             args,
+            ..
         } if matches!(module.as_str(), TEMPLATE_MODULE | "Template") => (function, args),
         rewritten => return Ok(rewritten),
     };
@@ -220,6 +231,7 @@ pub(super) fn join_literal_fragments(fragments: &[CoreExpr]) -> CoreExpr {
 /// Creates one compiler-private managed template call.
 pub(super) fn managed_call(function: &str, args: Vec<CoreExpr>) -> CoreExpr {
     CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: MANAGED_TEMPLATE_MODULE.to_string(),
         function: function.to_string(),
         args,

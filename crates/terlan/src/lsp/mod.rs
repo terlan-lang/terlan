@@ -7,6 +7,7 @@ mod hover;
 mod import_actions;
 mod server;
 mod template_completion;
+mod uri;
 
 pub use server::run_stdio_server;
 
@@ -24,12 +25,12 @@ use document::{OpenDocument, OpenDocuments};
 use hover::hover_for_position;
 use import_actions::import_code_actions_for_diagnostic;
 use template_completion::template_completion_items;
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::lsp_types::request::{
+use tower_lsp_server::jsonrpc::Result;
+use tower_lsp_server::ls_types::request::{
     GotoDeclarationParams, GotoDeclarationResponse, GotoImplementationParams,
     GotoImplementationResponse, GotoTypeDefinitionParams, GotoTypeDefinitionResponse,
 };
-use tower_lsp::{lsp_types::*, Client, LanguageServer};
+use tower_lsp_server::{ls_types::*, Client, LanguageServer};
 
 fn is_semantic_constant_name(name: &str) -> bool {
     !name.is_empty()
@@ -56,7 +57,6 @@ pub struct Backend {
     open_documents: OpenDocuments,
 }
 
-#[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     /// Handles LSP initialize requests.
     ///
@@ -74,6 +74,7 @@ impl LanguageServer for Backend {
         let _ = self.client.clone();
 
         Ok(InitializeResult {
+            offset_encoding: None,
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
@@ -227,7 +228,7 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let Some(formatted) = document.formatted_text().map_err(|error| {
-            tower_lsp::jsonrpc::Error::invalid_params(format!(
+            tower_lsp_server::jsonrpc::Error::invalid_params(format!(
                 "cannot format Terlan document: {}",
                 error.message
             ))
@@ -436,7 +437,7 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         if !Self::valid_rename_identifier(&params.new_name) {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(
+            return Err(tower_lsp_server::jsonrpc::Error::invalid_params(
                 "binding rename requires one Terlan identifier",
             ));
         }
@@ -445,7 +446,7 @@ impl LanguageServer for Backend {
                 && binding.id != selected.binding
                 && binding.name == params.new_name
         }) {
-            return Err(tower_lsp::jsonrpc::Error::invalid_params(format!(
+            return Err(tower_lsp_server::jsonrpc::Error::invalid_params(format!(
                 "binding rename would collide with `{}` in the same lexical region",
                 params.new_name
             )));

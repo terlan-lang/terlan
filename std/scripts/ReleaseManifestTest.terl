@@ -344,13 +344,13 @@ discover_doc_pages(
     diagnostics: List[String],
 ): DocInventory ->
     case read_text_tree_matching(
-    child(root, "std"),
-    ["summaries", "disabled", "__pycache__"],
-    [".terl"],
-    List.new[String](),
-    offset,
-    128,
-) {
+        child(root, "std"),
+        ["summaries", "disabled", "__pycache__"],
+        [".terl"],
+        List.new[String](),
+        offset,
+        128,
+    ) {
         Ok([]) ->
             DocInventory(
                 sources = reverse_doc_sources(sources),

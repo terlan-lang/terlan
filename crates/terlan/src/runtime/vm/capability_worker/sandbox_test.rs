@@ -7,8 +7,8 @@ use super::*;
 fn linux_sandbox_command_is_closed_and_bounded() {
     let work_dir = VmCapabilityWorkerSandboxDir::create().expect("private sandbox directory");
     let executable = std::env::current_exe().expect("test executable path");
-    let command =
-        linux_worker_command(&executable, &[], work_dir.path()).expect("Linux sandbox command");
+    let command = linux_worker_command(&executable, &[], work_dir.path(), None)
+        .expect("Linux sandbox command");
     let program = command.get_program().to_string_lossy();
     let arguments = command
         .get_args()
@@ -43,8 +43,13 @@ fn linux_sandbox_command_is_closed_and_bounded() {
 fn linux_sandbox_network_authority_follows_capability_allowlist() {
     let work_dir = VmCapabilityWorkerSandboxDir::create().expect("private sandbox directory");
     let executable = std::env::current_exe().expect("test executable path");
-    let command = linux_worker_command(&executable, &["postgres".to_string()], work_dir.path())
-        .expect("Postgres sandbox command");
+    let command = linux_worker_command(
+        &executable,
+        &["postgres".to_string()],
+        work_dir.path(),
+        None,
+    )
+    .expect("Postgres sandbox command");
     let arguments = command
         .get_args()
         .map(|argument| argument.to_string_lossy().into_owned())
@@ -80,6 +85,7 @@ fn linux_sandbox_rejects_missing_worker() {
         Path::new("/definitely/missing/terlan-native-worker"),
         &[],
         work_dir.path(),
+        None,
     )
     .expect_err("missing worker");
 
@@ -96,4 +102,84 @@ fn linux_sandbox_directory_is_lifecycle_owned() {
     drop(work_dir);
 
     assert!(!path.exists());
+}
+
+/// Durable data outlives scratch cleanup and is never mounted for another capability.
+#[test]
+fn linux_sandbox_storage_binding_is_private_separate_and_persistent() {
+    let scratch = VmCapabilityWorkerSandboxDir::create().unwrap();
+    let durable = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let directory = durable.path().canonicalize().unwrap();
+    let executable = std::env::current_exe().unwrap();
+    let command = linux_worker_command(
+        &executable,
+        &["storage".into()],
+        scratch.path(),
+        Some(&directory),
+    )
+    .unwrap();
+    let args = command.get_args().collect::<Vec<_>>();
+    assert!(args.windows(3).any(|args| args
+        == [
+            std::ffi::OsStr::new("--bind"),
+            directory.as_os_str(),
+            std::ffi::OsStr::new("/storage")
+        ]));
+    assert!(args.contains(&std::ffi::OsStr::new("--unshare-net")));
+    assert!(linux_worker_command(
+        &executable,
+        &["filesystem".into()],
+        scratch.path(),
+        Some(&directory)
+    )
+    .is_err());
+    assert!(linux_worker_command(
+        &executable,
+        &["storage".into(), "filesystem".into()],
+        scratch.path(),
+        Some(&directory)
+    )
+    .is_err());
+    assert!(linux_worker_command(
+        &executable,
+        &["storage".into()],
+        scratch.path(),
+        Some(scratch.path())
+    )
+    .is_err());
+    let marker = directory.join("checkpoint-marker");
+    std::fs::write(&marker, b"retained").unwrap();
+    drop(scratch);
+    assert_eq!(std::fs::read(marker).unwrap(), b"retained");
+}
+
+/// Rejects public directories and symlink aliases rather than widening write authority.
+#[test]
+fn linux_sandbox_storage_binding_rejects_public_and_aliased_directories() {
+    let scratch = VmCapabilityWorkerSandboxDir::create().unwrap();
+    let durable = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let executable = std::env::current_exe().unwrap();
+    let alias = scratch.path().join("alias");
+    std::os::unix::fs::symlink(durable.path(), &alias).unwrap();
+    assert!(linux_worker_command(
+        &executable,
+        &["storage".into()],
+        scratch.path(),
+        Some(&alias)
+    )
+    .is_err());
+    std::fs::set_permissions(durable.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+    assert!(linux_worker_command(
+        &executable,
+        &["storage".into()],
+        scratch.path(),
+        Some(durable.path())
+    )
+    .is_err());
 }

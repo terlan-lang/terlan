@@ -1,8 +1,8 @@
 module=std.js.URIErrorConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13968424236664847658
-interface_hash=2114518867173138704
-interface_doc_hash=2114518867173138704
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13084108445377744039
+interface_hash=5652590269091246677
+interface_doc_hash=5652590269091246677
 deps=0

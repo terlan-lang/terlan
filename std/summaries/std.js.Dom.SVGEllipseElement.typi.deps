@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGEllipseElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5502759333501997955
-interface_hash=8723338516091935531
-interface_doc_hash=8723338516091935531
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15200648005294896601
+interface_hash=7544164033318863596
+interface_doc_hash=7544164033318863596
 deps=0

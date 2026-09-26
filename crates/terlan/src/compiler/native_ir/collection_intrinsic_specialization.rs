@@ -10,38 +10,32 @@ use crate::terlan_typeck::{
 
 #[path = "collection_intrinsic_specialization/expected_constructors.rs"]
 mod expected_constructors;
-pub(super) use expected_constructors::annotate_expected_structural_constructors;
+pub(super) use expected_constructors::{
+    annotate_expected_structural_constructors, annotate_function_result_constructors,
+};
 mod comprehension;
+mod task_intrinsics;
 use comprehension::specialize_comprehension;
 mod expected_new;
-use expected_new::{specialize_collection_new_bindings, specialize_expected_collection_new};
+pub(super) use expected_new::contextual_tuple_elements;
+use expected_new::{
+    specialize_collection_new_bindings, specialize_expected_collection_new,
+    specialize_parameter_arguments,
+};
 pub(super) mod receiver_intrinsics;
 use receiver_intrinsics::*;
 mod type_helpers;
 use type_helpers::*;
+pub(super) use type_helpers::{is_std_map_constructor, option_element, positional_map_type};
 
 #[derive(Clone)]
 pub(super) struct FunctionSignature {
+    pub(super) generic_params: Vec<String>,
     pub(super) params: Vec<CoreType>,
     pub(super) result: CoreType,
 }
 
 pub(super) type FunctionTypes = HashMap<(String, String, usize), FunctionSignature>;
-
-/// Attaches each declared result type to structural constructors before
-/// transparent aliases erase their nominal constructor identity.
-pub(super) fn annotate_function_result_constructors(core: &mut CoreModule) {
-    for function in &mut core.functions {
-        let Some(expected) = function.core_return_type.as_ref() else {
-            continue;
-        };
-        for clause in &mut function.clauses {
-            if let Some(body) = clause.body.core_expr.as_mut() {
-                annotate_expected_structural_constructors(body, expected);
-            }
-        }
-    }
-}
 
 pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) {
     let mut function_types = cores
@@ -64,7 +58,11 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                     .collect::<Option<Vec<_>>>()?;
                 Some((
                     (core.module.clone(), function.name.clone(), function.arity),
-                    FunctionSignature { params, result },
+                    FunctionSignature {
+                        generic_params: super::generic_specialization::generic_parameters(function),
+                        params,
+                        result,
+                    },
                 ))
             })
         })
@@ -75,6 +73,7 @@ pub(super) fn specialize_collection_intrinsic_results(cores: &mut [CoreModule]) 
                 function_types.insert(
                     (core.module.clone(), nominal_type_key(&declaration.name), 0),
                     FunctionSignature {
+                        generic_params: declaration.params.clone(),
                         params: Vec::new(),
                         result: body,
                     },
@@ -129,6 +128,9 @@ pub(super) fn specialize_expr(
     functions: &FunctionTypes,
     module: &str,
 ) -> Option<CoreType> {
+    if let Some(result) = task_intrinsics::specialize_receiver(expr, variables, functions, module) {
+        return Some(result);
+    }
     match expr {
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
@@ -136,14 +138,16 @@ pub(super) fn specialize_expr(
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".to_string())),
         CoreExpr::Atom(_) => Some(CoreType::Atom),
-        CoreExpr::Var(name) => variables.get(name).cloned(),
+        CoreExpr::Var(_) => specialize_variable(expr, variables),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base_type = specialize_expr(base, variables, functions, module)?;
-            named_field_type_with_nominals(&base_type, field, functions, module).cloned()
+            named_field_type_with_nominals(&base_type, field, functions, module)
         }
         CoreExpr::RecordConstruct { name, fields } => {
             let nominal = CoreType::Named(name.clone());
-            let Some(record_type) = nominal_type(functions, module, &nominal).cloned() else {
+            let Some(record_type) =
+                nominal_type(functions, module, &nominal).map(|ty| ty.into_owned())
+            else {
                 for field in fields {
                     specialize_expr(&mut field.value, variables, functions, module);
                 }
@@ -172,11 +176,11 @@ pub(super) fn specialize_expr(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
         CoreExpr::List(items) => {
-            let element = items
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module))
+            let element = specialize_elements(items, variables, functions, module)
                 .unwrap_or(CoreType::Dynamic);
-            Some(CoreType::List(Box::new(element)))
+            let ty = CoreType::List(Box::new(element));
+            preserve_inferred_list_type(expr, &ty, functions, module);
+            Some(ty)
         }
         CoreExpr::ListComprehension {
             expr,
@@ -193,13 +197,12 @@ pub(super) fn specialize_expr(
             module,
         ),
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
         } if is_std_list_constructor(constructor, constructor_identity.as_deref()) => {
-            let element = args
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module));
+            let element = specialize_elements(args, variables, functions, module);
             let items = CoreExpr::List(std::mem::take(args));
             let Some(element) = element else {
                 *expr = items;
@@ -213,13 +216,12 @@ pub(super) fn specialize_expr(
             Some(list_type)
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
         } if is_std_set_constructor(constructor, constructor_identity.as_deref()) => {
-            let element = args
-                .iter_mut()
-                .find_map(|item| specialize_expr(item, variables, functions, module))
+            let element = specialize_elements(args, variables, functions, module)
                 .unwrap_or_else(|| CoreType::Named("Unit".to_string()));
             let set_type = CoreType::Apply {
                 constructor: "Set".to_string(),
@@ -238,6 +240,7 @@ pub(super) fn specialize_expr(
             Some(set_type)
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -246,21 +249,7 @@ pub(super) fn specialize_expr(
                 .iter_mut()
                 .map(|entry| specialize_expr(entry, variables, functions, module))
                 .collect::<Option<Vec<_>>>()?;
-            let (key, value) = entry_types
-                .first()
-                .and_then(tuple_elements)
-                .map(|(key, value)| (key.clone(), value.clone()))?;
-            if !entry_types.iter().all(|entry| {
-                tuple_elements(entry).is_some_and(|(entry_key, entry_value)| {
-                    entry_key == &key && entry_value == &value
-                })
-            }) {
-                return None;
-            }
-            let map_type = CoreType::Apply {
-                constructor: "Map".to_string(),
-                args: vec![key, value],
-            };
+            let map_type = positional_map_type(&entry_types)?;
             let constructor = std::mem::replace(expr, CoreExpr::Atom("Unit".to_string()));
             *expr = CoreExpr::Cast {
                 expr: Box::new(constructor),
@@ -291,17 +280,18 @@ pub(super) fn specialize_expr(
             });
             Some(element)
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => {
             let signature = function_signature(functions, module, function, args.len()).cloned();
             let argument_types = args
                 .iter_mut()
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
-                for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected, functions, module);
-                    annotate_expected_structural_constructors(argument, expected);
-                }
+                specialize_parameter_arguments(args, signature, functions, module);
             }
             if function == "IndexGet.get_at" && args.len() == 2 {
                 if let Some(element) = argument_types
@@ -382,12 +372,15 @@ pub(super) fn specialize_expr(
                     }
                 }
             }
-            function_return_type(functions, module, function, args.len())
+            signature.as_ref().and_then(|signature| {
+                instantiated_result_type(signature, type_args, &argument_types)
+            })
         }
         CoreExpr::RemoteCall {
             module: owner,
             function,
             args,
+            type_args,
         } => {
             let signature = functions
                 .get(&(owner.clone(), function.clone(), args.len()))
@@ -397,10 +390,7 @@ pub(super) fn specialize_expr(
                 .map(|argument| specialize_expr(argument, variables, functions, module))
                 .collect::<Vec<_>>();
             if let Some(signature) = signature.as_ref() {
-                for (argument, expected) in args.iter_mut().zip(&signature.params) {
-                    specialize_expected_collection_new(argument, expected, functions, module);
-                    annotate_expected_structural_constructors(argument, expected);
-                }
+                specialize_parameter_arguments(args, signature, functions, module);
             }
             if owner.rsplit('.').next() == Some("__receiver__") {
                 if let Some(receiver) = argument_types.first().and_then(Option::as_ref) {
@@ -538,7 +528,9 @@ pub(super) fn specialize_expr(
                     }
                 }
             }
-            signature.map(|signature| signature.result)
+            signature.as_ref().and_then(|signature| {
+                instantiated_result_type(signature, type_args, &argument_types)
+            })
         }
         CoreExpr::MutableReceiverCall {
             receiver,
@@ -546,10 +538,14 @@ pub(super) fn specialize_expr(
             args,
             effects,
         } => {
-            let receiver_type = specialize_expr(receiver, variables, functions, module);
-            for argument in args.iter_mut() {
-                specialize_expr(argument, variables, functions, module);
-            }
+            let receiver_type = specialize_receiver(receiver, variables, functions, module);
+            let argument_types = args
+                .iter_mut()
+                .map(|argument| specialize_expr(argument, variables, functions, module))
+                .collect::<Vec<_>>();
+            let receiver_type =
+                refine_mutating_receiver(receiver, receiver_type, method, &argument_types)?;
+            let receiver_type = Some(receiver_type);
             let arity = args.len() + 1;
             if let Some(map) = receiver_type
                 .as_ref()
@@ -601,11 +597,12 @@ pub(super) fn specialize_expr(
             Some(return_type)
         }
         CoreExpr::Intrinsic(call) => {
-            let argument_types = call
-                .args
-                .iter_mut()
-                .map(|argument| specialize_expr(argument, variables, functions, module))
-                .collect::<Vec<_>>();
+            let argument_types =
+                specialize_intrinsic_arguments(call, variables, functions, module)?;
+            task_intrinsics::specialize_result(call, &argument_types);
+            specialize_declared_effect_result(call, &argument_types, functions);
+            preserve_list_operands(&mut call.args, &argument_types, functions, module);
+            normalize_empty_collection_constructor(call);
             if let CoreIntrinsicId::Primitive(intrinsic) = &call.id {
                 if *intrinsic == CorePrimitiveIntrinsic::SetNew
                     && set_element(&call.return_type).is_some_and(is_dynamic_type)
@@ -642,19 +639,8 @@ pub(super) fn specialize_expr(
                             | CorePrimitiveIntrinsic::ListClear => list.clone(),
                             _ => call.return_type.clone(),
                         };
-                        if *intrinsic == CorePrimitiveIntrinsic::MapFromEntries {
-                            if let Some((key, value)) = tuple_elements(element) {
-                                call.return_type = CoreType::Apply {
-                                    constructor: "Map".to_string(),
-                                    args: vec![key.clone(), value.clone()],
-                                };
-                            }
-                        }
-                        if *intrinsic == CorePrimitiveIntrinsic::SetFromList {
-                            call.return_type = CoreType::Apply {
-                                constructor: "Set".to_string(),
-                                args: vec![element.clone()],
-                            };
+                        if let Some(result) = collection_from_list_type(intrinsic, list) {
+                            call.return_type = result;
                         }
                     }
                 }
@@ -721,7 +707,7 @@ pub(super) fn specialize_expr(
             Some(call.return_type.clone())
         }
         CoreExpr::Let { bindings, body } => {
-            specialize_collection_new_bindings(bindings, body, functions, module);
+            specialize_collection_new_bindings(bindings, body, variables, functions, module);
             let mut variables = variables.clone();
             let mut binding_index = 0;
             while binding_index < bindings.len() {
@@ -731,9 +717,7 @@ pub(super) fn specialize_expr(
                 );
                 let binding = &mut bindings[binding_index];
                 let ty = specialize_expr(&mut binding.value, &variables, functions, module);
-                if let Some(ty) = ty {
-                    bind_pattern(&binding.pattern, &ty, &mut variables);
-                }
+                replace_binding_type(&binding.pattern, ty.as_ref(), &mut variables);
                 if let Some(pattern) = unit_result_pattern {
                     bindings.insert(
                         binding_index + 1,
@@ -790,7 +774,7 @@ pub(super) fn specialize_expr(
             result
         }
         CoreExpr::Cast { expr, target_type } => {
-            specialize_expr(expr, variables, functions, module);
+            expected_new::specialize_cast_contents(expr, target_type, variables, functions, module);
             Some(target_type.clone())
         }
         CoreExpr::UnaryOp { operand, .. } => specialize_expr(operand, variables, functions, module),
@@ -899,4 +883,5 @@ fn functionalize_collection_receiver_binding(
 
 mod support;
 
+pub(super) use support::list_element;
 use support::*;

@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMPointReadOnly
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=8090888387584305820
-interface_hash=15429175550311981639
-interface_doc_hash=15429175550311981639
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14673160281469981236
+interface_hash=1796056047707869736
+interface_doc_hash=1796056047707869736
 deps=0

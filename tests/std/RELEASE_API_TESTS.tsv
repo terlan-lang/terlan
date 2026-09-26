@@ -10,7 +10,8 @@
 #
 # Transformation:
 # - Maps each release-matrix API obligation to the exact Terlan @test function
-#   that proves it has release-test coverage.
+#   intended to exercise it. This mapping alone does not prove execution,
+#   passing assertions, or complete coverage of the public declaration inventory.
 #
 # Format:
 # api_id<TAB>test_file<TAB>test_function
@@ -245,9 +246,11 @@ std.core.Bool.from_string.true	std/core/BoolTest.terl	from_string_parses_true
 std.core.Bool.from_string.false	std/core/BoolTest.terl	from_string_parses_false
 std.core.Bool.from_string.unknown	std/core/BoolTest.terl	from_string_rejects_unknown_text
 std.core.Effect.succeed	std/core/EffectTest.terl	succeed_wraps_completed_value
-std.core.Effect.value	std/core/EffectTest.terl	succeed_wraps_completed_value
+std.core.Effect.run	std/core/EffectTest.terl	run_executes_completed_value_at_vm_boundary
 std.core.Effect.map	std/core/EffectTest.terl	map_transforms_completed_value
 std.core.Effect.flat_map	std/core/EffectTest.terl	flat_map_sequences_completed_value
+std.core.Effect.Mapped	std/core/EffectTest.terl	direct_mapped_descriptor_executes_at_vm_boundary
+std.core.Effect.FlatMap	std/core/EffectTest.terl	direct_flat_map_descriptor_executes_at_vm_boundary
 std.core.GuardResult.from_bool	std/core/GuardResultTest.terl	from_bool_wraps_completed_decision
 std.core.GuardResult.accept	std/core/GuardResultTest.terl	accept_records_true_decision
 std.core.GuardResult.reject	std/core/GuardResultTest.terl	reject_records_false_decision
@@ -364,9 +367,16 @@ std.vm.DistributedState.conflict	std/vm/DistributedStateTest.terl	conflict_and_p
 std.vm.DistributedState.export_snapshot	std/vm/DistributedStateTest.terl	checkpoint_restore_is_typed
 std.vm.DistributedState.restore	std/vm/DistributedStateTest.terl	checkpoint_restore_is_typed
 std.vm.DistributedState.get	std/vm/DistributedStateTest.terl	checkpoint_restore_is_typed
+std.vm.DistributedState.entry_owner	std/vm/DistributedStateTest.terl	checkpoint_restore_is_typed
+std.vm.DistributedState.entry_sequence	std/vm/DistributedStateTest.terl	checkpoint_restore_is_typed
+std.vm.DistributedState.conflict_local_sequence	std/vm/DistributedStateTest.terl	conflict_and_policy_mismatch_are_typed
+std.vm.DistributedState.conflict_incoming_sequence	std/vm/DistributedStateTest.terl	conflict_and_policy_mismatch_are_typed
 std.vm.DistributedStorage.force_local	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint
 std.vm.DistributedStorage.adapter	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint
-std.vm.DistributedStorage.checkpoint	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint
+std.vm.DistributedStorage.checkpoint	std/vm/DistributedStorageTest.terl	encoded_checkpoint_restores_typed_state_and_isolates_later_writes
+std.vm.DistributedStorage.checkpoint_with_schema	std/vm/DistributedStorageTest.terl	explicit_application_schema_does_not_change_the_logical_codec
+std.vm.DistributedStorage.checkpoint_schema	std/vm/DistributedStorageTest.terl	explicit_application_schema_does_not_change_the_logical_codec
+std.vm.DistributedStorage.restore	std/vm/DistributedStorageTest.terl	encoded_checkpoint_restores_typed_state_and_isolates_later_writes
 std.vm.DistributedStorage.open	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint
 std.vm.DistributedStorage.append	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint
 std.vm.DistributedStorage.flush	std/vm/DistributedStorageTest.terl	force_local_adapter_writes_flushes_and_loads_checkpoint

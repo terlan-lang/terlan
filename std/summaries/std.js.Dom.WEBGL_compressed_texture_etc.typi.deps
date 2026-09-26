@@ -1,8 +1,8 @@
 module=std.js.Dom.WEBGL_compressed_texture_etc
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4625038958337207318
-interface_hash=17029093515600859029
-interface_doc_hash=17029093515600859029
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9027407003340617657
+interface_hash=14127079345265199539
+interface_doc_hash=14127079345265199539
 deps=0

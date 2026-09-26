@@ -1,15 +1,20 @@
+mod contract_text;
+mod function_source;
 mod intrinsics;
 mod module;
 mod patterns;
 mod proof_payloads;
 mod termination;
 mod types;
+mod visit;
+pub(crate) use visit::{visit_core_expr_children_mut, visit_core_expr_mut};
 
+pub use function_source::CoreFunctionSource;
 pub use intrinsics::{
     CoreEffectSet, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic,
     CoreRuntimeCapability,
 };
-pub use module::{CoreModule, CoreModuleMetadata};
+pub use module::{CoreModule, CoreModuleMetadata, CoreSelectedFunctionImport};
 pub use patterns::{
     CoreBinaryPatternDescriptor, CoreBinaryPatternEndian, CoreBinaryPatternField,
     CoreMapPatternField, CorePattern, CoreRecordPatternField, CoreStringPatternCapture,
@@ -185,6 +190,14 @@ pub enum CoreVisibility {
 /// clause summaries in backend-neutral form.
 pub struct CoreFunction {
     pub name: String,
+    /// Whether this callable was declared with a receiver, not an ordinary first argument.
+    pub receiver_method: bool,
+    /// Source declaration retained independently of generated symbol spelling.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<CoreFunctionSource>,
+    /// Checked trait method implemented by this concrete callable body.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trait_method: Option<CoreTraitMethodIdentity>,
     pub arity: usize,
     pub public: bool,
     /// Source-declared generic parameters retained for exact AOT monomorphization.
@@ -195,6 +208,33 @@ pub struct CoreFunction {
     pub return_type: String,
     pub core_return_type: Option<CoreType>,
     pub clauses: Vec<CoreFunctionClause>,
+}
+
+/// Canonical trait identity retained independently of generated function names.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreTraitMethodIdentity {
+    pub trait_name: String,
+    /// Checked implementation arguments, distinct from method-generic arguments.
+    pub type_args: Vec<CoreType>,
+    pub method: String,
+}
+
+impl CoreTraitMethodIdentity {
+    /// Returns a deterministic dispatch owner for one explicit trait instance.
+    pub(crate) fn dispatch_owner(&self) -> String {
+        if self.type_args.is_empty() {
+            return self.trait_name.clone();
+        }
+        format!(
+            "{}[{}]",
+            self.trait_name,
+            self.type_args
+                .iter()
+                .map(CoreType::contract_text)
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -323,6 +363,9 @@ pub enum CoreExpr {
     ConstructorChain {
         base: String,
         base_constructor_identity: Option<String>,
+        /// Explicit base-constructor arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
         record: Box<CoreExpr>,
     },
@@ -334,15 +377,24 @@ pub enum CoreExpr {
     RemoteCall {
         module: String,
         function: String,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     ConstructorCall {
         constructor: String,
         constructor_identity: Option<String>,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     Call {
         function: String,
+        /// Explicit source type arguments retained until monomorphization.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        type_args: Vec<CoreType>,
         args: Vec<CoreExpr>,
     },
     MutableReceiverCall {
@@ -387,6 +439,9 @@ pub enum CoreExpr {
     },
     Lam {
         params: Vec<CorePattern>,
+        /// Explicit source annotations, aligned with parameters when present.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        parameter_types: Vec<Option<CoreType>>,
         body: Box<CoreExpr>,
     },
     UnaryOp {
@@ -474,463 +529,16 @@ pub struct CoreTryAfter {
     pub body: Box<CoreExpr>,
 }
 
-impl CoreExpr {
-    /// Renders a typed Core expression as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core expression from the initial Lean-covered subset.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the structural Core expression without source spans,
-    ///   backend syntax, or syntax-output summary text.
-    pub(crate) fn contract_text(&self) -> String {
-        match self {
-            CoreExpr::Int(value) => format!("Int({value})"),
-            CoreExpr::Float(value) => format!("Float({value})"),
-            CoreExpr::Binary(value) => format!("Binary({value})"),
-            CoreExpr::Atom(value) => format!("Atom({value})"),
-            CoreExpr::Var(name) => format!("Var({name})"),
-            CoreExpr::Tuple(elements) => format!(
-                "Tuple({})",
-                elements
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::List(elements) => format!(
-                "List({})",
-                elements
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::ListCons { head, tail } => {
-                format!(
-                    "ListCons({}|{})",
-                    head.contract_text(),
-                    tail.contract_text()
-                )
-            }
-            CoreExpr::FixedArray(elements) => format!(
-                "FixedArray({})",
-                elements
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::Index { base, index } => {
-                format!("Index({};{})", base.contract_text(), index.contract_text())
-            }
-            CoreExpr::ListComprehension {
-                expr,
-                generators,
-                guards,
-                lift,
-            } => {
-                let generators = generators
-                    .iter()
-                    .map(|generator| {
-                        format!(
-                            "{}<-{}",
-                            generator.pattern.contract_text(),
-                            generator.source.contract_text()
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join(",");
-                let lift = lift
-                    .as_ref()
-                    .map(|container| format!(" lift {container}"))
-                    .unwrap_or_default();
-                if guards.is_empty() {
-                    format!("ListComprehension({}|{}{lift})", expr.contract_text(), generators)
-                } else {
-                    format!(
-                        "ListComprehension({}|{} if {}{lift})",
-                        expr.contract_text(),
-                        generators,
-                        guards
-                            .iter()
-                            .map(CoreExpr::contract_text)
-                            .collect::<Vec<_>>()
-                            .join(",")
-                    )
-                }
-            }
-            CoreExpr::Let { bindings, body } => format!(
-                "Let({};{})",
-                bindings
-                    .iter()
-                    .map(CoreLetBinding::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(";"),
-                body.contract_text()
-            ),
-            CoreExpr::Map(fields) => format!(
-                "Map({})",
-                fields
-                    .iter()
-                    .map(CoreMapExprField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::RecordConstruct { name, fields } => format!(
-                "RecordConstruct({name};{})",
-                fields
-                    .iter()
-                    .map(CoreRecordExprField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::FieldAccess { base, field } => {
-                format!("FieldAccess({}.{})", base.contract_text(), field)
-            }
-            CoreExpr::RecordAccess { base, name, field } => {
-                format!("RecordAccess({}#{}.{})", base.contract_text(), name, field)
-            }
-            CoreExpr::RecordUpdate { base, name, fields } => format!(
-                "RecordUpdate({}#{};{})",
-                base.contract_text(),
-                name,
-                fields
-                    .iter()
-                    .map(CoreRecordExprField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::TemplateInstantiate { name, fields } => format!(
-                "TemplateInstantiate({name};{})",
-                fields
-                    .iter()
-                    .map(CoreRecordExprField::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::ConstructorChain {
-                base,
-                base_constructor_identity,
-                args,
-                record,
-            } => {
-                let args = args
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",");
-                match base_constructor_identity {
-                    Some(identity) => format!(
-                        "ConstructorChain({base};identity={identity};{args} with {})",
-                        record.contract_text()
-                    ),
-                    None => format!(
-                        "ConstructorChain({base};{args} with {})",
-                        record.contract_text()
-                    ),
-                }
-            }
-            CoreExpr::RemoteFunRef {
-                module,
-                function,
-                arity,
-            } => format!("RemoteFunRef({module}:{function}/{arity})"),
-            CoreExpr::RemoteCall {
-                module,
-                function,
-                args,
-            } => format!(
-                "RemoteCall({module}:{function};{})",
-                args.iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::ConstructorCall {
-                constructor,
-                constructor_identity,
-                args,
-            } => {
-                let args = args
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",");
-                match constructor_identity {
-                    Some(identity) => {
-                        format!("ConstructorCall({constructor};identity={identity};{args})")
-                    }
-                    None => format!("ConstructorCall({constructor};{args})"),
-                }
-            }
-            CoreExpr::Call { function, args } => format!(
-                "Call({};{})",
-                function,
-                args.iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::MutableReceiverCall {
-                receiver,
-                method,
-                args,
-                effects,
-            } => format!(
-                "MutableReceiverCall({}.{};args={};effects={})",
-                receiver.contract_text(),
-                method,
-                args.iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(","),
-                effects.contract_text()
-            ),
-            CoreExpr::FunctionCall { callee, args } => format!(
-                "FunctionCall({};{})",
-                callee.contract_text(),
-                args.iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            CoreExpr::Cast { expr, target_type } => {
-                format!(
-                    "Cast({} as {})",
-                    expr.contract_text(),
-                    target_type.contract_text()
-                )
-            }
-            CoreExpr::Intrinsic(call) => call.contract_text(),
-            CoreExpr::SqlQuery {
-                row_type,
-                bound_sql,
-                parameters,
-                query_kind,
-                transaction_requirement,
-                cardinality,
-                result_type,
-                projection_fields,
-                ..
-            } => format!(
-                "SqlQuery(row_type={row_type};params=[{}];kind={query_kind};transaction={transaction_requirement};cardinality={cardinality};result={result_type};projection={};sql={bound_sql})",
-                parameters
-                    .iter()
-                    .map(CoreExpr::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(","),
-                projection_fields.join(",")
-            ),
-            CoreExpr::Case { scrutinee, clauses } => format!(
-                "Case({};{})",
-                scrutinee.contract_text(),
-                clauses
-                    .iter()
-                    .map(CoreCaseClause::contract_text)
-                    .collect::<Vec<_>>()
-                    .join("|")
-            ),
-            CoreExpr::Try {
-                body,
-                of_clauses,
-                catch_clauses,
-                after_clause,
-            } => {
-                let of_clauses = of_clauses
-                    .iter()
-                    .map(CoreCaseClause::contract_text)
-                    .collect::<Vec<_>>()
-                    .join("|");
-                let catch_clauses = catch_clauses
-                    .iter()
-                    .map(CoreCaseClause::contract_text)
-                    .collect::<Vec<_>>()
-                    .join("|");
-                match after_clause {
-                    Some(after_clause) => format!(
-                        "Try({};of={};catch={};after={})",
-                        body.contract_text(),
-                        of_clauses,
-                        catch_clauses,
-                        after_clause.contract_text()
-                    ),
-                    None => format!(
-                        "Try({};of={};catch={})",
-                        body.contract_text(),
-                        of_clauses,
-                        catch_clauses
-                    ),
-                }
-            }
-            CoreExpr::If { clauses } => format!(
-                "If({})",
-                clauses
-                    .iter()
-                    .map(CoreIfClause::contract_text)
-                    .collect::<Vec<_>>()
-                    .join("|")
-            ),
-            CoreExpr::Lam { params, body } => format!(
-                "Lam({};{})",
-                params
-                    .iter()
-                    .map(CorePattern::contract_text)
-                    .collect::<Vec<_>>()
-                    .join(","),
-                body.contract_text()
-            ),
-            CoreExpr::UnaryOp { operator, operand } => {
-                format!("UnaryOp({};{})", operator, operand.contract_text())
-            }
-            CoreExpr::BinaryOp {
-                operator,
-                left,
-                right,
-            } => format!(
-                "BinaryOp({};{}, {})",
-                operator,
-                left.contract_text(),
-                right.contract_text()
-            ),
-        }
-    }
-}
-
-impl CoreMapExprField {
-    /// Renders a typed Core map-expression field as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core map-expression field from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the field key and recursively rendered value expression
-    ///   without backend-specific syntax.
-    fn contract_text(&self) -> String {
-        format!("{}:{}", self.key, self.value.contract_text())
-    }
-}
-
-impl CoreLetBinding {
-    /// Renders one typed Core let binding as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: local binding lowered from syntax output.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the binding pattern and recursively rendered value
-    ///   expression without source spans or backend syntax.
-    fn contract_text(&self) -> String {
-        format!(
-            "{}={}",
-            self.pattern.contract_text(),
-            self.value.contract_text()
-        )
-    }
-}
-
-impl CoreRecordExprField {
-    /// Renders a typed Core record-construction field as deterministic text.
-    ///
-    /// Inputs:
-    /// - `self`: typed Core record field from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the field key, source field assignment operator, and
-    ///   recursively rendered value expression without backend-specific syntax.
-    fn contract_text(&self) -> String {
-        let operator = if self.required { "=" } else { "=>" };
-        format!("{}{}{}", self.key, operator, self.value.contract_text())
-    }
-}
-
-impl CoreCaseClause {
-    /// Renders a typed Core case clause as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed unguarded case clause from the current Core subset.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the pattern/body pair without source spans, backend syntax,
-    ///   or syntax-output summary text.
-    fn contract_text(&self) -> String {
-        let body = self.body.contract_text();
-        match &self.guard {
-            Some(guard) => format!(
-                "{} where {}=>{}",
-                self.pattern.contract_text(),
-                guard.contract_text(),
-                body
-            ),
-            None => format!("{}=>{}", self.pattern.contract_text(), body),
-        }
-    }
-}
-
-impl CoreIfClause {
-    /// Renders a typed Core if clause as deterministic contract text.
-    ///
-    /// Inputs:
-    /// - `self`: typed condition/body branch from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the condition/body pair without source spans, backend
-    ///   syntax, or syntax-output summary text.
-    fn contract_text(&self) -> String {
-        format!(
-            "{}=>{}",
-            self.condition.contract_text(),
-            self.body.contract_text()
-        )
-    }
-}
-
-impl CoreTryAfter {
-    /// Renders a typed Core try cleanup branch as deterministic text.
-    ///
-    /// Inputs:
-    /// - `self`: typed try cleanup branch from syntax-output lowering.
-    ///
-    /// Output:
-    /// - Stable compact text for CoreIR contracts and phase goldens.
-    ///
-    /// Transformation:
-    /// - Serializes the cleanup trigger/body pair without source spans,
-    ///   backend syntax, or syntax-output summary text.
-    fn contract_text(&self) -> String {
-        format!(
-            "{}=>{}",
-            self.trigger.contract_text(),
-            self.body.contract_text()
-        )
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 /// Constructor declaration summarized in CoreIR.
 ///
 /// Inputs: resolved constructor declaration. Output: constructor signature.
 /// Transformation: records public flag, fixed params, optional vararg, return
-/// type, and typed return shape without backend constructor code.
+/// type, typed return shape, and ordinary callable identities for executable bodies.
 pub struct CoreConstructorDecl {
+    /// Checked source implementation; absent only for layout-only declarations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation: Option<CoreConstructorImplementation>,
     pub name: String,
     pub public: bool,
     pub min_arity: usize,
@@ -938,6 +546,19 @@ pub struct CoreConstructorDecl {
     pub vararg: Option<CoreParam>,
     pub return_type: String,
     pub core_return_type: Option<CoreType>,
+}
+
+/// Ordinary typed callable identities implementing a source constructor clause.
+///
+/// Bodies and default expressions live in CoreModule.functions so existing
+/// type substitution, proof evidence and effect analysis visit them normally.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CoreConstructorImplementation {
+    /// Provider-local callable receiving fixed arguments and one packed vararg list.
+    pub function: String,
+    /// Provider-local default callables, indexed by fixed parameter position.
+    /// Each receives the preceding parameters exactly once in declaration order.
+    pub defaults: Vec<Option<String>>,
 }
 
 /// Source category for a backend-neutral trait conformance fact.

@@ -745,7 +745,6 @@ fn reserve_port() -> Result<u16, String> {
         .map_err(|error| error.to_string())
 }
 
-
 fn positive_env(name: &str, default: usize) -> usize {
     env::var(name)
         .ok()

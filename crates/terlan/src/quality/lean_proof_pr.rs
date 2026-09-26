@@ -10,7 +10,7 @@ use crate::terlan_quality::{render_failure, QualityResult};
 
 const INVENTORY_PATH: &str = "docs/compiler/proof_track/lean_proof_inventory.tsv";
 const OWNER_PATH: &str = "docs/compiler/proof_track/lean_proof_owners.tsv";
-const REPORT_PATH: &str = "build/artifacts/lean-proof-pr-report.json";
+const REPORT_PATH: &str = "target/quality/proof-artifacts/lean-proof-pr-report.json";
 
 const INVENTORY_HEADER: &str = "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes";
 const OWNER_HEADER: &str = "subject_type\tsubject\towner_bucket\tfeature_slices\trequired_gates\tnext_action\texception_token\texception_expiry";
@@ -50,6 +50,7 @@ struct OwnerRow {
 
 #[derive(Debug, Serialize)]
 struct LeanProofPrReport {
+    schema: &'static str,
     changed_feature_classes: Vec<String>,
     proof_deltas: Vec<String>,
     gap_delta_reasons: Vec<String>,
@@ -88,6 +89,12 @@ struct ExceptionReport {
 /// - Turns proof status into owner-specific PR/release evidence without treating
 ///   unresolved gaps as complete proof coverage.
 pub fn run_lean_proof_pr(root: &Path) -> QualityResult<LeanProofPrSummary> {
+    let path =
+        super::lean_proof_track::outputs::single(root, REPORT_PATH, "TERLAN_PROOF_POLICY_OUTPUT")?;
+    run_to(root, &path)
+}
+
+fn run_to(root: &Path, path: &Path) -> QualityResult<LeanProofPrSummary> {
     let inventory = parse_inventory(&read_text(root, INVENTORY_PATH)?)?;
     let gaps = parse_gaps(&read_text(root, GAP_PATH)?)?;
     let owners = parse_owners(&read_text(root, OWNER_PATH)?)?;
@@ -101,7 +108,7 @@ pub fn run_lean_proof_pr(root: &Path) -> QualityResult<LeanProofPrSummary> {
         return Err(render_failure("lean-proof-pr", &diagnostics));
     }
 
-    let report_path = write_report(root, &build_report(&owners, &gaps))?;
+    let report_path = write_report(path, &build_report(&owners, &gaps))?;
     Ok(LeanProofPrSummary {
         owner_count: owners.len(),
         unresolved_gap_count: gaps.len(),
@@ -289,6 +296,7 @@ fn owner_subjects<'a>(owners: &'a [OwnerRow], subject_type: &str) -> BTreeSet<&'
 
 fn build_report(owners: &[OwnerRow], gaps: &[GapRow]) -> LeanProofPrReport {
     LeanProofPrReport {
+        schema: "terlan.lean-proof-pr.v1",
         changed_feature_classes: Vec::new(),
         proof_deltas: Vec::new(),
         gap_delta_reasons: gaps
@@ -317,17 +325,16 @@ fn build_report(owners: &[OwnerRow], gaps: &[GapRow]) -> LeanProofPrReport {
     }
 }
 
-fn write_report(root: &Path, report: &LeanProofPrReport) -> QualityResult<PathBuf> {
-    let path = root.join(REPORT_PATH);
+fn write_report(path: &Path, report: &LeanProofPrReport) -> QualityResult<PathBuf> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|err| format!("{}: failed to create directory: {err}", parent.display()))?;
     }
     let text = serde_json::to_string_pretty(report)
         .map_err(|err| format!("{}: failed to serialize report: {err}", path.display()))?;
-    fs::write(&path, format!("{text}\n"))
+    fs::write(path, format!("{text}\n"))
         .map_err(|err| format!("{}: failed to write report: {err}", path.display()))?;
-    Ok(path)
+    Ok(path.to_path_buf())
 }
 
 #[cfg(test)]

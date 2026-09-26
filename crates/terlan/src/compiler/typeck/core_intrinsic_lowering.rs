@@ -7,6 +7,8 @@ mod registry;
 mod return_types;
 
 #[cfg(test)]
+mod collection_test;
+#[cfg(test)]
 mod effect_test;
 
 pub(crate) use effects::{
@@ -18,6 +20,7 @@ use process_intrinsics::{
 };
 pub(crate) use registry::core_primitive_intrinsic;
 use registry::core_runtime_capability;
+pub(crate) use registry::core_typed_receiver_intrinsic;
 use return_types::core_runtime_capability_return_type;
 
 /// Converts a syntax-output call into a compiler-owned intrinsic call when selected.
@@ -230,18 +233,45 @@ fn core_typed_collection_intrinsic_expr_from_parts(
     args: Vec<CoreExpr>,
     span: Span,
 ) -> Option<CoreExpr> {
-    if module != "std.collections.List"
-        || function != "new"
-        || !args.is_empty()
-        || type_args.len() != 1
-    {
+    if function != "new" || !args.is_empty() {
         return None;
     }
-    let element = core_type_from_text(&type_args[0].text)?;
+    let parameters = type_args
+        .iter()
+        .map(|argument| core_type_from_text(&argument.text))
+        .collect::<Option<Vec<_>>>()?;
+    let (intrinsic, return_type) = match (module, parameters.as_slice()) {
+        ("std.collections.List", [element]) => (
+            CorePrimitiveIntrinsic::ListNew,
+            CoreType::List(Box::new(element.clone())),
+        ),
+        ("std.collections.Map", [_, _]) => (
+            CorePrimitiveIntrinsic::MapNew,
+            CoreType::Apply {
+                constructor: "Map".into(),
+                args: parameters,
+            },
+        ),
+        ("std.core.Object", [element]) => (
+            CorePrimitiveIntrinsic::MapNew,
+            CoreType::Apply {
+                constructor: "Map".into(),
+                args: vec![CoreType::String, element.clone()],
+            },
+        ),
+        ("std.collections.Set", [_]) => (
+            CorePrimitiveIntrinsic::SetNew,
+            CoreType::Apply {
+                constructor: "Set".into(),
+                args: parameters,
+            },
+        ),
+        _ => return None,
+    };
     Some(CoreExpr::Intrinsic(CoreIntrinsicCall {
-        id: CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListNew),
+        id: CoreIntrinsicId::Primitive(intrinsic),
         args,
-        return_type: CoreType::List(Box::new(element)),
+        return_type,
         effects: core_pure_effect_set(),
         span,
     }))
@@ -495,7 +525,7 @@ fn core_receiver_intrinsic_module(
 /// - Performs the final intrinsic registry lookup and packages the closed
 ///   intrinsic id, arguments, return type, pure effect set, and source span into
 ///   a backend-neutral CoreIR node.
-fn core_intrinsic_expr_from_parts(
+pub(crate) fn core_intrinsic_expr_from_parts(
     module: &str,
     function: &str,
     args: Vec<CoreExpr>,
@@ -697,7 +727,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             args: vec![CoreType::Dynamic],
         },
         CorePrimitiveIntrinsic::TaskDone => CoreType::Apply {
-            constructor: "Task".to_string(),
+            constructor: "std.core.Task.Task".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
         CorePrimitiveIntrinsic::TaskFailed => CoreType::Apply {

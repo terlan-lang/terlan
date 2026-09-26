@@ -1,16 +1,52 @@
 module std.core.EffectTest.
 
-@test
-pub succeed_wraps_completed_value(): Bool -> true.
+import std.core.Effect.
+import std.core.Effect.{FlatMap, Mapped}.
+import std.test.Test.{assert_equal}.
+
+@pure
+increment(value: Int): Int ->
+    value + 1.
+
+@pure
+next_effect(value: Int): Effect[Int] ->
+    Effect.succeed(value * 2).
+
+@pure
+handler_plan(value: Int): Effect[Int] ->
+    Effect.map(Effect.succeed(value), increment).
+
+run_completed(effect: Effect[Int]): Int ->
+    Effect.run(effect).
 
 @test
-pub map_transforms_completed_value(): Bool -> true.
+pub succeed_wraps_completed_value(): Bool ->
+    assert_equal(7, Effect.run(Effect.succeed(7))).
 
 @test
-pub flat_map_sequences_completed_value(): Bool -> true.
+pub map_transforms_completed_value(): Bool ->
+    let planned = Effect.map(Effect.succeed(7), increment);
+    assert_equal(8, Effect.run(planned)).
 
 @test
-pub pure_handler_plan_is_executed_at_the_vm_boundary(): Bool -> true.
+pub flat_map_sequences_completed_value(): Bool ->
+    let planned = Effect.flat_map(Effect.succeed(7), next_effect);
+    assert_equal(14, Effect.run(planned)).
 
 @test
-pub run_executes_completed_value_at_vm_boundary(): Bool -> true.
+pub pure_handler_plan_is_executed_at_the_vm_boundary(): Bool ->
+    assert_equal(42, Effect.run(handler_plan(41))).
+
+@test
+pub run_executes_completed_value_at_vm_boundary(): Bool ->
+    assert_equal(9, run_completed(Effect.succeed(9))).
+
+@test
+pub direct_mapped_descriptor_executes_at_vm_boundary(): Bool ->
+    let planned = Mapped(Effect.succeed(7), increment);
+    assert_equal(8, run_completed(planned)).
+
+@test
+pub direct_flat_map_descriptor_executes_at_vm_boundary(): Bool ->
+    let planned = FlatMap(Effect.succeed(7), next_effect);
+    assert_equal(14, run_completed(planned)).

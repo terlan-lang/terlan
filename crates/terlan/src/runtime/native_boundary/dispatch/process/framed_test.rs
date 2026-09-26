@@ -62,6 +62,31 @@ fn framed_session_rejects_a_missing_length_header() {
     assert_eq!(record_atom(fields, "code"), Some("invalid_frame"));
 }
 
+#[test]
+fn framed_session_retains_frames_after_the_last_input_phase() -> Result<(), String> {
+    let value = run_process_length_framed(
+        &[framed_request(
+            "sleep 0.05; printf 'Content-Length: 1\\r\\n\\r\\naContent-Length: 1\\r\\n\\r\\nbContent-Length: 1\\r\\n\\r\\nc'",
+            vec![],
+        )],
+        None,
+    )
+    .map_err(|error| format!("framed dispatch: {error:?}"))?;
+    let NativeBoundaryValue::Record { name, fields } = value else {
+        return Err("expected Result record".into());
+    };
+    assert_eq!(name, "Ok");
+    let Some((_, NativeBoundaryValue::Record { fields, .. })) = fields.first() else {
+        return Err("expected FramedOutput".into());
+    };
+    assert_eq!(record_int(fields, "status"), Some(0));
+    assert_eq!(
+        record_text_list(fields, "frames"),
+        Some(vec!["a".into(), "b".into(), "c".into()])
+    );
+    Ok(())
+}
+
 fn framed_request(script: &str, exchanges: Vec<(&str, i64)>) -> NativeBoundaryValue {
     NativeBoundaryValue::Record {
         name: "FramedRequest".to_string(),

@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLTableColElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15133396436462911822
-interface_hash=15210391871931233813
-interface_doc_hash=15210391871931233813
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7575346113858243488
+interface_hash=6409679367245199373
+interface_doc_hash=6409679367245199373
 deps=0

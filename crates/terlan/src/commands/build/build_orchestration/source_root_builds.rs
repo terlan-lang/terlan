@@ -59,10 +59,7 @@ pub(in crate::commands::build) fn run_terlan_vm_source_roots_build(
         Ok(prepared) => prepared,
         Err(status) => return status,
     };
-    let entry_module = source_roots
-        .last()
-        .and_then(|root| root.package_path.as_ref())
-        .map(|package| format!("{}.Main", package.join(".")));
+    let entry_module = project_main_module(source_roots);
     let result = if let Some(entry_module) = entry_module {
         vm_artifact::build_vm_application_artifacts_with_entry(
             &files,
@@ -478,4 +475,20 @@ pub(in crate::commands::build) fn package_executable_name(package_name: &str) ->
     } else {
         package_name.to_string()
     }
+}
+
+/// Prefers the package's Main only when that module exists. Libraries and
+/// service-only packages may intentionally have no Main declaration.
+pub(super) fn project_main_module(
+    source_roots: &[source_roots::SourceRootBuildUnit],
+) -> Option<String> {
+    let root = source_roots.last()?;
+    let package = root.package_path.as_ref()?;
+    let source = package
+        .iter()
+        .fold(root.path.clone(), |path, part| path.join(part));
+    source
+        .join("Main.terl")
+        .is_file()
+        .then(|| format!("{}.Main", package.join(".")))
 }

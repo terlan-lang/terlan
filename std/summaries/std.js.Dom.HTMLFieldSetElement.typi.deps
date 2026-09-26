@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLFieldSetElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=783657561416641125
-interface_hash=7823656005287172284
-interface_doc_hash=7823656005287172284
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12737298008380995623
+interface_hash=3787394254058067930
+interface_doc_hash=3787394254058067930
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.AnimationFrameProvider
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15424257191618946864
-interface_hash=9009292054359937901
-interface_doc_hash=9009292054359937901
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7458237709078199618
+interface_hash=7504469744868204024
+interface_doc_hash=7504469744868204024
 deps=0

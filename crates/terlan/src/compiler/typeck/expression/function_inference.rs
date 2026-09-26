@@ -108,6 +108,38 @@ pub(crate) fn infer_instantiated_function_with_bounds(
         ));
     }
 
+    // A singleton argument must not fix a shared generic before a later
+    // argument supplies its complete domain (for example Lt and Comparison).
+    // Explicit type arguments are already bound and remain authoritative.
+    for expected in &scheme.params {
+        let Type::Var(id) = expected else { continue };
+        if subst.contains_key(id) {
+            continue;
+        }
+        let candidates = scheme
+            .params
+            .iter()
+            .zip(args)
+            .filter_map(|(parameter, argument)| {
+                if parameter != expected {
+                    return None;
+                }
+                let argument = apply_subst(argument, subst);
+                max_type_var(&argument).is_none().then_some(argument)
+            })
+            .collect::<Vec<_>>();
+        if candidates.len() < 2 {
+            continue;
+        }
+        if let Some(common) = candidates.iter().find(|candidate| {
+            candidates
+                .iter()
+                .all(|argument| is_subtype_with_aliases(argument, candidate, ctx.aliases))
+        }) {
+            unify(expected, common, subst)?;
+        }
+    }
+
     for (expected, actual) in scheme.params.iter().zip(args.iter()) {
         let expected_substituted = apply_subst(expected, subst);
         let actual_substituted = apply_subst(actual, subst);

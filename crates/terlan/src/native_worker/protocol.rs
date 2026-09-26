@@ -11,6 +11,7 @@ use crate::terlan_native_boundary::metadata::{
 
 #[path = "protocol/execution.rs"]
 mod execution;
+mod storage;
 
 const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
 const HARD_MAX_PAYLOAD_BYTES: usize = 16 * 1024 * 1024;
@@ -35,6 +36,8 @@ pub(crate) struct CapabilityWorkerConfig {
     max_requests: u64,
     /// Maximum concurrently reserved requests.
     credit_limit: u64,
+    /// Fixed sandbox database binding, never selected by RPC arguments.
+    storage_database: bool,
 }
 
 impl CapabilityWorkerConfig {
@@ -50,6 +53,7 @@ impl CapabilityWorkerConfig {
             max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
             max_requests: DEFAULT_MAX_REQUESTS,
             credit_limit: DEFAULT_CREDIT_LIMIT,
+            storage_database: false,
         };
         let mut index = 0;
         while index < args.len() {
@@ -65,6 +69,7 @@ impl CapabilityWorkerConfig {
                     | "--max-payload-bytes"
                     | "--max-requests"
                     | "--credit-limit"
+                    | "--storage-database"
             ) {
                 return Err(format!(
                     "error[capability_worker.args]: unsupported argument `{flag}`"
@@ -113,6 +118,12 @@ impl CapabilityWorkerConfig {
                     validate_name("capability", value)?;
                     config.capabilities.insert(value.to_owned());
                 }
+                "--storage-database" => {
+                    if value != storage::DATABASE_PATH || config.storage_database {
+                        return Err("error[capability_worker.storage]: database must be the single fixed sandbox binding".into());
+                    }
+                    config.storage_database = true;
+                }
                 "--worker-class" => {
                     worker_class(value)?;
                     config.worker_classes.insert(value.to_owned());
@@ -142,6 +153,12 @@ impl CapabilityWorkerConfig {
             "error[capability_worker.profile]: an external-adapter, crash-isolated, or cross-boundary execution profile is required"
                 .to_string()
         })?;
+        if config.storage_database
+            && (config.capabilities != BTreeSet::from(["storage".to_string()])
+                || !config.worker_classes.contains("blocking"))
+        {
+            return Err("error[capability_worker.storage]: database binding requires a storage-only blocking worker".into());
+        }
         Ok(config)
     }
 

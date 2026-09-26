@@ -1,8 +1,8 @@
 module=std.js.Dom.Crypto
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5038307022892444210
-interface_hash=4971238163310463654
-interface_doc_hash=4971238163310463654
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9977446789802987346
+interface_hash=17665151065694925332
+interface_doc_hash=17665151065694925332
 deps=0

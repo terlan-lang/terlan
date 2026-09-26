@@ -1,8 +1,8 @@
 module=std.js.Dom.WebGLVertexArrayObject
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6228711992460038024
-interface_hash=14898417271974280301
-interface_doc_hash=14898417271974280301
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=732829852551360470
+interface_hash=15253137806138166486
+interface_doc_hash=15253137806138166486
 deps=0

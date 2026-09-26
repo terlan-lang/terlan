@@ -456,7 +456,7 @@ fn proof_baseline_manifest_artifact_validator_reports_bad_readiness() {
     assert!(err.contains(baseline.module_name));
 }
 
-/// Verifies the pinned remote-call candidate keeps concrete compiler data.
+/// Verifies the pinned trait-dispatch candidate keeps concrete compiler data.
 ///
 /// Inputs:
 /// - Static next-model candidate table.
@@ -466,7 +466,7 @@ fn proof_baseline_manifest_artifact_validator_reports_bad_readiness() {
 ///
 /// Transformation:
 /// - Checks the static `phase_trait` baseline is still pinned to a
-///   proof-model-required remote-call Core form. Documentation handoff
+///   proof-model-required canonical trait-call Core form. Documentation handoff
 ///   wording is validated by internal script tooling rather than crate
 ///   tests so release compiler crates do not include roadmap prose.
 #[test]
@@ -482,8 +482,10 @@ fn proof_baseline_phase_trait_pins_remote_dispatch_contract() {
         phase_trait_candidate
             .required_snippets
             .iter()
-            .any(|snippet| snippet.contains("RemoteCall(")
-                && snippet.contains(":proof=proof-model-required")),
-        "phase_trait must remain pinned to a proof-model-required remote-call Core form"
+            .any(
+                |snippet| snippet.contains("core=Call(phase_trait.Eq.equal;")
+                    && snippet.contains(":proof=proof-model-required")
+            ),
+        "phase_trait must remain pinned to a proof-model-required canonical trait call"
     );
 }

@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtcpParameters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12135785586476148594
-interface_hash=3631140986825335977
-interface_doc_hash=3631140986825335977
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2032436185908261394
+interface_hash=12286645486147086487
+interface_doc_hash=12286645486147086487
 deps=0

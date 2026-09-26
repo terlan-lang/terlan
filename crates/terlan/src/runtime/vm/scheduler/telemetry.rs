@@ -5,10 +5,12 @@ use std::path::Path;
 use serde::Serialize;
 
 use super::{VmScheduler, VmSchedulerClass};
+use crate::runtime::vm::process::VmProcessId;
 
 /// One deterministic scheduler queue transition retained for replay.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(test)]
 pub(crate) struct VmSchedulerQueueTransition {
     pub(crate) tick: u64,
     pub(crate) pid: u64,
@@ -40,7 +42,75 @@ pub(crate) struct VmSchedulerMetrics {
     pub(crate) preemptions: u64,
     pub(crate) max_queue_depth: usize,
     pub(crate) processes: BTreeMap<u64, VmSchedulerProcessMetrics>,
-    pub(crate) queue_transitions: Vec<VmSchedulerQueueTransition>,
+    #[cfg(test)]
+    queue_transitions: Vec<VmSchedulerQueueTransition>,
+    #[cfg(test)]
+    omitted_queue_transitions: u64,
+}
+
+#[cfg(test)]
+const MAX_QUEUE_TRANSITIONS: usize = 4096;
+
+impl VmSchedulerMetrics {
+    /// Refuses incomplete replay evidence after the test-only history fills.
+    #[cfg(test)]
+    pub(crate) fn queue_transitions(&self) -> &[VmSchedulerQueueTransition] {
+        assert_eq!(
+            self.omitted_queue_transitions, 0,
+            "scheduler transition test history exceeded its event budget; trace is incomplete"
+        );
+        &self.queue_transitions
+    }
+
+    #[cfg(test)]
+    fn record_queue_transition(&mut self, transition: VmSchedulerQueueTransition) {
+        if self.queue_transitions.len() == MAX_QUEUE_TRANSITIONS {
+            self.omitted_queue_transitions = self.omitted_queue_transitions.saturating_add(1);
+        } else {
+            self.queue_transitions.push(transition);
+        }
+    }
+
+    /// Removing retained records never erases an incomplete-history marker.
+    #[cfg(test)]
+    pub(super) fn reap_queue_transitions(&mut self, pid: u64) {
+        self.queue_transitions
+            .retain(|transition| transition.pid != pid);
+    }
+
+    #[cfg(not(test))]
+    #[inline]
+    pub(super) fn reap_queue_transitions(&mut self, _: u64) {}
+}
+
+impl VmScheduler {
+    #[cfg(test)]
+    pub(super) fn record_queue_transition(
+        &mut self,
+        pid: VmProcessId,
+        action: &'static str,
+        class: VmSchedulerClass,
+    ) {
+        self.metrics
+            .record_queue_transition(VmSchedulerQueueTransition {
+                tick: self.tick,
+                pid: pid.as_u64(),
+                action,
+                class,
+                queue_len: self.queued_len(),
+            });
+    }
+
+    /// Production scheduling retains cumulative counters, not per-event history.
+    #[cfg(not(test))]
+    #[inline]
+    pub(super) fn record_queue_transition(
+        &mut self,
+        _: VmProcessId,
+        _: &'static str,
+        _: VmSchedulerClass,
+    ) {
+    }
 }
 
 #[derive(Serialize)]
@@ -124,7 +194,7 @@ impl VmScheduler {
             max_queue_depth: self.metrics.max_queue_depth,
             process_metrics,
             starvation_warnings,
-            queue_transitions: &self.metrics.queue_transitions,
+            queue_transitions: self.metrics.queue_transitions(),
         };
         let json = serde_json::to_string_pretty(&report).map_err(|error| {
             format!("failed to serialize VM scheduler fairness report: {error}")
@@ -138,3 +208,7 @@ impl VmScheduler {
             .map_err(|error| format!("failed to write VM scheduler fairness report: {error}"))
     }
 }
+
+#[cfg(test)]
+#[path = "telemetry_test.rs"]
+mod telemetry_test;

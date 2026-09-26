@@ -1,8 +1,8 @@
 module=std.js.Dom.WindowLocalStorage
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1120106756920513118
-interface_hash=15174210208118019101
-interface_doc_hash=15174210208118019101
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8585722288900925172
+interface_hash=3915590467957369863
+interface_doc_hash=3915590467957369863
 deps=0

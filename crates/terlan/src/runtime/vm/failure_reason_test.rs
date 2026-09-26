@@ -13,6 +13,14 @@ fn typed_failure_reasons() -> Vec<VmExitReason> {
         VmExitReason::Error("adapter timeout".to_string()),
         VmExitReason::Error("failure\nwith\0control".to_string()),
         VmExitReason::Error("x".repeat(4_096)),
+        VmExitReason::TypedError {
+            boundary_type: crate::runtime::native_image::TvmBoundaryType::Int,
+            value: Box::new(ReplValue::Int(42)),
+        },
+        VmExitReason::TypedError {
+            boundary_type: crate::runtime::native_image::TvmBoundaryType::String,
+            value: Box::new(ReplValue::String("retained effect failure".into())),
+        },
         VmExitReason::Killed,
         VmExitReason::ShutdownTimeout { timeout_ms: 750 },
         VmExitReason::MemoryLimitExceeded {

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebAssembly.Table
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2902369759041986202
-interface_hash=13129898045765649780
-interface_doc_hash=13129898045765649780
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1643390379879486209
+interface_hash=9963773648770937907
+interface_doc_hash=9963773648770937907
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaRecorderEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11624559448645795271
-interface_hash=5631861703402695350
-interface_doc_hash=5631861703402695350
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11653715315833805118
+interface_hash=17723480988838438367
+interface_doc_hash=17723480988838438367
 deps=0

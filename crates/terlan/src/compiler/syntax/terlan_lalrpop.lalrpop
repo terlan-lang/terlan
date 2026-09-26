@@ -1,4 +1,4 @@
-// canonical-ebnf-sha256: 0563b5f85ba00c4943a9f41b990739aea1278f3ccff3f9be7bdfb507d9d8fe87
+// canonical-ebnf-sha256: 7e4b96331d0bdf29ce61c571f261b66118ccbbf29b827698e9c9df322a82b623
 //
 // This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
 // canonical EBNF edit therefore requires an explicit generated-grammar audit.
@@ -1235,21 +1235,23 @@ LambdaExpression: LalrpopSyntaxNode = {
 
 LambdaPattern: LalrpopSyntaxNode = {
     <start:@L> "typed-lambda-pattern" <end:@R>
-        => LalrpopSyntaxNode::branch(
-            LalrpopSyntaxNodeKind::Pattern,
-            start,
-            end,
-            Some(
-                source_index
-                    .text(source, start, end)
-                    .split(':')
-                    .next()
-                    .unwrap_or_default()
-                    .trim()
-                    .to_string(),
-            ),
-            Vec::new(),
-        ),
+        => {
+            let text = source_index.text(source, start, end);
+            let colon = text.find(':').expect("typed lambda token contains a colon");
+            LalrpopSyntaxNode::branch(
+                LalrpopSyntaxNodeKind::Pattern,
+                start,
+                end,
+                Some(text[..colon].trim().to_string()),
+                vec![LalrpopSyntaxNode::branch(
+                    LalrpopSyntaxNodeKind::Type,
+                    start + colon + 1,
+                    end,
+                    None,
+                    Vec::new(),
+                )],
+            )
+        },
     Pattern,
 };
 

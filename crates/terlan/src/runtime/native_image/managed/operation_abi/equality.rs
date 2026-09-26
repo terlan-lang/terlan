@@ -7,6 +7,7 @@ use super::super::{
     ManagedFieldType, ManagedFieldValue, ManagedLayoutRegistry, ManagedList, ManagedMap,
     ManagedMemoryError, ManagedSet, ManagedString, SemanticTypeId, TvmRef,
 };
+use super::immediate_union::{immediate_variant, is_immediate_union_word};
 use super::reference_word;
 
 const MAGIC: &[u8; 4] = b"TVME";
@@ -44,25 +45,31 @@ pub(super) fn execute_equality_operation(
     };
     let left_immediate = is_immediate_union_word(*left);
     let right_immediate = is_immediate_union_word(*right);
-    if left_immediate || right_immediate {
+    if left_immediate && right_immediate {
+        let left = immediate_variant(layouts, semantic, *left)?;
+        let right = immediate_variant(layouts, semantic, *right)?;
         return Ok(u64::from(
-            left_immediate && right_immediate && left == right,
+            left.managed().fingerprint() == right.managed().fingerprint(),
+        ));
+    }
+    if left_immediate || right_immediate {
+        let (atom, reference) = if left_immediate {
+            (*left, *right)
+        } else {
+            (*right, *left)
+        };
+        let immediate = immediate_variant(layouts, semantic, atom)?;
+        let reference = reference_word(reference)?;
+        require_semantic(heap, semantic, reference)?;
+        let allocated = aggregate_layout(heap, layouts, semantic, reference)?;
+        return Ok(u64::from(
+            immediate.managed().fingerprint() == allocated.managed().fingerprint(),
         ));
     }
     let left = reference_word(*left)?;
     let right = reference_word(*right)?;
     let mut visited = HashSet::new();
     references_equal(heap, layouts, semantic, left, right, &mut visited).map(u64::from)
-}
-
-/// Distinguishes zero-field union atoms from token-tagged managed references.
-///
-/// Equality reaches this ABI only after the compiler has proved a managed
-/// semantic type. Within that type, a word whose token half is zero is the
-/// compact atom representation of a zero-field variant. Managed references
-/// always carry a nonzero heap token in the upper 32 bits.
-fn is_immediate_union_word(word: i64) -> bool {
-    u64::from_ne_bytes(word.to_ne_bytes()) >> 32 == 0
 }
 
 /// Decodes one exact structural equality operation.

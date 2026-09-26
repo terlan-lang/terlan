@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaQueryList
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9162956017053881618
-interface_hash=1234017637168263095
-interface_doc_hash=1234017637168263095
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=5636514294829402219
+interface_hash=2225765452614239323
+interface_doc_hash=2225765452614239323
 deps=0

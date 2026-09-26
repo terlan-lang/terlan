@@ -1,8 +1,8 @@
 module=std.js.Dom.ShareData
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13640903959639478222
-interface_hash=12584561675525169483
-interface_doc_hash=12584561675525169483
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7063227684579371418
+interface_hash=11708811207574661606
+interface_doc_hash=11708811207574661606
 deps=0

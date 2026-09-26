@@ -1,0 +1,135 @@
+/**
+ * Exercise the real owner/admission contract with bounded fixture producers.
+ */
+module release_promotion.PreparationProofTrackTest.
+
+import release_promotion.{OwnerStorage, PreparationFixture, PrepareProofTrack}.
+import std.core.Result.{Err, Ok}.
+import std.io.{Console, Directory, File}.
+
+write(root: String, path: String, contents: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), contents) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+pub fixture(root: String): Bool ->
+    let {
+        Ok(_proofs) <- Directory.create_all(OwnerStorage.child(root, "proofs/lean/ci"));
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
+        true <- write(root, ".gitignore", "/target/\n");
+        true <-
+            write(
+                root,
+                "proofs/lean/ci/lean-proof-artifacts.tsv",
+                "header\nproofs/lean/a.lean\tcurrent\tCoreIR\tmanifest\t0\tnone\tdigest\tproofs/lean/ci/a.json\tnone\n",
+            );
+        true <- write(root, "proofs/lean/a.lean", "proof");
+        true <-
+            write(
+                root,
+                "proofs/lean/ci/a.json",
+                "{\"manifest_fingerprints\":{},\"dependency_files\":[\"target/dependency\"]}",
+            );
+        true <- write(root, "target/dependency", "dependency");
+        true <- write(root, "target/tool-seed", "tool identity");
+        true <-
+            write(
+                root,
+                "target/tools/quality",
+                "#!/bin/sh\nset -eu\ncase $1 in\nlean-proof-tool-admission)\n  if test -f target/admission-fail; then exit 8; fi\n  cp target/tool-seed \"$2\"\n  printf 'sha256:%s\\n' \"$(sha256sum \"$2\" | cut -d ' ' -f 1)\";;\nlean-proof-track)\n  echo run >> target/calls\n  if test -f target/fail; then exit 7; fi\n  printf '{\"schema\":\"terlan.lean-proof-repro.v1\"}\\n' > \"$TERLAN_PROOF_REPRO_OUTPUT\"\n  printf '{\"schema\":\"terlan.lean-proof-track.v1\"}\\n' > \"$TERLAN_PROOF_TRACK_OUTPUT\"\n  printf 'feature_class\\texpected_status\\tlast_confirmed_hash\\ncoreir\\tcurrent\\tdigest\\n' > \"$TERLAN_PROOF_BASELINE_OUTPUT\"\n  echo '[lean-proof-track] completed';;\n*) exit 9;;\nesac\n",
+            );
+        true <- OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/quality"])
+    } else {
+        _ -> false
+    };
+    PreparationFixture.commit(root).
+
+stage(root: String, valid: Bool, reused: Bool): Bool ->
+    case PrepareProofTrack.prepare(root, "target/tools/quality") {
+        Ok(result) -> result.valid == valid and result.reused == reused;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason);
+            false
+    }.
+
+calls(root: String, expected: String): Bool ->
+    case File.read_text(OwnerStorage.child(root, "target/calls")) {
+        Ok(value) -> value == expected;
+        _ -> false
+    }.
+
+exercise(root: String): Bool ->
+    let paths =
+        [
+            "target/quality/proof-artifacts/lean-proof-repro-report.json",
+            "target/quality/proof-artifacts/lean-proof-track.json",
+            "target/quality/proof-artifacts/lean-proof-baseline.tsv",
+        ];
+    let {
+        true <- stage(root, true, false);
+        true <- stage(root, true, true);
+        true <- calls(root, "run\n");
+        Ok(before) <- OwnerStorage.files(root, paths);
+        true <- write(root, "target/dependency", "changed dependency");
+        true <- stage(root, true, false);
+        true <- write(root, "target/tool-seed", "changed tool identity");
+        true <- stage(root, true, false);
+        true <- write(root, "target/dependency", "next dependency");
+        true <- write(root, "target/fail", "fail");
+        true <- stage(root, false, false);
+        Ok(retained) <- OwnerStorage.files(root, paths);
+        true <- OwnerStorage.digest(before) == OwnerStorage.digest(retained);
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/fail"));
+        true <- stage(root, true, false);
+        true <- stage(root, true, true);
+        true <- calls(root, "run\nrun\nrun\nrun\nrun\n");
+        true <- write(root, "target/admission-fail", "fail")
+    } else {
+        _ -> false
+    };
+    case PrepareProofTrack.prepare(root, "target/tools/quality") {
+        Err(_reason) -> calls(root, "run\nrun\nrun\nrun\nrun\n");
+        _ -> false
+    }.
+
+parent_recovery(root: String): Bool ->
+    let {
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        true <- write(root, "target/quality/proof-artifacts", "blocked parent");
+        true <- stage(root, false, false);
+        true <- calls(root, "run\n");
+        Ok("blocked parent") <- File.read_text(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        Ok(_removed) <- File.delete(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        true <- stage(root, true, true)
+    } else {
+        _ -> false
+    };
+    calls(root, "run\n").
+
+scenario(recover_parent: Bool): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-proof-track-owner-") else {
+        _ -> false
+    };
+    (let valid =
+    fixture(root)
+        and if {
+    recover_parent -> parent_recovery(root);
+    true -> exercise(root)
+};
+let cleaned = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "[proof track owner test] passed";
+            true -> "[proof track owner test] failed"
+        },
+    );
+valid
+    and case cleaned {
+    Ok(_removed) -> true;
+    _ -> false
+}).
+
+pub self_test(): Bool ->
+    scenario(false) and scenario(true).

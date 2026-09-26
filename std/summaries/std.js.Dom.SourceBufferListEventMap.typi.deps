@@ -1,8 +1,8 @@
 module=std.js.Dom.SourceBufferListEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5494744633202301112
-interface_hash=9058996655630703033
-interface_doc_hash=9058996655630703033
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10826753734148480057
+interface_hash=14682603613971939669
+interface_doc_hash=14682603613971939669
 deps=0

@@ -10,6 +10,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use super::QualifiedFunctionIdentity as FunctionKey;
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule, CoreType};
 
+mod trait_methods;
+
 #[cfg(test)]
 #[path = "open_std_pruning_test.rs"]
 #[cfg(test)]
@@ -67,25 +69,14 @@ fn router_result(core: Option<&CoreType>, source: &str) -> bool {
 /// image only needs selected `@test` exports and the local helpers they call.
 /// Compiler-only declarations such as router manifest builders therefore stay
 /// visible to the frontend without becoming fake runtime dependencies.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&str]) {
     let providers = providers(std::slice::from_ref(core));
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(std::slice::from_ref(core), &mut edges);
     for function in &core.functions {
         let caller = (core.module.clone(), function.name.clone(), function.arity);
-        let mut calls = HashSet::new();
-        for clause in &function.clauses {
-            if let Some(guard) = clause
-                .guard
-                .as_ref()
-                .and_then(|guard| guard.core_expr.as_ref())
-            {
-                collect_calls(guard, core, &providers, &mut calls);
-            }
-            if let Some(body) = &clause.body.core_expr {
-                collect_calls(body, core, &providers, &mut calls);
-            }
-        }
+        let calls = collect_function_calls(function, core, &providers);
         edges.insert(caller, calls);
     }
     let root_names = roots.iter().copied().collect::<HashSet<_>>();
@@ -134,22 +125,11 @@ pub(crate) fn prune_application_to_function_roots(
         }
     }
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(cores, &mut edges);
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
-            let mut calls = HashSet::new();
-            for clause in &function.clauses {
-                if let Some(guard) = clause
-                    .guard
-                    .as_ref()
-                    .and_then(|guard| guard.core_expr.as_ref())
-                {
-                    collect_calls(guard, core, &providers, &mut calls);
-                }
-                if let Some(body) = &clause.body.core_expr {
-                    collect_calls(body, core, &providers, &mut calls);
-                }
-            }
+            let calls = collect_function_calls(function, core, &providers);
             edges.insert(caller, calls);
         }
     }
@@ -191,22 +171,11 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         .collect::<HashSet<_>>();
     let providers = providers(cores);
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
+    add_constructor_edges(cores, &mut edges);
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
-            let mut calls = HashSet::new();
-            for clause in &function.clauses {
-                if let Some(guard) = clause
-                    .guard
-                    .as_ref()
-                    .and_then(|guard| guard.core_expr.as_ref())
-                {
-                    collect_calls(guard, core, &providers, &mut calls);
-                }
-                if let Some(body) = &clause.body.core_expr {
-                    collect_calls(body, core, &providers, &mut calls);
-                }
-            }
+            let calls = collect_function_calls(function, core, &providers);
             edges.insert(caller, calls);
         }
     }
@@ -296,8 +265,65 @@ fn providers(cores: &[CoreModule]) -> Vec<FunctionKey> {
             core.functions
                 .iter()
                 .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+                .chain(
+                    core.constructors
+                        .iter()
+                        .filter(|constructor| constructor.implementation.is_some())
+                        .map(|constructor| {
+                            (core.module.clone(), constructor_node(&constructor.name), 0)
+                        }),
+                )
         })
+        .chain(trait_methods::providers(cores))
         .collect()
+}
+
+/// Constructor invocation is a graph node, not a physical-layout dependency.
+fn constructor_node(name: &str) -> String {
+    match name.rsplit_once('.') {
+        Some((module, name)) => format!("{module}.$constructor:{name}"),
+        None => format!("$constructor:{name}"),
+    }
+}
+
+fn add_constructor_edges(
+    cores: &[CoreModule],
+    edges: &mut HashMap<FunctionKey, HashSet<FunctionKey>>,
+) {
+    trait_methods::add_edges(cores, edges);
+    for core in cores {
+        // Receiver syntax is not a bare function import. Preserve declared
+        // candidates until checked receiver types select an exact callable.
+        for function in core
+            .functions
+            .iter()
+            .filter(|function| function.receiver_method)
+        {
+            edges
+                .entry(("__receiver__".into(), function.name.clone(), function.arity))
+                .or_default()
+                .insert((core.module.clone(), function.name.clone(), function.arity));
+        }
+        for constructor in &core.constructors {
+            let Some(implementation) = &constructor.implementation else {
+                continue;
+            };
+            let calls = edges
+                .entry((core.module.clone(), constructor_node(&constructor.name), 0))
+                .or_default();
+            for function in &core.functions {
+                if function.name == implementation.function
+                    || implementation
+                        .defaults
+                        .iter()
+                        .flatten()
+                        .any(|default| *default == function.name)
+                {
+                    calls.insert((core.module.clone(), function.name.clone(), function.arity));
+                }
+            }
+        }
+    }
 }
 
 fn resolve_call(
@@ -371,6 +397,38 @@ fn resolve_remote(
         .cloned()
 }
 
+/// Collects direct calls and lexically free named callback values. A local
+/// parameter or pattern binding must never create an edge to an imported
+/// function with the same spelling (for example a parameter named `timer`).
+fn collect_function_calls(
+    function: &crate::terlan_typeck::CoreFunction,
+    caller: &CoreModule,
+    providers: &[FunctionKey],
+) -> HashSet<FunctionKey> {
+    let mut calls = HashSet::new();
+    for clause in &function.clauses {
+        let guard = clause
+            .guard
+            .as_ref()
+            .and_then(|guard| guard.core_expr.as_ref());
+        for expr in guard.into_iter().chain(clause.body.core_expr.as_ref()) {
+            collect_calls(expr, caller, providers, &mut calls);
+            let free = super::expression::free_variables_with_bindings(
+                expr,
+                function
+                    .params
+                    .iter()
+                    .map(|parameter| parameter.name.clone()),
+                clause.core_patterns.iter().flatten(),
+            );
+            for name in free {
+                collect_function_value_candidates(caller, &name, providers, &mut calls);
+            }
+        }
+    }
+    calls
+}
+
 fn collect_calls(
     expr: &CoreExpr,
     caller: &CoreModule,
@@ -378,9 +436,20 @@ fn collect_calls(
     calls: &mut HashSet<FunctionKey>,
 ) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             if let Some(target) = resolve_call(caller, function, args.len(), providers) {
                 calls.insert(target);
+            } else {
+                // Keep each explicitly selected provider until typed overload
+                // resolution chooses the callable. Ambiguity is not dead code.
+                for import in &caller.selected_function_imports {
+                    if import.local_name == *function {
+                        let target = (import.module.clone(), import.function.clone(), args.len());
+                        if providers.contains(&target) {
+                            calls.insert(target);
+                        }
+                    }
+                }
             }
             collect_many(args, caller, providers, calls);
         }
@@ -388,9 +457,16 @@ fn collect_calls(
             module,
             function,
             args,
+            ..
         } => {
             let target = if module == "__receiver__" {
-                resolve_call(caller, function, args.len(), providers)
+                // Receiver syntax also supports explicitly imported free
+                // functions. Keep that scoped edge until normalization;
+                // declared receiver candidates alone do not include builders.
+                if let Some(provider) = resolve_call(caller, function, args.len(), providers) {
+                    calls.insert(provider);
+                }
+                Some((module.clone(), function.clone(), args.len()))
             } else {
                 resolve_remote(module, function, args.len(), providers)
             };
@@ -456,23 +532,47 @@ fn collect_calls(
                 collect_calls(&field.value, caller, providers, calls);
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            base: constructor,
+            base_constructor_identity: constructor_identity,
+            args,
+            record,
+            ..
+        } => {
+            if let Some(target) = resolve_call(
+                caller,
+                &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
+                0,
+                providers,
+            ) {
+                calls.insert(target);
+            }
             collect_many(args, caller, providers, calls);
             collect_calls(record, caller, providers, calls);
         }
-        CoreExpr::ConstructorCall { args, .. } => collect_many(args, caller, providers, calls),
+        CoreExpr::ConstructorCall {
+            type_args: _,
+            constructor,
+            constructor_identity,
+            args,
+        } => {
+            if let Some(target) = resolve_call(
+                caller,
+                &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
+                0,
+                providers,
+            ) {
+                calls.insert(target);
+            }
+            collect_many(args, caller, providers, calls);
+        }
         CoreExpr::MutableReceiverCall {
             receiver,
             method,
             args,
             ..
         } => {
-            // Mutable receiver syntax still names an ordinary function. Keep
-            // that provider reachable until the type-directed receiver pass
-            // rewrites the call to its exact qualified target.
-            if let Some(target) = resolve_call(caller, method, args.len() + 1, providers) {
-                calls.insert(target);
-            }
+            calls.insert(("__receiver__".into(), method.clone(), args.len() + 1));
             collect_calls(receiver, caller, providers, calls);
             collect_many(args, caller, providers, calls);
         }
@@ -526,7 +626,7 @@ fn collect_calls(
             collect_calls(left, caller, providers, calls);
             collect_calls(right, caller, providers, calls);
         }
-        CoreExpr::Var(name) => collect_function_value_candidates(caller, name, providers, calls),
+        CoreExpr::Var(_) => {}
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) => {}
     }
 }

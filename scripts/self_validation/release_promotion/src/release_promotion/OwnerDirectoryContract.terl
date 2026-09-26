@@ -1,0 +1,103 @@
+/**
+ * Exact member/schema declarations for flat generated evidence directories.
+ */
+module release_promotion.OwnerDirectoryContract.
+
+import release_promotion.{OwnerDirectory, OwnerStorage}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.data.Json.
+
+import type std.data.Json.
+
+/**
+ * One required basename and exact JSON schema in the generation.
+ */
+pub struct Member {
+    name: String,
+    schema: String,
+}.
+
+/**
+ * Constructs a member contract without reading generated output.
+ */
+pub declare_member(name: String, schema: String): Member ->
+    Member(name = name, schema = schema).
+
+contains(names: List[String], name: String): Bool ->
+    case names {
+        [] -> false;
+        [value | rest] -> value == name or contains(rest, name)
+    }.
+
+flat_name(name: String): Bool ->
+    not String.contains(name, "..")
+        and not String.contains(name, "/")
+        and not String.contains(name, "\\")
+        and not String.contains(name, "\n")
+        and not String.contains(name, "\r").
+
+valid_name(name: String): Bool ->
+    name != "" and flat_name(name) and String.ends_with(name, ".json").
+
+valid_at(values: List[Member], seen: List[String], budget: Int): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            budget > 0
+                and value.schema != ""
+                and valid_name(value.name)
+                and not contains(seen, value.name)
+                and valid_at(rest, [value.name | seen], budget - 1)
+    }.
+
+/**
+ * Rejects empty, duplicate, unsafe and over-budget member declarations.
+ */
+pub valid(values: List[Member]): Bool ->
+    values != [] and valid_at(values, [], 256).
+
+describe_at(values: List[Member], rows: Json): Json ->
+    case values {
+        [] -> rows;
+        [value | rest] ->
+            let row =
+                Json.object()
+                    .put("name", Json.string(value.name))
+                    .put("schema", Json.string(value.schema));
+            describe_at(rest, rows.push(row))
+    }.
+
+/**
+ * Member names and schemas participate in the producer input identity.
+ */
+pub describe(values: List[Member]): Json ->
+    describe_at(values, Json.array()).
+
+schemas_at(path: String, values: List[Member]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let {
+                Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(path, value.name));
+                Some(schema) <- OwnerStorage.text(document, "schema");
+                true <- schema == value.schema
+            } else {
+                _ -> false
+            };
+            schemas_at(path, rest)
+    }.
+
+/**
+ * Admission requires every declared member and forbids additional entries.
+ */
+pub schemas(path: String, values: List[Member]): Bool ->
+    let {
+        true <- valid(values);
+        Ok(actual) <- OwnerDirectory.inventory(path);
+        true <- actual.length() == describe(values).length()
+    } else {
+        _ -> false
+    };
+    schemas_at(path, values).

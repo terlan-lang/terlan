@@ -6,8 +6,8 @@ use crate::terlan_typeck::{CoreExpr, CoreIfClause, CorePattern, CoreType};
 
 use super::{
     closure_conversion::{
-        lower_escaping_closure, lower_escaping_lambda, ClosureLexicalScope,
-        ClosureLoweringEnvironment, ClosureOwner, NativeCallableShape,
+        lower_escaping_closure_with_yields, lower_escaping_lambda, ClosureLexicalScope,
+        ClosureLoweringEnvironment, ClosureOwner, ClosureYieldState, NativeCallableShape,
     },
     NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeType,
 };
@@ -17,6 +17,144 @@ fn arrow(arity: usize) -> CoreType {
         params: vec![CoreType::Int; arity],
         return_type: Box::new(CoreType::Int),
     }
+}
+
+/// Tests the conversion's explicit no-continuation context without production scaffolding.
+fn lower_escaping_closure(
+    body: &CoreExpr,
+    expected: Option<&CoreType>,
+    scope: ClosureLexicalScope<'_>,
+    environment: &ClosureLoweringEnvironment<'_>,
+    owner: ClosureOwner<'_>,
+) -> Result<Option<(NativeExpr, Vec<super::NativeFunction>)>, String> {
+    lower_escaping_closure_with_yields(
+        body,
+        expected,
+        scope,
+        environment,
+        owner,
+        &mut ClosureYieldState {
+            environment: None,
+            stable_ids: &mut HashSet::new(),
+            continuations: Vec::new(),
+            lifted_ordinal: 0,
+        },
+    )
+}
+
+/// Lifted lambdas preserve captures and intermediate values across real yield/resume edges.
+#[test]
+fn escaping_callbacks_resume_non_tail_calls_and_direct_yields() {
+    check_callbacks(
+        r#"
+module closure_resume.
+import std.vm.Process.
+import type std.collections.List.
+park(value: Int): Int -> let _parked = Process.yield_now(); value.
+park_values(value: Int): List[Int] -> let _parked = Process.yield_now(); [value].
+consume(values: List[Int], offset: Int): Int ->
+    let _parked = Process.yield_now();
+    case values { [first] -> first + offset; _ -> 0 }.
+make(seed: Int): ((Int) -> Int) -> (value) -> park(seed + value) + park(2).
+make_nested(seed: Int): ((Int) -> Int) -> (value) -> park(park(seed + value) + 1).
+make_list(seed: Int): ((Int) -> Int) -> (value) -> consume(park_values(seed + value), park(2)).
+make_direct(seed: Int): (() -> Int) -> () -> let _parked = Process.yield_now(); seed + 3.
+choose(flag: Bool, seed: Int): ((Int) -> Int) -> if {
+    flag -> ((value) -> park(seed + value) + 1);
+    true -> ((value) -> park(seed + value) + 1)
+}.
+pub composed(): Int -> let callback = make(10); callback(5).
+pub direct(): Int -> let callback = make_direct(20); callback().
+pub left_branch(): Int -> let callback = choose(true, 30); callback(2).
+pub right_branch(): Int -> let callback = choose(false, 40); callback(2).
+pub nested_tail(): Int -> let callback = make_nested(30); callback(4).
+pub list_tail(): Int -> let callback = make_list(30); callback(5).
+"#,
+        &[
+            ("composed", 17),
+            ("direct", 23),
+            ("left_branch", 33),
+            ("right_branch", 43),
+            ("nested_tail", 35),
+            ("list_tail", 37),
+        ],
+    );
+}
+
+#[test]
+fn escaping_callbacks_preserve_captured_callable_contracts() {
+    check_callbacks(
+        r#"
+module closure_captured_callable.
+import std.vm.Process.
+pub negate(property: (Int) -> Bool): ((Int) -> Bool) ->
+    (value) -> property(value) == false.
+pub alias(property: (Int) -> Bool): ((Int) -> Bool) ->
+    let saved = property;
+    (value) -> saved(value) == false.
+pub choose(flag: Bool, property: (Int) -> Bool): ((Int) -> Bool) -> if {
+    flag -> ((value) -> property(value) == false);
+    true -> ((value) -> property(value))
+}.
+pub shadow(property: (Int) -> Bool): ((Int) -> Bool) ->
+    (property) -> property == 7.
+negative(value: Int): Bool -> let _parked = Process.yield_now(); value < 0.
+pub direct(): Bool -> let check = negate(negative); check(0) and check(-1) == false.
+pub saved(): Bool -> let check = alias(negative); check(0) and check(-1) == false.
+pub branches(): Bool ->
+    let left = choose(true, negative);
+    let right = choose(false, negative);
+    left(0) and right(-1).
+pub shadowed(): Bool -> let check = shadow(negative); check(7).
+"#,
+        &[
+            ("direct", 1),
+            ("saved", 1),
+            ("branches", 1),
+            ("shadowed", 1),
+        ],
+    );
+}
+
+fn check_callbacks(source: &str, cases: &[(&str, i64)]) {
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source)
+        .expect("parse suspending callback source");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules =
+        super::NativeModule::lower_application(&[&core]).expect("lower resumable lambdas");
+    assert!(modules
+        .iter()
+        .any(|module| !module.continuations.is_empty()));
+    let object = super::emit_native_application_object("closure-resume", &modules)
+        .expect("emit resumable lambdas");
+    let invocations = cases
+        .iter()
+        .map(|&(name, expected)| {
+            let function = modules
+                .iter()
+                .flat_map(|module| &module.functions)
+                .find(|function| function.name == name)
+                .expect("source callable export");
+            super::native_object_test_support::NativeObjectInvocation {
+                export_id: function.export_id,
+                arguments: vec![],
+                expected_status: super::status::OK,
+                expected_result: Some(expected),
+            }
+        })
+        .collect::<Vec<_>>();
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "closure-resume",
+        &modules,
+        &object,
+        &invocations,
+    );
 }
 
 fn lower(
@@ -34,12 +172,13 @@ fn lower(
         ClosureLexicalScope {
             available: outer_params,
             available_types: outer_types,
+            available_core_types: &HashMap::new(),
         },
         &ClosureLoweringEnvironment {
-            identities: identities,
-            function_types: function_types,
+            identities,
+            function_types,
             constructors: &NativeConstructorLayouts::new(),
-            suspending: suspending,
+            suspending,
             callable_shapes: &std::collections::HashMap::new(),
         },
         ClosureOwner {
@@ -53,6 +192,7 @@ fn lower(
 #[test]
 fn captured_parameters_are_snapshotted_in_stable_name_order() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: "+".to_string(),
@@ -108,6 +248,7 @@ fn scalar_lexical_prefix_is_evaluated_before_local_capture_snapshot() {
             },
         }],
         body: Box::new(CoreExpr::Lam {
+            parameter_types: Vec::new(),
             params: vec![CorePattern::Var("value".to_string())],
             body: Box::new(CoreExpr::BinaryOp {
                 operator: "+".to_string(),
@@ -125,6 +266,7 @@ fn scalar_lexical_prefix_is_evaluated_before_local_capture_snapshot() {
         ClosureLexicalScope {
             available: &available,
             available_types: &available_types,
+            available_core_types: &HashMap::new(),
         },
         &ClosureLoweringEnvironment {
             identities: &HashMap::new(),
@@ -170,6 +312,7 @@ fn non_closure_let_bypasses_closure_prefix_validation() {
         bindings: vec![crate::terlan_typeck::CoreLetBinding {
             pattern: CorePattern::Var("value".to_string()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "pause".to_string(),
                 args: Vec::new(),
             },
@@ -184,7 +327,8 @@ fn non_closure_let_bypasses_closure_prefix_validation() {
             Some(&CoreType::Int),
             ClosureLexicalScope {
                 available: &HashMap::new(),
-                available_types: &HashMap::new()
+                available_types: &HashMap::new(),
+                available_core_types: &HashMap::new()
             },
             &ClosureLoweringEnvironment {
                 identities: &HashMap::new(),
@@ -207,6 +351,7 @@ fn non_closure_let_bypasses_closure_prefix_validation() {
 #[test]
 fn closure_branches_receive_distinct_ordered_lifted_identities() {
     let lambda = |operator: &str| CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: operator.to_string(),
@@ -238,6 +383,7 @@ fn closure_branches_receive_distinct_ordered_lifted_identities() {
         ClosureLexicalScope {
             available: &available,
             available_types: &available_types,
+            available_core_types: &HashMap::new(),
         },
         &ClosureLoweringEnvironment {
             identities: &HashMap::new(),
@@ -278,7 +424,7 @@ fn closure_branch_rejects_a_non_callable_arm() {
     };
 
     assert_eq!(
-        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::new(), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
+        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new(), available_core_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::new(), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
         .unwrap_err(),
         "error[native_ir.closure_branch]: every escaping closure branch must produce a callable value"
     );
@@ -289,10 +435,12 @@ fn closure_branch_rejects_a_suspending_condition() {
     let expression = CoreExpr::If {
         clauses: vec![CoreIfClause {
             condition: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "pause".to_string(),
                 args: Vec::new(),
             },
             body: CoreExpr::Lam {
+                parameter_types: Vec::new(),
                 params: vec![CorePattern::Var("value".to_string())],
                 body: Box::new(CoreExpr::Var("value".to_string())),
             },
@@ -300,7 +448,7 @@ fn closure_branch_rejects_a_suspending_condition() {
     };
 
     assert_eq!(
-        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::from([("pause".to_string(), 0)]), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
+        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new(), available_core_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::from([("pause".to_string(), 0)]), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
         .unwrap_err(),
         "error[native_ir.closure_branch_suspension]: escaping closure branch condition cannot suspend"
     );
@@ -313,6 +461,7 @@ fn closure_branch_budget_rejects_more_than_sixty_four_clauses() {
             .map(|_| CoreIfClause {
                 condition: CoreExpr::Atom("true".to_string()),
                 body: CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: vec![CorePattern::Var("value".to_string())],
                     body: Box::new(CoreExpr::Var("value".to_string())),
                 },
@@ -321,7 +470,7 @@ fn closure_branch_budget_rejects_more_than_sixty_four_clauses() {
     };
 
     assert_eq!(
-        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::new(), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
+        lower_escaping_closure(&expression, Some(&arrow(1)), ClosureLexicalScope { available: &HashMap::new(), available_types: &HashMap::new(), available_core_types: &HashMap::new() }, &ClosureLoweringEnvironment { identities: &HashMap::new(), function_types: &HashMap::new(), constructors: &NativeConstructorLayouts::new(), suspending: &HashSet::new(), callable_shapes: &HashMap::new() }, ClosureOwner { module: "closure_test", name: "choose", arity: 0 })
         .unwrap_err(),
         "error[native_ir.closure_branch_limit]: escaping closure branch has 65 clauses; limit is 64"
     );
@@ -342,6 +491,7 @@ fn closure_branch_can_mix_named_and_lifted_targets() {
             CoreIfClause {
                 condition: CoreExpr::Atom("true".to_string()),
                 body: CoreExpr::Lam {
+                    parameter_types: Vec::new(),
                     params: vec![CorePattern::Var("value".to_string())],
                     body: Box::new(CoreExpr::Var("value".to_string())),
                 },
@@ -365,6 +515,7 @@ fn closure_branch_can_mix_named_and_lifted_targets() {
         ClosureLexicalScope {
             available: &available,
             available_types: &available_types,
+            available_core_types: &HashMap::new(),
         },
         &ClosureLoweringEnvironment {
             identities: &HashMap::new(),
@@ -400,6 +551,7 @@ fn closure_branch_can_mix_named_and_lifted_targets() {
 #[test]
 fn escaping_lambda_rejects_non_variable_parameters() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Wildcard],
         body: Box::new(CoreExpr::Int(1)),
     };
@@ -422,6 +574,7 @@ fn escaping_lambda_rejects_non_variable_parameters() {
 #[test]
 fn escaping_lambda_rejects_declared_arity_drift() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Int(1)),
     };
@@ -444,6 +597,7 @@ fn escaping_lambda_rejects_declared_arity_drift() {
 #[test]
 fn escaping_lambda_rejects_untyped_non_parameter_captures() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: vec![CorePattern::Var("value".to_string())],
         body: Box::new(CoreExpr::BinaryOp {
             operator: "+".to_string(),
@@ -470,6 +624,7 @@ fn escaping_lambda_rejects_untyped_non_parameter_captures() {
 #[test]
 fn escaping_lambda_capture_budget_has_stable_prelink_rejection() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Tuple(
             (0..65)
@@ -504,8 +659,10 @@ fn escaping_lambda_capture_budget_has_stable_prelink_rejection() {
 #[test]
 fn escaping_lambda_tail_calls_one_admitted_suspending_target() {
     let lambda = CoreExpr::Lam {
+        parameter_types: Vec::new(),
         params: Vec::new(),
         body: Box::new(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "pause".to_string(),
             args: Vec::new(),
         }),

@@ -1,0 +1,78 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "scope",
+      "operation": "std.vm.distributed_state.scope"
+    },
+    {
+      "arity": 2,
+      "name": "version",
+      "operation": "std.vm.distributed_state.version"
+    },
+    {
+      "arity": 1,
+      "name": "policy",
+      "operation": "std.vm.distributed_state.policy"
+    },
+    {
+      "arity": 0,
+      "name": "store",
+      "operation": "std.vm.distributed_state.store"
+    },
+    {
+      "arity": 6,
+      "name": "write",
+      "operation": "std.vm.distributed_state.write"
+    },
+    {
+      "arity": 2,
+      "name": "get",
+      "operation": "std.vm.distributed_state.get"
+    },
+    {
+      "arity": 1,
+      "name": "conflict",
+      "operation": "std.vm.distributed_state.conflict"
+    },
+    {
+      "arity": 1,
+      "name": "export_snapshot",
+      "operation": "std.vm.distributed_state.export_snapshot"
+    },
+    {
+      "arity": 1,
+      "name": "restore",
+      "operation": "std.vm.distributed_state.restore"
+    },
+    {
+      "arity": 1,
+      "name": "kind",
+      "operation": "std.vm.distributed_state.kind"
+    },
+    {
+      "arity": 1,
+      "name": "entry_owner",
+      "operation": "std.vm.distributed_state.entry_owner"
+    },
+    {
+      "arity": 1,
+      "name": "entry_sequence",
+      "operation": "std.vm.distributed_state.entry_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "conflict_local_sequence",
+      "operation": "std.vm.distributed_state.conflict_local_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "conflict_incoming_sequence",
+      "operation": "std.vm.distributed_state.conflict_incoming_sequence"
+    }
+  ],
+  "module": "std_vm_distributed_state_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.DistributedState"
+}

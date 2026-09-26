@@ -38,8 +38,8 @@ pub struct ExternalUser {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_field_declarations.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_field_declarations.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -71,7 +71,7 @@ pub struct ExternalUser {
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_field_declarations.\n\nimport type provider.{{ExternalUser}}.\n\npub user_name(user: ExternalUser): String ->\n  user.name.\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -84,7 +84,7 @@ pub struct ExternalUser {
 
     let declaration_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/declaration","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":8}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &declaration_payload).await?;
     let declaration_response = timeout(
@@ -97,9 +97,11 @@ pub struct ExternalUser {
     assert!(
         declaration_response.contains(&format!(
             r#""uri":"{}""#,
-            Url::from_file_path(temp_dir.join("provider.terli")).map_err(|()| {
-                std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
-            })?
+            crate::lsp::uri::from_file_path(temp_dir.join("provider.terli"))
+                .map_err(|_| {
+                    std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
+                })?
+                .as_str()
         )),
         "{declaration_response}"
     );

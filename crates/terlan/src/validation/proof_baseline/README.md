@@ -87,6 +87,11 @@ Important invariants:
   using explicit zeroes for non-covered categories.
 - Constructor-resolution baselines include zero unresolved constructor
   candidate counters.
+- Constructor bodies materialized as private Core functions participate in the
+  baselines, including their parameter bindings and preservation evidence. The
+  `Ok` fixture adds a variable expression and one parameter pattern; `Some`
+  adds its tuple/atom/variable expressions and one parameter pattern. These
+  are existing Lean-covered forms, not promotion of a new proof-model category.
 - Constructor-resolution baselines include the full resolved/unresolved
   call/chain/pattern bucket set, using explicit zeroes when a fixture does not
   exercise a constructor shape.
@@ -99,8 +104,10 @@ Important invariants:
 - Checked-preservation baselines include structural evidence-kind counters and
   explicit freshness partition counters for both expressions and patterns.
 - While `phase_trait` is a next-model candidate, its contract baseline must
-  still pin a `RemoteCall(...)` form with `:proof=proof-model-required`, so the
-  selected blocker cannot drift away from remote-dispatch readiness.
+  pin the canonical `Call(phase_trait.Eq.equal;...)` family with
+  `:proof=proof-model-required`. Qualifying its name is not proof of trait
+  dispatch: preservation evidence must match the rewritten expression, and
+  the unresolved proof-model requirement remains unchanged.
 - Handoff documentation consistency is validated by
   `docs/compiler/scripts/check_proof_baseline_docs.sh`, not by Rust crate tests. Release
   compiler crates must not include roadmap or proof prose with `include_str!`.

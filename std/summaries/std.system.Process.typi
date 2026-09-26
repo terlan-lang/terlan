@@ -240,6 +240,12 @@ pub maximum_stdin_bytes(limits: Limits): Int.
 pub maximum_timeout_ms(limits: Limits): Int.
 
 /// Executes one bounded command through the VM-owned process capability.
+/// On Linux/macOS, background children in the command's process group are
+/// terminated when the command exits or the request fails. This is not a
+/// daemon-launch API or a sandbox for programs that deliberately detach.
+/// The request deadline also covers draining standard streams after child exit.
+/// A peer in another process group cannot keep those pipe reads/writes blocked
+/// beyond the deadline; terminating that peer is not guaranteed by this API.
 
 pub run(command: Command): Result[Output, ProcessError].
 

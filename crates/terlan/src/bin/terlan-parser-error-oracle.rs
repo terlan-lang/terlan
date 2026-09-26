@@ -15,9 +15,9 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(arguments: Vec<String>) -> Result<(), String> {
+fn run(arguments: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     let [input, output] = arguments.as_slice() else {
-        return Err("usage: terlan-parser-error-oracle INPUT OUTPUT".to_owned());
+        return Err(("usage: terlan-parser-error-oracle INPUT OUTPUT".to_owned()).into());
     };
     let source =
         fs::read_to_string(input).map_err(|error| format!("cannot read {input}: {error}"))?;
@@ -57,7 +57,7 @@ fn run(arguments: Vec<String>) -> Result<(), String> {
     };
     let encoded = serde_json::to_vec_pretty(&artifact)
         .map_err(|error| format!("cannot encode parser error artifact: {error}"))?;
-    fs::write(output, encoded).map_err(|error| format!("cannot write {output}: {error}"))
+    Ok(fs::write(output, encoded).map_err(|error| format!("cannot write {output}: {error}"))?)
 }
 
 fn classify(source: &str, message: &str, offset: usize) -> &'static str {

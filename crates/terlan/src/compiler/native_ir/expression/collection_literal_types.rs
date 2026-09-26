@@ -9,10 +9,21 @@ pub(super) fn inferred_collection_literal_type(
     mut infer: impl FnMut(&CoreExpr) -> Option<NativeType>,
     mut infer_managed: impl FnMut(&CoreExpr) -> Option<CoreType>,
 ) -> Option<CoreType> {
+    infer_collection(expr, &mut infer, &mut infer_managed)
+}
+
+fn infer_collection(
+    expr: &CoreExpr,
+    infer: &mut dyn FnMut(&CoreExpr) -> Option<NativeType>,
+    infer_managed: &mut dyn FnMut(&CoreExpr) -> Option<CoreType>,
+) -> Option<CoreType> {
     let CoreExpr::List(items) = expr else {
         return None;
     };
-    let mut types = items.iter().map(|item| {
+    homogeneous_list_type(items, |item| {
+        if matches!(item, CoreExpr::List(_)) {
+            return infer_collection(item, infer, infer_managed);
+        }
         infer(item).and_then(|ty| match ty {
             NativeType::Unit => Some(CoreType::Named("Unit".into())),
             NativeType::Int => Some(CoreType::Int),
@@ -24,9 +35,36 @@ pub(super) fn inferred_collection_literal_type(
             NativeType::BinaryRef => Some(CoreType::Named("BitString".into())),
             NativeType::ManagedRef(_) => infer_managed(item),
         })
-    });
-    let element = types.next()??;
-    types
-        .all(|ty| ty.as_ref() == Some(&element))
+    })
+}
+
+/// Recover a homogeneous list from a concrete witness, regardless of its
+/// position. Empty literals retain the typechecker's uninhabited element type.
+pub(in crate::compiler::native_ir) fn homogeneous_list_type(
+    items: &[CoreExpr],
+    infer: impl FnMut(&CoreExpr) -> Option<CoreType>,
+) -> Option<CoreType> {
+    if items.is_empty() {
+        return Some(CoreType::List(Box::new(CoreType::Never)));
+    }
+    let types = items.iter().map(infer).collect::<Vec<_>>();
+    let mut known = types.iter().flatten();
+    let first = known.next()?.clone();
+    let element = known.try_fold(first, |element, ty| {
+        super::super::structured_case::merge_control_types(element, ty.clone())
+    })?;
+    items
+        .iter()
+        .zip(types)
+        .all(|(item, ty)| ty.is_some() || empty_list_shape_matches(item, &element))
         .then(|| CoreType::List(Box::new(element)))
+}
+
+fn empty_list_shape_matches(expr: &CoreExpr, expected: &CoreType) -> bool {
+    match (expr, expected) {
+        (CoreExpr::List(items), CoreType::List(element)) => items
+            .iter()
+            .all(|item| empty_list_shape_matches(item, element)),
+        _ => false,
+    }
 }

@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoColorSpaceInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5118730442883699665
-interface_hash=6055565912813435112
-interface_doc_hash=6055565912813435112
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7205964082005368098
+interface_hash=9855533362855279818
+interface_doc_hash=9855533362855279818
 deps=0

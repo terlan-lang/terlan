@@ -54,7 +54,7 @@ pub(super) fn annotation_isolation_parity_rejects_duplicate_schema_path() {
 ///
 /// Transformation:
 /// - Exercises required-key enforcement before semantic lowering.
-
+///
 /// Verifies user schema required keys are enforced.
 ///
 /// Inputs:
@@ -102,7 +102,7 @@ pub(super) fn syntax_output_rejects_user_annotation_missing_required_key() {
 /// Transformation:
 /// - Prevents user-declared schemas from silently accepting misspelled
 ///   metadata.
-
+///
 /// Verifies user schemas reject unknown metadata keys.
 ///
 /// Inputs:
@@ -149,7 +149,7 @@ pub(super) fn syntax_output_rejects_user_annotation_unknown_key() {
 ///
 /// Transformation:
 /// - Checks typed annotation metadata against user-declared key schemas.
-
+///
 /// Verifies user schemas reject wrong value types.
 ///
 /// Inputs:
@@ -195,7 +195,7 @@ pub(super) fn syntax_output_rejects_user_annotation_wrong_value_type() {
 ///
 /// Transformation:
 /// - Applies the schema repeatability default of false to user metadata.
-
+///
 /// Verifies user schemas reject duplicate non-repeatable keys.
 ///
 /// Inputs:
@@ -242,7 +242,7 @@ pub(super) fn syntax_output_rejects_user_annotation_duplicate_non_repeatable_key
 /// Transformation:
 /// - Applies key-level `applies_to` restrictions after the annotation path
 ///   itself has matched the declaration.
-
+///
 /// Verifies key-level user schema targets are enforced.
 ///
 /// Inputs:
@@ -290,7 +290,7 @@ pub(super) fn syntax_output_rejects_user_annotation_key_target_mismatch() {
 /// Transformation:
 /// - Parses source through `parse_module_as_syntax_output` and confirms
 ///   receiver-method syntax is no longer downgraded to raw output.
-
+///
 /// Verifies receiver methods are emitted as formal method declarations.
 ///
 /// Inputs:
@@ -349,7 +349,7 @@ pub(super) fn syntax_output_preserves_receiver_methods_as_method_decls() {
 /// Transformation:
 /// - Parses source through syntax output and preserves the receiver
 ///   mutability marker without lowering or resolving its semantics.
-
+///
 /// Verifies mutable receiver metadata survives syntax output.
 ///
 /// Inputs:
@@ -398,7 +398,7 @@ pub(super) fn syntax_output_preserves_mutable_receiver_marker() {
 /// - Parses release contracts through `parse_module_as_syntax_output`,
 ///   filters method declarations, and checks receiver mutability without
 ///   typechecking or backend lowering.
-
+///
 /// Verifies release core collection contracts survive formal syntax output.
 ///
 /// Inputs:
@@ -487,7 +487,7 @@ pub(super) fn syntax_output_preserves_release_core_collection_contracts() {
 /// Transformation:
 /// - Parses release contracts through interface syntax output and inspects
 ///   structured declarations without typechecking or backend lowering.
-
+///
 /// Verifies release iterator/iterable contracts survive syntax output.
 ///
 /// Inputs:
@@ -584,7 +584,7 @@ pub(super) fn syntax_output_preserves_release_traversal_contracts() {
 /// Transformation:
 /// - Parses through the existing raw parser branch, then normalizes the
 ///   syntax-output payload to match the EBNF `ConfigDecl` contract.
-
+///
 /// Verifies canonical config declarations are exposed as structured syntax
 /// output instead of raw declarations.
 ///

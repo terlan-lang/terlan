@@ -1,8 +1,8 @@
 module=std.js.Dom.WebTransportHash
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1684316558656925111
-interface_hash=11966596413508175273
-interface_doc_hash=11966596413508175273
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6698719327479591469
+interface_hash=17837205506666220890
+interface_doc_hash=17837205506666220890
 deps=0

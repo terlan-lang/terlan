@@ -1,0 +1,64 @@
+/**
+ * Dependency inventories may include an explicitly selected evidence directory.
+ */
+module release_promotion.OwnerOutputs.
+
+import release_promotion.{OwnerDirectory, OwnerStorage}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.File.
+import std.io.File.{NotFound}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+absent(path: String): Json ->
+    Json.object().put("path", Json.string(path)).put("absent", Json.bool(true)).
+
+row(root: String, path: String, optional: Bool): Result[Json, String] ->
+    case File.size(OwnerStorage.child(root, path)) {
+        Ok(_size) ->
+            let {
+                Ok(rows) <- OwnerStorage.files(root, [path]);
+                Ok(value) <- rows.at(0)
+            } else {
+                _ -> Err("cannot hash evidence dependency")
+            };
+            Ok(value);
+        Err(reason) ->
+            if {
+                optional and File.code(reason) == NotFound -> Ok(absent(path));
+                true -> OwnerDirectory.row(root, path, path)
+            }
+    }.
+
+rows(
+    root: String,
+    paths: List[String],
+    result: Json,
+    budget: Int,
+    optional: Bool,
+): Result[Json, String] ->
+    case paths {
+        [] -> Ok(result);
+        [path | rest] ->
+            let {
+                true <- budget > 0;
+                Ok(value) <- row(root, path, optional)
+            } else {
+                _ -> Err("invalid or oversized evidence dependency inventory")
+            };
+            rows(root, rest, result.push(value), budget - 1, optional)
+    }.
+
+/**
+ * Hash every required dependency using its file or directory representation.
+ */
+pub files(root: String, paths: List[String]): Result[Json, String] ->
+    rows(root, paths, Json.array(), 16384, false).
+
+/**
+ * Preserve explicit absence for optional dependencies.
+ */
+pub optional_files(root: String, paths: List[String]): Result[Json, String] ->
+    rows(root, paths, Json.array(), 16384, true).

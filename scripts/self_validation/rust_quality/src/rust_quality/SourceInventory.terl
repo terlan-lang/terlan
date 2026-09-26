@@ -7,6 +7,7 @@
  */
 module rust_quality.SourceInventory.
 
+import rust_quality.CargoMetadata.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -191,11 +192,10 @@ package_roots_at(
     }.
 
 workspace_roots(root: String): Option[List[String]] ->
-    let arguments = ["metadata", "--no-deps", "--format-version", "1", "--locked"];
+    let metadata = CargoMetadata.load_precomputed(root);
     let {
-        Some(source) <- run_text(root, "cargo", arguments);
-        Ok(metadata) <- Json.parse(source);
-        Ok(packages) <- Json.get(metadata, "packages");
+        true <- metadata.valid;
+        Some(packages) <- CargoMetadata.workspace_packages(metadata.document);
         Ok(count) <- Json.length(packages)
     } else {
         _ -> None
@@ -304,10 +304,21 @@ pub category(path: String, contents: String): String ->
             or path_component_is(path, "fixture")
             or path_component_is(path, "ui") -> "fixture";
         path_component_is(path, "tests")
+            or nested_test_component(String.split(path, "/"))
             or String.ends_with(name, "_test.rs")
             or String.contains(name, "_test_part_")
             or name == "test.rs" -> "test";
         true -> "implementation"
+    }.
+
+@pure
+nested_test_component(parts: List[String]): Bool ->
+    case parts {
+        [] -> false;
+        [part | rest] ->
+            String.ends_with(part, "_test")
+                or String.ends_with(part, "_tests")
+                or nested_test_component(rest)
     }.
 
 @pure
@@ -489,6 +500,9 @@ pub self_test(): Bool ->
     let categories =
         category("crate/tests/contract.rs", "") == "test"
             and category("crate/src/item_test.rs", "") == "test"
+            and category("crate/src/expression_test/operators.rs", "") == "test"
+            and category("crate/src/parser_tests/expressions.rs", "") == "test"
+            and category("crate/src/commands/test/execution.rs", "") == "implementation"
             and category("crate/src/item.rs", "") == "implementation";
     let lines =
         physical_lines("") == 0

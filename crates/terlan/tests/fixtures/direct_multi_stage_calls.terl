@@ -1,0 +1,56 @@
+module direct_multi_stage_calls.
+
+import std.vm.Process.
+
+pub yielded_add_twice(value: Int): Int ->
+    Process.yield_now();
+    let next = value + 1; (Process.yield_now(); next + 1).
+
+pub yielded_bool_twice(flag: Bool): Bool ->
+    Process.yield_now();
+    Process.yield_now();
+    flag.
+
+pub non_tail_multi_stage(): Int ->
+    yielded_add_twice(1) + 1.
+
+pub non_tail_multi_stage_offset(value: Int, offset: Int): Int ->
+    yielded_add_twice(value) + offset.
+
+pub non_tail_multi_stage_nested(value: Int): Int ->
+    (yielded_add_twice(value) + 1) * 2.
+
+pub non_tail_multi_stage_bool(flag: Bool): Bool ->
+    not yielded_bool_twice(flag).
+
+pub non_tail_multi_stage_condition(flag: Bool): Int ->
+    if {
+        yielded_bool_twice(flag) -> 72;
+        true -> 73
+    }.
+
+pub non_tail_multi_stage_branch(which: Bool, value: Int): Int ->
+    if {
+        which -> yielded_add_twice(value) + 4;
+        true -> 5
+    }.
+
+pub non_tail_multi_stage_checked(divisor: Int): Int ->
+    yielded_add_twice(1 div divisor) + 1.
+
+pub tail_multi_stage_composed(value: Int, offset: Int): Int ->
+    non_tail_multi_stage_offset(value, offset).
+
+pub yielded_eight(value: Int): Int ->
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    Process.yield_now();
+    value.
+
+pub non_tail_eight(value: Int): Int ->
+    yielded_eight(value) + 1.

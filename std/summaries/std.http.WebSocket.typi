@@ -52,6 +52,15 @@ pub close(): Frame.
 
 pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65536): Endpoint.
 
+/// Installs a two-peer session policy with source-owned protocol payloads.
+///
+/// The runtime queues the waiting payload for the first peer, delivers the two
+/// role-specific match payloads when a second peer arrives, broadcasts each
+/// inbound callback result to the pair, and notifies the remaining peer when a
+/// connection closes.
+
+pub (endpoint: Endpoint) paired_callbacks(waiting: String, first_matched: String, second_matched: String, peer_left: String, inbound: (String) -> String, cancellation: (String) -> Unit): Endpoint.
+
 /// Creates an outbound ping control frame.
 ///
 /// Input: one UTF-8 ping payload.
@@ -69,6 +78,28 @@ pub ping(value: String): Frame.
 /// exposing protocol bytes.
 
 pub pong(value: String): Frame.
+
+/// Installs a restorable stateful two-peer session policy.
+///
+/// Fresh pairs receive a runtime-allocated room identifier formed from the
+/// source-owned prefix and a monotonic sequence. The matched callback creates
+/// each role's entry payload. A later request carrying the declared room and
+/// player query parameters can reclaim a disconnected seat; the restored
+/// callback receives the retained opaque state and creates its current view.
+/// Fully disconnected rooms remain reclaimable for `retention_ms`, with the
+/// oldest disconnected room evicted when `retained_room_capacity` is exceeded.
+
+pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(waiting: () -> String, peer_left: () -> String, room_query: String, player_query: String, room_prefix: String, first_player: String, second_player: String, retention_ms: Int, retained_room_capacity: Int, matched: (String, Int, String, String) -> String, restored: (String, String, Int, String, String) -> String, inbound: (String, Int, String, String, String) -> {String, String, String}, cancellation: (String) -> Unit): Endpoint.
+
+/// Installs a stateful two-peer session policy.
+///
+/// The runtime retains the callback's opaque state string for the lifetime of
+/// the pair and serializes transitions from both peers. The callback receives
+/// the previous state, the sender role (`1` or `2`), the inbound frame, and the
+/// two original HTTP request targets. It returns the next state followed by
+/// independently addressed payloads for the first and second peer.
+
+pub (endpoint: Endpoint) stateful_paired_callbacks(waiting: String, first_matched: String, second_matched: String, peer_left: String, inbound: (String, Int, String, String, String) -> {String, String, String}, cancellation: (String) -> Unit): Endpoint.
 
 /// Creates an outbound text frame.
 ///

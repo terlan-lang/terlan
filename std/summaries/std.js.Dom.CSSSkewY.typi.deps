@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSSkewY
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12435222443183047625
-interface_hash=1874525867400165753
-interface_doc_hash=1874525867400165753
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9981451971117671283
+interface_hash=15662052695351247376
+interface_doc_hash=15662052695351247376
 deps=0

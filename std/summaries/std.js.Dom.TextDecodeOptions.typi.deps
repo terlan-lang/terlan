@@ -1,8 +1,8 @@
 module=std.js.Dom.TextDecodeOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=701626838801020307
-interface_hash=1145095140302055150
-interface_doc_hash=1145095140302055150
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1276415154753275035
+interface_hash=9113851561762793235
+interface_doc_hash=9113851561762793235
 deps=0

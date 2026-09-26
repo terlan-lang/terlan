@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSConditionRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9496203216976718372
-interface_hash=9836088736138279868
-interface_doc_hash=9836088736138279868
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11095945628521871322
+interface_hash=382274842215452042
+interface_doc_hash=382274842215452042
 deps=0

@@ -15,6 +15,8 @@ separate from the top-level CoreIR model.
 
 - `intrinsics`: CoreIR intrinsic identities, runtime capabilities, and effect
   sets.
+- `function_source`: original declaration provenance retained through callable
+  specialization, capture lifting, and generated arity changes.
 - `module`: Core module payload, metadata, contract rendering, and runtime
   boundary discovery.
 - `patterns`: CoreIR pattern helpers.
@@ -38,6 +40,11 @@ Important invariants:
 - CoreIR helpers cannot depend on a concrete backend.
 - Proof payloads must stay deterministic and serializable where required.
 - Type helpers must not reintroduce parser-level syntax decisions.
+- Lambda parameter annotations participate in contract identity; transformations
+  must preserve them, including type substitution and alias qualification.
+- Generated functions retain declaration provenance independently of their
+  runtime symbol spelling. Native application normalization seeds that provenance
+  before rewriting or cloning source functions.
 
 ## Integration Points
 

@@ -3,11 +3,13 @@
 mod aggregate_abi;
 mod aggregates;
 mod atoms;
+pub(crate) use operation_abi::immediate_variant;
 mod closure_abi;
 mod closure_dispatch;
 mod closures;
 mod collection_abi;
 mod core;
+mod erased_values;
 mod execution;
 mod heap;
 mod layout;
@@ -37,6 +39,7 @@ pub use collection_abi::{
     ManagedCollectionKind, MAX_MANAGED_COLLECTION_ABI_BYTES,
 };
 pub use core::{ActorId, ManagedMemoryError, TvmRef};
+pub use erased_values::{managed_erased_value_semantic_id, ManagedErasedValue};
 #[cfg(any(test, feature = "native-codegen"))]
 pub(crate) use execution::MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET;
 pub(crate) use execution::{ManagedActorTransfer, ManagedExecutionRuntime, PendingManagedCaptures};
@@ -65,15 +68,17 @@ pub(crate) use operation_abi::{
 pub use operation_abi::{
     encode_aggregate_append_pair_operation, encode_aggregate_append_value_operation,
     encode_aggregate_field_operation, encode_aggregate_replace_field_operation,
-    encode_aggregate_scalar_field_operation, encode_binary_pattern_extract_operation,
-    encode_binary_pattern_matches_operation, encode_bitstring_operation,
-    encode_bytes_concat_operation, encode_bytes_contains_operation,
+    encode_aggregate_scalar_field_operation, encode_atom_to_string_operation,
+    encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
+    encode_bitstring_operation, encode_bytes_concat_operation, encode_bytes_contains_operation,
     encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
     encode_bytes_length_operation, encode_bytes_read_int_be_operation,
     encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
     encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
     encode_bytes_starts_with_operation, encode_bytes_to_list_operation,
-    encode_cookie_header_operation, encode_float_from_string_operation, encode_float_log_operation,
+    encode_cookie_header_operation, encode_erased_value_box_operation,
+    encode_erased_value_is_type_operation, encode_erased_value_unbox_operation,
+    encode_float_from_string_operation, encode_float_log_operation,
     encode_float_to_string_operation, encode_int_from_string_base_operation,
     encode_int_from_string_operation, encode_int_to_string_base_operation,
     encode_int_to_string_operation, encode_iterator_next_operation,
@@ -107,14 +112,20 @@ pub use operation_abi::{
     encode_string_list_join_operation, encode_string_lowercase_operation,
     encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
     encode_string_prepend_projected_literal_operation, encode_string_replace_operation,
-    encode_string_sha256_operation, encode_string_split_once_operation,
-    encode_string_split_operation, encode_string_starts_with_operation,
-    encode_string_trim_end_operation, encode_string_trim_operation,
-    encode_string_trim_start_operation, encode_string_utf8_byte_at_operation,
+    encode_string_reverse_operation, encode_string_sha256_operation,
+    encode_string_split_once_operation, encode_string_split_operation,
+    encode_string_starts_with_operation, encode_string_trim_end_operation,
+    encode_string_trim_operation, encode_string_trim_start_operation,
+    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
     encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation,
     encode_template_render_operation, is_managed_operation, ManagedBinaryPatternEndian,
     ManagedBinaryPatternField, ManagedBitStringOperation, ManagedCookieHeaderOperation,
     ManagedSessionMutation, ManagedTemplateValueKind,
+};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use operation_abi::{
+    encode_string_pattern_extract_operation, encode_string_pattern_matches_operation,
+    ManagedStringCaptureKind, ManagedStringPatternSegment,
 };
 pub use roots::{
     ManagedContinuation, ManagedRoot, RootLocation, StackMapEntry, StackMapRecord, StackMapTable,

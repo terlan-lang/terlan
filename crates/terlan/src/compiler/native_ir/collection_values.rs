@@ -12,10 +12,39 @@ use crate::terlan_typeck::{
     CoreExpr, CoreIntrinsicId, CorePattern, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
+use super::empty_list_values::at_boundary as adapt_empty_list;
+use super::native_type_with_constructors as native_type;
 use super::{
-    infer_native_type_with_constructors, lower_expr_with_constructors, native_type,
-    NativeConstructorLayouts, NativeExpr, NativeType,
+    infer_native_type_with_constructors, lower_expr_with_constructors, NativeConstructorLayouts,
+    NativeExpr, NativeType,
 };
+mod nullary_options;
+mod record_values;
+fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
+    SemanticTypeId::from_canonical(&super::expression::managed_semantic_contract(ty))
+        .map_err(|error| format!("error[native_ir.collection_type]: {error}"))
+}
+
+fn map_key_expr(key: &str, ty: &CoreType) -> Result<CoreExpr, String> {
+    match ty {
+        CoreType::String => serde_json::to_string(key)
+            .map(CoreExpr::Binary)
+            .map_err(|error| format!("error[native_ir.map_key]: {error}")),
+        CoreType::Atom | CoreType::AtomLiteral(_) => Ok(CoreExpr::Atom(key.to_string())),
+        CoreType::Int => key
+            .parse::<i64>()
+            .map(CoreExpr::Int)
+            .map_err(|_| format!("error[native_ir.map_key]: `{key}` is not an Int key")),
+        _ => Err(format!(
+            "error[native_ir.map_key]: `{}` has no native literal-key semantics",
+            ty.contract_text()
+        )),
+    }
+}
+pub(super) use nullary_options::is_none_option_value;
+
+#[path = "collection_values/structural_maps.rs"]
+mod structural_maps;
 
 /// Lowers one collection-valued native function body from its checked result type.
 pub(super) fn lower_boundary_collection_value(
@@ -29,8 +58,10 @@ pub(super) fn lower_boundary_collection_value(
 ) -> Result<Option<NativeExpr>, String> {
     lower_boundary_collection_value_with_recursive_element(
         body,
-        expected,
-        None,
+        CollectionBoundary {
+            expected,
+            recursive_element: None,
+        },
         params,
         param_types,
         functions,
@@ -39,22 +70,63 @@ pub(super) fn lower_boundary_collection_value(
     )
 }
 
+/// Expected physical collection and its optional recursive union element contract.
+#[derive(Clone, Copy)]
+struct CollectionBoundary<'a> {
+    expected: Option<&'a CoreType>,
+    recursive_element: Option<&'a CoreType>,
+}
+
 /// Lowers one collection while retaining the transparent union that owns a
 /// recursive list variant. The union remains the element contract even though
 /// the concrete list variant owns the collection's physical ABI identity.
 fn lower_boundary_collection_value_with_recursive_element(
     body: &CoreExpr,
-    expected: Option<&CoreType>,
-    recursive_element: Option<&CoreType>,
+    boundary: CollectionBoundary<'_>,
     params: &HashMap<String, usize>,
     param_types: &HashMap<String, NativeType>,
     functions: &HashMap<(String, usize), usize>,
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    let CollectionBoundary {
+        expected,
+        recursive_element,
+    } = boundary;
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if let Some(adapted) =
+        adapt_empty_list(body, expected, param_types, function_types, constructors)
+    {
+        return try_lower_typed_value(
+            &adapted,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        );
+    }
+    // A checked literal may carry the narrower type inferred before its
+    // enclosing recursive union supplied the collection element contract.
+    if let CoreExpr::Cast { expr, .. } = body {
+        if transparent_collection_variant(expected, expr).is_some() {
+            return lower_boundary_collection_value_with_recursive_element(
+                expr,
+                CollectionBoundary {
+                    expected: Some(expected),
+                    recursive_element,
+                },
+                params,
+                param_types,
+                functions,
+                function_types,
+                constructors,
+            );
+        }
+    }
     if let Some(collection_type) = transparent_collection_variant(expected, body) {
         if matches!(
             collection_shape(collection_type),
@@ -63,8 +135,10 @@ fn lower_boundary_collection_value_with_recursive_element(
             let physical = recursive_union_list_type(collection_type, expected);
             return lower_boundary_collection_value_with_recursive_element(
                 body,
-                Some(&physical),
-                Some(expected),
+                CollectionBoundary {
+                    expected: Some(&physical),
+                    recursive_element: Some(expected),
+                },
                 params,
                 param_types,
                 functions,
@@ -74,8 +148,10 @@ fn lower_boundary_collection_value_with_recursive_element(
         }
         return lower_boundary_collection_value_with_recursive_element(
             body,
-            Some(collection_type),
-            None,
+            CollectionBoundary {
+                expected: Some(collection_type),
+                recursive_element: None,
+            },
             params,
             param_types,
             functions,
@@ -84,13 +160,19 @@ fn lower_boundary_collection_value_with_recursive_element(
         );
     }
     if let CoreExpr::Cast { expr, target_type } = body {
-        let expected_native = native_type(Some(expected), &expected.contract_text());
-        let target_native = native_type(Some(target_type), &target_type.contract_text());
+        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors);
+        let target_native = native_type(
+            Some(target_type),
+            &target_type.contract_text(),
+            constructors,
+        );
         if target_type == expected || expected_native == target_native {
             return lower_boundary_collection_value_with_recursive_element(
                 expr,
-                Some(expected),
-                recursive_element,
+                CollectionBoundary {
+                    expected: Some(expected),
+                    recursive_element,
+                },
                 params,
                 param_types,
                 functions,
@@ -98,6 +180,55 @@ fn lower_boundary_collection_value_with_recursive_element(
                 constructors,
             );
         }
+    }
+    if matches!(body, CoreExpr::RecordConstruct { .. }) {
+        return record_values::lower(
+            body,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map_err(String::from);
+    }
+    if let Some(ty) = native_type(Some(expected), &expected.contract_text(), constructors) {
+        if let Some(value) =
+            super::constructors::lower_zero_field_managed_variant(body, ty, constructors)?
+        {
+            return Ok(Some(value));
+        }
+    }
+    if let Some(expr) = super::expression::collection_cast_source(
+        body,
+        expected,
+        param_types,
+        function_types,
+        constructors,
+    ) {
+        return lower_boundary_collection_value(
+            expr,
+            Some(expected),
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        );
+    }
+    if let (CoreExpr::Map(fields), CoreType::Map(field_types)) = (body, expected) {
+        return structural_maps::lower(
+            fields,
+            field_types,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map(Some)
+        .map_err(String::from);
     }
     if let (CoreExpr::Tuple(items), CoreType::Union(variants)) = (body, expected) {
         let Some(tag) = items.first().and_then(checked_atom_literal) else {
@@ -121,7 +252,7 @@ fn lower_boundary_collection_value_with_recursive_element(
             .enumerate()
             .map(|(index, element)| {
                 let ty = tuple_element_type(element);
-                native_type(Some(ty), &ty.contract_text())
+                native_type(Some(ty), &ty.contract_text(), constructors)
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.union_value_type]: unsupported union field `{}`",
@@ -195,7 +326,7 @@ fn lower_boundary_collection_value_with_recursive_element(
         let fields = element_types
             .iter()
             .map(|ty| {
-                native_type(Some(ty), &ty.contract_text())
+                native_type(Some(ty), &ty.contract_text(), constructors)
                     .ok_or_else(|| {
                         format!(
                             "error[native_ir.tuple_value_type]: unsupported tuple field `{}`",
@@ -306,8 +437,10 @@ fn lower_boundary_collection_value_with_recursive_element(
             )?;
             let lowered_tail = lower_boundary_collection_value_with_recursive_element(
                 tail,
-                Some(expected),
-                recursive_element,
+                CollectionBoundary {
+                    expected: Some(expected),
+                    recursive_element,
+                },
                 params,
                 param_types,
                 functions,
@@ -560,8 +693,8 @@ pub(super) fn lower_typed_value(
         return Ok(lowered);
     }
     if is_general_control_value(value) {
-        let expected_native =
-            native_type(Some(expected), &expected.contract_text()).ok_or_else(|| {
+        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors)
+            .ok_or_else(|| {
                 format!(
                     "error[native_ir.collection_control_type]: `{}` is not native",
                     expected.contract_text()
@@ -602,349 +735,7 @@ pub(super) fn lower_typed_value(
     ))
 }
 
-/// Attempts type-directed lowering for one concrete aggregate or scalar value.
-///
-/// A checked expression can have a collection-shaped result without itself
-/// being a literal collection value (for example, a `case` resumed after an
-/// asynchronous capability call). Callers that can lower general structured
-/// expressions need to distinguish that case from an invalid concrete value.
-pub(super) fn try_lower_typed_value(
-    value: &CoreExpr,
-    expected: &CoreType,
-    params: &HashMap<String, usize>,
-    param_types: &HashMap<String, NativeType>,
-    functions: &HashMap<(String, usize), usize>,
-    function_types: &HashMap<(String, usize), NativeType>,
-    constructors: &NativeConstructorLayouts,
-) -> Result<Option<NativeExpr>, String> {
-    if matches!(
-        value,
-        CoreExpr::Case { .. } | CoreExpr::If { .. } | CoreExpr::Try { .. }
-    ) {
-        return Ok(None);
-    }
-    if let CoreExpr::Cast { expr, target_type } = value {
-        let expected_native = native_type(Some(expected), &expected.contract_text());
-        let target_native = native_type(Some(target_type), &target_type.contract_text());
-        if target_type == expected || expected_native == target_native {
-            return try_lower_typed_value(
-                expr,
-                expected,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            );
-        }
-    }
-    if let (CoreExpr::Binary(value), CoreType::Binary) = (value, expected) {
-        let value = super::expression::core_string_runtime_value(value)?;
-        let encoded = encode_binary_literal(value.as_bytes())
-            .map_err(|error| format!("error[native_ir.binary_literal]: {error}"))?;
-        return Ok(Some(NativeExpr::ManagedLiteral {
-            encoded: encoded.into(),
-        }));
-    }
-    if let CoreExpr::Let { bindings, body } = value {
-        let retained = super::escape::retained_managed_bindings(bindings, body);
-        let mut locals = params.clone();
-        let mut local_types = param_types.clone();
-        let mut next_local = locals
-            .values()
-            .copied()
-            .max()
-            .map_or(0, |index| index.saturating_add(1));
-        let mut lowered = Vec::with_capacity(bindings.len());
-        for (binding, retained) in bindings.iter().zip(retained) {
-            if !retained {
-                continue;
-            }
-            if is_general_control_value(&binding.value) {
-                return Ok(None);
-            }
-            let CorePattern::Var(name) = &binding.pattern else {
-                return Err(
-                    "error[native_ir.typed_let_pattern]: typed aggregate let requires variable bindings"
-                        .to_string(),
-                );
-            };
-            let (binding_type, binding_value) = if let CoreExpr::Cast { target_type, .. } =
-                &binding.value
-            {
-                let binding_type = native_type(Some(target_type), &target_type.contract_text())
-                    .ok_or_else(|| {
-                        format!(
-                            "error[native_ir.typed_let_type]: cast prefix `{name}` has unsupported type `{}`",
-                            target_type.contract_text()
-                        )
-                    })?;
-                let binding_value = lower_typed_value(
-                    &binding.value,
-                    target_type,
-                    &locals,
-                    &local_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?;
-                (binding_type, binding_value)
-            } else {
-                let binding_type = infer_native_type_with_constructors(
-                    &binding.value,
-                    &local_types,
-                    function_types,
-                    constructors,
-                )
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.typed_let_type]: cannot infer aggregate prefix `{name}`"
-                    )
-                })?;
-                let binding_value = lower_expr_with_constructors(
-                    &binding.value,
-                    &locals,
-                    &local_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?;
-                (binding_type, binding_value)
-            };
-            lowered.push(binding_value);
-            locals.insert(name.clone(), next_local);
-            local_types.insert(name.clone(), binding_type);
-            next_local = next_local.saturating_add(1);
-        }
-        let Some(body) = try_lower_typed_value(
-            body,
-            expected,
-            &locals,
-            &local_types,
-            functions,
-            function_types,
-            constructors,
-        )?
-        else {
-            return Ok(None);
-        };
-        return Ok(Some(if lowered.is_empty() {
-            body
-        } else {
-            NativeExpr::Let {
-                bindings: lowered,
-                body: Box::new(body),
-            }
-        }));
-    }
-    let none_constructor =
-        is_none_option_value(value, expected).then(|| CoreExpr::ConstructorCall {
-            constructor: "None".to_string(),
-            constructor_identity: Some("std.core.Option.None".to_string()),
-            args: Vec::new(),
-        });
-    let tagged_constructor = structural_tagged_tuple_constructor(value, expected);
-    let structural_value = none_constructor
-        .as_ref()
-        .or(tagged_constructor.as_ref())
-        .unwrap_or(value);
-    if let Some(value) = super::constructors::lower_structural_constructor_call(
-        structural_value,
-        expected,
-        |field, field_type| {
-            let ty =
-                native_type(Some(field_type), &field_type.contract_text()).ok_or_else(|| {
-                    format!(
-                        "error[native_ir.collection_constructor_type]: `{}` is not a native field",
-                        field_type.contract_text()
-                    )
-                })?;
-            let lowered = if is_general_control_value(field) {
-                let actual = infer_native_type_with_constructors(
-                    field,
-                    param_types,
-                    function_types,
-                    constructors,
-                )
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.collection_control_type]: cannot infer `{}` field value",
-                        field_type.contract_text()
-                    )
-                })?;
-                if actual != ty {
-                    return Err(format!(
-                        "error[native_ir.collection_control_type]: expected {ty:?}, found {actual:?}"
-                    ));
-                }
-                lower_expr_with_constructors(
-                    field,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?
-            } else {
-                lower_typed_value(
-                    field,
-                    field_type,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?
-            };
-            Ok((lowered, ty))
-        },
-    )? {
-        return Ok(Some(value));
-    }
-    if let Some(value) = lower_boundary_collection_value(
-        value,
-        Some(expected),
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-    )? {
-        return Ok(Some(value));
-    }
-    let expected_native =
-        native_type(Some(expected), &expected.contract_text()).ok_or_else(|| {
-            format!(
-                "error[native_ir.collection_type]: `{}` is not a native collection field",
-                expected.contract_text()
-            )
-        })?;
-    let Some(actual) =
-        infer_native_type_with_constructors(value, param_types, function_types, constructors)
-    else {
-        return Ok(None);
-    };
-    if actual != expected_native && !transparent_union_accepts_native(expected, actual) {
-        return Err(format!(
-            "error[native_ir.collection_value]: collection value type mismatch: expected {} as {expected_native:?}, found {actual:?} for {value:?}",
-            expected.contract_text()
-        ));
-    }
-    lower_expr_with_constructors(
-        value,
-        params,
-        param_types,
-        functions,
-        function_types,
-        constructors,
-    )
-    .map(Some)
-}
-
-/// Reports whether one concrete native value is a declared transparent-union
-/// variant and therefore requires no representation-changing cast.
-fn transparent_union_accepts_native(expected: &CoreType, actual: NativeType) -> bool {
-    let CoreType::Union(variants) = expected else {
-        return false;
-    };
-    variants.iter().any(|variant| {
-        native_type(Some(variant), &variant.contract_text()).is_some_and(|native| native == actual)
-    })
-}
-
-/// Reports whether a value requires the general control-flow lowerer.
-fn is_general_control_value(value: &CoreExpr) -> bool {
-    match value {
-        CoreExpr::Case { .. } | CoreExpr::If { .. } | CoreExpr::Try { .. } => true,
-        CoreExpr::Cast { expr, .. } => is_general_control_value(expr),
-        _ => false,
-    }
-}
-
-/// Restores a structural Option/Result constructor after transparent alias expansion.
-fn structural_tagged_tuple_constructor(value: &CoreExpr, expected: &CoreType) -> Option<CoreExpr> {
-    let CoreType::Apply { constructor, .. } = expected else {
-        return None;
-    };
-    if !matches!(constructor.rsplit('.').next(), Some("Option" | "Result")) {
-        return None;
-    }
-    let CoreExpr::Tuple(items) = value else {
-        return None;
-    };
-    let tag = checked_atom_literal(items.first()?)?;
-    Some(CoreExpr::ConstructorCall {
-        constructor: tagged_variant_name(tag)?,
-        constructor_identity: None,
-        args: items.iter().skip(1).cloned().collect(),
-    })
-}
-
-/// Reports whether an atom-form `None` is being lowered as an `Option` value.
-pub(super) fn is_none_option_value(value: &CoreExpr, expected: &CoreType) -> bool {
-    is_nullary_none_value(value)
-        && match expected {
-            CoreType::Apply { constructor, args } => {
-                constructor.rsplit('.').next() == Some("Option") && args.len() == 1
-            }
-            CoreType::Union(variants) => variants.iter().any(|variant| {
-                matches!(variant, CoreType::AtomLiteral(name) if name == "none")
-                    || matches!(
-                        variant,
-                        CoreType::Named(name)
-                            if name.rsplit('.').next() == Some("None")
-                    )
-            }),
-            _ => false,
-        }
-}
-
-/// Recognizes control wrappers whose every selected value is the nullary
-/// `None` variant. Call-region construction may retain a one-clause `if`
-/// around a short-circuit bypass, so representation selection must inspect
-/// the terminal values rather than only the outer node.
-fn is_nullary_none_value(value: &CoreExpr) -> bool {
-    match value {
-        CoreExpr::Atom(name) | CoreExpr::Var(name) => name.eq_ignore_ascii_case("none"),
-        CoreExpr::ConstructorCall {
-            constructor, args, ..
-        } => args.is_empty() && constructor.rsplit('.').next() == Some("None"),
-        CoreExpr::Cast { expr, .. } => is_nullary_none_value(expr),
-        CoreExpr::Let { body, .. } => is_nullary_none_value(body),
-        CoreExpr::If { clauses } => {
-            !clauses.is_empty()
-                && clauses
-                    .iter()
-                    .all(|clause| is_nullary_none_value(&clause.body))
-        }
-        CoreExpr::Case { clauses, .. } => {
-            !clauses.is_empty()
-                && clauses
-                    .iter()
-                    .all(|clause| is_nullary_none_value(&clause.body))
-        }
-        _ => false,
-    }
-}
-
-fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(&super::expression::managed_semantic_contract(ty))
-        .map_err(|error| format!("error[native_ir.collection_type]: {error}"))
-}
-
-fn map_key_expr(key: &str, ty: &CoreType) -> Result<CoreExpr, String> {
-    match ty {
-        CoreType::String => serde_json::to_string(key)
-            .map(CoreExpr::Binary)
-            .map_err(|error| format!("error[native_ir.map_key]: {error}")),
-        CoreType::Atom | CoreType::AtomLiteral(_) => Ok(CoreExpr::Atom(key.to_string())),
-        CoreType::Int => key
-            .parse::<i64>()
-            .map(CoreExpr::Int)
-            .map_err(|_| format!("error[native_ir.map_key]: `{key}` is not an Int key")),
-        _ => Err(format!(
-            "error[native_ir.map_key]: `{}` has no native literal-key semantics",
-            ty.contract_text()
-        )),
-    }
-}
+#[path = "collection_values/typed_values.rs"]
+mod typed_values;
+use typed_values::is_general_control_value;
+pub(super) use typed_values::try_lower_typed_value;

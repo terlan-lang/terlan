@@ -1,8 +1,8 @@
 module=std.js.Dom.ViewTransition
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5036054033726233346
-interface_hash=8940951726232689249
-interface_doc_hash=8940951726232689249
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10816156466598711066
+interface_hash=8634811978332661485
+interface_doc_hash=8634811978332661485
 deps=0

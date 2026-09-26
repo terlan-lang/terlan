@@ -31,11 +31,12 @@ struct Artifact {
 struct Snapshot {
     file_count: Int,
     digest: String,
+    inventory_sha256: String,
 }.
 
 schema(): String -> "terlan.release-generated-artifacts.v1".
 
-snapshot_schema(): String -> "terlan.release-generated-artifacts-snapshot.v1".
+snapshot_schema(): String -> "terlan.release-generated-artifacts-snapshot.v2".
 
 inventory_relative(): String -> "docs/release/GENERATED_ARTIFACTS.json".
 
@@ -274,7 +275,7 @@ artifact_patterns_at(
             artifact_patterns_at(rest, add_labeled_file_patterns(value.id, value.paths, result))
     }.
 
-snapshot(root: String, artifacts: List[Artifact]): Option[Snapshot] ->
+snapshot(root: String, artifacts: List[Artifact], inventory_source: String): Option[Snapshot] ->
     let patterns = artifact_patterns_at(artifacts, []);
     case Hash.audit_labeled_file_patterns(
     root,
@@ -285,7 +286,13 @@ snapshot(root: String, artifacts: List[Artifact]): Option[Snapshot] ->
         Ok(audit) ->
             if {
                 not audit.portable or audit.file_count == 0 -> None;
-                true -> Some(Snapshot(file_count = audit.file_count, digest = audit.digest))
+                true -> Some(
+                    Snapshot(
+                        file_count = audit.file_count,
+                        digest = audit.digest,
+                        inventory_sha256 = Hash.sha256(inventory_source),
+                    ),
+                )
             }
     }.
 
@@ -307,7 +314,7 @@ current_snapshot(root: String): Option[{String, List[Artifact], Snapshot}] ->
     };
     if {
         not artifacts_valid(artifacts) or not gates_exist(artifacts, targets) -> None;
-        true -> case snapshot(root, artifacts) {
+        true -> case snapshot(root, artifacts, source) {
             Some(value) -> Some({source, artifacts, value});
             None -> None
         }
@@ -326,20 +333,23 @@ snapshot_json(value: Snapshot): Json ->
     Json.object()
         .put("schema", Json.string(snapshot_schema()))
         .put("file_count", Json.int(value.file_count))
+        .put("inventory_sha256", Json.string(value.inventory_sha256))
         .put("digest", Json.string(value.digest)).
 
 read_snapshot(root: String): Option[Snapshot] ->
     let {
         Ok(source) <- File.read_text(child(root, snapshot_relative()));
         Ok(value) <- Json.parse(source);
-        Ok(fields) <- value.required_fields(["schema", "digest"], ["file_count"], []);
-        [actual_schema, digest] <- Json.required_field_strings(fields);
+        Ok(fields) <- value.required_fields(["schema", "digest", "inventory_sha256"], ["file_count"], []);
+        [actual_schema, digest, inventory_sha256] <- Json.required_field_strings(fields);
         [file_count] <- Json.required_field_ints(fields)
     } else {
         _ -> None
     };
     if {
-        actual_schema == snapshot_schema() -> Some(Snapshot(file_count = file_count, digest = digest));
+        actual_schema == snapshot_schema() -> Some(
+            Snapshot(file_count = file_count, digest = digest, inventory_sha256 = inventory_sha256),
+        );
         true -> None
     }.
 
@@ -386,12 +396,7 @@ classification_count_at(values: List[Artifact], classification: String, count: I
 classification_count(values: List[Artifact], classification: String): Int ->
     classification_count_at(values, classification, 0).
 
-report_json(
-    inventory_source: String,
-    artifacts: List[Artifact],
-    before: Snapshot,
-    after_snapshot: Snapshot,
-): Json ->
+report_json(artifacts: List[Artifact], before: Snapshot, after_snapshot: Snapshot): Json ->
     let classifications =
         Json.object()
             .put("cache-only", Json.int(classification_count(artifacts, "cache-only")))
@@ -415,7 +420,7 @@ report_json(
             Json.object()
                 .put(
                     inventory_relative(),
-                    Json.string(String.append("sha256:", Hash.sha256(inventory_source))),
+                    Json.string(String.append("sha256:", after_snapshot.inventory_sha256)),
                 ),
         )
         .put("artifact_count", Json.int(length(artifacts)))
@@ -446,21 +451,47 @@ report_json(
 pub finalize(root: String): Bool ->
     let {
         Some(before) <- read_snapshot(root);
-        Some({source, artifacts, after_snapshot}) <- current_snapshot(root)
+        Some({_source, artifacts, after_snapshot}) <- current_snapshot(root)
     } else {
         _ -> failure("cannot load before/after generated-artifact snapshots")
     };
     if {
-        before.file_count != after_snapshot.file_count or before.digest != after_snapshot.digest -> failure("generated artifacts changed during the canonical regeneration pass");
-        write_json(
-            child(root, report_relative()),
-            report_json(source, artifacts, before, after_snapshot),
-        ) -> true;
+        before.file_count != after_snapshot.file_count
+            or before.digest != after_snapshot.digest
+            or before.inventory_sha256 != after_snapshot.inventory_sha256 -> failure(
+            "generated artifacts or their inventory changed during the canonical regeneration pass",
+        );
+        write_json(child(root, report_relative()), report_json(artifacts, before, after_snapshot)) -> true;
         true -> failure("cannot write the generated-artifact quality report")
     }.
 
 fixture_inventory(): String ->
     "{\"schema\":\"terlan.release-generated-artifacts.v1\",\"artifacts\":[{\"id\":\"fixture\",\"classification\":\"committed\",\"paths\":[\"fixture.txt\"],\"regenerate\":\"make fixture-check\",\"freshness_gate\":\"fixture-check\",\"owner\":\"release-tooling\"}]}".
+
+self_test_snapshots(root: String, fixture: String, inventory: String): Bool ->
+    let {
+        true <- record(root);
+        true <- finalize(root);
+        Ok(Unit) <- File.write_text(fixture, "changed generated artifact\n")
+    } else {
+        _ -> failure("cannot establish generated-artifact comparison fixture")
+    };
+    (let rejects_output_change = not finalize(root);
+(let {
+    Ok(Unit) <- File.write_text(fixture, "portable generated artifact\n");
+    Ok(Unit) <- File.write_text(inventory, String.append(fixture_inventory(), "\n"))
+} else {
+    _ -> failure("cannot establish changed-inventory fixture")
+};
+(let rejects_inventory_change = not finalize(root);
+(let {
+    Ok(Unit) <- File.write_text(inventory, fixture_inventory());
+    true <- record(root);
+    true <- finalize(root)
+} else {
+    _ -> failure("cannot recover generated-artifact comparison fixture")
+};
+rejects_output_change and rejects_inventory_change)))).
 
 self_test_in(root: String): Bool ->
     let fixture = child(root, "fixture.txt");
@@ -483,13 +514,16 @@ self_test_in(root: String): Bool ->
     } else {
         _ -> failure("cannot create generated-artifact self-test fixture")
     };
-    (let valid = current_snapshot(root);
-let leaked = File.write_text(fixture, "generated by /home/alice/project/terlc\n");
-let rejected = current_snapshot(root);
-case {valid, leaked, rejected} {
-    {Some({_source, _artifacts, _snapshot}), Ok(Unit), None} -> true;
-    _ -> failure("generated-artifact self-test did not detect host path leakage")
-}).
+    (let {
+    true <- self_test_snapshots(root, fixture, inventory);
+    Some({_source, _artifacts, _snapshot}) <- current_snapshot(root);
+    Ok(Unit) <- File.write_text(fixture, "generated by /home/alice/project/terlc\n");
+    None <- current_snapshot(root)
+} else {
+    _ ->
+        failure("generated-artifact self-test did not detect content, inventory or host path drift")
+};
+true).
 
 pub self_test(): Bool ->
     case Directory.create_temporary("terlan-release-generated-artifacts.") {

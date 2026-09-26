@@ -19,6 +19,43 @@ use super::native_object_test_support::{
 };
 use super::{emit_native_application_object, status, NativeExpr, NativeModule, NativeType};
 
+/// Collection field types must survive constructor argument suspension splitting.
+#[test]
+fn struct_collection_field_survives_a_later_yielding_constructor_argument() -> Result<(), String> {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module fixture.CollectionState.
+import std.collections.Map.
+import std.vm.Process.
+import type std.collections.Map.
+
+struct Event { value: Int }.
+struct State { entries: Map[String, Event], marker: Int }.
+
+yielded(): Int ->
+    let _yielded = Process.yield_now();
+    7.
+
+pub make_state(): State ->
+    State(entries = Map.new[String, Event](), marker = yielded()).
+"#,
+    )
+    .map_err(|error| format!("{error:?}"))?;
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).map_err(|error| error.to_string())?;
+    assert!(modules
+        .iter()
+        .any(|module| !module.continuations.is_empty()));
+    let object = emit_native_application_object("constructor_collection", &modules)
+        .map_err(|error| error.to_string())?;
+    assert!(!object.is_empty());
+    Ok(())
+}
+
 #[test]
 fn transparent_generic_variant_return_keeps_the_declared_union_layout() {
     let syntax = parse_module_as_syntax_output(
@@ -128,6 +165,7 @@ pub rows(board: Board): List[Int] ->
 fn declaration(name: &str, parameter: &str) -> CoreConstructorDecl {
     CoreConstructorDecl {
         name: name.to_owned(),
+        implementation: None,
         public: true,
         min_arity: 1,
         params: vec![CoreParam {
@@ -150,6 +188,7 @@ fn fixed_constructor_calls_lower_to_canonical_managed_native_ir() {
     let modules = [("result", declarations.as_slice())];
     let layouts = native_constructor_layouts(&modules, "result").expect("constructor layouts");
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Ok".to_owned(),
         constructor_identity: Some("result.Ok".to_owned()),
         args: vec![CoreExpr::Int(42)],
@@ -214,6 +253,7 @@ fn transparent_record_constructor_uses_qualified_nominal_semantic_identity() {
     let canonical = "std.range.Range.Range";
     let declaration = CoreConstructorDecl {
         name: "Range".to_owned(),
+        implementation: None,
         public: true,
         min_arity: 4,
         params: vec![
@@ -273,10 +313,12 @@ fn transparent_record_constructor_uses_qualified_nominal_semantic_identity() {
     )
     .expect("transparent record constructor layout");
     let layout = &layouts[&("std.range.Range.Range".to_owned(), 4)];
-    let expected = crate::runtime::native_image::managed::SemanticTypeId::from_canonical(canonical)
-        .expect("nominal semantic");
+    let semantic_contract = format!("Named({canonical})");
+    let expected =
+        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(&semantic_contract)
+            .expect("nominal semantic");
 
-    assert_eq!(layout.descriptor.canonical_type(), canonical);
+    assert_eq!(layout.descriptor.canonical_type(), semantic_contract);
     assert_eq!(layout.descriptor.discriminant(), None);
     assert_eq!(layout.result, NativeType::ManagedRef(expected));
     assert_eq!(layout.descriptor.managed().semantic_id(), expected);
@@ -298,6 +340,7 @@ fn unresolved_and_vararg_constructors_are_rejected_without_partial_lowering() {
     assert!(layouts.is_empty());
 
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Missing".to_owned(),
         constructor_identity: None,
         args: vec![CoreExpr::Int(1)],
@@ -320,6 +363,7 @@ fn constructor_lowering_rejects_a_field_that_disagrees_with_checked_layout() {
     let layouts = native_constructor_layouts(&[("result", declarations.as_slice())], "result")
         .expect("constructor layouts");
     let call = CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Ok".to_owned(),
         constructor_identity: Some("result.Ok".to_owned()),
         args: vec![CoreExpr::Atom("true".to_owned())],

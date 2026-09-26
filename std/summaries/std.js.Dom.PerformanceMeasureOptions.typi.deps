@@ -1,8 +1,8 @@
 module=std.js.Dom.PerformanceMeasureOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9326128791539054613
-interface_hash=8873246696617696972
-interface_doc_hash=8873246696617696972
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12846880173150578478
+interface_hash=3006729929410008697
+interface_doc_hash=3006729929410008697
 deps=0

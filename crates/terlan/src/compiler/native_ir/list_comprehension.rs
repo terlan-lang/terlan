@@ -11,12 +11,14 @@ use crate::terlan_typeck::{
 use super::NativeIrResult;
 
 mod completed;
+mod deferred;
+pub(super) use completed::completed_effect_list_type;
 use completed::fold_completed_effect_runs;
 pub(super) use completed::lower_completed_guard_results;
-pub(super) use completed::{completed_effect_list_type, lower_completed_effect_guards};
+#[cfg(test)]
+pub(super) use deferred::lower_guards;
 
 const EFFECT_CONTAINER: &str = "std.core.Effect.Effect";
-const EFFECT_SUCCEED: &str = "std.core.Effect.succeed";
 const RANGE_ITERATOR: &str = "std.range.Range.iterator";
 const MAX_COMPREHENSIONS_PER_MODULE: usize = 128;
 
@@ -73,7 +75,7 @@ fn lower_expr(
         .into());
     }
     if completed_effect {
-        lower_completed_effect_guards(guards)?;
+        deferred::lower_guards(guards);
     }
     lower_completed_guard_results(guards);
     for guard in guards.iter_mut() {
@@ -169,6 +171,7 @@ fn lower_expr(
             let list_type = CoreType::List(Box::new(CoreType::Int));
             iterator_expr(
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: range_helper,
                     args: vec![
                         start,
@@ -187,6 +190,7 @@ fn lower_expr(
         };
         expanded = CoreExpr::Cast {
             expr: Box::new(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: helper_name.clone(),
                 args: vec![
                     iterator,
@@ -195,6 +199,7 @@ fn lower_expr(
                         target_type: output_type.clone(),
                     },
                     CoreExpr::Lam {
+                        parameter_types: vec![Some(element.clone())],
                         params: vec![CorePattern::Var(callback_parameter)],
                         body: Box::new(callback_body),
                     },
@@ -210,10 +215,7 @@ fn lower_expr(
         )?);
     }
     *expr = if completed_effect {
-        CoreExpr::Call {
-            function: EFFECT_SUCCEED.to_string(),
-            args: vec![expanded],
-        }
+        deferred::plan(expanded, output_type)
     } else {
         expanded
     };
@@ -427,6 +429,7 @@ fn build_collector_helper(
         span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
     });
     let rest = CoreExpr::Call {
+        type_args: Vec::new(),
         function: name,
         args: vec![
             CoreExpr::Var("$rest".to_string()),
@@ -550,6 +553,7 @@ fn build_range_helper(owner: &CoreFunction, name: String) -> NativeIrResult<Core
         span: crate::terlan_syntax::span::Span { start: 0, end: 0 },
     });
     let recurse = |operator: &str| CoreExpr::Call {
+        type_args: Vec::new(),
         function: name.clone(),
         args: vec![
             CoreExpr::BinaryOp {
@@ -614,6 +618,7 @@ fn iterator_expr(source: CoreExpr, ty: &CoreType, element: &CoreType) -> NativeI
     if is_range(ty) {
         return Ok(CoreExpr::Cast {
             expr: Box::new(CoreExpr::Call {
+                type_args: Vec::new(),
                 function: RANGE_ITERATOR.to_string(),
                 args: vec![source],
             }),
@@ -652,6 +657,10 @@ fn range_bounds(source: &CoreExpr) -> NativeIrResult<(CoreExpr, CoreExpr)> {
 }
 
 fn lower_range_membership(expr: &mut CoreExpr) {
+    if let CoreExpr::Cast { expr, .. } = expr {
+        lower_range_membership(expr);
+        return;
+    }
     let CoreExpr::BinaryOp {
         operator,
         left,

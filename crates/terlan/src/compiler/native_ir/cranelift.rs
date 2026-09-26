@@ -633,6 +633,7 @@ fn emit_suspending_body(
                     allocator: params[1],
                     resolver: params[2],
                     lookup: params[3],
+                    callable_recorder: params[4],
                 },
                 indirect::IndirectInvocation {
                     closure: callee,
@@ -685,6 +686,7 @@ fn emit_suspending_body(
                     allocator: params[1],
                     resolver: params[2],
                     lookup: params[3],
+                    callable_recorder: params[4],
                 },
                 indirect::IndirectInvocation {
                     closure: callee,

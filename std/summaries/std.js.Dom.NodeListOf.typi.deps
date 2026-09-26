@@ -1,8 +1,8 @@
 module=std.js.Dom.NodeListOf
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17277934593496126680
-interface_hash=10749442206281115800
-interface_doc_hash=10749442206281115800
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1941722433080444902
+interface_hash=3770452472909167634
+interface_doc_hash=3770452472909167634
 deps=0

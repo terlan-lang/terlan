@@ -3,9 +3,13 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{
-    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreTupleTypeElem,
-    CoreType,
+    core_type_from_text, CoreExpr, CoreIntrinsicId, CoreModule, CorePattern, CoreRecordExprField,
+    CoreTupleTypeElem, CoreType,
 };
+
+#[cfg(test)]
+#[path = "transparent_aliases_test.rs"]
+mod tests;
 
 #[derive(Clone)]
 struct Alias {
@@ -19,29 +23,30 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
         .iter()
         .flat_map(|core| {
             core.types.iter().filter_map(move |declaration| {
-                let body = declaration.core_body.as_ref()?;
-                if matches!(
-                    declaration.visibility,
-                    crate::terlan_typeck::CoreVisibility::Opaque
-                ) {
+                let canonical = format!("{}.{}", core.module, declaration.name);
+                let task =
+                    super::super::task_values::declaration_storage(&canonical, &declaration.params);
+                let body = task.as_ref().or(declaration.core_body.as_ref())?;
+                if task.is_none()
+                    && matches!(
+                        declaration.visibility,
+                        crate::terlan_typeck::CoreVisibility::Opaque
+                    )
+                {
                     return None;
                 }
-                let canonical = format!("{}.{}", core.module, declaration.name);
+                let body = super::super::effect_values::storage_type(&canonical, body);
                 Some((
                     canonical,
                     Alias {
                         module: core.module.clone(),
                         params: declaration.params.clone(),
-                        body: body.clone(),
+                        body,
                     },
                 ))
             })
         })
         .collect::<HashMap<_, _>>();
-    if aliases.is_empty() {
-        return;
-    }
-
     for core in cores {
         let module = core.module.clone();
         let imports = core
@@ -50,6 +55,14 @@ pub(super) fn expand_transparent_aliases(cores: &mut [CoreModule]) {
             .map(|import| import.module.clone())
             .collect::<Vec<_>>();
         for declaration in &mut core.types {
+            // The Effect intrinsic survives pruning of its source `run`
+            // declaration. Retain the same expanded generic schema used by its
+            // operands so result inference can use the canonical type instead.
+            if module == "std.core.Effect" && declaration.name == "Effect" {
+                if let Some(body) = &mut declaration.core_body {
+                    *body = resolve(body, &module, &imports, &aliases, &mut HashSet::new());
+                }
+            }
             if let Some(CoreType::Struct { fields, .. }) = &mut declaration.core_body {
                 for field in fields {
                     field.ty = resolve(&field.ty, &module, &imports, &aliases, &mut HashSet::new());
@@ -179,12 +192,29 @@ fn resolve(
     visiting: &mut HashSet<String>,
 ) -> CoreType {
     let rebuilt = match ty {
+        // Unit's public alias and source sentinel share one native storage type,
+        // including inside callback signatures and generic aggregate arguments.
+        CoreType::AtomLiteral(value) if value == "unit" => CoreType::Named("Unit".into()),
         CoreType::Apply { constructor, args } => {
             let args = args
                 .iter()
                 .map(|arg| resolve(arg, module, imports, aliases, visiting))
                 .collect::<Vec<_>>();
+            // The standard opaque List owns the builtin list representation.
+            // Qualification must not introduce a second managed identity, and
+            // unrelated nominal types named List must remain distinct.
+            if constructor == "std.collections.List.List" && args.len() == 1 {
+                return CoreType::List(Box::new(args[0].clone()));
+            }
             if let Some((key, alias)) = find_alias(constructor, module, imports, aliases) {
+                // Nominal struct applications keep their type arguments in
+                // their managed identity; only transparent aliases erase them.
+                if matches!(alias.body, CoreType::Struct { .. }) && !alias.params.is_empty() {
+                    return CoreType::Apply {
+                        constructor: key,
+                        args,
+                    };
+                }
                 if alias.params.len() == args.len() && visiting.insert(key.clone()) {
                     let values = alias
                         .params
@@ -261,12 +291,14 @@ fn resolve(
                 .collect(),
             return_type: Box::new(resolve(return_type, module, imports, aliases, visiting)),
         },
-        CoreType::Union(types) => CoreType::Union(
-            types
-                .iter()
-                .map(|ty| resolve(ty, module, imports, aliases, visiting))
-                .collect(),
-        ),
+        CoreType::Union(types) => {
+            CoreType::Union(super::super::structured_case::canonical_atom_union(
+                types
+                    .iter()
+                    .map(|ty| resolve(ty, module, imports, aliases, visiting))
+                    .collect(),
+            ))
+        }
         _ => ty.clone(),
     };
     rebuilt
@@ -370,11 +402,13 @@ fn resolve_expr(
         CoreExpr::Cast { expr, target_type } => {
             resolve_type(target_type);
             if let CoreExpr::ConstructorCall {
+                type_args,
                 constructor,
                 constructor_identity,
                 args,
             } = expr.as_mut()
             {
+                type_args.iter_mut().for_each(&mut resolve_type);
                 for arg in args.iter_mut() {
                     resolve_expr(arg, module, imports, aliases);
                 }
@@ -404,11 +438,14 @@ fn resolve_expr(
                 | CoreIntrinsicId::VmProcessCancel(ty)
                 | CoreIntrinsicId::MemoryLayoutOf(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
-                | CoreIntrinsicId::MemoryRetainedSize(ty) => resolve_type(ty),
+                | CoreIntrinsicId::MemoryRetainedSize(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty) => resolve_type(ty),
                 CoreIntrinsicId::NativeOperation {
                     parameter_types, ..
                 } => parameter_types.iter_mut().for_each(&mut resolve_type),
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
@@ -437,6 +474,7 @@ fn resolve_expr(
         } => {
             resolve_expr(expr, module, imports, aliases);
             for generator in generators {
+                resolve_pattern(&mut generator.pattern, module, imports, aliases);
                 resolve_expr(&mut generator.source, module, imports, aliases);
             }
             for guard in guards {
@@ -445,6 +483,7 @@ fn resolve_expr(
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
+                resolve_pattern(&mut binding.pattern, module, imports, aliases);
                 resolve_expr(&mut binding.value, module, imports, aliases);
             }
             resolve_expr(body, module, imports, aliases);
@@ -466,29 +505,99 @@ fn resolve_expr(
             }
         }
         CoreExpr::ConstructorCall {
+            type_args,
             constructor,
             constructor_identity,
             args,
         } => {
+            type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args.iter_mut() {
                 resolve_expr(arg, module, imports, aliases);
             }
             let identity = constructor_identity.as_deref().unwrap_or(constructor);
+            if let Some(record) =
+                explicit_struct_constructor(identity, type_args, args, module, imports, aliases)
+            {
+                *expr = record;
+                return;
+            }
+            if let Some((canonical, alias)) = find_alias(identity, module, imports, aliases) {
+                if matches!(
+                    canonical.as_str(),
+                    "std.core.Effect.Mapped" | "std.core.Effect.FlatMap"
+                ) {
+                    // Retain the canonical checked storage witness even for
+                    // these non-generic aliases. Effect callback admission must
+                    // not depend on which helper constructed the descriptor.
+                    let target_type = resolve(
+                        &alias.body,
+                        &alias.module,
+                        imports,
+                        aliases,
+                        &mut HashSet::new(),
+                    );
+                    let tag = if canonical == "std.core.Effect.Mapped" {
+                        "mapped"
+                    } else {
+                        "flat_map"
+                    };
+                    let mut items = vec![CoreExpr::Atom(tag.to_string())];
+                    items.append(args);
+                    *expr = CoreExpr::Cast {
+                        expr: Box::new(CoreExpr::Tuple(items)),
+                        target_type,
+                    };
+                    return;
+                }
+            }
             if let Some(tag) =
                 transparent_alias_constructor_tag(identity, args.len(), module, imports, aliases)
             {
+                let target_type = (!type_args.is_empty()).then(|| {
+                    resolve(
+                        &CoreType::Apply {
+                            constructor: identity.to_string(),
+                            args: type_args.clone(),
+                        },
+                        module,
+                        imports,
+                        aliases,
+                        &mut HashSet::new(),
+                    )
+                });
                 let mut items = Vec::with_capacity(args.len().saturating_add(1));
                 items.push(CoreExpr::Atom(tag));
                 items.append(args);
-                *expr = CoreExpr::Tuple(items);
+                let tuple = CoreExpr::Tuple(items);
+                *expr = match target_type {
+                    Some(target_type) => CoreExpr::Cast {
+                        expr: Box::new(tuple),
+                        target_type,
+                    },
+                    None => tuple,
+                };
             }
         }
-        CoreExpr::RemoteCall { args, .. } | CoreExpr::Call { args, .. } => {
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                *ty = resolve(ty, module, imports, aliases, &mut HashSet::new());
+            }
             for arg in args {
                 resolve_expr(arg, module, imports, aliases);
             }
         }
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            type_args.iter_mut().for_each(&mut resolve_type);
             for arg in args {
                 resolve_expr(arg, module, imports, aliases);
             }
@@ -508,8 +617,21 @@ fn resolve_expr(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => resolve_expr(base, module, imports, aliases),
+        | CoreExpr::UnaryOp { operand: base, .. } => resolve_expr(base, module, imports, aliases),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            for pattern in params {
+                resolve_pattern(pattern, module, imports, aliases);
+            }
+            parameter_types
+                .iter_mut()
+                .flatten()
+                .for_each(&mut resolve_type);
+            resolve_expr(body, module, imports, aliases);
+        }
         CoreExpr::Case { scrutinee, clauses } => {
             resolve_expr(scrutinee, module, imports, aliases);
             for clause in clauses {
@@ -528,6 +650,7 @@ fn resolve_expr(
         } => {
             resolve_expr(body, module, imports, aliases);
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
+                resolve_pattern(&mut clause.pattern, module, imports, aliases);
                 if let Some(guard) = &mut clause.guard {
                     resolve_expr(guard, module, imports, aliases);
                 }
@@ -561,6 +684,62 @@ fn resolve_expr(
         | CoreExpr::Var(_)
         | CoreExpr::RemoteFunRef { .. } => {}
     }
+}
+
+/// Materializes a generic struct with its nominal application and checked
+/// field witnesses, rather than the declaration's unresolved layout template.
+fn explicit_struct_constructor(
+    identity: &str,
+    type_args: &[CoreType],
+    args: &[CoreExpr],
+    module: &str,
+    imports: &[String],
+    aliases: &HashMap<String, Alias>,
+) -> Option<CoreExpr> {
+    if type_args.is_empty() {
+        return None;
+    }
+    let (canonical, alias) = find_alias(identity, module, imports, aliases)?;
+    let CoreType::Struct { fields, .. } = &alias.body else {
+        return None;
+    };
+    if fields.len() != args.len() || alias.params.len() != type_args.len() {
+        return None;
+    }
+    let values = alias
+        .params
+        .iter()
+        .cloned()
+        .zip(type_args.iter().cloned())
+        .collect();
+    let fields = fields
+        .iter()
+        .zip(args)
+        .map(|(field, value)| CoreRecordExprField {
+            key: field.name.clone(),
+            required: true,
+            value: CoreExpr::Cast {
+                expr: Box::new(value.clone()),
+                target_type: resolve(
+                    &substitute(&field.ty, &values),
+                    &alias.module,
+                    imports,
+                    aliases,
+                    &mut HashSet::new(),
+                ),
+            },
+        })
+        .collect();
+    Some(CoreExpr::Cast {
+        expr: Box::new(CoreExpr::RecordConstruct {
+            name: canonical.clone(),
+            fields,
+        }),
+        target_type: CoreType::Apply {
+            constructor: canonical,
+            args: type_args.to_vec(),
+        },
+    })
 }
 
 fn transparent_alias_constructor_tag(

@@ -1,0 +1,495 @@
+module durable_storage.
+
+import std.collections.{Map, Set}.
+import std.test.Test.{assert_equal, assert_true}.
+import std.vm.BitString.{from_uint_be}.
+import std.vm.{DistributedState, DistributedStorage}.
+
+pub type Ready.
+
+pub durable_replication_is_unsupported(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let before = adapter.atomic_append_proof();
+    let required = adapter.require_cluster_replication();
+    let snapshot = empty_checkpoint("never-replicated", DistributedStorage.proof_sequence(before) + 1);
+    let rejected = adapter.replicate_snapshot(snapshot);
+    let missing = adapter.load_snapshot("never-replicated");
+    let unchanged = adapter.atomic_append_proof();
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal(false, adapter.can_cluster_replicate())
+        and assert_equal("unsupported", DistributedStorage.kind(required))
+        and assert_equal("unsupported", DistributedStorage.kind(rejected))
+        and assert_equal("unsupported_operation", DistributedStorage.reason(rejected))
+        and assert_equal(true, DistributedStorage.is_failure(rejected))
+        and assert_equal("snapshot_missing", DistributedStorage.kind(missing))
+        and assert_equal(
+    DistributedStorage.proof_sequence(before),
+    DistributedStorage.proof_sequence(unchanged),
+).
+
+pub local_storage_lifecycle(): Bool ->
+    let policy = DistributedStorage.force_local();
+    let adapter = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let first = empty_checkpoint("first", 1);
+    let token = adapter.compare_and_swap_token();
+    let appended = adapter.append(first);
+    let obsolete = adapter.append(empty_checkpoint("obsolete", 1));
+    let second = empty_checkpoint("second", 2);
+    let stale = adapter.compare_and_swap_append(second, token);
+    let failed = adapter.transactional_batch_append([second, first]);
+    let missing = adapter.load_snapshot("second");
+    let batch = adapter.transactional_batch_append([second, empty_checkpoint("third", 3)]);
+    let batch_proof = adapter.transactional_batch_proof();
+    let replay = adapter.append(first);
+    let view = adapter.load_snapshot("first");
+    let proof = adapter.snapshot_isolation_proof("first");
+    let compacted = adapter.compact(2);
+    let schema = adapter.migrate_schema(1, 2);
+    let schema_proof = adapter.schema_migration_proof();
+    let wrong_schema = adapter.append(empty_checkpoint("fourth", 4));
+    let fourth_state = DistributedState.store();
+    let fourth = DistributedStorage.checkpoint_with_schema("fourth", 4, 2, fourth_state.export_snapshot());
+    let versioned = adapter.append(fourth);
+    let flushed = adapter.flush();
+    let unsupported = adapter.require_durable_flush();
+    let closed = adapter.close();
+    let denied = adapter.append(empty_checkpoint("fifth", 5));
+    let reopened = adapter.open();
+    let observed = adapter.atomic_append_proof();
+    let snapshot = DistributedStorage.loaded_snapshot(view);
+    let restored = snapshot.restore();
+    let independent = DistributedStorage.adapter(policy);
+    let independent_open = independent.open();
+    let independent_missing = independent.load_snapshot("first");
+    assert_true(DistributedStorage.policy_available(policy))
+        and assert_equal("force-local", adapter.policy_name())
+        and assert_equal("local_only", adapter.policy_mode_kind())
+        and assert_equal(false, adapter.can_cluster_replicate())
+        and assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("appended", DistributedStorage.kind(appended))
+        and assert_equal("stale_snapshot", DistributedStorage.kind(obsolete))
+        and assert_equal(1, DistributedStorage.local_sequence(obsolete))
+        and assert_equal(1, DistributedStorage.incoming_sequence(obsolete))
+        and assert_equal(0, DistributedStorage.expected_sequence(obsolete))
+        and assert_equal(0, DistributedStorage.actual_sequence(obsolete))
+        and assert_equal("reject_replay", DistributedStorage.recovery_action(obsolete))
+        and assert_equal(0, DistributedStorage.expected_entries(appended))
+        and assert_equal(0, DistributedStorage.persisted_entries(appended))
+        and assert_equal("cas_token_mismatch", DistributedStorage.kind(stale))
+        and assert_equal(0, DistributedStorage.expected_sequence(stale))
+        and assert_equal(1, DistributedStorage.actual_sequence(stale))
+        and assert_true(DistributedStorage.is_failure(failed))
+        and assert_equal(0, DistributedStorage.expected_entries(failed))
+        and assert_equal(0, DistributedStorage.persisted_entries(failed))
+        and assert_equal("snapshot_missing", DistributedStorage.kind(missing))
+        and assert_equal("batch_appended", DistributedStorage.kind(batch))
+        and assert_equal(2, DistributedStorage.batch_first_sequence(batch_proof))
+        and assert_equal(3, DistributedStorage.batch_last_sequence(batch_proof))
+        and assert_equal(2, DistributedStorage.batch_committed_count(batch_proof))
+        and assert_equal("appended", DistributedStorage.kind(replay))
+        and assert_equal(2, DistributedStorage.retained_snapshots(compacted))
+        and assert_equal("first", DistributedStorage.isolation_checkpoint_id(proof))
+        and assert_equal(1, DistributedStorage.isolation_sequence(proof))
+        and assert_equal(DistributedStorage.checksum(view), DistributedStorage.isolation_checksum(proof))
+        and assert_equal(2, DistributedStorage.actual_schema(schema))
+        and assert_equal(2, DistributedStorage.schema_version(schema_proof))
+        and assert_equal(3, DistributedStorage.schema_sequence(schema_proof))
+        and assert_equal("schema_migration_mismatch", DistributedStorage.kind(wrong_schema))
+        and assert_equal("appended", DistributedStorage.kind(versioned))
+        and assert_equal("flushed", DistributedStorage.kind(flushed))
+        and assert_equal("unsupported", DistributedStorage.kind(unsupported))
+        and assert_true(DistributedStorage.is_failure(unsupported))
+        and assert_equal("closed", DistributedStorage.kind(closed))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(denied))
+        and assert_equal(4, DistributedStorage.sequence(reopened))
+        and assert_equal(4, DistributedStorage.proof_sequence(observed))
+        and assert_equal(1, DistributedStorage.checkpoint_schema(snapshot))
+        and assert_equal(
+    1,
+    DistributedStorage.checkpoint_schema(
+        DistributedStorage.checkpoint("restored", 1, restored.export_snapshot()),
+    ),
+)
+        and assert_equal(0, DistributedStorage.sequence(independent_open))
+        and assert_equal("snapshot_missing", DistributedStorage.kind(independent_missing)).
+
+pub local_storage_cannot_issue_durable_proof(): Bool ->
+    let adapter = DistributedStorage.adapter(DistributedStorage.force_local());
+    let _opened = adapter.open();
+    let _flushed = adapter.flush();
+    let proof = adapter.durable_flush_proof();
+    DistributedStorage.durable_flush_sequence(proof) == 0.
+
+pub supervisor_identity_mismatch_is_rejected(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let appended = adapter.append(empty_checkpoint("unauthorized", 1));
+    let flushed = adapter.flush();
+    let reopened = adapter.open();
+    let fresh = DistributedStorage.adapter(policy);
+    let fresh_opened = fresh.open();
+    assert_equal("storage_identity_mismatch", DistributedStorage.kind(opened))
+        and assert_true(DistributedStorage.is_failure(opened))
+        and assert_equal("rebind_storage", DistributedStorage.recovery_action(opened))
+        and assert_equal(0, DistributedStorage.sequence(opened))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(appended))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(flushed))
+        and assert_equal("storage_identity_mismatch", DistributedStorage.kind(reopened))
+        and assert_equal("storage_identity_mismatch", DistributedStorage.kind(fresh_opened)).
+
+pub supervisor_identity_mismatch_cannot_issue_proof(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let _opened = adapter.open();
+    let proof = adapter.atomic_append_proof();
+    DistributedStorage.proof_sequence(proof) == 0.
+
+pub resources_without_authority_are_unsupported(): Bool ->
+    let adapter = DistributedStorage.adapter(DistributedStorage.force_local());
+    let opened = adapter.open();
+    let required = adapter.require_resource_handle_validation();
+    let registered = adapter.register_resource_handle("db.primary");
+    let validated = adapter.validate_resource_handles(["db.primary"]);
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("unsupported", DistributedStorage.kind(required))
+        and assert_equal("unsupported", DistributedStorage.kind(registered))
+        and assert_equal("unsupported", DistributedStorage.kind(validated))
+        and assert_equal("", DistributedStorage.missing_resource_handle(registered))
+        and assert_equal(0, DistributedStorage.validated_resource_count(validated)).
+
+pub resources_without_authority_cannot_issue_proof(): Bool ->
+    let adapter = DistributedStorage.adapter(DistributedStorage.force_local());
+    let _opened = adapter.open();
+    let proof = adapter.resource_handle_validation_proof();
+    DistributedStorage.resource_handle_count(proof) == 0.
+
+pub resource_validation_with_supervisor_authority(): Bool ->
+    let adapter = DistributedStorage.adapter(DistributedStorage.force_local());
+    let opened = adapter.open();
+    let appended = adapter.append(empty_checkpoint("local", 1));
+    let required = adapter.require_resource_handle_validation();
+    let initial = adapter.resource_handle_validation_proof();
+    let unknown = adapter.register_resource_handle("db.unknown");
+    let unregistered = adapter.validate_resource_handles(["db.primary"]);
+    let first = adapter.register_resource_handle("db.primary");
+    let replay = adapter.register_resource_handle("db.primary");
+    let second = adapter.register_resource_handle("db.secondary");
+    let validated = adapter.validate_resource_handles(["db.primary", "db.secondary"]);
+    let proof = adapter.resource_handle_validation_proof();
+    let duplicate = adapter.validate_resource_handles(["db.primary", "db.primary"]);
+    let failed = adapter.validate_resource_handles(["db.primary", "db.unknown"]);
+    let unchanged = adapter.resource_handle_validation_proof();
+    let empty = adapter.validate_resource_handles([]);
+    let empty_proof = adapter.resource_handle_validation_proof();
+    let fresh = DistributedStorage.adapter(DistributedStorage.force_local());
+    let fresh_open = fresh.open();
+    let fresh_missing = fresh.validate_resource_handles(["db.primary"]);
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("appended", DistributedStorage.kind(appended))
+        and assert_equal("opened", DistributedStorage.kind(required))
+        and assert_equal(0, DistributedStorage.resource_handle_count(initial))
+        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(unknown))
+        and assert_equal("db.unknown", DistributedStorage.missing_resource_handle(unknown))
+        and assert_equal("recover_resource_handle", DistributedStorage.recovery_action(unknown))
+        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(unregistered))
+        and assert_equal("resource_handles_validated", DistributedStorage.kind(first))
+        and assert_equal(1, DistributedStorage.validated_resource_count(first))
+        and assert_equal(1, DistributedStorage.validated_resource_count(replay))
+        and assert_equal(2, DistributedStorage.validated_resource_count(second))
+        and assert_equal("resource_handles_validated", DistributedStorage.kind(validated))
+        and assert_equal(2, DistributedStorage.validated_resource_count(validated))
+        and assert_equal(2, DistributedStorage.resource_handle_count(proof))
+        and assert_equal(1, DistributedStorage.resource_handle_sequence(proof))
+        and assert_equal("invalid_request", DistributedStorage.kind(duplicate))
+        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(failed))
+        and assert_equal(2, DistributedStorage.resource_handle_count(unchanged))
+        and assert_equal(1, DistributedStorage.resource_handle_sequence(unchanged))
+        and assert_equal(0, DistributedStorage.validated_resource_count(empty))
+        and assert_equal(0, DistributedStorage.resource_handle_count(empty_proof))
+        and assert_equal(1, DistributedStorage.resource_handle_sequence(empty_proof))
+        and assert_equal(2, DistributedStorage.resource_handle_count(proof))
+        and assert_equal("opened", DistributedStorage.kind(fresh_open))
+        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(fresh_missing)).
+
+pub resource_registration_rejects_replaced_backend(): Bool ->
+    let adapter = DistributedStorage.adapter(DistributedStorage.force_local());
+    let opened = adapter.open();
+    let first = adapter.register_resource_handle("db.primary");
+    let rejected = adapter.register_resource_handle("db.secondary");
+    let proof = adapter.resource_handle_validation_proof();
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("resource_handles_validated", DistributedStorage.kind(first))
+        and assert_equal("resource_handle_validation_failed", DistributedStorage.kind(rejected))
+        and assert_equal("db.secondary", DistributedStorage.missing_resource_handle(rejected))
+        and assert_equal(0, DistributedStorage.validated_resource_count(rejected))
+        and assert_equal(1, DistributedStorage.resource_handle_count(proof)).
+
+pub unbound_open(): Bool ->
+    let adapter =
+        DistributedStorage.adapter(
+            DistributedStorage.policy("primary", DistributedStorage.durable(), true),
+        );
+    let denied = adapter.open();
+    let closed_flush = adapter.flush();
+    assert_equal(false, adapter.policy_available())
+        and assert_equal("storage_unavailable", DistributedStorage.kind(denied))
+        and assert_equal("open", DistributedStorage.operation_kind(denied))
+        and assert_equal("durable", DistributedStorage.mode_kind(denied))
+        and assert_true(DistributedStorage.is_failure(denied))
+        and assert_equal(false, DistributedStorage.is_success(denied))
+        and assert_equal("storage_unavailable", DistributedStorage.reason(denied))
+        and assert_equal(false, DistributedStorage.requires_recovery(denied))
+        and assert_equal("", DistributedStorage.recovery_action(denied))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(closed_flush)).
+
+pub empty_checkpoint(id: String, sequence: Int): std.vm.DistributedStorage.Snapshot ->
+    let store = DistributedState.store();
+    DistributedStorage.checkpoint(id, sequence, store.export_snapshot()).
+
+pub transactional_updates(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let competing = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let competing_opened = competing.open();
+    let token = adapter.compare_and_swap_token();
+    let second = competing.append(empty_checkpoint("second", 2));
+    let obsolete = adapter.append(empty_checkpoint("obsolete", 1));
+    let third = empty_checkpoint("third", 3);
+    let stale = adapter.compare_and_swap_append(third, token);
+    let next_token = adapter.compare_and_swap_token();
+    let appended = adapter.compare_and_swap_append(third, next_token);
+    let invalid_batch = adapter.transactional_batch_append([empty_checkpoint("fourth", 4), third]);
+    let failed_proof = adapter.transactional_batch_proof();
+    let before_batch = adapter.atomic_append_proof();
+    let batch =
+        adapter
+            .transactional_batch_append(
+                [empty_checkpoint("fourth", 4), empty_checkpoint("fifth", 5)],
+            );
+    let batch_proof = adapter.transactional_batch_proof();
+    let migrated = adapter.migrate_schema(1, 2);
+    let stale_schema = adapter.migrate_schema(1, 3);
+    let schema_proof = adapter.schema_migration_proof();
+    let fourth_view = adapter.snapshot_isolation_proof("fourth");
+    let fourth_before = adapter.load_snapshot("fourth");
+    let fourth_checksum = DistributedStorage.checksum(fourth_before);
+    let wrong_schema = adapter.append(empty_checkpoint("sixth", 6));
+    let before_versioned = adapter.atomic_append_proof();
+    let empty = DistributedState.store();
+    let versioned = DistributedStorage.checkpoint_with_schema("sixth", 6, 2, empty.export_snapshot());
+    let versioned_append = adapter.append(versioned);
+    let flushed = adapter.flush();
+    let flush_proof = adapter.durable_flush_proof();
+    let compacted = adapter.compact(5);
+    let closed = adapter.close();
+    let closed_append = adapter.append(versioned);
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("stale_snapshot", DistributedStorage.kind(obsolete))
+        and assert_equal(2, DistributedStorage.local_sequence(obsolete))
+        and assert_equal(1, DistributedStorage.incoming_sequence(obsolete))
+        and assert_equal("reject_replay", DistributedStorage.recovery_action(obsolete))
+        and assert_equal(0, DistributedStorage.expected_sequence(obsolete))
+        and assert_equal(0, DistributedStorage.actual_sequence(obsolete))
+        and assert_equal(0, DistributedStorage.local_sequence(stale))
+        and assert_equal(0, DistributedStorage.incoming_sequence(stale))
+        and assert_equal(0, DistributedStorage.expected_entries(invalid_batch))
+        and assert_equal(0, DistributedStorage.persisted_entries(invalid_batch))
+        and assert_equal("opened", DistributedStorage.kind(competing_opened))
+        and assert_equal("appended", DistributedStorage.kind(second))
+        and assert_equal("cas_token_mismatch", DistributedStorage.kind(stale))
+        and assert_equal(1, DistributedStorage.expected_sequence(stale))
+        and assert_equal(2, DistributedStorage.actual_sequence(stale))
+        and assert_equal("reload_snapshot", DistributedStorage.recovery_action(stale))
+        and assert_equal("appended", DistributedStorage.kind(appended))
+        and assert_equal("invalid_request", DistributedStorage.kind(invalid_batch))
+        and assert_equal(0, DistributedStorage.batch_committed_count(failed_proof))
+        and assert_equal(3, DistributedStorage.proof_sequence(before_batch))
+        and assert_equal("batch_appended", DistributedStorage.kind(batch))
+        and assert_equal(4, DistributedStorage.batch_first_sequence(batch_proof))
+        and assert_equal(5, DistributedStorage.batch_last_sequence(batch_proof))
+        and assert_equal(2, DistributedStorage.batch_committed_count(batch_proof))
+        and assert_equal("schema_migrated", DistributedStorage.kind(migrated))
+        and assert_equal(2, DistributedStorage.actual_schema(migrated))
+        and assert_equal("fourth", DistributedStorage.isolation_checkpoint_id(fourth_view))
+        and assert_equal(4, DistributedStorage.isolation_sequence(fourth_view))
+        and assert_equal(fourth_checksum, DistributedStorage.isolation_checksum(fourth_view))
+        and assert_equal("schema_migration_mismatch", DistributedStorage.kind(stale_schema))
+        and assert_equal(1, DistributedStorage.expected_schema(stale_schema))
+        and assert_equal(2, DistributedStorage.actual_schema(stale_schema))
+        and assert_equal(2, DistributedStorage.schema_version(schema_proof))
+        and assert_equal(5, DistributedStorage.schema_sequence(schema_proof))
+        and assert_equal("schema_migration_mismatch", DistributedStorage.kind(wrong_schema))
+        and assert_equal(5, DistributedStorage.proof_sequence(before_versioned))
+        and assert_equal("appended", DistributedStorage.kind(versioned_append))
+        and assert_equal("sixth", DistributedStorage.checkpoint_id(versioned_append))
+        and assert_true(DistributedStorage.checksum(versioned_append) > 0)
+        and assert_equal(0, DistributedStorage.expected_checksum(versioned_append))
+        and assert_equal("flushed", DistributedStorage.kind(flushed))
+        and assert_equal(6, DistributedStorage.durable_flush_sequence(flush_proof))
+        and assert_equal("compacted", DistributedStorage.kind(compacted))
+        and assert_equal(2, DistributedStorage.retained_snapshots(compacted))
+        and assert_equal(6, DistributedStorage.sequence(compacted))
+        and assert_equal("closed", DistributedStorage.kind(closed))
+        and assert_equal("storage_unavailable", DistributedStorage.kind(closed_append)).
+
+pub restore_transactions(): Bool ->
+    let adapter =
+        DistributedStorage.adapter(
+            DistributedStorage.policy("primary", DistributedStorage.durable(), true),
+        );
+    let opened = adapter.open();
+    let schema = adapter.schema_migration_proof();
+    let old_schema = adapter.load_snapshot("fifth");
+    let new_schema = adapter.load_snapshot("sixth");
+    let missing = adapter.load_snapshot("cart");
+    let old_snapshot = DistributedStorage.loaded_snapshot(old_schema);
+    let new_snapshot = DistributedStorage.loaded_snapshot(new_schema);
+    let restored = new_snapshot.restore();
+    let written =
+        restored
+            .write(
+                DistributedState.scope("restored", "schema"),
+                "writer",
+                Ready,
+                DistributedState.version(1, "writer"),
+                DistributedState.policy("last_writer_wins"),
+            );
+    let compacted_replay = adapter.append(empty_checkpoint("cart", 1));
+    let proof = adapter.atomic_append_proof();
+    let closed = adapter.close();
+    assert_equal(6, DistributedStorage.sequence(opened))
+        and assert_equal(2, DistributedStorage.schema_version(schema))
+        and assert_equal(5, DistributedStorage.schema_sequence(schema))
+        and assert_equal(1, DistributedStorage.checkpoint_schema(old_snapshot))
+        and assert_equal(2, DistributedStorage.checkpoint_schema(new_snapshot))
+        and assert_equal("applied", DistributedState.kind(written))
+        and assert_equal("snapshot_missing", DistributedStorage.kind(missing))
+        and assert_equal("cart", DistributedStorage.checkpoint_id(missing))
+        and assert_equal("sixth", DistributedStorage.checkpoint_id(new_schema))
+        and assert_true(DistributedStorage.checksum(new_schema) > 0)
+        and assert_true(DistributedStorage.is_failure(missing))
+        and assert_equal("stale_snapshot", DistributedStorage.kind(compacted_replay))
+        and assert_equal(6, DistributedStorage.local_sequence(compacted_replay))
+        and assert_equal(1, DistributedStorage.incoming_sequence(compacted_replay))
+        and assert_equal("reject_replay", DistributedStorage.recovery_action(compacted_replay))
+        and assert_equal(0, DistributedStorage.expected_sequence(compacted_replay))
+        and assert_equal(0, DistributedStorage.actual_sequence(compacted_replay))
+        and assert_equal(6, DistributedStorage.proof_sequence(proof))
+        and assert_equal("closed", DistributedStorage.kind(closed)).
+
+pub corrupted_checkpoint_is_rejected(): Bool ->
+    let adapter =
+        DistributedStorage.adapter(
+            DistributedStorage.policy("primary", DistributedStorage.durable(), true),
+        );
+    let opened = adapter.open();
+    let corrupted = adapter.load_snapshot("sixth");
+    let sequence = adapter.atomic_append_proof();
+    let closed = adapter.close();
+    assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("checksum_mismatch", DistributedStorage.kind(corrupted))
+        and assert_equal("sixth", DistributedStorage.checkpoint_id(corrupted))
+        and assert_true(DistributedStorage.is_failure(corrupted))
+        and assert_equal("repair_snapshot", DistributedStorage.recovery_action(corrupted))
+        and assert_equal(
+    DistributedStorage.expected_checksum(corrupted),
+    DistributedStorage.checksum(corrupted),
+)
+        and assert_true(DistributedStorage.checksum(corrupted) > 0)
+        and assert_equal(6, DistributedStorage.proof_sequence(sequence))
+        and assert_equal("closed", DistributedStorage.kind(closed)).
+
+pub corrupted_checkpoint_cannot_issue_proof(): Bool ->
+    let adapter =
+        DistributedStorage.adapter(
+            DistributedStorage.policy("primary", DistributedStorage.durable(), true),
+        );
+    let _opened = adapter.open();
+    let proof = adapter.snapshot_isolation_proof("sixth");
+    DistributedStorage.isolation_sequence(proof) == 6.
+
+pub missing_checkpoint_cannot_issue_proof(): Bool ->
+    let adapter =
+        DistributedStorage.adapter(
+            DistributedStorage.policy("primary", DistributedStorage.durable(), true),
+        );
+    let _opened = adapter.open();
+    let proof = adapter.snapshot_isolation_proof("absent");
+    DistributedStorage.isolation_sequence(proof) == 0.
+
+pub write_checkpoint(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let store = DistributedState.store();
+    let scope = DistributedState.scope("cart", "alice");
+    let version = DistributedState.version(1, "writer");
+    let state_policy = DistributedState.policy("last_writer_wins");
+    let payload = {Map({"quantity", 42}), Set(1, 2), from_uint_be(5, 3), Ready};
+    let written = store.write(scope, "writer", payload, version, state_policy);
+    let snapshot = DistributedStorage.checkpoint("cart", 1, store.export_snapshot());
+    let appended = adapter.append(snapshot);
+    let flushed = adapter.flush();
+    let closed = adapter.close();
+    assert_true(DistributedStorage.policy_available(policy))
+        and assert_equal("opened", DistributedStorage.kind(opened))
+        and assert_equal("applied", DistributedState.kind(written))
+        and assert_equal("appended", DistributedStorage.kind(appended))
+        and assert_equal(1, DistributedStorage.sequence(appended))
+        and assert_equal("flushed", DistributedStorage.kind(flushed))
+        and assert_equal("closed", DistributedStorage.kind(closed)).
+
+pub read_checkpoint(): Bool ->
+    let policy = DistributedStorage.policy("primary", DistributedStorage.durable(), true);
+    let adapter = DistributedStorage.adapter(policy);
+    let opened = adapter.open();
+    let loaded = adapter.load_snapshot("cart");
+    let snapshot = DistributedStorage.loaded_snapshot(loaded);
+    let restored = snapshot.restore();
+    let scope = DistributedState.scope("cart", "alice");
+    let version = DistributedState.version(1, "writer");
+    let state_policy = DistributedState.policy("last_writer_wins");
+    let payload = {Map({"quantity", 42}), Set(1, 2), from_uint_be(5, 3), Ready};
+    let replay = restored.write(scope, "writer", payload, version, state_policy);
+    let conflict =
+        restored
+            .write(
+                scope,
+                "writer",
+                {Map({"quantity", 99}), Set(1, 2), from_uint_be(5, 3), Ready},
+                version,
+                state_policy,
+            );
+    let closed = adapter.close();
+    assert_equal(1, DistributedStorage.sequence(opened))
+        and assert_equal("snapshot_loaded", DistributedStorage.kind(loaded))
+        and assert_equal("replayed", DistributedState.kind(replay))
+        and assert_equal("conflict", DistributedState.kind(conflict))
+        and assert_equal("closed", DistributedStorage.kind(closed)).
+
+pub main(): Bool ->
+    if {
+        false -> write_checkpoint()
+            and read_checkpoint()
+            and unbound_open()
+            and transactional_updates()
+            and restore_transactions()
+            and durable_replication_is_unsupported()
+            and corrupted_checkpoint_is_rejected()
+            and corrupted_checkpoint_cannot_issue_proof()
+            and missing_checkpoint_cannot_issue_proof()
+            and local_storage_lifecycle()
+            and local_storage_cannot_issue_durable_proof()
+            and supervisor_identity_mismatch_is_rejected()
+            and supervisor_identity_mismatch_cannot_issue_proof()
+            and resources_without_authority_are_unsupported()
+            and resources_without_authority_cannot_issue_proof()
+            and resource_validation_with_supervisor_authority()
+            and resource_registration_rejects_replaced_backend();
+        true -> true
+    }.

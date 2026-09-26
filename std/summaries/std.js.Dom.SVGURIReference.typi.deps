@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGURIReference
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7489520505412998891
-interface_hash=18242669228163907152
-interface_doc_hash=18242669228163907152
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3392520444485933191
+interface_hash=10491497765781261039
+interface_doc_hash=10491497765781261039
 deps=0

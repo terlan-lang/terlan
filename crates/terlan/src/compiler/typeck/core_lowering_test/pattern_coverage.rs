@@ -241,6 +241,7 @@ pub call_it(): Int ->\n\
     assert_eq!(
         function.clauses[0].body.core_expr,
         Some(CoreExpr::Call {
+            type_args: Vec::new(),
             function: "identity".to_string(),
             args: vec![CoreExpr::Int(1)],
         })
@@ -370,10 +371,7 @@ pub(super) fn syntax_output_lowering_to_core_records_compound_core_type_payloads
         ))
     );
     assert_eq!(core_type_from_text("Atom[\"\"]"), None);
-    assert_eq!(
-        core_type_from_text(": none"),
-        Some(CoreType::AtomLiteral("none".to_string()))
-    );
+    assert_eq!(core_type_from_text(": none"), None);
     assert_eq!(
         core_type_from_text("Atom[\"Elixir.Module\"]"),
         Some(CoreType::AtomLiteral("Elixir.Module".to_string()))
@@ -739,6 +737,7 @@ pub(super) fn syntax_output_lowering_to_core_records_constructor_call_candidate(
     assert_eq!(
         core_expr,
         Some(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: "Ok".to_string(),
             constructor_identity: None,
             args: vec![CoreExpr::Int(1)],
@@ -771,6 +770,7 @@ pub(super) fn syntax_output_lowering_to_core_records_constructor_call_candidate(
 pub(super) fn syntax_output_lowering_to_core_remote_call_policy_switch_stays_proof_model_required()
 {
     let remote_call = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
         module: "Eq".to_string(),
         function: "equal".to_string(),
         args: vec![

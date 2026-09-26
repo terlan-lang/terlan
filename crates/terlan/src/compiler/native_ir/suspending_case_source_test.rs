@@ -6,6 +6,357 @@ use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax
 
 use super::{emit_native_application_object, NativeModule};
 
+/// A synchronous guard prefix after suspension must retain its terminal union ABI.
+#[test]
+fn grouped_guards_resume_with_a_managed_nullary_option() {
+    let source = r#"
+module grouped_option_resume_source.
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+@compiler.native {probe.read}
+read(): Bool -> native.
+pub evaluate(): Option[Int] ->
+    let { true <- read(); true <- read() } else { _ -> Some(1) };
+    None.
+"#;
+    let syntax = parse_module_as_syntax_output(source).expect("parse grouped Option guards");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).expect("lower grouped Option guards");
+    let mut resumed = 0;
+    for continuation in modules.iter().flat_map(|module| &module.continuations) {
+        if continuation.source_function == "evaluate" {
+            resumed += 1;
+            assert!(matches!(
+                continuation.return_type,
+                super::NativeType::ManagedRef(_)
+            ));
+            assert_managed_terminal(&continuation.body);
+        }
+    }
+    assert!(resumed > 0, "fixture must exercise a resumed entry");
+    emit_native_application_object("grouped_option_resume", &modules)
+        .expect("emit managed Option completion");
+}
+
+/// Checks terminal positions only; scalar atoms remain valid in predicates.
+fn assert_managed_terminal(value: &super::NativeExpr) {
+    match value {
+        super::NativeExpr::Let { body, .. } => assert_managed_terminal(body),
+        super::NativeExpr::If { clauses } => {
+            for (_, body) in clauses {
+                assert_managed_terminal(body);
+            }
+        }
+        super::NativeExpr::AtomLiteral(value) => panic!("unboxed managed result: {value}"),
+        _ => {}
+    }
+}
+
+/// A discarded Unit-valued assertion check must still terminate on failure.
+#[test]
+fn script_assertion_failure_survives_a_discarded_unit_check() {
+    let syntax = crate::terlan_syntax::parse_script_as_syntax_output(
+        "import std.vm.Process.\nassert(false);\nProcess.yield_now();\nUnit.\n",
+        "fixture.AssertFailure",
+    )
+    .expect("parse failed assertion script");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let body = core
+        .functions
+        .iter()
+        .find(|function| function.name == "main")
+        .and_then(|function| function.clauses.first())
+        .and_then(|clause| clause.body.core_expr.as_ref())
+        .expect("main core body");
+    assert!(
+        body.contract_text().contains("vm.process.fail"),
+        "{}",
+        body.contract_text()
+    );
+    let modules = NativeModule::lower_application(&[&core]).expect("lower failed assertion");
+    let mut failures = 0;
+    for module in &modules {
+        for body in module
+            .functions
+            .iter()
+            .map(|function| &function.body)
+            .chain(
+                module
+                    .continuations
+                    .iter()
+                    .map(|continuation| &continuation.body),
+            )
+        {
+            super::call_composition::walk_native_expr(body, &mut |expression| {
+                if matches!(
+                    expression,
+                    super::NativeExpr::Suspend {
+                        operation: super::NativeTransitionOperation::Failure,
+                        ..
+                    }
+                ) {
+                    failures += 1;
+                }
+            });
+        }
+    }
+    assert!(
+        failures > 0,
+        "failure was discarded from {}",
+        body.contract_text()
+    );
+}
+
+/// An outer Boolean branch must not become an input to an inner Result join.
+#[test]
+fn conditional_fallible_binding_keeps_its_join_inside_the_outer_branch() {
+    let binding = "(let Ok(value) <- if { choice -> read_left(); true -> read_right() } else { _ -> false }; value > 0)";
+    for expression in [
+        format!("if {{ enabled -> {binding}; true -> false }}"),
+        format!("if {{ not enabled -> false; true -> {binding} }}"),
+        format!("enabled and {binding}"),
+        format!("enabled or {binding}"),
+    ] {
+        let source = format!(
+            r#"
+module nested_completion_source.
+pub type Ok[T] = {{Atom["ok"], value: T}}.
+pub type Err[E] = {{Atom["error"], reason: E}}.
+pub type Result[T, E] = Ok[T] | Err[E].
+@compiler.native {{probe.left}}
+read_left(): Result[Int, String] -> native.
+@compiler.native {{probe.right}}
+read_right(): Result[Int, String] -> native.
+pub evaluate(enabled: Bool, choice: Bool): Bool -> {expression}.
+"#,
+        );
+        let syntax = parse_module_as_syntax_output(&source).expect("parse nested completion");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+        assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+        let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        let modules = NativeModule::lower_application(&[&core])
+            .unwrap_or_else(|error| panic!("{expression}: {error}"));
+        emit_native_application_object("nested_completion", &modules)
+            .expect("emit branch-local completion object");
+    }
+}
+
+/// A transparent constructor tag stays available after evaluating its payload.
+#[test]
+fn mixed_result_branches_retain_tags_across_suspending_payload_calls() {
+    for expression in [
+        "if { enabled -> read_result(); true -> Ok(read()) }",
+        "if { enabled -> Ok(read()); true -> read_result() }",
+    ] {
+        let source = format!(
+            r#"
+module suspending_result_tag_source.
+
+pub type Ok[T] = {{Atom["ok"], value: T}}.
+pub type Err[E] = {{Atom["error"], reason: E}}.
+pub type Result[T, E] = Ok[T] | Err[E].
+
+@compiler.native {{probe.read}}
+read(): Int -> native.
+
+@compiler.native {{probe.read_result}}
+read_result(): Result[Int, String] -> native.
+
+pub evaluate(enabled: Bool): Result[Int, String] ->
+    let result = {expression};
+    result.
+"#,
+        );
+        let syntax = parse_module_as_syntax_output(&source).expect("parse yielding Result");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+        assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+        let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        let modules = NativeModule::lower_application(&[&core])
+            .unwrap_or_else(|error| panic!("{expression}: {error}"));
+        emit_native_application_object("suspending_result_tag", &modules)
+            .expect("emit yielding Result constructor object");
+    }
+}
+
+/// Case-valued conditions must compose their scrutinee before choosing a branch.
+#[test]
+fn inline_case_condition_composes_a_suspending_result_scrutinee() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module inline_case_condition_source.
+
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Result[T, E] = Ok[T] | Err[E].
+
+@compiler.native {probe.read}
+read(): Result[Int, String] -> native.
+
+pub evaluate(): Int ->
+    if {
+        case read() { Ok(value) -> value == 0; Err(_reason) -> false } -> 1;
+        true -> 0
+    }.
+"#,
+    )
+    .expect("parse inline case condition");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("compose the case scrutinee inside a conditional");
+    assert!(modules
+        .iter()
+        .any(|module| !module.continuations.is_empty()));
+    emit_native_application_object("inline_case_condition", &modules)
+        .expect("emit inline case condition object");
+}
+
+#[test]
+fn non_tail_recursive_native_calls_retain_their_post_call_continuation() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module suspending_recursive_source.
+
+@compiler.native {probe.read}
+read(value: Int): Int -> native.
+
+pub evaluate(count: Int): Int ->
+    if {
+        count == 0 -> 0;
+        true ->
+            let value = read(count);
+            let rest = evaluate(count - 1);
+            value + rest
+    }.
+"#,
+    )
+    .expect("parse non-tail recursive suspension fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower recursive suspended call with pending result consumption");
+    emit_native_application_object("suspending_recursive_source", &modules)
+        .expect("emit recursive suspended call with pending result consumption");
+}
+
+#[test]
+fn empty_first_nested_list_of_structs_survives_a_suspending_prefix() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module suspending_nested_list_source.
+
+pub struct Node { value: Int }.
+
+@compiler.native {probe.read}
+read(): Bool -> native.
+
+@compiler.native {probe.consume}
+consume(values: List[List[Node]]): Bool -> native.
+
+pub evaluate(): Bool ->
+    let matrix = [[], [Node(value = 7)], []];
+    let ready = read();
+    if { ready -> consume(matrix); true -> false }.
+"#,
+    )
+    .expect("parse nested empty-list suspension fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower nested empty-list prefix with its checked element layout");
+    emit_native_application_object("suspending_nested_list_source", &modules)
+        .expect("emit nested empty-list suspension object");
+}
+
+#[test]
+fn suspending_struct_result_projection_composes_before_boolean_control() {
+    for expression in [
+        "not read_summary().valid and read_summary().valid",
+        "not read_summary()#Summary.valid or read_summary()#Summary.valid",
+        "if { read_summary().valid -> read_summary().valid; true -> false }",
+    ] {
+        let source = format!(
+            r#"
+module suspending_projection_source.
+
+pub struct Summary {{ valid: Bool }}.
+
+@compiler.native {{probe.read}}
+read(): Bool -> native.
+
+read_summary(): Summary ->
+    let valid = read();
+    Summary(valid = valid).
+
+pub evaluate(): Bool -> {expression}.
+"#
+        );
+        let syntax = parse_module_as_syntax_output(&source)
+            .expect("parse suspending struct projection fixture");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+        assert!(diagnostics.is_empty(), "{expression}: {diagnostics:#?}");
+        let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        let modules = NativeModule::lower_application(&[&core])
+            .unwrap_or_else(|error| panic!("{expression}: {error}"));
+        emit_native_application_object("suspending_projection_source", &modules)
+            .expect("emit suspending struct projection object");
+    }
+}
+
+#[test]
+fn grouped_fallible_bindings_share_fallbacks_across_scalar_and_result_types() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module suspending_grouped_fallback_source.
+
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Result[T, E] = Ok[T] | Err[E].
+
+@compiler.native {probe.read}
+read(): Result[Int, String] -> native.
+
+pub evaluate(enabled: Bool): Result[Int, String] ->
+    let {
+        true <- enabled;
+        Ok(value) <- read()
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("disabled")
+    };
+    Ok(value).
+"#,
+    )
+    .expect("parse heterogeneous grouped fallback fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core])
+        .expect("lower typed heterogeneous fallbacks without matching a tuple on Bool");
+    emit_native_application_object("suspending_grouped_fallback_source", &modules)
+        .expect("emit heterogeneous grouped fallback object");
+}
+
 #[test]
 fn exhaustive_valued_union_arms_compose_suspending_native_calls() {
     let syntax = parse_module_as_syntax_output(

@@ -8,9 +8,9 @@ import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
-import std.io.Console.{eprintln}.
+import std.io.Console.{eprintln, println}.
 import std.io.{Archive, Directory, File}.
-import std.system.Process.
+import std.system.{Environment, Process}.
 import tvm_aot_platform_matrix.{ReleasePayload, ReleasePlatform, ReleaseSmoke}.
 
 import type std.core.Option.
@@ -199,6 +199,7 @@ raw_installer(
                 },
             )
             .with_working_directory(temporary)
+            .with_stdin("")
             .with_environment(installer_environment(temporary, platform, version))
             .without_environment(
                 ["GITHUB_TOKEN", "GH_TOKEN", "CARGO_REGISTRY_TOKEN", "TERLAN_REPOSITORY_ROOT"],
@@ -329,6 +330,15 @@ readiness_seal(root: String): String ->
     seal.
 
 write_staged_report(root: String, seal: String, artifact_hash: String): Bool ->
+    let output =
+        case Environment.get("TERLAN_STAGED_DISTRIBUTION_OUTPUT") {
+            Some(path) -> path;
+            None ->
+                ReleasePayload.child(
+                    root,
+                    "target/quality/release-staged-distribution-verification-report.json",
+                )
+        };
     let report =
         Json.object()
             .put("schema", Json.string("terlan.release-staged-distribution-verification.v1"))
@@ -345,18 +355,11 @@ write_staged_report(root: String, seal: String, artifact_hash: String): Bool ->
             .put("source_checkout_required", Json.bool(false));
     let {
         Ok(rendered) <- Json.stringify_pretty(report);
-        Ok(Unit) <-
-            File.write_text(
-                ReleasePayload.child(
-                    root,
-                    "target/quality/release-staged-distribution-verification-report.json",
-                ),
-                String.append(rendered, "\n"),
-            )
+        Ok(Unit) <- File.write_text(output, String.append(rendered, "\n"))
     } else {
         _ -> false
     };
-    true.
+    (let _printed = println("Staged distribution verification passed"); true).
 
 /**
  * Installs the sealed host artifact from a local mirror and proves rollback.

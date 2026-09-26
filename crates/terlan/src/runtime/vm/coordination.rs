@@ -1,487 +1,20 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
-use super::term_format::{encode_tetf_distribution_envelope, TetfDistributionEnvelope, TetfVmRef};
+use super::term_format::{
+    encode_tetf_distribution_envelope_bounded, TetfDistributionEnvelope, TetfVmRef,
+};
 use super::ReplValue;
 
 mod inbound;
 
 use inbound::validate_inbound_frame;
 
-/// Identity and capability metadata for one Terlan VM instance.
-///
-/// Inputs:
-/// - Application, VM, node, cluster, epoch, runtime version, and capabilities.
-///
-/// Output:
-/// - Stable metadata used by future transports and local multi-VM tests.
-///
-/// Transformation:
-/// - Keeps coordination explicit: two VM instances do not trust or route to
-///   each other until cluster/runtime and capability checks pass.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct VmCoordinationProfile {
-    app_id: String,
-    vm_id: String,
-    node_id: String,
-    cluster_id: String,
-    epoch: u64,
-    runtime_version: String,
-    capabilities: BTreeSet<String>,
-}
-
-impl VmCoordinationProfile {
-    /// Creates a validated coordination profile with deterministic capability ordering.
-    pub(crate) fn new(
-        app_id: impl Into<String>,
-        vm_id: impl Into<String>,
-        node_id: impl Into<String>,
-        cluster_id: impl Into<String>,
-        epoch: u64,
-        runtime_version: impl Into<String>,
-        capabilities: impl IntoIterator<Item = impl Into<String>>,
-    ) -> Result<Self, String> {
-        let app_id = app_id.into();
-        let vm_id = vm_id.into();
-        let node_id = node_id.into();
-        let cluster_id = cluster_id.into();
-        let runtime_version = runtime_version.into();
-        let capabilities = capabilities
-            .into_iter()
-            .map(Into::into)
-            .collect::<BTreeSet<String>>();
-
-        for (field, value) in [
-            ("app_id", app_id.as_str()),
-            ("vm_id", vm_id.as_str()),
-            ("node_id", node_id.as_str()),
-            ("cluster_id", cluster_id.as_str()),
-            ("runtime_version", runtime_version.as_str()),
-        ] {
-            if value.trim().is_empty() {
-                return Err(format!(
-                    "error[vm_coordination_profile]: `{field}` must not be empty"
-                ));
-            }
-        }
-        if epoch == 0 {
-            return Err("error[vm_coordination_profile]: `epoch` must be non-zero".to_string());
-        }
-        if capabilities.iter().any(|value| value.trim().is_empty()) {
-            return Err(
-                "error[vm_coordination_profile]: capability names must not be empty".to_string(),
-            );
-        }
-
-        Ok(Self {
-            app_id,
-            vm_id,
-            node_id,
-            cluster_id,
-            epoch,
-            runtime_version,
-            capabilities,
-        })
-    }
-
-    /// Returns whether this VM can coordinate with a peer at the metadata layer.
-    pub(crate) fn can_coordinate_with(&self, peer: &Self) -> bool {
-        self.cluster_id == peer.cluster_id && self.runtime_version == peer.runtime_version
-    }
-
-    /// Returns whether this VM advertises every required capability.
-    pub(crate) fn has_capabilities<'a>(&self, required: impl IntoIterator<Item = &'a str>) -> bool {
-        required
-            .into_iter()
-            .all(|capability| self.capabilities.contains(capability))
-    }
-
-    /// Returns this VM's epoch.
-    pub(crate) const fn epoch(&self) -> u64 {
-        self.epoch
-    }
-
-    /// Returns this VM's application id.
-    pub(crate) fn app_id(&self) -> &str {
-        &self.app_id
-    }
-
-    /// Returns this VM's instance id.
-    pub(crate) fn vm_id(&self) -> &str {
-        &self.vm_id
-    }
-
-    /// Returns this VM's node id.
-    pub(crate) fn node_id(&self) -> &str {
-        &self.node_id
-    }
-
-    /// Returns this profile advanced to the next restart incarnation.
-    pub(crate) fn next_epoch(&self) -> Result<Self, String> {
-        let epoch = self.epoch.checked_add(1).ok_or_else(|| {
-            "error[vm_coordination_profile]: profile epoch cannot advance beyond UInt64".to_string()
-        })?;
-        Self::new(
-            self.app_id.clone(),
-            self.vm_id.clone(),
-            self.node_id.clone(),
-            self.cluster_id.clone(),
-            epoch,
-            self.runtime_version.clone(),
-            self.capabilities.iter().cloned(),
-        )
-    }
-}
-
-/// Lifecycle state for one node in a VM cluster membership view.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmClusterNodeState {
-    Active,
-    Left,
-    Unreachable,
-    Fenced,
-}
-
-/// Inspectable membership record for one VM cluster node.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmClusterNodeSnapshot {
-    pub(crate) app_id: String,
-    pub(crate) vm_id: String,
-    pub(crate) node_id: String,
-    pub(crate) state: VmClusterNodeState,
-    pub(crate) last_seen_tick: u64,
-    pub(crate) role_tags: Vec<String>,
-}
+pub(crate) use super::coordination_profile::VmCoordinationProfile;
 
 #[cfg(test)]
-impl VmClusterNodeSnapshot {
-    /// Builds a deterministic node snapshot from a coordination profile.
-    fn from_profile(
-        profile: &VmCoordinationProfile,
-        state: VmClusterNodeState,
-        last_seen_tick: u64,
-        role_tags: impl IntoIterator<Item = impl Into<String>>,
-    ) -> Self {
-        Self {
-            app_id: profile.app_id().to_string(),
-            vm_id: profile.vm_id().to_string(),
-            node_id: profile.node_id().to_string(),
-            state,
-            last_seen_tick,
-            role_tags: role_tags
-                .into_iter()
-                .map(Into::into)
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect(),
-        }
-    }
-}
-
-/// VM-owned cluster membership view for transport lifecycle decisions.
-///
-/// Inputs:
-/// - Local VM coordination profile.
-/// - Heartbeat timeout in VM scheduler ticks.
-///
-/// Output:
-/// - Deterministic membership table with node state transitions.
-///
-/// Transformation:
-/// - Tracks join, heartbeat, leave, unreachable, and fenced states without
-///   embedding a consensus algorithm or backend network transport.
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg(test)]
-pub(crate) struct VmClusterMembership {
-    local: VmCoordinationProfile,
-    heartbeat_timeout_ticks: u64,
-    nodes: BTreeMap<String, VmClusterNodeSnapshot>,
-    node_epochs: BTreeMap<String, u64>,
-}
-
-#[cfg(test)]
-impl VmClusterMembership {
-    /// Creates a membership view containing the local node as active.
-    pub(crate) fn new(
-        local: VmCoordinationProfile,
-        heartbeat_timeout_ticks: u64,
-    ) -> Result<Self, String> {
-        if heartbeat_timeout_ticks == 0 {
-            return Err(
-                "error[vm_cluster_membership]: heartbeat timeout ticks must be non-zero"
-                    .to_string(),
-            );
-        }
-        let mut nodes = BTreeMap::new();
-        nodes.insert(
-            local.node_id().to_string(),
-            VmClusterNodeSnapshot::from_profile(&local, VmClusterNodeState::Active, 0, ["local"]),
-        );
-        let node_epochs = BTreeMap::from([(local.node_id().to_string(), local.epoch())]);
-        Ok(Self {
-            local,
-            heartbeat_timeout_ticks,
-            nodes,
-            node_epochs,
-        })
-    }
-
-    /// Joins a compatible peer node into this membership view.
-    pub(crate) fn join_peer(
-        &mut self,
-        peer: &VmCoordinationProfile,
-        tick: u64,
-        role_tags: impl IntoIterator<Item = impl Into<String>>,
-    ) -> Result<(), String> {
-        if !self.local.can_coordinate_with(peer) {
-            return Err(
-                "error[vm_cluster_membership]: incompatible VM coordination profile".to_string(),
-            );
-        }
-        if matches!(
-            self.nodes.get(peer.node_id()).map(|node| node.state),
-            Some(VmClusterNodeState::Fenced)
-        ) {
-            return Err(format!(
-                "error[vm_cluster_membership]: fenced node `{}` cannot rejoin",
-                peer.node_id()
-            ));
-        }
-        if self.nodes.contains_key(peer.node_id()) {
-            return Err(format!(
-                "error[vm_cluster_membership]: node `{}` is already known; use restart with a newer epoch",
-                peer.node_id()
-            ));
-        }
-        self.nodes.insert(
-            peer.node_id().to_string(),
-            VmClusterNodeSnapshot::from_profile(peer, VmClusterNodeState::Active, tick, role_tags),
-        );
-        self.node_epochs
-            .insert(peer.node_id().to_string(), peer.epoch());
-        Ok(())
-    }
-
-    /// Replaces one known peer incarnation with a strictly newer epoch.
-    pub(crate) fn restart_peer(
-        &mut self,
-        peer: &VmCoordinationProfile,
-        tick: u64,
-    ) -> Result<(), String> {
-        if !self.local.can_coordinate_with(peer) {
-            return Err(
-                "error[vm_cluster_membership]: incompatible restart VM coordination profile"
-                    .to_string(),
-            );
-        }
-        let node = self.nodes.get_mut(peer.node_id()).ok_or_else(|| {
-            format!(
-                "error[vm_cluster_membership]: cannot restart unknown node `{}`",
-                peer.node_id()
-            )
-        })?;
-        if node.state == VmClusterNodeState::Fenced {
-            return Err(format!(
-                "error[vm_cluster_membership]: fenced node `{}` cannot restart",
-                peer.node_id()
-            ));
-        }
-        if node.app_id != peer.app_id() || node.vm_id != peer.vm_id() {
-            return Err(format!(
-                "error[vm_cluster_membership]: restart identity mismatch for node `{}`",
-                peer.node_id()
-            ));
-        }
-        let current_epoch = self
-            .node_epochs
-            .get(peer.node_id())
-            .copied()
-            .ok_or_else(|| {
-                format!(
-                    "error[vm_cluster_membership]: node `{}` is missing epoch state",
-                    peer.node_id()
-                )
-            })?;
-        if peer.epoch() <= current_epoch {
-            return Err(format!(
-                "error[vm_cluster_membership]: stale restart epoch `{}` for node `{}`; current epoch is `{current_epoch}`",
-                peer.epoch(),
-                peer.node_id()
-            ));
-        }
-        node.last_seen_tick = tick.max(node.last_seen_tick);
-        node.state = VmClusterNodeState::Active;
-        self.node_epochs
-            .insert(peer.node_id().to_string(), peer.epoch());
-        Ok(())
-    }
-
-    /// Records a heartbeat and returns the resulting node state.
-    pub(crate) fn record_heartbeat(
-        &mut self,
-        node_id: &str,
-        tick: u64,
-    ) -> Result<VmClusterNodeState, String> {
-        let node = self
-            .nodes
-            .get_mut(node_id)
-            .ok_or_else(|| format!("error[vm_cluster_membership]: unknown node `{node_id}`"))?;
-        if tick < node.last_seen_tick {
-            return Err(format!(
-                "error[vm_cluster_membership]: stale heartbeat for node `{node_id}`"
-            ));
-        }
-        if matches!(
-            node.state,
-            VmClusterNodeState::Left | VmClusterNodeState::Fenced
-        ) {
-            return Err(format!(
-                "error[vm_cluster_membership]: node `{node_id}` is not heartbeat-eligible"
-            ));
-        }
-        node.last_seen_tick = tick;
-        node.state = VmClusterNodeState::Active;
-        Ok(node.state)
-    }
-
-    /// Simulates an explicit peer partition without changing stable identity.
-    pub(crate) fn partition_node(&mut self, node_id: &str, tick: u64) -> Result<(), String> {
-        if node_id == self.local.node_id() {
-            return Err(
-                "error[vm_cluster_membership]: local node cannot be partitioned through a peer view"
-                    .to_string(),
-            );
-        }
-        let node = self
-            .nodes
-            .get_mut(node_id)
-            .ok_or_else(|| format!("error[vm_cluster_membership]: unknown node `{node_id}`"))?;
-        if tick < node.last_seen_tick {
-            return Err(format!(
-                "error[vm_cluster_membership]: stale partition tick for node `{node_id}`"
-            ));
-        }
-        match node.state {
-            VmClusterNodeState::Active => {
-                node.last_seen_tick = tick;
-                node.state = VmClusterNodeState::Unreachable;
-                Ok(())
-            }
-            VmClusterNodeState::Unreachable => Err(format!(
-                "error[vm_cluster_membership]: node `{node_id}` is already partitioned"
-            )),
-            VmClusterNodeState::Left | VmClusterNodeState::Fenced => Err(format!(
-                "error[vm_cluster_membership]: node `{node_id}` is not partition-eligible"
-            )),
-        }
-    }
-
-    /// Heals one explicitly or timeout-unreachable peer at a monotonic tick.
-    pub(crate) fn heal_node(&mut self, node_id: &str, tick: u64) -> Result<(), String> {
-        let node = self
-            .nodes
-            .get_mut(node_id)
-            .ok_or_else(|| format!("error[vm_cluster_membership]: unknown node `{node_id}`"))?;
-        if tick < node.last_seen_tick {
-            return Err(format!(
-                "error[vm_cluster_membership]: stale heal tick for node `{node_id}`"
-            ));
-        }
-        if node.state != VmClusterNodeState::Unreachable {
-            return Err(format!(
-                "error[vm_cluster_membership]: node `{node_id}` is not heal-eligible"
-            ));
-        }
-        node.last_seen_tick = tick;
-        node.state = VmClusterNodeState::Active;
-        Ok(())
-    }
-
-    /// Marks one active or unreachable node as intentionally left.
-    pub(crate) fn mark_left(&mut self, node_id: &str, tick: u64) -> Result<(), String> {
-        let node = self
-            .nodes
-            .get_mut(node_id)
-            .ok_or_else(|| format!("error[vm_cluster_membership]: unknown node `{node_id}`"))?;
-        if matches!(node.state, VmClusterNodeState::Fenced) {
-            return Err(format!(
-                "error[vm_cluster_membership]: fenced node `{node_id}` cannot leave"
-            ));
-        }
-        node.last_seen_tick = tick.max(node.last_seen_tick);
-        node.state = VmClusterNodeState::Left;
-        Ok(())
-    }
-
-    /// Fences one known node so it cannot rejoin without a fresh identity.
-    pub(crate) fn fence_node(&mut self, node_id: &str, tick: u64) -> Result<(), String> {
-        let node = self
-            .nodes
-            .get_mut(node_id)
-            .ok_or_else(|| format!("error[vm_cluster_membership]: unknown node `{node_id}`"))?;
-        node.last_seen_tick = tick.max(node.last_seen_tick);
-        node.state = VmClusterNodeState::Fenced;
-        Ok(())
-    }
-
-    /// Marks active nodes as unreachable when their heartbeat timeout expires.
-    pub(crate) fn expire_stale_nodes(&mut self, current_tick: u64) -> Vec<String> {
-        let mut expired = Vec::new();
-        for node in self.nodes.values_mut() {
-            if node.node_id == self.local.node_id() {
-                continue;
-            }
-            if node.state == VmClusterNodeState::Active
-                && current_tick.saturating_sub(node.last_seen_tick) > self.heartbeat_timeout_ticks
-            {
-                node.state = VmClusterNodeState::Unreachable;
-                expired.push(node.node_id.clone());
-            }
-        }
-        expired
-    }
-
-    /// Removes terminal stale peer snapshots after an explicit retention window.
-    pub(crate) fn prune_stale_nodes(
-        &mut self,
-        current_tick: u64,
-        retention_ticks: u64,
-    ) -> Result<Vec<String>, String> {
-        if retention_ticks == 0 {
-            return Err(
-                "error[vm_cluster_membership]: stale retention ticks must be non-zero".to_string(),
-            );
-        }
-        let local_node_id = self.local.node_id();
-        let removable = self
-            .nodes
-            .values()
-            .filter(|node| {
-                node.node_id != local_node_id
-                    && matches!(
-                        node.state,
-                        VmClusterNodeState::Left | VmClusterNodeState::Unreachable
-                    )
-                    && current_tick.saturating_sub(node.last_seen_tick) > retention_ticks
-            })
-            .map(|node| node.node_id.clone())
-            .collect::<Vec<_>>();
-        for node_id in &removable {
-            self.nodes.remove(node_id);
-            self.node_epochs.remove(node_id);
-        }
-        Ok(removable)
-    }
-
-    /// Returns one node snapshot by node id.
-    pub(crate) fn node(&self, node_id: &str) -> Option<&VmClusterNodeSnapshot> {
-        self.nodes.get(node_id)
-    }
-
-    /// Returns the deterministic membership view ordered by node id.
-    pub(crate) fn view(&self) -> Vec<VmClusterNodeSnapshot> {
-        self.nodes.values().cloned().collect()
-    }
-}
+pub(crate) use super::coordination_membership::{
+    VmClusterMembership, VmClusterNodeSnapshot, VmClusterNodeState,
+};
 
 /// Monotonic message id allocator for one VM coordination lane.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -489,7 +22,6 @@ pub(crate) struct VmMessageIdAllocator {
     next: u64,
 }
 
-#[cfg(test)]
 impl VmMessageIdAllocator {
     /// Reserves the next monotonic message id without committing it.
     fn reserve(&self) -> Result<u64, String> {
@@ -506,7 +38,6 @@ impl VmMessageIdAllocator {
 
 /// Metadata envelope for a future cross-VM coordination message.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg(test)]
 pub(crate) struct VmCoordinationEnvelope {
     pub(crate) message_id: u64,
     pub(crate) trace_id: String,
@@ -520,7 +51,6 @@ pub(crate) struct VmCoordinationEnvelope {
     pub(crate) epoch: u64,
 }
 
-#[cfg(test)]
 impl VmCoordinationEnvelope {
     /// Builds a checked envelope between two compatible VM profiles.
     pub(crate) fn new(
@@ -592,7 +122,6 @@ pub(crate) struct VmDistributedTransportFrame {
 
 /// Inbound delivery classification for one VM distributed transport frame.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg(test)]
 pub(crate) enum VmDistributedInboundOutcome {
     Accepted,
     Duplicate,
@@ -609,8 +138,11 @@ pub(crate) enum VmDistributedSessionState {
 /// Typed reason for a VM distributed transport disconnect.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum VmDistributedDisconnectReason {
+    LocalClose,
+    RemoteClose,
     TransportFailure,
     HeartbeatTimeout,
+    SessionFenced,
 }
 
 /// Inspectable disconnect event for a VM distributed transport session.
@@ -623,7 +155,6 @@ pub(crate) struct VmDistributedDisconnectEvent {
 
 /// Outcome for a VM distributed transport reconnect attempt.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg(test)]
 pub(crate) enum VmDistributedReconnectOutcome {
     AlreadyConnected,
     Reconnected { pending_ack_count: usize },
@@ -670,7 +201,6 @@ pub(crate) struct VmDistributedTransportSessionSnapshot {
     pub(crate) last_reconnect_tick: Option<u64>,
 }
 
-#[cfg(test)]
 impl VmDistributedTransportSession {
     /// Opens a transport session between compatible VM coordination profiles.
     pub(crate) fn open(
@@ -704,6 +234,7 @@ impl VmDistributedTransportSession {
     }
 
     /// Restores a validated transport session from an immutable snapshot.
+    #[cfg(test)]
     pub(crate) fn restore(
         local: VmCoordinationProfile,
         remote: VmCoordinationProfile,
@@ -771,6 +302,7 @@ impl VmDistributedTransportSession {
     }
 
     /// Captures the bounded state required to resume this session exactly.
+    #[cfg(test)]
     pub(crate) fn snapshot(&self) -> VmDistributedTransportSessionSnapshot {
         VmDistributedTransportSessionSnapshot {
             next_message_id: self.next_message_id.next,
@@ -801,13 +333,17 @@ impl VmDistributedTransportSession {
         let envelope =
             VmCoordinationEnvelope::new(message_id, &self.local, &self.remote, capability)?;
         let tetf_envelope = envelope.to_tetf_distribution_envelope(refs, payload);
-        let bytes = encode_tetf_distribution_envelope(&tetf_envelope, declared_atoms)?;
-        if bytes.len() > self.max_message_bytes {
-            return Err(format!(
-                "error[vm_distributed_transport]: encoded message `{}` exceeds max message bytes",
-                envelope.trace_id
-            ));
-        }
+        let bytes = encode_tetf_distribution_envelope_bounded(
+            &tetf_envelope,
+            declared_atoms,
+            self.max_message_bytes,
+        ).map_err(|error| {
+            if error.starts_with("error[tetf_size]") {
+                format!("error[vm_distributed_transport]: encoded message `{}` exceeds max message bytes", envelope.trace_id)
+            } else {
+                error.to_string()
+            }
+        })?;
         self.next_message_id.commit(message_id);
         if delivery == VmDistributionDelivery::NeedsAck {
             self.pending_acks.insert(message_id);
@@ -873,6 +409,7 @@ impl VmDistributedTransportSession {
     }
 
     /// Returns the next inbound message id expected by this session.
+    #[cfg(test)]
     pub(crate) const fn next_inbound_message_id(&self) -> u64 {
         self.next_inbound_message_id
     }
@@ -883,11 +420,13 @@ impl VmDistributedTransportSession {
     }
 
     /// Returns the last recorded disconnect event, if one exists.
+    #[cfg(test)]
     pub(crate) fn last_disconnect(&self) -> Option<&VmDistributedDisconnectEvent> {
         self.last_disconnect.as_ref()
     }
 
     /// Returns the tick for the last successful reconnect, if one exists.
+    #[cfg(test)]
     pub(crate) const fn last_reconnect_tick(&self) -> Option<u64> {
         self.last_reconnect_tick
     }
@@ -914,21 +453,37 @@ impl VmDistributedTransportSession {
         remote: &VmCoordinationProfile,
         tick: u64,
     ) -> Result<VmDistributedReconnectOutcome, String> {
-        if self.state == VmDistributedSessionState::Connected {
-            return Ok(VmDistributedReconnectOutcome::AlreadyConnected);
-        }
         if !self.local.can_coordinate_with(remote) {
             return Err(
                 "error[vm_distributed_transport]: incompatible VM coordination profile on reconnect"
                     .to_string(),
             );
         }
-        if remote.vm_id() != self.remote.vm_id() || remote.node_id() != self.remote.node_id() {
+        if remote.app_id() != self.remote.app_id()
+            || remote.vm_id() != self.remote.vm_id()
+            || remote.node_id() != self.remote.node_id()
+            || remote.epoch() < self.remote.epoch()
+        {
             return Err(format!(
                 "error[vm_distributed_transport]: reconnect profile `{}` does not match session remote `{}`",
                 remote.node_id(),
                 self.remote.node_id()
             ));
+        }
+        if self
+            .last_disconnect
+            .as_ref()
+            .is_some_and(|event| tick < event.tick)
+            || self
+                .last_reconnect_tick
+                .is_some_and(|previous| tick < previous)
+        {
+            return Err(
+                "error[vm_distributed_transport]: reconnect tick moved backwards".to_string(),
+            );
+        }
+        if self.state == VmDistributedSessionState::Connected {
+            return Ok(VmDistributedReconnectOutcome::AlreadyConnected);
         }
         self.remote = remote.clone();
         self.state = VmDistributedSessionState::Connected;

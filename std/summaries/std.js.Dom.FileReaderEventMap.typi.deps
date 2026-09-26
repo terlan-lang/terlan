@@ -1,8 +1,8 @@
 module=std.js.Dom.FileReaderEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12544867220394362479
-interface_hash=17079678757323896926
-interface_doc_hash=17079678757323896926
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7154842505386661973
+interface_hash=3545248656940990308
+interface_doc_hash=3545248656940990308
 deps=0

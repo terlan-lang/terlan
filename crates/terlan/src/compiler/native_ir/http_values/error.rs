@@ -22,6 +22,7 @@ pub(super) fn error_method_arity(method: &str, arity: usize) -> bool {
 pub(super) fn error_call(function: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
     match (function, args.len()) {
         ("new", 3) => Ok(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
             constructor: ERROR_CONSTRUCTOR.to_string(),
             constructor_identity: Some(ERROR_CONSTRUCTOR.to_string()),
             args,
@@ -33,6 +34,7 @@ pub(super) fn error_call(function: &str, args: Vec<CoreExpr>) -> Result<CoreExpr
             "error[native_ir.http_error_arity]: HttpError.{function} received {count} arguments"
         )),
         _ => Ok(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
             module: ERROR_MODULE.to_string(),
             function: function.to_string(),
             args,

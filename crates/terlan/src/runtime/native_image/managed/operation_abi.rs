@@ -20,12 +20,20 @@ mod bytes;
 mod collections;
 #[path = "operation_abi/equality.rs"]
 mod equality;
+#[path = "operation_abi/erased.rs"]
+mod erased;
+pub use erased::{
+    encode_erased_value_box_operation, encode_erased_value_is_type_operation,
+    encode_erased_value_unbox_operation,
+};
 #[path = "operation_abi/field.rs"]
 mod field;
 #[path = "operation_abi/float.rs"]
 mod float;
 #[path = "operation_abi/http.rs"]
 mod http;
+mod immediate_union;
+pub(crate) use immediate_union::immediate_variant;
 #[path = "operation_abi/integer.rs"]
 mod integer;
 #[path = "operation_abi/json.rs"]
@@ -41,6 +49,7 @@ mod projection;
 mod session;
 #[path = "operation_abi/string.rs"]
 mod string;
+mod string_pattern;
 #[path = "operation_abi/template.rs"]
 mod template;
 pub use binary_pattern::{
@@ -102,16 +111,22 @@ use string::{
     transform_string,
 };
 pub use string::{
-    encode_string_byte_size_operation, encode_string_characters_operation,
-    encode_string_codepoints_operation, encode_string_compare_operation,
-    encode_string_contains_operation, encode_string_ends_with_operation,
-    encode_string_length_operation, encode_string_lowercase_operation,
-    encode_string_replace_operation, encode_string_sha256_operation,
+    encode_atom_to_string_operation, encode_string_byte_size_operation,
+    encode_string_characters_operation, encode_string_codepoints_operation,
+    encode_string_compare_operation, encode_string_contains_operation,
+    encode_string_ends_with_operation, encode_string_length_operation,
+    encode_string_lowercase_operation, encode_string_replace_operation,
+    encode_string_reverse_operation, encode_string_sha256_operation,
     encode_string_split_once_operation, encode_string_split_operation,
     encode_string_starts_with_operation, encode_string_trim_end_operation,
     encode_string_trim_operation, encode_string_trim_start_operation,
-    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
-    encode_string_utf8_slice_operation,
+    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
+    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation,
+};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use string_pattern::{
+    encode_string_pattern_extract_operation, encode_string_pattern_matches_operation,
+    ManagedStringCaptureKind, ManagedStringPatternSegment,
 };
 pub use template::{encode_template_render_operation, ManagedTemplateValueKind};
 
@@ -147,10 +162,12 @@ const APPEND_VALUE_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2 + 4;
 pub fn is_managed_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
         || binary_pattern::is_binary_pattern_operation(encoded)
+        || string_pattern::is_string_pattern_operation(encoded)
         || bitstring::is_bitstring_operation(encoded)
         || bytes::is_bytes_operation(encoded)
         || collections::is_collection_operation(encoded)
         || equality::is_equality_operation(encoded)
+        || erased::is_erased_operation(encoded)
         || float::is_float_operation(encoded)
         || http::is_http_operation(encoded)
         || integer::is_integer_operation(encoded)
@@ -164,6 +181,9 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
 /// Reports whether one admitted managed ABI payload returns an opaque reference.
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
+    if erased::is_erased_operation(encoded) {
+        return erased::result_is_reference(encoded);
+    }
     if super::is_closure_allocation(encoded) {
         return true;
     }
@@ -175,6 +195,9 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     }
     if binary_pattern::is_binary_pattern_operation(encoded) {
         return binary_pattern::binary_pattern_result_is_reference(encoded);
+    }
+    if string_pattern::is_string_pattern_operation(encoded) {
+        return string_pattern::string_pattern_result_is_reference(encoded);
     }
     if bitstring::is_bitstring_operation(encoded) {
         return bitstring::bitstring_result_is_reference(encoded);
@@ -367,11 +390,17 @@ pub(crate) fn execute_managed_operation_with_context(
     // Select it from its authenticated magic once instead of probing every
     // specialized family before decoding the operation.
     if !encoded.starts_with(MAGIC) {
+        if erased::is_erased_operation(encoded) {
+            return erased::execute(heap, layouts, encoded, words);
+        }
         if http::is_http_operation(encoded) {
             return http::execute_http_operation(heap, layouts, encoded, words);
         }
         if binary_pattern::is_binary_pattern_operation(encoded) {
             return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
+        }
+        if string_pattern::is_string_pattern_operation(encoded) {
+            return string_pattern::execute_string_pattern_operation(heap, encoded, words);
         }
         if bitstring::is_bitstring_operation(encoded) {
             return bitstring::execute_bitstring_operation(heap, encoded, words);

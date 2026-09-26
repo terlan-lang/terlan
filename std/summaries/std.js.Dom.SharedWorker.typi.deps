@@ -1,8 +1,8 @@
 module=std.js.Dom.SharedWorker
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16121736421782370325
-interface_hash=9667978824087994115
-interface_doc_hash=9667978824087994115
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15265247239451635998
+interface_hash=2073997629345526856
+interface_doc_hash=2073997629345526856
 deps=0

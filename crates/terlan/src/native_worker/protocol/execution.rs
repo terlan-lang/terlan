@@ -66,6 +66,7 @@ pub(super) struct CapabilityDispose {
 /// Production executor retaining one mutable NativeBoundary resource store.
 struct NativeCapabilityExecutor {
     worker: NativeBoundaryWorker,
+    storage: super::storage::StorageExecutor,
     capabilities: Vec<String>,
     classes: Vec<NativeBoundaryWorkerClass>,
 }
@@ -75,6 +76,7 @@ impl NativeCapabilityExecutor {
     fn new(config: &CapabilityWorkerConfig, classes: Vec<NativeBoundaryWorkerClass>) -> Self {
         Self {
             worker: NativeBoundaryWorker::new(config.credit_limit),
+            storage: super::storage::StorageExecutor::new(config),
             capabilities: config.capabilities.iter().cloned().collect(),
             classes,
         }
@@ -87,6 +89,9 @@ impl CapabilityExecutor for NativeCapabilityExecutor {
         call: CapabilityCall,
         cancellation: &NativeBoundaryCancellationToken,
     ) -> NativeBoundaryWorkerReply {
+        if super::storage::admits(&call.operation) {
+            return self.storage.call(&mut self.worker, call, cancellation);
+        }
         let capabilities = self
             .capabilities
             .iter()
@@ -446,6 +451,28 @@ fn admit_call(
             "request capability does not own the declared operation",
         );
     }
+    if !config.capabilities.contains(required_capability) {
+        return write_rejection(
+            config,
+            output,
+            active.len(),
+            call.request_id,
+            "native_boundary.capability_denied",
+            "operation capability is not granted to this worker",
+        );
+    }
+    if super::storage::admits(&call.operation)
+        && (!config.storage_database || !config.worker_classes.contains("blocking"))
+    {
+        return write_rejection(
+            config,
+            output,
+            active.len(),
+            call.request_id,
+            "capability_worker.storage_denied",
+            "storage requires a durable binding and blocking worker admission",
+        );
+    }
     if active.len() >= usize::try_from(config.credit_limit).unwrap_or(usize::MAX) {
         let error = error_for(ErrorKind::BackpressureLimit);
         return write_rejection(
@@ -487,6 +514,9 @@ fn admit_call(
 fn operation_admission(
     operation: &str,
 ) -> Option<(&'static str, NativeBoundaryCancellationPolicy)> {
+    if super::storage::admits(operation) {
+        return Some(("storage", NativeBoundaryCancellationPolicy::Cooperative));
+    }
     if let Some(export) = postgres_worker_manifest().export_for_operation(operation) {
         return Some((export.required_capability, export.cancellation));
     }

@@ -1,8 +1,8 @@
 module=std.js.Error
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7886729030280610834
-interface_hash=8970682869027503739
-interface_doc_hash=8970682869027503739
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3383540558238000437
+interface_hash=11789633424196145189
+interface_doc_hash=11789633424196145189
 deps=0

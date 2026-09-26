@@ -1,0 +1,214 @@
+/**
+ * Real disposable cache trees exercise exact, generation-safe retirement.
+ */
+module release_promotion.PublicationCacheTest.
+
+import release_promotion.CacheRetention.{Budget, Generation}.
+import release_promotion.{CacheRetentionTest, OwnerStorage, PublicationCache}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256}.
+import std.io.{Console, Directory, File}.
+
+import type release_promotion.CacheRetention.{Budget, Generation}.
+import type std.core.Result.
+
+path(root: String, key: String): String ->
+    OwnerStorage.child(root, String.append("target/publication-downloads/", key)).
+
+fixture(root: String, name: String, modified_ns: Int): Result[Generation, String] ->
+    let context =
+        String.concat(
+            ["{\"schema\":\"terlan.hosted-download-cache.v1\",\"revision\":\"", name, "\"}\n"],
+        );
+    let key = sha256(context);
+    let directory = path(root, key);
+    let {
+        Ok(_created) <- Directory.create_all(directory);
+        Ok(_context) <- File.write_text(OwnerStorage.child(directory, "context.json"), context);
+        Ok(_payload) <- File.write_text(OwnerStorage.child(directory, "payload"), "fixture archive");
+        Ok(_inventory) <-
+            File.write_text(
+                OwnerStorage.child(directory, "verified-files.sha256"),
+                "fixture inventory",
+            );
+        Ok(_times) <-
+            File.set_timestamps(
+                OwnerStorage.child(directory, "verified-files.sha256"),
+                modified_ns,
+                modified_ns,
+            );
+        Ok(usage) <- Directory.tree_usage(directory)
+    } else {
+        _ -> Err("cannot create cache retention fixture")
+    };
+    Ok(Generation(key = key, bytes = usage.allocated_bytes, modified_ns = modified_ns)).
+
+policy(entries: Int): Budget ->
+    Budget(bytes = 104857600, entries = entries, maximum_age_ns = 100, minimum_age_ns = 10).
+
+cleanup(root: String, passed: Bool): Bool ->
+    case Directory.remove_all(root) {
+        Ok(_removed) -> passed;
+        Err(_reason) -> false
+    }.
+
+recovery(root: String, active: Generation, older: Generation, newer: Generation): Bool ->
+    let {
+        Err(_unsafe_budget) <- PublicationCache.prune_locked(root, active.key, policy(0), 200);
+        true <- File.exists(path(root, older.key));
+        true <- File.exists(path(root, newer.key));
+        Ok(reclaimed) <- PublicationCache.prune_locked(root, active.key, policy(2), 200);
+        true <- reclaimed == older.bytes;
+        true <- not File.exists(path(root, older.key));
+        true <- File.exists(path(root, active.key));
+        true <- File.exists(path(root, newer.key));
+        Ok(warm) <- PublicationCache.prune_locked(root, active.key, policy(2), 200)
+    } else {
+        _ -> false
+    };
+    warm == 0.
+
+preserves_evidence(root: String): Bool ->
+    let {
+        Ok(_inputs) <- Directory.create_all(OwnerStorage.child(root, "target/publication-inputs/candidate"));
+        Ok(_source) <- File.write_text(OwnerStorage.child(root, "tracked-source.terl"), "source");
+        Ok(_evidence) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/publication-inputs/candidate/archive"),
+                "verified input",
+            );
+        Ok(active) <- fixture(root, "active", 1);
+        Ok(older) <- fixture(root, "older", 150);
+        Ok(newer) <- fixture(root, "newer", 180);
+        true <- recovery(root, active, older, newer);
+        Ok(source) <- File.read_text(OwnerStorage.child(root, "tracked-source.terl"));
+        Ok(evidence) <- File.read_text(OwnerStorage.child(root, "target/publication-inputs/candidate/archive"))
+    } else {
+        _ -> false
+    };
+    source == "source" and evidence == "verified input".
+
+corrupt_identity(root: String): Bool ->
+    let {
+        Ok(active) <- fixture(root, "active", 1);
+        Ok(older) <- fixture(root, "older", 150);
+        Ok(_changed) <- File.write_text(OwnerStorage.child(path(root, older.key), "context.json"), "{}");
+        Err(_corruption) <- PublicationCache.prune_locked(root, active.key, policy(1), 200)
+    } else {
+        _ -> false
+    };
+    File.exists(path(root, older.key)) and File.exists(path(root, active.key)).
+
+interrupted_retirement(root: String): Bool ->
+    let {
+        Ok(active) <- fixture(root, "active", 1);
+        Ok(older) <- fixture(root, "older", 150)
+    } else {
+        _ -> false
+    };
+    finish_interrupted(root, active, older).
+
+finish_interrupted(root: String, active: Generation, older: Generation): Bool ->
+    let retired = path(root, String.append(".retired-", older.key));
+    let partial = path(root, ".partial.Ab12Cd");
+    let {
+        Ok(_staging) <- Directory.create_all(partial);
+        Ok(_download) <- File.write_text(OwnerStorage.child(partial, "archive.part"), "incomplete download");
+        true <- OwnerStorage.command(root, "/usr/bin/mv", ["-T", "--", path(root, older.key), retired]);
+        Ok(_partial) <- File.delete(OwnerStorage.child(retired, "context.json"));
+        Ok(reclaimed) <- PublicationCache.prune_locked(root, active.key, policy(1), 200);
+        true <- reclaimed > 0;
+        true <- not File.exists(retired);
+        true <- not File.exists(partial);
+        true <- File.exists(path(root, active.key));
+        Ok(warm) <- PublicationCache.prune_locked(root, active.key, policy(1), 200)
+    } else {
+        _ -> false
+    };
+    warm == 0.
+
+symlinked_cache(root: String, outside: String): Bool ->
+    let {
+        Ok(_outside) <- Directory.create_all(outside);
+        Ok(_target) <- Directory.create_all(OwnerStorage.child(root, "target"));
+        Ok(_link) <-
+            Directory.create_symbolic_link(
+                outside,
+                OwnerStorage.child(root, "target/publication-downloads"),
+            );
+        Ok(_sentinel) <- File.write_text(OwnerStorage.child(outside, "sentinel"), "untouched");
+        Err(_unsafe) <- PublicationCache.prune_locked(root, sha256("active"), policy(1), 200);
+        Ok(sentinel) <- File.read_text(OwnerStorage.child(outside, "sentinel"))
+    } else {
+        _ -> false
+    };
+    sentinel == "untouched".
+
+candidate_binding(root: String): Bool ->
+    let revision = "0123456789012345678901234567890123456789";
+    let inputs = OwnerStorage.child(root, String.append("target/publication-inputs/", revision));
+    let {
+        Ok(active) <- fixture(root, revision, 1);
+        Ok(other) <- fixture(root, "another-candidate", 1);
+        Ok(_inputs) <- Directory.create_all(inputs);
+        true <- not PublicationCache.run_locked(root, revision);
+        Ok(_wrong) <-
+            File.write_text(
+                OwnerStorage.child(inputs, "download-cache-key"),
+                String.append(other.key, "\n"),
+            );
+        true <- not PublicationCache.run_locked(root, revision);
+        true <- File.exists(path(root, active.key)) and File.exists(path(root, other.key));
+        Ok(_correct) <-
+            File.write_text(
+                OwnerStorage.child(inputs, "download-cache-key"),
+                String.append(active.key, "\n"),
+            );
+        true <- PublicationCache.run_locked(root, revision);
+        true <- File.exists(path(root, active.key));
+        true <- not File.exists(path(root, other.key))
+    } else {
+        _ -> false
+    };
+    PublicationCache.run_locked(root, revision).
+
+unrecognized_residue(root: String): Bool ->
+    let unknown = path(root, ".partial.not-an-owner");
+    let {
+        Ok(active) <- fixture(root, "active", 1);
+        Ok(_unknown) <- Directory.create_all(unknown);
+        Err(_unsafe) <- PublicationCache.prune_locked(root, active.key, policy(1), 200)
+    } else {
+        _ -> false
+    };
+    File.exists(unknown) and File.exists(path(root, active.key)).
+
+run_fixtures(root: String): Bool ->
+    let retained = check("retention", preserves_evidence(OwnerStorage.child(root, "retention")));
+    let corrupt = check("corruption", corrupt_identity(OwnerStorage.child(root, "corruption")));
+    let interrupted = check("interruption", interrupted_retirement(OwnerStorage.child(root, "interruption")));
+    let candidate = check("candidate pin", candidate_binding(OwnerStorage.child(root, "candidate")));
+    let unknown = check("unknown residue", unrecognized_residue(OwnerStorage.child(root, "unknown")));
+    let outside = OwnerStorage.child(root, "outside");
+    let linked = check("symlink escape", symlinked_cache(OwnerStorage.child(root, "links"), outside));
+    cleanup(root, retained and corrupt and interrupted and linked and candidate and unknown).
+
+check(label: String, passed: Bool): Bool ->
+    if {
+        passed -> true;
+        true -> let _printed = Console.eprintln(String.append("cache retention fixture failed: ", label));
+        false
+    }.
+
+/**
+ * Exercises real deletion, retry, corrupt identity, and path escape rejection.
+ */
+pub self_test(): Bool ->
+    let {
+        true <- CacheRetentionTest.self_test();
+        Ok(root) <- Directory.create_temporary("terlan-publication-cache.")
+    } else {
+        _ -> false
+    };
+    run_fixtures(root).

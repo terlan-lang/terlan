@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCDTMFToneChangeEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7819442901417614906
-interface_hash=11517731293536855217
-interface_doc_hash=11517731293536855217
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9272569282805187020
+interface_hash=14167266703289072793
+interface_doc_hash=14167266703289072793
 deps=0

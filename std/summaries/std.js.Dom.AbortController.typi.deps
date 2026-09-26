@@ -1,8 +1,8 @@
 module=std.js.Dom.AbortController
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3003339312646588848
-interface_hash=5821020037783569942
-interface_doc_hash=5821020037783569942
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15620376416661465088
+interface_hash=15467279386483972567
+interface_doc_hash=15467279386483972567
 deps=0

@@ -1,0 +1,101 @@
+/**
+ * Runs the production two-owner graph with a real Cargo fixture and composer.
+ * Hosted/sanitizer documents are admission fixtures, not certified CI evidence.
+ */
+module release_promotion.PreparationLocalReportsTest.
+
+import release_promotion.{OwnerStorage, PreparationCandidateTest, PreparationGraph, PreparationMulticoreTest, PrepareLocalReports}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.io.{Console, Directory, File}.
+import std.vcs.Git.
+
+stage(root: String, label: String): Bool ->
+    let _printed = Console.println(label);
+    PrepareLocalReports.run_locked(root, "target/tools/terlan-vm", "target/tools/matrix.tvm").
+
+count(root: String, expected: String): Bool ->
+    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+        _ -> false
+    };
+    actual == expected.
+
+graph(root: String, outcome: String, completed: Int, reused: Int): Bool ->
+    let {
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(
+                    root,
+                    PreparationGraph.ledger_path(Git.revision(identity), "local-reports"),
+                ),
+            );
+        Some(actual_outcome) <- OwnerStorage.text(document, "outcome");
+        Ok(completed_value) <- document.get("completed_owners");
+        Ok(actual_completed) <- completed_value.as_int();
+        Ok(reused_value) <- document.get("reused_owners");
+        Ok(actual_reused) <- reused_value.as_int()
+    } else {
+        _ -> false
+    };
+    outcome == actual_outcome and completed == actual_completed and reused == actual_reused.
+
+exercise(root: String, origin: String, vm: String, image: String): Bool ->
+    let report = OwnerStorage.child(root, "target/quality/vm-multicore-release-closeout.json");
+    let sanitizer = OwnerStorage.child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
+    let {
+        true <- PreparationCandidateTest.fixture(root);
+        true <- PreparationMulticoreTest.fixture(root, origin, vm, image);
+        true <- stage(root, "[local reports rehearsal] cold graph");
+        true <- graph(root, "pass", 2, 0) and count(root, "run\n");
+        Ok(cold) <- File.read_text(report);
+        true <- stage(root, "[local reports rehearsal] warm graph without producer replay");
+        true <- graph(root, "pass", 0, 2) and count(root, "run\n");
+        Ok(warm) <- File.read_text(report);
+        true <- cold == warm;
+        Ok(valid_sanitizer) <- File.read_text(sanitizer);
+        Ok(_failed_evidence) <- File.write_text(sanitizer, "{\"decision\":\"fail\"}\n");
+        false <- stage(root, "[local reports rehearsal] rejected composer evidence (expected failure)");
+        true <- graph(root, "failed", 0, 1) and count(root, "run\n");
+        Ok(retained) <- File.read_text(report);
+        true <- retained == cold;
+        Ok(_restored_evidence) <- File.write_text(sanitizer, valid_sanitizer);
+        true <- stage(root, "[local reports rehearsal] resume only failed composer");
+        true <- graph(root, "pass", 1, 1) and count(root, "run\n");
+        Ok(_interrupt) <- File.write_text(OwnerStorage.child(root, "target/interrupt"), "kill producer");
+        Ok(_attempt) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/hosted-candidate-validation.json"),
+                "{\"schema\":\"fixture.hosted.v1\",\"attempt\":2}\n",
+            );
+        false <- stage(root, "[local reports rehearsal] killed Cargo owner (expected failure)");
+        true <- graph(root, "failed", 0, 0) and count(root, "run\nrun\n");
+        Ok(prior) <- File.read_text(report);
+        true <- prior == cold;
+        Ok(_cleared) <- File.delete(OwnerStorage.child(root, "target/interrupt"));
+        true <- stage(root, "[local reports rehearsal] resume changed hosted attempt");
+        true <- graph(root, "pass", 2, 0) and count(root, "run\nrun\nrun\n");
+        Ok(final_report) <- File.read_text(report)
+    } else {
+        _ -> false
+    };
+    final_report == cold.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-local-reports-rehearsal-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, origin, vm, image);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "local reports graph rehearsal passed: cold, warm, selective recovery, killed producer, changed attempt, equivalent resumed reports";
+            true -> "local reports graph rehearsal failed"
+        },
+    );
+valid and removed).

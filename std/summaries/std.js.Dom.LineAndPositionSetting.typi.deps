@@ -1,8 +1,8 @@
 module=std.js.Dom.LineAndPositionSetting
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17256497338470692069
-interface_hash=7957622934251948976
-interface_doc_hash=7957622934251948976
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9110468571476346933
+interface_hash=2414205258716925542
+interface_doc_hash=2414205258716925542
 deps=0

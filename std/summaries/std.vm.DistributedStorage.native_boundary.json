@@ -1,0 +1,408 @@
+{
+  "functions": [
+    {
+      "arity": 0,
+      "name": "local_only",
+      "operation": "std.vm.distributed_storage.local_only"
+    },
+    {
+      "arity": 0,
+      "name": "durable",
+      "operation": "std.vm.distributed_storage.durable"
+    },
+    {
+      "arity": 0,
+      "name": "cluster",
+      "operation": "std.vm.distributed_storage.cluster"
+    },
+    {
+      "arity": 0,
+      "name": "force_local",
+      "operation": "std.vm.distributed_storage.force_local"
+    },
+    {
+      "arity": 3,
+      "name": "policy",
+      "operation": "std.vm.distributed_storage.policy"
+    },
+    {
+      "arity": 1,
+      "name": "policy_name",
+      "operation": "std.vm.distributed_storage.policy_name"
+    },
+    {
+      "arity": 1,
+      "name": "policy_mode_kind",
+      "operation": "std.vm.distributed_storage.policy_mode_kind"
+    },
+    {
+      "arity": 1,
+      "name": "policy_available",
+      "operation": "std.vm.distributed_storage.policy_available"
+    },
+    {
+      "arity": 1,
+      "name": "policy_can_cluster_replicate",
+      "operation": "std.vm.distributed_storage.policy_can_cluster_replicate"
+    },
+    {
+      "arity": 1,
+      "name": "adapter",
+      "operation": "std.vm.distributed_storage.adapter"
+    },
+    {
+      "arity": 1,
+      "name": "policy_name",
+      "operation": "std.vm.distributed_storage.adapter_policy_name"
+    },
+    {
+      "arity": 1,
+      "name": "policy_mode_kind",
+      "operation": "std.vm.distributed_storage.adapter_policy_mode_kind"
+    },
+    {
+      "arity": 1,
+      "name": "policy_available",
+      "operation": "std.vm.distributed_storage.adapter_policy_available"
+    },
+    {
+      "arity": 1,
+      "name": "can_cluster_replicate",
+      "operation": "std.vm.distributed_storage.can_cluster_replicate"
+    },
+    {
+      "arity": 3,
+      "name": "checkpoint",
+      "operation": "std.vm.distributed_storage.checkpoint"
+    },
+    {
+      "arity": 1,
+      "name": "restore",
+      "operation": "std.vm.distributed_storage.restore"
+    },
+    {
+      "arity": 4,
+      "name": "checkpoint_with_schema",
+      "operation": "std.vm.distributed_storage.checkpoint_with_schema"
+    },
+    {
+      "arity": 1,
+      "name": "checkpoint_schema",
+      "operation": "std.vm.distributed_storage.checkpoint_schema"
+    },
+    {
+      "arity": 1,
+      "name": "open",
+      "operation": "std.vm.distributed_storage.open"
+    },
+    {
+      "arity": 2,
+      "name": "append",
+      "operation": "std.vm.distributed_storage.append"
+    },
+    {
+      "arity": 1,
+      "name": "require_atomic_append",
+      "operation": "std.vm.distributed_storage.require_atomic_append"
+    },
+    {
+      "arity": 1,
+      "name": "atomic_append_proof",
+      "operation": "std.vm.distributed_storage.atomic_append_proof"
+    },
+    {
+      "arity": 1,
+      "name": "require_snapshot_isolation",
+      "operation": "std.vm.distributed_storage.require_snapshot_isolation"
+    },
+    {
+      "arity": 2,
+      "name": "snapshot_isolation_proof",
+      "operation": "std.vm.distributed_storage.snapshot_isolation_proof"
+    },
+    {
+      "arity": 1,
+      "name": "require_durable_flush",
+      "operation": "std.vm.distributed_storage.require_durable_flush"
+    },
+    {
+      "arity": 1,
+      "name": "durable_flush_proof",
+      "operation": "std.vm.distributed_storage.durable_flush_proof"
+    },
+    {
+      "arity": 1,
+      "name": "require_transactional_batch",
+      "operation": "std.vm.distributed_storage.require_transactional_batch"
+    },
+    {
+      "arity": 1,
+      "name": "transactional_batch_proof",
+      "operation": "std.vm.distributed_storage.transactional_batch_proof"
+    },
+    {
+      "arity": 2,
+      "name": "transactional_batch_append",
+      "operation": "std.vm.distributed_storage.transactional_batch_append"
+    },
+    {
+      "arity": 1,
+      "name": "require_schema_migration",
+      "operation": "std.vm.distributed_storage.require_schema_migration"
+    },
+    {
+      "arity": 1,
+      "name": "schema_migration_proof",
+      "operation": "std.vm.distributed_storage.schema_migration_proof"
+    },
+    {
+      "arity": 3,
+      "name": "migrate_schema",
+      "operation": "std.vm.distributed_storage.migrate_schema"
+    },
+    {
+      "arity": 1,
+      "name": "require_resource_handle_validation",
+      "operation": "std.vm.distributed_storage.require_resource_handle_validation"
+    },
+    {
+      "arity": 1,
+      "name": "resource_handle_validation_proof",
+      "operation": "std.vm.distributed_storage.resource_handle_validation_proof"
+    },
+    {
+      "arity": 2,
+      "name": "register_resource_handle",
+      "operation": "std.vm.distributed_storage.register_resource_handle"
+    },
+    {
+      "arity": 2,
+      "name": "validate_resource_handles",
+      "operation": "std.vm.distributed_storage.validate_resource_handles"
+    },
+    {
+      "arity": 2,
+      "name": "replicate_snapshot",
+      "operation": "std.vm.distributed_storage.replicate_snapshot"
+    },
+    {
+      "arity": 1,
+      "name": "compare_and_swap_token",
+      "operation": "std.vm.distributed_storage.compare_and_swap_token"
+    },
+    {
+      "arity": 3,
+      "name": "compare_and_swap_append",
+      "operation": "std.vm.distributed_storage.compare_and_swap_append"
+    },
+    {
+      "arity": 1,
+      "name": "flush",
+      "operation": "std.vm.distributed_storage.flush"
+    },
+    {
+      "arity": 2,
+      "name": "compact",
+      "operation": "std.vm.distributed_storage.compact"
+    },
+    {
+      "arity": 2,
+      "name": "load_snapshot",
+      "operation": "std.vm.distributed_storage.load_snapshot"
+    },
+    {
+      "arity": 1,
+      "name": "close",
+      "operation": "std.vm.distributed_storage.close"
+    },
+    {
+      "arity": 1,
+      "name": "require_cluster_replication",
+      "operation": "std.vm.distributed_storage.require_cluster_replication"
+    },
+    {
+      "arity": 1,
+      "name": "proof_sequence",
+      "operation": "std.vm.distributed_storage.proof_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "isolation_checkpoint_id",
+      "operation": "std.vm.distributed_storage.isolation_checkpoint_id"
+    },
+    {
+      "arity": 1,
+      "name": "isolation_sequence",
+      "operation": "std.vm.distributed_storage.isolation_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "isolation_checksum",
+      "operation": "std.vm.distributed_storage.isolation_checksum"
+    },
+    {
+      "arity": 1,
+      "name": "durable_flush_sequence",
+      "operation": "std.vm.distributed_storage.durable_flush_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "batch_first_sequence",
+      "operation": "std.vm.distributed_storage.batch_first_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "batch_last_sequence",
+      "operation": "std.vm.distributed_storage.batch_last_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "batch_committed_count",
+      "operation": "std.vm.distributed_storage.batch_committed_count"
+    },
+    {
+      "arity": 1,
+      "name": "schema_version",
+      "operation": "std.vm.distributed_storage.schema_version"
+    },
+    {
+      "arity": 1,
+      "name": "schema_sequence",
+      "operation": "std.vm.distributed_storage.schema_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "resource_handle_count",
+      "operation": "std.vm.distributed_storage.resource_handle_count"
+    },
+    {
+      "arity": 1,
+      "name": "resource_handle_sequence",
+      "operation": "std.vm.distributed_storage.resource_handle_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "missing_resource_handle",
+      "operation": "std.vm.distributed_storage.missing_resource_handle"
+    },
+    {
+      "arity": 1,
+      "name": "validated_resource_count",
+      "operation": "std.vm.distributed_storage.validated_resource_count"
+    },
+    {
+      "arity": 1,
+      "name": "loaded_snapshot",
+      "operation": "std.vm.distributed_storage.loaded_snapshot"
+    },
+    {
+      "arity": 1,
+      "name": "kind",
+      "operation": "std.vm.distributed_storage.kind"
+    },
+    {
+      "arity": 1,
+      "name": "operation_kind",
+      "operation": "std.vm.distributed_storage.operation_kind"
+    },
+    {
+      "arity": 1,
+      "name": "mode_kind",
+      "operation": "std.vm.distributed_storage.mode_kind"
+    },
+    {
+      "arity": 1,
+      "name": "reason",
+      "operation": "std.vm.distributed_storage.reason"
+    },
+    {
+      "arity": 1,
+      "name": "is_failure",
+      "operation": "std.vm.distributed_storage.is_failure"
+    },
+    {
+      "arity": 1,
+      "name": "is_success",
+      "operation": "std.vm.distributed_storage.is_success"
+    },
+    {
+      "arity": 1,
+      "name": "requires_recovery",
+      "operation": "std.vm.distributed_storage.requires_recovery"
+    },
+    {
+      "arity": 1,
+      "name": "recovery_action",
+      "operation": "std.vm.distributed_storage.recovery_action"
+    },
+    {
+      "arity": 1,
+      "name": "sequence",
+      "operation": "std.vm.distributed_storage.sequence"
+    },
+    {
+      "arity": 1,
+      "name": "expected_sequence",
+      "operation": "std.vm.distributed_storage.expected_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "actual_sequence",
+      "operation": "std.vm.distributed_storage.actual_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "expected_schema",
+      "operation": "std.vm.distributed_storage.expected_schema"
+    },
+    {
+      "arity": 1,
+      "name": "actual_schema",
+      "operation": "std.vm.distributed_storage.actual_schema"
+    },
+    {
+      "arity": 1,
+      "name": "checkpoint_id",
+      "operation": "std.vm.distributed_storage.checkpoint_id"
+    },
+    {
+      "arity": 1,
+      "name": "local_sequence",
+      "operation": "std.vm.distributed_storage.local_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "incoming_sequence",
+      "operation": "std.vm.distributed_storage.incoming_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "checksum",
+      "operation": "std.vm.distributed_storage.checksum"
+    },
+    {
+      "arity": 1,
+      "name": "expected_checksum",
+      "operation": "std.vm.distributed_storage.expected_checksum"
+    },
+    {
+      "arity": 1,
+      "name": "expected_entries",
+      "operation": "std.vm.distributed_storage.expected_entries"
+    },
+    {
+      "arity": 1,
+      "name": "persisted_entries",
+      "operation": "std.vm.distributed_storage.persisted_entries"
+    },
+    {
+      "arity": 1,
+      "name": "retained_snapshots",
+      "operation": "std.vm.distributed_storage.retained_snapshots"
+    }
+  ],
+  "module": "std_vm_distributed_storage_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.DistributedStorage"
+}

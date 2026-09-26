@@ -1,8 +1,8 @@
 module=std.js.Dom.StaticRangeInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17839691291360980270
-interface_hash=13128323682466053075
-interface_doc_hash=13128323682466053075
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14940264261382416275
+interface_hash=8931676199740538737
+interface_doc_hash=8931676199740538737
 deps=0

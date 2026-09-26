@@ -1,8 +1,8 @@
 module=std.js.WeakMapConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15491480126229348477
-interface_hash=11580937455548961544
-interface_doc_hash=11580937455548961544
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16818254823278864036
+interface_hash=9600253833284958261
+interface_doc_hash=9600253833284958261
 deps=0

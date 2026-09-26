@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSImageValue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10321843428942302380
-interface_hash=16993164979880631880
-interface_doc_hash=16993164979880631880
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13817830816492677055
+interface_hash=5915074743409971592
+interface_doc_hash=5915074743409971592
 deps=0

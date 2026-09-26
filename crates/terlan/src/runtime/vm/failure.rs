@@ -632,6 +632,10 @@ pub(crate) fn reason_value(reason: &VmExitReason) -> ReplValue {
             ReplValue::Atom("error".to_string()),
             ReplValue::String(message.clone()),
         ]),
+        VmExitReason::TypedError { value, .. } => ReplValue::Tuple(vec![
+            ReplValue::Atom("error".to_string()),
+            (**value).clone(),
+        ]),
         VmExitReason::ShutdownTimeout { timeout_ms } => ReplValue::Tuple(vec![
             ReplValue::Atom("shutdown_timeout".to_string()),
             ReplValue::Int((*timeout_ms).try_into().unwrap_or(i64::MAX)),

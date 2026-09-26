@@ -107,6 +107,83 @@ fn checked_cache_publisher_creates_missing_cache_root() {
     fixture.remove();
 }
 
+#[test]
+fn checked_cache_retention_preserves_the_current_reader_under_entry_pressure() {
+    use super::artifact_cache_retention::{Budget, CacheFamily, RetainedCache};
+    use std::collections::BTreeSet;
+
+    let fixture = CheckedCacheFixture::new("retention_entry_pressure");
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    let source = fs::read_to_string(&fixture.dependency).unwrap();
+    let checked = checked_cache_file_for_test(&source, &fixture.state).unwrap();
+    let generation = checked.parent().unwrap();
+    let entries = generation.parent().unwrap();
+    let bucket = entries.parent().unwrap();
+    let prefix = bucket.file_name().unwrap().to_str().unwrap();
+    let keys = (0..256)
+        .map(|value| format!("{prefix}{value:063x}"))
+        .collect::<BTreeSet<_>>();
+    let cache = RetainedCache::open(
+        bucket,
+        CacheFamily::CheckedImplementations,
+        keys.clone(),
+        Budget {
+            entries: 512,
+            ..Budget::default()
+        },
+    )
+    .unwrap();
+    for key in keys {
+        cache
+            .publish(
+                &key,
+                "checked.json",
+                b"obsolete serialized implementation",
+                b"obsolete manifest",
+            )
+            .unwrap();
+    }
+    drop(cache);
+    assert_eq!(fs::read_dir(entries).unwrap().count(), 257);
+    assert!(fixture.compile_dependency().checked_cache_reused);
+    assert!(checked.is_file());
+    assert_eq!(fs::read_dir(entries).unwrap().count(), 256);
+    fixture.remove();
+}
+
+#[test]
+fn checked_cache_retention_errors_are_not_silently_reclassified_as_misses() {
+    let fixture = CheckedCacheFixture::new("retention_unowned_file");
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    let source = fs::read_to_string(&fixture.dependency).unwrap();
+    let checked = checked_cache_file_for_test(&source, &fixture.state).unwrap();
+    let unowned = checked.parent().unwrap().join("source.terl");
+    fs::write(&unowned, b"do not adopt this source").unwrap();
+    let result = compile_fixture_module(&fixture.dependency, &fixture.state);
+    assert!(
+        matches!(result, Err(super::super::BuildOneError::Message(message)) if message.contains("build.cache.retention"))
+    );
+    assert_eq!(fs::read(unowned).unwrap(), b"do not adopt this source");
+    fixture.remove();
+}
+
+#[test]
+fn checked_cache_does_not_adopt_legacy_unleased_storage() {
+    let fixture = CheckedCacheFixture::new("retention_legacy_namespace");
+    let legacy = fixture.cache.join("checked");
+    fs::create_dir_all(&legacy).unwrap();
+    let unrelated = legacy.join("source.terl");
+    fs::write(&unrelated, b"old compiler owns this namespace").unwrap();
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    assert!(fixture.compile_dependency().checked_cache_reused);
+    assert_eq!(
+        fs::read(unrelated).unwrap(),
+        b"old compiler owns this namespace"
+    );
+    fixture.remove();
+}
+
 /// Complete two-module checked-cache fixture.
 struct CheckedCacheFixture {
     /// Temporary fixture root removed after each test.

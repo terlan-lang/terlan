@@ -1,8 +1,8 @@
 module=std.js.Dom.TouchInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2874674926477273399
-interface_hash=16718441541968248273
-interface_doc_hash=16718441541968248273
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3332603715606157720
+interface_hash=14612203695539021836
+interface_doc_hash=14612203695539021836
 deps=0

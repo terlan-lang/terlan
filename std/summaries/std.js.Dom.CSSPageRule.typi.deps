@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSPageRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12022766066075516282
-interface_hash=6900309832760586571
-interface_doc_hash=6900309832760586571
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9015397473693933378
+interface_hash=5222027289835024814
+interface_doc_hash=5222027289835024814
 deps=0

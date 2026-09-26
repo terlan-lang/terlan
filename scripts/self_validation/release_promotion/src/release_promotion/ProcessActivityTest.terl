@@ -1,0 +1,256 @@
+/**
+ * Mixed-stream admission distinguishes real outcomes from incomplete observation.
+ */
+module release_promotion.ProcessActivityTest.
+
+import release_promotion.ActivityField.{put_count, put_text}.
+import release_promotion.{NativeActivity, NativeActivityTest, OwnerStorage}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+
+import type std.data.Json.
+
+row(attempt: String, phase: String, child: Int, elapsed: Int): Json ->
+    row_header(attempt)
+    |> observed_row(phase, child, elapsed).
+
+row_header(attempt: String): Json ->
+    Json.object()
+    |> put_text("schema", "terlan.process-activity.v1")
+    |> put_text("attempt", attempt)
+    |> put_text("declaration_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    |> put_text("program_kind", "cargo")
+    |> put_count("owner_pid", 17).
+
+observed_row(header: Json, phase: String, child: Int, elapsed: Int): Json ->
+    let observed =
+        header
+            .put("child_pid", child_json(child))
+            .put("state", Json.string(phase))
+            .put("elapsed_micros", Json.int(elapsed));
+    empty_result(observed).
+
+empty_result(observed: Json): Json ->
+    observed
+        .put("exit_code", Json.null())
+        .put("exit_success", Json.null())
+        .put("error_kind", Json.null()).
+
+child_json(child: Int): Json ->
+    if {
+        child < 0 -> Json.null();
+        true -> Json.int(child)
+    }.
+
+started(attempt: String): Json ->
+    row(attempt, "started", -1, 0).
+
+spawned(attempt: String): Json ->
+    row(attempt, "spawned", 18, 1).
+
+reaped(attempt: String, code: Int): Json ->
+    row(attempt, "reaped", 18, 2)
+        .put("exit_code", Json.int(code))
+        .put("exit_success", Json.bool(code == 0)).
+
+source(rows: List[Json]): String ->
+    case rows {
+        [] -> "";
+        [value | rest] ->
+            let Ok(line) <- Json.stringify(value) else {
+                _ -> "invalid fixture\n"
+            };
+            String.concat([line, "\n", source(rest)])
+    }.
+
+rejected(rows: List[Json]): Bool ->
+    case NativeActivity.validate(source(rows)) {
+        Err(_reason) -> true;
+        Ok(_report) -> false
+    }.
+
+count(report: Json, name: String, expected: Int): Bool ->
+    let {
+        Ok(value) <- report.get(name);
+        Ok(actual) <- value.as_int()
+    } else {
+        _ -> false
+    };
+    actual == expected.
+
+outcomes(): Bool ->
+    let executions =
+        source(
+            [
+                started("one"),
+                spawned("one"),
+                reaped("one", 0),
+                started("two"),
+                spawned("two"),
+                reaped("two", 7),
+                started("missing"),
+                row("missing", "spawn_failed", -1, 1).put("error_kind", Json.string("NotFound")),
+            ],
+        );
+    let log = String.append(NativeActivityTest.object("object"), executions);
+    let {
+        Ok(report) <- NativeActivity.validate(log);
+        Some("terlan.execution-inventory.v1") <- OwnerStorage.text(report, "schema");
+        Ok(processes) <- report.get("process_inventory")
+    } else {
+        _ -> false
+    };
+    (let {
+    true <- count(processes, "launches", 2);
+    true <- count(processes, "reaped", 2);
+    true <- count(processes, "nonzero_exits", 1);
+    true <- count(processes, "spawn_failed", 1);
+    true <- count(report, "completed_work", 1);
+    true <- count(report, "native_link_launches", 0)
+} else {
+    _ -> false
+};
+true).
+
+transitions(): Bool ->
+    let {
+        true <- rejected([spawned("one")]);
+        true <- rejected([started("one"), reaped("one", 0)]);
+        true <- rejected([started("one"), spawned("one"), spawned("one")]);
+        true <- rejected([started("one"), spawned("one"), reaped("one", 0), reaped("one", 0)]);
+        true <- rejected([started("one"), started("one")]);
+        true <- terminal_transitions()
+    } else {
+        _ -> false
+    };
+    true.
+
+terminal_transitions(): Bool ->
+    let {
+        true <- rejected([started("one"), row("one", "invented", -1, 1)]);
+        true <- rejected([started("one"), row("one", "spawned", 0, 1)]);
+        true <-
+            rejected(
+                [started("one"), spawned("one"), reaped("one", 0).put("child_pid", Json.int(19))],
+            );
+        true <-
+            rejected(
+                [
+                    started("one"),
+                    spawned("one"),
+                    row("one", "spawn_failed", -1, 2).put("error_kind", Json.string("Other")),
+                ],
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+identity(): Bool ->
+    let {
+        true <- rejected([started("one"), spawned("one").put("owner_pid", Json.int(19))]);
+        true <- rejected([started("one"), spawned("one").put("program_kind", Json.string("git"))]);
+        true <-
+            rejected(
+                [
+                    started("one"),
+                    spawned("one")
+                        .put(
+                            "declaration_sha256",
+                            Json.string(
+                                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                            ),
+                        ),
+                ],
+            );
+        true <-
+            rejected(
+                [
+                    started("one"),
+                    spawned("one"),
+                    reaped("one", 0).put("elapsed_micros", Json.int(0)),
+                ],
+            );
+        true <- invalid_scalars()
+    } else {
+        _ -> false
+    };
+    true.
+
+invalid_scalars(): Bool ->
+    let {
+        true <- rejected([started("one").put("owner_pid", Json.int(0))]);
+        true <- rejected([started("one").put("declaration_sha256", Json.string("bad"))]);
+        true <- rejected([started("one").put("attempt", Json.string("../one"))]);
+        true <- rejected([started("one").put("elapsed_micros", Json.int(-1))]);
+        true <- rejected([started("one").put("program_kind", Json.string("private-program"))])
+    } else {
+        _ -> false
+    };
+    true.
+
+malformed(): Bool ->
+    let {
+        true <- rejected([started("one").put("extra", Json.null())]);
+        true <- rejected([started("one").put("schema", Json.string("unknown.v1"))]);
+        true <- rejected([started("one").put("exit_code", Json.int(0))]);
+        true <- rejected([started("one").put("exit_success", Json.bool(true))]);
+        true <- rejected([started("one").put("error_kind", Json.string("Other"))]);
+        true <- rejected([started("one"), row("one", "spawn_failed", -1, 1)]);
+        true <- invalid_results()
+    } else {
+        _ -> false
+    };
+    true.
+
+invalid_results(): Bool ->
+    let {
+        true <-
+            rejected(
+                [
+                    started("one"),
+                    spawned("one"),
+                    reaped("one", 7).put("exit_success", Json.bool(true)),
+                ],
+            );
+        true <-
+            rejected(
+                [started("one"), spawned("one"), reaped("one", 0).put("exit_code", Json.null())],
+            );
+        true <-
+            rejected(
+                [
+                    started("one"),
+                    spawned("one"),
+                    reaped("one", 0).put("exit_success", Json.string("true")),
+                ],
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+interrupted(): Bool ->
+    let {
+        Ok(report) <- NativeActivity.inspect(source([started("pending"), spawned("pending")]));
+        Some("interrupted") <- OwnerStorage.text(report, "decision");
+        Ok(processes) <- report.get("process_inventory")
+    } else {
+        _ -> false
+    };
+    count(processes, "pending", 1)
+        and rejected([started("pending"), spawned("pending")])
+        and rejected([started("pending"), row("pending", "abandoned", -1, 1)]).
+
+/**
+ * Owned by the native-activity self-test, never a duplicate execution tier.
+ */
+pub self_test(): Bool ->
+    NativeActivityTest.self_test()
+        and outcomes()
+        and transitions()
+        and identity()
+        and malformed()
+        and interrupted().

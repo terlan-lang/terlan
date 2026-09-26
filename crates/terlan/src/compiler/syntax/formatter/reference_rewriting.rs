@@ -680,6 +680,9 @@ pub(super) fn rewrite_type_refs_in_function_clause(
     clause: &mut crate::terlan_syntax::parse_tree::FunctionClause,
     replacements: &BTreeMap<String, String>,
 ) {
+    for annotation in clause.parameter_types.iter_mut().flatten() {
+        rewrite_type_text(&mut annotation.text, replacements);
+    }
     if let Some(guard) = &mut clause.guard {
         rewrite_type_refs_in_expr(guard, replacements);
     }

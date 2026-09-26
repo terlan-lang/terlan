@@ -1,8 +1,8 @@
 module=std.js.Dom.OfflineAudioCompletionEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12818159929327468629
-interface_hash=658598429184552149
-interface_doc_hash=658598429184552149
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2459160775828596310
+interface_hash=13039118522004975438
+interface_doc_hash=13039118522004975438
 deps=0

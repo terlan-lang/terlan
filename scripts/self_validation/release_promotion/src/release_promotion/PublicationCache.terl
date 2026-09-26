@@ -1,0 +1,285 @@
+/**
+ * Retires verified hosted-download generations under publication-inputs.lock.
+ * Publication inputs and dist contain independent copies and are never targets.
+ */
+module release_promotion.PublicationCache.
+
+import release_promotion.CacheRetention.{Budget, Generation}.
+import release_promotion.{CacheRetention, OwnerStorage}.
+import std.core.Int.{to_string}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256_file}.
+import std.io.{Console, Directory, File}.
+import std.time.Clock.{unix_time_ns}.
+
+import type release_promotion.CacheRetention.{Budget, Generation}.
+import type std.core.Result.
+
+/**
+ * Defaults: at most 8 GiB / three generations, seven days, five-minute grace.
+ */
+pub default_budget(): Budget ->
+    Budget(
+        bytes = 8589934592,
+        entries = 3,
+        maximum_age_ns = 604800000000000,
+        minimum_age_ns = 300000000000,
+    ).
+
+cache_root(root: String): String ->
+    OwnerStorage.child(root, "target/publication-downloads").
+
+/**
+ * Rejects symlinked ancestors before inspecting or removing cache generations.
+ */
+safe_root(root: String): Bool ->
+    root != ""
+        and root != "/"
+        and OwnerStorage.command(
+    root,
+    "/bin/sh",
+    [
+        "-c",
+        "test \"$(/usr/bin/realpath -e -- \"$1\")\" = \"$1\" && test -d \"$1/target\" && test ! -L \"$1/target\" && test -d \"$1/target/publication-downloads\" && test ! -L \"$1/target/publication-downloads\"",
+        "publication-cache-root",
+        root,
+    ],
+).
+
+generation(root: String, key: String): Result[Generation, String] ->
+    let path = OwnerStorage.child(cache_root(root), key);
+    let {
+        true <- CacheRetention.valid_key(key);
+        Ok(usage) <- Directory.tree_usage(path);
+        true <- usage.symbolic_link_count == 0;
+        Ok(context) <- OwnerStorage.read_json(OwnerStorage.child(path, "context.json"));
+        Some(schema) <- OwnerStorage.text(context, "schema");
+        true <- schema == "terlan.hosted-download-cache.v1";
+        Ok(digest) <- sha256_file(OwnerStorage.child(path, "context.json"));
+        true <- digest == key;
+        Ok(times) <- File.timestamps(OwnerStorage.child(path, "verified-files.sha256"))
+    } else {
+        _ -> Err(String.append("unrecognized or unsafe hosted cache generation: ", key))
+    };
+    Ok(Generation(key = key, bytes = usage.allocated_bytes, modified_ns = times.modified_unix_ns)).
+
+entry_generation(root: String, path: String): Result[Generation, String] ->
+    let prefix = String.append(cache_root(root), "/");
+    let true <- String.starts_with(path, prefix) and path.byte_size() > prefix.byte_size() else {
+        _ -> Err("cache entry escaped its owned root")
+    };
+    generation(root, path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size())).
+
+inventory(root: String, paths: List[String], remaining: Int): Result[List[Generation], String] ->
+    case paths {
+        [] -> Ok([]);
+        [path | rest] ->
+            if {
+                disposable_entry(root, path) -> inventory(root, rest, remaining - 1);
+                true -> inventory_entry(root, path, rest, remaining)
+            }
+    }.
+
+inventory_entry(
+    root: String,
+    path: String,
+    rest: List[String],
+    remaining: Int,
+): Result[List[Generation], String] ->
+    let {
+        true <- remaining > 0;
+        Ok(value) <- entry_generation(root, path);
+        Ok(values) <- inventory(root, rest, remaining - 1)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("cache inventory exceeds 1024 generations")
+    };
+    Ok([value | values]).
+
+cache_entries(root: String): Result[List[String], String] ->
+    case Directory.entries(cache_root(root)) {
+        Ok(paths) -> Ok(paths);
+        Err(reason) -> Err(Directory.message(reason))
+    }.
+
+retired_path(root: String, key: String): String ->
+    root
+    |> cache_root()
+    |> OwnerStorage.child(String.append(".retired-", key)).
+
+retired_entry(root: String, path: String): Bool ->
+    let prefix = String.append(cache_root(root), "/.retired-");
+    String.starts_with(path, prefix)
+        and path.byte_size() == prefix.byte_size() + 64
+        and CacheRetention.valid_key(path.utf8_slice(prefix.byte_size(), 64)).
+
+partial_suffix(value: String, index: Int): Bool ->
+    if {
+        index == 6 -> true;
+        true -> String.contains(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    value.utf8_slice(index, 1),
+)
+            and partial_suffix(value, index + 1)
+    }.
+
+/**
+ * The exclusive downloader lock proves these incomplete staging trees idle.
+ */
+disposable_entry(root: String, path: String): Bool ->
+    retired_entry(root, path) or partial_entry(root, path).
+
+partial_entry(root: String, path: String): Bool ->
+    let prefix = String.append(cache_root(root), "/.partial.");
+    String.starts_with(path, prefix)
+        and path.byte_size() == prefix.byte_size() + 6
+        and partial_suffix(path.utf8_slice(prefix.byte_size(), 6), 0).
+
+drain_retired(root: String, paths: List[String], remaining: Int): Result[Int, String] ->
+    case paths {
+        [] -> Ok(0);
+        [path | rest] ->
+            let true <- remaining > 0 else {
+                _ -> Err("cache cleanup inventory exceeds 1024 entries")
+            };
+            if {
+                disposable_entry(root, path) -> let {
+                    Ok(bytes) <- discard_retired(root, path);
+                    Ok(later) <- drain_retired(root, rest, remaining - 1)
+                } else {
+                    Err(reason) -> Err(reason)
+                };
+                Ok(bytes + later);
+                true -> drain_retired(root, rest, remaining - 1)
+            }
+    }.
+
+/**
+ * A durable retirement name proves that a previous owner committed eviction.
+ */
+discard_retired(root: String, path: String): Result[Int, String] ->
+    let {
+        true <- safe_root(root) and disposable_entry(root, path);
+        Ok(usage) <- Directory.tree_usage(path);
+        true <- usage.allocated_bytes <= 1125899906842624;
+        Ok(_removed) <- Directory.remove_all(path)
+    } else {
+        _ -> Err("cannot finish interrupted cache retirement")
+    };
+    Ok(usage.allocated_bytes).
+
+mark_retired(root: String, key: String): Bool ->
+    OwnerStorage.command(
+        root,
+        "/bin/sh",
+        [
+            "-c",
+            "test ! -e \"$2\" && test ! -L \"$2\" && exec /usr/bin/mv -T -- \"$1\" \"$2\"",
+            "publication-cache-retire",
+            OwnerStorage.child(cache_root(root), key),
+            retired_path(root, key),
+        ],
+    ).
+
+retire(root: String, generations: List[Generation], reclaimed: Int): Result[Int, String] ->
+    case generations {
+        [] -> Ok(reclaimed);
+        [expected | rest] ->
+            let {
+                true <- safe_root(root);
+                Ok(actual) <- generation(root, expected.key);
+                true <- actual.bytes == expected.bytes and actual.modified_ns == expected.modified_ns;
+                true <- mark_retired(root, expected.key);
+                Ok(_removed) <- Directory.remove_all(retired_path(root, expected.key))
+            } else {
+                _ ->
+                    Err(
+                        String.append(
+                            "cache generation changed or could not be retired: ",
+                            expected.key,
+                        ),
+                    )
+            };
+            retire(root, rest, reclaimed + actual.bytes)
+    }.
+
+/**
+ * Applies a bounded plan while the caller holds the exclusive download lock.
+ * Complete inventory and planning precede new evictions. Durable tombstones
+ * from previously committed evictions can be drained independently on retry.
+ */
+pub prune_locked(root: String, pinned: String, budget: Budget, now_ns: Int): Result[Int, String] ->
+    let {
+        true <- safe_root(root);
+        true <- CacheRetention.valid_key(pinned);
+        Ok(paths) <- cache_entries(root);
+        Ok(interrupted) <- drain_retired(root, paths, 1024);
+        Ok(generations) <- inventory(root, paths, 1024);
+        Ok(plan) <- CacheRetention.plan_retention(generations, [pinned], budget, now_ns)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("hosted cache root or pinned generation is invalid")
+    };
+    retire(root, plan.retire, interrupted).
+
+key_path(root: String, revision: String): String ->
+    OwnerStorage.child(
+        root,
+        String.concat(["target/publication-inputs/", revision, "/download-cache-key"]),
+    ).
+
+pinned_key(root: String, revision: String): Result[String, String] ->
+    let {
+        true <- CacheRetention.valid_key(String.append(revision, "000000000000000000000000"));
+        Ok(size) <- File.size(key_path(root, revision));
+        true <- size == 65;
+        Ok(source) <- File.read_text(key_path(root, revision));
+        true <- source.byte_size() == 65;
+        true <- String.ends_with(source, "\n")
+    } else {
+        _ -> Err("missing or invalid candidate download-cache key; refresh verified hosted inputs")
+    };
+    Ok(String.trim(source)).
+
+reclaim_candidate(root: String, revision: String): Result[Int, String] ->
+    let {
+        Ok(key) <- pinned_key(root, revision);
+        true <- CacheRetention.valid_key(key);
+        Ok(context) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(cache_root(root), String.append(key, "/context.json")),
+            );
+        Some(candidate) <- OwnerStorage.text(context, "revision");
+        true <- candidate == revision
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("hosted cache generation belongs to another candidate")
+    };
+    prune_locked(root, key, default_budget(), unix_time_ns()).
+
+/**
+ * Prunes only cache bytes; never candidate inputs, owner evidence, or source.
+ */
+pub run_locked(root: String, revision: String): Bool ->
+    let Ok(reclaimed) <- reclaim_candidate(root, revision) else {
+        Err(reason) -> fail(reason)
+    };
+    report_reclaimed(reclaimed).
+
+report_reclaimed(reclaimed: Int): Bool ->
+    let message =
+        String.concat(
+            [
+                "hosted cache retention passed; reclaimed ",
+                to_string(reclaimed),
+                " bytes of regenerable downloads; candidate inputs preserved",
+            ],
+        );
+    let _printed = Console.println(message);
+    true.
+
+fail(reason: String): Bool ->
+    let _printed = Console.eprintln(String.append("hosted cache retention failed: ", reason));
+    false.

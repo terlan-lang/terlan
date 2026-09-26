@@ -478,6 +478,7 @@ fn expand_let_expr(
                 Vec::new(),
                 Vec::new(),
                 vec![SyntaxClauseOutput {
+                    parameter_types: Vec::new(),
                     patterns: vec![pattern],
                     guard: Some(Box::new(guard)),
                     body: Box::new(continuation),

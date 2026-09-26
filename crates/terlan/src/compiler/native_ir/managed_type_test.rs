@@ -152,7 +152,7 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         fields: Vec::new(),
     };
     let struct_expected =
-        SemanticTypeId::from_canonical("projection.Pair").expect("struct semantic");
+        SemanticTypeId::from_canonical("Named(projection.Pair)").expect("struct semantic");
     assert_eq!(
         super::super::native_type(Some(&structure), "projection.Pair"),
         Some(NativeType::ManagedRef(struct_expected))
@@ -362,6 +362,7 @@ fn managed_content_equality_is_not_lowered_as_pointer_identity() {
 #[test]
 fn polymorphic_with_default_infers_the_checked_default_native_type() {
     let call = CoreExpr::Call {
+        type_args: Vec::new(),
         function: "std.core.Option.with_default".to_owned(),
         args: vec![
             CoreExpr::Var("value".to_owned()),

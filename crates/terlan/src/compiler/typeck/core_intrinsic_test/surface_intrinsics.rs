@@ -458,8 +458,7 @@ pub(super) fn syntax_output_lowering_does_not_promote_unimported_process_name() 
         CoreExpr::RemoteCall {
             module,
             function,
-            args
-        } if module == "Process" && function == "yield_now" && args.is_empty()
+            args, .. } if module == "Process" && function == "yield_now" && args.is_empty()
     ));
 }
 

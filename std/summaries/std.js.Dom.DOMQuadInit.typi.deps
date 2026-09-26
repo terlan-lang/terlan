@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMQuadInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10279593491946432564
-interface_hash=9078470070419789076
-interface_doc_hash=9078470070419789076
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=381006731068378066
+interface_hash=2360611510090885195
+interface_doc_hash=2360611510090885195
 deps=0

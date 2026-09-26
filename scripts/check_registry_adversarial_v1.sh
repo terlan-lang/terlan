@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-orchestrator="$repo_root/target/debug/terlan-test-orchestrator"
+orchestrator="$repo_root/target/validation-tools/terlan-test-orchestrator"
 
 test -x "$orchestrator" || {
   echo "missing prebuilt canonical Rust-suite orchestrator: $orchestrator" >&2

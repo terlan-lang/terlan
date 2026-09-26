@@ -1,5 +1,6 @@
 //! Generated containment for throwing C++ free functions that mutate resources.
 
+use crate::commands::bind::cpp_binding_generator::error::CppBindingError;
 use std::collections::BTreeMap;
 
 use super::exception_adapter::EXCEPTION_ENVELOPE;
@@ -69,7 +70,7 @@ pub(super) fn has_mutation_adapters(manifest: &NativeBindingManifest) -> bool {
 pub(super) fn render_mutation_adapter_header(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#pragma once\n\n#include \"terlan_exception_adapters.hpp\"\n#include \"terlan_owned_value_adapters.hpp\"\n\n#include <memory>\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -95,7 +96,7 @@ pub(super) fn render_mutation_adapter_header(
 pub(super) fn render_mutation_adapter_source(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#include \"include/terlan_mutation_adapters.hpp\"\n\n#include <utility>\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -186,14 +187,15 @@ fn adapter_parameters(
     manifest: &NativeBindingManifest,
     function: &NativeBindingFunction,
     symbol: &CppSymbol,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let count = mapped_cpp_parameter_count(function, symbol);
     let mappings = public_cpp_parameter_mappings(function, symbol);
     if count > symbol.parameters.len() {
-        return Err(format!(
+        return Err((format!(
             "mutable free function `{}` maps too many C++ parameters",
             function.name
-        ));
+        ))
+        .into());
     }
     let mut parameters = Vec::new();
     if symbol.kind == super::CppSymbolKind::Method {
@@ -231,7 +233,7 @@ fn concrete_method_receiver<'a>(
     manifest: &'a NativeBindingManifest,
     function: &NativeBindingFunction,
     symbol: &CppSymbol,
-) -> Result<&'a str, String> {
+) -> Result<&'a str, CppBindingError> {
     let argument = function.args.first().ok_or_else(|| {
         format!(
             "mutable method `{}` requires a resource receiver",
@@ -252,7 +254,7 @@ fn concrete_method_receiver<'a>(
                 function.name
             )
         })?;
-    manifest
+    Ok(manifest
         .cpp_metadata
         .symbols
         .iter()
@@ -263,7 +265,7 @@ fn concrete_method_receiver<'a>(
                 "mutable method `{}` has unknown resource symbol `{}` for `{}`",
                 function.name, resource.cpp_symbol, symbol.id
             )
-        })
+        })?)
 }
 
 /// Strengthens an upstream logical-const resource target to a mutable adapter

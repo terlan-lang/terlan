@@ -95,7 +95,10 @@ pub validate_makefile(makefile: String): Bool ->
                 not makefile.contains(release_target()) -> false;
                 not makefile.contains("vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check") -> false;
                 not makefile.contains("vm-multicore-publish-check:") -> false;
-                not makefile.contains("$(MAKE) $(VM_MULTICORE_PUBLISH_LOCAL_GATES)") -> false;
+                not makefile
+    .contains(
+        "vm-multicore-publish-prerequisites: vm-multicore-release-contract-check $(VM_MULTICORE_PUBLISH_LOCAL_GATES)",
+    ) -> false;
                 not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify") -> false;
                 not makefile.contains("publish-evidence-plan-check:") -> false;
@@ -106,6 +109,7 @@ pub validate_makefile(makefile: String): Bool ->
                         "rustup target list --installed --toolchain 1.96.0 2>/dev/null | grep -Fqx 'x86_64-unknown-linux-gnutsan'",
                         "error[aot.tsan]: pinned nightly ThreadSanitizer toolchain is mandatory in CI",
                         "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI",
+                        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
                     ],
                 )
             }
@@ -119,10 +123,7 @@ count_requirements(workflow: String, requirements: List[{String, Int}]): Bool ->
     }.
 
 final_check_ordered(workflow: String): Bool ->
-    case String.split_once(
-    workflow,
-    "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
-) {
+    case String.split_once(workflow, "run: make release-hosted-validation-check") {
         None -> false;
         Some({prefix, suffix}) ->
             prefix.contains("Download hosted multicore ThreadSanitizer evidence")
@@ -144,7 +145,7 @@ pub validate_workflow(workflow: String): Bool ->
         {"      - name: Install release utilities\n", 3},
         {"run: make vm-multicore-thread-sanitizer-check", 1},
         {"name: release-vm-multicore-thread-sanitizer", 2},
-        {"run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check", 1},
+        {"run: make release-hosted-validation-check", 1},
     ],
 ) -> false;
         not fragments_present(
@@ -353,6 +354,11 @@ pub build_closeout(
 
 pub record(): Bool ->
     let root = Environment.current_directory();
+    let output =
+        case Environment.get("TERLAN_MULTICORE_RELEASE_OUTPUT") {
+            Some(path) -> path;
+            None -> child(root, "target/quality/vm-multicore-release-closeout.json")
+        };
     let memory_model_path = child(root, "target/quality/vm-multicore-memory-model.json");
     let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
@@ -384,7 +390,7 @@ pub record(): Bool ->
         _ -> false
     };
     if {
-        not write_json(child(root, "target/quality/vm-multicore-release-closeout.json"), report) -> false;
+        not write_json(output, report) -> false;
         true -> let _printed = println(String.append("VM multicore release closeout passed: ", revision(identity)));
         true
     }.

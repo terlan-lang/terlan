@@ -1,8 +1,8 @@
 module=std.js.Dom.StorageEstimate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15427066521305044745
-interface_hash=15207882185177283800
-interface_doc_hash=15207882185177283800
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1028514118278731123
+interface_hash=4326331063198164207
+interface_doc_hash=4326331063198164207
 deps=0

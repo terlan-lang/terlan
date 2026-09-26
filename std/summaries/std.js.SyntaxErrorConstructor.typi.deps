@@ -1,8 +1,8 @@
 module=std.js.SyntaxErrorConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15089981886606940466
-interface_hash=1492042578613897099
-interface_doc_hash=1492042578613897099
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16566286728358374857
+interface_hash=3614135265063226117
+interface_doc_hash=3614135265063226117
 deps=0

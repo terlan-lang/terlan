@@ -21,7 +21,7 @@ pub(super) fn qualify_local_calls(
 
 fn qualify_expr_calls(expr: &mut CoreExpr, module: &str, local: &HashSet<(String, usize)>) {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for arg in args.iter_mut() {
                 qualify_expr_calls(arg, module, local);
             }

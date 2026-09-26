@@ -187,6 +187,7 @@ pub(super) fn emit_expr(
                     allocator: params[1],
                     resolver: params[2],
                     lookup: params[3],
+                    callable_recorder: params[4],
                 },
                 indirect::IndirectInvocation {
                     closure: callee,

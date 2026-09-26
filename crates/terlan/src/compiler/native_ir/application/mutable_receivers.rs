@@ -10,6 +10,7 @@ struct ReceiverTarget {
     function: String,
     receiver: CoreType,
     public: bool,
+    generic_params: Vec<String>,
 }
 
 /// Resolves mutable receiver syntax to one exact application callable.
@@ -67,6 +68,9 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
     let mut targets = HashMap::<(String, usize), Vec<ReceiverTarget>>::new();
     for core in cores {
         for function in &core.functions {
+            if !function.receiver_method {
+                continue;
+            }
             let Some(receiver) = function.params.first().and_then(|parameter| {
                 parameter
                     .core_ty
@@ -83,6 +87,9 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
                     function: function.name.clone(),
                     receiver,
                     public: function.public,
+                    generic_params: super::super::generic_specialization::generic_parameters(
+                        function,
+                    ),
                 });
         }
     }
@@ -138,6 +145,7 @@ fn resolve_expr(
                 let mut call_args = vec![receiver];
                 call_args.append(args);
                 *expr = CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: if target.module == module {
                         target.function.clone()
                     } else {
@@ -148,6 +156,7 @@ fn resolve_expr(
             }
         }
         CoreExpr::RemoteCall {
+            type_args,
             module: receiver_module,
             function,
             args,
@@ -163,6 +172,7 @@ fn resolve_expr(
                 });
             if let Some(target) = target {
                 *expr = CoreExpr::Call {
+                    type_args: std::mem::take(type_args),
                     function: callable_identity(target, module),
                     args: std::mem::take(args),
                 };
@@ -180,11 +190,11 @@ fn resolve_expr(
             }
             resolve_expr(body, module, &locals, functions, targets)?;
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             for argument in args.iter_mut() {
                 resolve_expr(argument, module, variables, functions, targets)?;
             }
-            if !function.contains('.') {
+            if !function.contains('.') && !functions.contains_key(&(function.clone(), args.len())) {
                 let target = args
                     .first()
                     .and_then(|receiver| infer_core_type(receiver, variables, functions))
@@ -242,9 +252,20 @@ fn resolve_expr(
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Cast { expr: base, .. }
-        | CoreExpr::Lam { body: base, .. } => {
+        | CoreExpr::Cast { expr: base, .. } => {
             resolve_expr(base, module, variables, functions, targets)?;
+        }
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let locals = super::super::generic_specialization::lambda_type_scope(
+                params,
+                parameter_types,
+                variables,
+            );
+            resolve_expr(body, module, &locals, functions, targets)?;
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
@@ -340,7 +361,7 @@ fn receiver_target<'a>(
         .into_iter()
         .flatten()
         .filter(|target| {
-            receiver_types_match(&target.receiver, receiver_type)
+            receiver_matches(target, receiver_type)
                 && (target.public || target.module == caller_module)
         });
     if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
@@ -369,6 +390,27 @@ fn callable_identity(target: &ReceiverTarget, caller_module: &str) -> String {
     } else {
         format!("{}.{}", target.module, target.function)
     }
+}
+
+/// Instantiates only declared generic parameters, then checks the full receiver identity.
+fn receiver_matches(target: &ReceiverTarget, actual: &CoreType) -> bool {
+    use super::super::generic_specialization::{substitute, unify};
+
+    if receiver_types_match(&target.receiver, actual) {
+        return true;
+    }
+    let mut substitution = HashMap::new();
+    unify(
+        &target.receiver,
+        actual,
+        &target.generic_params,
+        &mut substitution,
+    )
+    .is_ok()
+        && receiver_types_match(
+            &substitute(&target.receiver, &target.generic_params, &substitution),
+            actual,
+        )
 }
 
 /// Compares receiver types after nominal qualification and opaque-type
@@ -406,13 +448,14 @@ fn infer_core_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).cloned()
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } => functions
             .get(&(format!("{module}.{function}"), args.len()))
             .cloned(),

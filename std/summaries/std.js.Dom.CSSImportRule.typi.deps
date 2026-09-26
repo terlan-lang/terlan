@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSImportRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5195829943379718661
-interface_hash=9813143155783479734
-interface_doc_hash=9813143155783479734
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8565706220349009555
+interface_hash=16399694088410186165
+interface_doc_hash=16399694088410186165
 deps=0

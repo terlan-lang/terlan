@@ -175,16 +175,24 @@ self_test(repository: String): Bool ->
         true -> let canonical = Validator.validate(repository, built.evidence);
         if {
             not canonical.valid -> diagnostic(canonical.code, canonical.message);
-            not schema_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "corrupt schema mutation was accepted");
-            not missing_proof_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "missing proof mutation was accepted");
-            not stale_material_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "stale material mutation was accepted");
-            not duplicate_slice_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "duplicate slice mutation was accepted");
-            not lane_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "runtime lane mutation was accepted");
-            not candidate_mutation_is_rejected(repository, built.evidence) -> diagnostic("self_test", "candidate mutation was accepted");
-            not cross_machine_normalization_is_stable(built.evidence) -> diagnostic("self_test", "cross-machine normalization changed identity");
-            true -> let _printed = println("Proof release evidence adversarial self-test passed");
-            true
+            true -> self_test_document(repository, built.evidence)
         }
+    }.
+
+/**
+ * Exercises independent mutations of an already validated document.
+ */
+self_test_document(repository: String, document: Json): Bool ->
+    if {
+        not schema_mutation_is_rejected(repository, document) -> diagnostic("self_test", "corrupt schema mutation was accepted");
+        not missing_proof_mutation_is_rejected(repository, document) -> diagnostic("self_test", "missing proof mutation was accepted");
+        not stale_material_mutation_is_rejected(repository, document) -> diagnostic("self_test", "stale material mutation was accepted");
+        not duplicate_slice_mutation_is_rejected(repository, document) -> diagnostic("self_test", "duplicate slice mutation was accepted");
+        not lane_mutation_is_rejected(repository, document) -> diagnostic("self_test", "runtime lane mutation was accepted");
+        not candidate_mutation_is_rejected(repository, document) -> diagnostic("self_test", "candidate mutation was accepted");
+        not cross_machine_normalization_is_stable(document) -> diagnostic("self_test", "cross-machine normalization changed identity");
+        true -> let _printed = println("Proof release evidence adversarial self-test passed");
+        true
     }.
 
 record_count(document: Json): Int ->
@@ -238,8 +246,38 @@ record_baseline(repository: String): Bool ->
         true
     }.
 
+propose_baseline(repository: String): Bool ->
+    let result = Validator.propose_baseline(repository);
+    if {
+        not result.valid -> diagnostic(result.code, result.message);
+        true -> let _printed =
+            println(
+                "Proof baseline proposal written under target/quality/proof-artifacts; accepted baseline unchanged",
+            );
+        true
+    }.
+
 release_mode(repository: String): Bool ->
     let checked = Validator.check(repository);
+    if {
+        not checked.valid -> diagnostic(checked.code, checked.message);
+        true -> release_mode_document(repository, checked.document)
+    }.
+
+/**
+ * One construction and canonical check owns the complete proof composition.
+ * Standalone commands retain their own admission; no environment flag can
+ * bypass validation or supply an unchecked document to this path.
+ */
+closeout(repository: String): Bool ->
+    let checked = Validator.check(repository);
+    if {
+        not checked.valid -> diagnostic(checked.code, checked.message);
+        not self_test_document(repository, checked.document) -> false;
+        true -> release_mode_document(repository, checked.document)
+    }.
+
+release_mode_document(repository: String, document: Json): Bool ->
     let {
         Some(config) <- Support.load_json(repository, "proofs/lean/release_evidence/release-mode.json");
         Some(local_command) <- Support.json_string(config, "local_command");
@@ -260,10 +298,9 @@ release_mode(repository: String): Bool ->
         "lean-proof-track-pr-gate",
     ];
 if {
-    not checked.valid -> diagnostic(checked.code, checked.message);
     local_command != ci_command -> diagnostic("candidate_mismatch", "local and CI release-mode commands differ");
     not Support.same_strings(stage_order, expected_stages) -> diagnostic("replay_order_drift", "release-readiness stage order drifted");
-    true -> let selected_candidate = candidate_id(checked.document);
+    true -> let selected_candidate = candidate_id(document);
     let payload =
         Json.object()
             .put("release_readiness_mode", Json.bool(true))
@@ -283,7 +320,11 @@ if {
                     .put("command_signature", Json.string(local_command))
                     .put("scheduler_fingerprint", Json.string(fingerprint));
             if {
-                not Support.write_json(repository, "build/artifacts/proof-readiness-release-mode.json", schedule) -> diagnostic("corrupt_artifact", "release schedule could not be written");
+                not Support.write_json(
+    repository,
+    "target/quality/proof-artifacts/proof-readiness-release-mode.json",
+    schedule,
+) -> diagnostic("corrupt_artifact", "release schedule could not be written");
                 true -> let stage_count = Support.string_count(stage_order);
                 let stage_text = Int.to_string(stage_count);
                 let stage_suffix = String.append(" stages=", stage_text);
@@ -301,7 +342,7 @@ if {
 }).
 
 summary(repository: String): Bool ->
-    case Support.load_json(repository, "build/artifacts/proof-release-evidence.json") {
+    case Support.load_json(repository, "target/quality/proof-artifacts/proof-release-evidence.json") {
         Some(document) ->
             let selected_candidate = candidate_id(document);
             let records = record_count(document);
@@ -323,12 +364,14 @@ run(repository: String, command: String): Bool ->
     if {
         command == "self-test" -> self_test(repository);
         command == "record-baseline" -> record_baseline(repository);
+        command == "propose-baseline" -> propose_baseline(repository);
         command == "check" -> run_check(repository);
+        command == "closeout" -> closeout(repository);
         command == "release-mode" -> release_mode(repository);
         command == "summary" -> summary(repository);
         true -> diagnostic(
             "usage",
-            "usage: ProofReleaseEvidence.terls <self-test|record-baseline|check|release-mode|summary>",
+            "usage: ProofReleaseEvidence.terls <self-test|propose-baseline|record-baseline|check|closeout|release-mode|summary>",
         )
     }.
 

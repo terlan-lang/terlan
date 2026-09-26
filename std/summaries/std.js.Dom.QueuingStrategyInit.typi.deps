@@ -1,8 +1,8 @@
 module=std.js.Dom.QueuingStrategyInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10868460367672780851
-interface_hash=744756465254704181
-interface_doc_hash=744756465254704181
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1856618604911091994
+interface_hash=11540669051352739168
+interface_doc_hash=11540669051352739168
 deps=0

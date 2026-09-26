@@ -126,7 +126,7 @@ fn collect_core_expr_local_calls<'a>(
                 collect_core_expr_local_calls(arg, functions_by_name, pending);
             }
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             if functions_by_name.contains_key(function.as_str()) {
                 pending.push(function.clone());
             }

@@ -1,8 +1,8 @@
 module=std.js.Dom.MimeType
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6245160255337867315
-interface_hash=14136926463418343754
-interface_doc_hash=14136926463418343754
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10892171597670280
+interface_hash=824805613333178925
+interface_doc_hash=824805613333178925
 deps=0

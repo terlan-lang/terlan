@@ -1,5 +1,6 @@
 //! Generated C++ adapters for copied values exposed as Terlan strings.
 
+use crate::commands::bind::cpp_binding_generator::error::CppBindingError;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -31,7 +32,7 @@ pub(super) fn string_adapter_name(
 pub(super) fn render_string_adapter_header(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let header = Path::new(&manifest.cpp_metadata.header)
         .file_name()
         .and_then(|name| name.to_str())
@@ -62,7 +63,7 @@ pub(super) fn render_string_adapter_header(
 pub(super) fn render_string_adapter_source(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#include \"include/terlan_string_adapters.hpp\"\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -106,7 +107,7 @@ fn string_projection_parts<'a>(
         &'a CppSymbol,
         &'a CppSymbol,
     ),
-    String,
+    CppBindingError,
 > {
     let resource = function
         .args
@@ -147,9 +148,9 @@ fn string_projection_parts<'a>(
 fn symbol_for_type<'a>(
     ty: &NativeBindingType,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<&'a CppSymbol, String> {
-    symbols
+) -> Result<&'a CppSymbol, CppBindingError> {
+    Ok(symbols
         .get(ty.cpp_symbol.as_str())
         .copied()
-        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))
+        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))?)
 }

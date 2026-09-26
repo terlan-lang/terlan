@@ -1,8 +1,8 @@
 module=std.js.Dom.PaymentDetailsUpdate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13500108694581591474
-interface_hash=7629109606492019837
-interface_doc_hash=7629109606492019837
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4868633921363672444
+interface_hash=16442572699537491793
+interface_doc_hash=16442572699537491793
 deps=0

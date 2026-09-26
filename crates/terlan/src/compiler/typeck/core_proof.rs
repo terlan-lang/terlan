@@ -43,10 +43,12 @@ pub(crate) fn core_callable_signature_from_function(
     )
 }
 
+mod concrete_impl;
 mod evidence;
 mod module_facts;
 mod structural_impl;
 
+pub(crate) use concrete_impl::{core_syntax_concrete_impl_functions, rewrite_concrete_trait_calls};
 use evidence::{
     core_expr_checked_preservation_evidence, core_pattern_checked_preservation_evidence,
 };
@@ -60,6 +62,9 @@ pub(crate) use structural_impl::{
 
 pub(crate) mod metadata;
 pub(crate) use metadata::core_module_metadata;
+
+#[cfg(test)]
+mod constructor_identities_test;
 
 /// Collects CoreIR function clause summaries from syntax output.
 ///
@@ -410,6 +415,24 @@ pub(crate) fn core_constructor_identities(
     identities
 }
 
+/// Fills unresolved constructor identities without rebinding a qualified target.
+/// A module-style constructor may still need its final type component appended,
+/// but a selected import's resolved provider outranks an unrelated short name.
+fn retain_constructor_identity(
+    name: &str,
+    resolved: &mut Option<String>,
+    identities: &HashMap<String, String>,
+) {
+    if let Some(identity) = identities.get(name) {
+        if resolved
+            .as_ref()
+            .is_none_or(|prior| identity == &format!("{prior}.{name}"))
+        {
+            *resolved = Some(identity.clone());
+        }
+    }
+}
+
 /// Annotates one Core expression summary tree with constructor identities.
 ///
 /// Inputs:
@@ -574,27 +597,25 @@ fn resolve_constructor_identities_in_core_expr(
             resolve_constructor_identities_in_core_expr(base, constructor_identities);
         }
         CoreExpr::ConstructorChain {
+            type_args: _,
             base,
             base_constructor_identity,
             args,
             record,
         } => {
-            if let Some(identity) = constructor_identities.get(base) {
-                *base_constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(base, base_constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_expr(arg, constructor_identities);
             }
             resolve_constructor_identities_in_core_expr(record, constructor_identities);
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
         } => {
-            if let Some(identity) = constructor_identities.get(constructor) {
-                *constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(constructor, constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_expr(arg, constructor_identities);
             }
@@ -658,7 +679,7 @@ fn resolve_constructor_identities_in_core_expr(
                 );
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             for param in params {
                 resolve_constructor_identities_in_core_pattern(param, constructor_identities);
             }
@@ -731,9 +752,7 @@ fn resolve_constructor_identities_in_core_pattern(
             constructor_identity,
             args,
         } => {
-            if let Some(identity) = constructor_identities.get(name) {
-                *constructor_identity = Some(identity.clone());
-            }
+            retain_constructor_identity(name, constructor_identity, constructor_identities);
             for arg in args {
                 resolve_constructor_identities_in_core_pattern(arg, constructor_identities);
             }

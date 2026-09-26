@@ -1,0 +1,23 @@
+/**
+ * Explicit, closed subprocess environments shared by preparation owners.
+ */
+module release_promotion.PreparationEnvironment.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.system.{Environment, Process}.
+
+import type std.system.Process.EnvironmentEntry.
+
+pub selected(keys: List[String]): List[EnvironmentEntry] ->
+    collect(keys, List.new[EnvironmentEntry]()).
+
+collect(keys: List[String], entries: List[EnvironmentEntry]): List[EnvironmentEntry] ->
+    case keys {
+        [] -> entries;
+        [key | rest] ->
+            case Environment.get(key) {
+                None -> collect(rest, entries);
+                Some(value) -> collect(rest, [Process.environment_entry(key, value) | entries])
+            }
+    }.

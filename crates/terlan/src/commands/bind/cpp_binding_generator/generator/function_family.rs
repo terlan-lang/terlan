@@ -69,10 +69,14 @@ struct CppBindingFunctionFamilyMember {
 
 /// Expands concise declaration families before the ordinary validation and
 /// rendering pipeline. No C++ spelling is inferred from source text.
-pub(super) fn expand_function_families(manifest: &mut NativeBindingManifest) -> Result<(), String> {
+pub(super) fn expand_function_families(
+    manifest: &mut NativeBindingManifest,
+) -> Result<(), CppBindingError> {
     for family in std::mem::take(&mut manifest.mapping.symbol_families) {
         if family.symbols.is_empty() {
-            return Err("error[cpp.symbol_family]: policy family has no symbols".to_string());
+            return Err(
+                ("error[cpp.symbol_family]: policy family has no symbols".to_string()).into(),
+            );
         }
         for symbol in family.symbols {
             manifest.mapping.symbols.push(CppSymbolPolicy {
@@ -112,16 +116,18 @@ pub(super) fn expand_function_families(manifest: &mut NativeBindingManifest) -> 
 
         for family in std::mem::take(&mut module.function_families) {
             if family.operation_prefix.is_empty() || family.operation_prefix.ends_with('.') {
-                return Err(format!(
+                return Err((format!(
                     "error[cpp.function_family]: module `{}` has invalid operation_prefix `{}`",
                     module.module, family.operation_prefix
-                ));
+                ))
+                .into());
             }
             if family.members.is_empty() {
-                return Err(format!(
+                return Err((format!(
                     "error[cpp.function_family]: module `{}` has a function family without members",
                     module.module
-                ));
+                ))
+                .into());
             }
             if matches!(
                 family.role,
@@ -130,10 +136,11 @@ pub(super) fn expand_function_families(manifest: &mut NativeBindingManifest) -> 
                     | NativeFunctionRole::OwnedValueProjection
                     | NativeFunctionRole::ExceptionMethod
             ) {
-                return Err(format!(
+                return Err((format!(
                     "error[cpp.function_family]: module `{}` uses unsupported family role `{:?}`",
                     module.module, family.role
-                ));
+                ))
+                .into());
             }
 
             for member in family.members {
@@ -149,16 +156,18 @@ pub(super) fn expand_function_families(manifest: &mut NativeBindingManifest) -> 
                 let operation_suffix = member.operation_suffix.unwrap_or_else(|| name.clone());
                 let operation = format!("{}.{}", family.operation_prefix, operation_suffix);
                 if !names.insert(name.clone()) {
-                    return Err(format!(
+                    return Err((format!(
                         "error[cpp.function_family]: module `{}` repeats function `{name}`",
                         module.module
-                    ));
+                    ))
+                    .into());
                 }
                 if !operations.insert(operation.clone()) {
-                    return Err(format!(
+                    return Err((format!(
                         "error[cpp.function_family]: module `{}` repeats operation `{operation}`",
                         module.module
-                    ));
+                    ))
+                    .into());
                 }
                 module.functions.push(NativeBindingFunction {
                     name,

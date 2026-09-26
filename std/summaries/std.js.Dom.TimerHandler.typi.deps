@@ -1,8 +1,8 @@
 module=std.js.Dom.TimerHandler
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6989993728885825333
-interface_hash=8074536470114572529
-interface_doc_hash=8074536470114572529
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16427566369599696763
+interface_hash=16333136916417955445
+interface_doc_hash=16333136916417955445
 deps=0

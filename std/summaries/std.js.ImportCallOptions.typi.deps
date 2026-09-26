@@ -1,8 +1,8 @@
 module=std.js.ImportCallOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14564974169718519744
-interface_hash=15199907954973756832
-interface_doc_hash=15199907954973756832
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2806927741416451907
+interface_hash=11999117162850188605
+interface_doc_hash=11999117162850188605
 deps=0

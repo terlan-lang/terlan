@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
-    current_utc_date, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle,
-    validate_gap_toml_mirror, write_gap_metrics, LeanProofGap, GAP_PATH,
+    current_utc_date, gap_metrics, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle,
+    validate_gap_toml_mirror, LeanProofGap, GAP_PATH,
 };
 use crate::terlan_quality::QualityResult;
 
@@ -19,8 +19,14 @@ pub(crate) mod gap_hygiene;
 #[path = "lean_proof_gap_transition.rs"]
 pub(crate) mod gap_transition;
 
+#[path = "lean_proof_outputs.rs"]
+pub(crate) mod outputs;
+
 #[path = "lean_proof_repro.rs"]
 mod lean_proof_repro;
+
+#[path = "lean_proof_selection.rs"]
+pub(crate) mod selection;
 
 pub(super) const TRACK_DOC: &str = "docs/compiler/LEAN_PROOF_TRACK.md";
 pub(super) const INVENTORY_PATH: &str = "docs/compiler/proof_track/lean_proof_inventory.tsv";
@@ -168,6 +174,7 @@ pub(super) struct ArtifactRow {
 /// - Makes formal-proof status executable without pretending the current
 ///   release ships complete Lean proof coverage.
 pub fn run_lean_proof_track(root: &Path) -> QualityResult<LeanProofTrackSummary> {
+    let outputs = outputs::ReportPaths::capture(root)?;
     let track_doc = read_text(root, TRACK_DOC)?;
     let inventory_text = read_text(root, INVENTORY_PATH)?;
     let gap_text = read_text(root, GAP_PATH)?;
@@ -196,14 +203,28 @@ pub fn run_lean_proof_track(root: &Path) -> QualityResult<LeanProofTrackSummary>
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
     }
-    lean_proof_repro::run_proof_reproducibility(root, &artifact_rows)?;
-    write_gap_metrics(root, &gap_rows, &gap_policy, today)?;
+    let metrics = gap_metrics(&gap_rows, &gap_policy, today)?;
+    lean_proof_repro::run_proof_reproducibility(root, &artifact_rows, &metrics, &outputs)?;
 
     Ok(LeanProofTrackSummary {
         inventory_row_count: inventory_rows.len(),
         gap_row_count: gap_rows.len(),
         lean_file_count: lean_files.len(),
     })
+}
+
+/// Captures pinned executable tool identity for a private preparation handoff.
+pub(crate) fn write_tool_admission(root: &Path, output: &Path) -> QualityResult<String> {
+    #[cfg(target_os = "linux")]
+    {
+        let artifacts = parse_artifacts(&read_text(root, ARTIFACT_PATH)?)?;
+        lean_proof_repro::admission::capture(root, output, &artifacts)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, output);
+        Err("proof tool admission is only supported on Linux".into())
+    }
 }
 
 fn validate_track_doc(doc: &str) -> Vec<String> {
@@ -598,7 +619,7 @@ fn validate_artifacts(
         } else {
             match sha256_file(&proof_path) {
                 Ok(digest) if artifact.proof_digest != digest => diagnostics.push(format!(
-                    "proof_gap[artifact-drift]: `{ARTIFACT_PATH}` artifact `{}` digest is stale: expected `{digest}`, found `{}`; update replay metadata after reproducibility passes or classify a blocker",
+                    "proof_gap[artifact-drift]: `{ARTIFACT_PATH}` artifact `{}` digest is stale: expected `{}`, found `{digest}`; update replay metadata after reproducibility passes or classify a blocker",
                     artifact.path, artifact.proof_digest
                 )),
                 Err(err) => diagnostics.push(err),

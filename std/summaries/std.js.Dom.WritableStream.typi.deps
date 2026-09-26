@@ -1,8 +1,8 @@
 module=std.js.Dom.WritableStream
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3367371780251360491
-interface_hash=5536289028241238127
-interface_doc_hash=5536289028241238127
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13850624933742331424
+interface_hash=4068792161022923109
+interface_doc_hash=4068792161022923109
 deps=0

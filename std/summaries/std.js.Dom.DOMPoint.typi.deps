@@ -1,8 +1,8 @@
 module=std.js.Dom.DOMPoint
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17350104525790711952
-interface_hash=4246072999964965101
-interface_doc_hash=4246072999964965101
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14103480116195870735
+interface_hash=3500376634418319785
+interface_doc_hash=3500376634418319785
 deps=0

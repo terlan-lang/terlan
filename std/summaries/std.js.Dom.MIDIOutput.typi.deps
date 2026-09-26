@@ -1,8 +1,8 @@
 module=std.js.Dom.MIDIOutput
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16514958973593464954
-interface_hash=8901475176782724354
-interface_doc_hash=8901475176782724354
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2359119600277541245
+interface_hash=16118233984361025297
+interface_doc_hash=16118233984361025297
 deps=0

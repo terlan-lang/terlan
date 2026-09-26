@@ -1,0 +1,806 @@
+/**
+ * Executable bounded-output preparation checkpoint, not a documentation gate.
+ * The caller serializes owners with the publication preparation flock.
+ */
+module release_promotion.PreparationOwner.
+
+import release_promotion.{OwnerArtifacts, OwnerCommit, OwnerNative, OwnerOutputs, OwnerStorage}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{NotFound}.
+import std.io.{Console, Directory, File}.
+import std.system.Process.
+
+import type release_promotion.OwnerArtifacts.Artifact.
+import type release_promotion.OwnerNative.Snapshot.
+import type std.core.{Option, Result}.
+import type std.data.Json.
+import type std.system.Process.{EnvironmentEntry, Output, ProcessError}.
+
+pub struct Owner {
+    name: String,
+    candidate: String,
+    target: String,
+    profile: String,
+    tool_identity: String,
+    inputs: List[String],
+    dependencies: List[String],
+    optional_dependencies: List[String],
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+    output: String,
+    output_variable: String,
+    output_schema: String,
+    primary_artifact: Option[Artifact],
+    additional_outputs: List[Artifact],
+    required_stdout: String,
+    timeout_ms: Int,
+}.
+
+pub struct Decision {
+    valid: Bool,
+    reused: Bool,
+    message: String,
+    native_inventory: Option[Json],
+}.
+
+/**
+ * Ephemeral admission consumed under the same flock, without interleaved work.
+ * Carries the exact input snapshot into execution when a prior receipt misses.
+ */
+pub struct Admission {
+    root: String,
+    owner: Owner,
+    inputs: Json,
+    fingerprint: String,
+    reused: Bool,
+}.
+
+/**
+ * Constructs the complete, explicit contract inside its defining module.
+ */
+pub owner(
+    name: String,
+    candidate: String,
+    target: String,
+    profile: String,
+    tool_identity: String,
+    inputs: List[String],
+    dependencies: List[String],
+    program: String,
+    arguments: List[String],
+    environment: List[EnvironmentEntry],
+    output: String,
+    output_variable: String,
+    output_schema: String,
+    required_stdout: String,
+    timeout_ms: Int,
+): Owner ->
+    Owner(
+        name = name,
+        candidate = candidate,
+        target = target,
+        profile = profile,
+        tool_identity = tool_identity,
+        inputs = inputs,
+        dependencies = dependencies,
+        optional_dependencies = [],
+        program = program,
+        arguments = arguments,
+        environment = environment,
+        output = output,
+        output_variable = output_variable,
+        output_schema = output_schema,
+        primary_artifact = None,
+        additional_outputs = [],
+        required_stdout = required_stdout,
+        timeout_ms = timeout_ms,
+    ).
+
+reject(message: String): Decision ->
+    Decision(valid = false, reused = false, message = message, native_inventory = None).
+
+passed(reused: Bool): Decision ->
+    Decision(valid = true, reused = reused, message = "", native_inventory = None).
+
+strings(values: List[String], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] -> strings(rest, result.push(Json.string(value)))
+    }.
+
+environment(values: List[EnvironmentEntry], result: Json): Json ->
+    case values {
+        [] -> result;
+        [value | rest] ->
+            environment(
+                rest,
+                result
+                    .push(
+                        Json.object()
+                            .put("key", Json.string(value.key))
+                            .put("value", Json.string(value.value)),
+                    ),
+            )
+    }.
+
+identity(root: String, owner: Owner): Result[Json, String] ->
+    let {
+        Ok(inputs) <- OwnerStorage.files(root, owner.inputs);
+        Ok(dependencies) <- OwnerOutputs.files(root, owner.dependencies);
+        Ok(optional_dependencies) <- OwnerOutputs.optional_files(root, owner.optional_dependencies);
+        Ok(environment_digest) <- OwnerStorage.digest(environment(owner.environment, Json.array()))
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        Json.object()
+            .put("schema", Json.string("terlan.preparation-owner-input.v1"))
+            .put("process_observer", Json.string("terlan.process-activity.v1"))
+            .put("owner", Json.string(owner.name))
+            .put("candidate", Json.string(owner.candidate))
+            .put("target", Json.string(owner.target))
+            .put("profile", Json.string(owner.profile))
+            .put("tool_identity", Json.string(owner.tool_identity))
+            .put("inputs", inputs)
+            .put("dependencies", dependencies)
+            .put("optional_dependencies", optional_dependencies)
+            .put("program", Json.string(owner.program))
+            .put("arguments", strings(owner.arguments, Json.array()))
+            .put("environment_sha256", Json.string(environment_digest))
+            .put("output", Json.string(owner.output))
+            .put("output_schema", Json.string(owner.output_schema))
+            .put("output_variable", Json.string(owner.output_variable))
+            .put("additional_outputs", OwnerArtifacts.describe(owner.additional_outputs))
+            .put("primary_artifact", OwnerArtifacts.describe([primary_artifact(owner)]))
+            .put("required_stdout", Json.string(owner.required_stdout))
+            .put("timeout_ms", Json.int(owner.timeout_ms)),
+    ).
+
+/**
+ * The final output must still match the successful ledger's bytes and schema.
+ */
+reusable(root: String, owner: Owner, ledger: Json, fingerprint: String): Bool ->
+    let {
+        Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
+        Some("pass") <- OwnerStorage.text(ledger, "outcome");
+        Some(expected) <- OwnerStorage.text(ledger, "input_sha256");
+        true <- expected == fingerprint;
+        Ok(prior) <- ledger.get("outputs");
+        Ok(actual) <-
+            OwnerCommit.final_rows(
+                root,
+                List.concat(
+                    OwnerArtifacts.publications("", artifacts(owner)),
+                    [OwnerCommit.declare_publication("", activity_path(owner))],
+                ),
+            );
+        Ok(prior_digest) <- OwnerStorage.digest(prior);
+        Ok(actual_digest) <- OwnerStorage.digest(actual);
+        true <- prior_digest == actual_digest
+    } else {
+        _ -> false
+    };
+    OwnerArtifacts.schemas(root, "", artifacts(owner)).
+
+primary_artifact(value: Owner): Artifact ->
+    case value.primary_artifact {
+        None ->
+            OwnerArtifacts.declare_artifact(
+                value.output,
+                value.output_variable,
+                value.output_schema,
+            );
+        Some(artifact) -> artifact
+    }.
+
+artifacts(value: Owner): List[Artifact] ->
+    [primary_artifact(value) | value.additional_outputs].
+
+/**
+ * The primary output may be a complete directory or table, not only JSON.
+ */
+pub with_output(value: Owner, artifact: Artifact): Owner ->
+    Owner(
+        name = value.name,
+        candidate = value.candidate,
+        target = value.target,
+        profile = value.profile,
+        tool_identity = value.tool_identity,
+        inputs = value.inputs,
+        dependencies = value.dependencies,
+        optional_dependencies = value.optional_dependencies,
+        program = value.program,
+        arguments = value.arguments,
+        environment = value.environment,
+        output = artifact.path,
+        output_variable = artifact.variable,
+        output_schema = artifact.schema,
+        primary_artifact = Some(artifact),
+        additional_outputs = value.additional_outputs,
+        required_stdout = value.required_stdout,
+        timeout_ms = value.timeout_ms,
+    ).
+
+/**
+ * Every output is graph-owned and automatically bound by dependent owners.
+ */
+pub output_paths(value: Owner): List[String] ->
+    OwnerArtifacts.paths(artifacts(value)).
+
+/**
+ * Directory descendants require the same graph edge as the whole generation.
+ */
+pub owns_output_path(value: Owner, path: String): Bool ->
+    OwnerArtifacts.owns_path(artifacts(value), path).
+
+/**
+ * Adds output contracts to the same recoverable transaction, not side effects.
+ */
+pub with_additional_outputs(value: Owner, outputs: List[Artifact]): Owner ->
+    Owner(
+        name = value.name,
+        candidate = value.candidate,
+        target = value.target,
+        profile = value.profile,
+        tool_identity = value.tool_identity,
+        inputs = value.inputs,
+        dependencies = value.dependencies,
+        optional_dependencies = value.optional_dependencies,
+        program = value.program,
+        arguments = value.arguments,
+        environment = value.environment,
+        output = value.output,
+        output_variable = value.output_variable,
+        output_schema = value.output_schema,
+        primary_artifact = value.primary_artifact,
+        additional_outputs = outputs,
+        required_stdout = value.required_stdout,
+        timeout_ms = value.timeout_ms,
+    ).
+
+/**
+ * Already retained failed attempts cannot be overwritten after tampering.
+ */
+failure_evidence_valid(root: String, owner: Owner, ledger: Json): Bool ->
+    case ledger.get("native_outputs") {
+        Err(_absent) -> true;
+        Ok(expected) ->
+            let {
+                Ok(actual) <- OwnerStorage.files(root, [failed_activity_path(owner)]);
+                Ok(expected_hash) <- OwnerStorage.digest(expected);
+                Ok(actual_hash) <- OwnerStorage.digest(actual)
+            } else {
+                _ -> false
+            };
+            expected_hash == actual_hash
+    }.
+
+pub ledger_path(owner: Owner): String ->
+    String.concat(["target/quality/preparation/", owner.candidate, "/", owner.name, ".json"]).
+
+/**
+ * Graph edges bind both output bytes and the successful upstream input identity.
+ * A changed upstream input must invalidate consumers even for identical output.
+ */
+pub with_dependencies(value: Owner, paths: List[String]): Owner ->
+    with_output(
+        with_additional_outputs(
+            with_optional_dependencies(
+                owner(
+                    value.name,
+                    value.candidate,
+                    value.target,
+                    value.profile,
+                    value.tool_identity,
+                    value.inputs,
+                    List.concat(value.dependencies, paths),
+                    value.program,
+                    value.arguments,
+                    value.environment,
+                    value.output,
+                    value.output_variable,
+                    value.output_schema,
+                    value.required_stdout,
+                    value.timeout_ms,
+                ),
+                value.optional_dependencies,
+            ),
+            value.additional_outputs,
+        ),
+        primary_artifact(value),
+    ).
+
+/**
+ * Optional inputs are rechecked before reuse and after producer completion.
+ */
+pub with_optional_dependencies(value: Owner, paths: List[String]): Owner ->
+    Owner(
+        name = value.name,
+        candidate = value.candidate,
+        target = value.target,
+        profile = value.profile,
+        tool_identity = value.tool_identity,
+        inputs = value.inputs,
+        dependencies = value.dependencies,
+        optional_dependencies = paths,
+        program = value.program,
+        arguments = value.arguments,
+        environment = value.environment,
+        output = value.output,
+        output_variable = value.output_variable,
+        output_schema = value.output_schema,
+        primary_artifact = value.primary_artifact,
+        additional_outputs = value.additional_outputs,
+        required_stdout = value.required_stdout,
+        timeout_ms = value.timeout_ms,
+    ).
+
+/**
+ * A graph validates every declaration before launching its first producer.
+ */
+pub valid_declaration(owner: Owner): Bool ->
+    OwnerStorage.safe_name(owner.name)
+        and OwnerStorage.safe_name(owner.candidate)
+        and owner.timeout_ms > 0
+        and owner.timeout_ms <= 1800000
+        and owner.required_stdout != ""
+        and OwnerArtifacts.valid(artifacts(owner), owner.environment).
+
+/**
+ * Direct producer identity excludes bookkeeping names and staging destinations.
+ * This detects duplicate command declarations, not nested Cargo/linker launches.
+ */
+pub producer_identity(owner: Owner): Result[String, String] ->
+    OwnerStorage.digest(
+        Json.object()
+            .put("target", Json.string(owner.target))
+            .put("profile", Json.string(owner.profile))
+            .put("tools", Json.string(owner.tool_identity))
+            .put("program", Json.string(owner.program))
+            .put("arguments", strings(owner.arguments, Json.array()))
+            .put("environment", environment(owner.environment, Json.array())),
+    ).
+
+workspace(owner: Owner): String ->
+    String.concat(["target/quality/preparation/", owner.candidate, "/", owner.name, ".work"]).
+
+/**
+ * Raw successful native records are retained and hashed with the owner output.
+ */
+pub activity_path(owner: Owner): String ->
+    String.concat(
+        ["target/quality/preparation/", owner.candidate, "/", owner.name, ".native.jsonl"],
+    ).
+
+pub failed_activity_path(owner: Owner): String ->
+    String.concat(
+        ["target/quality/preparation/", owner.candidate, "/", owner.name, ".failed-native.jsonl"],
+    ).
+
+staged_activity(root: String, owner: Owner): String ->
+    OwnerStorage.child(root, String.append(workspace(owner), "/native.jsonl")).
+
+scratch_absent(entries: List[String], work: String, pending: String, budget: Int): Bool ->
+    case entries {
+        [] -> true;
+        [entry | rest] ->
+            budget > 0
+                and entry != work
+                and entry != pending
+                and scratch_absent(rest, work, pending, budget - 1)
+    }.
+
+/**
+ * Read-only warm admission under the caller's flock. Any residue, including a
+ * dangling symlink, takes the ordinary recovery path. Missing/corrupt receipts
+ * and changed inputs never authorize skipping an owner or its recovery work.
+ */
+pub checked_admission(root: String, owner: Owner): Option[Admission] ->
+    let {
+        true <- valid_declaration(owner);
+        Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)));
+        Some("pass") <- OwnerStorage.text(ledger, "outcome");
+        Ok(entries) <-
+            Directory.entries(
+                OwnerStorage.child(
+                    root,
+                    String.concat(["target/quality/preparation/", owner.candidate]),
+                ),
+            );
+        true <-
+            scratch_absent(
+                entries,
+                OwnerStorage.child(root, workspace(owner)),
+                OwnerStorage.child(root, String.append(ledger_path(owner), ".pending")),
+                4096,
+            );
+        true <- failure_evidence_valid(root, owner, ledger);
+        Ok(inputs) <- identity(root, owner);
+        Ok(fingerprint) <- OwnerStorage.digest(inputs)
+    } else {
+        _ -> None
+    };
+    Some(
+        Admission(
+            root = root,
+            owner = owner,
+            inputs = inputs,
+            fingerprint = fingerprint,
+            reused = reusable(root, owner, ledger, fingerprint),
+        ),
+    ).
+
+/**
+ * The graph records any necessary producer-start transition before consuming
+ * this admission; execution retains its normal post-run input validation.
+ */
+pub run_admitted(admission: Admission): Decision ->
+    if {
+        admission.reused -> passed(true);
+        true -> execute(admission.root, admission.owner, admission.inputs, admission.fingerprint)
+    }.
+
+/**
+ * A completed checkpoint is reused; an incomplete owner starts in clean scratch.
+ * Prior published evidence is kept intact until a new successful result exists.
+ */
+pub run_locked(root: String, owner: Owner): Decision ->
+    if {
+        not valid_declaration(owner) -> reject("invalid preparation owner declaration");
+        true -> case recover_pending(root, owner) {
+            Some(recovered) -> current_recovery(root, owner, recovered);
+            None -> run_ready(root, owner)
+        }
+    }.
+
+current_recovery(root: String, owner: Owner, recovered: Decision): Decision ->
+    if {
+        not recovered.valid -> recovered;
+        true -> let {
+            Ok(inputs) <- identity(root, owner);
+            Ok(fingerprint) <- OwnerStorage.digest(inputs);
+            Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)))
+        } else {
+            _ -> reject("prior owner publication recovered, but current inputs cannot be admitted")
+        };
+        if {
+            reusable(root, owner, ledger, fingerprint) -> recovered;
+            true -> execute(root, owner, inputs, fingerprint)
+        }
+    }.
+
+run_ready(root: String, owner: Owner): Decision ->
+    let {
+        Ok(inputs) <- identity(root, owner);
+        Ok(fingerprint) <- OwnerStorage.digest(inputs);
+        Ok(_directory) <-
+            Directory.create_all(
+                OwnerStorage.child(
+                    root,
+                    String.concat(["target/quality/preparation/", owner.candidate]),
+                ),
+            );
+        true <- OwnerStorage.discard_pending(root, ledger_path(owner))
+    } else {
+        _ -> reject("owner inputs or ledger directory are unavailable")
+    };
+    case File.read_text(OwnerStorage.child(root, ledger_path(owner))) {
+        Ok(source) ->
+            let true <- source.byte_size() <= 16777216 else {
+                _ -> reject("owner ledger exceeds the 16 MiB budget")
+            };
+            (let Ok(ledger) <- Json.parse(source) else {
+    _ -> reject("owner ledger is corrupt")
+};
+if {
+    not failure_evidence_valid(root, owner, ledger) -> reject("retained failed native evidence is corrupt or missing");
+    reusable(root, owner, ledger, fingerprint) -> if {
+        OwnerStorage.clean_workspace(root, workspace(owner)) -> passed(true);
+        true -> reject("completed owner scratch cleanup failed")
+    };
+    true -> execute(root, owner, inputs, fingerprint)
+});
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> execute(root, owner, inputs, fingerprint);
+                true -> reject("owner ledger cannot be read")
+            }
+    }.
+
+/**
+ * Completes prepared publication or retains an unsealed interrupted attempt
+ * before any producer launch. Retained unsealed work is never a valid output.
+ */
+pub recover_pending(root: String, owner: Owner): Option[Decision] ->
+    case OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner))) {
+        Ok(ledger) ->
+            case OwnerStorage.text(ledger, "outcome") {
+                Some("prepared") -> Some(recover_prepared(root, owner, ledger));
+                Some("pass") -> recover_completed(root, owner, ledger);
+                _ -> recover_unsealed(root, owner)
+            };
+        Err(_reason) -> recover_unsealed(root, owner)
+    }.
+
+recover_completed(root: String, owner: Owner, ledger: Json): Option[Decision] ->
+    case File.size(staged_activity(root, owner)) {
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> None;
+                true -> Some(reject("cannot inspect completed owner scratch"))
+            };
+        Ok(_size) ->
+            let {
+                Some(fingerprint) <- OwnerStorage.text(ledger, "input_sha256");
+                true <- reusable(root, owner, ledger, fingerprint);
+                true <- OwnerStorage.clean_workspace(root, workspace(owner))
+            } else {
+                _ -> Some(reject("completed owner scratch has no verified publication"))
+            };
+            None
+    }.
+
+recover_prepared(root: String, owner: Owner, ledger: Json): Decision ->
+    let {
+        Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
+        Some(prior_owner) <- OwnerStorage.text(ledger, "owner");
+        true <- prior_owner == owner.name;
+        Ok(inputs) <- ledger.get("inputs");
+        Some(candidate) <- OwnerStorage.text(inputs, "candidate");
+        true <- candidate == owner.candidate;
+        Some(output) <- OwnerStorage.text(inputs, "output");
+        true <- output == owner.output;
+        Some(fingerprint) <- OwnerStorage.text(ledger, "input_sha256");
+        Ok(actual_fingerprint) <- OwnerStorage.digest(inputs);
+        true <- actual_fingerprint == fingerprint;
+        Ok(report) <-
+            OwnerCommit.complete_many(
+                root,
+                ledger_path(owner),
+                OwnerArtifacts.publications(workspace(owner), artifacts(owner)),
+                String.append(workspace(owner), "/retained-native.jsonl"),
+                activity_path(owner),
+                ledger,
+            );
+        true <- OwnerStorage.clean_workspace(root, workspace(owner))
+    } else {
+        _ -> reject("prepared owner publication cannot be recovered; checkpoint preserved")
+    };
+    Decision(valid = true, reused = true, message = "", native_inventory = Some(report)).
+
+recover_unsealed(root: String, owner: Owner): Option[Decision] ->
+    case File.size(staged_activity(root, owner)) {
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> None;
+                true -> Some(reject("cannot inspect interrupted owner native log"))
+            };
+        Ok(_size) ->
+            let {
+                Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)));
+                Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
+                Some(prior_owner) <- OwnerStorage.text(ledger, "owner");
+                true <- prior_owner == owner.name;
+                Ok(inputs) <- ledger.get("inputs");
+                Some(candidate) <- OwnerStorage.text(inputs, "candidate");
+                true <- candidate == owner.candidate;
+                Some(fingerprint) <- OwnerStorage.text(ledger, "input_sha256");
+                Ok(actual_fingerprint) <- OwnerStorage.digest(inputs);
+                true <- actual_fingerprint == fingerprint
+            } else {
+                _ -> Some(reject("interrupted native log has no matching owner ledger"))
+            };
+            (let inspection = OwnerNative.read_snapshot(staged_activity(root, owner));
+let decision =
+    retain_failure(
+        root,
+        owner,
+        inputs,
+        fingerprint,
+        "interrupted owner native evidence recovered",
+        inspection,
+    );
+case decision.native_inventory {
+    None -> Some(decision);
+    Some(_report) ->
+        if {
+            OwnerStorage.clean_workspace(root, workspace(owner)) -> Some(decision);
+            true -> Some(reject("interrupted owner scratch cleanup failed"))
+        }
+})
+    }.
+
+retain_failure(
+    root: String,
+    owner: Owner,
+    inputs: Json,
+    fingerprint: String,
+    message: String,
+    inspection: Result[Snapshot, String],
+): Decision ->
+    let failed = state(owner, inputs, fingerprint, "failed").put("error", Json.string(message));
+    case OwnerNative.retain(root, failed_activity_path(owner), ledger_path(owner), failed, inspection) {
+        Ok(report) ->
+            Decision(
+                valid = false,
+                reused = false,
+                message = message,
+                native_inventory = Some(report),
+            );
+        Err(reason) -> reject(reason)
+    }.
+
+state(owner: Owner, inputs: Json, fingerprint: String, outcome: String): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.preparation-owner.v2"))
+        .put("owner", Json.string(owner.name))
+        .put("input_sha256", Json.string(fingerprint))
+        .put("inputs", inputs)
+        .put("outcome", Json.string(outcome))
+        .put("outputs", Json.array()).
+
+activity_environment(root: String, owner: Owner): Result[List[EnvironmentEntry], String] ->
+    let Ok(scope) <- OwnerNative.process_scope(staged_activity(root, owner)) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        [
+            Process.environment_entry("TERLAN_BUILD_ACTIVITY_LOG", staged_activity(root, owner)),
+            Process.environment_entry("TERLAN_PROCESS_ACTIVITY_LOG", scope),
+        ],
+    ).
+
+execute(root: String, owner: Owner, inputs: Json, fingerprint: String): Decision ->
+    let work = workspace(owner);
+    let {
+        Ok(environment) <- activity_environment(root, owner);
+        true <- OwnerStorage.clean_workspace(root, work);
+        Ok(_created) <- Directory.create_all(OwnerStorage.child(root, work));
+        Ok(_activity) <- File.write_text(staged_activity(root, owner), "");
+        true <-
+            OwnerStorage.atomic_json(
+                root,
+                ledger_path(owner),
+                state(owner, inputs, fingerprint, "running"),
+            )
+    } else {
+        _ -> reject("cannot prepare owner scratch and running checkpoint")
+    };
+    (let command =
+    Process.command("/usr/bin/env")
+        .with_arguments(
+            ["-i" | environment_arguments(
+    List.concat(
+        environment,
+        List.concat(OwnerArtifacts.environment(root, work, artifacts(owner)), owner.environment),
+    ),
+    [owner.program | owner.arguments],
+)],
+        )
+        .with_environment(environment)
+        .with_working_directory(root)
+        .with_stdin("")
+        .with_timeout_ms(owner.timeout_ms)
+        .with_output_limit_bytes(8388608);
+let result = Process.run(command);
+let activity = OwnerNative.read_snapshot(staged_activity(root, owner));
+let finished = finish(root, owner, inputs, fingerprint, result, activity);
+if {
+    finished.valid -> let Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner))) else {
+        _ -> reject("prepared owner ledger cannot be read; scratch preserved")
+    };
+    (let completed = recover_prepared(root, owner, ledger);
+Decision(
+    valid = completed.valid,
+    reused = false,
+    message = completed.message,
+    native_inventory = completed.native_inventory,
+));
+    true -> let decision = retain_failure(root, owner, inputs, fingerprint, finished.message, activity);
+    case decision.native_inventory {
+        None -> decision;
+        Some(_report) ->
+            if {
+                OwnerStorage.clean_workspace(root, work) -> decision;
+                true -> reject("owner scratch cleanup failed")
+            }
+    }
+}).
+
+/**
+ * Builds argv for env without shell evaluation or inherited build overrides.
+ */
+pub environment_arguments(values: List[EnvironmentEntry], tail: List[String]): List[String] ->
+    case values {
+        [] -> tail;
+        [value | rest] ->
+            [String.concat([value.key, "=", value.value]) | environment_arguments(rest, tail)]
+    }.
+
+finish(
+    root: String,
+    owner: Owner,
+    inputs: Json,
+    fingerprint: String,
+    result: Result[Output, ProcessError],
+    activity: Result[Snapshot, String],
+): Decision ->
+    case result {
+        Err(reason) ->
+            let _recorded =
+                OwnerStorage.atomic_json(
+                    root,
+                    ledger_path(owner),
+                    state(owner, inputs, fingerprint, "failed")
+                        .put("error", Json.string(Process.error_message(reason))),
+                );
+            reject(Process.error_message(reason));
+        Ok(output) ->
+            let _stdout = Console.println(Process.stdout(output));
+            let _stderr = Console.eprintln(Process.stderr(output));
+            if {
+                Process.status(output) != 0
+                    or not String.contains(Process.stdout(output), owner.required_stdout) -> let _recorded =
+                    OwnerStorage.atomic_json(
+                        root,
+                        ledger_path(owner),
+                        state(owner, inputs, fingerprint, "failed")
+                            .put("exit_status", Json.int(Process.status(output))),
+                    );
+                reject("owner subprocess failed or did not execute its declared test");
+                true -> let {
+                    Ok(snapshot) <- activity;
+                    Ok(native_inventory) <- OwnerNative.summary(activity);
+                    Some("pass") <- OwnerStorage.text(native_inventory, "decision");
+                    true <- OwnerNative.observed_process(native_inventory);
+                    true <- OwnerArtifacts.schemas(root, workspace(owner), artifacts(owner));
+                    Ok(current_inputs) <- identity(root, owner);
+                    Ok(current_fingerprint) <- OwnerStorage.digest(current_inputs);
+                    true <- current_fingerprint == fingerprint;
+                    true <-
+                        OwnerCommit.prepare_many(
+                            root,
+                            ledger_path(owner),
+                            OwnerArtifacts.publications(workspace(owner), artifacts(owner)),
+                            String.append(workspace(owner), "/retained-native.jsonl"),
+                            activity_path(owner),
+                            completed_state(owner, inputs, fingerprint, native_inventory),
+                            snapshot,
+                        )
+                } else {
+                    _ ->
+                        let _recorded =
+                            OwnerStorage.atomic_json(
+                                root,
+                                ledger_path(owner),
+                                state(owner, inputs, fingerprint, "failed")
+                                    .put(
+                                        "error",
+                                        Json.string(
+                                            "invalid native inventory, output, or changed inputs",
+                                        ),
+                                    ),
+                            );
+                        reject(
+                            "owner native inventory or output is invalid, or inputs changed during execution",
+                        )
+                };
+                passed(false)
+            }
+    }.
+
+completed_state(owner: Owner, inputs: Json, fingerprint: String, native_inventory: Json): Json ->
+    state(owner, inputs, fingerprint, "pass")
+        .put("native_inventory", native_inventory)
+        .put(
+            "subprocess",
+            Json.object()
+                .put("program", Json.string(owner.program))
+                .put("arguments", strings(owner.arguments, Json.array()))
+                .put("exit_status", Json.int(0)),
+        ).

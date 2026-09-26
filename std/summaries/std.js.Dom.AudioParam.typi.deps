@@ -1,8 +1,8 @@
 module=std.js.Dom.AudioParam
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14261501077671318509
-interface_hash=6128302940241820870
-interface_doc_hash=6128302940241820870
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9989910573379572734
+interface_hash=1317341150250525418
+interface_doc_hash=1317341150250525418
 deps=0

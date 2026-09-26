@@ -16,6 +16,7 @@ pub(super) fn security_headers_constructor(
     include_subdomains: bool,
 ) -> CoreExpr {
     CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: SECURITY_CONSTRUCTOR.to_string(),
         constructor_identity: Some(SECURITY_CONSTRUCTOR.to_string()),
         args: vec![

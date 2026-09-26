@@ -215,8 +215,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [
@@ -230,8 +230,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [
@@ -245,8 +245,8 @@
     },
     {
       "blocker_expiry": "exception:vm_runtime@2026-09-30",
-      "blocker_hash": "sha256:1e3fff408b73ba8eabc55dedb0030ecf5e926b966de6bed1b2ee23933c34691e",
-      "blocker_reason": "Terlan VM semantics are expanding and currently proven by Rust unit/adversarial gates.",
+      "blocker_hash": "sha256:7937b585761e193f053eaffab67a2c2b66d8caf13d6f7abc616b6894a3af5948",
+      "blocker_reason": "SemanticChain and Concurrency prove small expression and list-mailbox models, not the AOT scheduler, heaps, continuations, or complete VM execution; Rust and Terlan tests are not a refinement proof.",
       "coverage_status": "slice_blocked",
       "feature_class": "vm_runtime",
       "gap_ids": [
@@ -260,8 +260,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [
@@ -275,8 +275,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [
@@ -290,8 +290,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [
@@ -305,8 +305,8 @@
     },
     {
       "blocker_expiry": "exception:coreir@2026-09-30",
-      "blocker_hash": "sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866",
-      "blocker_reason": "Integer arithmetic has an executable Lean seed, but constructors, patterns, calls, effects, collections, and full lowering preservation remain unproved.",
+      "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
+      "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
       "feature_class": "coreir",
       "gap_ids": [

@@ -20,14 +20,14 @@ pub(crate) mod checksum;
 pub(crate) mod code_server;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod code_server_compiler;
-#[cfg(test)]
 pub(crate) mod coordination;
+pub(crate) mod coordination_membership;
+pub(crate) mod coordination_profile;
 pub(crate) mod debugger_control;
 #[cfg(test)]
 pub(crate) mod debugger_transport;
 #[cfg(test)]
 pub(crate) mod distributed_scheduler;
-#[cfg(test)]
 pub(crate) mod distributed_state;
 #[cfg(test)]
 pub(crate) mod distributed_storage;
@@ -56,6 +56,7 @@ pub(crate) mod http_router;
 pub(crate) mod http_session;
 #[cfg(test)]
 pub(crate) mod http_static;
+pub(crate) mod hyper_tls;
 #[cfg(test)]
 pub(crate) mod io_diagnostics;
 #[cfg(test)]
@@ -126,7 +127,6 @@ mod system_profile;
 pub(crate) mod table;
 pub(crate) mod tcp;
 pub(crate) mod tcp_scheduler;
-#[cfg(test)]
 pub(crate) mod term_format;
 pub(crate) mod time;
 pub(crate) mod timer;

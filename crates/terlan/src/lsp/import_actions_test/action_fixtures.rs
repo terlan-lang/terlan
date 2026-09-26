@@ -1,6 +1,7 @@
 use super::super::*;
 use std::fs;
 use std::io::{self as std_io, ErrorKind};
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Builds a stable file URI for import-action tests.
@@ -14,8 +15,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Transformation:
 /// - Uses a `/tmp` file path so tests exercise fallback std suggestions without
 ///   requiring project-local summaries.
-pub(super) fn test_uri() -> Url {
-    Url::parse("file:///tmp/import_actions.terl").expect("test file uri")
+pub(super) fn test_uri() -> Uri {
+    Uri::from_str("file:///tmp/import_actions.terl").expect("test file uri")
 }
 
 /// Extracts the first text edit from an import action candidate.
@@ -273,8 +274,8 @@ module math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -331,8 +332,8 @@ pub visible(): Int ->
     secret().
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -384,8 +385,8 @@ import renamed.{add}.
 export add/2.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -438,8 +439,8 @@ module pkg.generated.Widget.
 pub render(value: String): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -493,8 +494,8 @@ module math.
 pub add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -562,8 +563,8 @@ pub add(left: Int, right: Int): Int.
 pub subtract(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -625,8 +626,8 @@ pub constructor Items {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -688,8 +689,8 @@ pub constructor Items {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 
@@ -763,8 +764,8 @@ pub constructor Items {
 }.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("sample.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("sample.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let text = "\
 module sample.
 

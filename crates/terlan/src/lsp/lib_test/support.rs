@@ -14,10 +14,10 @@ pub(super) use std::io::{self as std_io, ErrorKind};
 pub(super) use std::time::{SystemTime, UNIX_EPOCH};
 pub(super) use tokio::io::duplex;
 pub(super) use tokio::time::{timeout, Duration};
-pub(super) use tower_lsp::lsp_types::{
-    CompletionItem, CompletionItemKind, Documentation, Position, SymbolKind, Url,
+pub(super) use tower_lsp_server::ls_types::{
+    CompletionItem, CompletionItemKind, Documentation, Position, SymbolKind, Uri,
 };
-pub(super) use tower_lsp::{LspService, Server};
+pub(super) use tower_lsp_server::{LspService, Server};
 
 /// Returns Markdown/text documentation from a completion item.
 ///

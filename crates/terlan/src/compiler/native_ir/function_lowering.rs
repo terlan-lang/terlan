@@ -10,14 +10,13 @@ use super::call_composition::{
     ComposedCallProfile,
 };
 use super::closure_conversion::{
-    lower_escaping_closure, lower_escaping_function_reference, ClosureLexicalScope,
-    ClosureLoweringEnvironment, ClosureOwner, NativeCallableShape,
+    lower_escaping_closure_with_yields, lower_escaping_function_reference, ClosureLexicalScope,
+    ClosureLoweringEnvironment, ClosureOwner, ClosureYieldState, NativeCallableShape,
 };
 use super::constructors::NativeConstructorLayouts;
 use super::control::{YieldLoweringEnvironment, YieldLoweringScope, YieldLoweringState};
 use super::expression::{
-    expr_is_scalar, free_variables, infer_native_type, infer_native_type_with_constructors,
-    native_type,
+    expr_is_scalar, free_variables, infer_native_type_with_constructors, native_type,
 };
 use super::identity::stable_export_id;
 use super::model::{NativeExpr, NativeTransitionOperation, NativeType};
@@ -29,6 +28,10 @@ use super::{
 
 mod call_admission;
 pub(super) use call_admission::expr_calls_are_supported;
+mod type_resolution;
+pub(super) use type_resolution::{
+    native_return_type, native_return_type_with_constructors, native_type_with_constructors,
+};
 
 /// ABI implemented by the first direct-AOT scalar slice.
 pub(crate) const NATIVE_ABI_VERSION: &str = "terlan-native-v2";
@@ -309,12 +312,32 @@ pub(super) fn lower_native_function_with_callables(
         &params,
         callable_shapes,
     )?;
-    let escaping_lambda = lower_escaping_closure(
+    let yield_environment = YieldLoweringEnvironment {
+        functions: identities,
+        function_types,
+        function_core_types,
+        constructors,
+        suspending_functions,
+        terminal_profiles: call_profiles,
+        dynamic_profiles: dynamic_call_profiles,
+        module,
+        function: &function.name,
+        arity: function.arity,
+        return_type,
+    };
+    let mut closure_yields = ClosureYieldState {
+        environment: Some(yield_environment),
+        stable_ids,
+        continuations: Vec::new(),
+        lifted_ordinal: 0,
+    };
+    let escaping_lambda = lower_escaping_closure_with_yields(
         &core_body,
         function.core_return_type.as_ref(),
         ClosureLexicalScope {
             available: &params,
             available_types: &param_types,
+            available_core_types: &param_core_types,
         },
         &ClosureLoweringEnvironment {
             identities,
@@ -328,7 +351,9 @@ pub(super) fn lower_native_function_with_callables(
             name: &function.name,
             arity: function.arity,
         },
+        &mut closure_yields,
     )?;
+    let closure_continuations = closure_yields.continuations;
     let (body, mut continuations) = if let Some(body) = collection_value {
         (body, Vec::new())
     } else if let Some(body) = structured_case {
@@ -349,7 +374,7 @@ pub(super) fn lower_native_function_with_callables(
             }
         }
         lifted_functions.extend(lifted);
-        (body, Vec::new())
+        (body, closure_continuations)
     } else {
         let mut continuation_ordinal = 0;
         control::lower_expr_with_yields(
@@ -361,19 +386,7 @@ pub(super) fn lower_native_function_with_callables(
                 param_core_types: &param_core_types,
                 completion: None,
             },
-            &YieldLoweringEnvironment {
-                functions: identities,
-                function_types,
-                function_core_types,
-                constructors,
-                suspending_functions,
-                terminal_profiles: call_profiles,
-                dynamic_profiles: dynamic_call_profiles,
-                module,
-                function: &function.name,
-                arity: function.arity,
-                return_type,
-            },
+            &yield_environment,
             &mut YieldLoweringState {
                 ordinal: &mut continuation_ordinal,
                 stable_ids,
@@ -430,94 +443,23 @@ pub(super) fn lower_native_function_with_callables(
     ))
 }
 
-/// Recovers the source declaration represented by a concrete generic clone.
-///
-/// Generic specialization symbols retain the fully qualified template name so
-/// a clone emitted into a consumer module can still point debugger metadata at
-/// the declaration that supplied its body. Runtime dispatch continues to use
-/// the consumer module and generated symbol independently of this provenance.
+/// Keeps source provenance independent of generated symbols and capture arities.
 fn source_declaration_identity(module: &str, function: &CoreFunction) -> (String, String, usize) {
-    if let Some((source_function, source_arity)) = generated_list_builder_origin(&function.name) {
-        return (module.to_string(), source_function, source_arity);
-    }
-    if let Some(source_function) = typed_overload_origin(&function.name) {
-        return (module.to_string(), source_function, function.arity);
-    }
-    let origin = function
-        .name
-        .strip_prefix("$aot_generic_")
-        .and_then(|name| name.rsplit_once('_').map(|(qualified, _ordinal)| qualified))
-        .and_then(|qualified| qualified.rsplit_once('.'));
-    match origin {
-        Some((source_module, source_function))
-            if !source_module.is_empty() && !source_function.is_empty() =>
-        {
-            (
-                source_module.to_string(),
-                source_function.to_string(),
-                function.arity,
-            )
+    let mut source = function.source_declaration(module);
+    if function.source.is_none() {
+        if let Some((name, ordinal)) = function.name.rsplit_once("__terlan_overload_") {
+            if !name.is_empty()
+                && !ordinal.is_empty()
+                && ordinal.bytes().all(|byte| byte.is_ascii_digit())
+            {
+                source.function = name.to_string();
+            }
         }
-        _ => (module.to_string(), function.name.clone(), function.arity),
     }
+    (source.module, source.function, source.arity)
 }
-
-/// Recovers the public declaration name from one typed-overload symbol.
-fn typed_overload_origin(name: &str) -> Option<String> {
-    let (source, ordinal) = name.rsplit_once("__terlan_overload_")?;
-    (!source.is_empty() && !ordinal.is_empty() && ordinal.bytes().all(|byte| byte.is_ascii_digit()))
-        .then(|| source.to_string())
-}
-
-/// Recovers the source owner encoded in a synthesized list-builder symbol.
-fn generated_list_builder_origin(name: &str) -> Option<(String, usize)> {
-    let encoded = name
-        .strip_prefix("$aot_list_builder_")
-        .or_else(|| name.strip_prefix("$aot_list_reverse_"))?;
-    let (source, arity) = encoded.rsplit_once('_')?;
-    let arity = arity.parse().ok()?;
-    (!source.is_empty()).then(|| (source.to_string(), arity))
-}
-
-/// Retains a concrete generic return type at the construction that produces it.
-/// CoreIR record/constructor nodes do not carry their surrounding expected
-/// type, while direct AOT needs that type to choose an exact managed semantic
-/// identity. Only tail constructions are annotated, so evaluation order and
-/// non-tail inference remain unchanged.
-fn contextualize_tail_construction(expr: &CoreExpr, target: &CoreType) -> CoreExpr {
-    match expr {
-        CoreExpr::ConstructorCall { .. } | CoreExpr::RecordConstruct { .. } => CoreExpr::Cast {
-            expr: Box::new(expr.clone()),
-            target_type: target.clone(),
-        },
-        CoreExpr::Let { bindings, body } => CoreExpr::Let {
-            bindings: bindings.clone(),
-            body: Box::new(contextualize_tail_construction(body, target)),
-        },
-        CoreExpr::If { clauses } => CoreExpr::If {
-            clauses: clauses
-                .iter()
-                .cloned()
-                .map(|mut clause| {
-                    clause.body = contextualize_tail_construction(&clause.body, target);
-                    clause
-                })
-                .collect(),
-        },
-        CoreExpr::Case { scrutinee, clauses } => CoreExpr::Case {
-            scrutinee: scrutinee.clone(),
-            clauses: clauses
-                .iter()
-                .cloned()
-                .map(|mut clause| {
-                    clause.body = contextualize_tail_construction(&clause.body, target);
-                    clause
-                })
-                .collect(),
-        },
-        _ => expr.clone(),
-    }
-}
+mod contextual_construction;
+use contextual_construction::contextualize_tail_construction;
 
 pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
     if is_process_transition(expr) {
@@ -623,10 +565,9 @@ pub(super) fn is_scalar_candidate(
     constructors: &NativeConstructorLayouts,
 ) -> bool {
     function.native_operation.is_none()
-        && function
-            .params
-            .iter()
-            .all(|param| native_type(param.core_ty.as_ref(), &param.ty).is_some())
+        && function.params.iter().all(|param| {
+            native_type_with_constructors(param.core_ty.as_ref(), &param.ty, constructors).is_some()
+        })
         && native_return_type_with_constructors(function, constructors).is_some()
         && matches!(function.clauses.as_slice(), [clause]
         if clause.guard.is_none()
@@ -640,205 +581,6 @@ pub(super) fn is_scalar_candidate(
                 .as_ref()
                 .map(|body| scalar_replacement::scalar_replace_fixed_aggregates(body, constructors))
                 .is_some_and(|body| expr_is_native_control(&body)))
-}
-
-/// Resolves the scalar ABI result for a native candidate.
-///
-/// Ordinary functions keep their checked declared type. A `Dynamic` wrapper,
-/// such as the synthetic REPL entry, may narrow only when its typed CoreIR body
-/// is independently scalar and does not need another function's result type.
-/// This preserves the source-facing dynamic contract while allowing the AOT
-/// boundary to carry the concrete `Unit`, `Int`, `Float`, or `Bool` value it
-/// proved.
-pub(super) fn native_return_type(function: &CoreFunction) -> Option<NativeType> {
-    native_type(function.core_return_type.as_ref(), &function.return_type)
-        .or_else(|| {
-            let inferred = dynamic_return::inferred_dynamic_return_type(function)?;
-            native_type(Some(&inferred), &inferred.contract_text())
-        })
-        .or_else(|| {
-            let variables = function
-                .params
-                .iter()
-                .map(|param| {
-                    native_type(param.core_ty.as_ref(), &param.ty)
-                        .map(|ty| (param.name.clone(), ty))
-                })
-                .collect::<Option<HashMap<_, _>>>()?;
-            let body = function.clauses.first()?.body.core_expr.as_ref()?;
-            infer_native_type(body, &variables, &HashMap::new())
-        })
-}
-
-pub(super) fn native_return_type_with_constructors(
-    function: &CoreFunction,
-    constructors: &NativeConstructorLayouts,
-) -> Option<NativeType> {
-    native_type_with_constructors(
-        function.core_return_type.as_ref(),
-        &function.return_type,
-        constructors,
-    )
-    .or_else(|| native_return_type(function))
-    .or_else(|| {
-        matches!(
-            function.core_return_type.as_ref(),
-            Some(crate::terlan_typeck::CoreType::Dynamic)
-        )
-        .then_some(())?;
-        let variables = function
-            .params
-            .iter()
-            .map(|param| {
-                native_type_with_constructors(param.core_ty.as_ref(), &param.ty, constructors)
-                    .map(|ty| (param.name.clone(), ty))
-            })
-            .collect::<Option<HashMap<_, _>>>()?;
-        let body = function.clauses.first()?.body.core_expr.as_ref()?;
-        infer_native_type_with_constructors(body, &variables, &HashMap::new(), constructors)
-    })
-}
-
-pub(super) fn native_type_with_constructors(
-    core: Option<&crate::terlan_typeck::CoreType>,
-    text: &str,
-    constructors: &NativeConstructorLayouts,
-) -> Option<NativeType> {
-    let refined_core = core
-        .filter(|core| core_type_contains_dynamic(core))
-        .and_then(|_| concrete_textual_core_type(text, constructors));
-    let core = refined_core.as_ref().or(core);
-    if let Some(crate::terlan_typeck::CoreType::Named(name)) = core {
-        let mut matching = constructors
-            .iter()
-            .filter(|((identity, _), _)| identity == name)
-            .map(|(_, layout)| layout.result);
-        if let Some(result) = matching.next() {
-            if matching.all(|candidate| candidate == result) {
-                return Some(result);
-            }
-        }
-    }
-    native_type(core, text)
-}
-
-/// Recovers concrete imported record types erased to `Dynamic` inside a
-/// collection/function annotation. Runtime collection identities include the
-/// structural element contract, so retaining `List(Dynamic)` for a source
-/// `List[Payload]` would make an AOT continuation reject the actual list.
-fn concrete_textual_core_type(
-    text: &str,
-    constructors: &NativeConstructorLayouts,
-) -> Option<CoreType> {
-    let mut recovered = crate::terlan_typeck::core_type_from_text(text)?;
-    resolve_constructor_types(&mut recovered, constructors);
-    (!core_type_contains_dynamic(&recovered)).then_some(recovered)
-}
-
-fn resolve_constructor_types(ty: &mut CoreType, constructors: &NativeConstructorLayouts) {
-    match ty {
-        CoreType::Named(name) => {
-            let replacement = unique_constructor_core_type(name, constructors);
-            if let Some(replacement) = replacement {
-                *ty = replacement;
-            }
-        }
-        CoreType::Apply { args, .. } => args
-            .iter_mut()
-            .for_each(|ty| resolve_constructor_types(ty, constructors)),
-        CoreType::Tuple(items) => {
-            items.iter_mut().for_each(|item| match item {
-                crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-                | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => {
-                    resolve_constructor_types(ty, constructors)
-                }
-            });
-        }
-        CoreType::List(item) => resolve_constructor_types(item, constructors),
-        CoreType::Struct { fields, .. } => fields
-            .iter_mut()
-            .for_each(|field| resolve_constructor_types(&mut field.ty, constructors)),
-        CoreType::Map(fields) => fields
-            .iter_mut()
-            .for_each(|field| resolve_constructor_types(&mut field.value, constructors)),
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => {
-            params
-                .iter_mut()
-                .for_each(|param| resolve_constructor_types(param, constructors));
-            resolve_constructor_types(return_type, constructors);
-        }
-        CoreType::Union(types) => types
-            .iter_mut()
-            .for_each(|ty| resolve_constructor_types(ty, constructors)),
-        CoreType::Int
-        | CoreType::Float
-        | CoreType::Number
-        | CoreType::String
-        | CoreType::Binary
-        | CoreType::Atom
-        | CoreType::Bool
-        | CoreType::Term
-        | CoreType::Dynamic
-        | CoreType::Never
-        | CoreType::AtomLiteral(_) => {}
-    }
-}
-
-fn unique_constructor_core_type(
-    name: &str,
-    constructors: &NativeConstructorLayouts,
-) -> Option<CoreType> {
-    let mut matches = constructors.iter().filter_map(|((identity, _), layout)| {
-        (identity == name || identity.rsplit('.').next() == Some(name))
-            .then_some(layout.result_core_type.as_ref())
-            .flatten()
-    });
-    let first = matches.next()?.clone();
-    matches
-        .all(|candidate| candidate == &first)
-        .then_some(first)
-}
-
-fn core_type_contains_dynamic(ty: &CoreType) -> bool {
-    match ty {
-        CoreType::Dynamic => true,
-        CoreType::Named(name) if name == "Dynamic" => true,
-        CoreType::Apply { args, .. } => args.iter().any(core_type_contains_dynamic),
-        CoreType::List(item) => core_type_contains_dynamic(item),
-        CoreType::Tuple(items) => items.iter().any(|item| match item {
-            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => {
-                core_type_contains_dynamic(ty)
-            }
-        }),
-        CoreType::Struct { fields, .. } => fields
-            .iter()
-            .any(|field| core_type_contains_dynamic(&field.ty)),
-        CoreType::Map(fields) => fields
-            .iter()
-            .any(|field| core_type_contains_dynamic(&field.value)),
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => {
-            params.iter().any(core_type_contains_dynamic) || core_type_contains_dynamic(return_type)
-        }
-        CoreType::Union(types) => types.iter().any(core_type_contains_dynamic),
-        CoreType::Int
-        | CoreType::Float
-        | CoreType::Number
-        | CoreType::String
-        | CoreType::Binary
-        | CoreType::Atom
-        | CoreType::Bool
-        | CoreType::Term
-        | CoreType::Never
-        | CoreType::AtomLiteral(_)
-        | CoreType::Named(_) => false,
-    }
 }
 
 pub(super) fn expr_is_native_control(expr: &CoreExpr) -> bool {
@@ -922,6 +664,18 @@ fn expr_is_native_condition(expr: &CoreExpr) -> bool {
 
 fn expr_is_native_condition_at_depth(expr: &CoreExpr, depth: usize) -> bool {
     if expr_is_scalar(expr) {
+        return true;
+    }
+    // Case normalization hoists eager operands into lets and preserves Boolean
+    // short-circuiting with if expressions. All three shapes use the structured
+    // lowerer's lexical matcher; a normalized condition remains executable.
+    if matches!(
+        expr,
+        CoreExpr::Case { .. } | CoreExpr::Let { .. } | CoreExpr::If { .. }
+    ) && structured_case::contains_case(expr)
+        && depth < MAX_NATIVE_CONDITION_COMPOSITION_DEPTH
+        && expr_is_native_control(expr)
+    {
         return true;
     }
     if condition_yield_region(expr).is_some_and(|region| {

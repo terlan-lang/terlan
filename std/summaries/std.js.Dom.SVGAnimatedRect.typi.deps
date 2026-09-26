@@ -1,8 +1,8 @@
 module=std.js.Dom.SVGAnimatedRect
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17715333262966280754
-interface_hash=17465992620777006706
-interface_doc_hash=17465992620777006706
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13155822591637682521
+interface_hash=17297314701842268770
+interface_doc_hash=17297314701842268770
 deps=0

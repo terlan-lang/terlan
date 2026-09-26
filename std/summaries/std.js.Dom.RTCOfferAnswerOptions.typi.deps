@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCOfferAnswerOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5428155053080577548
-interface_hash=3329153820546590518
-interface_doc_hash=3329153820546590518
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=917320784881152195
+interface_hash=9012005701216844142
+interface_doc_hash=9012005701216844142
 deps=0

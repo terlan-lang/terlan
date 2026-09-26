@@ -115,6 +115,9 @@ impl AotWebSocketCallbackSession {
         let Some(frame) = self.live.next_inbound() else {
             return Ok((false, None));
         };
+        #[cfg(not(test))]
+        let VmWebSocketFrame::Text(value) = frame;
+        #[cfg(test)]
         let value = match frame {
             VmWebSocketFrame::Text(value) => value,
             #[cfg(test)]
@@ -133,10 +136,10 @@ impl AotWebSocketCallbackSession {
                 ));
             }
             let state = self.resume(wait.wake(ReplValue::String(value)))?;
-            return Ok((true, completed_value(state)));
+            Ok((true, completed_value(state)))
         } else {
             let state = self.inbound(VmWebSocketFrame::Text(value))?;
-            return Ok((true, completed_value(state)));
+            Ok((true, completed_value(state)))
         }
     }
 
@@ -151,6 +154,9 @@ impl AotWebSocketCallbackSession {
         let Some(frame) = self.live.next_inbound() else {
             return Ok((false, None));
         };
+        #[cfg(not(test))]
+        let VmWebSocketFrame::Text(value) = frame;
+        #[cfg(test)]
         let value = match frame {
             VmWebSocketFrame::Text(value) => value,
             #[cfg(test)]
@@ -254,6 +260,9 @@ impl AotWebSocketCallbackSession {
         &mut self,
         frame: VmWebSocketFrame,
     ) -> Result<AotWebSocketCallbackState, String> {
+        #[cfg(not(test))]
+        let VmWebSocketFrame::Text(value) = frame;
+        #[cfg(test)]
         let value = match frame {
             VmWebSocketFrame::Text(value) => value,
             #[cfg(test)]

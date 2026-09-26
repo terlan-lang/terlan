@@ -99,6 +99,9 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
             })
             .collect();
         functions.push(CoreFunction {
+            receiver_method: false,
+            trait_method: None,
+            source: None,
             name: function_name.clone(),
             arity: *arity,
             public: false,
@@ -154,6 +157,8 @@ fn rewrite_structural_impl_summary(
     if let Some(expr) = &mut summary.core_expr {
         if rewrite_structural_impl_expr(expr, dispatch) {
             summary.remote = None;
+            summary.checked_preservation_evidence =
+                super::core_expr_checked_preservation_evidence(expr);
         }
     }
     for child in &mut summary.children {
@@ -171,6 +176,7 @@ fn rewrite_structural_impl_expr(
             module,
             function,
             args,
+            ..
         } => {
             for arg in args.iter_mut() {
                 replaced |= rewrite_structural_impl_expr(arg, dispatch);
@@ -179,6 +185,7 @@ fn rewrite_structural_impl_expr(
             if let Some(local_function) = dispatch.get(&key) {
                 let args = std::mem::take(args);
                 *expr = CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: local_function.clone(),
                     args,
                 };

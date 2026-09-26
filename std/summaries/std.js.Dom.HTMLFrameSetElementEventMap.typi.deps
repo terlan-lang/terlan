@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLFrameSetElementEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14900245099256024421
-interface_hash=11744074571027139712
-interface_doc_hash=11744074571027139712
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6776514529368891920
+interface_hash=14381184467307195221
+interface_doc_hash=14381184467307195221
 deps=0

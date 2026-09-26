@@ -1,8 +1,8 @@
 module=std.js.Dom.PointerEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6857082570109406391
-interface_hash=1969262804038101403
-interface_doc_hash=1969262804038101403
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4278635495551688826
+interface_hash=4944682755005303109
+interface_doc_hash=4944682755005303109
 deps=0

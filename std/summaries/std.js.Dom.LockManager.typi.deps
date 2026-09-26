@@ -1,8 +1,8 @@
 module=std.js.Dom.LockManager
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15664246230532470805
-interface_hash=14791685248034778062
-interface_doc_hash=14791685248034778062
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15789967641607086343
+interface_hash=9916701454058337632
+interface_doc_hash=9916701454058337632
 deps=0

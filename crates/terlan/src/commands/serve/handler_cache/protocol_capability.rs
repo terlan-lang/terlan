@@ -59,7 +59,7 @@ impl ProtocolCapabilityDispatcher {
         if wait.request().capability == "package-native" {
             let value = self
                 .trusted_helpers
-                .call(owner.as_u64(), wait.request())
+                .call(owner.as_u64(), wait.request(), wait.admitted_atoms())
                 .map_err(String::from)?;
             return repl_value_to_boundary_term(value)
                 .map(NativeBoundaryReplyTerm::Ok)
@@ -87,7 +87,7 @@ impl ProtocolCapabilityDispatcher {
         let expected = wait.worker_context()?;
         let request = wait.request();
         let operation = request.operation.to_string();
-        let arguments = request.arguments.clone();
+        let arguments = request.boundary_arguments()?.into_owned();
         let pump = self.ensure_pump()?;
         let assignment = pump
             .submit(

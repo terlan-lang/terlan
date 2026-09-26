@@ -1,8 +1,8 @@
 module=std.js.Dom.UnderlyingSink
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=18327519703123016071
-interface_hash=17577144332047443146
-interface_doc_hash=17577144332047443146
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13991977550383017143
+interface_hash=12532081335378532547
+interface_doc_hash=12532081335378532547
 deps=0

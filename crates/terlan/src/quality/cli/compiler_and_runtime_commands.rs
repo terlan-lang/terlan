@@ -145,6 +145,42 @@ pub(super) fn run_compiler_and_runtime_command(
                 Err(message) => failure(message),
             }
         }
+        Some(command @ ("lean-proof-replay" | "lean-proof-replay-cached")) => {
+            let paths = args.collect::<Vec<_>>();
+            let result = if command == "lean-proof-replay-cached" {
+                crate::terlan_quality::lean_proof_track::selection::require_completed(
+                    Path::new("."),
+                    &paths,
+                )
+            } else {
+                crate::terlan_quality::lean_proof_track::selection::run(Path::new("."), &paths)
+            };
+            match result {
+                Ok(count) => {
+                    println!("[lean-proof-replay] {count} selected proofs verified.");
+                    ExitCode::SUCCESS
+                }
+                Err(message) => failure(message),
+            }
+        }
+        Some("lean-proof-tool-admission") => {
+            let arguments = args.collect::<Vec<_>>();
+            let [output] = arguments.as_slice() else {
+                return Some(failure(
+                    "expected one private proof admission output path".into(),
+                ));
+            };
+            match crate::terlan_quality::lean_proof_track::write_tool_admission(
+                Path::new("."),
+                Path::new(output),
+            ) {
+                Ok(digest) => {
+                    println!("{digest}");
+                    ExitCode::SUCCESS
+                }
+                Err(message) => failure(message),
+            }
+        }
         Some("lean-proof-track") => match run_lean_proof_track(Path::new(".")) {
             Ok(summary) => {
                 println!(
@@ -271,7 +307,7 @@ pub(super) fn run_compiler_and_runtime_command(
         Some("std-package-coverage-100") => match run_std_package_coverage_100(Path::new(".")) {
             Ok(summary) => {
                 println!(
-                    "[std-package-coverage-100] {} release API rows checked: {} executable tests, {} generated contracts; {} release modules checked with {} baseline gaps.",
+                    "[std-package-coverage-100] manifest consistency only: {} API rows, {} @test-backed rows, {} generated-contract rows; {} modules with {} inventory gaps. Public API completeness and target execution are not measured.",
                     summary.api_row_count,
                     summary.executable_test_row_count,
                     summary.generated_contract_row_count,
@@ -472,7 +508,9 @@ pub(super) fn run_compiler_and_runtime_command(
         Some("erlang-backend-classification") => {
             match run_erlang_backend_classification(Path::new(".")) {
                 Ok(()) => {
-                    println!("[erlang-backend-classification] no forbidden backend source paths found.");
+                    println!(
+                        "[erlang-backend-classification] no forbidden backend source paths found."
+                    );
                     ExitCode::SUCCESS
                 }
                 Err(message) => failure(message),

@@ -55,7 +55,7 @@ pub from_entries[K, V](entries: List[{K, V}]): Map[K, V].
 /// intrinsic and observes the receiver without changing its contents.
 
 @pure
-pub (map: Map[K, V]) get(key: K): Option[V].
+pub (map: Map[K, V]) get(key: K): std.core.Option.Option[V].
 
 /// Returns whether a map contains no entries.
 ///
@@ -129,7 +129,7 @@ pub (map: Map[K, V]) size(): Int.
 /// persistent map value. The input map remains available to the caller.
 
 @pure
-pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]}.
+pub take[K, V](map: Map[K, V], key: K): {std.core.Option.Option[V], Map[K, V]}.
 
 /// Constructs a map from explicit key-value entry tuples.
 ///

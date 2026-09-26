@@ -32,6 +32,7 @@ fn expr_contains_vm_supported_std_runtime(profile: TargetProfile, expr: &CoreExp
             module,
             function,
             args,
+            ..
         } => {
             target_profile_supports_vm_std_remote_call(profile, module, function, args.len())
                 || args

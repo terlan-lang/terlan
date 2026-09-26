@@ -1,8 +1,8 @@
 module=std.js.FunctionConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17851268871651444935
-interface_hash=383429296589881377
-interface_doc_hash=383429296589881377
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1692284903444508725
+interface_hash=14939123298845121095
+interface_doc_hash=14939123298845121095
 deps=0

@@ -233,8 +233,8 @@ async fn type_definition_request_returns_provider_location_for_imported_type_ann
         temp_dir.join("provider.terli"),
         "module provider.\n\npub type ExternalUser.\n",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_type_definitions.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_type_definitions.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -270,7 +270,7 @@ async fn type_definition_request_returns_provider_location_for_imported_type_ann
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_type_definitions.\n\nimport type provider.{{ExternalUser}}.\n\npub id(value: ExternalUser): ExternalUser ->\n  value.\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -283,7 +283,7 @@ async fn type_definition_request_returns_provider_location_for_imported_type_ann
 
     let type_definition_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/typeDefinition","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":4,"character":15}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &type_definition_payload).await?;
     let type_definition_response = timeout(
@@ -296,9 +296,11 @@ async fn type_definition_request_returns_provider_location_for_imported_type_ann
     assert!(
         type_definition_response.contains(&format!(
             r#""uri":"{}""#,
-            Url::from_file_path(temp_dir.join("provider.terli")).map_err(|()| {
-                std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
-            })?
+            crate::lsp::uri::from_file_path(temp_dir.join("provider.terli"))
+                .map_err(|_| {
+                    std_io::Error::new(ErrorKind::InvalidInput, "invalid provider URI")
+                })?
+                .as_str()
         )),
         "{type_definition_response}"
     );
@@ -704,8 +706,8 @@ async fn references_request_preserves_imported_use_site_without_declaration() ->
         temp_dir.join("provider.terli"),
         "module provider.\n\npub to_string(value: Int): String.\n",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("imported_references.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("imported_references.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
 
     let (mut client_to_server, server_stdin) = duplex(4096);
     let (server_stdout, mut client_stdout) = duplex(4096);
@@ -737,7 +739,7 @@ async fn references_request_preserves_imported_use_site_without_declaration() ->
 
     let open_payload = format!(
         r#"{{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{{"textDocument":{{"uri":"{}","languageId":"terlan","version":1,"text":"module imported_references.\n\nimport provider.{{to_string}}.\n\npub caller(): String ->\n  to_string(1).\n"}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &open_payload).await?;
     let open_message = timeout(
@@ -750,7 +752,7 @@ async fn references_request_preserves_imported_use_site_without_declaration() ->
 
     let references_payload = format!(
         r#"{{"jsonrpc":"2.0","id":2,"method":"textDocument/references","params":{{"textDocument":{{"uri":"{}"}},"position":{{"line":5,"character":4}},"context":{{"includeDeclaration":false}}}}}}"#,
-        uri
+        uri.as_str()
     );
     write_lsp_message(&mut client_to_server, &references_payload).await?;
     let references_response = timeout(
@@ -760,7 +762,7 @@ async fn references_request_preserves_imported_use_site_without_declaration() ->
     .await
     .map_err(|_| std_io::Error::new(ErrorKind::TimedOut, "references response timeout"))??;
     assert!(references_response.contains(r#""id":2"#));
-    assert!(references_response.contains(&format!(r#""uri":"{}""#, uri)));
+    assert!(references_response.contains(&format!(r#""uri":"{}""#, uri.as_str())));
     assert!(
         !references_response.contains(r#""start":{"character":17,"line":2}"#),
         "{references_response}"
