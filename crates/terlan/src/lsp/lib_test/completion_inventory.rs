@@ -77,8 +77,8 @@ pub const RETRY_COUNT: Int = 3.
 hidden_lookup(id: Int): String.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("consumer.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("consumer.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let document = OpenDocument {
         version: 1,
         language_id: "terlan".to_string(),
@@ -500,8 +500,8 @@ module pkg.generated.Math.
 pub generated_add(left: Int, right: Int): Int.
 ",
     )?;
-    let uri = Url::from_file_path(temp_dir.join("signatures.terl"))
-        .map_err(|()| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
+    let uri = crate::lsp::uri::from_file_path(temp_dir.join("signatures.terl"))
+        .map_err(|_| std_io::Error::new(ErrorKind::InvalidInput, "invalid temp URI"))?;
     let source = "\
 module signatures.
 

@@ -167,7 +167,7 @@ fn infer_expression_type(
             let base = infer_expression_type(base, props, core)?;
             field_type(&base, field, core)
         }
-        CoreExpr::Call { function, args } => core
+        CoreExpr::Call { function, args, .. } => core
             .functions
             .iter()
             .find(|candidate| candidate.name == *function && candidate.arity == args.len())

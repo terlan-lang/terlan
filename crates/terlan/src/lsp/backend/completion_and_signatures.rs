@@ -648,7 +648,7 @@ impl Backend {
     ///   projects parameter metadata into standard LSP signature help.
     pub(in super::super) fn signature_help_for_position(
         document: &OpenDocument,
-        uri: &Url,
+        uri: &Uri,
         position: Position,
     ) -> Option<SignatureHelp> {
         let byte_offset = document.byte_offset_from_position(position)?;
@@ -720,7 +720,7 @@ impl Backend {
     ///   the public function overload with the smallest arity-compatible
     ///   signature into the same LSP shape as local functions.
     pub(in super::super) fn imported_function_signature_help(
-        uri: &Url,
+        uri: &Uri,
         module: &SyntaxModuleOutput,
         callee: &str,
         active_parameter: usize,
@@ -769,7 +769,7 @@ impl Backend {
     ///   parameter as the implicit receiver, so dotted-call signature help only
     ///   shows explicit call arguments.
     pub(in super::super) fn imported_receiver_method_signature_help(
-        uri: &Url,
+        uri: &Uri,
         module: &SyntaxModuleOutput,
         type_name: &str,
         callee: &str,

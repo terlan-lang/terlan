@@ -1,8 +1,8 @@
 module=std.js.Dom.RenderingContext
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=14637080234680629468
-interface_hash=8133520989348018321
-interface_doc_hash=8133520989348018321
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15141365801417399261
+interface_hash=3683259987592582982
+interface_doc_hash=3683259987592582982
 deps=0

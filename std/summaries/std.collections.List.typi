@@ -55,7 +55,7 @@ pub (list: List[T]) each(cb: (T) -> Unit): Unit.
 /// intrinsic and observes the receiver without changing its contents.
 
 @pure
-pub (list: List[T]) first(): Option[T].
+pub (list: List[T]) first(): std.core.Option.Option[T].
 
 /// Returns whether a list contains no values.
 ///
@@ -122,7 +122,7 @@ pub (mut list: List[T]) push(value: T): Unit.
 /// intrinsic without changing the receiver.
 
 @pure
-pub (list: List[T]) rest(): Option[List[T]].
+pub (list: List[T]) rest(): std.core.Option.Option[List[T]].
 
 /// Removes the first matching occurrence for each supplied value.
 ///

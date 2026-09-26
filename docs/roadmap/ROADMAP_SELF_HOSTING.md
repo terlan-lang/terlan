@@ -1,6 +1,6 @@
 # Terlan Self-Hosting Roadmap
 
-Status: planned, implementation-ready roadmap  
+Status: implementation in progress on main
 Created: 2026-08-29
 
 ## Implementation Status

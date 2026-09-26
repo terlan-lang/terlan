@@ -1,8 +1,8 @@
 module=std.js.Dom.RsaHashedKeyAlgorithm
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13495281086665116181
-interface_hash=6843136621128003413
-interface_doc_hash=6843136621128003413
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6353748618392650934
+interface_hash=368764178252306656
+interface_doc_hash=368764178252306656
 deps=0

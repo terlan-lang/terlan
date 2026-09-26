@@ -1,5 +1,45 @@
 use super::*;
 
+/// Imported functional traits must select the explicitly requested List instance.
+#[test]
+fn imported_functional_traits_resolve_list_instances() {
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"
+module list_trait_dispatch.
+import std.collections.List.
+import std.core.Functional.{Functor, Monad}.
+increment(value: Int): Int -> value + 1.
+duplicate(value: Int): List[Int] -> [value, value].
+pub mapped(values: List[Int]): List[Int] -> Functor[List].map(values, increment).
+pub flattened(values: List[Int]): List[Int] -> Monad[List].flat_map(values, duplicate).
+"#,
+    )
+    .expect("parse imported List trait calls");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
+/// Calls with identical value arguments but different explicit targets cannot
+/// share a trait-dispatch cache entry.
+#[test]
+fn explicit_trait_targets_are_part_of_dispatch_cache_identity() {
+    let diagnostics = check_syntax_output(
+        r#"
+module explicit_trait_cache.
+pub trait Default[T] { value(): T. }.
+pub impl Default[Int] for Int { value(): Int -> 42. }.
+pub impl Default[Bool] for Bool { value(): Bool -> true. }.
+pub integer(): Int -> Default[Int].value().
+pub boolean(): Bool -> Default[Bool].value().
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+}
+
 /// Verifies local trait impl dispatch works for imported HKT constructors.
 ///
 /// Inputs:

@@ -1,8 +1,8 @@
 module=std.js.Dom.CSSNamespaceRule
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7096533263305202019
-interface_hash=10291022037104191426
-interface_doc_hash=10291022037104191426
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7910523318759306122
+interface_hash=15682103579623220155
+interface_doc_hash=15682103579623220155
 deps=0

@@ -1,8 +1,8 @@
 module=std.js.Dom.VisualViewport
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10905283059547196483
-interface_hash=3121884084189215038
-interface_doc_hash=3121884084189215038
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7676551014998692345
+interface_hash=11752434545377772096
+interface_doc_hash=11752434545377772096
 deps=0

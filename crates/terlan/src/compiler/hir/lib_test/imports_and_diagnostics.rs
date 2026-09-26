@@ -242,12 +242,7 @@ pub(super) fn std_interface_loading_handles_adjacent_std_test_source() {
     fs::write(&source_path, "module result_test.\n").expect("write test source fixture");
     fs::write(
         summaries.join("std_core_result.typi"),
-        "\
-module std_core_result.\n\
-pub type Ok[T] = {:ok, T}.\n\
-pub constructor Ok[T] {\n\
-    (value: T): Ok[T] -> {:ok, value}\n\
-}.\n",
+        "module std_core_result.\npub type Ok[T] = {Atom[\"ok\"], value: T}.\n",
     )
     .expect("write std summary fixture");
 
@@ -417,7 +412,7 @@ pub(super) fn std_interface_loading_discovers_release_traversal_contracts() {
         "std.collections.Iterator",
         "next",
         1,
-        "Option[Step[T]]",
+        "std.core.Option.Option[Step[T]]",
         "iterator",
         "Iterator[T]",
         false,
@@ -698,7 +693,7 @@ pub compare_with(callback: (Int, Int) -> Comparison): Comparison ->\n\
 }
 
 #[test]
-pub(super) fn interface_rendering_preserves_collapsed_module_default_type_shorthand() {
+pub(super) fn interface_rendering_distinguishes_namespace_and_selected_type_imports() {
     let module = parse_module_as_syntax_output(
         "module collapsed_type_signature.\n\
 import type std.core.{Option}.\n\
@@ -717,8 +712,8 @@ pub keep_result(value: Result[Int, String]): Result[Int, String] ->\n\
         "collapsed module-default shorthand must remain resolver-owned:\n{rendered}"
     );
     assert!(
-        rendered.contains("pub keep_result(value: Result[Int, String]): Result[Int, String]."),
-        "selected module-default shorthand must remain resolver-owned:\n{rendered}"
+        rendered.contains("pub keep_result(value: std.core.Result.Result[Int, String]): std.core.Result.Result[Int, String]."),
+        "an explicitly selected type must retain its provider identity:\n{rendered}"
     );
 }
 

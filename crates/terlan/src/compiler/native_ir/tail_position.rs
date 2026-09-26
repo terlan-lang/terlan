@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use super::{NativeContinuation, NativeExpr, NativeModule, NativeTransitionOperation};
+use super::{NativeContinuation, NativeExpr, NativeModule};
 
 /// Installs one stable resume entry for every recursive application function.
 ///
@@ -100,9 +100,13 @@ pub(super) fn attach_installed_reduction_yields(modules: &mut [NativeModule]) {
                 .chain(module.functions.iter().map(|item| item.export_id))
         })
         .collect::<HashSet<_>>();
+    let reduction_entries = functions.iter().copied().collect::<HashSet<_>>();
     for module in modules {
         for continuation in &mut module.continuations {
-            if !installed.contains(&continuation.id) {
+            // Only reduction-resume entries must re-enter without immediately
+            // yielding again. Every ordinary continuation is also installed;
+            // testing that set here would skip this entire annotation pass.
+            if !reduction_entries.contains(&continuation.id) {
                 attach_reduction_yields(&mut continuation.body, &functions, &installed);
             }
         }
@@ -234,6 +238,18 @@ fn lower_tail_position(
     forwarding_completions: &HashSet<u64>,
 ) {
     match expr {
+        NativeExpr::TailCall {
+            function,
+            yield_continuation_id,
+            ..
+        } if yield_continuation_id.is_none()
+            && components.get(*function).copied() == Some(current_component) =>
+        {
+            // Suspension-aware branch lowering can identify tail calls before
+            // recursive components receive their reduction continuations.
+            // Already classified edges still require scheduler fairness.
+            *yield_continuation_id = yield_ids.get(*function).copied().flatten();
+        }
         NativeExpr::Call { function, args }
             if components.get(*function).copied() == Some(current_component) =>
         {
@@ -580,13 +596,11 @@ fn attach_reduction_yields(
             }
             if let Some(id) = function_identities.get(*function).copied() {
                 if installed.contains(&id) && yield_continuation_id.is_none() {
-                    let values = std::mem::take(args);
-                    *expr = NativeExpr::Suspend {
-                        operation: NativeTransitionOperation::Yield,
-                        arguments: Vec::new(),
-                        continuation_id: id,
-                        values,
-                    };
+                    // Materialized continuations participate in the same native
+                    // tail component and reduction budget as source functions.
+                    // An unconditional Suspend here forces a VM round trip on
+                    // every generated reentry, even when the slice has budget.
+                    *yield_continuation_id = Some(id);
                 }
             }
         }
@@ -676,7 +690,7 @@ fn attach_reduction_yields(
 }
 
 /// Computes canonical SCC identities with iterative Kosaraju traversals.
-fn strongly_connected_components(graph: &[Vec<usize>]) -> Vec<usize> {
+pub(super) fn strongly_connected_components(graph: &[Vec<usize>]) -> Vec<usize> {
     let mut visited = vec![false; graph.len()];
     let mut finish_order = Vec::with_capacity(graph.len());
     for start in 0..graph.len() {

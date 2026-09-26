@@ -1,8 +1,8 @@
 module=std.js.Dom.DeviceMotionEventRotationRate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=731670743782239636
-interface_hash=12767886575546649590
-interface_doc_hash=12767886575546649590
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4988776000147376981
+interface_hash=4667762566312463763
+interface_doc_hash=4667762566312463763
 deps=0

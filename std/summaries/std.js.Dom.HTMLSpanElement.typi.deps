@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLSpanElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3369533175349090408
-interface_hash=12349445843523927371
-interface_doc_hash=12349445843523927371
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17802451664496141640
+interface_hash=12983759026212183771
+interface_doc_hash=12983759026212183771
 deps=0

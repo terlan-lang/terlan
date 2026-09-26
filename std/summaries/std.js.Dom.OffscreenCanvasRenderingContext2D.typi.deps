@@ -1,8 +1,8 @@
 module=std.js.Dom.OffscreenCanvasRenderingContext2D
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13058389754147418536
-interface_hash=10024091609928114024
-interface_doc_hash=10024091609928114024
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14214043449484559475
+interface_hash=6348748250959154660
+interface_doc_hash=6348748250959154660
 deps=0

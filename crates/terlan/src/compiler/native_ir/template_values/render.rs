@@ -610,15 +610,14 @@ fn substitute_expression(
                 }
             }
         }
-        CoreExpr::Call { function, args } => CoreExpr::Call {
+        CoreExpr::Call { type_args, function, args } => CoreExpr::Call { type_args: type_args.clone(),
             function: function.clone(),
             args: substitute_args(args, values, types)?,
         },
-        CoreExpr::RemoteCall {
+        CoreExpr::RemoteCall { type_args,
             module,
             function,
-            args,
-        } => CoreExpr::RemoteCall {
+            args } => CoreExpr::RemoteCall { type_args: type_args.clone(),
             module: module.clone(),
             function: function.clone(),
             args: substitute_args(args, values, types)?,

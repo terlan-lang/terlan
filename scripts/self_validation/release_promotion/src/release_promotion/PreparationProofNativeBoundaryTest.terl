@@ -1,0 +1,170 @@
+/**
+ * Native-boundary producer contracts exercised with real bounded subprocesses.
+ */
+module release_promotion.PreparationProofNativeBoundaryTest.
+
+import release_promotion.PreparationGraph.{Summary}.
+import release_promotion.{OwnerDirectory, OwnerStorage, PreparationContext, PreparationGraph, PrepareProofNativeBoundary}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.system.Process.{environment_entry}.
+
+import type release_promotion.PreparationContext.Context.
+import type release_promotion.PreparationGraph.Summary.
+
+write(root: String, path: String, source: String): Bool ->
+    case File.write_text(OwnerStorage.child(root, path), source) {
+        Ok(_written) -> true;
+        _ -> false
+    }.
+
+compiler(): String ->
+    String.concat(
+        [
+            "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\n",
+            "test \"$3\" = scripts/self_validation/LeanProofNativeBoundaryTest.terl\n",
+            "test -n \"$TERLAN_BUILD_ACTIVITY_LOG\"\ntest -n \"$TERLAN_PROCESS_ACTIVITY_LOG\"\n",
+            "test -n \"$TERLAN_RUST_COVERAGE_CONTEXT\"\ntest \"$TERLAN_RUST_COVERAGE_SCOPE\" = hosted-source\n",
+            "test \"$TERLAN_NATIVE_BOUNDARY_PROOF_MODE\" = cached\ntest -s \"$TERLAN_PROOF_TOOL_ADMISSION\"\n",
+            "test \"$TERLAN_PROOF_TOOL_ADMISSION_SHA256\" = fixture-admission\n",
+            "case \"$TERLAN_NATIVE_BOUNDARY_OUTPUT\" in \"$TERLAN_LEAN_PROOF_ROOT\"/target/quality/preparation/*/proof-native-boundary.work/output.json) ;; *) exit 9;; esac\n",
+            "echo run >> calls\nmkdir -p \"$TERLAN_NATIVE_BOUNDARY_OUTPUT\"\n",
+            "for manifest in std/summaries/*.native_boundary.json; do\n",
+            "name=${manifest##*/}\nvalue=$(cat \"$manifest\")\n",
+            "printf '{\"schema\":\"terlan.native-boundary-proof-manifest.v1\",\"value\":\"%s\"}\\n' \"$value\" > \"$TERLAN_NATIVE_BOUNDARY_OUTPUT/$name\"\n",
+            "test \"$value\" != fail\ndone\n",
+            "printf '{\"schema\":\"terlan.native-boundary-proof-binding.v1\"}\\n' > \"$TERLAN_NATIVE_BOUNDARY_OUTPUT/proof-manifest-binding.json\"\n",
+            "printf '{\"schema\":\"terlan.native-boundary-proof-runtime-oracles.v1\"}\\n' > \"$TERLAN_NATIVE_BOUNDARY_OUTPUT/runtime-oracle-signatures.json\"\n",
+            "echo 'Lean NativeBoundary proof passed:'\n",
+        ],
+    ).
+
+fixture(root: String): Bool ->
+    let {
+        Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/debug"));
+        Ok(_coverage) <- Directory.create_all(OwnerStorage.child(root, "target/validation-tools"));
+        Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
+        Ok(_sources) <- Directory.create_all(OwnerStorage.child(root, "std/summaries"))
+    } else {
+        _ -> false
+    };
+    tools(root) and sources(root).
+
+tools(root: String): Bool ->
+    write(root, "target/debug/terlc", compiler())
+        and write(root, "target/debug/terlan-quality", "quality-v1")
+        and write(root, "target/validation-tools/terlan-test-orchestrator", "coverage-v1")
+        and write(root, "target/quality/admission.json", "{}")
+        and write(root, "target/quality/proof-artifacts/lean-proof-track.json", "{}")
+        and OwnerStorage.command(root, "/bin/chmod", ["+x", "target/debug/terlc"]).
+
+sources(root: String): Bool ->
+    write(root, "std/summaries/unrelated.json", "ignored")
+        and write(root, "std/summaries/old.native_boundary.json", "first").
+
+context(endpoint: String): Context ->
+    PreparationContext.from_parts(
+        revision = "fixture",
+        sources = [],
+        environment = [
+            environment_entry("PATH", "/usr/bin:/bin"),
+            environment_entry("TERLAN_RUST_COVERAGE_CONTEXT", endpoint),
+            environment_entry("TERLAN_RUST_COVERAGE_SCOPE", "hosted-source"),
+        ],
+        runtime_tools = "fixture-runtime",
+    ).
+
+run(root: String, selected: Context): Summary ->
+    case PrepareProofNativeBoundary.manifests(root) {
+        Ok(names) ->
+            let owner =
+                PrepareProofNativeBoundary.declare(
+                    root,
+                    "target/debug/terlc",
+                    selected,
+                    [],
+                    names,
+                    "target/quality/admission.json",
+                    "fixture-admission",
+                );
+            PreparationGraph.run_locked(
+                root,
+                "proof-native-boundary",
+                [PreparationGraph.declare_node(owner, [])],
+            );
+        _ ->
+            Summary(valid = false, completed = 0, reused = 0, message = "manifest discovery failed")
+    }.
+
+replacement(root: String): Bool ->
+    let destination = OwnerStorage.child(root, PrepareProofNativeBoundary.output());
+    let selected = context("coverage-one");
+    let {
+        true <- fixture(root);
+        Ok(["old.native_boundary.json"]) <- PrepareProofNativeBoundary.manifests(root);
+        true <- run(root, selected).completed == 1;
+        true <- run(root, selected).reused == 1;
+        Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        Ok(before) <- OwnerDirectory.inventory(destination);
+        true <- write(root, "std/summaries/old.native_boundary.json", "fail");
+        false <- run(root, selected).valid;
+        Ok(retained) <- OwnerDirectory.inventory(destination);
+        true <- OwnerStorage.digest(before) == OwnerStorage.digest(retained);
+        true <- write(root, "std/summaries/old.native_boundary.json", "changed");
+        true <- run(root, selected).completed == 1;
+        true <- run(root, selected).reused == 1;
+        Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    changed_selection(root, selected).
+
+changed_selection(root: String, selected: Context): Bool ->
+    let output = PrepareProofNativeBoundary.output();
+    let {
+        true <-
+            OwnerStorage.command(
+                root,
+                "/bin/mv",
+                ["std/summaries/old.native_boundary.json", "std/summaries/new.native_boundary.json"],
+            );
+        true <- run(root, selected).completed == 1;
+        Ok([_first, _second, _third]) <- Directory.entries(OwnerStorage.child(root, output));
+        Ok(_new) <-
+            File.read_text(
+                OwnerStorage.child(root, String.append(output, "/new.native_boundary.json")),
+            );
+        true <- run(root, selected).reused == 1;
+        true <- run(root, context("coverage-two")).completed == 1;
+        true <- run(root, context("coverage-two")).reused == 1;
+        Ok("run\nrun\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"));
+        true <- write(root, String.append(output, "/extra.json"), "{}");
+        true <- run(root, context("coverage-two")).completed == 1;
+        true <- write(root, "target/debug/terlan-quality", "quality-v2");
+        true <- run(root, context("coverage-two")).completed == 1;
+        true <- run(root, context("coverage-two")).reused == 1;
+        Ok("run\nrun\nrun\nrun\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"))
+    } else {
+        _ -> false
+    };
+    true.
+
+pub self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-native-proof-owner-") else {
+        _ -> false
+    };
+    (let valid = replacement(root);
+let removed = Directory.remove_all(root);
+let _printed =
+    Console.println(
+        if {
+            valid -> "native-boundary owner rehearsal passed";
+            true -> "native-boundary owner rehearsal failed"
+        },
+    );
+valid
+    and case removed {
+    Ok(_removed) -> true;
+    _ -> false
+}).

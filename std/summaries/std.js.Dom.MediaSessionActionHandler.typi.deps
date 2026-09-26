@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaSessionActionHandler
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5313843506658386643
-interface_hash=594448628298850850
-interface_doc_hash=594448628298850850
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=266147134280077215
+interface_hash=12788278551209349152
+interface_doc_hash=12788278551209349152
 deps=0

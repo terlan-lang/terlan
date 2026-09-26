@@ -9,7 +9,7 @@ use crate::runtime::native_image::managed::{
 };
 use crate::terlan_typeck::{
     core_type_from_text, CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreTupleTypeElem,
-    CoreType, CoreTypeDecl,
+    CoreType,
 };
 
 use super::{call_composition::rebase_callee_locals, native_type, NativeExpr, NativeType};
@@ -20,6 +20,8 @@ use field_types::native_field_type;
 
 mod structural_registry;
 pub(super) use structural_registry::install_structural_type_layouts;
+mod records;
+pub(super) use records::{install_struct_layouts, lower_structural_record_construct};
 
 /// One fixed constructor admitted to managed NativeIR.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -88,7 +90,7 @@ pub(super) fn native_constructor_layouts(
             let Some(result) = native_type(Some(return_core), &declaration.return_type) else {
                 continue;
             };
-            if !result.is_managed_reference() {
+            if declaration.implementation.is_some() || !result.is_managed_reference() {
                 continue;
             }
             // Transparent records are nominal managed values even though
@@ -222,71 +224,6 @@ pub(super) fn native_constructor_layouts(
     Ok(layouts)
 }
 
-/// Adds syntax-level struct records, which have direct record construction but
-/// no constructor declaration in CoreIR.
-pub(super) fn install_struct_layouts(
-    modules: &[(&str, &[CoreTypeDecl])],
-    consumer_module: &str,
-    layouts: &mut NativeConstructorLayouts,
-) -> Result<(), String> {
-    for (module, declarations) in modules {
-        for declaration in *declarations {
-            let Some(CoreType::Struct { name, fields }) = declaration.core_body.as_ref() else {
-                continue;
-            };
-            let parameters = fields
-                .iter()
-                .map(|field| native_type(Some(&field.ty), &field.ty.contract_text()))
-                .collect::<Option<Vec<_>>>()
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.struct_layout_type]: struct `{name}` has an unsupported field"
-                    )
-                })?;
-            let canonical = super::expression::managed_semantic_contract(
-                declaration.core_body.as_ref().expect("matched struct body"),
-            );
-            let descriptor = Arc::new(
-                ManagedAggregateDescriptor::record(
-                    &canonical,
-                    fields
-                        .iter()
-                        .zip(parameters.iter().copied())
-                        .map(|(field, ty)| {
-                            managed_field_type(ty).map(|ty| (field.name.clone(), ty))
-                        })
-                        .collect::<Result<Vec<_>, _>>()?,
-                )
-                .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
-            );
-            let encoded_layout = Arc::<[u8]>::from(
-                encode_aggregate_layout(&descriptor)
-                    .map_err(|error| format!("error[native_ir.struct_layout_abi]: {error}"))?,
-            );
-            let layout = NativeConstructorLayout {
-                parameter_core_types: fields.iter().map(|field| Some(field.ty.clone())).collect(),
-                parameters,
-                result: NativeType::ManagedRef(
-                    SemanticTypeId::from_canonical(&canonical)
-                        .map_err(|error| format!("error[native_ir.struct_layout]: {error}"))?,
-                ),
-                result_core_type: declaration.core_body.clone(),
-                descriptor,
-                encoded_layout,
-            };
-            let qualified = (name.clone(), fields.len());
-            if layouts.contains_key(&qualified) {
-                continue;
-            }
-            layouts.insert(qualified, layout.clone());
-            if *module == consumer_module {
-                layouts.insert((declaration.name.clone(), fields.len()), layout);
-            }
-        }
-    }
-    Ok(())
-}
-
 /// Resolves and lowers one checked fixed-constructor call.
 pub(super) fn lower_constructor_call(
     expr: &CoreExpr,
@@ -294,6 +231,7 @@ pub(super) fn lower_constructor_call(
     lower_field: impl Fn(&CoreExpr, Option<&CoreType>) -> Result<(NativeExpr, NativeType), String>,
 ) -> Result<Option<(NativeExpr, NativeType)>, String> {
     let CoreExpr::ConstructorCall {
+        type_args: _,
         constructor,
         constructor_identity,
         args,
@@ -442,71 +380,6 @@ pub(super) fn lower_structural_constructor_call(
     }))
 }
 
-/// Lowers a generic named record using the concrete checked cast target.
-///
-/// Generic struct declarations retain type parameters in the application-wide
-/// layout template. At a monomorphized construction site the cast target owns
-/// the concrete semantic identity, while the already checked field values own
-/// the concrete physical kinds. Combining those two facts produces one exact
-/// managed layout without weakening runtime type validation.
-pub(super) fn lower_structural_record_construct(
-    expr: &CoreExpr,
-    target: &CoreType,
-    layouts: &NativeConstructorLayouts,
-    lower_field: impl Fn(&CoreExpr) -> Result<(NativeExpr, NativeType), String>,
-) -> Result<Option<NativeExpr>, String> {
-    let CoreExpr::RecordConstruct { name, fields } = expr else {
-        return Ok(None);
-    };
-    let target_name = match target {
-        CoreType::Apply { constructor, .. } | CoreType::Named(constructor) => constructor,
-        CoreType::Struct { name, .. } => name,
-        _ => return Ok(None),
-    };
-    if target_name.rsplit('.').next() != name.rsplit('.').next() {
-        return Ok(None);
-    }
-    let template = record_layout(name, fields.len(), layouts)?;
-    let mut source = HashMap::new();
-    for field in fields {
-        if source.insert(field.key.as_str(), &field.value).is_some() {
-            return Err(format!(
-                "error[native_ir.record_field_duplicate]: record `{name}` repeats field `{}`",
-                field.key
-            ));
-        }
-    }
-    let mut lowered = Vec::with_capacity(fields.len());
-    let mut descriptor_fields = Vec::with_capacity(fields.len());
-    for expected in template.descriptor.fields() {
-        let field_name = expected.name().ok_or_else(|| {
-            format!(
-                "error[native_ir.structural_record_shape]: record `{name}` has an unnamed field"
-            )
-        })?;
-        let value = source.get(field_name).ok_or_else(|| {
-            format!("error[native_ir.structural_record_field]: record `{name}` is missing field `{field_name}`")
-        })?;
-        let (value, ty) = lower_field(value)?;
-        descriptor_fields.push((field_name.to_string(), managed_field_type(ty)?));
-        lowered.push(value);
-    }
-    let canonical = super::expression::managed_semantic_contract(target);
-    let descriptor = Arc::new(
-        ManagedAggregateDescriptor::record(&canonical, descriptor_fields)
-            .map_err(|error| format!("error[native_ir.structural_record_layout]: {error}"))?,
-    );
-    let encoded_layout = Arc::<[u8]>::from(
-        encode_aggregate_layout(&descriptor)
-            .map_err(|error| format!("error[native_ir.structural_record_abi]: {error}"))?,
-    );
-    Ok(Some(NativeExpr::Construct {
-        descriptor,
-        encoded_layout,
-        fields: lowered,
-    }))
-}
-
 type StructuralFields = Vec<(Option<String>, CoreType)>;
 
 pub(super) fn structural_constructor_fields(
@@ -533,7 +406,24 @@ pub(super) fn structural_constructor_fields(
             }
         }
         CoreType::Union(variants) => variants.iter().enumerate().find_map(|(index, variant)| {
-            if name == "None" && matches!(variant, CoreType::AtomLiteral(atom) if atom == "none") {
+            if let CoreType::Struct {
+                name: identity,
+                fields,
+            } = variant
+            {
+                if identity == name || identity.rsplit('.').next() == Some(name) {
+                    return Some((
+                        u32::try_from(index).ok()?,
+                        u32::try_from(variants.len()).ok()?,
+                        fields
+                            .iter()
+                            .map(|field| (Some(field.name.clone()), field.ty.clone()))
+                            .collect(),
+                    ));
+                }
+                return None;
+            }
+            if matches!(variant, CoreType::AtomLiteral(atom) if name.eq_ignore_ascii_case(atom)) {
                 return Some((
                     u32::try_from(index).ok()?,
                     u32::try_from(variants.len()).ok()?,
@@ -610,18 +500,7 @@ pub(super) fn constructor_result_type(
     expr: &CoreExpr,
     layouts: &NativeConstructorLayouts,
 ) -> Option<NativeType> {
-    let CoreExpr::ConstructorCall {
-        constructor,
-        constructor_identity,
-        args,
-    } = expr
-    else {
-        return None;
-    };
-    let identity = constructor_identity.as_deref().unwrap_or(constructor);
-    layouts
-        .get(&(identity.to_owned(), args.len()))
-        .map(|layout| layout.result)
+    Some(constructor_layout(expr, layouts)?.result)
 }
 
 /// Returns the checked semantic result type retained by a constructor layout.
@@ -629,7 +508,16 @@ pub(super) fn constructor_result_core_type(
     expr: &CoreExpr,
     layouts: &NativeConstructorLayouts,
 ) -> Option<CoreType> {
+    constructor_layout(expr, layouts)?.result_core_type.clone()
+}
+
+/// Resolves fixed-constructor metadata shared by native and semantic type queries.
+fn constructor_layout<'a>(
+    expr: &CoreExpr,
+    layouts: &'a NativeConstructorLayouts,
+) -> Option<&'a NativeConstructorLayout> {
     let CoreExpr::ConstructorCall {
+        type_args: _,
         constructor,
         constructor_identity,
         args,
@@ -638,10 +526,7 @@ pub(super) fn constructor_result_core_type(
         return None;
     };
     let identity = constructor_identity.as_deref().unwrap_or(constructor);
-    layouts
-        .get(&(identity.to_owned(), args.len()))?
-        .result_core_type
-        .clone()
+    layouts.get(&(identity.to_owned(), args.len()))
 }
 
 /// Resolves and lowers one fixed named record construction.

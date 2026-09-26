@@ -1,5 +1,6 @@
 //! Generated C++ adapters that copy borrowed collection results.
 
+use crate::commands::bind::cpp_binding_generator::error::CppBindingError;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -53,7 +54,7 @@ pub(super) fn resource_list_result_name(
 pub(super) fn render_collection_adapter_header(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let header = Path::new(&manifest.cpp_metadata.header)
         .file_name()
         .and_then(|name| name.to_str())
@@ -102,7 +103,7 @@ pub(super) fn render_collection_adapter_header(
 pub(super) fn render_collection_adapter_source(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#include \"include/terlan_collection_adapters.hpp\"\n\n#include <utility>\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -229,7 +230,7 @@ pub(super) fn resource_list_parts<'a>(
         &'a NativeBindingType,
         &'a CppSymbol,
     ),
-    String,
+    CppBindingError,
 > {
     let public_element = function
         .returns
@@ -301,7 +302,7 @@ pub(super) fn validate_resource_list_projection(
     symbol: &CppSymbol,
     policy: &CppSymbolPolicy,
     symbols: &ValidatedCppSymbols<'_>,
-) -> Result<(), String> {
+) -> Result<(), CppBindingError> {
     let (receiver, element, _) =
         resource_list_parts(manifest, module, function, &symbols.declarations)?;
     let receiver_symbol = receiver.map(|receiver| {
@@ -331,10 +332,10 @@ pub(super) fn validate_resource_list_projection(
                 }))
         || !vector_element.is_some_and(|name| cpp_name_matches(name, &element_symbol.cpp_name))
     {
-        return Err(format!(
+        return Err((format!(
             "resource-list projection `{}` requires a contained const method or free function returning std::vector of a reviewed owned resource",
             function.name
-        ));
+        )).into());
     }
     super::validate_function_argument_mapping(function, symbol, &manifest.modules, symbols)
 }
@@ -369,7 +370,7 @@ fn collection_projection_parts<'a>(
     module: &'a NativeBindingModule,
     function: &'a NativeBindingFunction,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<(&'a NativeBindingType, &'a CppSymbol), String> {
+) -> Result<(&'a NativeBindingType, &'a CppSymbol), CppBindingError> {
     let resource = function
         .args
         .first()
@@ -401,9 +402,9 @@ fn collection_projection_parts<'a>(
 fn symbol_for_type<'a>(
     ty: &NativeBindingType,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<&'a CppSymbol, String> {
-    symbols
+) -> Result<&'a CppSymbol, CppBindingError> {
+    Ok(symbols
         .get(ty.cpp_symbol.as_str())
         .copied()
-        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))
+        .ok_or_else(|| format!("unknown C++ type symbol `{}`", ty.cpp_symbol))?)
 }

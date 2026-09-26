@@ -1,0 +1,348 @@
+/**
+ * Adversarial structural report admission and real readiness/preflight consumers.
+ * Constructed report/archive bytes are fixtures, not hosted release evidence.
+ */
+module release_promotion.EvidenceReportsTest.
+
+import release_promotion.{EvidenceReports, OwnerStorage, Preflight, Readiness}.
+import std.collections.List.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Console, Directory, File}.
+
+import type std.data.Json.
+
+render(value: Json): String ->
+    case Json.stringify_pretty(value) {
+        Ok(text) -> text;
+        _ -> ""
+    }.
+
+report(schema: String): Json ->
+    Json.object().put("schema", Json.string(schema)).put("decision", Json.string("pass")).
+
+matrix_rows(values: List[String], digest: String, rows: Json): Json ->
+    case values {
+        [] -> rows;
+        [value | rest] ->
+            let host =
+                if {
+                    value == "x86_64-unknown-linux-gnu" -> Json.object()
+                        .put("path", Json.string("dist/terlc-linux-x86_64.tar.gz"))
+                        .put("sha256", Json.string(digest))
+                        .put("installed_smoke", Json.string("passed"));
+                    true -> Json.object().put("status", Json.string("skipped"))
+                };
+            matrix_rows(
+                rest,
+                digest,
+                rows
+                    .push(
+                        Json.object()
+                            .put("target_triple", Json.string(value))
+                            .put("host_validation", host),
+                    ),
+            )
+    }.
+
+matrix(values: List[String], digest: String): Json ->
+    report("terlan.vm-release-artifact-matrix-report.v1")
+        .put("target_count", Json.int(6))
+        .put("targets", matrix_rows(values, digest, Json.array())).
+
+outcome_cases(): Bool ->
+    let schema = "fixture.report.v1";
+    EvidenceReports.passes(render(report(schema)), schema)
+        and EvidenceReports.passes("{\"decision\":\"pass\",\"schema\":\"fixture.report.v1\"}", schema)
+        and not EvidenceReports.passes(
+    render(report(schema).put("decision", Json.string("fail")).put("nested", report(schema))),
+    schema,
+)
+        and not EvidenceReports.passes(render(report("wrong").put("note", Json.string(schema))), schema)
+        and not EvidenceReports.passes(render(report(schema).put("decision", Json.bool(true))), schema)
+        and not EvidenceReports.passes(String.append("not JSON ", render(report(schema))), schema)
+        and not EvidenceReports.passes(render(Json.array().push(report(schema))), schema).
+
+seal_cases(): Bool ->
+    let schema = "fixture.report.v1";
+    EvidenceReports.seal_matches(
+    render(report(schema).put("candidate_seal", Json.string("expected"))),
+    schema,
+    "expected",
+)
+        and not EvidenceReports.seal_matches(
+    render(
+        report(schema)
+            .put("candidate_seal", Json.string("wrong"))
+            .put("note", Json.string("expected")),
+    ),
+    schema,
+    "expected",
+)
+        and not EvidenceReports.seal_matches(
+    render(report(schema).put("candidate_seal", Json.string("expected-extra"))),
+    schema,
+    "expected",
+)
+        and not EvidenceReports.seal_matches(render(report(schema).put("candidate_seal", Json.int(1))), schema, "1")
+        and not EvidenceReports.seal_matches(
+    render(report(schema).put("candidate_seal", Json.string(""))),
+    schema,
+    "",
+).
+
+platform_cases(): Bool ->
+    let targets = EvidenceReports.targets();
+    let [first | rest] <- targets else {
+        _ -> false
+    };
+    EvidenceReports.platforms_hold(render(matrix(targets, "hash")))
+        and EvidenceReports.platforms_hold(render(matrix(List.concat(rest, [first]), "hash")))
+        and not EvidenceReports.platforms_hold(
+    render(
+        matrix([first, first, first, first, first, first], "hash")
+            .put("note", Json.string(String.concat(targets))),
+    ),
+)
+        and not EvidenceReports.platforms_hold(render(matrix(rest, "hash")))
+        and not EvidenceReports.platforms_hold(render(matrix(List.concat(targets, [first]), "hash")))
+        and not EvidenceReports.platforms_hold(render(matrix(targets, "hash").put("target_count", Json.int(60))))
+        and not EvidenceReports.platforms_hold(
+    render(matrix(targets, "hash").put("target_count", Json.string("6"))),
+)
+        and not EvidenceReports.platforms_hold(
+    render(
+        matrix(targets, "hash")
+            .put("targets", Json.array().push(Json.string(String.concat(targets)))),
+    ),
+).
+
+supply(digest: String): Json ->
+    report("terlan.release-supply-chain-provenance-report.v1")
+        .put("checksums", Json.object().put("installed_archive", Json.string(digest))).
+
+hash_cases(): Bool ->
+    let path = "dist/terlc-linux-x86_64.tar.gz";
+    EvidenceReports.supply_chain_matches(render(supply("hash")), "hash")
+        and not EvidenceReports.supply_chain_matches(
+    render(supply("wrong").put("note", Json.string("hash"))),
+    "hash",
+)
+        and EvidenceReports.matrix_archive_matches(
+    render(matrix(EvidenceReports.targets(), "hash")),
+    path,
+    "hash",
+)
+        and not EvidenceReports.matrix_archive_matches(
+    render(matrix(EvidenceReports.targets(), "wrong").put("note", Json.string("hash"))),
+    path,
+    "hash",
+)
+        and not EvidenceReports.matrix_archive_matches(
+    render(matrix(EvidenceReports.targets(), "hash")),
+    "dist/other.tar.gz",
+    "hash",
+).
+
+write_reports(root: String, rows: List[{String, String}], seal: String): Bool ->
+    case rows {
+        [] -> true;
+        [{path, schema} | rest] ->
+            let Ok(_written) <-
+                File.write_text(
+                    OwnerStorage.child(root, path),
+                    render(report(schema).put("candidate_seal", Json.string(seal))),
+                ) else {
+                _ -> false
+            };
+            write_reports(root, rest, seal)
+    }.
+
+sealed_reports(root: String, rows: List[{String, String}], output: Json): Json ->
+    case rows {
+        [] -> output;
+        [{path, _schema} | rest] ->
+            let Ok(source) <- File.read_text(OwnerStorage.child(root, path)) else {
+                _ -> Json.null()
+            };
+            sealed_reports(
+                root,
+                rest,
+                output
+                    .push(
+                        Json.object()
+                            .put("path", Json.string(path))
+                            .put(
+                                "sha256",
+                                Json.string(String.append("sha256:", Hash.sha256(source))),
+                            ),
+                    ),
+            )
+    }.
+
+inventory_rejected(root: String, candidate: Json, mode: String): Bool ->
+    let {
+        Ok(copy) <- Json.parse(render(candidate));
+        Ok(rows) <- copy.get("gate_reports");
+        Ok(first) <- rows.at(0)
+    } else {
+        _ -> false
+    };
+    (let altered =
+    case mode {
+        "missing" -> copy.remove("gate_reports");
+        "empty" -> copy.put("gate_reports", Json.array());
+        "duplicate" -> copy.put("gate_reports", rows.push(first));
+        "hash" ->
+            copy.put("gate_reports", rows.set(0, first.put("sha256", Json.string("sha256:wrong"))));
+        "malformed" -> copy.put("gate_reports", Json.string("not an array"));
+        _ -> Json.null()
+    };
+not Readiness.attest(root, altered)).
+
+/**
+ * Populates synthetic mandatory evidence for the separate owned-graph fixture.
+ */
+pub prepare_reports(root: String): Bool ->
+    let {
+        Ok(digest) <- Hash.sha256_file(OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz"));
+        true <- write_reports(root, EvidenceReports.readiness_reports(), "fixture");
+        Ok(_supply) <-
+            File.write_text(
+                OwnerStorage.child(
+                    root,
+                    "target/quality/release-supply-chain-provenance-report.json",
+                ),
+                render(supply(digest)),
+            );
+        Ok(_matrix) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/vm-release-artifact-matrix-report.json"),
+                render(matrix(EvidenceReports.targets(), digest)),
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+consumers(root: String): Bool ->
+    let seal = "sha256:fixture-seal";
+    let archive = "dist/terlc-linux-x86_64.tar.gz";
+    let supply_path = OwnerStorage.child(root, "target/quality/release-supply-chain-provenance-report.json");
+    let matrix_path = OwnerStorage.child(root, "target/quality/vm-release-artifact-matrix-report.json");
+    let readiness_path = OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json");
+    let metadata_path = OwnerStorage.child(root, "dist/terlan-release.json");
+    let metadata = "{\"version\":\"0.0.9\",\"os\":\"linux\",\"arch\":\"x86_64\",\"release_candidate_id\":\"fixture\"}";
+    let {
+        Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
+        Ok(_dist) <- Directory.create_all(OwnerStorage.child(root, "dist"));
+        Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/release"));
+        Ok(_manifest) <-
+            File.write_text(
+                OwnerStorage.child(root, "docs/release/PUBLISHABLE_DOCUMENTATION.tsv"),
+                "fixture\n",
+            );
+        Ok(_make) <-
+            File.write_text(
+                OwnerStorage.child(root, "Makefile"),
+                "release-preflight:\n\tverify evidence\n\n",
+            );
+        Ok(_metadata) <- File.write_text(metadata_path, metadata);
+        Ok(_archive) <- File.write_text(OwnerStorage.child(root, archive), "fixture archive bytes");
+        Ok(digest) <- Hash.sha256_file(OwnerStorage.child(root, archive));
+        true <- write_reports(root, EvidenceReports.preflight_reports(), seal);
+        Ok(_supply) <- File.write_text(supply_path, render(supply(digest)));
+        Ok(_matrix) <- File.write_text(matrix_path, render(matrix(EvidenceReports.targets(), digest)))
+    } else {
+        _ -> false
+    };
+    (let candidate =
+    Json.object()
+        .put("schema", Json.string("terlan.release-candidate.v1"))
+        .put("version", Json.string("0.0.9"))
+        .put(
+            "gate_reports",
+            sealed_reports(root, EvidenceReports.readiness_reports(), Json.array()),
+        )
+        .put("seal", Json.object().put("digest", Json.string(seal)))
+        .put(
+            "artifacts",
+            Json.array()
+                .push(
+                    Json.object()
+                        .put("path", Json.string(archive))
+                        .put("sha256", Json.string(String.append("sha256:", digest))),
+                ),
+        );
+(let {
+    true <- Readiness.attest(root, candidate);
+    true <- Preflight.run(root, "0.0.9", seal);
+    Ok(previous) <- File.read_text(readiness_path);
+    true <- inventory_rejected(root, candidate, "missing");
+    true <- inventory_rejected(root, candidate, "empty");
+    true <- inventory_rejected(root, candidate, "duplicate");
+    true <- inventory_rejected(root, candidate, "hash");
+    true <- inventory_rejected(root, candidate, "malformed");
+    Ok(after_inventory_failures) <- File.read_text(readiness_path);
+    true <- previous == after_inventory_failures;
+    Ok(_passing_drift) <- File.write_text(supply_path, render(supply(digest).put("note", Json.string("changed"))));
+    false <- Readiness.attest(root, candidate);
+    Ok(_restore_passing) <- File.write_text(supply_path, render(supply(digest)));
+    true <- Readiness.attest(root, candidate);
+    Ok(_failed) <-
+        File.write_text(
+            supply_path,
+            render(
+                supply(digest)
+                    .put("decision", Json.string("fail"))
+                    .put("nested", report("terlan.release-supply-chain-provenance-report.v1")),
+            ),
+        );
+    false <- Readiness.attest(root, candidate);
+    false <- Preflight.run(root, "0.0.9", seal);
+    Ok(retained) <- File.read_text(readiness_path);
+    true <- previous == retained;
+    Ok(_restore) <- File.write_text(supply_path, render(supply(digest)));
+    Ok(_stale) <-
+        File.write_text(
+            readiness_path,
+            render(
+                report("terlan.release-readiness-attestation.v1")
+                    .put("candidate_seal", Json.string("wrong"))
+                    .put("note", Json.string(seal)),
+            ),
+        );
+    false <- Preflight.run(root, "0.0.9", seal);
+    Ok(_restore_readiness) <- File.write_text(readiness_path, previous);
+    Ok(_wrong_version) <- File.write_text(metadata_path, "{\"version\":\"wrong\",\"note\":\"0.0.9\"}");
+    false <- Readiness.attest(root, candidate);
+    false <- Preflight.run(root, "0.0.9", seal);
+    Ok(_restore_metadata) <- File.write_text(metadata_path, metadata)
+} else {
+    _ -> false
+};
+Preflight.run(root, "0.0.9", seal))).
+
+pub self_test(): Bool ->
+    let true <- outcome_cases() and seal_cases() and platform_cases() and hash_cases() else {
+        _ -> false
+    };
+    (let Ok(root) <- Directory.create_temporary("terlan-evidence-admission-") else {
+    _ -> false
+};
+(let valid = consumers(root);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "release report admission passed: structural outcomes, seals, platforms, hashes and real consumers";
+            true -> "release report admission failed"
+        },
+    );
+valid and removed)).

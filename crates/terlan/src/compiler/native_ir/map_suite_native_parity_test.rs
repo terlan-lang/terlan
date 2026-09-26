@@ -100,6 +100,64 @@ fn lower_source(source: &str) -> (Vec<NativeModule>, HashMap<String, u64>) {
 }
 
 #[test]
+fn string_map_lookups_use_the_admitted_option_identity() {
+    let (modules, exports) = lower_source(
+        r#"
+module string_map_options.
+import std.collections.Map.
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+pub get(): Bool ->
+    let values = Map.from_entries([{"status", "ok"}]);
+    values.get("status") == Some("ok")
+        and (case values.get("missing") { None -> true; Some(_value) -> false }).
+pub take(): Bool ->
+    case Map.from_entries([{"status", "ok"}]).take("status") {
+        {Some(value), remaining} -> value == "ok" and remaining.is_empty();
+        {None, _remaining} -> false
+    }.
+"#,
+    );
+    let object = emit_native_application_object("string-map-options", &modules).unwrap();
+    let invocations = ["get", "take"].map(|name| NativeObjectInvocation {
+        export_id: exports[name],
+        arguments: vec![],
+        expected_status: status::OK,
+        expected_result: Some(1),
+    });
+    assert_managed_native_object_invocations("string-map-options", &modules, &object, &invocations);
+}
+
+#[test]
+fn returned_entry_lists_execute_as_map_inputs() {
+    let (modules, exports) = lower_source(
+        r#"
+module returned_map_entries.
+import std.collections.{List, Map}.
+entries(count: Int): List[{String, Int}] ->
+    if { count <= 0 -> []; true -> [{"key", count} | entries(count - 1)] }.
+from_parameter(values: List[{String, Int}]): Map[String, Int] -> Map.from_entries(values).
+pub check(): Bool ->
+    Map.from_entries(entries(3)).size() == 1
+    and from_parameter([{"other", 7}]).size() == 1.
+"#,
+    );
+    let object = emit_native_application_object("returned-map-entries", &modules).expect("object");
+    assert_managed_native_object_invocations(
+        "returned-map-entries",
+        &modules,
+        &object,
+        &[NativeObjectInvocation {
+            export_id: exports["check"],
+            arguments: vec![],
+            expected_status: status::OK,
+            expected_result: Some(1),
+        }],
+    );
+}
+
+#[test]
 fn map_portable_contracts_execute_through_linked_native_object() {
     let (modules, exports) = native_map_module();
     let object = emit_native_application_object("map_suite_native", &modules).expect("object");

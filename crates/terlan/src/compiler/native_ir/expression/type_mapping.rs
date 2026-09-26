@@ -7,6 +7,13 @@ use super::{scalar_types, NativeType};
 
 pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeType> {
     match core {
+        // Compiler-owned existential carrier, not a source-level Dynamic cast.
+        // '$' cannot begin a user type name.
+        Some(CoreType::Named(name)) if name == super::super::effect_values::ERASED_VALUE_TYPE => {
+            crate::runtime::native_image::managed::managed_erased_value_semantic_id()
+                .ok()
+                .map(NativeType::ManagedRef)
+        }
         Some(CoreType::Named(name)) if name == "Unit" => Some(NativeType::Unit),
         Some(CoreType::AtomLiteral(name)) if matches!(name.as_str(), "Unit" | "unit") => {
             Some(NativeType::Unit)
@@ -44,6 +51,10 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
             managed_reference_type(&CoreType::Named("MiddlewareResult".to_string()))
         }
         Some(CoreType::Binary) => Some(NativeType::BinaryRef),
+        // Never has no value constructor or aggregate layout. Its reference
+        // carrier lets empty collections retain a distinct checked schema;
+        // it does not turn an uninhabited element into an ordinary Unit value.
+        Some(core @ CoreType::Never) => managed_reference_type(core),
         Some(CoreType::Arrow {
             params,
             return_type,
@@ -218,6 +229,9 @@ fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
 /// wrong heap semantic identity.
 pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType) -> String {
     match core {
+        // Concrete generic declarations retained by struct_instances already
+        // carry their complete application contract as the internal name.
+        CoreType::Struct { name, .. } if name.starts_with("Apply(") => name.clone(),
         CoreType::Struct { name, .. } => CoreType::Named(name.clone()).contract_text(),
         CoreType::Named(name) if is_http_request_type(name) => "Named(Request)".to_string(),
         CoreType::Named(name) if is_http_response_type(name) => "Named(Response)".to_string(),
@@ -305,11 +319,7 @@ pub(crate) fn literal_collection_type(expr: &CoreExpr) -> Option<CoreType> {
     let CoreExpr::List(items) = expr else {
         return None;
     };
-    let mut item_types = items.iter().map(literal_value_type);
-    let element = item_types.next()??;
-    item_types
-        .all(|item| item.as_ref() == Some(&element))
-        .then_some(CoreType::List(Box::new(element)))
+    super::collection_literal_types::homogeneous_list_type(items, literal_value_type)
 }
 
 /// Recovers a checked homogeneous list type when at least one item has a

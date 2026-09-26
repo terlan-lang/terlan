@@ -1,0 +1,109 @@
+/**
+ * Freezes a prior output as a candidate-local comparison input under the
+ * preparation lock. A newly published output never rewrites this baseline.
+ */
+module release_promotion.OwnerHistory.
+
+import release_promotion.{OwnerArtifacts, OwnerStorage}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.File.{NotFound}.
+import std.io.{Directory, File}.
+
+import type std.core.Result.
+
+prior(root: String, path: String): Result[String, String] ->
+    case File.size(OwnerStorage.child(root, path)) {
+        Err(reason) ->
+            if {
+                File.code(reason) == NotFound -> Ok("");
+                true -> Err("cannot inspect prior output")
+            };
+        Ok(size) ->
+            let {
+                true <- size > 0 and size <= 1048576;
+                Ok(source) <- File.read_text(OwnerStorage.child(root, path));
+                true <- source.byte_size() <= 1048576 and String.trim(source) != ""
+            } else {
+                _ -> Err("prior output is empty, unreadable or oversized")
+            };
+            Ok(source)
+    }.
+
+valid(root: String, path: String, candidate: String, owner: String, source_path: String): Bool ->
+    let {
+        Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, path));
+        Some("terlan.preparation-output-history.v1") <- OwnerStorage.text(document, "schema");
+        Ok(body) <- document.get("body");
+        Some(expected) <- OwnerStorage.text(document, "body_sha256");
+        Ok(actual) <- OwnerStorage.digest(body);
+        true <- actual == expected;
+        Some(saved_candidate) <- OwnerStorage.text(body, "candidate");
+        Some(saved_owner) <- OwnerStorage.text(body, "owner");
+        Some(saved_path) <- OwnerStorage.text(body, "source_path");
+        Some(source) <- OwnerStorage.text(body, "prior")
+    } else {
+        _ -> false
+    };
+    saved_candidate == candidate
+        and saved_owner == owner
+        and saved_path == source_path
+        and source.byte_size() <= 1048576.
+
+create(root: String, path: String, candidate: String, owner: String, source_path: String): Bool ->
+    let Ok(source) <- prior(root, source_path) else {
+        _ -> false
+    };
+    (let body =
+    Json.object()
+        .put("candidate", Json.string(candidate))
+        .put("owner", Json.string(owner))
+        .put("source_path", Json.string(source_path))
+        .put("prior", Json.string(source));
+(let Ok(digest) <- OwnerStorage.digest(body) else {
+    _ -> false
+};
+OwnerStorage.atomic_json(
+    root,
+    path,
+    Json.object()
+        .put("schema", Json.string("terlan.preparation-output-history.v1"))
+        .put("body", body)
+        .put("body_sha256", Json.string(digest)),
+))).
+
+/**
+ * Existing corrupt history is an error, never authorization to select a new
+ * baseline. Missing history is initialized once, before its producer runs.
+ */
+pub capture(
+    root: String,
+    candidate: String,
+    owner: String,
+    source_path: String,
+): Result[String, String] ->
+    let true <-
+        OwnerStorage.safe_name(candidate)
+            and candidate != "."
+            and candidate != ".."
+            and OwnerStorage.safe_name(owner)
+            and OwnerArtifacts.valid([OwnerArtifacts.declare_artifact(source_path, "HISTORY_INPUT", "history")], []) else {
+        _ -> Err("invalid history owner identity")
+    };
+    (let directory = String.concat(["target/quality/preparation/", candidate, "/history"]);
+let path = String.concat([directory, "/", owner, ".json"]);
+(let Ok(_created) <- Directory.create_all(OwnerStorage.child(root, directory)) else {
+    _ -> Err("cannot reserve prior-output history")
+};
+(let ready =
+    case File.size(OwnerStorage.child(root, path)) {
+        Ok(_size) -> valid(root, path, candidate, owner, source_path);
+        Err(reason) ->
+            File.code(reason) == NotFound and create(root, path, candidate, owner, source_path)
+    };
+if {
+    ready and OwnerStorage.discard_pending(root, path) -> Ok(path);
+    true -> Err("prior-output history is invalid or unavailable; evidence preserved")
+}))).

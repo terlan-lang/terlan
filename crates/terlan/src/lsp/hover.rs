@@ -8,7 +8,7 @@ use crate::terlan_syntax::{
     SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxModuleOutput, SyntaxParamOutput,
     SyntaxTraitMethodOutput,
 };
-use tower_lsp::lsp_types::{Hover, HoverContents, MarkupContent, MarkupKind, Position, Url};
+use tower_lsp_server::ls_types::{Hover, HoverContents, MarkupContent, MarkupKind, Position, Uri};
 
 use crate::terlan_lsp::document::{OpenDocument, OpenDocuments};
 use crate::terlan_lsp::Backend;
@@ -29,7 +29,7 @@ use crate::terlan_lsp::Backend;
 ///   then searches local syntax docs before falling back to visible
 ///   `.typi`/`.terli` module interfaces packaged with the compiler/stdlib.
 pub(crate) fn hover_for_position(
-    uri: &Url,
+    uri: &Uri,
     document: &OpenDocument,
     position: Position,
 ) -> Option<Hover> {

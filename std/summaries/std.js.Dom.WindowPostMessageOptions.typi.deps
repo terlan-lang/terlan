@@ -1,8 +1,8 @@
 module=std.js.Dom.WindowPostMessageOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5420341794651107111
-interface_hash=1814524011448275265
-interface_doc_hash=1814524011448275265
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10760603882599834606
+interface_hash=12124814817594761702
+interface_doc_hash=12124814817594761702
 deps=0

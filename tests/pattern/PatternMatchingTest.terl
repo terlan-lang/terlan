@@ -1,12 +1,14 @@
 module tests.pattern.PatternMatchingTest.
 
-import std.binary.Binary.{compact_frame_shape, decode_fixed_header, decoded_field, decoded_protocol, decoded_protocol_remaining_bytes, decoded_protocol_value, protocol_shape_alias, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, tcp_header_shape}.
+import std.binary.Binary.{compact_frame_shape, decode_fixed_header, decoded_int_field, decoded_protocol, decoded_protocol_int_value, decoded_protocol_remaining_bytes, protocol_shape_alias, protocol_shape_set, protocol_shape_set_decode, protocol_shape_set_encode_exact, protocol_shape_set_resolve, tcp_header_shape}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.
+
+import type std.core.Option.{Some}.
 
 pub type Ready.
 
@@ -15,7 +17,7 @@ pub type Done.
 pub type Status = Ready | Done.
 
 pub constructor Ship {
-    (id: Int, size: Int): Dynamic ->
+    (id: Int, size: Int): {Atom["ship"], Int, Int} ->
         {Atom["ship"], id, size}
 }.
 
@@ -35,7 +37,7 @@ pub constant_value(_ignored: Int): Int -> 7.
 pub is_success_status(status: Int): Bool ->
     status >= 200 and status <= 299.
 
-pub classify_guarded(_Arg1: Dynamic): Dynamic.
+pub classify_guarded(_Arg1: Int): String.
 classify_guarded(value) where value < 0 ->
     "negative";
 classify_guarded(0) ->
@@ -255,7 +257,12 @@ pub binary_protocol_shape_helpers_resolve_and_split_tcp_header(): Bool ->
 
 @test
 pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
-    let fields = List(decoded_field("version", 1), decoded_field("kind", 2), decoded_field("length", 2));
+    let fields =
+        List(
+            decoded_int_field("version", 1),
+            decoded_int_field("kind", 2),
+            decoded_int_field("length", 2),
+        );
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
     let {
@@ -264,9 +271,9 @@ pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
         Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);
         {Some(1), Some(2), Some(2)} <-
             {
-                decoded_protocol_value(roundtrip, "version"),
-                decoded_protocol_value(roundtrip, "kind"),
-                decoded_protocol_value(roundtrip, "length"),
+                decoded_protocol_int_value(roundtrip, "version"),
+                decoded_protocol_int_value(roundtrip, "kind"),
+                decoded_protocol_int_value(roundtrip, "length"),
             }
     } else {
         _ -> false
@@ -333,31 +340,33 @@ pub function_head_where_guard_orders_clauses(): Bool ->
 pub typed_function_head_where_guard_uses_signature(): Bool ->
     assert_equal("negative", classify_typed_guarded(-1)).
 
-pub clause_add_pair_from_function_head(_Arg1: Dynamic): Int.
+pub clause_add_pair_from_function_head[T](_Arg1: T): Int.
 clause_add_pair_from_function_head({left, right}) ->
     left + right;
 clause_add_pair_from_function_head(_) ->
     0.
 
-pub add_pair_from_function_head({left, right}: Dynamic): Int ->
+pub add_pair_from_function_head[T]({left, right}: T): Int ->
     left + right.
 
 pub add_typed_pair_from_function_head({left, right}: {Int, Int}): Int ->
     left + right.
 
-pub first_from_function_head([head, _tail]: Dynamic): Int ->
+pub first_from_function_head[T]([head, _tail]: List[T]): T ->
     head.
 
-pub option_value_from_function_head(Some(value): Dynamic): Dynamic ->
+pub option_value_from_function_head[T](Some(value): Some[T]): T ->
     value.
 
-pub status_from_function_head({status: code, body: _body}: Dynamic): Int ->
+pub status_from_function_head({status: code, body: _body}: {status: Int, body: String}): Int ->
     code.
 
-pub response_status_from_function_head(ResponseShape {status: code, body: _body}: Dynamic): Int ->
+pub response_status_from_function_head(
+    ResponseShape {status: code, body: _body}: ResponseShape,
+): Int ->
     code.
 
-pub wildcard_from_function_head(_: Dynamic): Int -> 42.
+pub wildcard_from_function_head[T](_: T): Int -> 42.
 
 @test
 pub function_head_tuple_pattern_binds_expression_body_argument(): Bool ->

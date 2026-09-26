@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasGradient
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15716365430060204527
-interface_hash=5642733075155470820
-interface_doc_hash=5642733075155470820
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3822785255257891846
+interface_hash=18179011239642856434
+interface_doc_hash=18179011239642856434
 deps=0

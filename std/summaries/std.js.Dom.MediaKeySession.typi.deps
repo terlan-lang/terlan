@@ -1,8 +1,8 @@
 module=std.js.Dom.MediaKeySession
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9819448099140880639
-interface_hash=6420566225542253304
-interface_doc_hash=6420566225542253304
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=5668707384810571624
+interface_hash=1110015970824664662
+interface_doc_hash=1110015970824664662
 deps=0

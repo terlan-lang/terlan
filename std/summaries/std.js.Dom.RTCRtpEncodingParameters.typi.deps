@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCRtpEncodingParameters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12606942364111455350
-interface_hash=18400668777211672251
-interface_doc_hash=18400668777211672251
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16524056332917127144
+interface_hash=10120381411798130560
+interface_doc_hash=10120381411798130560
 deps=0

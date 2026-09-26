@@ -2,6 +2,7 @@
 
 use std::collections::HashSet;
 
+use super::type_support::type_excludes_pattern;
 use crate::terlan_typeck::CoreExpr;
 
 use super::{
@@ -130,6 +131,9 @@ pub(crate) fn lower_suspending_case(
     let mut continuations = Vec::new();
     let mut native_clauses = Vec::with_capacity(clauses.len());
     for clause in clauses {
+        if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
+            continue;
+        }
         let plan = pattern_plan(
             &clause.pattern,
             scrutinee_value.clone(),

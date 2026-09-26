@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCIceTransport
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2234802210077060212
-interface_hash=5327861873192216608
-interface_doc_hash=5327861873192216608
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11547607561970784687
+interface_hash=2481038172700805933
+interface_doc_hash=2481038172700805933
 deps=0

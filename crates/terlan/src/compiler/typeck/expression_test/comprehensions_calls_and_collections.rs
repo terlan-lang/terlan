@@ -960,3 +960,19 @@ pub map_values(): Map[String, Int] ->\n\
         diagnostics
     );
 }
+
+/// Native JSON key lists must compose with the portable list intrinsics.
+#[test]
+fn syntax_output_json_keys_compose_with_portable_list_length() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "module collections.JsonKeys.\n\
+import std.collections.List.\n\
+import std.data.Json.\n\
+import std.core.Result.{Err, Ok}.\n\
+pub count(): Int ->\n\
+    let Ok(keys) <- Json.object().keys() else { _ -> -1 };\n\
+    List.length(keys).\n",
+        "std/data/Json.terl",
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

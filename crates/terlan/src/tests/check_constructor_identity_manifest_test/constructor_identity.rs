@@ -765,7 +765,7 @@ pub(super) fn run_check_single_file_accepts_declared_constructor_pattern_in_core
         manifest_json["core_proof_coverage"]["checked_preservation_expr_no_runtime_bindings"]
             .as_u64()
             .expect("no-runtime-bindings expression count"),
-        2
+        5
     );
     assert_eq!(
         manifest_json["core_proof_coverage"]["checked_preservation_expr_runtime_bindings_required"]
@@ -784,7 +784,7 @@ pub(super) fn run_check_single_file_accepts_declared_constructor_pattern_in_core
             ["checked_preservation_pattern_runtime_bindings_required"]
             .as_u64()
             .expect("runtime-bindings-required pattern count"),
-        1
+        2
     );
 }
 

@@ -1,8 +1,8 @@
 module=std.js.Dom.ClientRect
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1582390464687512365
-interface_hash=4107454683175164799
-interface_doc_hash=4107454683175164799
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6984962930806665697
+interface_hash=12977143748432889647
+interface_doc_hash=12977143748432889647
 deps=0

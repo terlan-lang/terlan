@@ -6,6 +6,17 @@ use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern};
 
 use super::{condition_yield_region_at_depth, expr_is_scalar, YieldRegion};
 
+/// Tail-call fast paths may lower arguments directly only when evaluating them
+/// cannot suspend. Otherwise their eager evaluation needs continuation lowering.
+pub(super) fn arguments_are_non_suspending(
+    args: &[CoreExpr],
+    suspending: &HashSet<(String, usize)>,
+) -> bool {
+    args.iter().all(|argument| {
+        !expr_calls_suspending(argument, suspending) && !super::contains_process_yield(argument)
+    })
+}
+
 /// Extracts the first suspending argument while preserving eager prefix order.
 pub(super) fn eager_argument_yield(
     args: &[CoreExpr],
@@ -21,6 +32,11 @@ pub(super) fn eager_argument_yield(
         let mut resumed = args.to_vec();
         let mut prefix = Vec::with_capacity(yield_index + region.prefix.len());
         for (index, earlier) in args[..yield_index].iter().enumerate() {
+            // In particular, preserve tagged-tuple discriminants across a
+            // direct runtime transition; a literal needs no capture slot.
+            if matches!(earlier, CoreExpr::Atom(_)) {
+                continue;
+            }
             let name = format!("$native_eager_arg_{depth}_{index}");
             prefix.push(CoreLetBinding {
                 pattern: CorePattern::Var(name.clone()),
@@ -38,7 +54,7 @@ pub(super) fn eager_argument_yield(
 
 pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             identities
                 .iter()
                 .any(|(name, arity)| *name == function && *arity == args.len())
@@ -158,7 +174,7 @@ pub(super) fn expr_calls_suspending(
     suspending: &HashSet<(String, usize)>,
 ) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             suspending.contains(&(function.clone(), args.len()))
                 || args
                     .iter()

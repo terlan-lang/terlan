@@ -1,8 +1,8 @@
 module=std.js.Dom.SubmitEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6995999336592322715
-interface_hash=563932485111429436
-interface_doc_hash=563932485111429436
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4916842783813872494
+interface_hash=7469206785583076457
+interface_doc_hash=7469206785583076457
 deps=0

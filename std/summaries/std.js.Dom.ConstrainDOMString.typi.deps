@@ -1,8 +1,8 @@
 module=std.js.Dom.ConstrainDOMString
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11852938804400651614
-interface_hash=961103548376221445
-interface_doc_hash=961103548376221445
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17933250019891095606
+interface_hash=4177621644057941246
+interface_doc_hash=4177621644057941246
 deps=0

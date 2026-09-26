@@ -1,8 +1,8 @@
 module=std.js.Dom.PannerOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15696541950489486815
-interface_hash=1667416820586334118
-interface_doc_hash=1667416820586334118
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=989711371250252255
+interface_hash=1290838566613361145
+interface_doc_hash=1290838566613361145
 deps=0

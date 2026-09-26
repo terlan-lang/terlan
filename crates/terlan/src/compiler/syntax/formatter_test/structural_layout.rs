@@ -1,6 +1,21 @@
 use super::super::format_source_module;
 use crate::terlan_syntax::parse_module;
 
+#[test]
+fn formatter_preserves_typed_lambda_contracts_and_imports() {
+    for source in [
+        "module lambda_fmt. identity(value: Int): Int -> value. pub callback(): (Int) -> Int -> ((value: Int) -> identity(value)).",
+        "module lambda_fmt_import. import provider.{Event}. pub callback(): Term -> ((event: Event) -> event).",
+    ] {
+        let formatted = format_source_module(source).expect("format typed lambda");
+        assert!(formatted.contains(": Int) -> identity(value)") || formatted.contains(": Event) -> event"), "{formatted}");
+        if source.contains("import provider") {
+            assert!(formatted.contains("import provider"), "annotation-only import was removed: {formatted}");
+        }
+        assert_eq!(format_source_module(&formatted).unwrap(), formatted);
+    }
+}
+
 /// Verifies generic type aliases share canonical implication spacing.
 #[test]
 pub(super) fn formatter_preserves_structural_generic_type_alias_implication() {

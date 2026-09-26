@@ -35,6 +35,7 @@ fn substitute_expr_types(
             call.return_type = substitute(&call.return_type, parameters, values);
             match &mut call.id {
                 CoreIntrinsicId::MemoryLayoutOf(ty)
+                | CoreIntrinsicId::ErasedValueIs(ty)
                 | CoreIntrinsicId::MemoryShallowSize(ty)
                 | CoreIntrinsicId::MemoryRetainedSize(ty)
                 | CoreIntrinsicId::VmProcessSendMessage(ty)
@@ -55,7 +56,9 @@ fn substitute_expr_types(
                         *ty = substitute(ty, parameters, values);
                     }
                 }
-                CoreIntrinsicId::Primitive(_) | CoreIntrinsicId::Runtime(_) => {}
+                CoreIntrinsicId::Primitive(_)
+                | CoreIntrinsicId::Runtime(_)
+                | CoreIntrinsicId::VmEffectFail => {}
             }
             substitute_many(&mut call.args, parameters, values);
         }
@@ -63,9 +66,20 @@ fn substitute_expr_types(
             *target_type = substitute(target_type, parameters, values);
             substitute_expr_types(expr, parameters, values);
         }
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Call { args, .. } => substitute_many(args, parameters, values),
+        CoreExpr::RemoteCall {
+            type_args, args, ..
+        }
+        | CoreExpr::Call {
+            type_args, args, ..
+        }
+        | CoreExpr::ConstructorCall {
+            type_args, args, ..
+        } => {
+            for ty in type_args {
+                *ty = substitute(ty, parameters, values);
+            }
+            substitute_many(args, parameters, values);
+        }
         CoreExpr::MutableReceiverCall { receiver, args, .. }
         | CoreExpr::FunctionCall {
             callee: receiver,
@@ -108,8 +122,19 @@ fn substitute_expr_types(
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
-        | CoreExpr::UnaryOp { operand: base, .. }
-        | CoreExpr::Lam { body: base, .. } => substitute_expr_types(base, parameters, values),
+        | CoreExpr::UnaryOp { operand: base, .. } => {
+            substitute_expr_types(base, parameters, values)
+        }
+        CoreExpr::Lam {
+            parameter_types,
+            body,
+            ..
+        } => {
+            for ty in parameter_types.iter_mut().flatten() {
+                *ty = substitute(ty, parameters, values);
+            }
+            substitute_expr_types(body, parameters, values);
+        }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
                 substitute_expr_types(&mut binding.value, parameters, values);
@@ -164,7 +189,15 @@ fn substitute_expr_types(
         CoreExpr::SqlQuery {
             parameters: query, ..
         } => substitute_many(query, parameters, values),
-        CoreExpr::ConstructorChain { args, record, .. } => {
+        CoreExpr::ConstructorChain {
+            type_args,
+            args,
+            record,
+            ..
+        } => {
+            for ty in type_args {
+                *ty = substitute(ty, parameters, values);
+            }
             substitute_many(args, parameters, values);
             substitute_expr_types(record, parameters, values);
         }

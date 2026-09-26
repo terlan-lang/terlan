@@ -185,7 +185,8 @@ pub(crate) const fn contract_baselines() -> &'static [ContractBaseline] {
             module_name: "phase_constructor_resolution",
             required_snippets: &[
                 "body=Call:core=ConstructorCall(Ok;identity=Ok;Int(1)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=ConstructorCall(Ok;identity=Ok;Int(1))):proof=lean-covered",
-                "metadata=functions:1 types:0 constructors:1 proof_readiness:lean-covered",
+                "function=$constructor_Ok_0/1 public=false params=Value:Int:core=Int return=Dynamic return_core=Dynamic",
+                "metadata=functions:2 types:0 constructors:1 proof_readiness:lean-covered",
                 "resolved_constructor_call_identity:1 resolved_constructor_chain_identity:0 resolved_constructor_pattern_identity:0",
             ],
         },
@@ -193,8 +194,9 @@ pub(crate) const fn contract_baselines() -> &'static [ContractBaseline] {
             module_name: "phase_constructor_pattern_resolution",
             required_snippets: &[
                 "body=Case:core=Case(Var(input);Constructor(Some;identity=Some;Var(value))=>Var(value)):preservation=structural-core-expr(freshness=runtime-bindings-required;target=Case(Var(input);Constructor(Some;identity=Some;Var(value))=>Var(value))):proof=lean-covered",
-                "metadata=functions:1 types:0 constructors:1 proof_readiness:lean-covered",
-                "checked_preservation_expr_no_runtime_bindings:2 checked_preservation_pattern_no_runtime_bindings:0 checked_preservation_expr_runtime_bindings_required:1 checked_preservation_pattern_runtime_bindings_required:1",
+                "function=$constructor_Some_0/1 public=false params=value:Dynamic:core=Dynamic return=Dynamic return_core=Dynamic",
+                "metadata=functions:2 types:0 constructors:1 proof_readiness:lean-covered",
+                "checked_preservation_expr_no_runtime_bindings:5 checked_preservation_pattern_no_runtime_bindings:0 checked_preservation_expr_runtime_bindings_required:1 checked_preservation_pattern_runtime_bindings_required:2",
                 "resolved_constructor_call_identity:0 resolved_constructor_chain_identity:0 resolved_constructor_pattern_identity:1",
             ],
         },
@@ -259,7 +261,7 @@ pub(crate) const fn next_lean_model_candidate_baselines() -> &'static [ContractB
     &[ContractBaseline {
         module_name: "phase_trait",
         required_snippets: &[
-            "body=Call:core=RemoteCall(Eq:equal;Var(Left),Var(Right)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=RemoteCall(Eq:equal;Var(Left),Var(Right))):proof=proof-model-required:remote=Eq",
+            "body=Call:core=Call(phase_trait.Eq.equal;Var(Left),Var(Right)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Call(phase_trait.Eq.equal;Var(Left),Var(Right))):proof=proof-model-required",
             "children=[Atom:core=Atom(equal):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Atom(equal)):proof=lean-covered:text=equal:arity=0;Var:core=Var(Left):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(Left)):proof=lean-covered:text=Left:arity=0;Var:core=Var(Right):preservation=structural-core-expr(freshness=no-runtime-bindings;target=Var(Right)):proof=lean-covered:text=Right:arity=0]",
             "metadata=functions:1 types:0 constructors:0 proof_readiness:proof-model-required",
             "typed_core_expr:4 summary_only_expr:0 typed_core_pattern:2 summary_only_pattern:0 typed_core_type:3 summary_only_type:0",

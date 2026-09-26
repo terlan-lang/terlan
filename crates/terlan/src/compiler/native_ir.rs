@@ -21,6 +21,10 @@ mod application_admission;
 #[cfg(test)]
 mod application_admission_test;
 mod application_calls;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod callable_descriptors;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use callable_descriptors::native_callable_descriptors;
 mod atom_alias_values;
 mod atom_inventory;
 #[cfg(test)]
@@ -81,6 +85,12 @@ mod constructor_chain;
 mod constructor_lowering_test;
 mod constructors;
 mod continuation_sharing;
+mod recursive_suspension;
+#[cfg(all(test, unix))]
+mod recursive_suspension_test;
+#[cfg(test)]
+#[path = "native_ir/source_constructor_test.rs"]
+mod source_constructor_test;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use continuation_sharing::is_materialized_continuation_module;
 #[cfg(test)]
@@ -132,6 +142,10 @@ mod generic_specialization;
 #[path = "native_ir/generic_specialization_test.rs"]
 #[cfg(test)]
 mod generic_specialization_test;
+
+#[cfg(test)]
+#[path = "native_ir/explicit_generic_test.rs"]
+mod explicit_generic_test;
 #[cfg(test)]
 #[path = "native_ir/guard_no_opt_suite_native_parity_test.rs"]
 #[cfg(test)]
@@ -209,6 +223,9 @@ use lowering_test_support::lower_native_function;
 #[path = "native_ir/capability_transition_test.rs"]
 #[cfg(test)]
 mod capability_transition_test;
+mod effect_execution;
+mod effect_values;
+mod empty_list_values;
 mod model;
 #[cfg(test)]
 #[path = "native_ir/model_test.rs"]
@@ -271,6 +288,7 @@ mod tail_position_source_test;
 #[path = "native_ir/tail_position_test.rs"]
 #[cfg(test)]
 mod tail_position_test;
+mod task_values;
 mod template_values;
 #[cfg(test)]
 #[path = "native_ir/template_values_test.rs"]

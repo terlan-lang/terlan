@@ -345,7 +345,7 @@ pub(super) fn expand_imported_aliases_except_named(
             if imported_names.contains_key(name)
                 && imported_aliases
                     .get(name)
-                    .map_or(true, |alias| alias.is_opaque) =>
+                    .is_none_or(|alias| alias.is_opaque) =>
         {
             let args = args
                 .iter()

@@ -21,6 +21,7 @@ pub(super) struct IndirectRuntimeValues {
     pub(super) allocator: Value,
     pub(super) resolver: Value,
     pub(super) lookup: Value,
+    pub(super) callable_recorder: Value,
 }
 
 /// Statically known closure-call shape plus its emitted operands.
@@ -105,6 +106,7 @@ fn emit_invoke_closure_raw(
         allocator,
         resolver,
         lookup,
+        callable_recorder,
     } = runtime;
     let IndirectInvocation {
         closure,
@@ -232,6 +234,7 @@ fn emit_invoke_closure_raw(
             allocator,
             resolver,
             lookup,
+            callable_recorder,
             target,
             invocation_pointer,
             invocation_len,

@@ -1,13 +1,83 @@
 use super::*;
 
+#[path = "empty_mutation.rs"]
+mod empty_mutation;
+
+/// Pushes a retained aggregate witness into its fields before projections can
+/// remove the aggregate. Empty payloads must keep their checked element types.
+pub(super) fn specialize_cast_contents(
+    expr: &mut Box<CoreExpr>,
+    target_type: &CoreType,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    specialize_expected_collection_new(expr, target_type, functions, module);
+    while matches!(expr.as_ref(), CoreExpr::Cast { target_type: inner, .. } if inner == target_type)
+    {
+        let CoreExpr::Cast { expr: inner, .. } =
+            std::mem::replace(expr.as_mut(), CoreExpr::Atom("Unit".to_string()))
+        else {
+            unreachable!("matched cast")
+        };
+        *expr = inner;
+    }
+    if let CoreExpr::List(items) = expr.as_mut() {
+        // The enclosing annotation already owns this list's schema.
+        specialize_elements(items, variables, functions, module);
+    } else if let CoreExpr::RecordConstruct { fields, .. } = expr.as_mut() {
+        for field in fields {
+            specialize_expr(&mut field.value, variables, functions, module);
+        }
+    } else {
+        specialize_expr(expr, variables, functions, module);
+    }
+}
+
+/// Only resolved parameter types may replace an argument's checked witness.
+/// Generic parameters are contextualized by the monomorphizer after unification;
+/// copying their declaration here would erase explicit types such as List[Binary].
+pub(super) fn specialize_parameter_arguments(
+    args: &mut [CoreExpr],
+    signature: &FunctionSignature,
+    functions: &FunctionTypes,
+    module: &str,
+) {
+    for (argument, expected) in args.iter_mut().zip(&signature.params) {
+        if super::super::generic_specialization::contains_generic_parameter(
+            expected,
+            &signature.generic_params,
+        ) {
+            continue;
+        }
+        specialize_expected_collection_new(argument, expected, functions, module);
+        annotate_expected_structural_constructors(argument, expected);
+    }
+}
+
 pub(super) fn specialize_expected_collection_new(
     expr: &mut CoreExpr,
     expected: &CoreType,
     functions: &FunctionTypes,
     module: &str,
 ) {
-    let expected = nominal_type(functions, module, expected).unwrap_or(expected);
+    let resolved = nominal_type(functions, module, expected);
+    let expected = resolved.as_deref().unwrap_or(expected);
     match expr {
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::TaskDone)
+            ) =>
+        {
+            if let (Some(payload), [argument]) = (
+                super::super::task_values::element(expected),
+                call.args.as_mut_slice(),
+            ) {
+                specialize_expected_collection_new(argument, payload, functions, module);
+                annotate_expected_structural_constructors(argument, payload);
+            }
+        }
         CoreExpr::Binary(_) if matches!(expected, CoreType::Binary | CoreType::String) => {
             let literal = std::mem::replace(expr, CoreExpr::Binary("\"\"".to_string()));
             *expr = CoreExpr::Cast {
@@ -34,6 +104,7 @@ pub(super) fn specialize_expected_collection_new(
             specialize_expected_collection_new(tail, expected, functions, module);
         }
         CoreExpr::ConstructorCall {
+            type_args: _,
             constructor,
             constructor_identity,
             args,
@@ -44,6 +115,26 @@ pub(super) fn specialize_expected_collection_new(
             for item in args {
                 specialize_expected_collection_new(item, element, functions, module);
                 annotate_expected_structural_constructors(item, element);
+            }
+        }
+        CoreExpr::ConstructorCall {
+            type_args: _,
+            constructor,
+            constructor_identity,
+            args,
+        } if matches!(expected, CoreType::Struct { name, fields }
+            if fields.len() == args.len()
+                && constructor_identity.as_deref().map_or_else(
+                    || constructor == name || format!("{module}.{constructor}") == *name,
+                    |identity| identity == name || format!("{module}.{identity}") == *name)) =>
+        {
+            if let CoreType::Struct { fields, .. } = expected {
+                // Specialize before call composition lifts earlier arguments
+                // into locals across a later suspending constructor argument.
+                for (argument, field) in args.iter_mut().zip(fields) {
+                    specialize_expected_collection_new(argument, &field.ty, functions, module);
+                    annotate_expected_structural_constructors(argument, &field.ty);
+                }
             }
         }
         CoreExpr::Tuple(items) => {
@@ -60,18 +151,29 @@ pub(super) fn specialize_expected_collection_new(
                 };
             }
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => {
             if let Some(signature) = function_signature(functions, module, function, args.len()) {
-                contextualize_call_arguments(args, signature, expected, functions, module);
+                contextualize_call_arguments(
+                    args, type_args, signature, expected, functions, module,
+                );
+                super::super::empty_list_values::coerce(expr, &signature.result, expected);
             }
         }
         CoreExpr::RemoteCall {
             module: owner,
             function,
             args,
+            type_args,
         } => {
             if let Some(signature) = function_signature(functions, owner, function, args.len()) {
-                contextualize_call_arguments(args, signature, expected, functions, module);
+                contextualize_call_arguments(
+                    args, type_args, signature, expected, functions, module,
+                );
+                super::super::empty_list_values::coerce(expr, &signature.result, expected);
             }
         }
         CoreExpr::Intrinsic(call) => match call.id {
@@ -99,11 +201,11 @@ pub(super) fn specialize_expected_collection_new(
                 {
                     specialize_expected_collection_new(
                         &mut field.value,
-                        expected_field,
+                        &expected_field,
                         functions,
                         module,
                     );
-                    annotate_expected_structural_constructors(&mut field.value, expected_field);
+                    annotate_expected_structural_constructors(&mut field.value, &expected_field);
                 }
             }
         }
@@ -114,10 +216,23 @@ pub(super) fn specialize_expected_collection_new(
                     | CoreType::Apply { .. }
                     | CoreType::Tuple(_)
                     | CoreType::Union(_)
-            ) {
+            ) || (matches!(expected, CoreType::String | CoreType::Binary)
+                && contextual_text_literal(expr))
+            {
                 *target_type = expected.clone();
             }
-            specialize_expected_collection_new(expr, expected, functions, module)
+            specialize_expected_collection_new(expr, expected, functions, module);
+            // This pass runs before and after instantiation. Reapplying the
+            // same checked context must not grow a stack of identical casts.
+            while matches!(expr.as_ref(), CoreExpr::Cast { target_type: inner, .. } if inner == target_type)
+            {
+                let CoreExpr::Cast { expr: inner, .. } =
+                    std::mem::replace(expr.as_mut(), CoreExpr::Atom("Unit".to_string()))
+                else {
+                    unreachable!("matched cast")
+                };
+                *expr = inner;
+            }
         }
         CoreExpr::Let { body, .. } => {
             specialize_expected_collection_new(body, expected, functions, module)
@@ -136,16 +251,62 @@ pub(super) fn specialize_expected_collection_new(
     }
 }
 
+/// Text literals can be materialized directly in their checked String/Binary
+/// context. Existing values must retain their representation instead.
+fn contextual_text_literal(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::Binary(_) => true,
+        CoreExpr::Cast {
+            expr,
+            target_type: CoreType::String | CoreType::Binary,
+        } => contextual_text_literal(expr),
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+#[path = "expected_new_test.rs"]
+mod tests;
+
 fn contextualize_call_arguments(
     args: &mut [CoreExpr],
+    type_args: &mut Vec<CoreType>,
     signature: &FunctionSignature,
     expected: &CoreType,
     functions: &FunctionTypes,
     module: &str,
 ) {
     let mut values = HashMap::new();
-    if !match_context_type(&signature.result, expected, &mut values) {
+    if !match_context_type(
+        &signature.result,
+        expected,
+        &signature.generic_params,
+        &mut values,
+    ) {
         return;
+    }
+    // Return-only parameters have no runtime argument witness. Retain their
+    // checked context in declaration order, including symbolic contexts that
+    // are made concrete when an enclosing generic function is instantiated.
+    let return_only = signature.generic_params.iter().any(|parameter| {
+        !signature.params.iter().any(|ty| {
+            super::super::generic_specialization::contains_generic_parameter(
+                ty,
+                std::slice::from_ref(parameter),
+            )
+        })
+    });
+    // Argument-inferable parameters must be solved from their argument values,
+    // not from still-symbolic parameter names in an enclosing callee signature.
+    if type_args.is_empty() && return_only {
+        if let Some(inferred) = signature
+            .generic_params
+            .iter()
+            .map(|name| values.get(name).cloned())
+            .collect::<Option<Vec<_>>>()
+        {
+            *type_args = inferred;
+        }
     }
     for (argument, parameter) in args.iter_mut().zip(&signature.params) {
         let parameter = substitute_context_type(parameter, &values);
@@ -154,7 +315,7 @@ fn contextualize_call_arguments(
     }
 }
 
-fn contextual_tuple_elements<'a>(
+pub(in crate::compiler::native_ir) fn contextual_tuple_elements<'a>(
     items: &[CoreExpr],
     expected: &'a CoreType,
 ) -> Option<Vec<&'a CoreType>> {
@@ -190,10 +351,11 @@ fn tuple_element_type(element: &crate::terlan_typeck::CoreTupleTypeElem) -> &Cor
 fn match_context_type(
     template: &CoreType,
     concrete: &CoreType,
+    generic_params: &[String],
     values: &mut HashMap<String, CoreType>,
 ) -> bool {
     if let CoreType::Named(name) = template {
-        if name.len() == 1 && name.as_bytes()[0].is_ascii_uppercase() {
+        if generic_params.contains(name) {
             return values.get(name).is_none_or(|prior| prior == concrete) && {
                 values.insert(name.clone(), concrete.clone());
                 true
@@ -201,7 +363,13 @@ fn match_context_type(
         }
     }
     match (template, concrete) {
-        (CoreType::List(left), CoreType::List(right)) => match_context_type(left, right, values),
+        (CoreType::List(left), CoreType::List(right)) => {
+            match_context_type(left, right, generic_params, values)
+        }
+        (CoreType::Union(left), CoreType::Union(right)) if left.len() == right.len() => left
+            .iter()
+            .zip(right)
+            .all(|(left, right)| match_context_type(left, right, generic_params, values)),
         (
             CoreType::Apply {
                 constructor: left,
@@ -217,11 +385,16 @@ fn match_context_type(
             left_args
                 .iter()
                 .zip(right_args)
-                .all(|(left, right)| match_context_type(left, right, values))
+                .all(|(left, right)| match_context_type(left, right, generic_params, values))
         }
         (CoreType::Tuple(left), CoreType::Tuple(right)) if left.len() == right.len() => {
             left.iter().zip(right).all(|(left, right)| {
-                match_context_type(tuple_element_type(left), tuple_element_type(right), values)
+                match_context_type(
+                    tuple_element_type(left),
+                    tuple_element_type(right),
+                    generic_params,
+                    values,
+                )
             })
         }
         _ => template == concrete,
@@ -234,6 +407,12 @@ fn substitute_context_type(ty: &CoreType, values: &HashMap<String, CoreType>) ->
         CoreType::List(element) => {
             CoreType::List(Box::new(substitute_context_type(element, values)))
         }
+        CoreType::Union(variants) => CoreType::Union(
+            variants
+                .iter()
+                .map(|ty| substitute_context_type(ty, values))
+                .collect(),
+        ),
         CoreType::Apply { constructor, args } => CoreType::Apply {
             constructor: constructor.clone(),
             args: args
@@ -266,66 +445,97 @@ fn substitute_context_type(ty: &CoreType, values: &HashMap<String, CoreType>) ->
 pub(super) fn specialize_collection_new_bindings(
     bindings: &mut [CoreLetBinding],
     body: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
 ) {
+    let mut variables = variables.clone();
     for index in 0..bindings.len() {
-        let CorePattern::Var(name) = &bindings[index].pattern else {
-            continue;
-        };
-        let name = name.clone();
-        let inferred = bindings[index + 1..]
-            .iter()
-            .find_map(|binding| {
-                expected_call_argument_type(&name, &binding.value, functions, module)
-                    .or_else(|| infer_map_put(&name, &binding.value))
-                    .or_else(|| infer_set_add(&name, &binding.value))
-            })
-            .or_else(|| expected_call_argument_type(&name, body, functions, module))
-            .or_else(|| infer_map_put(&name, body))
-            .or_else(|| infer_set_add(&name, body));
-        let Some(inferred) = inferred else {
-            continue;
-        };
-        specialize_expected_collection_new(
-            &mut bindings[index].value,
-            &inferred,
+        let inferred = empty_mutation::infer_binding_use(
+            &bindings[index],
+            &bindings[index + 1..],
+            body,
+            &variables,
             functions,
             module,
         );
-        annotate_expected_structural_constructors(&mut bindings[index].value, &inferred);
+        let binding = &mut bindings[index];
+        if let Some(inferred) = inferred {
+            specialize_expected_collection_new(&mut binding.value, &inferred, functions, module);
+            annotate_expected_structural_constructors(&mut binding.value, &inferred);
+        }
+        let ty = specialize_expr(&mut binding.value.clone(), &variables, functions, module);
+        for name in
+            super::super::expression::free_variable_analysis::pattern_bound_names(&binding.pattern)
+        {
+            variables.remove(&name);
+        }
+        if let Some(ty) = ty {
+            bind_pattern(&binding.pattern, &ty, &mut variables);
+        }
     }
 }
 
 fn expected_call_argument_type(
     name: &str,
     expr: &CoreExpr,
+    variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
 ) -> Option<CoreType> {
-    let (signature, args) = match expr {
-        CoreExpr::Call { function, args } => (
+    let (signature, args, type_args) = match expr {
+        CoreExpr::Call {
+            function,
+            args,
+            type_args,
+        } => (
             function_signature(functions, module, function, args.len()),
             args,
+            type_args,
         ),
         CoreExpr::RemoteCall {
             module: owner,
             function,
             args,
+            type_args,
         } => (
             functions.get(&(owner.clone(), function.clone(), args.len())),
             args,
+            type_args,
         ),
         CoreExpr::Cast { expr, .. } => {
-            return expected_call_argument_type(name, expr, functions, module);
+            return expected_call_argument_type(name, expr, variables, functions, module);
         }
         _ => return None,
     };
     let signature = signature?;
+    let argument_types = args
+        .iter()
+        .map(|argument| {
+            // The fresh binding has no witness yet. Other arguments and explicit
+            // type arguments determine its instantiated parameter using the same
+            // unifier as call-result inference.
+            if matches!(argument, CoreExpr::Var(argument) if argument == name) {
+                None
+            } else {
+                specialize_expr(&mut argument.clone(), variables, functions, module)
+            }
+        })
+        .collect::<Vec<_>>();
     args.iter()
         .zip(&signature.params)
         .find_map(|(argument, expected)| {
-            matches!(argument, CoreExpr::Var(argument) if argument == name)
-                .then(|| expected.clone())
+            if !matches!(argument, CoreExpr::Var(argument) if argument == name) {
+                return None;
+            }
+            let mut parameter_signature = signature.clone();
+            parameter_signature.result = expected.clone();
+            let expected =
+                instantiated_result_type(&parameter_signature, type_args, &argument_types)?;
+            (!super::super::generic_specialization::contains_generic_parameter(
+                &expected,
+                &signature.generic_params,
+            ))
+            .then_some(expected)
         })
 }

@@ -1,8 +1,8 @@
 module=std.js.Dom.FileSystemGetFileOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5478963041916303891
-interface_hash=3093870009873717544
-interface_doc_hash=3093870009873717544
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15469742702644408921
+interface_hash=16283251672075143540
+interface_doc_hash=16283251672075143540
 deps=0

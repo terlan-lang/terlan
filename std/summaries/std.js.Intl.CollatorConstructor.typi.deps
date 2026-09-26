@@ -1,8 +1,8 @@
 module=std.js.Intl.CollatorConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=7269442058063333479
-interface_hash=12916064789605014518
-interface_doc_hash=12916064789605014518
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=627083682633281488
+interface_hash=4033095553483886979
+interface_doc_hash=4033095553483886979
 deps=0

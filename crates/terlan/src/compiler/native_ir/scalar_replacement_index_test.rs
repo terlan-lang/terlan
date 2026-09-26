@@ -67,10 +67,12 @@ fn direct_constant_index_preserves_all_element_evaluation() {
     let expression = CoreExpr::Index {
         base: Box::new(CoreExpr::Tuple(vec![
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "first".to_owned(),
                 args: Vec::new(),
             },
             CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "second".to_owned(),
                 args: Vec::new(),
             },

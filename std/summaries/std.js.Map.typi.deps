@@ -1,8 +1,8 @@
 module=std.js.Map
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2635151200487923174
-interface_hash=9412345377209006387
-interface_doc_hash=9412345377209006387
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14866836788029973802
+interface_hash=7651409616677355843
+interface_doc_hash=7651409616677355843
 deps=0

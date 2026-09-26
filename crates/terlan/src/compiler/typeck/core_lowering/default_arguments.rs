@@ -6,12 +6,13 @@ use crate::terlan_syntax::{
     SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxModuleOutput,
 };
 
-use super::super::ResolvedModule;
+use super::super::{CoreConstructorDecl, ResolvedModule};
 
 #[derive(Clone)]
 struct DefaultParameter {
     name: String,
     default: Option<SyntaxExprOutput>,
+    variadic: bool,
 }
 
 type SignatureMap = HashMap<(Option<String>, String), Vec<Vec<DefaultParameter>>>;
@@ -25,9 +26,63 @@ type SignatureMap = HashMap<(Option<String>, String), Vec<Vec<DefaultParameter>>
 pub(super) fn materialize_default_call_arguments(
     module: &mut SyntaxModuleOutput,
     resolved: &ResolvedModule,
+    constructors: &[CoreConstructorDecl],
 ) {
-    let signatures = collect_signatures(module, resolved);
+    let mut signatures = collect_signatures(module, resolved);
+    let initializers = signatures.clone();
+    for (provider, interface) in std::iter::once((None, &resolved.interface)).chain(
+        resolved
+            .interface_map
+            .iter()
+            .map(|(name, interface)| (Some(name.clone()), interface)),
+    ) {
+        for (name, declarations) in &interface.constructors {
+            signatures.insert(
+                (provider.clone(), name.clone()),
+                declarations
+                    .iter()
+                    .map(|declaration| {
+                        declaration
+                            .params
+                            .iter()
+                            .map(|param| DefaultParameter {
+                                name: param.name.clone(),
+                                default: param.default.clone(),
+                                variadic: false,
+                            })
+                            .chain(declaration.vararg.iter().map(|param| DefaultParameter {
+                                name: param.name.clone(),
+                                default: None,
+                                variadic: true,
+                            }))
+                            .collect()
+                    })
+                    .collect(),
+            );
+        }
+    }
     for declaration in &mut module.declarations {
+        let active_initializer = match &declaration.payload {
+            SyntaxDeclarationPayload::Function { name, .. } => constructors
+                .iter()
+                .find(|constructor| {
+                    constructor
+                        .implementation
+                        .as_ref()
+                        .is_some_and(|implementation| implementation.function == *name)
+                })
+                .map(|constructor| (None, constructor.name.clone())),
+            _ => None,
+        };
+        let mut scoped = None;
+        if let Some(key) = active_initializer {
+            if let Some(initializer) = initializers.get(&key) {
+                let mut local = signatures.clone();
+                local.insert(key, initializer.clone());
+                scoped = Some(local);
+            }
+        }
+        let signatures = scoped.as_ref().unwrap_or(&signatures);
         let clauses = match &mut declaration.payload {
             SyntaxDeclarationPayload::Function {
                 params, clauses, ..
@@ -37,7 +92,7 @@ pub(super) fn materialize_default_call_arguments(
             } => {
                 for param in params {
                     if let Some(default) = &mut param.default {
-                        materialize_expression(default, &signatures);
+                        materialize_expression(default, signatures);
                     }
                 }
                 clauses
@@ -46,9 +101,9 @@ pub(super) fn materialize_default_call_arguments(
         };
         for clause in clauses {
             if let Some(guard) = &mut clause.guard {
-                materialize_expression(guard, &signatures);
+                materialize_expression(guard, signatures);
             }
-            materialize_expression(&mut clause.body, &signatures);
+            materialize_expression(&mut clause.body, signatures);
         }
     }
 }
@@ -64,6 +119,7 @@ fn collect_signatures(module: &SyntaxModuleOutput, resolved: &ResolvedModule) ->
                     .map(|param| DefaultParameter {
                         name: param.name.clone(),
                         default: param.default.clone(),
+                        variadic: false,
                     })
                     .collect(),
             ),
@@ -74,6 +130,7 @@ fn collect_signatures(module: &SyntaxModuleOutput, resolved: &ResolvedModule) ->
                     .map(|field| DefaultParameter {
                         name: field.name.clone(),
                         default: field.default.clone(),
+                        variadic: false,
                     })
                     .collect(),
             ),
@@ -96,6 +153,7 @@ fn collect_signatures(module: &SyntaxModuleOutput, resolved: &ResolvedModule) ->
                 .map(|param| DefaultParameter {
                     name: param.name.clone(),
                     default: param.default.clone(),
+                    variadic: false,
                 })
                 .collect::<Vec<_>>();
             let entry = signatures
@@ -114,10 +172,11 @@ fn collect_signatures(module: &SyntaxModuleOutput, resolved: &ResolvedModule) ->
 
 fn same_signature(left: &[DefaultParameter], right: &[DefaultParameter]) -> bool {
     left.len() == right.len()
-        && left
-            .iter()
-            .zip(right)
-            .all(|(left, right)| left.name == right.name && left.default == right.default)
+        && left.iter().zip(right).all(|(left, right)| {
+            left.name == right.name
+                && left.default == right.default
+                && left.variadic == right.variadic
+        })
 }
 
 fn materialize_expression(expr: &mut SyntaxExprOutput, signatures: &SignatureMap) {
@@ -180,11 +239,18 @@ fn expand_arguments(
     arg_names: &[Option<String>],
     params: &[DefaultParameter],
 ) -> Option<Vec<SyntaxExprOutput>> {
-    if args.len() > params.len() {
+    let variadic = params.last().is_some_and(|param| param.variadic);
+    let params = if variadic {
+        &params[..params.len() - 1]
+    } else {
+        params
+    };
+    if !variadic && args.len() > params.len() {
         return None;
     }
     let mut slots = vec![None; params.len()];
     let mut positional = 0usize;
+    let mut tail = Vec::new();
     for (index, argument) in args.iter().enumerate() {
         let target = match arg_names.get(index).and_then(Option::as_ref) {
             Some(name) => params.iter().position(|param| &param.name == name)?,
@@ -194,16 +260,22 @@ fn expand_arguments(
                 target
             }
         };
+        if variadic && target >= slots.len() {
+            tail.push(argument.clone());
+            continue;
+        }
         if target >= slots.len() || slots[target].is_some() {
             return None;
         }
         slots[target] = Some(argument.clone());
     }
-    slots
+    let mut arguments = slots
         .into_iter()
         .zip(params)
         .map(|(argument, param)| argument.or_else(|| param.default.clone()))
-        .collect()
+        .collect::<Option<Vec<_>>>()?;
+    arguments.extend(tail);
+    Some(arguments)
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebAssembly.ModuleExportDescriptor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17560249102128469334
-interface_hash=3714207750285172362
-interface_doc_hash=3714207750285172362
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11715203280319067285
+interface_hash=6901854023089763907
+interface_doc_hash=6901854023089763907
 deps=0

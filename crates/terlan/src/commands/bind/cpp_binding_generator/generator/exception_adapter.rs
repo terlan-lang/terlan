@@ -1,5 +1,6 @@
 //! Generated C++ containment for explicitly selected throwing callables.
 
+use crate::commands::bind::cpp_binding_generator::error::CppBindingError;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -39,7 +40,7 @@ pub(super) fn exception_adapter_name(
 pub(super) fn render_exception_adapter_header(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let header = Path::new(&manifest.cpp_metadata.header)
         .file_name()
         .and_then(|name| name.to_str())
@@ -72,7 +73,7 @@ pub(super) fn render_exception_adapter_header(
 pub(super) fn render_exception_adapter_source(
     manifest: &NativeBindingManifest,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let mut source = format!(
         "#include \"include/terlan_exception_adapters.hpp\"\n\n#include <stdexcept>\n#include <utility>\n\nnamespace {} {{\n\n",
         manifest.cpp_metadata.namespace
@@ -211,17 +212,18 @@ fn exception_functions(
 }
 
 /// Selects the exact primitive slot used by one contained success value.
-fn success_values(function: &NativeBindingFunction) -> Result<&'static str, String> {
+fn success_values(function: &NativeBindingFunction) -> Result<&'static str, CppBindingError> {
     match function.returns.as_str() {
         "Float" => Ok("0, result, false"),
         "Bool" => Ok("0, 0.0, result"),
         "Int" | "Result[Int, std.core.Error.Error]" => {
             Ok("static_cast<std::int64_t>(result), 0.0, false")
         }
-        returns => Err(format!(
+        returns => Err((format!(
             "contained callable `{}` has unsupported primitive result `{returns}`",
             function.name
-        )),
+        ))
+        .into()),
     }
 }
 
@@ -232,7 +234,7 @@ fn contained_cpp_parameters(
     function: &NativeBindingFunction,
     callable: &CppSymbol,
     symbols: &BTreeMap<&str, &CppSymbol>,
-) -> Result<String, String> {
+) -> Result<String, CppBindingError> {
     let parameters = cpp_parameters(manifest, function, callable)?;
     if callable.kind != CppSymbolKind::Method {
         return Ok(parameters);
@@ -312,7 +314,10 @@ fn contained_cpp_arguments(
 
 /// Selects one exact overload and renders its call without relying on C++
 /// conversion ranking.
-fn contained_invocation(callable: &CppSymbol, arguments: &str) -> Result<(String, String), String> {
+fn contained_invocation(
+    callable: &CppSymbol,
+    arguments: &str,
+) -> Result<(String, String), CppBindingError> {
     if callable.overload_candidates > 1 {
         return if callable.kind == CppSymbolKind::Method {
             selected_overload_invocation_with_receiver(callable, arguments, "value")
@@ -356,7 +361,7 @@ fn exception_parts<'a>(
     manifest: &'a NativeBindingManifest,
     function: &'a NativeBindingFunction,
     symbols: &'a BTreeMap<&str, &CppSymbol>,
-) -> Result<(&'a CppSymbol, &'a CppExceptionPolicy), String> {
+) -> Result<(&'a CppSymbol, &'a CppExceptionPolicy), CppBindingError> {
     let symbol_id = function
         .cpp_symbol
         .as_deref()

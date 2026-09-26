@@ -1,8 +1,8 @@
 module=std.js.Dom.VideoFrameInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3155773115229401876
-interface_hash=42605799428566542
-interface_doc_hash=42605799428566542
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=11097917590934788167
+interface_hash=2160327602163360321
+interface_doc_hash=2160327602163360321
 deps=0

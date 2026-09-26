@@ -7,7 +7,8 @@ use crate::runtime::native_image::managed::{
     encode_aggregate_layout, ManagedAggregateDescriptor, ManagedFieldType,
 };
 use crate::terlan_typeck::{
-    CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
+    CoreExpr, CoreIntrinsicId, CoreMapTypeField, CorePrimitiveIntrinsic, CoreTupleTypeElem,
+    CoreType,
 };
 
 use super::{
@@ -55,6 +56,30 @@ pub(super) fn memory_layout_descriptor(
             .map_err(|error| format!("error[native_ir.memory_layout]: {error}"))?,
     );
     Ok((descriptor, encoded_layout))
+}
+
+/// Shares anonymous-record layout construction with value lowering.
+pub(super) fn map_record_descriptor(
+    fields: &[CoreMapTypeField],
+) -> super::NativeIrResult<ManagedAggregateDescriptor> {
+    ManagedAggregateDescriptor::record(
+        &CoreType::Map(fields.to_vec()).contract_text(),
+        fields
+            .iter()
+            .map(|field| {
+                native_type(Some(&field.value), &field.value.contract_text())
+                    .ok_or_else(|| {
+                        format!(
+                            "error[native_ir.map_record_layout_type]: unsupported field `{}`",
+                            field.value.contract_text()
+                        )
+                    })
+                    .and_then(managed_field_type)
+                    .map(|ty| (field.key.clone(), ty))
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+    )
+    .map_err(|error| format!("error[native_ir.map_record_layout]: {error}").into())
 }
 
 fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), String> {
@@ -240,24 +265,7 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
             }
         }
         CoreType::Map(fields) => {
-            let descriptor = ManagedAggregateDescriptor::record(
-                &ty.contract_text(),
-                fields
-                    .iter()
-                    .map(|field| {
-                        native_type(Some(&field.value), &field.value.contract_text())
-                            .ok_or_else(|| {
-                                format!(
-                                    "error[native_ir.map_record_layout_type]: unsupported field `{}`",
-                                    field.value.contract_text()
-                                )
-                            })
-                            .and_then(managed_field_type)
-                            .map(|ty| (field.key.clone(), ty))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            )
-            .map_err(|error| format!("error[native_ir.map_record_layout]: {error}"))?;
+            let descriptor = map_record_descriptor(fields)?;
             layouts.insert(
                 encode_aggregate_layout(&descriptor)
                     .map_err(|error| format!("error[native_ir.map_record_layout_abi]: {error}"))?,

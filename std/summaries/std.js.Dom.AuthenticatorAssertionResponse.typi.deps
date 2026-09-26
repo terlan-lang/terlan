@@ -1,8 +1,8 @@
 module=std.js.Dom.AuthenticatorAssertionResponse
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=18209312518271350571
-interface_hash=8603893774864339947
-interface_doc_hash=8603893774864339947
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6893540535076534722
+interface_hash=6950559002559679933
+interface_doc_hash=6950559002559679933
 deps=0

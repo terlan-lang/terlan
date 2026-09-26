@@ -1,8 +1,8 @@
 module=std.js.Dom.MathMLElementTagNameMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17536349223323463426
-interface_hash=445650277455990773
-interface_doc_hash=445650277455990773
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16414184846129333795
+interface_hash=9073088337751594593
+interface_doc_hash=9073088337751594593
 deps=0

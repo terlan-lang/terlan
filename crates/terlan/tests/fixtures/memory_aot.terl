@@ -1,6 +1,7 @@
 module memory_aot.
 
 import std.core.Memory.
+import std.core.Memory.{Inline, Managed, Opaque}.
 
 import type std.core.Memory.{Storage}.
 
@@ -31,11 +32,17 @@ pub int_storage(): Storage ->
 pub string_storage(): Storage ->
     Memory.storage(Memory.layout_of[String]()).
 
+pub dynamic_storage(): Storage ->
+    Memory.storage(Memory.layout_of[Dynamic]()).
+
 pub dynamic_layout_size(): Int ->
     Memory.size(Memory.layout_of[Dynamic]()).
 
 pub memory_contract(): Bool ->
-    Memory.size(Memory.layout_of[Int]()) == 8
+    int_storage() == Inline
+        and string_storage() == Managed
+        and dynamic_storage() == Opaque
+        and Memory.size(Memory.layout_of[Int]()) == 8
         and Memory.alignment(Memory.layout_of[Int]()) == 8
         and Memory.alignment(Memory.layout_of[Bool]()) == 1
         and Memory.size(Memory.layout_of[String]()) == 8

@@ -1,8 +1,8 @@
 module=std.js.Dom.WebAssembly.GlobalDescriptor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17329387080178685875
-interface_hash=13345723139009342476
-interface_doc_hash=13345723139009342476
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8576213913469307676
+interface_hash=3360055232812472974
+interface_doc_hash=3360055232812472974
 deps=0

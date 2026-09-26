@@ -1,8 +1,8 @@
 module=std.js.Dom.PromiseRejectionEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9594756225467496373
-interface_hash=4157621543637598355
-interface_doc_hash=4157621543637598355
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9942839576494073932
+interface_hash=2762826822603653461
+interface_doc_hash=2762826822603653461
 deps=0

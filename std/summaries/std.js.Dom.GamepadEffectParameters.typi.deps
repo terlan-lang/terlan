@@ -1,8 +1,8 @@
 module=std.js.Dom.GamepadEffectParameters
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11908113319403607297
-interface_hash=10383023120878167695
-interface_doc_hash=10383023120878167695
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4601042450647520104
+interface_hash=16676967916890065567
+interface_doc_hash=16676967916890065567
 deps=0

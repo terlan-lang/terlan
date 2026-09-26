@@ -1,8 +1,8 @@
 module=std.js.Dom.BlobEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3557578533466861050
-interface_hash=4165446144501259442
-interface_doc_hash=4165446144501259442
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6106073323125107695
+interface_hash=16970779806011132927
+interface_doc_hash=16970779806011132927
 deps=0

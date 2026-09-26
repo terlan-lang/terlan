@@ -1,8 +1,8 @@
 module=std.js.Dom.FontFaceSetLoadEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1914020234617967207
-interface_hash=9151361836163558495
-interface_doc_hash=9151361836163558495
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1906847464487536354
+interface_hash=5523683387522400211
+interface_doc_hash=5523683387522400211
 deps=0

@@ -532,6 +532,53 @@ fn string_compare_returns_image_local_ordering_atoms() {
     }
 }
 
+/// Unicode transforms preserve scalar boundaries and enforce the checked ABI.
+#[test]
+fn string_case_and_reverse_operations_validate_unicode_and_inputs() {
+    use super::{
+        encode_string_lowercase_operation, encode_string_reverse_operation,
+        encode_string_uppercase_operation,
+    };
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    for (operation, input, expected) in [
+        (encode_string_lowercase_operation(), "ÉΣ", "éς"),
+        (
+            encode_string_uppercase_operation(),
+            "straße é🙂",
+            "STRASSE É🙂",
+        ),
+        (encode_string_reverse_operation(), "aé🙂\0", "\0🙂éa"),
+        (encode_string_reverse_operation(), "a\u{301}b", "b\u{301}a"),
+        (encode_string_reverse_operation(), "", ""),
+        (encode_string_uppercase_operation(), "", ""),
+    ] {
+        let value = heap.allocate_string(input).expect("input string");
+        let result = execute_managed_operation(&mut heap, &layouts, &operation, &[word(value)])
+            .expect("Unicode transform");
+        assert_eq!(
+            heap.read_string(reference(result).cast::<ManagedString>())
+                .expect("output"),
+            expected
+        );
+        assert_eq!(heap.read_string(value).expect("unchanged input"), input);
+        assert!(managed_abi_result_is_reference(&operation));
+        for words in [vec![], vec![word(value), word(value)], vec![0]] {
+            assert!(execute_managed_operation(&mut heap, &layouts, &operation, &words).is_err());
+        }
+        let mut malformed = operation.clone();
+        malformed[7] = 1;
+        assert!(
+            execute_managed_operation(&mut heap, &layouts, &malformed, &[word(value)]).is_err()
+        );
+        malformed = operation;
+        malformed.push(0);
+        assert!(
+            execute_managed_operation(&mut heap, &layouts, &malformed, &[word(value)]).is_err()
+        );
+    }
+}
+
 /// Schema-directed equality compares collection values instead of references.
 #[test]
 fn managed_value_equality_is_structural_and_checked() {
@@ -606,17 +653,43 @@ fn managed_value_equality_supports_immediate_zero_field_union_variants() {
         .expect("Some value");
     let operation = encode_managed_value_equal_operation(semantic);
 
+    let none = i64::from(layouts.atom_index("none").expect("None atom").get());
+    let none_layout = layouts
+        .layouts(semantic)
+        .iter()
+        .find(|layout| layout.variant_name() == Some("None"))
+        .cloned()
+        .expect("None layout");
+    let allocated_none = heap
+        .allocate_aggregate(none_layout, &[])
+        .expect("allocated None");
+
     assert_eq!(
-        execute_managed_operation(&mut heap, &layouts, &operation, &[20, 20]),
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, none]),
         Ok(1)
     );
+    for operands in [[none, word(allocated_none)], [word(allocated_none), none]] {
+        assert_eq!(
+            execute_managed_operation(&mut heap, &layouts, &operation, &operands),
+            Ok(1)
+        );
+    }
     assert_eq!(
         execute_managed_operation(&mut heap, &layouts, &operation, &[20, 24]),
-        Ok(0)
+        Err(ManagedMemoryError::UnknownAtom)
     );
     assert_eq!(
-        execute_managed_operation(&mut heap, &layouts, &operation, &[20, word(some)]),
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, word(some)]),
         Ok(0)
+    );
+    let payload_variant = i64::from(layouts.atom_index("some").expect("Some atom").get());
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[payload_variant, none]),
+        Err(ManagedMemoryError::ManagedTypeMismatch)
+    );
+    assert_eq!(
+        execute_managed_operation(&mut heap, &layouts, &operation, &[none, word(value)]),
+        Err(ManagedMemoryError::ManagedTypeMismatch)
     );
 
     let mut foreign = ActorHeap::new(
@@ -974,7 +1047,8 @@ fn registry() -> ManagedLayoutRegistry {
             encoded_layout: encode_collection_layout(&collection).expect("encode collection"),
         }
     });
-    ManagedLayoutRegistry::from_image(&layouts, &collections, &[]).expect("layout registry")
+    ManagedLayoutRegistry::from_image(&layouts, &collections, &["none".into(), "some".into()])
+        .expect("layout registry")
 }
 
 /// Allocates one request and returns its request/map/string references.

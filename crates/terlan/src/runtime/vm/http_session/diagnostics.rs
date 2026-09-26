@@ -9,6 +9,7 @@ pub(super) fn crashed_session_actor_diagnostic(
         VmExitReason::Normal => "normal exit".to_string(),
         VmExitReason::Killed => "killed".to_string(),
         VmExitReason::Error(message) => format!("error `{message}`"),
+        VmExitReason::TypedError { .. } => "typed effect error".to_string(),
         VmExitReason::ShutdownTimeout { timeout_ms } => {
             format!("shutdown timed out after {timeout_ms} ms")
         }

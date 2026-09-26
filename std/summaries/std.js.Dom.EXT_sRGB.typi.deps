@@ -1,8 +1,8 @@
 module=std.js.Dom.EXT_sRGB
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=615025651990009584
-interface_hash=13510050643649066270
-interface_doc_hash=13510050643649066270
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=10668884162379162092
+interface_hash=7938296347318728155
+interface_doc_hash=7938296347318728155
 deps=0

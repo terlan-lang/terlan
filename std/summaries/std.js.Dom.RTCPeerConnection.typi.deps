@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCPeerConnection
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=11206363227332914660
-interface_hash=3105658280186544911
-interface_doc_hash=3105658280186544911
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=315314791456034383
+interface_hash=10655348309208600076
+interface_doc_hash=10655348309208600076
 deps=0

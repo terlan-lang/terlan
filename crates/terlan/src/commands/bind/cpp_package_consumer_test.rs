@@ -549,7 +549,7 @@ import cpp_fixture.NativeBoundary.{Doubled, NativeSnapshot, Offset, Raw, add, by
 import std.io.Console.{println}.
 
 valid_lifecycle(): Bool ->
-    let boundary = new(40);
+    let boundary = new([40]);
     add(boundary, 2);
     let observed = value(boundary);
     let copied = snapshot(boundary);
@@ -581,7 +581,7 @@ import cpp_fixture.NativeBoundary.{dispose, new, value}.
 import std.io.Console.{println}.
 
 pub main(): Unit ->
-    let boundary = new(7);
+    let boundary = new([7]);
     let stale = boundary;
     dispose(boundary);
     let observed = value(stale);

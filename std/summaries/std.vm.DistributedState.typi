@@ -3,7 +3,11 @@
 //! `std.vm.DistributedState` exposes typed descriptors for VM-owned state
 //! scopes, monotonic versions, conflict policies, write outcomes, and
 //! checkpoint snapshots. The VM owns deterministic conflict handling and
-//! checkpoint replay.
+//! checkpoint replay within the execution shard. Stores are actor-owned and
+//! mutable; snapshots and entry/outcome descriptors are immutable views.
+//! This module does not replicate data to peers or persist checkpoints to disk.
+//! Only last-writer-wins replaces a conflicting entry automatically; other
+//! policies return a conflict for explicit resolution, including `merge`.
 
 module std.vm.DistributedState.
 
@@ -87,6 +91,22 @@ pub opaque type Version.
 
 pub conflict(outcome: Outcome): Conflict.
 
+/// Returns the rejected write sequence captured when a conflict occurred.
+
+pub conflict_incoming_sequence(conflict: Conflict): Int.
+
+/// Returns the existing write sequence captured when a conflict occurred.
+
+pub conflict_local_sequence(conflict: Conflict): Int.
+
+/// Returns the owner node recorded in an immutable entry view.
+
+pub entry_owner(entry: Entry): String.
+
+/// Returns the write sequence recorded in an immutable entry view.
+
+pub entry_sequence(entry: Entry): Int.
+
 /// Exports a deterministic checkpoint snapshot.
 ///
 /// Input: store receiver.
@@ -160,9 +180,9 @@ pub version(sequence: Int, node_id: String): Version.
 
 /// Writes one distributed state value.
 ///
-/// Input: store receiver, scope, owner node, dynamic value, version, and policy.
+/// Input: store receiver, scope, owner node, checked value, version, and policy.
 /// Output: write outcome descriptor.
 /// Transformation: delegates apply/replay/conflict/policy-mismatch behavior to
 /// the VM distributed state lane.
 
-pub (store: Store) write(scope: Scope, owner_node_id: String, value: Dynamic, version: Version, policy: Policy): Outcome.
+pub (store: Store) write[Value](scope: Scope, owner_node_id: String, value: Value, version: Version, policy: Policy): Outcome.

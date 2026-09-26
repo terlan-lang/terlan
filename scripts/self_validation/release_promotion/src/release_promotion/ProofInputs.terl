@@ -1,0 +1,102 @@
+/**
+ * Discovers every metadata-selected proof/manifest, including ignored files.
+ */
+module release_promotion.ProofInputs.
+
+import release_promotion.{CandidateFiles, OwnerStorage}.
+import std.collections.List.{concat}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.{read_text}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+dependency_paths(
+    values: Json,
+    index: Int,
+    count: Int,
+    paths: List[String],
+): Result[List[String], String] ->
+    if {
+        index == count -> Ok(paths);
+        true -> let {
+            Ok(value) <- values.at(index);
+            Ok(path) <- value.as_string()
+        } else {
+            _ -> Err("proof dependency inventory requires string paths")
+        };
+        dependency_paths(values, index + 1, count, [path | paths])
+    }.
+
+safe(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            path != ""
+                and not String.starts_with(path, "/")
+                and not String.contains(path, "..")
+                and not String.contains(path, "\\")
+                and safe(rest)
+    }.
+
+metadata(root: String, proof: String, path: String): Result[List[String], String] ->
+    let {
+        true <- safe([proof, path]);
+        Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, path));
+        Ok(fingerprints) <- document.get("manifest_fingerprints");
+        Ok(inputs) <- fingerprints.keys();
+        Ok(values) <- document.get("dependency_files");
+        Ok(count) <- values.length();
+        true <- count <= 4096;
+        Ok(dependencies) <- dependency_paths(values, 0, count, []);
+        true <- safe(inputs) and safe(dependencies)
+    } else {
+        _ -> Err("proof metadata has unsafe or missing input paths")
+    };
+    Ok([proof | [path | concat(inputs, dependencies)]]).
+
+rows(root: String, values: List[String], inputs: List[String]): Result[List[String], String] ->
+    case values {
+        [] -> Ok(CandidateFiles.sort_unique(inputs));
+        ["" | rest] -> rows(root, rest, inputs);
+        [line | rest] ->
+            let {
+                [proof, _status, _scope, _manifests, _exit, _stderr, _digest, path, _plan] <- String.split(line, "\t");
+                Ok(selected) <- metadata(root, proof, path)
+            } else {
+                _ -> Err("proof input inventory is malformed")
+            };
+            rows(root, rest, concat(selected, inputs))
+    }.
+
+/**
+ * Execution binds manifests and dependencies, without consuming its own outputs.
+ */
+pub replay(root: String): Result[List[String], String] ->
+    let inventory = "proofs/lean/ci/lean-proof-artifacts.tsv";
+    let {
+        Ok(source) <- read_text(OwnerStorage.child(root, inventory));
+        [_header | entries] <- String.split(source, "\n")
+    } else {
+        _ -> Err("proof artifact inventory is unavailable")
+    };
+    rows(root, entries, [inventory]).
+
+/**
+ * Composition additionally consumes the completed upstream runtime reports.
+ */
+pub collect(root: String): Result[List[String], String] ->
+    let Ok(inputs) <- replay(root) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(
+        CandidateFiles.merge_unique(
+            inputs,
+            [
+                "target/quality/proof-artifacts/lean-proof-repro-report.json",
+                "target/quality/proof-artifacts/lean-proof-lanes.json",
+                "target/quality/proof-artifacts/lean-semantic-kernels.json",
+            ],
+        ),
+    ).

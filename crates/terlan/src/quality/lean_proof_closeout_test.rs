@@ -207,9 +207,32 @@ fn lean_proof_closeout_rejects_proof_runtime_smoke_mismatch() {
     assert!(error.contains("error[lean_proof_closeout_smoke]"));
 }
 
+#[test]
+fn lean_proof_closeout_rejects_running_or_mismatched_smoke_attempt() {
+    let root = TempRepo::new("closeout_smoke_attempt");
+    write_complete_fixture(root.path(), Vec::new(), "pass", "current");
+    let attempt_path = root.path().join(SMOKE_ATTEMPT);
+    let original: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&attempt_path).unwrap()).unwrap();
+    for (field, replacement) in [
+        ("decision", "running"),
+        ("report_sha256", "sha256:changed"),
+        ("schema", "unknown"),
+    ] {
+        let mut changed = original.clone();
+        changed[field] = json!(replacement);
+        fs::write(&attempt_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(run_lean_proof_closeout(root.path())
+            .unwrap_err()
+            .contains("no matching completed current smoke attempt"));
+    }
+    fs::remove_file(&attempt_path).unwrap();
+    assert!(run_lean_proof_closeout(root.path()).is_err());
+}
+
 fn write_complete_fixture(root: &Path, blockers: Vec<String>, reproducibility: &str, status: &str) {
     fs::create_dir_all(root.join("proofs/lean/Terlan")).expect("proof tree");
-    fs::create_dir_all(root.join("build/artifacts")).expect("artifact directory");
+    fs::create_dir_all(root.join("target/quality/proof-artifacts")).expect("artifact directory");
     fs::write(root.join(TOOLCHAIN), "leanprover/lean4:v4.31.0\n").expect("toolchain");
     fs::write(
         root.join(LAKE_MANIFEST),
@@ -306,6 +329,16 @@ fn write_complete_fixture(root: &Path, blockers: Vec<String>, reproducibility: &
         serde_json::to_string_pretty(&smoke_report).expect("smoke JSON"),
     )
     .expect("smoke report");
+    let source = fs::read_to_string(root.join(SMOKE_REPORT)).unwrap();
+    fs::write(
+        root.join(SMOKE_ATTEMPT),
+        serde_json::to_vec(&json!({
+            "schema":"terlan.lean-proof-smoke-attempt.v1", "decision":"pass",
+            "report_sha256":sha256_text(&source),
+        }))
+        .unwrap(),
+    )
+    .unwrap();
 
     let mut baseline = String::from("feature_class\texpected_status\tlast_confirmed_hash\n");
     for class in EXPECTED_CLASSES {

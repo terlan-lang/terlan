@@ -31,8 +31,16 @@ const CODEPOINTS: u8 = 16;
 const UTF8_BYTE_AT: u8 = 17;
 const UTF8_SLICE: u8 = 18;
 const UTF8_FIND_ANY_BYTE: u8 = 19;
+const UPPERCASE: u8 = 20;
+const REVERSE: u8 = 21;
+const FROM_ATOM: u8 = 22;
 const SPLIT_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES;
 const SPLIT_ONCE_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES * 2;
+
+/// Encodes canonical text lookup in the immutable image-local atom table.
+pub fn encode_atom_to_string_operation() -> Vec<u8> {
+    header(FROM_ATOM)
+}
 
 /// Encodes exact UTF-8 substring membership.
 pub fn encode_string_contains_operation() -> Vec<u8> {
@@ -65,6 +73,16 @@ pub fn encode_string_split_once_operation(
 /// Encodes Unicode lowercase conversion into a new managed string.
 pub fn encode_string_lowercase_operation() -> Vec<u8> {
     header(LOWERCASE)
+}
+
+/// Encodes Unicode uppercase conversion, including multi-scalar expansions.
+pub fn encode_string_uppercase_operation() -> Vec<u8> {
+    header(UPPERCASE)
+}
+
+/// Encodes reversal by Unicode scalar value, preserving valid UTF-8.
+pub fn encode_string_reverse_operation() -> Vec<u8> {
+    header(REVERSE)
 }
 
 /// Encodes replacement of every exact substring into a new managed string.
@@ -145,6 +163,8 @@ pub(super) fn string_operation_result_is_reference(encoded: &[u8]) -> bool {
             SPLIT
                 | SPLIT_ONCE
                 | LOWERCASE
+                | UPPERCASE
+                | REVERSE
                 | REPLACE
                 | SHA256
                 | TRIM
@@ -153,6 +173,7 @@ pub(super) fn string_operation_result_is_reference(encoded: &[u8]) -> bool {
                 | CHARACTERS
                 | CODEPOINTS
                 | UTF8_SLICE
+                | FROM_ATOM
         )
     )
 }
@@ -165,6 +186,13 @@ pub(super) fn execute_string_operation(
 ) -> Result<u64, ManagedMemoryError> {
     validate_header(encoded)?;
     match (encoded[6], encoded.len(), words) {
+        (FROM_ATOM, HEADER_BYTES, [value]) if encoded[7] == 0 => {
+            let index = u32::try_from(*value)
+                .map(super::super::AtomIndex::from_runtime)
+                .map_err(|_| ManagedMemoryError::UnknownAtom)?;
+            heap.allocate_string(layouts.atom_identity(index)?)
+                .map(|value| value.erase().encoded_abi_word())
+        }
         (CONTAINS, HEADER_BYTES, [value, pattern]) if encoded[7] == 0 => {
             string_predicate(heap, *value, *pattern, |value, pattern| {
                 value.contains(pattern)
@@ -217,12 +245,13 @@ pub(super) fn execute_string_operation(
         (UTF8_FIND_ANY_BYTE, HEADER_BYTES, [value, start, candidates]) if encoded[7] == 0 => {
             string_utf8_find_any_byte(heap, *value, *start, *candidates)
         }
-        (LOWERCASE, HEADER_BYTES, [value]) if encoded[7] == 0 => {
-            let value = heap
-                .read_string(reference_word(*value)?.cast::<ManagedString>())?
-                .to_lowercase();
-            heap.allocate_string(&value)
-                .map(|value| value.erase().encoded_abi_word())
+        (LOWERCASE | UPPERCASE | REVERSE, HEADER_BYTES, [value]) if encoded[7] == 0 => {
+            let transform = match encoded[6] {
+                LOWERCASE => str::to_lowercase,
+                UPPERCASE => str::to_uppercase,
+                _ => |value: &str| value.chars().rev().collect(),
+            };
+            transform_string(heap, *value, transform).map(|value| value.erase().encoded_abi_word())
         }
         (REPLACE, HEADER_BYTES, [value, pattern, replacement]) if encoded[7] == 0 => {
             let value = heap
@@ -607,8 +636,10 @@ pub(super) fn transform_string(
     value: i64,
     transform: fn(&str) -> String,
 ) -> Result<TvmRef<ManagedString>, ManagedMemoryError> {
-    let value = heap
-        .read_string(reference_word(value)?.cast::<ManagedString>())?
-        .to_string();
-    heap.allocate_string(&transform(&value))
+    let transformed = transform(heap.read_string(reference_word(value)?.cast::<ManagedString>())?);
+    heap.allocate_string(&transformed)
 }
+
+#[cfg(test)]
+#[path = "string_atom_test.rs"]
+mod atom_test;

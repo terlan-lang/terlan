@@ -30,7 +30,7 @@ contract_holds(makefile: String, ci: String, release: String): Bool ->
     release,
     [
         "uses: ./.github/actions/setup-native-dependencies",
-        "run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+        "run: make release-hosted-validation-check",
     ],
 ).
 
@@ -56,6 +56,7 @@ makefile_holds(makefile: String): Bool ->
         "TERLAN_VALIDATION_BOOTSTRAPPED=1",
         "check-gates",
         "VERSION ?= $(RELEASE_VERSION)",
+        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
         "publish-preflight:",
         "publish-evidence-plan-check:",
         "$(MAKE) --no-print-directory publish-evidence-check",
@@ -179,7 +180,7 @@ child(root: String, path: String): String ->
 @pure
 valid_makefile(): String ->
     String.append(
-        "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\n",
+        "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check\n",
         String.append(
             "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\n",
             "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\npublish-evidence-plan-check:\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
@@ -192,7 +193,7 @@ valid_ci_workflow(): String ->
 
 @pure
 valid_release_workflow(): String ->
-    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: ./.github/actions/setup-native-dependencies\n  - uses: actions/download-artifact@bbbbbbbb # v4\n  - run: make vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check\n".
+    "steps:\n  - uses: actions/checkout@aaaaaaaa # v4\n  - uses: ./.github/actions/setup-native-dependencies\n  - uses: actions/download-artifact@bbbbbbbb # v4\n  - run: make release-hosted-validation-check\n".
 
 @test
 pub repository_release_entrypoints_are_single_rooted(): Bool ->

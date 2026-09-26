@@ -340,7 +340,7 @@ pub (mut response: Response) with_header(name: String, value: String): Response 
  * Applies typed secure response headers.
  *
  * Input: one mutable `Response` receiver and one `SecurityHeaders` policy.
- * Output: `Unit`.
+ * Output: the same `Response` after applying the selected headers.
  * Transformation: serializes typed policy values into validated response
  * headers through the normal response metadata path.
  */
@@ -377,14 +377,15 @@ referrer_policy_header(value: ReferrerPolicy): String ->
 
 pub (mut response: Response) optional_content_type_options_header(enabled: Bool): Response ->
     case enabled {
-        true -> response.header("X-Content-Type-Options", "nosniff");
+        true -> response.with_header("X-Content-Type-Options", "nosniff");
         false -> response
     }.
 
 pub (mut response: Response) optional_hsts_header(max_age: Int, include_subdomains: Bool): Response ->
     case max_age > 0 {
         true ->
-            response.header("Strict-Transport-Security", hsts_header(max_age, include_subdomains));
+            response
+                .with_header("Strict-Transport-Security", hsts_header(max_age, include_subdomains));
         false -> response
     }.
 

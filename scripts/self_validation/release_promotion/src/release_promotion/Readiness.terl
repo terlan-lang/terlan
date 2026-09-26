@@ -3,80 +3,22 @@
  */
 module release_promotion.Readiness.
 
+import release_promotion.EvidenceReports.
 import std.collections.List.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{eprintln}.
 import std.io.{Directory, File}.
+import std.system.Environment.
 
 import type std.data.Json.
 import type std.data.Json.RequiredFieldRow.
 
 required_reports(): List[{String, String}] ->
-    [
-        {
-            "target/quality/release-example-projects-report.json",
-            "terlan.release-example-projects-report.v1",
-        },
-        {
-            "target/quality/release-project-upgrade-matrix-report.json",
-            "terlan.release-project-upgrade-matrix-report.v1",
-        },
-        {
-            "target/quality/release-reference-app-suite-report.json",
-            "terlan.release-reference-app-suite-report.v1",
-        },
-        {
-            "target/quality/release-diagnostic-catalog-report.json",
-            "terlan.release-diagnostic-catalog-report.v1",
-        },
-        {
-            "target/quality/release-compatibility-baseline-report.json",
-            "terlan.release-compatibility-baseline-report.v1",
-        },
-        {
-            "target/quality/release-notes-accuracy-report.json",
-            "terlan.release-notes-accuracy-report.v1",
-        },
-        {
-            "target/quality/release-supply-chain-provenance-report.json",
-            "terlan.release-supply-chain-provenance-report.v1",
-        },
-        {
-            "target/quality/release-security-hardening-report.json",
-            "terlan.release-security-hardening-report.v1",
-        },
-        {
-            "target/quality/release-support-bundle-report.json",
-            "terlan.release-support-bundle-report.v1",
-        },
-        {
-            "target/quality/release-performance-baseline-report.json",
-            "terlan.release-performance-baseline-report.v1",
-        },
-        {
-            "target/quality/release-adversarial-corpus-report.json",
-            "terlan.release-adversarial-corpus-report.v1",
-        },
-        {
-            "target/quality/release-mutation-check-report.json",
-            "terlan.release-mutation-check-report.v1",
-        },
-        {
-            "target/quality/release-fault-injection-report.json",
-            "terlan.release-fault-injection-report.v1",
-        },
-        {
-            "target/quality/vm-release-artifact-matrix-report.json",
-            "terlan.vm-release-artifact-matrix-report.v1",
-        },
-        {
-            "target/quality/vm-multicore-release-closeout.json",
-            "terlan.vm-multicore-release-closeout.v4",
-        },
-    ].
+    EvidenceReports.readiness_reports().
 
 child(parent: String, relative: String): String ->
     if {
@@ -90,15 +32,28 @@ text(root: String, relative: String): String ->
         Err(_reason) -> ""
     }.
 
-reports_valid(root: String, rows: List[{String, String}]): Bool ->
+sealed_report(rows: List[RequiredFieldRow], path: String, digest: String, found: Bool): Bool ->
+    case rows {
+        [] -> found;
+        [row | rest] ->
+            case Json.required_field_row_strings(row) {
+                [entry, actual] ->
+                    if {
+                        entry == path -> not found and actual == digest and sealed_report(rest, path, digest, true);
+                        true -> sealed_report(rest, path, digest, found)
+                    };
+                _ -> false
+            }
+    }.
+
+reports_valid(root: String, rows: List[{String, String}], sealed: List[RequiredFieldRow]): Bool ->
     case rows {
         [] -> true;
         [{path, schema} | rest] ->
             let source = text(root, path);
-            source != ""
-                and String.contains(source, schema)
-                and String.contains(source, "\"decision\": \"pass\"")
-                and reports_valid(root, rest)
+            EvidenceReports.passes(source, schema)
+                and sealed_report(sealed, path, String.append("sha256:", Hash.sha256(source)), false)
+                and reports_valid(root, rest, sealed)
     }.
 
 report_paths(rows: List[{String, String}], output: Json): Json ->
@@ -191,12 +146,24 @@ cross_hashes_hold(root: String, path: String, digest: String): Bool ->
     case Hash.sha256_file(child(root, path)) {
         Ok(actual) ->
             actual == raw
-                and String.contains(text(root, "target/quality/release-supply-chain-provenance-report.json"), raw)
-                and String.contains(text(root, "target/quality/vm-release-artifact-matrix-report.json"), raw);
+                and EvidenceReports.supply_chain_matches(
+    text(root, "target/quality/release-supply-chain-provenance-report.json"),
+    raw,
+)
+                and EvidenceReports.matrix_archive_matches(
+    text(root, "target/quality/vm-release-artifact-matrix-report.json"),
+    path,
+    raw,
+);
         Err(_reason) -> false
     }.
 
 write_report(root: String, candidate: Json, archive: String, digest: String): Bool ->
+    let output =
+        case Environment.get("TERLAN_READINESS_OUTPUT") {
+            Some(path) -> path;
+            None -> child(root, "target/quality/release-readiness-attestation-report.json")
+        };
     let report =
         Json.object()
             .put("schema", Json.string("terlan.release-readiness-attestation.v1"))
@@ -212,11 +179,7 @@ write_report(root: String, candidate: Json, archive: String, digest: String): Bo
     let {
         Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
         Ok(rendered) <- Json.stringify_pretty(report);
-        Ok(Unit) <-
-            File.write_text(
-                child(root, "target/quality/release-readiness-attestation-report.json"),
-                String.append(rendered, "\n"),
-            )
+        Ok(Unit) <- File.write_text(output, String.append(rendered, "\n"))
     } else {
         _ -> false
     };
@@ -226,18 +189,33 @@ write_report(root: String, candidate: Json, archive: String, digest: String): Bo
  * Binds all required local reports and candidate surfaces to one seal.
  */
 pub attest(root: String, candidate: Json): Bool ->
-    let rows = required_reports();
-    let {archive, digest} = candidate_archive(root, candidate);
-    if {
-        string_field(candidate, "schema") != "terlan.release-candidate.v1" -> failure("schema", "candidate schema is not terlan.release-candidate.v1");
-        string_field(candidate, "version") != "0.0.8" -> failure("version", "candidate version is not 0.0.8");
-        seal_digest(candidate) == "" -> failure("seal", "candidate seal is missing");
-        metadata_identity(root) == "" -> failure("identity", "release candidate identity is missing");
-        archive == "" or digest == "" -> failure("artifact", "sealed archive row is missing");
-        not reports_valid(root, rows) -> failure("reports", "a required release report is missing, stale, or failing");
-        not cross_hashes_hold(root, archive, digest) -> failure("hash", "archive, supply-chain, and matrix hashes do not agree");
-        true -> write_report(root, candidate, archive, digest)
-    }.
+    let {
+        Ok(reports) <- candidate.get("gate_reports");
+        Ok(sealed) <- Json.required_field_rows(reports, ["path", "sha256"], [], [])
+    } else {
+        _ -> failure("inventory", "candidate gate report inventory is missing or malformed")
+    };
+    (let rows = required_reports();
+let {archive, digest} = candidate_archive(root, candidate);
+if {
+    string_field(candidate, "schema") != "terlan.release-candidate.v1" -> failure("schema", "candidate schema is not terlan.release-candidate.v1");
+    not metadata_version_matches(root, string_field(candidate, "version")) -> failure("version", "candidate version does not match release metadata");
+    seal_digest(candidate) == "" -> failure("seal", "candidate seal is missing");
+    metadata_identity(root) == "" -> failure("identity", "release candidate identity is missing");
+    archive == "" or digest == "" -> failure("artifact", "sealed archive row is missing");
+    not reports_valid(root, rows, sealed) -> failure(
+        "reports",
+        "a required release report is missing, stale, failing, or not uniquely sealed",
+    );
+    not cross_hashes_hold(root, archive, digest) -> failure("hash", "archive, supply-chain, and matrix hashes do not agree");
+    true -> write_report(root, candidate, archive, digest)
+}).
+
+metadata_version_matches(root: String, version: String): Bool ->
+    let Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json")) else {
+        _ -> false
+    };
+    version != "" and EvidenceReports.string_field(metadata, "version") == Some(version).
 
 failure(code: String, message: String): Bool ->
     let _printed = eprintln(String.concat(["error[release_readiness.", code, "]: ", message]));

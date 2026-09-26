@@ -1,8 +1,8 @@
 module=std.js.Dom.OverconstrainedError
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=5492164219042822706
-interface_hash=5443123668790934882
-interface_doc_hash=5443123668790934882
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17209475477423125755
+interface_hash=11063503420097015496
+interface_doc_hash=11063503420097015496
 deps=0

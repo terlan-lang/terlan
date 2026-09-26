@@ -6,6 +6,7 @@ This directory owns focused expression lowering from typed syntax into CoreIR.
 
 - Lower branching and error-control expressions without losing inferred types.
 - Preserve source spans for downstream diagnostics.
+- Preserve explicit lambda parameter annotations and their parameter alignment.
 - Reject forms whose control-flow invariants cannot be represented safely.
 
 ## Testing Notes

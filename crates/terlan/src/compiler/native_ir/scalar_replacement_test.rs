@@ -25,6 +25,7 @@ fn layouts() -> NativeConstructorLayouts {
         args: vec![CoreType::Int, CoreType::Int],
     };
     let declarations = vec![CoreConstructorDecl {
+        implementation: None,
         name: "Pair".to_owned(),
         public: true,
         min_arity: 2,
@@ -51,6 +52,7 @@ fn layouts() -> NativeConstructorLayouts {
 /// Creates one resolved two-field constructor call.
 fn pair(left: CoreExpr, right: CoreExpr) -> CoreExpr {
     CoreExpr::ConstructorCall {
+        type_args: Vec::new(),
         constructor: "Pair".to_owned(),
         constructor_identity: Some("projection.Pair".to_owned()),
         args: vec![left, right],
@@ -68,6 +70,9 @@ fn field(local: &str, name: &str) -> CoreExpr {
 /// Creates a zero-arity function around one test body.
 fn function(body: CoreExpr) -> CoreFunction {
     CoreFunction {
+        receiver_method: false,
+        trait_method: None,
+        source: None,
         name: "projected".to_owned(),
         arity: 0,
         public: true,
@@ -277,10 +282,12 @@ fn projected_fields_preserve_effectful_evaluation_once() {
             pattern: CorePattern::Var("pair".to_owned()),
             value: pair(
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "left_value".to_owned(),
                     args: Vec::new(),
                 },
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "right_value".to_owned(),
                     args: Vec::new(),
                 },
@@ -457,6 +464,7 @@ fn aggregate_use_before_destructuring_blocks_local_replacement() {
         CoreLetBinding {
             pattern: CorePattern::Var("observed".to_owned()),
             value: CoreExpr::Call {
+                type_args: Vec::new(),
                 function: "observe".to_owned(),
                 args: vec![CoreExpr::Var("pair".to_owned())],
             },
@@ -476,12 +484,45 @@ fn aggregate_use_after_destructuring_blocks_local_replacement() {
     let CoreExpr::Let { body, .. } = &mut expression else {
         panic!("expected local tuple let");
     };
-    *body = Box::new(CoreExpr::Var("pair".to_owned()));
+    **body = CoreExpr::Var("pair".to_owned());
 
     assert_eq!(
         scalar_replace_fixed_aggregates(&expression, &layouts()),
         expression
     );
+}
+
+/// Renaming an aggregate must not masquerade as a scalarization step.
+#[test]
+fn aggregate_alias_chains_reach_a_stable_scalar_replacement_result() {
+    for value in [
+        pair(CoreExpr::Int(20), CoreExpr::Int(22)),
+        CoreExpr::Tuple(vec![CoreExpr::Int(20), CoreExpr::Int(22)]),
+    ] {
+        let expression = CoreExpr::Let {
+            bindings: vec![
+                CoreLetBinding {
+                    pattern: CorePattern::Var("original".into()),
+                    value,
+                },
+                CoreLetBinding {
+                    pattern: CorePattern::Var("alias".into()),
+                    value: CoreExpr::Var("original".into()),
+                },
+                CoreLetBinding {
+                    pattern: CorePattern::Var("result".into()),
+                    value: CoreExpr::Var("alias".into()),
+                },
+            ],
+            body: Box::new(CoreExpr::Var("result".into())),
+        };
+        let rewritten = scalar_replace_fixed_aggregates(&expression, &layouts());
+        assert_eq!(rewritten, expression);
+        assert_eq!(
+            scalar_replace_fixed_aggregates(&rewritten, &layouts()),
+            rewritten
+        );
+    }
 }
 
 /// Preserves wildcard field evaluation while removing its tuple container.
@@ -495,6 +536,7 @@ fn tuple_wildcard_keeps_source_evaluation_order() {
             ]),
             value: CoreExpr::Tuple(vec![
                 CoreExpr::Call {
+                    type_args: Vec::new(),
                     function: "observe_left".to_owned(),
                     args: Vec::new(),
                 },

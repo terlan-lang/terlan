@@ -6,7 +6,9 @@
       "classification": "committed",
       "paths": [
         "std/js/**/*.terl",
-        "std/js/**/*.terli"
+        "std/js/**/*.terli",
+        "std/js/manifests/std_js_bindings.json",
+        "std/js/manifests/std_js_skipped.json"
       ],
       "regenerate": "make stdlib-js-bindings-drift-check",
       "freshness_gate": "stdlib-js-bindings-drift-check",

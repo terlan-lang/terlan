@@ -31,6 +31,7 @@ pub(super) fn transition_status(operation: NativeTransitionOperation) -> i32 {
         NativeTransitionOperation::Resource => status::RESOURCE,
         NativeTransitionOperation::Cancellation => status::CANCELLATION,
         NativeTransitionOperation::Failure => status::FAILURE,
+        NativeTransitionOperation::FailureTyped => status::FAILURE_TYPED,
         NativeTransitionOperation::Scheduling => status::SCHEDULING,
         NativeTransitionOperation::Capability => status::CAPABILITY,
     }
@@ -54,6 +55,8 @@ pub(super) fn transition_flags(
     let resource = status_flag(builder, call_status, status::RESOURCE);
     let cancelled = status_flag(builder, call_status, status::CANCELLATION);
     let failed = status_flag(builder, call_status, status::FAILURE);
+    let failed_typed = status_flag(builder, call_status, status::FAILURE_TYPED);
+    let failed = builder.ins().bor(failed, failed_typed);
     let scheduled = status_flag(builder, call_status, status::SCHEDULING);
     let capability = status_flag(builder, call_status, status::CAPABILITY);
     let any_sent = builder.ins().bor(sent, typed_sent);

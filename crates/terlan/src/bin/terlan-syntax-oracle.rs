@@ -19,9 +19,9 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(arguments: Vec<String>) -> Result<(), String> {
+fn run(arguments: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     let [kind, input, output] = arguments.as_slice() else {
-        return Err("usage: terlan-syntax-oracle KIND INPUT OUTPUT".to_owned());
+        return Err(("usage: terlan-syntax-oracle KIND INPUT OUTPUT".to_owned()).into());
     };
     let source =
         fs::read_to_string(input).map_err(|error| format!("cannot read {input}: {error}"))?;
@@ -46,9 +46,10 @@ fn run(arguments: Vec<String>) -> Result<(), String> {
             &parse_expr_as_syntax_output(&source)
                 .map_err(|error| format!("cannot parse expression {input}: {error:?}"))?,
         ),
-        _ => Err(format!(
+        _ => Err((format!(
             "unknown syntax kind {kind:?}; expected module, interface, script, or expression"
-        )),
+        ))
+        .into()),
     }
 }
 
@@ -60,8 +61,8 @@ fn script_module_name(input: &str) -> &str {
         .unwrap_or("script")
 }
 
-fn write_output<T: Serialize>(path: &str, value: &T) -> Result<(), String> {
+fn write_output<T: Serialize>(path: &str, value: &T) -> Result<(), Box<dyn std::error::Error>> {
     let encoded = serde_json::to_vec_pretty(value)
         .map_err(|error| format!("cannot encode normalized syntax output: {error}"))?;
-    fs::write(path, encoded).map_err(|error| format!("cannot write {path}: {error}"))
+    Ok(fs::write(path, encoded).map_err(|error| format!("cannot write {path}: {error}"))?)
 }

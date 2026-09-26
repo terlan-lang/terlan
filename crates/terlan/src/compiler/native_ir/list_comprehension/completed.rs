@@ -71,7 +71,7 @@ pub(super) fn fold_completed_effect_runs(
                 *expr = replacement;
             }
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function == "std.core.Effect.run" && args.len() == 1 =>
         {
             fold_completed_effect_runs(&mut args[0], completed);
@@ -87,6 +87,7 @@ pub(super) fn fold_completed_effect_runs(
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "run" && args.len() == 1 => {
             fold_completed_effect_runs(&mut args[0], completed);
             let replacement = match &args[0] {
@@ -211,13 +212,14 @@ pub(super) fn fold_completed_effect_runs(
 
 fn completed_effect_value(expr: &CoreExpr) -> Option<CoreExpr> {
     match expr {
-        CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
+        CoreExpr::Call { function, args, .. } if function == EFFECT_SUCCEED && args.len() == 1 => {
             Some(args[0].clone())
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
             Some(args[0].clone())
         }
@@ -228,84 +230,20 @@ fn completed_effect_value(expr: &CoreExpr) -> Option<CoreExpr> {
 
 fn replace_completed_effect_value(expr: &mut CoreExpr, replacement: CoreExpr) {
     match expr {
-        CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
+        CoreExpr::Call { function, args, .. } if function == EFFECT_SUCCEED && args.len() == 1 => {
             args[0] = replacement;
         }
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
             args[0] = replacement;
         }
         CoreExpr::Cast { expr, .. } => replace_completed_effect_value(expr, replacement),
         _ => unreachable!("completed effect value was recognized before replacement"),
     }
-}
-
-/// Converts completed `Effect.succeed(Bool)` filters back to pure decisions.
-pub(crate) fn lower_completed_effect_guards(guards: &mut [CoreExpr]) -> NativeIrResult<()> {
-    for guard in guards {
-        let completed = match guard {
-            CoreExpr::Call { function, args } if function == EFFECT_SUCCEED && args.len() == 1 => {
-                Some(args[0].clone())
-            }
-            CoreExpr::RemoteCall {
-                module,
-                function,
-                args,
-            } if module == "std.core.Effect" && function == "succeed" && args.len() == 1 => {
-                Some(args[0].clone())
-            }
-            CoreExpr::Call { function, .. } if function == "std.core.Effect.fail" => {
-                return Err(
-                    "error[vm_comprehension_guard_failed]: a failed deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" && function == "fail" => {
-                return Err(
-                    "error[vm_comprehension_guard_failed]: a failed deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::Call { function, .. } if function == "std.core.Effect.cancelled" => {
-                return Err(
-                    "error[vm_comprehension_guard_cancelled]: a cancelled deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" && function == "cancelled" => {
-                return Err(
-                    "error[vm_comprehension_guard_cancelled]: a cancelled deferred guard cannot cross the direct-AOT scheduler boundary without continuation lowering"
-                        .into(),
-                );
-            }
-            CoreExpr::Call { function, .. } if function.starts_with("std.core.Effect.") => {
-                return Err(format!(
-                    "error[native_ir.comprehension_effect]: deferred effect guard `{function}` requires scheduler continuation lowering"
-                )
-                .into());
-            }
-            CoreExpr::RemoteCall {
-                module, function, ..
-            } if module == "std.core.Effect" => {
-                return Err(format!(
-                    "error[native_ir.comprehension_effect]: deferred effect guard `{module}.{function}` requires scheduler continuation lowering"
-                )
-                .into());
-            }
-            _ => None,
-        };
-        if let Some(completed) = completed {
-            *guard = completed;
-        }
-    }
-    Ok(())
 }
 
 /// Erases the zero-work `GuardResult.Completed` wrapper before a native branch.
@@ -320,11 +258,12 @@ pub(crate) fn lower_completed_guard_results(guards: &mut [CoreExpr]) {
 fn completed_guard_decision(expr: &CoreExpr) -> Option<CoreExpr> {
     match expr {
         CoreExpr::Cast { expr, .. } => completed_guard_decision(expr),
-        CoreExpr::Call { function, args } => guard_result_call(function, args),
+        CoreExpr::Call { function, args, .. } => guard_result_call(function, args),
         CoreExpr::RemoteCall {
             module,
             function,
             args,
+            ..
         } if module == "std.core.GuardResult" => {
             guard_result_call(&format!("{module}.{function}"), args)
         }
@@ -333,7 +272,7 @@ fn completed_guard_decision(expr: &CoreExpr) -> Option<CoreExpr> {
 }
 
 fn guard_result_call(function: &str, args: &[CoreExpr]) -> Option<CoreExpr> {
-    let function = function.rsplit('.').next()?;
+    let function = function.strip_prefix("std.core.GuardResult.")?;
     match (function, args) {
         ("from_bool" | "value", [decision]) => completed_guard_decision(decision)
             .or_else(|| (function == "from_bool").then(|| decision.clone())),

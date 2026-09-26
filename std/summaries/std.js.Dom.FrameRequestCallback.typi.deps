@@ -1,8 +1,8 @@
 module=std.js.Dom.FrameRequestCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2795865302898182070
-interface_hash=5966625095249916055
-interface_doc_hash=5966625095249916055
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17582003161927514522
+interface_hash=4752281555496324848
+interface_doc_hash=4752281555496324848
 deps=0

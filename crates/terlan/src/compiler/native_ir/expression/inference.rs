@@ -131,7 +131,7 @@ pub(super) fn infer_native_type_impl(
             matches!(ty, NativeType::ManagedRef(_)).then_some(ty)
         }
         CoreExpr::Var(name) => variables.get(name).copied(),
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(
                 function.as_str(),
                 "std.core.Option.with_default" | "std.core.Result.with_default"
@@ -143,7 +143,7 @@ pub(super) fn infer_native_type_impl(
             // each call site always supplies that specialization.
             infer_native_type_impl(&args[1], variables, functions, constructors)
         }
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).copied()
         }
         CoreExpr::ConstructorCall { .. } => {
@@ -274,6 +274,13 @@ pub(super) fn infer_native_type_impl(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if matches!(expr.as_ref(), CoreExpr::RecordConstruct { .. }) {
+                return super::super::native_type_with_constructors(
+                    Some(target_type),
+                    &target_type.contract_text(),
+                    constructors?,
+                );
+            }
             if matches!(expr.as_ref(), CoreExpr::Binary(_))
                 && matches!(target_type, CoreType::Binary | CoreType::String)
             {
@@ -290,7 +297,10 @@ pub(super) fn infer_native_type_impl(
             }
             let source = infer_native_type_impl(expr, variables, functions, constructors)?;
             let target = native_type(Some(target_type), &target_type.contract_text())?;
-            (source == target).then_some(target)
+            let erased = crate::runtime::native_image::managed::managed_erased_value_semantic_id()
+                .ok()
+                .map(NativeType::ManagedRef);
+            (source == target || Some(source) == erased || Some(target) == erased).then_some(target)
         }
         _ => None,
     }

@@ -74,7 +74,7 @@ run_config(): RunConfig ->
         write = environment_flag("TERLAN_RELEASE_VERSION_WRITE"),
         report = environment_or(
             "TERLAN_RELEASE_VERSION_REPORT",
-            child(root, "build/artifacts/release-version-channel-report.json"),
+            child(root, "target/quality/proof-artifacts/release-version-channel-report.json"),
         ),
     ).
 
@@ -225,6 +225,16 @@ json_root_package_version(root: String, relative: String): String ->
     };
     json_string_field(package, "version").
 
+json_generator_version(root: String, relative: String): String ->
+    let {
+        Ok(source) <- read_text(child(root, relative));
+        Ok(value) <- Json.parse(source);
+        Ok(generator) <- value.get("generator")
+    } else {
+        _ -> "<missing>"
+    };
+    json_string_field(generator, "version").
+
 json_version_fields(root: String, version: String): List[CheckedField] ->
     let vscode_package = json_version(root, "editors/vscode/package.json");
     let tree_package = json_version(root, "tree-sitter-terlan/package.json");
@@ -244,7 +254,15 @@ json_version_fields(root: String, version: String): List[CheckedField] ->
             tree_root,
             version,
         );
-    [vscode_package_field | [tree_package_field | [vscode_lock_field | [vscode_root_field | [tree_lock_field | [tree_root_field | List.new[CheckedField]()]]]]]].
+    let bindings_path = "std/js/manifests/std_js_dom_inputs.json";
+    let bindings_field =
+        checked(
+            bindings_path,
+            "generator.version",
+            json_generator_version(root, bindings_path),
+            version,
+        );
+    [vscode_package_field | [tree_package_field | [vscode_lock_field | [vscode_root_field | [tree_lock_field | [tree_root_field | [bindings_field | List.new[CheckedField]()]]]]]]].
 
 manifest_version(root: String): String ->
     let {
@@ -609,6 +627,24 @@ if {
     true
 }).
 
+write_json_generator_version(path: String, version: String): Bool ->
+    let {
+        Ok(source) <- read_text(path);
+        Ok(value) <- Json.parse(source);
+        Ok(generator) <- value.get("generator")
+    } else {
+        _ -> false
+    };
+    (let _version = generator.put("version", Json.string(version));
+let _generator = value.put("generator", generator);
+(let {
+    Ok(encoded) <- Json.stringify_pretty(value);
+    Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
+} else {
+    _ -> false
+};
+true)).
+
 write_text_fields(root: String, specs: List[TextField]): Bool ->
     case specs {
         [] -> true;
@@ -679,9 +715,14 @@ write_versions(root: String, version: String): Bool ->
     }.
 
 write_json_versions(root: String, version: String): Bool ->
+    let bindings =
+        write_json_generator_version(
+            child(root, "std/js/manifests/std_js_dom_inputs.json"),
+            version,
+        );
     let vscode_package = write_json_version(child(root, "editors/vscode/package.json"), false, version);
     if {
-        not vscode_package -> false;
+        not bindings or not vscode_package -> false;
         true -> let tree_package = write_json_version(child(root, "tree-sitter-terlan/package.json"), false, version);
         if {
             not tree_package -> false;
@@ -819,6 +860,7 @@ fixture_paths(): List[String] ->
         "crates/terlan/src/lib.rs",
         "crates/terlan/src/vm/cli.rs",
         "std/manifest.toml",
+        "std/js/manifests/std_js_dom_inputs.json",
         "editors/vscode/package.json",
         "editors/vscode/package-lock.json",
         "tree-sitter-terlan/package.json",
@@ -943,6 +985,7 @@ updated_fixture_holds(root: String): Bool ->
             let tree_version = json_version(root, "tree-sitter-terlan/package.json");
             let lock_version = json_root_package_version(root, "editors/vscode/package-lock.json");
             let std_version = manifest_version(root);
+            let bindings_version = json_generator_version(root, "std/js/manifests/std_js_dom_inputs.json");
             let specs = text_fields(version);
             let install_spec = list_at_text_field(specs, 0);
             let install_value = read_match(root, install_spec);
@@ -950,6 +993,7 @@ updated_fixture_holds(root: String): Bool ->
                 and tree_version == version
                 and lock_version == version
                 and std_version == version
+                and bindings_version == version
                 and install_value == install_spec.replacement;
         None -> false
     }.

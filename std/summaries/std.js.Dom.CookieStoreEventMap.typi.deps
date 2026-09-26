@@ -1,8 +1,8 @@
 module=std.js.Dom.CookieStoreEventMap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=613620667682349935
-interface_hash=7881937306868882051
-interface_doc_hash=7881937306868882051
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12308279737241856306
+interface_hash=10622119735889861252
+interface_doc_hash=10622119735889861252
 deps=0

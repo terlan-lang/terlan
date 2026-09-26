@@ -247,18 +247,17 @@ pub(super) fn module_preflight(source: &str) -> Option<LalrpopBoundaryError> {
                 ));
             }
         }
-        if trimmed.starts_with("type ") || trimmed.starts_with("pub type ") {
-            if trimmed
+        if (trimmed.starts_with("type ") || trimmed.starts_with("pub type "))
+            && trimmed
                 .split_once('=')
                 .is_some_and(|(_, body)| body.trim_start().starts_with("case "))
-            {
-                let token = trimmed.find("case").unwrap_or_default();
-                return Some(diagnostic(
-                    "runtime expression token 'case' is not valid in type position",
-                    start + token,
-                    start + token + 4,
-                ));
-            }
+        {
+            let token = trimmed.find("case").unwrap_or_default();
+            return Some(diagnostic(
+                "runtime expression token 'case' is not valid in type position",
+                start + token,
+                start + token + 4,
+            ));
         }
         if trimmed.starts_with("shape ")
             && trimmed

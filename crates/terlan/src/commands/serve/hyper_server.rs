@@ -40,9 +40,8 @@ use super::server_lifecycle::{
 use super::{channel_transport, handle_vm_stream_http1_exchange};
 
 mod http2;
-mod tls_io;
+use crate::runtime::vm::hyper_tls as tls_io;
 mod websocket_hub;
-
 use websocket_hub::WebSocketHub;
 
 thread_local! {
@@ -109,8 +108,86 @@ pub(super) fn serve_tls(
     let websocket_hub = Arc::new(WebSocketHub::default());
     serve_protocol_tasks(
         listener,
-        tls_io::factory(web_root, server_config, max_body_bytes, websocket_hub),
+        tls_factory(web_root, server_config, max_body_bytes, websocket_hub),
     )
+}
+
+fn tls_factory(
+    web_root: PathBuf,
+    server_config: Arc<rustls::ServerConfig>,
+    max_body_bytes: u64,
+    websocket_hub: Arc<WebSocketHub>,
+) -> VmProtocolTaskFactory {
+    let web_root = Arc::new(web_root);
+    Arc::new(move |stream, route| {
+        let web_root = owner_local_web_root(&web_root);
+        let server_config = Arc::clone(&server_config);
+        let websocket_hub = Arc::clone(&websocket_hub);
+        Box::pin(async move {
+            let io = tls_io::VmTlsHyperIo::handshake(stream, server_config)
+                .await
+                .map_err(|error| {
+                    format!(
+                        "process {} scheduler {}: rustls handshake failed: {error}",
+                        route.process.as_u64(),
+                        route.scheduler.index()
+                    )
+                })?;
+            match io
+                .negotiated_protocol()
+                .map_err(|error| error.to_string())?
+            {
+                tls_io::VmTlsHttpProtocol::Http1 => {
+                    let pending_upgrade = Rc::new(std::cell::RefCell::new(None));
+                    let service_pending_upgrade = Rc::clone(&pending_upgrade);
+                    let service = service_fn(move |request| {
+                        let web_root = Rc::clone(&web_root);
+                        let pending_upgrade = Rc::clone(&service_pending_upgrade);
+                        async move {
+                            Ok::<_, std::convert::Infallible>(
+                                handle_request(
+                                    request,
+                                    web_root.as_ref().as_path(),
+                                    max_body_bytes,
+                                    Some(&pending_upgrade),
+                                )
+                                .await,
+                            )
+                        }
+                    });
+                    http1::Builder::new()
+                        .serve_connection(io, service)
+                        .with_upgrades()
+                        .await
+                        .map_err(|error| {
+                            format!("Hyper HTTP/1.1 TLS connection failed: {error}")
+                        })?;
+                    let pending = pending_upgrade.borrow_mut().take();
+                    if let Some(pending) = pending {
+                        pump_hyper_websocket(pending, websocket_hub).await?;
+                    }
+                    Ok(())
+                }
+                tls_io::VmTlsHttpProtocol::Http2 => {
+                    let service = service_fn(move |request| {
+                        let web_root = Rc::clone(&web_root);
+                        async move {
+                            Ok::<_, std::convert::Infallible>(
+                                handle_request(
+                                    request,
+                                    web_root.as_ref().as_path(),
+                                    max_body_bytes,
+                                    None,
+                                )
+                                .await,
+                            )
+                        }
+                    });
+                    http2::serve_connection(io, service).await
+                }
+            }
+        })
+    })
 }
 
 fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
@@ -160,7 +237,7 @@ fn declared_body_exceeds_limit(headers: &http::HeaderMap, max_body_bytes: u64) -
 
 async fn collect_bounded_body<B>(mut body: B, max_body_bytes: u64) -> Result<Vec<u8>, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let mut bytes = Vec::new();
@@ -185,7 +262,7 @@ async fn spool_bounded_body<B>(
     max_body_bytes: u64,
 ) -> Result<TemporaryBodyFile, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let configured_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT").map_err(|_| {
@@ -202,7 +279,7 @@ async fn spool_bounded_body_to_root<B>(
     root: &Path,
 ) -> Result<TemporaryBodyFile, BodyReadError>
 where
-    B: http_body::Body<Data = Bytes> + Unpin,
+    B: hyper::body::Body<Data = Bytes> + Unpin,
     B::Error: std::fmt::Display,
 {
     let root = root.to_path_buf();
@@ -507,7 +584,10 @@ impl HyperWebSocketIo {
                     "error[serve.websocket.upgrade]: Hyper returned an unexpected transport type"
                         .to_string()
                 })?;
-                (parts.read_buf, HyperWebSocketStream::Tls(parts.io))
+                (
+                    parts.read_buf,
+                    HyperWebSocketStream::Tls(Box::new(parts.io)),
+                )
             }
         };
         Ok(Self {
@@ -520,7 +600,7 @@ impl HyperWebSocketIo {
 
 enum HyperWebSocketStream {
     Plain(VmReadyTcpStream),
-    Tls(tls_io::VmTlsHyperIo),
+    Tls(Box<tls_io::VmTlsHyperIo>),
 }
 
 impl std::io::Read for HyperWebSocketStream {

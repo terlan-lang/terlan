@@ -1,8 +1,8 @@
 module=std.js.Dom.VTTCue
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=18409024475279667689
-interface_hash=10860273315682024389
-interface_doc_hash=10860273315682024389
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1795748522142635575
+interface_hash=8546563783009609523
+interface_doc_hash=8546563783009609523
 deps=0

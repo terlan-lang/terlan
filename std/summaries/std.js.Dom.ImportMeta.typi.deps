@@ -1,8 +1,8 @@
 module=std.js.Dom.ImportMeta
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9591214564279099235
-interface_hash=5907477670428544428
-interface_doc_hash=5907477670428544428
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=7343239143024223426
+interface_hash=10131568785685561195
+interface_doc_hash=10131568785685561195
 deps=0

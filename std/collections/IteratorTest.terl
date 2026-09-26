@@ -16,7 +16,9 @@ sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
 @test
 pub next_yields_value_and_next_iterator(): Bool ->
     let values = [10, 20];
-    case values |> iterator() |> next() {
+    case values
+    |> iterator()
+    |> next() {
         Some({value: first, next: rest}) -> second_value_is_expected(rest, first);
         None -> false
     }.
@@ -36,7 +38,9 @@ iterator_is_done_with_total(iterator: Iterator[Int], total: Int): Bool ->
 @test
 pub next_returns_none_when_iterator_is_exhausted(): Bool ->
     let values = [];
-    case values |> iterator() |> next() {
+    case values
+    |> iterator()
+    |> next() {
         None -> true;
         Some(_step) -> false
     }.

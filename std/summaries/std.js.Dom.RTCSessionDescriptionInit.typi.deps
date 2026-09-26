@@ -1,8 +1,8 @@
 module=std.js.Dom.RTCSessionDescriptionInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=6130748326542725912
-interface_hash=10789327719979382774
-interface_doc_hash=10789327719979382774
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2917075731397143859
+interface_hash=7958058549465516434
+interface_doc_hash=7958058549465516434
 deps=0

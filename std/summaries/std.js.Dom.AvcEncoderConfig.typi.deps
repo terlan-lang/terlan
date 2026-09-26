@@ -1,8 +1,8 @@
 module=std.js.Dom.AvcEncoderConfig
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17593213426238328932
-interface_hash=10546241478286629947
-interface_doc_hash=10546241478286629947
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=1739558357110015353
+interface_hash=16548239880287759089
+interface_doc_hash=16548239880287759089
 deps=0

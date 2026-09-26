@@ -1,8 +1,8 @@
 module=std.js.EvalErrorConstructor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=10233800803480934446
-interface_hash=3014210210571683468
-interface_doc_hash=3014210210571683468
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=2949279648525720242
+interface_hash=5549235054005431436
+interface_doc_hash=5549235054005431436
 deps=0

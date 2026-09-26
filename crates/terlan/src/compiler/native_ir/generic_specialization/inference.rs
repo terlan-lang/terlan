@@ -12,7 +12,11 @@ use super::{
     contextual_literal_type, substitute, unify, CallableTemplates,
 };
 
-pub(super) fn infer_type(
+#[cfg(test)]
+#[path = "inference_scope_test.rs"]
+mod scope_tests;
+
+pub(in crate::compiler::native_ir) fn infer_type(
     expr: &CoreExpr,
     variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
@@ -23,23 +27,65 @@ pub(super) fn infer_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".into())),
+        CoreExpr::Atom(value) if matches!(value.as_str(), "Unit" | "unit") => {
+            Some(CoreType::Named("Unit".into()))
+        }
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) if name == "Unit" => Some(CoreType::Named("Unit".into())),
-        CoreExpr::Var(name) => variables.get(name).cloned(),
-        CoreExpr::List(items) if !items.is_empty() => {
-            let first = infer_type(&items[0], variables, templates, module)?;
-            items[1..]
+        CoreExpr::Var(name) => variables
+            .get(name)
+            .cloned()
+            .or_else(|| unambiguous_callable_type(name, templates, module)),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            if params.len() != parameter_types.len() {
+                return None;
+            }
+            let types = parameter_types
                 .iter()
-                .all(|item| infer_type(item, variables, templates, module) == Some(first.clone()))
-                .then(|| CoreType::List(Box::new(first)))
+                .cloned()
+                .collect::<Option<Vec<_>>>()?;
+            let mut locals = variables.clone();
+            for (pattern, ty) in params.iter().zip(&types) {
+                for name in
+                    super::super::expression::free_variable_analysis::pattern_bound_names(pattern)
+                {
+                    locals.remove(&name);
+                }
+                super::bind_pattern_types(pattern, ty, &mut locals);
+            }
+            Some(CoreType::Arrow {
+                params: types,
+                return_type: Box::new(infer_type(body, &locals, templates, module)?),
+            })
         }
         CoreExpr::ListCons { head, tail } => infer_type(tail, variables, templates, module)
             .or_else(|| {
                 infer_type(head, variables, templates, module)
                     .map(|element| CoreType::List(Box::new(element)))
             }),
+        CoreExpr::Let { bindings, body } => {
+            let mut locals = variables.clone();
+            for binding in bindings {
+                let ty = infer_type(&binding.value, &locals, templates, module);
+                for name in super::super::expression::free_variable_analysis::pattern_bound_names(
+                    &binding.pattern,
+                ) {
+                    locals.remove(&name);
+                }
+                if let Some(ty) = ty {
+                    super::bind_pattern_types(&binding.pattern, &ty, &mut locals);
+                }
+            }
+            infer_type(body, &locals, templates, module)
+        }
+        CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
+            infer_type(item, variables, templates, module)
+        }),
         CoreExpr::Tuple(items) => items
             .iter()
             .map(|item| infer_type(item, variables, templates, module).map(CoreTupleTypeElem::Type))
@@ -59,6 +105,35 @@ pub(super) fn infer_type(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Map),
         CoreExpr::RecordConstruct { name, .. } => Some(CoreType::Named(name.clone())),
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+            ..
+        } if super::super::collection_intrinsic_specialization::is_std_map_constructor(
+            constructor,
+            constructor_identity.as_deref(),
+        ) =>
+        {
+            let entries = args
+                .iter()
+                .map(|entry| infer_type(entry, variables, templates, module))
+                .collect::<Option<Vec<_>>>()?;
+            super::super::collection_intrinsic_specialization::positional_map_type(&entries)
+        }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            type_args,
+            args,
+        } => infer_call_type(
+            constructor_identity.as_deref().unwrap_or(constructor),
+            args,
+            type_args,
+            variables,
+            templates,
+            module,
+        ),
         CoreExpr::Intrinsic(call)
             if matches!(
                 call.id,
@@ -85,7 +160,49 @@ pub(super) fn infer_type(
         {
             infer_type(call.args.first()?, variables, templates, module)
         }
+        CoreExpr::Intrinsic(call)
+            if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapTake) =>
+        {
+            let receiver = infer_type(call.args.first()?, variables, templates, module)?;
+            super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+                &receiver, "take", call.args.len(),
+            ).map(|(_, result)| result)
+        }
+        CoreExpr::Intrinsic(call)
+            if matches!(
+                call.id,
+                CoreIntrinsicId::Primitive(
+                    CorePrimitiveIntrinsic::MapFromEntries | CorePrimitiveIntrinsic::SetFromList
+                )
+            ) =>
+        {
+            let inferred = if let CoreIntrinsicId::Primitive(intrinsic) = &call.id {
+                call.args.first().and_then(|argument| {
+                    let operand = infer_type(argument, variables, templates, module)?;
+                    super::super::collection_intrinsic_specialization::receiver_intrinsics::collection_from_list_type(
+                        intrinsic, &operand,
+                    )
+                })
+            } else {
+                None
+            };
+            inferred.or_else(|| Some(call.return_type.clone()))
+        }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
+        CoreExpr::RemoteCall {
+            module: owner,
+            function,
+            args,
+            ..
+        } if owner == "__receiver__" => {
+            let receiver = infer_type(args.first()?, variables, templates, module)?;
+            super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+                &receiver,
+                function,
+                args.len(),
+            )
+            .map(|(_, result)| result)
+        }
         CoreExpr::UnaryOp { operator, .. } if matches!(operator.as_str(), "not" | "!") => {
             Some(CoreType::Bool)
         }
@@ -131,7 +248,7 @@ pub(super) fn infer_type(
             infer_type(expr, variables, templates, module)
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if function.rsplit('.').next() == Some("unwrap") && args.len() == 1 =>
         {
             match infer_type(&args[0], variables, templates, module)? {
@@ -143,7 +260,7 @@ pub(super) fn infer_type(
                 _ => None,
             }
         }
-        CoreExpr::Call { function, args }
+        CoreExpr::Call { function, args, .. }
             if matches!(variables.get(function), Some(CoreType::Arrow { .. })) =>
         {
             let CoreType::Arrow {
@@ -155,52 +272,67 @@ pub(super) fn infer_type(
             };
             (params.len() == args.len()).then(|| return_type.as_ref().clone())
         }
-        CoreExpr::Call { function, args } => {
-            let candidates = callable_templates(templates, module, function, args.len())?;
-            let mut matched_return = None;
-            for template in candidates {
-                let mut values = HashMap::new();
-                let Ok(argument_types) =
-                    infer_generic_argument_types(template, args, variables, templates, module)
-                else {
-                    continue;
-                };
-                if template
-                    .params
-                    .iter()
-                    .zip(&argument_types)
-                    .any(|(parameter, argument)| {
-                        parameter.core_ty.as_ref().is_none_or(|expected| {
-                            unify(expected, argument, &template.generic_params, &mut values)
-                                .is_err()
-                        })
-                    })
-                {
-                    continue;
-                }
-                let result = substitute(
-                    template.core_return_type.as_ref()?,
-                    &template.generic_params,
-                    &values,
-                );
-                if matched_return
-                    .as_ref()
-                    .is_some_and(|prior| prior != &result)
-                {
-                    return None;
-                }
-                matched_return = Some(result);
-            }
-            matched_return.or_else(|| common_concrete_return_type(candidates))
-        }
+        CoreExpr::Call {
+            type_args,
+            function,
+            args,
+        } => infer_call_type(function, args, type_args, variables, templates, module),
         _ => None,
     }
+}
+
+fn infer_call_type(
+    function: &str,
+    args: &[CoreExpr],
+    type_args: &[CoreType],
+    variables: &HashMap<String, CoreType>,
+    templates: &CallableTemplates,
+    module: &str,
+) -> Option<CoreType> {
+    let candidates = callable_templates(templates, module, function, args.len())?;
+    let mut matched_return = None;
+    for template in candidates {
+        let Ok(mut values) = explicit_type_bindings(template, type_args) else {
+            continue;
+        };
+        let Ok(argument_types) =
+            infer_generic_argument_types(template, args, type_args, variables, templates, module)
+        else {
+            continue;
+        };
+        if template
+            .params
+            .iter()
+            .zip(&argument_types)
+            .any(|(parameter, argument)| {
+                parameter.core_ty.as_ref().is_none_or(|expected| {
+                    unify(expected, argument, &template.generic_params, &mut values).is_err()
+                })
+            })
+        {
+            continue;
+        }
+        let result = substitute(
+            template.core_return_type.as_ref()?,
+            &template.generic_params,
+            &values,
+        );
+        if matched_return
+            .as_ref()
+            .is_some_and(|prior| prior != &result)
+        {
+            return None;
+        }
+        matched_return = Some(result);
+    }
+    matched_return.or_else(|| common_concrete_return_type(candidates))
 }
 
 /// Resolves a checked bare function value from its contextual arrow arity.
 pub(super) fn named_callable_type(
     argument: &CoreExpr,
     expected: &CoreType,
+    variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
     module: &str,
 ) -> Option<CoreType> {
@@ -210,27 +342,56 @@ pub(super) fn named_callable_type(
     let CoreType::Arrow { params, .. } = expected else {
         return None;
     };
+    if let Some(ty) = variables.get(function) {
+        return matches!(ty, CoreType::Arrow { .. }).then(|| ty.clone());
+    }
     let candidates = callable_templates(templates, module, function, params.len())?;
-    let mut signatures = candidates.iter().filter_map(|candidate| {
-        let params = candidate
-            .params
-            .iter()
-            .map(|parameter| parameter.core_ty.clone())
-            .collect::<Option<Vec<_>>>()?;
-        let return_type = candidate.core_return_type.clone()?;
-        (!contains_generic_parameter(&return_type, &candidate.generic_params)
-            && params
-                .iter()
-                .all(|ty| !contains_generic_parameter(ty, &candidate.generic_params)))
-        .then(|| CoreType::Arrow {
-            params,
-            return_type: Box::new(return_type),
-        })
-    });
+    let mut signatures = candidates.iter().filter_map(concrete_callable_signature);
     let signature = signatures.next()?;
     signatures
         .all(|candidate| candidate == signature)
         .then_some(signature)
+}
+
+/// Recovers function values nested in aggregates only when their scoped name
+/// has one concrete signature; overloaded or open-generic values need context.
+fn unambiguous_callable_type(
+    function: &str,
+    templates: &CallableTemplates,
+    module: &str,
+) -> Option<CoreType> {
+    let name = if function.contains('.') {
+        function.to_string()
+    } else {
+        format!("{module}.{function}")
+    };
+    let mut candidates = templates
+        .range((name.clone(), 0)..=(name, usize::MAX))
+        .flat_map(|(_, candidates)| candidates);
+    let signature = concrete_callable_signature(candidates.next()?)?;
+    for candidate in candidates {
+        if concrete_callable_signature(candidate)? != signature {
+            return None;
+        }
+    }
+    Some(signature)
+}
+
+fn concrete_callable_signature(candidate: &CoreFunction) -> Option<CoreType> {
+    let params = candidate
+        .params
+        .iter()
+        .map(|parameter| parameter.core_ty.clone())
+        .collect::<Option<Vec<_>>>()?;
+    let return_type = candidate.core_return_type.clone()?;
+    (!contains_generic_parameter(&return_type, &candidate.generic_params)
+        && params
+            .iter()
+            .all(|ty| !contains_generic_parameter(ty, &candidate.generic_params)))
+    .then(|| CoreType::Arrow {
+        params,
+        return_type: Box::new(return_type),
+    })
 }
 
 fn contextual_lambda_type(
@@ -241,7 +402,7 @@ fn contextual_lambda_type(
     templates: &CallableTemplates,
     module: &str,
 ) -> Option<CoreType> {
-    let CoreExpr::Lam { params, body } = argument else {
+    let CoreExpr::Lam { params, body, .. } = argument else {
         return None;
     };
     let CoreType::Arrow {
@@ -288,20 +449,9 @@ fn infer_generic_argument_type(
             infer_generic_argument_type(expr, generic_params, variables, templates, module)
         }
         CoreExpr::List(items) if !items.is_empty() => {
-            let first = infer_generic_argument_type(
-                &items[0],
-                generic_params,
-                variables,
-                templates,
-                module,
-            )?;
-            items[1..]
-                .iter()
-                .all(|item| {
-                    infer_generic_argument_type(item, generic_params, variables, templates, module)
-                        == Some(first.clone())
-                })
-                .then(|| CoreType::List(Box::new(first)))
+            super::super::expression::homogeneous_list_type(items, |item| {
+                infer_generic_argument_type(item, generic_params, variables, templates, module)
+            })
         }
         CoreExpr::Tuple(items) => items
             .iter()
@@ -318,22 +468,30 @@ fn infer_generic_argument_type(
 pub(super) fn infer_generic_argument_types(
     template: &CoreFunction,
     arguments: &[CoreExpr],
+    type_args: &[CoreType],
     variables: &HashMap<String, CoreType>,
     templates: &CallableTemplates,
     module: &str,
 ) -> Result<Vec<CoreType>, String> {
-    let mut substitution = HashMap::new();
+    let mut substitution = explicit_type_bindings(template, type_args)?;
     let mut concrete = vec![None; arguments.len()];
 
-    // Function values carry more type information than literals and
-    // aggregates. Apply their checked signatures first so generic inference
+    // Function values and declared unions carry more type information than
+    // constructor literals. Apply their checked signatures first so inference
     // does not depend on source argument order or narrow a union to the one
     // constructor visible in a literal row.
     for (index, (parameter, argument)) in template.params.iter().zip(arguments).enumerate() {
         let expected = parameter.core_ty.as_ref().ok_or_else(|| {
             "error[native_ir.generic_signature]: generic parameter type is absent".to_string()
         })?;
-        let Some(inferred) = named_callable_type(argument, expected, templates, module) else {
+        let Some(inferred) = named_callable_type(argument, expected, variables, templates, module)
+            .or_else(|| {
+                infer_type(argument, variables, templates, module).filter(|ty| {
+                    matches!(ty, CoreType::Union(_))
+                        && !contains_generic_parameter(ty, &template.generic_params)
+                })
+            })
+        else {
             continue;
         };
         unify(
@@ -432,6 +590,31 @@ pub(super) fn infer_generic_argument_types(
         .into_iter()
         .collect::<Option<Vec<_>>>()
         .ok_or_else(|| "error[native_ir.generic_argument]: incomplete inference".to_string())
+}
+
+/// Binds declaration-order type arguments before contextual argument inference.
+pub(super) fn explicit_type_bindings(
+    template: &CoreFunction,
+    type_args: &[CoreType],
+) -> super::super::NativeIrResult<HashMap<String, CoreType>> {
+    if type_args.is_empty() {
+        return Ok(HashMap::new());
+    }
+    if type_args.len() != template.generic_params.len() {
+        return Err(format!(
+            "error[native_ir.generic_arity]: `{}` expects {} type arguments, found {}",
+            template.name,
+            template.generic_params.len(),
+            type_args.len(),
+        )
+        .into());
+    }
+    Ok(template
+        .generic_params
+        .iter()
+        .cloned()
+        .zip(type_args.iter().cloned())
+        .collect())
 }
 
 fn named_field_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {

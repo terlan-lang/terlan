@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 
-use crate::terlan_hir::{syntax_module_output_to_interface, ModuleInterface};
+use crate::terlan_hir::{parse_interface_text, ModuleInterface};
 use crate::terlan_syntax::{
     syntax_module_import_identities, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput,
 };
@@ -26,13 +26,6 @@ static DISCOVERY_CATALOGS: OnceLock<Mutex<HashMap<std::path::PathBuf, CachedDisc
 pub fn parse_interface_file(path: &Path) -> Option<(String, ModuleInterface)> {
     let content = fs::read_to_string(path).ok()?;
     parse_interface_text(&content)
-}
-
-fn parse_interface_text(content: &str) -> Option<(String, ModuleInterface)> {
-    let parsed = crate::terlan_syntax::parse_interface_module_as_syntax_output(content).ok()?;
-    let module_name = parsed.module_name.clone();
-    let interface = syntax_module_output_to_interface(&parsed);
-    Some((module_name, interface))
 }
 
 /// Parses dependency entries from an interface dependency manifest.
@@ -103,8 +96,9 @@ pub fn load_interfaces_from_file_set(file_path: &str) -> HashMap<String, ModuleI
 
 /// Loads interfaces that may expose one symbol for discovery operations.
 ///
-/// Project-local summaries are reparsed on every call because an editor may
-/// have just rebuilt them. Packaged summaries are text-filtered by identifier,
+/// Project-local summaries are reread on every call because an editor may
+/// have just rebuilt them; identical bytes share parsed results. Packaged
+/// summaries are text-filtered by identifier,
 /// parsed only when they can contain the requested symbol, and cached by a
 /// metadata-sealed catalog root.
 pub fn load_discovery_interfaces_for_symbol_from_file_set(

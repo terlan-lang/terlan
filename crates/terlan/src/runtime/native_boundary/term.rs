@@ -47,6 +47,8 @@ pub enum NativeBoundaryTerm {
     PostgresConfig(postgres::Config),
     /// Terlan list carrying bridge-stable element terms.
     List(Vec<NativeBoundaryTerm>),
+    /// Fixed-arity tuple fields, distinct from a homogeneous list.
+    Tuple(Vec<NativeBoundaryTerm>),
 }
 
 /// Stable reply shape returned by a NativeBoundary bridge call.
@@ -192,6 +194,9 @@ impl TermError {
 ///   preserving resource handle identity.
 pub fn encode_bridge_value(value: NativeBoundaryBridgeValue) -> NativeBoundaryTerm {
     match value {
+        NativeBoundaryBridgeValue::Tuple(values) => {
+            NativeBoundaryTerm::Tuple(values.into_iter().map(encode_bridge_value).collect())
+        }
         NativeBoundaryBridgeValue::Unit => NativeBoundaryTerm::Unit,
         NativeBoundaryBridgeValue::Text(value) => NativeBoundaryTerm::Text(value),
         NativeBoundaryBridgeValue::Bytes(value) => NativeBoundaryTerm::Bytes(value),
@@ -239,6 +244,9 @@ pub fn encode_bridge_value(value: NativeBoundaryBridgeValue) -> NativeBoundaryTe
 ///   fields and clones owned primitive payloads.
 pub fn decode_bridge_value(term: &NativeBoundaryTerm) -> NativeBoundaryBridgeValue {
     match term {
+        NativeBoundaryTerm::Tuple(values) => {
+            NativeBoundaryBridgeValue::Tuple(values.iter().map(decode_bridge_value).collect())
+        }
         NativeBoundaryTerm::Unit => NativeBoundaryBridgeValue::Unit,
         NativeBoundaryTerm::Text(value) => NativeBoundaryBridgeValue::Text(value.clone()),
         NativeBoundaryTerm::Bytes(value) => NativeBoundaryBridgeValue::Bytes(value.clone()),

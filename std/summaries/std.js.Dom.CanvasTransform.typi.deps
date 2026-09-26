@@ -1,8 +1,8 @@
 module=std.js.Dom.CanvasTransform
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13560513653268248770
-interface_hash=18295027744094261606
-interface_doc_hash=18295027744094261606
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=8776988735068127105
+interface_hash=9519872724280452859
+interface_doc_hash=9519872724280452859
 deps=0

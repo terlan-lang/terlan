@@ -39,7 +39,7 @@ pub(super) fn normalize_dynamic_callable_aliases(core: &mut CoreModule) {
 
 fn normalize_dynamic_alias_expr(expr: &mut CoreExpr, closures: &HashSet<String>) {
     match expr {
-        CoreExpr::Call { function, args } if closures.contains(function) => {
+        CoreExpr::Call { function, args, .. } if closures.contains(function) => {
             for argument in args.iter_mut() {
                 normalize_dynamic_alias_expr(argument, closures);
             }

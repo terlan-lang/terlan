@@ -1,8 +1,8 @@
 module=std.js.Dom.IDBValidKey
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4861549072421041497
-interface_hash=11628068597189649090
-interface_doc_hash=11628068597189649090
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3013787838072794624
+interface_hash=10495229593867040588
+interface_doc_hash=10495229593867040588
 deps=0

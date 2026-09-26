@@ -1,5 +1,6 @@
-use crate::support::statistics::percentile;
 //! Loopback server and request orchestration for the HTTP AOT benchmark.
+
+use crate::support::statistics::percentile;
 
 use std::env;
 use std::fs;
@@ -120,7 +121,6 @@ pub(super) fn median_throughput_round(rounds: &[HttpTiming]) -> Result<&HttpTimi
     ordered.sort_by_key(|timing| timing.throughput_requests_per_second);
     Ok(ordered[ordered.len() / 2])
 }
-
 
 /// Measures persistent HTTP/1.1 requests without connection setup per sample.
 pub(super) fn measure_keep_alive_requests(

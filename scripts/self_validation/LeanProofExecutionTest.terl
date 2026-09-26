@@ -7,8 +7,9 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.io.Console.{println}.
-import std.io.File.{read_text}.
 import std.system.{Environment, Process}.
+
+import type std.system.Process.{Command, Output}.
 
 environment_or(name: String, fallback: String): String ->
     case Environment.get(name) {
@@ -32,109 +33,57 @@ proof_path_is_safe(path: String): Bool ->
         and not String.contains(path, "..")
         and not String.contains(path, "\\").
 
+proof_command(root: String, proof_path: String): Command ->
+    let configured =
+        Process.command(child(root, "target/debug/terlan-quality"))
+            .with_arguments(["lean-proof-replay", String.append("proofs/lean/", proof_path)]);
+    configured.with_working_directory(root).with_timeout_ms(600000).with_output_limit_bytes(8388608).
+
+report_failure(message: String): Bool ->
+    let _reported = println(message);
+    false.
+
+proof_output_holds(output: Output): Bool ->
+    if {
+        Process.status(output) == 0 -> true;
+        true -> report_failure(
+            String.concat(
+                [
+                    "Lean proof failed with status ",
+                    Int.to_string(Process.status(output)),
+                    "\nstdout:\n",
+                    Process.stdout(output),
+                    "\nstderr:\n",
+                    Process.stderr(output),
+                ],
+            ),
+        )
+    }.
+
 proof_holds(root: String, proof_path: String): Bool ->
     if {
         not proof_path_is_safe(proof_path) -> false;
-        true -> let command =
-            Process.with_output_limit_bytes(
-                Process.with_timeout_ms(
-                    Process.with_environment(
-                        Process.with_working_directory(
-                            Process.with_arguments(
-                                Process.command("lake"),
-                                ["env", "lean", proof_path],
-                            ),
-                            child(root, "proofs/lean"),
-                        ),
-                        [Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")],
-                    ),
-                    600000,
-                ),
-                8388608,
-            );
-        case Process.run(command) {
-            Ok(output) ->
-                if {
-                    Process.status(output) == 0 -> true;
-                    true -> let _reported =
-                        println(
-                            String.concat(
-                                [
-                                    "Lean proof failed with status ",
-                                    Int.to_string(Process.status(output)),
-                                    "\nstdout:\n",
-                                    Process.stdout(output),
-                                    "\nstderr:\n",
-                                    Process.stderr(output),
-                                ],
-                            ),
-                        );
-                    false
-                };
+        true -> case Process.run(proof_command(root, proof_path)) {
+            Ok(output) -> proof_output_holds(output);
             Err(reason) ->
-                let _reported =
-                    println(
-                        String.concat(
-                            [
-                                "Lean proof process failed: ",
-                                Process.error_message(reason),
-                                " (program: ",
-                                Process.error_program(reason),
-                                ")",
-                            ],
-                        ),
-                    );
-                false
+                report_failure(
+                    String.concat(
+                        [
+                            "Lean proof process failed: ",
+                            Process.error_message(reason),
+                            " (program: ",
+                            Process.error_program(reason),
+                            ")",
+                        ],
+                    ),
+                )
         }
-    }.
-
-proof_repro_report(root: String): Bool ->
-    case read_text(child(root, "proofs/lean/ci/lean-proof-artifacts.tsv")) {
-        Ok(text) -> proof_repro_rows(String.split(text, "\n"), false, false);
-        Err(_reason) -> false
-    }.
-
-proof_repro_rows(lines: List[String], header_seen: Bool, current_seen: Bool): Bool ->
-    case lines {
-        [] -> header_seen and current_seen;
-        [line | rest] ->
-            if {
-                line == "" -> proof_repro_rows(rest, header_seen, current_seen);
-                not header_seen -> if {
-                    String.starts_with(line, "path\tstatus\t") -> proof_repro_rows(rest, true, current_seen);
-                    true -> false
-                };
-                true -> case String.split(line, "\t") {
-                    [path, status, _scope, _manifests, _exit, _stderr, digest, _replay, _remediation] ->
-                        if {
-                            status == "current" -> let _printed =
-                                println(
-                                    String.append(
-                                        "[proof-repro] ",
-                                        String.append(
-                                            path,
-                                            String.append(
-                                                " ",
-                                                String.append(digest, " reproducibility=pass"),
-                                            ),
-                                        ),
-                                    ),
-                                );
-                            proof_repro_rows(rest, true, true);
-                            true -> proof_repro_rows(rest, true, current_seen)
-                        };
-                    _ -> false
-                }
-            }
     }.
 
 @test
 pub selected_lean_task_holds(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_ROOT", ".");
-    if {
-        environment_or("TERLAN_LEAN_PROOF_TASK", "proof") == "proof-repro-report" -> proof_repro_report(root);
-        true -> proof_holds(root, environment_or("TERLAN_LEAN_PROOF_PATH", "parser_shape/ParserShape.lean"))
-    }.
+    proof_holds(root, environment_or("TERLAN_LEAN_PROOF_PATH", "parser_shape/ParserShape.lean")).
 
 @test
 pub proof_paths_cannot_escape_the_lean_workspace(): Bool ->

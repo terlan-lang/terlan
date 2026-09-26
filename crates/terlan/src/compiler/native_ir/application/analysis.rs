@@ -181,13 +181,7 @@ pub(super) fn recursive_reduction_component(
         }
     }
     let evidence = evidence?;
-    if evidence.component.is_empty()
-        || evidence.recursive_calls.is_empty()
-        || evidence
-            .recursive_calls
-            .iter()
-            .all(|edge| !edge.tail_position)
-    {
+    if evidence.component.is_empty() || evidence.recursive_calls.is_empty() {
         return None;
     }
     let component_names = evidence.component.iter().cloned().collect::<HashSet<_>>();
@@ -362,6 +356,13 @@ pub(super) fn application_resolvers(
                 let identity = (candidate.function.name.clone(), candidate.function.arity);
                 local_identities.insert(identity.clone());
                 resolved.insert(identity, Some(index));
+                // Generic clones qualify local calls to preserve source identity.
+                let qualified = (
+                    format!("{}.{}", core.module, candidate.function.name),
+                    candidate.function.arity,
+                );
+                local_identities.insert(qualified.clone());
+                resolved.insert(qualified, Some(index));
             }
             for (index, candidate) in candidates.iter().enumerate() {
                 if !selected[index]
@@ -470,7 +471,7 @@ pub(super) fn expr_calls_selected(
     selected: &HashSet<usize>,
 ) -> bool {
     match expr {
-        CoreExpr::Call { function, args } => {
+        CoreExpr::Call { function, args, .. } => {
             resolver
                 .get(&(function.clone(), args.len()))
                 .is_some_and(|index| selected.contains(index))

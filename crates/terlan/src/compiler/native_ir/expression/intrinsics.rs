@@ -12,6 +12,9 @@ use super::{
 };
 
 pub(super) fn infer_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
+    if matches!(call.id, CoreIntrinsicId::ErasedValueIs(_)) {
+        return Some(NativeType::Bool);
+    }
     boolean_intrinsics::infer_boolean_intrinsic_type(call)
         .or_else(|| memory_intrinsics::infer_memory_intrinsic_type(call))
         .or_else(|| bitstring_intrinsics::infer_bitstring_intrinsic_type(call))
@@ -61,27 +64,39 @@ pub(super) fn lower_intrinsic(
         return lowered;
     }
     match &call.id {
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ValueToString) => {
-            value_intrinsics::lower_value_to_string(
-                call,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            )
-        }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::BoolToString) => {
-            boolean_intrinsics::lower_boolean_intrinsic(
-                call,
-                params,
-                param_types,
-                functions,
-                function_types,
-                constructors,
-            )
-            .map_err(String::from)
-        }
+        CoreIntrinsicId::ErasedValueIs(_) => super::casts::lower_type_query(
+            call,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map_err(String::from),
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ValueToString | CorePrimitiveIntrinsic::AtomToString,
+        ) => value_intrinsics::lower_value_to_string(
+            call,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        ),
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::BoolEqual
+            | CorePrimitiveIntrinsic::BoolCompare
+            | CorePrimitiveIntrinsic::BoolToString
+            | CorePrimitiveIntrinsic::BoolFromString,
+        ) => boolean_intrinsics::lower_boolean_intrinsic(
+            call,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map_err(String::from),
         CoreIntrinsicId::Primitive(intrinsic)
             if bitstring_intrinsics::is_bitstring_intrinsic(intrinsic) =>
         {
@@ -198,7 +213,12 @@ pub(super) fn lower_intrinsic(
             )
         }
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringContains
+            CorePrimitiveIntrinsic::StringEqual
+            | CorePrimitiveIntrinsic::StringToString
+            | CorePrimitiveIntrinsic::StringFromString
+            | CorePrimitiveIntrinsic::StringUppercase
+            | CorePrimitiveIntrinsic::StringReverse
+            | CorePrimitiveIntrinsic::StringContains
             | CorePrimitiveIntrinsic::StringCompare
             | CorePrimitiveIntrinsic::StringIsEmpty
             | CorePrimitiveIntrinsic::StringAppend

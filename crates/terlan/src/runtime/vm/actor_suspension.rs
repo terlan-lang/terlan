@@ -660,6 +660,27 @@ impl VmActorRuntime {
         )
     }
 
+    /// Terminates an exact continuation owner without discarding its typed error.
+    pub(crate) fn service_native_typed_failure(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        boundary_type: crate::runtime::native_image::TvmBoundaryType,
+        value: super::ReplValue,
+    ) -> crate::runtime::vm::VmRuntimeResult<Vec<String>> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        self.exit_actor(
+            owner,
+            VmExitReason::TypedError {
+                boundary_type,
+                value: Box::new(value),
+            },
+        )
+        .map_err(Into::into)
+    }
+
     /// Reclassifies an exact native owner before resuming it through the scheduler.
     pub(crate) fn service_native_scheduling(
         &mut self,

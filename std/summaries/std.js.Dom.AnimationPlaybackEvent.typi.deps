@@ -1,8 +1,8 @@
 module=std.js.Dom.AnimationPlaybackEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=13655723118480270949
-interface_hash=13472622418997757315
-interface_doc_hash=13472622418997757315
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14789347456240977513
+interface_hash=13202214877375202719
+interface_doc_hash=13202214877375202719
 deps=0

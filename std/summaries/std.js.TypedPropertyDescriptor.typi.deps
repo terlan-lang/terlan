@@ -1,8 +1,8 @@
 module=std.js.TypedPropertyDescriptor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=4605718352289793873
-interface_hash=5026086358826941630
-interface_doc_hash=5026086358826941630
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=17824411863612623280
+interface_hash=9154523530434077289
+interface_doc_hash=9154523530434077289
 deps=0

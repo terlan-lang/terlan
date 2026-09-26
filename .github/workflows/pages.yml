@@ -18,6 +18,7 @@ on:
       - "tools/web-toolchain/package.json"
       - "tools/web-toolchain/package-lock.json"
       - ".github/actions/setup-rust/**"
+      - ".github/actions/setup-native-dependencies/**"
       - ".github/workflows/pages.yml"
 
 permissions:
@@ -40,7 +41,9 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install --yes libpq-dev pkg-config
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust

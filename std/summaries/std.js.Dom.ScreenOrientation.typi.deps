@@ -1,8 +1,8 @@
 module=std.js.Dom.ScreenOrientation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=17094351389612518714
-interface_hash=9511170788023960785
-interface_doc_hash=9511170788023960785
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=358050991938481179
+interface_hash=3328669737246117341
+interface_doc_hash=3328669737246117341
 deps=0

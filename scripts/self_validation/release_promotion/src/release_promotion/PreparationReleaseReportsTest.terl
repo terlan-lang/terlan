@@ -1,0 +1,168 @@
+/**
+ * Production three-owner graph with real Cargo and report composers.
+ * Fixture admission documents do not certify hosted or sanitizer execution.
+ */
+module release_promotion.PreparationReleaseReportsTest.
+
+import release_promotion.{OwnerStorage, PreparationAotTest, PreparationCandidateTest, PreparationGraph, PrepareReleaseReports}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.{Console, Directory, File}.
+import std.vcs.Git.
+
+import type std.data.Json.
+
+stage(root: String, label: String): Bool ->
+    let _printed = Console.println(label);
+    PrepareReleaseReports.run_locked(root, "target/tools/terlan-vm", "target/tools/matrix.tvm").
+
+record(root: String, outcome: String, completed: Int, reused: Int, calls: String): Bool ->
+    let {
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(document) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(
+                    root,
+                    PreparationGraph.ledger_path(Git.revision(identity), "release-reports"),
+                ),
+            );
+        Some(actual_outcome) <- OwnerStorage.text(document, "outcome");
+        Ok(completed_value) <- document.get("completed_owners");
+        Ok(actual_completed) <- completed_value.as_int();
+        Ok(reused_value) <- document.get("reused_owners");
+        Ok(actual_reused) <- reused_value.as_int();
+        Ok(actual_calls) <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
+        _ -> false
+    };
+    outcome == actual_outcome
+        and completed == actual_completed
+        and reused == actual_reused
+        and calls == actual_calls.
+
+path_count(rows: Json, path: String, index: Int, count: Int): Int ->
+    if {
+        index == count -> 0;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Some(actual) <- OwnerStorage.text(row, "path")
+        } else {
+            _ -> -100
+        };
+        (let rest = path_count(rows, path, index + 1, count);
+if {
+    actual == path -> rest + 1;
+    true -> rest
+})
+    }.
+
+bound_parent(root: String): Bool ->
+    let {
+        Ok(identity) <- Git.source_tree_identity(root);
+        Ok(ledger) <-
+            OwnerStorage.read_json(
+                OwnerStorage.child(
+                    root,
+                    String.concat(
+                        [
+                            "target/quality/preparation/",
+                            Git.revision(identity),
+                            "/aot-release-record.json",
+                        ],
+                    ),
+                ),
+            );
+        Ok(inputs) <- ledger.get("inputs");
+        Ok(dependencies) <- inputs.get("dependencies");
+        Ok(count) <- dependencies.length()
+    } else {
+        _ -> false
+    };
+    count == 7
+        and path_count(dependencies, "target/quality/tvm-managed-list-profile.json", 0, count) == 1
+        and path_count(
+    dependencies,
+    String.concat(
+        ["target/quality/preparation/", Git.revision(identity), "/managed-list-profile.json"],
+    ),
+    0,
+    count,
+) == 1
+        and path_count(
+    dependencies,
+    String.concat(
+        [
+            "target/quality/preparation/",
+            Git.revision(identity),
+            "/managed-list-profile.native.jsonl",
+        ],
+    ),
+    0,
+    count,
+) == 1.
+
+exercise(root: String, origin: String, vm: String, image: String): Bool ->
+    let aot = OwnerStorage.child(root, "target/quality/tvm-aot-release-closeout-report.json");
+    let multicore = OwnerStorage.child(root, "target/quality/vm-multicore-release-closeout.json");
+    let sanitizer = OwnerStorage.child(root, "target/quality/tvm-aot-thread-sanitizer-report.json");
+    let {
+        true <- PreparationCandidateTest.fixture(root);
+        true <- PreparationAotTest.fixture(root, origin, vm, image);
+        Err(_unsafe) <- PrepareReleaseReports.declare(root, "../outside-vm", "target/tools/matrix.tvm");
+        true <- stage(root, "[release reports rehearsal] cold graph");
+        true <- record(root, "pass", 3, 0, "run\n") and bound_parent(root);
+        Ok(first_aot) <- File.read_text(aot);
+        Ok(first_multicore) <- File.read_text(multicore);
+        true <- stage(root, "[release reports rehearsal] unchanged warm graph");
+        true <- record(root, "pass", 0, 3, "run\n");
+        Ok(warm_aot) <- File.read_text(aot);
+        Ok(warm_multicore) <- File.read_text(multicore);
+        true <- first_aot == warm_aot and first_multicore == warm_multicore;
+        Ok(_invalid) <- File.write_text(sanitizer, "{\"decision\":\"fail\"}\n");
+        false <- stage(root, "[release reports rehearsal] failed AOT evidence (expected rejection)");
+        true <- record(root, "failed", 0, 2, "run\n");
+        Ok(retained) <- File.read_text(aot);
+        true <- retained == first_aot;
+        Ok(_removed) <- File.delete(sanitizer);
+        true <- stage(root, "[release reports rehearsal] resume only the AOT owner");
+        true <- record(root, "pass", 1, 2, "run\n");
+        Ok(_interrupt) <- File.write_text(OwnerStorage.child(root, "target/interrupt"), "kill producer");
+        Ok(_attempt) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/hosted-candidate-validation.json"),
+                "{\"schema\":\"fixture.hosted.v1\",\"attempt\":2}\n",
+            );
+        false <- stage(root, "[release reports rehearsal] killed managed owner (expected rejection)");
+        true <- record(root, "failed", 0, 0, "run\nrun\n");
+        Ok(prior_aot) <- File.read_text(aot);
+        Ok(prior_multicore) <- File.read_text(multicore);
+        true <- prior_aot == first_aot and prior_multicore == first_multicore;
+        Ok(_cleared) <- File.delete(OwnerStorage.child(root, "target/interrupt"));
+        true <- stage(root, "[release reports rehearsal] resume changed attempt");
+        true <- record(root, "pass", 3, 0, "run\nrun\nrun\n") and bound_parent(root);
+        Ok(final_aot) <- File.read_text(aot);
+        Ok(final_multicore) <- File.read_text(multicore)
+    } else {
+        _ -> false
+    };
+    first_aot == final_aot and first_multicore == final_multicore.
+
+pub self_test(origin: String, vm: String, image: String): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-release-reports-rehearsal-") else {
+        _ -> false
+    };
+    (let valid = exercise(root, origin, vm, image);
+let removed =
+    case Directory.remove_all(root) {
+        Ok(_removed) -> true;
+        _ -> false
+    };
+let _printed =
+    Console.println(
+        if {
+            valid and removed -> "release reports graph rehearsal passed: cold, warm, dependency binding, selective failure, killed producer and recovery";
+            true -> "release reports graph rehearsal failed"
+        },
+    );
+valid and removed).

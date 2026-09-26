@@ -1,5 +1,6 @@
 //! Structured C++ metadata to generated `cxx` package bindings.
 
+mod error;
 mod generator;
 
 #[cfg(test)]

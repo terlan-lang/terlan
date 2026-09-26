@@ -28,8 +28,14 @@ fn sealing_is_deterministic_and_excludes_workspace_outputs() {
     );
     assert_eq!(request.package_version.license, "Apache-2.0 OR MIT");
     assert_eq!(request.package_version.links[0].name, "terlan.org");
-    assert_eq!(request.package_version.built_with, "terlan-0.0.8");
-    assert_eq!(request.package_version.requires_terlan, ">=0.0.8, <0.1.0");
+    assert_eq!(
+        request.package_version.built_with,
+        format!("terlan-{}", env!("CARGO_PKG_VERSION"))
+    );
+    assert_eq!(
+        request.package_version.requires_terlan,
+        format!(">={}, <0.1.0", env!("CARGO_PKG_VERSION"))
+    );
     assert_eq!(
         request.package_version.source_identity.kind,
         SourceIdentityKind::ArtifactSet

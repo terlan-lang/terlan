@@ -1,5 +1,20 @@
 use crate::terlan_typeck::Type;
 
+/// Returns the element of an intrinsic or exact standard-library list type.
+/// This bridges portable native results without erasing user nominal identity,
+/// accepting wrong constructor arity, or weakening element-type unification.
+pub(super) fn portable_list_element(ty: &Type) -> Option<&Type> {
+    match ty {
+        Type::List(element) => Some(element),
+        Type::Named {
+            module: Some(module),
+            name,
+            args,
+        } if module == "std.collections.List" && name == "List" && args.len() == 1 => args.first(),
+        _ => None,
+    }
+}
+
 /// Checks whether a type denotes Terlan's canonical Unit type.
 ///
 /// Inputs:

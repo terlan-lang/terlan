@@ -1,8 +1,8 @@
 module=std.js.Dom.WakeLock
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12219344970892643073
-interface_hash=16269220989495973434
-interface_doc_hash=16269220989495973434
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16282867606919243618
+interface_hash=5022946916285733886
+interface_doc_hash=5022946916285733886
 deps=0

@@ -8,6 +8,25 @@ use crate::terlan_typeck::{CorePattern, CoreTupleTypeElem, CoreType};
 #[path = "pattern_types_test.rs"]
 mod tests;
 
+/// Enters a lambda's lexical scope, hiding outer names even when parameter
+/// inference is deferred. Known annotations then restore only checked types.
+pub(in crate::compiler::native_ir) fn lambda_type_scope(
+    params: &[CorePattern],
+    parameter_types: &[Option<CoreType>],
+    variables: &HashMap<String, CoreType>,
+) -> HashMap<String, CoreType> {
+    let mut locals = variables.clone();
+    for (index, pattern) in params.iter().enumerate() {
+        for name in super::super::expression::free_variable_analysis::pattern_bound_names(pattern) {
+            locals.remove(&name);
+        }
+        if let Some(Some(ty)) = parameter_types.get(index) {
+            bind_pattern_types(pattern, ty, &mut locals);
+        }
+    }
+    locals
+}
+
 pub(in crate::compiler::native_ir) fn bind_pattern_types(
     pattern: &CorePattern,
     ty: &CoreType,

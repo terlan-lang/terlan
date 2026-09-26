@@ -1,8 +1,8 @@
 module=std.js.Dom.ToggleEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16906996006926253445
-interface_hash=4896496668053670886
-interface_doc_hash=4896496668053670886
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=9884131666186526025
+interface_hash=1705231218811401556
+interface_doc_hash=1705231218811401556
 deps=0

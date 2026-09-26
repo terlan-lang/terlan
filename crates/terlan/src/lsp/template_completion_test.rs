@@ -1,8 +1,9 @@
 use super::*;
 use crate::terlan_lsp::document::OpenDocuments;
+use std::str::FromStr;
 
 fn completion_fixture(body: &str, marker: &str) -> Vec<CompletionItem> {
-    let uri = Url::parse("file:///tmp/card.terl.html").expect("template URI");
+    let uri = Uri::from_str("file:///tmp/card.terl.html").expect("template URI");
     let documents = OpenDocuments::default();
     documents.open(
         uri.clone(),
@@ -113,7 +114,7 @@ fn completion_is_empty_without_declared_template_params() {
 
 #[test]
 fn malformed_interpolation_preserves_exact_opening_span() {
-    let uri = Url::parse("file:///tmp/card.terl.html").expect("template URI");
+    let uri = Uri::from_str("file:///tmp/card.terl.html").expect("template URI");
     let documents = OpenDocuments::default();
     let source = "<main>\n  ${title\n</main>";
     documents.open(

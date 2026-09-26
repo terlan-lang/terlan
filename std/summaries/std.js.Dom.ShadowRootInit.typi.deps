@@ -1,8 +1,8 @@
 module=std.js.Dom.ShadowRootInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=9353364135657536579
-interface_hash=4236854646041105996
-interface_doc_hash=4236854646041105996
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12905061813109070829
+interface_hash=18207382255016572716
+interface_doc_hash=18207382255016572716
 deps=0

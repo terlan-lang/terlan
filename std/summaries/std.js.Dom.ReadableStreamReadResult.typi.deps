@@ -1,8 +1,8 @@
 module=std.js.Dom.ReadableStreamReadResult
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=2881145819745711431
-interface_hash=12932500677334331175
-interface_doc_hash=12932500677334331175
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=15341423378053867484
+interface_hash=10312682984764729124
+interface_doc_hash=10312682984764729124
 deps=0

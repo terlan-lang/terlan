@@ -1,8 +1,8 @@
 module=std.js.Dom.DecodeErrorCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3114895836902471756
-interface_hash=15647329686239621371
-interface_doc_hash=15647329686239621371
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=4797035794983558779
+interface_hash=10889852030295460678
+interface_doc_hash=10889852030295460678
 deps=0

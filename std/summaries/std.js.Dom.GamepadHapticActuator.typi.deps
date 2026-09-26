@@ -1,8 +1,8 @@
 module=std.js.Dom.GamepadHapticActuator
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1792634995816636698
-interface_hash=13297541238177642140
-interface_doc_hash=13297541238177642140
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12559886542633338114
+interface_hash=2752978707954311710
+interface_doc_hash=2752978707954311710
 deps=0

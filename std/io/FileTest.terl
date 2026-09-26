@@ -164,17 +164,17 @@ pub copy_preserves_binary_contents_and_executable_marker(): Bool ->
     let source_removed = delete(source);
     let destination_removed = delete(destination);
     case {
-    written,
-    executable,
-    copied,
-    contents,
-    rewritten,
-    overwrite,
-    preserved,
-    destination_executable,
-    source_removed,
-    destination_removed,
-} {
+        written,
+        executable,
+        copied,
+        contents,
+        rewritten,
+        overwrite,
+        preserved,
+        destination_executable,
+        source_removed,
+        destination_removed,
+    } {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok("copied"), Ok(Unit), Err(_reason), Ok("copied"), Ok(true), Ok(Unit), Ok(Unit)} ->
             true;
         _ -> false
@@ -204,17 +204,17 @@ pub copy_many_creates_parents_and_preserves_ordered_files(): Bool ->
     let second_removed = delete(second_source);
     let tree_removed = remove_all(root);
     case {
-    first_written,
-    second_written,
-    executable,
-    copied,
-    first,
-    second,
-    second_executable,
-    first_removed,
-    second_removed,
-    tree_removed,
-} {
+        first_written,
+        second_written,
+        executable,
+        copied,
+        first,
+        second,
+        second_executable,
+        first_removed,
+        second_removed,
+        tree_removed,
+    } {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok("first"), Ok("second"), Ok(true), Ok(Unit), Ok(Unit), Ok(Unit)} ->
             true;
         _ -> false
@@ -369,13 +369,13 @@ pub read_text_tree_matching_returns_a_sorted_bounded_page(): Bool ->
 @test
 pub read_text_tree_matching_rejects_a_zero_page_limit(): Bool ->
     case read_text_tree_matching(
-    "target/terlan-file-matching-page-test",
-    List.new[String](),
-    [".terl"],
-    List.new[String](),
-    0,
-    0,
-) {
+        "target/terlan-file-matching-page-test",
+        List.new[String](),
+        [".terl"],
+        List.new[String](),
+        0,
+        0,
+    ) {
         Err(_) -> true;
         _ -> false
     }.

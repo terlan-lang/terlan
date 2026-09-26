@@ -1,8 +1,8 @@
 module=std.js.Dom.CookieChangeEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3763319971363712693
-interface_hash=8594515550810498511
-interface_doc_hash=8594515550810498511
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=14139634300014910357
+interface_hash=3587494971839031832
+interface_doc_hash=3587494971839031832
 deps=0

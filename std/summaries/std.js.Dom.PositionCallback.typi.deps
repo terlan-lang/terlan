@@ -1,8 +1,8 @@
 module=std.js.Dom.PositionCallback
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=18289297564071079941
-interface_hash=4938612479724369164
-interface_doc_hash=4938612479724369164
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16147126029392424072
+interface_hash=13929870841941770306
+interface_doc_hash=13929870841941770306
 deps=0

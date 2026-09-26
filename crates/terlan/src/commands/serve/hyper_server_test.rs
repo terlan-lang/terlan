@@ -292,6 +292,11 @@ fn websocket_hub_evicts_oldest_fully_disconnected_room_at_capacity() {
     )
     .expect("newest retained room remains restorable");
 }
+#[path = "hyper_server_mtls_test.rs"]
+mod mtls;
+
+#[path = "hyper_server_tls_transport_test.rs"]
+mod tls_transport;
 
 #[test]
 fn protocol_errors_are_hyper_responses() {
@@ -380,7 +385,7 @@ fn vm_owned_tls_serves_http2_selected_by_rustls_alpn() {
             .expect("bind protocol listener");
     let mut server = start_protocol_tasks_with_topology(
         listener,
-        tls_io::factory(
+        tls_factory(
             root.clone(),
             server_config,
             crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
@@ -442,7 +447,7 @@ fn vm_owned_tls_serves_http1_on_upgrade_capable_path() {
             .expect("bind protocol listener");
     let mut server = start_protocol_tasks_with_topology(
         listener,
-        tls_io::factory(
+        tls_factory(
             root.clone(),
             server_config,
             crate::commands::serve::args::DEFAULT_MAX_BODY_BYTES,
@@ -528,16 +533,7 @@ impl Read for BlockingTlsIo {
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => return Poll::Pending,
             Err(error) => return Poll::Ready(Err(error)),
         };
-        // SAFETY: the blocking read initialized `read` bytes and the cursor
-        // advertised at least that much remaining capacity.
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                cursor.as_mut().as_mut_ptr().cast::<u8>(),
-                read,
-            );
-            cursor.advance(read);
-        }
+        cursor.put_slice(&bytes[..read]);
         Poll::Ready(Ok(()))
     }
 }

@@ -1,8 +1,8 @@
 module=std.js.Intl.DateTimeFormatOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=15055467269913434509
-interface_hash=15575502888534325163
-interface_doc_hash=15575502888534325163
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6954328192409364745
+interface_hash=3748924556121477964
+interface_doc_hash=3748924556121477964
 deps=0

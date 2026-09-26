@@ -4,7 +4,8 @@
     "tests/language/LanguageFeatureCoverageTest.terl",
     "tests/operator/OperatorCoverageTest.terl",
     "tests/pattern/PatternMatchingTest.terl",
-    "tests/comparison/ComparisonTest.terl"
+    "tests/comparison/ComparisonTest.terl",
+    "std/core/UnitTest.terl"
   ],
   "features": [
     {
@@ -193,7 +194,7 @@
       "positive_tests": ["lambda_and_closure_execute", "lambda_variable_pattern_binds_argument"],
       "adversarial_tests": [],
       "source_fragments": [
-        "crates/terlan/src/compiler/typeck/core_ir.rs::CoreExpr::Lam { params, body }",
+        "crates/terlan/src/compiler/typeck/core_expr_lowering/lambda.rs::Some(CoreExpr::Lam {",
         "crates/terlan/src/compiler/native_ir/closure_conversion.rs::pub(super) fn lower_escaping_lambda"
       ]
     },
@@ -456,9 +457,12 @@
       "js": "partial",
       "lsp": "supported",
       "diagnostic": "native_ir.unresolved_call",
-      "positive_tests": [],
+      "positive_tests": [
+        "ordering_trait_accepts_singleton_values"
+      ],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/native_ir/application_admission_test.rs::unresolved_trait_impl_dispatch_has_stable_prelink_diagnostic"
+        "crates/terlan/src/compiler/native_ir/application_admission_test.rs::missing_trait_impl_dispatch_has_stable_prelink_diagnostic",
+        "crates/terlan/src/compiler/native_ir/application/overloads_test.rs::concrete_trait_calls_reject_wrong_types_and_duplicate_candidates"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::pub struct TraitDecl",

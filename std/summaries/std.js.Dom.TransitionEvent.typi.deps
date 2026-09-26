@@ -1,8 +1,8 @@
 module=std.js.Dom.TransitionEvent
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16768464868225455909
-interface_hash=280128746603020278
-interface_doc_hash=280128746603020278
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=3879391426920649085
+interface_hash=3793463776510903736
+interface_doc_hash=3793463776510903736
 deps=0

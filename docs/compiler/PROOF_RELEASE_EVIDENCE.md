@@ -1,6 +1,6 @@
 # Proof Release Evidence
 
-Terlan 0.0.7 uses one local, content-addressed proof evidence manifest. It
+Terlan uses one local, content-addressed proof evidence manifest. It
 links every proof-current roadmap slice to its Lean families, theorem IDs,
 compiler inputs, runtime lane, standard-library test lane, and candidate ID.
 
@@ -21,15 +21,27 @@ The minimal replay corpus is the family list in
 metadata remains the source of truth; the release evidence layer does not copy
 or reinterpret Lean semantics.
 
-Intentional semantic changes are reviewed by running:
+Generated reports live under ignored `target/quality/proof-artifacts`. Historical
+reports checked into `build/artifacts` are neither inputs to current validation
+nor outputs of preparation. The accepted policy baseline remains a reviewed
+source file at `proofs/lean/release_evidence/baseline.json`.
+
+Propose an intentional baseline change without modifying that source file:
 
 ```bash
 make terlan-self-validation-bootstrap
 TERLAN_PROOF_RELEASE_ROOT="$PWD" \
   target/debug/terlan-vm run \
   target/self-validation/proof-release-evidence/vm/scripts_ProofReleaseEvidence.tvm \
-  --script-eval -- record-baseline
+  --script-eval -- propose-baseline
 ```
+
+Review `target/quality/proof-artifacts/proof-release-baseline-proposal.json`
+against the accepted baseline and inspect the slice changes reported in
+`proof-release-evidence-diff.json`. Apply only explained changes after the
+affected proofs and runtime oracles pass, then rerun closeout. The explicit
+`record-baseline` maintenance command remains available for an already reviewed
+change; it must not be part of automatic preparation or publication.
 
 The normal closeout gate never updates the baseline. Missing proofs, stale
 inputs, duplicate events, mismatched lanes, malformed schemas, candidate drift,

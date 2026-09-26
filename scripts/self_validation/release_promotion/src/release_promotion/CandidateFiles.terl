@@ -1,0 +1,238 @@
+/**
+ * Deterministic file selection shared by candidate sealing and owner inputs.
+ * Failed traversal cannot stand in for a successful empty inventory.
+ */
+module release_promotion.CandidateFiles.
+
+import std.collections.List.
+import std.core.Ordering.Lt.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Directory.
+
+import type std.core.Result.
+
+/**
+ * Joins the release root and a repository-relative path.
+ */
+@pure
+pub child(parent: String, relative: String): String ->
+    if {
+        parent == "" or parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.concat([parent, "/", relative])
+    }.
+
+/**
+ * Selects the last slash-separated archive name.
+ */
+@pure
+pub basename(path: String): String ->
+    path
+    |> String.split("/")
+    |> basename_parts("").
+
+@pure
+basename_parts(parts: List[String], output: String): String ->
+    case parts {
+        [] -> output;
+        [part | rest] -> basename_parts(rest, part)
+    }.
+
+@pure
+relative(root: String, path: String): String ->
+    let prefix =
+        if {
+            String.ends_with(root, "/") -> root;
+            true -> String.append(root, "/")
+        };
+    if {
+        String.starts_with(path, prefix) -> path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
+        true -> path
+    }.
+
+@pure
+archive_name(name: String): Bool ->
+    String.starts_with(name, "terlc-")
+        and (String.ends_with(name, ".tar.gz") or String.ends_with(name, ".zip")).
+
+/**
+ * Selects supported archives directly inside dist.
+ */
+pub release_archives(root: String): Result[List[String], String] ->
+    let directory = child(root, "dist");
+    case Directory.files_recursive_excluding(directory, []) {
+        Err(reason) -> Err(Directory.message(reason));
+        Ok(entries) -> Ok(release_archives_at(root, entries, List.new[String]()))
+    }.
+
+@pure
+release_archives_at(root: String, paths: List[String], output: List[String]): List[String] ->
+    case paths {
+        [] -> sort_unique(output);
+        [path | rest] ->
+            release_archives_at(
+                root,
+                rest,
+                (let item = relative(root, path);
+if {
+    archive_name(basename(path)) and direct_dist_path(item) -> [item | output];
+    true -> output
+}),
+            )
+    }.
+
+/**
+ * Includes archive bytes and their checksum sidecars.
+ */
+@pure
+pub release_assets(archives: List[String], output: List[String]): List[String] ->
+    case archives {
+        [] -> sort_unique(output);
+        [archive | rest] ->
+            release_assets(rest, [String.append(archive, ".sha256") | [archive | output]])
+    }.
+
+@pure
+direct_dist_path(path: String): Bool ->
+    if {
+        not String.starts_with(path, "dist/") -> false;
+        true -> let suffix = path.utf8_slice(5, path.byte_size() - 5);
+        not String.contains(suffix, "/")
+    }.
+
+@pure
+insert_sorted(value: String, values: List[String]): List[String] ->
+    case values {
+        [] -> [value];
+        [head | rest] ->
+            if {
+                value == head -> values;
+                String.compare(value, head) == Lt -> [value | values];
+                true -> [head | insert_sorted(value, rest)]
+            }
+    }.
+
+@pure
+sort_unique_at(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> sort_unique_at(rest, insert_sorted(value, output))
+    }.
+
+/**
+ * Returns unique, deterministically ordered paths.
+ */
+@pure
+pub sort_unique(values: List[String]): List[String] ->
+    sort_unique_at(values, List.new[String]()).
+
+@pure
+reverse_onto(values: List[String], tail: List[String]): List[String] ->
+    case values {
+        [] -> tail;
+        [head | rest] -> reverse_onto(rest, [head | tail])
+    }.
+
+@pure
+merge_at(left: List[String], right: List[String], output: List[String]): List[String] ->
+    case {left, right} {
+        {[], tail} -> reverse_onto(output, tail);
+        {tail, []} -> reverse_onto(output, tail);
+        {[first | rest], [second | remaining]} ->
+            if {
+                first == second -> merge_at(rest, remaining, [first | output]);
+                String.compare(first, second) == Lt -> merge_at(rest, right, [first | output]);
+                true -> merge_at(left, remaining, [second | output])
+            }
+    }.
+
+/**
+ * Merges already sorted, unique inventories in linear time, deduplicating overlap.
+ * Git and filesystem enumeration supply ordered paths; they need no resorting.
+ */
+@pure
+pub merge_unique(left: List[String], right: List[String]): List[String] ->
+    merge_at(left, right, []).
+
+/**
+ * Covers both merge directions and a production-sized unchanged inventory.
+ */
+pub merge_self_test(paths: List[String]): Bool ->
+    merge_unique(["a", "c"], ["b", "c", "d"]) == ["a", "b", "c", "d"]
+        and merge_unique([], paths) == paths
+        and merge_unique(paths, []) == paths
+        and merge_unique(paths, paths) == paths.
+
+@pure
+excluded(path: String): Bool ->
+    String.contains(path, "/.git/")
+        or String.contains(path, "/.lake/")
+        or String.contains(path, "/__pycache__/")
+        or String.contains(path, "/node_modules/")
+        or String.contains(path, "/target/").
+
+/**
+ * Selects component files without dependency or build directories.
+ */
+pub directory_files(root: String, relative_directory: String): Result[List[String], String] ->
+    case Directory.files_recursive_excluding(
+    child(root, relative_directory),
+    [".git", ".lake", "__pycache__", "node_modules", "target"],
+) {
+        Err(reason) -> Err(Directory.message(reason));
+        Ok(files) -> Ok(sort_unique(relative_paths(root, files, List.new[String]())))
+    }.
+
+@pure
+relative_paths(root: String, files: List[String], output: List[String]): List[String] ->
+    case files {
+        [] -> output;
+        [path | rest] ->
+            let item = relative(root, path);
+            relative_paths(
+                root,
+                rest,
+                if {
+                    excluded(path) -> output;
+                    true -> [item | output]
+                },
+            )
+    }.
+
+/**
+ * Selects benchmark evidence with the requested suffixes.
+ */
+pub matching_files(root: String, base: String, suffixes: List[String]): Result[List[String], String] ->
+    case Directory.files_recursive_excluding(child(root, base), ["target", ".git"]) {
+        Err(reason) -> Err(Directory.message(reason));
+        Ok(files) -> Ok(matching_files_at(root, files, suffixes, List.new[String]()))
+    }.
+
+@pure
+matching_files_at(
+    root: String,
+    files: List[String],
+    suffixes: List[String],
+    output: List[String],
+): List[String] ->
+    case files {
+        [] -> sort_unique(output);
+        [path | rest] ->
+            matching_files_at(
+                root,
+                rest,
+                suffixes,
+                if {
+                    has_suffix(path, suffixes) -> [relative(root, path) | output];
+                    true -> output
+                },
+            )
+    }.
+
+@pure
+has_suffix(path: String, suffixes: List[String]): Bool ->
+    case suffixes {
+        [] -> false;
+        [suffix | rest] -> String.ends_with(path, suffix) or has_suffix(path, rest)
+    }.

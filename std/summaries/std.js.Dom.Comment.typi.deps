@@ -1,8 +1,8 @@
 module=std.js.Dom.Comment
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3034179493966500043
-interface_hash=5768564255245930123
-interface_doc_hash=5768564255245930123
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=6082410716464662170
+interface_hash=7992256620435689269
+interface_doc_hash=7992256620435689269
 deps=0

@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use crate::runtime::native_image::managed::encode_atom_to_string_operation;
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic};
 
 use super::{
@@ -9,8 +10,8 @@ use super::{
     lower_expr_with_constructors, NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
-/// Lowers the source-level `String(value)` constructor through an existing,
-/// representation-specific scalar operation.
+/// Lowers `String(value)` and `Atom.to_string` through representation-specific
+/// operations. Atom conversion only reads this image's finite atom inventory.
 pub(super) fn lower_value_to_string(
     call: &CoreIntrinsicCall,
     params: &HashMap<String, usize>,
@@ -21,11 +22,13 @@ pub(super) fn lower_value_to_string(
 ) -> Result<NativeExpr, String> {
     if !matches!(
         call.id,
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ValueToString)
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::ValueToString | CorePrimitiveIntrinsic::AtomToString
+        )
     ) || call.args.len() != 1
     {
         return Err(
-            "error[native_ir.value_to_string]: String(value) requires exactly one value"
+            "error[native_ir.value_to_string]: string conversion requires exactly one value"
                 .to_string(),
         );
     }
@@ -38,6 +41,16 @@ pub(super) fn lower_value_to_string(
         })?;
 
     match argument_type {
+        unsupported if call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::AtomToString)
+            && unsupported != NativeType::Atom => Err(format!(
+                "error[native_ir.value_to_string]: Atom.to_string requires an atom, found {unsupported:?}"
+            )),
+        NativeType::Atom => Ok(NativeExpr::ManagedOperation {
+            encoded: encode_atom_to_string_operation().into(),
+            args: vec![lower_expr_with_constructors(
+                &call.args[0], params, param_types, functions, function_types, constructors,
+            )?],
+        }),
         NativeType::Int => integer_intrinsics::lower_integer_intrinsic(
             &specialize(call, CorePrimitiveIntrinsic::IntToString),
             params,

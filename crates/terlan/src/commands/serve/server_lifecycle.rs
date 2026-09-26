@@ -43,7 +43,7 @@ pub(super) type ServeBody = BoxBody<Bytes, Infallible>;
 ///
 /// Transformation:
 /// - Keeps transitional Hyper helper tests independent of host async scheduling by
-///   adapting the existing standard channel to the maintained `http_body`
+///   adapting the existing standard channel to Hyper's maintained body
 ///   trait directly.
 #[cfg(test)]
 pub(super) struct ReloadSseBody {
@@ -52,7 +52,7 @@ pub(super) struct ReloadSseBody {
 }
 
 #[cfg(test)]
-impl http_body::Body for ReloadSseBody {
+impl hyper::body::Body for ReloadSseBody {
     type Data = Bytes;
     type Error = Infallible;
 

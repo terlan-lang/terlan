@@ -1,0 +1,258 @@
+/**
+ * Admits a completed metadata handoff, not cross-cycle cache freshness.
+ * The Make producer owns generation; its output and attempt must agree.
+ */
+module rust_quality.CargoMetadataReceipt.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.{sha256}.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+
+text(document: Json, key: String): Option[String] ->
+    let {
+        Ok(value) <- document.get(key);
+        Ok(result) <- value.as_string()
+    } else {
+        _ -> None
+    };
+    Some(result).
+
+flag(document: Json, key: String, expected: Bool): Bool ->
+    let {
+        Ok(value) <- document.get(key);
+        Ok(actual) <- value.as_bool()
+    } else {
+        _ -> false
+    };
+    actual == expected.
+
+verified(document: Json, key: String): Bool ->
+    let {
+        Ok(binding) <- document.get(key);
+        true <- flag(binding, "verified", true);
+        Ok(before) <- binding.get("before");
+        Ok(closed) <- binding.get("after");
+        Ok(before_source) <- Json.stringify(before);
+        Ok(after_source) <- Json.stringify(closed)
+    } else {
+        _ -> false
+    };
+    before_source != "null" and before_source == after_source.
+
+dispatch_verified(observation: Json): Bool ->
+    let {
+        Ok(dispatch) <- observation.get("cargo_dispatch");
+        Some(kind) <- text(dispatch, "kind")
+    } else {
+        _ -> false
+    };
+    case kind {
+        "rustup-proxy" -> verified(dispatch, "native_cargo");
+        "supplied-entry-point" -> true;
+        _ -> false
+    }.
+
+/**
+ * Checks exact output bytes, generation, workspace, and completed observations.
+ * No current-source comparison is implied: this is not a reusable phase receipt.
+ */
+pub admit(root: String, source: String, attempt_source: String): Result[Json, String] ->
+    let {
+        true <- source.byte_size() > 0 and source.byte_size() <= 33554432;
+        true <- attempt_source.byte_size() > 0 and attempt_source.byte_size() <= 1048576;
+        Ok(document) <- Json.parse(source);
+        Ok(attempt) <- Json.parse(attempt_source);
+        Some("terlan.cargo-metadata-attempt.v1") <- text(attempt, "schema");
+        Some("succeeded") <- text(attempt, "state");
+        true <- flag(attempt, "reusable", false);
+        Some(expected_hash) <- text(attempt, "metadata_sha256");
+        true <- expected_hash == sha256(source);
+        Some(recorded_root) <- text(document, "workspace_root");
+        true <- recorded_root == root;
+        Ok(version) <- document.get("version");
+        Ok(1) <- version.as_int();
+        Ok(observation) <- document.get("terlan_preparation");
+        Some("terlan.cargo-metadata-observation.v1") <- text(observation, "schema");
+        true <- flag(observation, "reusable", false);
+        Some(run_id) <- text(observation, "run_id");
+        true <- run_id != "";
+        Some(attempt_id) <- text(attempt, "run_id");
+        true <- run_id == attempt_id;
+        true <- verified(observation, "source");
+        true <- verified(observation, "configuration");
+        true <- verified(observation, "executables");
+        true <- verified(observation, "resolver_cache");
+        true <- dispatch_verified(observation);
+        Ok(launches) <- observation.get("launches");
+        Ok(recorded_launches) <- attempt.get("launches");
+        Ok(launch_source) <- Json.stringify(launches);
+        Ok(recorded_launch_source) <- Json.stringify(recorded_launches);
+        true <- launch_source == recorded_launch_source
+    } else {
+        _ ->
+            Err(
+                "Cargo metadata handoff is incomplete, corrupt, or from another workspace/generation",
+            )
+    };
+    Ok(document).
+
+read_sized(path: String, limit: Int): Result[String, String] ->
+    let {
+        Ok(size) <- File.size(path);
+        true <- size > 0 and size <= limit;
+        Ok(source) <- File.read_text(path);
+        true <- source.byte_size() == size
+    } else {
+        _ ->
+            Err(
+                String.append(
+                    "Cargo metadata handoff is missing, oversized, or changed while reading: ",
+                    path,
+                ),
+            )
+    };
+    Ok(source).
+
+/**
+ * Brackets the document read with its attempt record to reject concurrent refresh.
+ * Size prechecks are not a replacement for the enclosing VM's process limits.
+ */
+pub read(root: String): Result[Json, String] ->
+    let path = String.concat([root, "/target/quality/rust-cargo-metadata.json"]);
+    let attempt_path = String.append(path, ".attempt.json");
+    let {
+        Ok(attempt) <- read_sized(attempt_path, 1048576);
+        Ok(source) <- read_sized(path, 33554432);
+        Ok(closed_attempt) <- read_sized(attempt_path, 1048576);
+        true <- attempt == closed_attempt
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("Cargo metadata producer changed its attempt during handoff")
+    };
+    admit(root, source, attempt).
+
+fixture_source(): String ->
+    "{\"version\":1,\"workspace_root\":\"/workspace\",\"terlan_preparation\":{\"schema\":\"terlan.cargo-metadata-observation.v1\",\"run_id\":\"fixture-run\",\"reusable\":false,\"source\":{\"before\":{\"sha256\":\"source\"},\"after\":{\"sha256\":\"source\"},\"verified\":true},\"configuration\":{\"before\":[\"config\"],\"after\":[\"config\"],\"verified\":true},\"executables\":{\"before\":[\"cargo\"],\"after\":[\"cargo\"],\"verified\":true},\"cargo_dispatch\":{\"kind\":\"supplied-entry-point\"},\"launches\":[{\"role\":\"cargo-metadata\",\"pid\":1}],\"resolver_cache\":{\"before\":[\"cache\"],\"after\":[\"cache\"],\"verified\":true}}}".
+
+fixture_attempt(source: String): String ->
+    let {
+        Ok(document) <- Json.parse(source);
+        Ok(observation) <- document.get("terlan_preparation");
+        Ok(launches) <- observation.get("launches");
+        Some(run_id) <- text(observation, "run_id");
+        Ok(identity) <-
+            Json.parse(
+                "{\"schema\":\"terlan.cargo-metadata-attempt.v1\",\"state\":\"succeeded\",\"reusable\":false}",
+            );
+        digest <- sha256(source);
+        report <- identity.put("run_id", Json.string(run_id)).put("metadata_sha256", Json.string(digest));
+        Ok(result) <- Json.stringify(report.put("launches", launches))
+    } else {
+        _ -> ""
+    };
+    result.
+
+rejected(root: String, source: String, attempt: String): Bool ->
+    case admit(root, source, attempt) {
+        Err(_reason) -> true;
+        Ok(_document) -> false
+    }.
+
+rejected_documents(sources: List[String]): Bool ->
+    case sources {
+        [] -> true;
+        [source | rest] ->
+            rejected("/workspace", source, fixture_attempt(source)) and rejected_documents(rest)
+    }.
+
+/**
+ * Corrupt bytes and correctly rehashed but invalid observations both fail.
+ */
+admission_self_test(): Bool ->
+    let {
+        source <- fixture_source();
+        attempt <- fixture_attempt(source);
+        Ok(_document) <- admit("/workspace", source, attempt);
+        true <- invalid_sources(source, attempt);
+        true <- invalid_attempts(source, attempt);
+        true <-
+            rejected_documents(
+                [
+                    String.replace(source, "observation.v1", "observation.v2"),
+                    String.replace(source, "\"version\":1", "\"version\":2"),
+                    String.replace(source, "\"verified\":true", "\"verified\":false"),
+                    String.replace(source, "\"reusable\":false", "\"reusable\":true"),
+                    String.replace(source, "\"after\":[\"cargo\"]", "\"after\":[\"different\"]"),
+                    String.replace(source, "supplied-entry-point", "rustup-proxy"),
+                    String.replace(source, "resolver_cache", "missing_resolver_cache"),
+                    String.replace(source, "fixture-run", ""),
+                ],
+            )
+    } else {
+        _ -> false
+    };
+    true.
+
+invalid_sources(source: String, attempt: String): Bool ->
+    rejected("/other", source, attempt)
+        and rejected("/workspace", "", attempt)
+        and rejected("/workspace", source, "")
+        and rejected("/workspace", String.append(source, " "), attempt).
+
+invalid_attempts(source: String, attempt: String): Bool ->
+    rejected("/workspace", source, String.replace(attempt, "succeeded", "running"))
+        and rejected("/workspace", source, String.replace(attempt, "succeeded", "failed"))
+        and rejected("/workspace", source, String.replace(attempt, "fixture-run", "another-run"))
+        and rejected("/workspace", source, String.replace(attempt, "cargo-metadata", "another-query")).
+
+file_cases(root: String): Bool ->
+    let path = String.concat([root, "/target/quality/rust-cargo-metadata.json"]);
+    let attempt_path = String.append(path, ".attempt.json");
+    let {
+        Ok(_directory) <- Directory.create_all(String.append(root, "/target/quality"));
+        Err(_missing) <- read(root);
+        Ok(document) <- Json.parse(fixture_source());
+        Ok(source) <- Json.stringify(document.put("workspace_root", Json.string(root)))
+    } else {
+        _ -> false
+    };
+    (let attempt = fixture_attempt(source);
+(let {
+    Ok(_source) <- File.write_text(path, source);
+    Ok(_attempt) <- File.write_text(attempt_path, attempt);
+    Ok(_valid) <- read(root);
+    Ok(_corrupt) <- File.write_text(path, String.append(source, " "));
+    Err(_bad_hash) <- read(root);
+    Ok(_restored) <- File.write_text(path, source);
+    Ok(_failed) <- File.write_text(attempt_path, String.replace(attempt, "succeeded", "failed"));
+    Err(_failed_attempt) <- read(root);
+    Ok(_removed) <- File.delete(attempt_path);
+    Err(_missing_attempt) <- read(root);
+    Err(_over_limit) <- read_sized(path, 1);
+    Ok(untouched) <- File.read_text(path)
+} else {
+    _ -> false
+};
+untouched == source)).
+
+file_self_test(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-metadata-handoff-") else {
+        _ -> false
+    };
+    (let passed = file_cases(root);
+(let Ok(_removed) <- Directory.remove_all(root) else {
+    _ -> false
+};
+passed)).
+
+/**
+ * Checks byte admission and the actual filesystem handoff with owned cleanup.
+ */
+pub self_test(): Bool ->
+    admission_self_test() and file_self_test().

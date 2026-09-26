@@ -1,8 +1,8 @@
 module=std.js.Dom.OscillatorOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1471038467564622376
-interface_hash=10325365659924049690
-interface_doc_hash=10325365659924049690
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16019936332915882515
+interface_hash=2589593335282970451
+interface_doc_hash=2589593335282970451
 deps=0

@@ -140,32 +140,18 @@ fn lean_proof_gap_closed_exception_retains_history_after_expiry() {
 }
 
 #[test]
-fn lean_proof_gap_metrics_preserve_gate_report_and_emit_freshness() {
-    let root = std::env::temp_dir().join(format!(
-        "terlan_lean_gap_metrics_{}_{}",
-        std::process::id(),
-        OffsetDateTime::now_utc().unix_timestamp_nanos()
-    ));
-    fs::create_dir_all(root.join("build/artifacts")).expect("artifact directory");
-    fs::write(
-        root.join(GATE_REPORT_PATH),
-        "{\"families\":[{\"family\":\"coreir\"}]}\n",
-    )
-    .expect("gate report");
-
-    write_gap_metrics(
-        &root,
+fn lean_proof_gap_metrics_emit_freshness_without_a_published_report() {
+    let metrics = gap_metrics(
         &[gap("blocked", "model_gap", "deadline:0.0.7-closeout")],
         &policy(),
         today(),
     )
-    .expect("write metrics");
-
-    let report = fs::read_to_string(root.join(GATE_REPORT_PATH)).expect("read report");
-    assert!(report.contains("\"family\": \"coreir\""));
-    assert!(report.contains("\"gap_staleness_days\": 0"));
-    assert!(report.contains("\"gap_classification_confidence\": 1.0"));
-    fs::remove_dir_all(root).expect("remove fixture");
+    .expect("construct metrics");
+    assert_eq!(metrics["gap_staleness_days"], 0);
+    assert_eq!(metrics["gap_classification_confidence"], 1.0);
+    assert_eq!(metrics["gap_count"], 1);
+    assert_eq!(metrics["unresolved_open_count"], 0);
+    assert_eq!(metrics["gaps"][0]["feature"], "typed CoreIR preservation");
 }
 
 #[test]

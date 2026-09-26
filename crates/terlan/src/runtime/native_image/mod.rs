@@ -36,6 +36,13 @@ pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize = 128;
 /// non-tail suspension therefore uses this deterministic resource bound rather
 /// than requiring an impossible compile-time proof of an unbounded width.
 pub(crate) const TVM_COMPLETION_TRANSITION_WORD_CAPACITY: usize = 8_192;
+/// Transition scratch shared by loaded images and linked execution probes.
+/// Reserve the indirect frame plus capability arguments and completion words.
+pub(crate) fn transition_scratch_capacity(callable_width: usize) -> usize {
+    TVM_INDIRECT_TRANSITION_WORD_CAPACITY
+        .saturating_add(callable_width.saturating_mul(5).saturating_add(6))
+        .max(TVM_COMPLETION_TRANSITION_WORD_CAPACITY)
+}
 
 #[cfg(test)]
 #[path = "native_image_test.rs"]

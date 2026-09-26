@@ -1,8 +1,8 @@
 module=std.js.Dom.KeySystemTrackConfiguration
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=1950748791776256395
-interface_hash=11980251314367197185
-interface_doc_hash=11980251314367197185
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=12328893972430784386
+interface_hash=7534127389461561665
+interface_doc_hash=7534127389461561665
 deps=0

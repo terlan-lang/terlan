@@ -1,6 +1,6 @@
 //! Physical lowering of singleton atom aliases used as value expressions.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::terlan_typeck::{
     CoreExpr, CoreImportKind, CoreModule, CorePattern, CoreType, CoreVisibility,
@@ -14,14 +14,12 @@ mod atom_alias_values_test;
 #[derive(Clone)]
 struct AliasValue {
     atom: String,
-    managed_variant: bool,
 }
 
 pub(super) fn lower_atom_alias_values(cores: &mut [CoreModule]) {
     let providers = cores
         .iter()
         .map(|core| {
-            let managed_variants = managed_union_variants(core);
             let values = core
                 .types
                 .iter()
@@ -30,7 +28,6 @@ pub(super) fn lower_atom_alias_values(cores: &mut [CoreModule]) {
                         declaration.name.clone(),
                         AliasValue {
                             atom: value.clone(),
-                            managed_variant: managed_variants.contains(&declaration.name),
                         },
                     )),
                     None if declaration.visibility != CoreVisibility::Opaque
@@ -40,7 +37,6 @@ pub(super) fn lower_atom_alias_values(cores: &mut [CoreModule]) {
                             declaration.name.clone(),
                             AliasValue {
                                 atom: declaration.name.to_lowercase(),
-                                managed_variant: managed_variants.contains(&declaration.name),
                             },
                         ))
                     }
@@ -87,57 +83,6 @@ pub(super) fn lower_atom_alias_values(cores: &mut [CoreModule]) {
                 }
             }
         }
-    }
-}
-
-fn managed_union_variants(core: &CoreModule) -> HashSet<String> {
-    let declarations = core
-        .types
-        .iter()
-        .filter_map(|declaration| {
-            declaration
-                .core_body
-                .as_ref()
-                .map(|body| (declaration.name.as_str(), body))
-        })
-        .collect::<HashMap<_, _>>();
-    core.types
-        .iter()
-        .filter_map(|declaration| match declaration.core_body.as_ref() {
-            Some(CoreType::Union(variants))
-                if variants
-                    .iter()
-                    .any(|variant| !is_atom_alias_variant(variant, &declarations)) =>
-            {
-                Some(variants)
-            }
-            _ => None,
-        })
-        .flatten()
-        .filter_map(|variant| match variant {
-            CoreType::Named(name) => Some(name.rsplit('.').next().unwrap_or(name).to_string()),
-            CoreType::Apply { constructor, .. } => Some(
-                constructor
-                    .rsplit('.')
-                    .next()
-                    .unwrap_or(constructor)
-                    .to_string(),
-            ),
-            _ => None,
-        })
-        .collect()
-}
-
-fn is_atom_alias_variant(variant: &CoreType, declarations: &HashMap<&str, &CoreType>) -> bool {
-    match variant {
-        CoreType::AtomLiteral(_) => true,
-        CoreType::Named(name)
-        | CoreType::Apply {
-            constructor: name, ..
-        } => declarations
-            .get(name.rsplit('.').next().unwrap_or(name))
-            .is_some_and(|body| matches!(body, CoreType::AtomLiteral(_))),
-        _ => false,
     }
 }
 
@@ -269,7 +214,7 @@ fn rewrite(expr: &mut CoreExpr, aliases: &HashMap<String, AliasValue>) {
                 rewrite(&mut clause.body, aliases);
             }
         }
-        CoreExpr::Lam { params, body } => {
+        CoreExpr::Lam { params, body, .. } => {
             params
                 .iter_mut()
                 .for_each(|pattern| rewrite_pattern(pattern, aliases));
@@ -288,9 +233,9 @@ fn rewrite_pattern(pattern: &mut CorePattern, aliases: &HashMap<String, AliasVal
     if let CorePattern::Constructor { name, args, .. } = pattern {
         if args.is_empty() {
             if let Some(value) = aliases.get(name.rsplit('.').next().unwrap_or(name)) {
-                if value.managed_variant {
-                    return;
-                }
+                // Preserve the alias's semantic atom here. Physical matching
+                // depends on the scrutinee, not on other unions that happen to
+                // contain this alias elsewhere in the application.
                 *pattern = CorePattern::Atom(value.atom.clone());
                 return;
             }

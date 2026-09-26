@@ -10,6 +10,7 @@ import std.collections.Iterator.{next}.
 import std.core.Option.{None, Some}.
 
 import type std.collections.{Iterator, List}.
+import type std.core.Option.
 
 /**
  * Assertion is the portable result value returned by test assertions.

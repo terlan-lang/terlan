@@ -1,0 +1,158 @@
+{
+  "functions": [
+    {
+      "arity": 6,
+      "name": "profile",
+      "operation": "std.vm.cluster.profile"
+    },
+    {
+      "arity": 1,
+      "name": "node_id",
+      "operation": "std.vm.cluster.profile_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "epoch",
+      "operation": "std.vm.cluster.profile_epoch"
+    },
+    {
+      "arity": 1,
+      "name": "next_epoch",
+      "operation": "std.vm.cluster.profile_next_epoch"
+    },
+    {
+      "arity": 2,
+      "name": "membership",
+      "operation": "std.vm.cluster.membership"
+    },
+    {
+      "arity": 4,
+      "name": "join",
+      "operation": "std.vm.cluster.membership_join"
+    },
+    {
+      "arity": 3,
+      "name": "restart",
+      "operation": "std.vm.cluster.membership_restart"
+    },
+    {
+      "arity": 3,
+      "name": "heartbeat",
+      "operation": "std.vm.cluster.membership_heartbeat"
+    },
+    {
+      "arity": 3,
+      "name": "partition",
+      "operation": "std.vm.cluster.membership_partition"
+    },
+    {
+      "arity": 3,
+      "name": "heal",
+      "operation": "std.vm.cluster.membership_heal"
+    },
+    {
+      "arity": 3,
+      "name": "leave",
+      "operation": "std.vm.cluster.membership_leave"
+    },
+    {
+      "arity": 3,
+      "name": "fence",
+      "operation": "std.vm.cluster.membership_fence"
+    },
+    {
+      "arity": 2,
+      "name": "expire",
+      "operation": "std.vm.cluster.membership_expire"
+    },
+    {
+      "arity": 3,
+      "name": "prune",
+      "operation": "std.vm.cluster.membership_prune"
+    },
+    {
+      "arity": 2,
+      "name": "state",
+      "operation": "std.vm.cluster.membership_state"
+    },
+    {
+      "arity": 1,
+      "name": "view",
+      "operation": "std.vm.cluster.membership_view"
+    },
+    {
+      "arity": 1,
+      "name": "health",
+      "operation": "std.vm.cluster.membership_health"
+    },
+    {
+      "arity": 1,
+      "name": "leader_hint",
+      "operation": "std.vm.cluster.membership_leader_hint"
+    },
+    {
+      "arity": 3,
+      "name": "open",
+      "operation": "std.vm.cluster.open"
+    },
+    {
+      "arity": 3,
+      "name": "send",
+      "operation": "std.vm.cluster.send"
+    },
+    {
+      "arity": 4,
+      "name": "send_with",
+      "operation": "std.vm.cluster.send_with"
+    },
+    {
+      "arity": 2,
+      "name": "accept",
+      "operation": "std.vm.cluster.accept"
+    },
+    {
+      "arity": 1,
+      "name": "message_id",
+      "operation": "std.vm.cluster.frame_message_id"
+    },
+    {
+      "arity": 1,
+      "name": "delivery",
+      "operation": "std.vm.cluster.frame_delivery"
+    },
+    {
+      "arity": 2,
+      "name": "needs_ack",
+      "operation": "std.vm.cluster.needs_ack"
+    },
+    {
+      "arity": 1,
+      "name": "pending_ack_count",
+      "operation": "std.vm.cluster.pending_ack_count"
+    },
+    {
+      "arity": 2,
+      "name": "acknowledge",
+      "operation": "std.vm.cluster.acknowledge"
+    },
+    {
+      "arity": 1,
+      "name": "state",
+      "operation": "std.vm.cluster.session_state"
+    },
+    {
+      "arity": 3,
+      "name": "disconnect",
+      "operation": "std.vm.cluster.disconnect"
+    },
+    {
+      "arity": 3,
+      "name": "reconnect",
+      "operation": "std.vm.cluster.reconnect"
+    }
+  ],
+  "module": "std_vm_cluster_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.Cluster"
+}

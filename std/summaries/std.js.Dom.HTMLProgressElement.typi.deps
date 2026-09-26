@@ -1,8 +1,8 @@
 module=std.js.Dom.HTMLProgressElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=3055893229977870622
-interface_hash=7271431323603584271
-interface_doc_hash=7271431323603584271
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13246410552613309818
+interface_hash=10721017545452908352
+interface_doc_hash=10721017545452908352
 deps=0

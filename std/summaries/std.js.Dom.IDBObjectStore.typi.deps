@@ -1,8 +1,8 @@
 module=std.js.Dom.IDBObjectStore
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=12319099269601070223
-interface_hash=14882795966543948778
-interface_doc_hash=14882795966543948778
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=13292872628711375127
+interface_hash=6484968871702193256
+interface_doc_hash=6484968871702193256
 deps=0

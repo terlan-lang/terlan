@@ -1,8 +1,8 @@
 module=std.js.Dom.TextMetrics
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:2e489e5f33744fbf
-source_hash=16590918574820218755
-interface_hash=47051624751709615
-interface_doc_hash=47051624751709615
+syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+source_hash=16641993023041075439
+interface_hash=12516885138996445209
+interface_doc_hash=12516885138996445209
 deps=0
