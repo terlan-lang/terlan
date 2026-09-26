@@ -51,6 +51,16 @@ Integration validation and exact-commit hosted checks remain open, and 0.0.9 has
 not been tagged or published. Ordinary Rust API-boundary budgets pass, but the
 stricter 0.0.9 string-error reduction targets remain unmet.
 
+The resumed standard-library execution run exposed a selected-import identity
+gap: a single explicitly imported function could be confused with a function
+from a whole-module import. Qualification now preserves that provider, including
+generic aliases. All 2,162 selected compiler tests pass (one ignored), as do the
+five real `InstantTest` cases and both strict workspace-bin Clippy profiles.
+The full standard-library run remains failing at `std/core/BoolTest.terl`:
+native debug metadata cannot locate the source declaration for a generated
+concrete `Ordering.compare` implementation. This is not a passing release gate
+or complete API execution coverage.
+
 The first validation-tool bootstrap now follows the user-approved hermetic
 policy: frozen working-source bytes, the pinned Rust toolchain, and isolated
 Cargo configuration. Ordinary compiler/runtime builds retain their configured

@@ -2,9 +2,9 @@
 
 use super::*;
 
-/// Qualifies a selected import only when its checked argument types identify a
-/// unique public provider. Whole-module imports keep the existing ambiguity
-/// diagnostics; unrelated application functions are never added as candidates.
+/// Qualifies selected imports before whole-module import admission, including
+/// a single explicit provider that shares a name with a whole-module import.
+/// Multiple selected providers are resolved by their checked argument types.
 pub(in crate::compiler::native_ir::application) fn resolve(
     cores: &mut [CoreModule],
 ) -> NativeIrResult<()> {
@@ -66,6 +66,7 @@ pub(in crate::compiler::native_ir::application) fn resolve(
                     .or_default()
                     .push(OverloadCandidate {
                         module: provider.module.clone(),
+                        selected_import: true,
                         private_trait_impl: false,
                         generic_trait_method: false,
                         arity: function.arity,
@@ -76,6 +77,5 @@ pub(in crate::compiler::native_ir::application) fn resolve(
             }
         }
     }
-    groups.retain(|_, candidates| candidates.len() > 1);
     rewrite_application(cores, &groups)
 }

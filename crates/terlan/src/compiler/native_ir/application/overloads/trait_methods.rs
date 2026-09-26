@@ -26,6 +26,7 @@ pub(super) fn collect(
                 continue;
             };
             let candidate = OverloadCandidate {
+                selected_import: false,
                 module: core.module.clone(),
                 private_trait_impl: !function.public,
                 generic_trait_method:
