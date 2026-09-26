@@ -1,0 +1,32 @@
+/** Semantic import reference independent of syntax-output implementation details. */
+module self_host.ImportReferenceSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ImportReference {
+    valid: Bool,
+    module_name: String,
+    items: List[String],
+    selective: Bool,
+    is_type: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ImportReference {
+    (valid: Bool, module_name: String, items: List[String], selective: Bool, is_type: Bool, span: SyntaxSpan, message: String): ImportReference ->
+        ImportReference {
+            valid: valid,
+            module_name: module_name,
+            items: items,
+            selective: selective,
+            is_type: is_type,
+            span: span,
+            message: message,
+        }
+}.
+

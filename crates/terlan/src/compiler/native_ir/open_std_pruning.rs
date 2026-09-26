@@ -67,6 +67,7 @@ fn router_result(core: Option<&CoreType>, source: &str) -> bool {
 /// image only needs selected `@test` exports and the local helpers they call.
 /// Compiler-only declarations such as router manifest builders therefore stay
 /// visible to the frontend without becoming fake runtime dependencies.
+#[allow(dead_code)]
 pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&str]) {
     let providers = providers(std::slice::from_ref(core));
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();

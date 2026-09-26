@@ -50,6 +50,7 @@ pub(super) struct TypeCheckImportMaps {
 pub(super) struct ImportedFunctionTarget {
     pub(super) module: String,
     pub(super) function: String,
+    pub(super) arity: Option<usize>,
     pub(super) span: Span,
 }
 
@@ -417,6 +418,7 @@ fn collect_syntax_function_imports(
                         vec![ImportedFunctionTarget {
                             module: module_name.clone(),
                             function: signature.name.clone(),
+                            arity: Some(signature.params.len()),
                             span: item.span.into(),
                         }]
                     });
@@ -430,11 +432,32 @@ fn collect_syntax_function_imports(
                 .push(ImportedFunctionTarget {
                     module: module_name.clone(),
                     function: item.name.clone(),
+                    arity: unique_imported_function_arity(interfaces, module_name, &item.name),
                     span: item.span.into(),
                 });
         }
     }
     imports
+}
+
+/// Returns the arity of one unambiguous selected function import.
+fn unique_imported_function_arity(
+    interfaces: &HashMap<String, ModuleInterface>,
+    module_name: &str,
+    function: &str,
+) -> Option<usize> {
+    let interface = interfaces.get(module_name)?;
+    let candidates = interface
+        .functions
+        .iter()
+        .filter(|((name, _), signature)| {
+            name == function && signature.public && !signature.receiver_method
+        })
+        .collect::<Vec<_>>();
+    let [((_, arity), _)] = candidates.as_slice() else {
+        return None;
+    };
+    Some(*arity)
 }
 
 /// Collects imported file and CSS assets visible by local alias.
@@ -512,7 +535,7 @@ pub(super) fn collect_syntax_type_aliases(
     module: &SyntaxModuleOutput,
 ) -> HashMap<String, TypeAlias> {
     let mut aliases = HashMap::new();
-    let alias_names = module
+    let mut alias_names = module
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {
@@ -521,6 +544,17 @@ pub(super) fn collect_syntax_type_aliases(
             _ => None,
         })
         .collect::<HashSet<String>>();
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import { items, .. } = &declaration.payload else {
+            continue;
+        };
+        alias_names.extend(
+            items
+                .iter()
+                .filter(|item| item.name != "*")
+                .map(|item| item.as_alias.clone().unwrap_or_else(|| item.name.clone())),
+        );
+    }
 
     for declaration in &module.declarations {
         if let SyntaxDeclarationPayload::Type {
@@ -571,6 +605,10 @@ pub(super) fn collect_syntax_type_aliases(
                 },
             );
         }
+    }
+
+    for (name, alias) in aliases.clone() {
+        aliases.insert(format!("{}.{}", module.module_name, name), alias);
     }
 
     aliases

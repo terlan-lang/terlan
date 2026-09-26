@@ -39,13 +39,26 @@ pub(super) fn infer_syntax_case_expr(
     let branches = expr
         .clauses
         .iter()
-        .map(|clause| {
+        .enumerate()
+        .map(|(clause_index, clause)| {
             let mut clause_locals = locals.clone();
             let mut clause_subst = subst.clone();
             if let Some(pattern) = clause.patterns.first() {
+                let clause_match_type = if matches!(
+                    pattern.kind,
+                    SyntaxPatternKind::Var | SyntaxPatternKind::Alias
+                ) {
+                    remaining_case_match_type(
+                        &expr.clauses[..clause_index],
+                        &match_type,
+                        ctx.aliases,
+                    )
+                } else {
+                    match_type.clone()
+                };
                 if let Err(message) = check_syntax_pattern(
                     pattern,
-                    &match_type,
+                    &clause_match_type,
                     ctx.aliases,
                     Some(ctx),
                     &mut clause_locals,
@@ -83,6 +96,92 @@ pub(super) fn infer_syntax_case_expr(
         .collect::<Vec<_>>();
 
     normalize_union(branches)
+}
+
+/// Removes a fully consumed recursive list variant from a catch-all binding.
+///
+/// Inputs:
+/// - `prior_clauses`: case clauses preceding the catch-all.
+/// - `match_type`: complete scrutinee type.
+/// - `aliases`: visible aliases used to reveal finite union variants.
+///
+/// Output:
+/// - The normalized union without its list variant when prior clauses cover
+///   both list shapes, otherwise the original match type.
+///
+/// Transformation:
+/// - Performs the narrow refinement needed by recursive container aliases.
+///   Other union variants remain untouched so constructor and scalar pattern
+///   inference retains its established generic-substitution behavior.
+fn remaining_case_match_type(
+    prior_clauses: &[crate::terlan_syntax::SyntaxClauseOutput],
+    match_type: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+) -> Type {
+    let expanded = expand_type_aliases(match_type, aliases);
+    let mut remaining = as_exhaustive_union_variants(&expanded);
+    let patterns = prior_clauses
+        .iter()
+        .filter(|clause| clause.guard.is_none())
+        .filter_map(|clause| clause.patterns.first())
+        .collect::<Vec<_>>();
+
+    if !list_variant_is_fully_covered(&patterns) {
+        return match_type.clone();
+    }
+
+    remaining.retain(|variant| !matches!(variant, Type::List(_)));
+
+    if remaining.is_empty() {
+        match_type.clone()
+    } else {
+        normalize_union(remaining)
+    }
+}
+
+/// Reports whether prior patterns cover both finite list shapes.
+///
+/// Inputs:
+/// - `patterns`: preceding unguarded case patterns.
+///
+/// Output:
+/// - `true` when one pattern covers `[]` and another covers every non-empty
+///   list.
+///
+/// Transformation:
+/// - Distinguishes exact empty-list patterns from irrefutable cons patterns so
+///   either shape alone cannot incorrectly eliminate the complete list type.
+fn list_variant_is_fully_covered(patterns: &[&SyntaxPatternOutput]) -> bool {
+    let covers_empty = patterns.iter().any(|pattern| {
+        matches!(pattern.kind, SyntaxPatternKind::List) && pattern.children.is_empty()
+    });
+    let covers_non_empty = patterns.iter().any(|pattern| {
+        matches!(pattern.kind, SyntaxPatternKind::ListCons)
+            && pattern.children.len() == 2
+            && pattern.children.iter().all(pattern_is_irrefutable)
+    });
+    covers_empty && covers_non_empty
+}
+
+/// Reports whether a syntax pattern accepts every value of its input type.
+///
+/// Inputs:
+/// - `pattern`: pattern nested inside a structural pattern.
+///
+/// Output:
+/// - `true` for binding and wildcard forms that impose no value constraint.
+///
+/// Transformation:
+/// - Classifies only unconstrained leaf patterns as irrefutable; literals and
+///   nested structural patterns remain refutable.
+fn pattern_is_irrefutable(pattern: &SyntaxPatternOutput) -> bool {
+    matches!(
+        pattern.kind,
+        SyntaxPatternKind::Wildcard
+            | SyntaxPatternKind::Ignore
+            | SyntaxPatternKind::Placeholder
+            | SyntaxPatternKind::Var
+    )
 }
 
 /// Requires a clause guard expression to infer as Bool.

@@ -12,11 +12,12 @@ use crate::runtime::vm::capability_worker::{
     VmCapabilityWorkerIdentity, VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPolicy,
     VmCapabilityWorkerPool, VmCapabilityWorkerPoolSlot,
 };
+use crate::runtime::vm::package_native_helper::VmPackageNativeHelpers;
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::protocol_task_executor::{
     with_current_protocol_resource, with_existing_current_protocol_resource,
 };
-use crate::runtime::vm::pure_native::PureNativeCapabilityWait;
+use crate::runtime::vm::pure_native::{repl_value_to_boundary_term, PureNativeCapabilityWait};
 use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
 use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
@@ -36,6 +37,7 @@ pub(super) struct ProtocolCapabilityDispatcher {
     pump: Option<VmCapabilityWorkerEventPump<PendingProtocolCapability>>,
     assignments: BTreeMap<NonZeroU64, VmCapabilityWorkerParkedRequest>,
     completed: BTreeMap<NonZeroU64, NativeBoundaryReplyTerm>,
+    trusted_helpers: VmPackageNativeHelpers,
 }
 
 impl ProtocolCapabilityDispatcher {
@@ -45,7 +47,29 @@ impl ProtocolCapabilityDispatcher {
             pump: None,
             assignments: BTreeMap::new(),
             completed: BTreeMap::new(),
+            trusted_helpers: VmPackageNativeHelpers::default(),
         })
+    }
+
+    fn dispatch_trusted(
+        &mut self,
+        owner: VmProcessId,
+        wait: &PureNativeCapabilityWait,
+    ) -> Result<NativeBoundaryReplyTerm, String> {
+        if wait.request().capability == "package-native" {
+            let value = self
+                .trusted_helpers
+                .call(owner.as_u64(), wait.request())
+                .map_err(String::from)?;
+            return repl_value_to_boundary_term(value)
+                .map(NativeBoundaryReplyTerm::Ok)
+                .map_err(String::from);
+        }
+        crate::runtime::vm::package_native_helper::dispatch_vm_capability_with_program_arguments(
+            wait.request(),
+            &[],
+        )
+        .map_err(String::from)
     }
 
     pub(super) fn submit(
@@ -166,6 +190,7 @@ impl ProtocolCapabilityDispatcher {
                 NativeBoundaryExecutionProfile::CrashIsolated,
             )?
             .allow("filesystem")
+            .allow("clock")
             .allow("stdio")
             .with_credit_limit(GENERATED_CAPABILITY_CREDITS)?;
             let id = VmCapabilityWorkerId::new(format!("aot-protocol-{}", self.scheduler.index()))?;
@@ -198,10 +223,7 @@ impl ProtocolCapabilityCompletion {
         owner: VmProcessId,
         wait: &PureNativeCapabilityWait,
     ) -> Result<Self, String> {
-        if trusted_host_capability(wait) {
-            let outcome = crate::runtime::vm::package_native_helper::
-                dispatch_vm_capability_with_program_arguments(wait.request(), &[])
-                .map_err(String::from)?;
+        if let Some(outcome) = dispatch_trusted_capability(generation, owner, wait)? {
             return Ok(Self {
                 generation,
                 route,
@@ -225,6 +247,27 @@ impl ProtocolCapabilityCompletion {
             local_outcome: None,
         })
     }
+}
+
+/// Executes a direct-safe trusted capability on the current protocol owner.
+pub(super) fn dispatch_trusted_capability(
+    generation: u64,
+    owner: VmProcessId,
+    wait: &PureNativeCapabilityWait,
+) -> Result<Option<NativeBoundaryReplyTerm>, String> {
+    if !trusted_host_capability(wait) {
+        return Ok(None);
+    }
+    with_current_protocol_resource(
+        generation,
+        ProtocolCapabilityDispatcher::new,
+        |dispatcher: &mut ProtocolCapabilityDispatcher| dispatcher.dispatch_trusted(owner, wait),
+    )?
+    .map(Some)
+    .ok_or_else(|| {
+        "error[serve.aot.capability_owner]: trusted capability call is outside a protocol owner"
+            .to_string()
+    })
 }
 
 /// Allows the trusted native-service profile to use application-scoped host

@@ -1,4 +1,6 @@
-pub(super) const NATIVE_HELPER_TEMPLATE: &str = r##"#![forbid(unsafe_code)]
+pub(super) const NATIVE_HELPER_TEMPLATE: &str = r##"//! Native-boundary helper generated from reviewed C ABI metadata.
+
+#![forbid(unsafe_code)]
 
 @DISPATCH_MODULES@use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
@@ -138,6 +140,7 @@ struct Request {
         Ok((id, generation))
     }
 
+@STORE_HANDLES@
     fn release_handle(&mut self, id: u64) {
         if self.handles.remove(&id).is_some() {
             self.free_ids.push(id);

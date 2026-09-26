@@ -115,6 +115,23 @@ impl From<ServeError> for String {
 
 pub(super) type ServeResult<T> = Result<T, ServeError>;
 
+const RUNTIME_STATE_ROOT_ENV: &str = "TERLAN_SERVE_RUNTIME_STATE_ROOT";
+
+fn runtime_artifact_directory(web_root: &Path) -> ServeResult<PathBuf> {
+    if let Some(value) = std::env::var_os(RUNTIME_STATE_ROOT_ENV) {
+        let root = PathBuf::from(value);
+        if !root.is_absolute() {
+            return Err(format!(
+                "error[serve.runtime-state]: {RUNTIME_STATE_ROOT_ENV} must be an absolute path"
+            )
+            .into());
+        }
+        return Ok(root.join("artifacts"));
+    }
+    let root = manifest::adjacent_project_root(web_root).unwrap_or_else(|| web_root.to_path_buf());
+    Ok(root.join("build/artifacts"))
+}
+
 use crate::terlan_native::http::content_type_for_path;
 #[cfg(test)]
 use handler::handler_log_identity;

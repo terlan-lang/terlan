@@ -548,11 +548,11 @@ pub(super) fn tokio_inventory_rejects_benchmark_helper_as_test_harness() {
     let root = make_quality_temp_dir("tokio_benchmark_helper_scope");
     write_file(
         &root,
-        "crates/terlan/src/benchmark/http_runtime_lane.rs",
+        "crates/terlan/src/benchmark/helper.rs",
         "tokio::runtime::Runtime::new();\n",
     );
     let rows = vec![TokioInventoryRow {
-        path: PathBuf::from("crates/terlan/src/benchmark/http_runtime_lane.rs"),
+        path: PathBuf::from("crates/terlan/src/benchmark/helper.rs"),
         classification: "test-harness".to_string(),
         owner: "benchmarks".to_string(),
         notes: "bad broad benchmark lane".to_string(),
@@ -564,8 +564,7 @@ pub(super) fn tokio_inventory_rejects_benchmark_helper_as_test_harness() {
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic
-                .contains("crates/terlan/src/benchmark/http_runtime_lane.rs")),
+            .any(|diagnostic| diagnostic.contains("crates/terlan/src/benchmark/helper.rs")),
         "expected benchmark helper test-harness diagnostic: {diagnostics:?}"
     );
     fs::remove_dir_all(root).expect("remove fixture");

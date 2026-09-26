@@ -274,7 +274,7 @@ pub(super) fn build_command_emits_terlan_vm_artifact_without_erlang_or_beam() {
     let image = object::File::parse(&*image_bytes).expect("parse native TVM image");
     assert!(image.symbols().any(|symbol| {
         symbol.name().is_ok_and(|name| {
-            name == "terlan_native_dispatch_v3" || name == "_terlan_native_dispatch_v3"
+            name == "terlan_native_dispatch_v4" || name == "_terlan_native_dispatch_v4"
         })
     }));
     assert!(out_dir.join(".terlan/native-aot").is_dir());

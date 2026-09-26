@@ -1,0 +1,149 @@
+/**
+ * Propagates typed let sources through resolved lexical references.
+ */
+module self_host.ProjectedBindingTypeMerge.
+
+
+
+import std.core.Option.{None, Option, Some}.
+import std.collections.List.
+import std.collections.Map.
+import self_host.ProjectedBindingSyntax.
+import self_host.ProjectedBindingSyntax.{BindingReference, BindingResolution}.
+import self_host.ProjectedSemanticEventSyntax.
+import self_host.ProjectedSemanticEventSyntax.{BindingTypeLink}.
+import self_host.ProjectedTypeConstraintSyntax.
+
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+some_string(value: String): Option[String] -> Some(value).
+
+none_string(): Option[String] -> None.
+
+normalize_string(value: Option[String]): Option[String] ->
+    case value {
+        Some(name) -> some_string(name);
+        None -> none_string()
+    }.
+
+fact_type(byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> none_string();
+        [value | rest] -> if {
+            value.byte_offset == byte_offset -> normalize_string(value.type_name);
+            true -> fact_type(byte_offset, rest)
+        }
+    }.
+
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+index_references_at(
+    values: List[BindingReference],
+    index: Map[Int, Int],
+): Map[Int, Int] ->
+    case values {
+        [] -> index;
+        [value | rest] -> let _stored = case value.declaration_offset {
+                Some(offset) -> index.put(value.byte_offset, offset);
+                None -> index.remove(value.byte_offset)
+            };
+            index_references_at(rest, index)
+    }.
+
+index_references(
+    values: List[BindingReference],
+    index: Map[Int, Int],
+): Map[Int, Int] -> index_references_at(reverse(values), index).
+
+index_links_at(
+    values: List[BindingTypeLink],
+    index: Map[Int, Int],
+): Map[Int, Int] ->
+    case values {
+        [] -> index;
+        [value | rest] -> let _stored = index.put(value.declaration_offset, value.source_offset);
+            index_links_at(rest, index)
+    }.
+
+index_links(
+    values: List[BindingTypeLink],
+    index: Map[Int, Int],
+): Map[Int, Int] -> index_links_at(reverse(values), index).
+
+resolve_type(
+    byte_offset: Int,
+    remaining: Int,
+    facts: List[InferredTypeFact],
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+): Option[String] ->
+    if {
+        remaining <= 0 -> none_string();
+        true -> case fact_type(byte_offset, facts) {
+            Some(name) -> some_string(name);
+            None -> case references.get(byte_offset) {
+                None -> none_string();
+                Some(declaration_offset) -> case links.get(declaration_offset) {
+                    None -> none_string();
+                    Some(source_offset) -> resolve_type(
+                        source_offset,
+                        remaining - 1,
+                        facts,
+                        references,
+                        links,
+                    )
+                }
+            }
+        }
+    }.
+
+reverse_facts(values: List[InferredTypeFact], output: List[InferredTypeFact]): List[InferredTypeFact] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_facts(rest, [value | output])
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    all: List[InferredTypeFact],
+    depth: Int,
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+    output: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> reverse_facts(output, List.new[InferredTypeFact]());
+        [value | rest] -> let type_name = case value.type_name {
+            Some(name) -> some_string(name);
+            None -> normalize_string(resolve_type(value.byte_offset, depth, all, references, links))
+        };
+        merge_facts(rest, all, depth, references, links, [InferredTypeFact(
+            node_id = value.node_id,
+            type_name = type_name,
+            byte_offset = value.byte_offset,
+        ) | output])
+    }.
+
+pub merge(
+    types: TypeConstraintResolution,
+    bindings: BindingResolution,
+    links: List[BindingTypeLink],
+): TypeConstraintResolution ->
+    let references = index_references(bindings.references, Map.new[Int, Int]());
+    let links_by_declaration = index_links(links, Map.new[Int, Int]());
+    TypeConstraintResolution(
+        facts = merge_facts(
+            types.facts,
+            types.facts,
+            types.facts.length(),
+            references,
+            links_by_declaration,
+            List.new[InferredTypeFact](),
+        ),
+        diagnostics = types.diagnostics,
+    ).

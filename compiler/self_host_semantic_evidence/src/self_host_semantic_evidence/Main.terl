@@ -1,0 +1,49 @@
+/** Retained-image producer for self-hosted Phase 3 semantic evidence. */
+module self_host_semantic_evidence.Main.
+
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String}.
+import std.io.Console.{eprintln}.
+import std.io.File.{read_text, write_text}.
+import std.system.Arguments.{get}.
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedBackendEvidence.
+import self_host.ProjectedSemanticEvidence.
+
+argument(index: Int): String ->
+    case get(index) { Some(value) -> value; None -> "" }.
+
+fail(message: String): Bool ->
+    let _printed = eprintln(message);
+    false.
+
+render(mode: String, source: String): Option[String] ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    if {
+        mode == "semantic" -> Some(ProjectedSemanticEvidence.common(frontend));
+        mode == "semantic-full" -> Some(ProjectedSemanticEvidence.supplemental(frontend));
+        mode == "backend" -> ProjectedBackendEvidence.document(frontend, "terlan-vm");
+        true -> None
+    }.
+
+pub main(): Bool ->
+    let mode = argument(0);
+    let source_path = argument(1);
+    let output_path = argument(2);
+    if {
+        mode == "" or source_path == "" or output_path == "" ->
+            fail("usage: semantic-evidence semantic|semantic-full|backend <source.terl> <output>");
+        true -> case read_text(source_path) {
+            Err(_reason) -> fail("self-host semantic evidence could not read source");
+            Ok(source) -> case render(mode, source) {
+                None -> fail("self-host semantic evidence generation failed");
+                Some(text) -> case write_text(output_path, text) {
+                    Err(_reason) -> fail("self-host semantic evidence could not write artifact");
+                    Ok(_written) -> true
+                }
+            }
+        }
+    }.

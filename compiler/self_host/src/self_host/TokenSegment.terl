@@ -1,0 +1,41 @@
+/** Token-driven declaration boundary contracts. */
+module self_host.TokenSegment.
+
+import self_host.CanonicalToken.{CanonicalToken}.
+
+import std.collections.List.
+import std.core.Int.
+
+
+pub struct TokenSegment {
+    start_byte: Int,
+    end_byte: Int,
+    tokens: List[CanonicalToken],
+}.
+
+pub constructor TokenSegment {
+    (start_byte: Int, end_byte: Int, tokens: List[CanonicalToken]): TokenSegment ->
+        TokenSegment {
+            start_byte: start_byte,
+            end_byte: end_byte,
+            tokens: tokens,
+        }
+}.
+
+
+pub struct TokenSegments {
+    valid: Bool,
+    segments: List[self_host.TokenSegment.TokenSegment],
+    unterminated_start_byte: Int,
+}.
+
+pub constructor TokenSegments {
+    (valid: Bool, segments: List[self_host.TokenSegment.TokenSegment], unterminated_start_byte: Int): TokenSegments ->
+        TokenSegments {
+            valid: valid,
+            segments: segments,
+            unterminated_start_byte: unterminated_start_byte,
+        }
+}.
+
+

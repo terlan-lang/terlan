@@ -1,0 +1,662 @@
+/**
+ * Adapts generic projected expression trees into local semantic event streams.
+ */
+module self_host.ProjectedSemanticEventAdapter.
+
+
+
+import std.core.Option.{None, Option, Some}.
+import std.collections.List.
+import std.core.String.
+import self_host.ProjectedBindingSyntax.
+import self_host.ProjectedBindingSyntax.{BindingEvent}.
+import self_host.ProjectedBodySyntax.
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedCallableSyntax.
+import self_host.ProjectedCallableSyntax.{CallableUse}.
+import self_host.ProjectedExpressionSyntax.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedSemanticEventSyntax.
+import self_host.ProjectedSemanticEventSyntax.{BindingTypeLink, ProjectedSemanticEvents}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedSignatureDocument}.
+import self_host.ProjectedTypeConstraintSyntax.
+
+import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintEvent}.
+struct TypeWalk {
+    next_id: Int,
+    node_id: Int,
+    child_ids: List[Int],
+    events: List[TypeConstraintEvent],
+}.
+
+constructor TypeWalk {
+    (next_id: Int, node_id: Int, child_ids: List[Int], events: List[TypeConstraintEvent]): TypeWalk ->
+        TypeWalk {
+            next_id: next_id,
+            node_id: node_id,
+            child_ids: child_ids,
+            events: events,
+        }
+}.
+
+struct NumberedExpressionNode {
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    child_ids: List[Int],
+    children_reversed: List[NumberedExpressionNode],
+}.
+
+constructor NumberedExpressionNode {
+    (
+        node: ProjectedExpressionNode,
+        node_id: Int,
+        child_ids: List[Int],
+        children_reversed: List[NumberedExpressionNode],
+    ): NumberedExpressionNode -> NumberedExpressionNode {
+        node: node,
+        node_id: node_id,
+        child_ids: child_ids,
+        children_reversed: children_reversed,
+    }
+}.
+
+struct NumberedChildren {
+    next_id: Int,
+    values_reversed: List[NumberedExpressionNode],
+    ids: List[Int],
+}.
+
+constructor NumberedChildren {
+    (
+        next_id: Int,
+        values_reversed: List[NumberedExpressionNode],
+        ids: List[Int],
+    ): NumberedChildren -> NumberedChildren {
+        next_id: next_id,
+        values_reversed: values_reversed,
+        ids: ids,
+    }
+}.
+
+struct NumberedWalk {
+    next_id: Int,
+    value: NumberedExpressionNode,
+}.
+
+constructor NumberedWalk {
+    (next_id: Int, value: NumberedExpressionNode): NumberedWalk -> NumberedWalk {
+        next_id: next_id,
+        value: value,
+    }
+}.
+
+@pure
+prepend_reversed[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_reversed(rest, [value | output])
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+concat[T](left: List[T], right: List[T]): List[T] ->
+    prepend_reversed(reverse(left), right).
+
+@pure
+concat_nodes(
+    left: List[ProjectedExpressionNode],
+    right: List[ProjectedExpressionNode],
+): List[ProjectedExpressionNode] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | concat_nodes(rest, right)]
+    }.
+
+@pure
+task(kind: String, node: ProjectedExpressionNode): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, node.text, node.start_byte, node.end_byte, [node]).
+
+@pure
+scope_task(kind: String, node: ProjectedExpressionNode): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, "", node.start_byte, node.end_byte, List.new[ProjectedExpressionNode]()).
+
+@pure
+pattern_events_at(
+    work: List[ProjectedExpressionNode],
+    output: List[BindingEvent],
+): List[BindingEvent] ->
+    case work {
+        [] -> output;
+        [node | rest] -> pattern_events_at(
+            concat_nodes(node.children, rest),
+            if {
+                node.kind == "binding-pattern" -> [BindingEvent(
+                    kind = "declare",
+                    name = node.text,
+                    binding_kind = "pattern",
+                    byte_offset = node.start_byte,
+                ) | output];
+                true -> output
+            },
+        )
+    }.
+
+@pure
+binding_events_at(
+    work: List[ProjectedExpressionNode],
+    output: List[BindingEvent],
+): List[BindingEvent] ->
+    case work {
+        [] -> reverse(output);
+        [node | rest] where node.kind == "$enter-scope" -> binding_events_at(rest, [BindingEvent(
+            kind = "enter-scope",
+            name = "",
+            binding_kind = "",
+            byte_offset = node.start_byte,
+        ) | output]);
+        [node | rest] where node.kind == "$leave-scope" -> binding_events_at(rest, [BindingEvent(
+            kind = "leave-scope",
+            name = "",
+            binding_kind = "",
+            byte_offset = node.end_byte,
+        ) | output]);
+        [node | rest] where node.kind == "$pattern" -> binding_events_at(
+            rest,
+            pattern_events_at(node.children, output),
+        );
+        [node | rest] where node.kind == "$callee" -> case node.children {
+            [callee] where callee.kind == "identifier" or callee.kind == "binding" or callee.kind == "atom" or callee.kind == "constructor" ->
+                binding_events_at(rest, output);
+            [callee] where callee.kind == "field" -> case callee.children {
+                [base | _] -> binding_events_at([base | rest], output);
+                _ -> binding_events_at(rest, output)
+            };
+            [callee] -> binding_events_at([callee | rest], output);
+            _ -> binding_events_at(rest, output)
+        };
+        [node | rest] where node.kind == "call" -> case node.children {
+            [callee | arguments] -> binding_events_at(
+                [task("$callee", callee) | concat_nodes(arguments, rest)],
+                output,
+            );
+            _ -> binding_events_at(concat_nodes(node.children, rest), output)
+        };
+        [node | rest] where node.kind == "let" or node.kind == "let-refutable" -> case node.children {
+            [pattern | [source | [continuation | fallback]]] -> binding_events_at(
+                concat_nodes(
+                    [source, scope_task("$enter-scope", node), task("$pattern", pattern), continuation],
+                    concat_nodes(fallback, [scope_task("$leave-scope", node) | rest]),
+                ),
+                output,
+            );
+            _ -> binding_events_at(concat_nodes(node.children, rest), output)
+        };
+        [node | rest] where node.kind == "clause" -> case node.children {
+            [pattern | body] -> binding_events_at(
+                concat_nodes(
+                    [scope_task("$enter-scope", node), task("$pattern", pattern)],
+                    concat_nodes(body, [scope_task("$leave-scope", node) | rest]),
+                ),
+                output,
+            );
+            _ -> binding_events_at(concat_nodes(node.children, rest), output)
+        };
+        [node | rest] where node.kind == "lambda" -> case node.children {
+            [patterns | [body | trailing]] -> binding_events_at(
+                concat_nodes(
+                    [scope_task("$enter-scope", node), task("$pattern", patterns), body],
+                    concat_nodes(trailing, [scope_task("$leave-scope", node) | rest]),
+                ),
+                output,
+            );
+            _ -> binding_events_at(concat_nodes(node.children, rest), output)
+        };
+        [node | rest] -> binding_events_at(
+            concat_nodes(node.children, rest),
+            if {
+                node.kind == "identifier" or node.kind == "binding" or node.kind == "atom" -> [BindingEvent(
+                    kind = "use",
+                    name = node.text,
+                    binding_kind = "value",
+                    byte_offset = node.start_byte,
+                ) | output];
+                true -> output
+            },
+        )
+    }.
+
+@pure
+binding_events(node: ProjectedExpressionNode): List[BindingEvent] ->
+    binding_events_at([node], List.new[BindingEvent]()).
+
+@pure
+fixed_binding_offsets_at(
+    values: List[BindingEvent],
+    byte_offset: Int,
+    output: List[BindingEvent],
+): List[BindingEvent] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> fixed_binding_offsets_at(rest, byte_offset, [BindingEvent(
+            kind = value.kind,
+            name = value.name,
+            binding_kind = value.binding_kind,
+            byte_offset = byte_offset,
+        ) | output])
+    }.
+
+@pure
+fixed_binding_offsets(values: List[BindingEvent], byte_offset: Int): List[BindingEvent] ->
+    fixed_binding_offsets_at(values, byte_offset, List.new[BindingEvent]()).
+
+@pure
+parameter_pattern_events_at(
+    work: List[ProjectedExpressionNode],
+    byte_offset: Int,
+    output: List[BindingEvent],
+): List[BindingEvent] ->
+    case work {
+        [] -> output;
+        [node | rest] -> parameter_pattern_events_at(
+            concat_nodes(node.children, rest),
+            byte_offset,
+            if {
+                node.kind == "binding-pattern" -> [BindingEvent(
+                    kind = "declare",
+                    name = node.text,
+                    binding_kind = "parameter",
+                    byte_offset = byte_offset,
+                ) | output];
+                true -> output
+            },
+        )
+    }.
+
+@pure
+parameter_events_at(
+    values: List[ProjectedParameterTree],
+    byte_offset: Int,
+    output: List[BindingEvent],
+): List[BindingEvent] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> case value.pattern {
+            None -> parameter_events_at(rest, byte_offset, output);
+            Some(pattern) -> parameter_events_at(
+                rest,
+                byte_offset,
+                parameter_pattern_events_at([pattern], byte_offset, output),
+            )
+        }
+    }.
+
+@pure
+callable_binding_events(
+    body: ProjectedBody,
+    parameters: List[ProjectedParameterTree],
+    node: ProjectedExpressionNode,
+): List[BindingEvent] ->
+    let byte_offset = if {
+        String.starts_with(body.declaration_head, "pub ") -> body.span.start_byte + 4;
+        true -> body.span.start_byte
+    };
+    concat(
+        [BindingEvent(
+            kind = "enter-scope",
+            name = "",
+            binding_kind = "",
+            byte_offset = byte_offset,
+        )],
+        concat(
+            parameter_events_at(parameters, byte_offset, List.new[BindingEvent]()),
+            concat(
+                fixed_binding_offsets(binding_events(node), byte_offset),
+                [BindingEvent(
+                    kind = "leave-scope",
+                    name = "",
+                    binding_kind = "",
+                    byte_offset = byte_offset,
+                )],
+            ),
+        ),
+    ).
+
+@pure
+head_parameters(values: List[ProjectedCallableSignature]): List[ProjectedParameterTree] ->
+    case values {
+        [] -> List.new[ProjectedParameterTree]();
+        [value | _] -> value.parameters
+    }.
+
+@pure
+remaining_signatures(values: List[ProjectedCallableSignature]): List[ProjectedCallableSignature] ->
+    case values {
+        [] -> List.new[ProjectedCallableSignature]();
+        [_ | rest] -> rest
+    }.
+
+@pure
+node_count_at(values: List[ProjectedExpressionNode], count: Int): Int ->
+    case values {
+        [] -> count;
+        [_ | rest] -> node_count_at(rest, count + 1)
+    }.
+
+@pure
+node_count(values: List[ProjectedExpressionNode]): Int -> node_count_at(values, 0).
+
+@pure
+argument_count(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [value] where value.kind == "sequence" or value.kind == "call-arguments" -> node_count(value.children);
+        _ -> node_count(values)
+    }.
+
+@pure
+some_string(value: String): Option[String] -> Some(value).
+
+@pure
+none_string(): Option[String] -> None.
+
+@pure
+call_module(callee: ProjectedExpressionNode): Option[String] ->
+    if {
+        callee.kind == "field" -> case callee.children {
+            [base | _] -> some_string(base.text);
+            _ -> none_string()
+        };
+        true -> none_string()
+    }.
+
+@pure
+call_name(callee: ProjectedExpressionNode): String ->
+    callee.text.
+
+@pure
+call_use_output(
+    node: ProjectedExpressionNode,
+    output: List[CallableUse],
+): List[CallableUse] ->
+    if {
+        node.kind != "call" -> output;
+        true -> case node.children {
+            [callee | arguments] -> [CallableUse(
+                module_name = call_module(callee),
+                name = call_name(callee),
+                arity = argument_count(arguments),
+                byte_offset = node.start_byte,
+            ) | output];
+            _ -> output
+        }
+    }.
+
+@pure
+call_uses_at(
+    work: List[ProjectedExpressionNode],
+    output: List[CallableUse],
+): List[CallableUse] ->
+    case work {
+        [] -> reverse(output);
+        [node | rest] -> call_uses_at(
+            concat_nodes(node.children, rest),
+            call_use_output(node, output),
+        )
+    }.
+
+@pure
+call_uses(node: ProjectedExpressionNode): List[CallableUse] ->
+    call_uses_at([node], List.new[CallableUse]()).
+
+@pure
+binding_type_link_output(
+    node: ProjectedExpressionNode,
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    if {
+        node.kind == "let" -> case node.children {
+            [pattern | rest] -> case rest {
+                [source | _] -> if {
+                    pattern.kind == "binding-pattern" -> [BindingTypeLink(
+                        declaration_offset = pattern.start_byte,
+                        source_offset = source.start_byte,
+                    ) | output];
+                    true -> output
+                };
+                _ -> output
+            };
+            _ -> output
+        };
+        node.kind == "let-refutable" -> case node.children {
+            [pattern | rest] -> case rest {
+                [source | _] -> if {
+                    pattern.kind == "binding-pattern" -> [BindingTypeLink(
+                        declaration_offset = pattern.start_byte,
+                        source_offset = source.start_byte,
+                    ) | output];
+                    true -> output
+                };
+                _ -> output
+            };
+            _ -> output
+        };
+        true -> output
+    }.
+
+@pure
+binding_type_links_at(
+    work: List[ProjectedExpressionNode],
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case work {
+        [] -> reverse(output);
+        [node | rest] -> binding_type_links_at(
+            concat_nodes(node.children, rest),
+            binding_type_link_output(node, output),
+        )
+    }.
+
+@pure
+binding_type_links(node: ProjectedExpressionNode): List[BindingTypeLink] ->
+    binding_type_links_at([node], List.new[BindingTypeLink]()).
+
+@pure
+known_type(node: ProjectedExpressionNode): Option[String] ->
+    if {
+        node.kind == "integer" -> Some("Int");
+        node.kind == "float" -> Some("Float");
+        node.kind == "string" or node.kind == "html-raw-block" -> Some("String");
+        node.kind == "primary" and (node.text == "true" or node.text == "false") -> Some("Bool");
+        node.kind == "primary" and node.text == "Unit" -> Some("Unit");
+        node.kind == "list" or node.kind == "list-cons" or node.kind == "list-comprehension" -> Some("List");
+        true -> None
+    }.
+
+@pure
+child_id(values: List[Int], index: Int): Int ->
+    case values {
+        [] -> -1;
+        [value | rest] -> if { index == 0 -> value; true -> child_id(rest, index - 1) }
+    }.
+
+@pure
+last_child_id(values: List[Int]): Int ->
+    case values {
+        [] -> -1;
+        [value] -> value;
+        [_ | rest] -> last_child_id(rest)
+    }.
+
+@pure
+constraint_kind(node: ProjectedExpressionNode): String ->
+    if {
+        node.kind == "binary" and (node.text == "and" or node.text == "or") -> "logical";
+        node.kind == "binary" and (
+            node.text == "==" or node.text == "!=" or node.text == "<" or node.text == ">"
+                or node.text == "<=" or node.text == ">=" or node.text == "in"
+        ) -> "compare-same";
+        node.kind == "binary" -> "same";
+        node.kind == "unary" or node.kind == "field" or node.kind == "index"
+            or node.kind == "sequence" or node.kind == "let" or node.kind == "let-refutable"
+            or node.kind == "call-arguments" or node.kind == "named-argument"
+            or node.kind == "if" or node.kind == "case" or node.kind == "try"
+            -> "propagate";
+        true -> "unknown"
+    }.
+
+@pure
+node_constraint(node: ProjectedExpressionNode, node_id: Int, child_ids: List[Int]): TypeConstraintEvent ->
+    case known_type(node) {
+        Some(name) -> TypeConstraintEvent(
+            kind = "known",
+            node_id = node_id,
+            left_node = -1,
+            right_node = -1,
+            type_name = name,
+            byte_offset = node.start_byte,
+        );
+        None -> TypeConstraintEvent(
+            kind = constraint_kind(node),
+            node_id = node_id,
+            left_node = if {
+                node.kind == "let" or node.kind == "let-refutable" -> child_id(child_ids, 2);
+                node.kind == "sequence" or node.kind == "call-arguments" or node.kind == "named-argument"
+                    or node.kind == "if" or node.kind == "case" or node.kind == "try"
+                    -> last_child_id(child_ids);
+                true -> child_id(child_ids, 0)
+            },
+            right_node = child_id(child_ids, 1),
+            type_name = "",
+            byte_offset = node.start_byte,
+        )
+    }.
+
+@pure
+number_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    values_reversed: List[NumberedExpressionNode],
+    ids_reversed: List[Int],
+): NumberedChildren ->
+    case values {
+        [] -> NumberedChildren(
+            next_id = next_id,
+            values_reversed = values_reversed,
+            ids = reverse(ids_reversed),
+        );
+        [value | rest] -> let walked = number_node(value, next_id);
+            number_children(
+                rest,
+                walked.next_id,
+                [walked.value | values_reversed],
+                [walked.value.node_id | ids_reversed],
+            )
+    }.
+
+@pure
+number_node(node: ProjectedExpressionNode, node_id: Int): NumberedWalk ->
+    let children = number_children(
+        node.children,
+        node_id + 1,
+        List.new[NumberedExpressionNode](),
+        List.new[Int](),
+    );
+    NumberedWalk(
+        next_id = children.next_id,
+        value = NumberedExpressionNode(
+            node = node,
+            node_id = node_id,
+            child_ids = children.ids,
+            children_reversed = children.values_reversed,
+        ),
+    ).
+
+@pure
+prepend_numbered_children(
+    values_reversed: List[NumberedExpressionNode],
+    output: List[TypeConstraintEvent],
+): List[TypeConstraintEvent] ->
+    case values_reversed {
+        [] -> output;
+        [value | rest] -> prepend_numbered_children(rest, prepend_numbered_events(value, output))
+    }.
+
+@pure
+prepend_numbered_events(
+    value: NumberedExpressionNode,
+    output: List[TypeConstraintEvent],
+): List[TypeConstraintEvent] ->
+    prepend_numbered_children(
+        value.children_reversed,
+        [node_constraint(value.node, value.node_id, value.child_ids) | output],
+    ).
+
+@pure
+walk_type(node: ProjectedExpressionNode, node_id: Int): TypeWalk ->
+    let numbered = number_node(node, node_id);
+    TypeWalk(
+        next_id = numbered.next_id,
+        node_id = node_id,
+        child_ids = numbered.value.child_ids,
+        events = prepend_numbered_events(numbered.value, List.new[TypeConstraintEvent]()),
+    ).
+
+@pure
+body_events_at(
+    values: List[ProjectedBody],
+    signatures: List[ProjectedCallableSignature],
+    next_id: Int,
+    bindings: List[BindingEvent],
+    calls: List[CallableUse],
+    constraints: List[TypeConstraintEvent],
+    links: List[BindingTypeLink],
+): ProjectedSemanticEvents ->
+    case values {
+        [] -> ProjectedSemanticEvents(
+            binding_events = reverse(bindings),
+            callable_uses = reverse(calls),
+            type_constraints = reverse(constraints),
+            binding_type_links = reverse(links),
+        );
+        [body | rest] -> case body.expression.node {
+            None -> body_events_at(
+                rest,
+                remaining_signatures(signatures),
+                next_id,
+                bindings,
+                calls,
+                constraints,
+                links,
+            );
+            Some(node) -> let typed = walk_type(node, next_id);
+                body_events_at(
+                    rest,
+                    remaining_signatures(signatures),
+                    typed.next_id,
+                    prepend_reversed(callable_binding_events(body, head_parameters(signatures), node), bindings),
+                    prepend_reversed(call_uses(node), calls),
+                    prepend_reversed(typed.events, constraints),
+                    prepend_reversed(binding_type_links(node), links),
+                )
+        }
+    }.
+
+@pure
+pub adapt(bodies: ProjectedBodies, signatures: ProjectedSignatureDocument): ProjectedSemanticEvents ->
+    body_events_at(
+        bodies.values,
+        signatures.callables,
+        0,
+        List.new[BindingEvent](),
+        List.new[CallableUse](),
+        List.new[TypeConstraintEvent](),
+        List.new[BindingTypeLink](),
+    ).

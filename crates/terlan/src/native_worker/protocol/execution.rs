@@ -500,6 +500,9 @@ fn operation_admission(
     if operation.starts_with("std.io.console.") {
         return Some(("stdio", NativeBoundaryCancellationPolicy::NotCancellable));
     }
+    if operation.starts_with("std.time.clock.") {
+        return Some(("clock", NativeBoundaryCancellationPolicy::NotCancellable));
+    }
     None
 }
 

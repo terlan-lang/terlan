@@ -1,4 +1,4 @@
-//! Stable diagnostics applied after a generated expression parse is rejected.
+//! Preflight checks and stable diagnostics for generated parser entry points.
 
 use std::collections::HashSet;
 
@@ -13,38 +13,42 @@ pub(super) fn expression_preflight(source: &str) -> Option<LalrpopBoundaryError>
             start + 1,
         ));
     }
-    ["=:=", "=/=", "/="]
+    deprecated_equality_diagnostic(source)
+}
+
+fn deprecated_equality_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
+    let token = lex(source)
+        .ok()?
         .into_iter()
-        .find_map(|operator| source.find(operator).map(|start| (start, operator)))
-        .map(|(start, operator)| {
-            diagnostic(
-                format!("deprecated equality operator `{operator}` is not valid Terlan syntax"),
-                start,
-                start + operator.chars().count(),
-            )
-        })
+        .find(|token| matches!(token.text.as_str(), "=:=" | "=/=" | "/="))?;
+    Some(diagnostic(
+        format!(
+            "deprecated equality operator `{}` is not valid Terlan syntax",
+            token.text
+        ),
+        token.start,
+        token.end,
+    ))
 }
 
 pub(super) fn expression_diagnostic(
     source: &str,
     fallback: LalrpopBoundaryError,
 ) -> LalrpopBoundaryError {
-    if let Some(start) = source.find("=>") {
+    if let Some(start) = lex(source).ok().and_then(|tokens| {
+        tokens
+            .into_iter()
+            .find(|token| token.kind == TokenKind::FatArrow)
+            .map(|token| token.start)
+    }) {
         return diagnostic(
             "the compile-time implication arrow `=>` is not a runtime expression operator",
             start,
             start + 2,
         );
     }
-    if let Some((start, operator)) = ["=:=", "=/=", "/="]
-        .into_iter()
-        .find_map(|operator| source.find(operator).map(|start| (start, operator)))
-    {
-        return diagnostic(
-            format!("deprecated equality operator `{operator}` is not valid Terlan syntax"),
-            start,
-            start + operator.chars().count(),
-        );
+    if let Some(error) = deprecated_equality_diagnostic(source) {
+        return error;
     }
     if source.trim_start().starts_with('[') {
         if let Some(start) = source.find(" where ") {
@@ -67,6 +71,16 @@ pub(super) fn module_diagnostic(
     source: &str,
     mut fallback: LalrpopBoundaryError,
 ) -> LalrpopBoundaryError {
+    if source
+        .get(fallback.span.start..)
+        .is_some_and(|tail| tail.starts_with("=>"))
+    {
+        return diagnostic(
+            "the compile-time implication arrow `=>` is only valid on generic parameters; it is not a runtime expression operator",
+            fallback.span.start,
+            fallback.span.end,
+        );
+    }
     if fallback.span.start > 0
         && source.is_char_boundary(fallback.span.start)
         && source[..fallback.span.start].ends_with(';')
@@ -131,7 +145,18 @@ pub(super) fn module_preflight(source: &str) -> Option<LalrpopBoundaryError> {
             start + 2,
         ));
     }
-    if let Some(start) = source.find(".(") {
+    if let Some(start) = lex(source).ok().and_then(|tokens| {
+        let tokens = tokens
+            .iter()
+            .filter(|token| !super::lalrpop_projection::is_trivia(&token.kind))
+            .collect::<Vec<_>>();
+        tokens.windows(2).find_map(|pair| {
+            (pair[0].kind == TokenKind::Dot
+                && pair[1].kind == TokenKind::LParen
+                && pair[0].end == pair[1].start)
+                .then_some(pair[0].start)
+        })
+    }) {
         return Some(diagnostic(
             "function-value dot-call syntax was removed; use `callee(args)`",
             start,
@@ -232,34 +257,6 @@ pub(super) fn module_preflight(source: &str) -> Option<LalrpopBoundaryError> {
                     "runtime expression token 'case' is not valid in type position",
                     start + token,
                     start + token + 4,
-                ));
-            }
-            if trimmed
-                .split_once('=')
-                .is_some_and(|(_, body)| body.contains("=>"))
-            {
-                return Some(diagnostic(
-                    "implication constraints are only valid in generic parameter constraints",
-                    start,
-                    start + trimmed.len(),
-                ));
-            }
-        }
-        if trimmed.contains(':') && trimmed.contains("=>") && !trimmed.contains('[') {
-            return Some(diagnostic(
-                "implication constraints are not valid on struct fields; place them on the owning generic parameter list",
-                start,
-                start + trimmed.len(),
-            ));
-        }
-        if let Some(arrow) = trimmed.find("=>") {
-            let generic_close = trimmed.find(']');
-            let runtime_body = trimmed.find("->").is_some_and(|body| arrow > body);
-            if generic_close.is_none_or(|close| arrow > close) || runtime_body {
-                return Some(diagnostic(
-                    "the compile-time implication arrow `=>` is not a runtime expression operator",
-                    start + arrow,
-                    start + arrow + 2,
                 ));
             }
         }

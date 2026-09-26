@@ -1,0 +1,152 @@
+/** Token-boundary lowering for trait constants and abstract/default methods. */
+module self_host.TraitLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{TraitDeclaration}.
+import self_host.TokenSegment.{TokenSegment}.
+import self_host.TraitSyntax.{TraitConstantSyntax, TraitMethodSyntax, TraitSyntax}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.CanonicalLexer.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.ParameterParser.
+import self_host.TokenContext.
+import self_host.TokenSegmenter.
+import self_host.TypeParser.
+
+
+struct Members {
+    valid: Bool,
+    constants: List[TraitConstantSyntax],
+    methods: List[TraitMethodSyntax],
+    message: String,
+}.
+
+constructor Members {
+    (valid: Bool, constants: List[TraitConstantSyntax], methods: List[TraitMethodSyntax], message: String): Members ->
+        Members {
+            valid: valid,
+            constants: constants,
+            methods: methods,
+            message: message,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+strip_terminal_dot(source: String): String ->
+    let value = String.trim(source);
+    if { String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1)); true -> value }.
+
+@pure
+word_end(source: String, index: Int): Int ->
+    if {
+        index == source.byte_size() -> index;
+        source.utf8_byte_at(index) == 32 or source.utf8_byte_at(index) == 9
+            or source.utf8_byte_at(index) == 40 or source.utf8_byte_at(index) == 58 -> index;
+        true -> word_end(source, index + 1)
+    }.
+
+@pure
+trait_constant(source: String): TraitConstantSyntax ->
+    let value = strip_terminal_dot(source);
+    let colon = Delimited.top_level_byte(value, 58);
+    let assignment = Delimited.top_level_assignment(value);
+    let type_end = if { assignment < 0 -> value.byte_size(); true -> assignment };
+    let annotation = if {
+        colon > 6 -> TypeParser.parse(String.trim(value.utf8_slice(colon + 1, type_end - colon - 1)));
+        true -> TypeParser.parse("")
+    };
+    let default_value = if {
+        assignment < 0 -> ExpressionParser.parse("");
+        true -> ExpressionParser.parse(String.trim(value.utf8_slice(assignment + 1, value.byte_size() - assignment - 1)))
+    };
+    TraitConstantSyntax(colon > 6 and annotation.valid and (assignment < 0 or default_value.valid), if { colon > 6 -> String.trim(value.utf8_slice(6, colon - 6)); true -> "" }, annotation, assignment >= 0, default_value, if {
+            colon <= 6 -> "trait constant is missing its annotation";
+            not annotation.valid -> annotation.message;
+            assignment >= 0 and not default_value.valid -> default_value.message;
+            true -> ""
+        }).
+
+@pure
+trait_method(source: String): TraitMethodSyntax ->
+    let value = strip_terminal_dot(source);
+    let open = Delimited.top_level_byte(value, 40);
+    let colon = Delimited.top_level_byte(value, 58);
+    let arrow = Delimited.top_level_pair(value, 45, 62);
+    let parameters_closed = open >= 0 and colon > open and value.utf8_byte_at(colon - 1) == 41;
+    let parameter_text = if {
+        parameters_closed -> value.utf8_slice(open + 1, colon - open - 2);
+        true -> ""
+    };
+    let parameters = ParameterParser.parse_all(parameter_text);
+    let return_end = if { arrow < 0 -> value.byte_size(); true -> arrow };
+    let return_type = if {
+        colon >= 0 -> TypeParser.parse(String.trim(value.utf8_slice(colon + 1, return_end - colon - 1)));
+        true -> TypeParser.parse("")
+    };
+    let body = if {
+        arrow < 0 -> ExpressionParser.parse("");
+        true -> ExpressionParser.parse(String.trim(value.utf8_slice(arrow + 2, value.byte_size() - arrow - 2)))
+    };
+    let valid = open > 0
+        and parameters_closed
+        and ParameterParser.all_valid(parameters)
+        and return_type.valid
+        and (arrow < 0 or body.valid);
+    TraitMethodSyntax(valid, if { open > 0 -> String.trim(value.utf8_slice(0, open)); true -> "" }, parameters, return_type, arrow >= 0, body, if {
+            open <= 0 or not parameters_closed -> "trait method signature is incomplete";
+            not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
+            not return_type.valid -> return_type.message;
+            arrow >= 0 and not body.valid -> body.message;
+            true -> ""
+        }).
+
+@pure
+segment_text(source: String, segment: TokenSegment): String ->
+    source.utf8_slice(segment.start_byte, segment.end_byte - segment.start_byte).
+
+@pure
+members_at(source: String, segments: List[TokenSegment], state: Members): Members ->
+    case segments {
+        [] -> Members(valid = state.valid, constants = reverse_at(state.constants, List.new[TraitConstantSyntax]()), methods = reverse_at(state.methods, List.new[TraitMethodSyntax]()), message = state.message);
+        [segment | rest] ->
+            let text = String.trim(segment_text(source, segment));
+            if {
+                String.starts_with(text, "const ") ->
+                    let constant = trait_constant(text);
+                    members_at(source, rest, Members(valid = state.valid and constant.valid, constants = [constant | state.constants], methods = state.methods, message = if { state.message != "" -> state.message; true -> constant.message }));
+                true ->
+                    let method = trait_method(text);
+                    members_at(source, rest, Members(valid = state.valid and method.valid, constants = state.constants, methods = [method | state.methods], message = if { state.message != "" -> state.message; true -> method.message }))
+            }
+    }.
+
+@pure
+empty_members(): Members ->
+    Members(valid = true, constants = List.new[TraitConstantSyntax](), methods = List.new[TraitMethodSyntax](), message = "").
+
+/** Lowers one complete trait member block through contextual token boundaries. */
+@pure
+pub lower(source: DeclarationSyntax): TraitSyntax ->
+    let open = Delimited.top_level_byte(source.body, 123);
+    let body_valid = open >= 0 and String.ends_with(String.trim(source.body), "}.");
+    let body = if { body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3); true -> "" };
+    let lexical = CanonicalLexer.lex(body);
+    let segmented = TokenSegmenter.split(TokenContext.project(lexical.tokens));
+    let members = if { lexical.valid and segmented.valid -> members_at(body, segmented.segments, empty_members()); true -> empty_members() };
+    let supported = source.class == TraitDeclaration;
+    TraitSyntax(supported and body_valid and lexical.valid and segmented.valid and members.valid, source.name, members.constants, members.methods, source.is_public, source.span, if {
+            not supported -> "declaration is not a trait";
+            not body_valid -> "trait body is incomplete";
+            not lexical.valid -> "trait member has a lexical error";
+            not segmented.valid -> "trait member is missing its terminating dot";
+            not members.valid -> members.message;
+            true -> ""
+        }).
+

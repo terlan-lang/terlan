@@ -1,0 +1,8 @@
+[package]
+name = "terlan-self-host"
+version = "0.0.1"
+namespace = "self_host"
+
+[build]
+source_roots = ["src"]
+artifact = "terlan-vm"

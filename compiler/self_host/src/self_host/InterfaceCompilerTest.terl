@@ -1,0 +1,27 @@
+/** Module/interface source-kind separation contracts. */
+module self_host.InterfaceCompilerTest.
+
+import std.core.String.
+import self_host.Compiler.
+
+@pure
+interface_export(): Bool ->
+    let result = Compiler.compile_interface(
+        "module demo.Interface.\ndemo(value: Int): Int -> value.\nexport demo/1.\n",
+    );
+    result.valid and String.contains(result.interface_text, "export demo/1.").
+
+@pure
+module_rejects_export(): Bool ->
+    not Compiler.compile(
+        "module demo.Interface.\nexport demo/1.\n",
+    ).valid.
+
+@pure
+interface_rejects_missing_export(): Bool ->
+    not Compiler.compile_interface(
+        "module demo.Interface.\nexport missing/1.\n",
+    ).valid.
+
+pub self_test(): Bool ->
+    interface_export() and module_rejects_export() and interface_rejects_missing_export().

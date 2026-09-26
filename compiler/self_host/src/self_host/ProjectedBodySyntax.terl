@@ -1,0 +1,39 @@
+/** Projected expression body associated with one callable declaration span. */
+module self_host.ProjectedBodySyntax.
+
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionResult}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedBody {
+    declaration_head: String,
+    span: SyntaxSpan,
+    expression: ProjectedExpressionResult,
+}.
+
+pub constructor ProjectedBody {
+    (declaration_head: String, span: SyntaxSpan, expression: ProjectedExpressionResult): ProjectedBody ->
+        ProjectedBody {
+            declaration_head: declaration_head,
+            span: span,
+            expression: expression,
+        }
+}.
+
+
+pub struct ProjectedBodies {
+    valid: Bool,
+    values: List[self_host.ProjectedBodySyntax.ProjectedBody],
+}.
+
+pub constructor ProjectedBodies {
+    (valid: Bool, values: List[self_host.ProjectedBodySyntax.ProjectedBody]): ProjectedBodies ->
+        ProjectedBodies {
+            valid: valid,
+            values: values,
+        }
+}.
+

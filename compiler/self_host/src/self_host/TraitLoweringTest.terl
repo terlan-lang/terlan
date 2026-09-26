@@ -1,0 +1,31 @@
+/** Positive and negative trait-member lowering contracts. */
+module self_host.TraitLoweringTest.
+
+import std.collections.List.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+import self_host.TraitLowering.
+
+@pure
+positive_trait(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Named.\npub trait Named {\n    const EMPTY: String = \"\".\n    name(value: User): String.\n    visible(value: User): Bool -> value.name != \"\".\n}.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_trait = TraitLowering.lower(declaration);
+            lowered_trait.valid
+                and List.length(lowered_trait.constants) == 1
+                and List.length(lowered_trait.methods) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_trait(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Named.\npub trait Named { name(value: User) String. }.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not TraitLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_trait() and negative_trait().

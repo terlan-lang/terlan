@@ -1,0 +1,279 @@
+/** String-aware delimiter scanning shared by nested syntax parsers. */
+module self_host.Delimited.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+struct ScanState {
+    parentheses: Int,
+    brackets: Int,
+    braces: Int,
+    quote_byte: Int,
+    escaped: Bool,
+    valid: Bool,
+}.
+
+constructor ScanState {
+    (parentheses: Int, brackets: Int, braces: Int, quote_byte: Int, escaped: Bool, valid: Bool): ScanState ->
+        ScanState {
+            parentheses: parentheses,
+            brackets: brackets,
+            braces: braces,
+            quote_byte: quote_byte,
+            escaped: escaped,
+            valid: valid,
+        }
+}.
+
+@pure
+initial(): ScanState ->
+    ScanState(parentheses = 0, brackets = 0, braces = 0, quote_byte = 0, escaped = false, valid = true).
+
+@pure
+outside(state: ScanState): Bool ->
+    state.quote_byte == 0
+        and state.parentheses == 0
+        and state.brackets == 0
+        and state.braces == 0.
+
+@pure
+quoted_step(state: ScanState, byte: Int): ScanState ->
+    if {
+        state.escaped -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = state.quote_byte, escaped = false, valid = state.valid);
+        byte == 92 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = state.quote_byte, escaped = true, valid = state.valid);
+        byte == state.quote_byte -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        true -> state
+    }.
+
+@pure
+unquoted_step(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 34 or byte == 39 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = byte, escaped = false, valid = state.valid);
+        byte == 40 -> ScanState(parentheses = state.parentheses + 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 41 -> ScanState(parentheses = state.parentheses - 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.parentheses > 0);
+        byte == 91 -> ScanState(parentheses = state.parentheses, brackets = state.brackets + 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 93 -> ScanState(parentheses = state.parentheses, brackets = state.brackets - 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.brackets > 0);
+        byte == 123 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces + 1, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 125 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces - 1, quote_byte = 0, escaped = false, valid = state.valid and state.braces > 0);
+        true -> state
+    }.
+
+@pure
+step(state: ScanState, byte: Int): ScanState ->
+    if {
+        state.quote_byte != 0 -> quoted_step(state, byte);
+        true -> unquoted_step(state, byte)
+    }.
+
+@pure
+scan_at(source: String, index: Int, state: ScanState): ScanState ->
+    if {
+        index == source.byte_size() -> state;
+        true -> scan_at(source, index + 1, step(state, source.utf8_byte_at(index)))
+    }.
+
+@pure
+properly_nested_at(
+    source: String,
+    index: Int,
+    expected: List[Int],
+    quote_byte: Int,
+    escaped: Bool,
+): Bool ->
+    if {
+        index == source.byte_size() -> List.is_empty(expected) and quote_byte == 0 and not escaped;
+        quote_byte != 0 and escaped -> properly_nested_at(source, index + 1, expected, quote_byte, false);
+        quote_byte != 0 and source.utf8_byte_at(index) == 92 -> properly_nested_at(source, index + 1, expected, quote_byte, true);
+        quote_byte != 0 and source.utf8_byte_at(index) == quote_byte -> properly_nested_at(source, index + 1, expected, 0, false);
+        quote_byte != 0 -> properly_nested_at(source, index + 1, expected, quote_byte, false);
+        source.utf8_byte_at(index) == 34 or source.utf8_byte_at(index) == 39 ->
+            properly_nested_at(source, index + 1, expected, source.utf8_byte_at(index), false);
+        source.utf8_byte_at(index) == 40 -> properly_nested_at(source, index + 1, [41 | expected], 0, false);
+        source.utf8_byte_at(index) == 91 -> properly_nested_at(source, index + 1, [93 | expected], 0, false);
+        source.utf8_byte_at(index) == 123 -> properly_nested_at(source, index + 1, [125 | expected], 0, false);
+        source.utf8_byte_at(index) == 41
+            or source.utf8_byte_at(index) == 93
+            or source.utf8_byte_at(index) == 125 -> case expected {
+                [closer | rest] where closer == source.utf8_byte_at(index) ->
+                    properly_nested_at(source, index + 1, rest, 0, false);
+                _ -> false
+            };
+        true -> properly_nested_at(source, index + 1, expected, 0, false)
+    }.
+
+/** True when delimiters and quoted strings are closed and correctly nested. */
+@pure
+pub balanced(source: String): Bool ->
+    let result = scan_at(source, 0, initial());
+    result.valid
+        and result.parentheses == 0
+        and result.brackets == 0
+        and result.braces == 0
+        and result.quote_byte == 0
+        and not result.escaped
+        and properly_nested_at(source, 0, List.new[Int](), 0, false).
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+is_pipe_forward(source: String, index: Int, delimiter: Int): Bool ->
+    delimiter == 124
+        and index + 1 < source.byte_size()
+        and source.utf8_byte_at(index + 1) == 62.
+
+@pure
+split_at(
+    source: String,
+    delimiter: Int,
+    index: Int,
+    start: Int,
+    state: ScanState,
+    output: List[String],
+): List[String] ->
+    if {
+        index == source.byte_size() ->
+            reverse_at(
+                [String.trim(source.utf8_slice(start, source.byte_size() - start)) | output],
+                List.new[String](),
+            );
+        outside(state)
+            and source.utf8_byte_at(index) == delimiter
+            and not is_pipe_forward(source, index, delimiter) ->
+                split_at(
+                    source,
+                    delimiter,
+                    index + 1,
+                    index + 1,
+                    state,
+                    [String.trim(source.utf8_slice(start, index - start)) | output],
+                );
+        true -> split_at(
+            source,
+            delimiter,
+            index + 1,
+            start,
+            step(state, source.utf8_byte_at(index)),
+            output,
+        )
+    }.
+
+/** Splits on one ASCII delimiter only at nesting depth zero and outside strings. */
+@pure
+pub split_top_level(source: String, delimiter: Int): List[String] ->
+    split_at(source, delimiter, 0, 0, initial(), List.new[String]()).
+
+@pure
+top_level_byte_at(source: String, expected: Int, index: Int, state: ScanState): Int ->
+    if {
+        index == source.byte_size() -> -1;
+        outside(state) and source.utf8_byte_at(index) == expected -> index;
+        true -> top_level_byte_at(
+            source,
+            expected,
+            index + 1,
+            step(state, source.utf8_byte_at(index)),
+        )
+    }.
+
+/** Returns the first top-level ASCII byte offset, or `-1`. */
+@pure
+pub top_level_byte(source: String, expected: Int): Int ->
+    top_level_byte_at(source, expected, 0, initial()).
+
+@pure
+top_level_pair_at(
+    source: String,
+    first: Int,
+    second: Int,
+    index: Int,
+    state: ScanState,
+): Int ->
+    if {
+        index + 1 >= source.byte_size() -> -1;
+        outside(state)
+            and source.utf8_byte_at(index) == first
+            and source.utf8_byte_at(index + 1) == second -> index;
+        true -> top_level_pair_at(
+            source,
+            first,
+            second,
+            index + 1,
+            step(state, source.utf8_byte_at(index)),
+        )
+    }.
+
+/** Returns the first top-level two-byte operator offset, or `-1`. */
+@pure
+pub top_level_pair(source: String, first: Int, second: Int): Int ->
+    top_level_pair_at(source, first, second, 0, initial()).
+
+@pure
+text_matches_at(source: String, expected: String, index: Int, offset: Int): Bool ->
+    if {
+        offset == expected.byte_size() -> true;
+        index + offset >= source.byte_size() -> false;
+        source.utf8_byte_at(index + offset) != expected.utf8_byte_at(offset) -> false;
+        true -> text_matches_at(source, expected, index, offset + 1)
+    }.
+
+@pure
+top_level_text_at(
+    source: String,
+    expected: String,
+    index: Int,
+    state: ScanState,
+): Int ->
+    if {
+        index == source.byte_size() -> -1;
+        not outside(state) -> top_level_text_at(
+            source,
+            expected,
+            index + 1,
+            step(state, source.utf8_byte_at(index)),
+        );
+        text_matches_at(source, expected, index, 0) -> index;
+        true -> top_level_text_at(
+            source,
+            expected,
+            index + 1,
+            step(state, source.utf8_byte_at(index)),
+        )
+    }.
+
+/** Returns the first top-level text occurrence, or `-1`. */
+@pure
+pub top_level_text(source: String, expected: String): Int ->
+    top_level_text_at(source, expected, 0, initial()).
+
+@pure
+assignment_at(source: String, index: Int, state: ScanState): Int ->
+    if {
+        index == source.byte_size() -> -1;
+        outside(state)
+            and source.utf8_byte_at(index) == 61
+            and (index == 0 or (
+                source.utf8_byte_at(index - 1) != 61
+                    and source.utf8_byte_at(index - 1) != 33
+                    and source.utf8_byte_at(index - 1) != 60
+                    and source.utf8_byte_at(index - 1) != 62
+            ))
+            and (index + 1 == source.byte_size() or (
+                source.utf8_byte_at(index + 1) != 61
+                    and source.utf8_byte_at(index + 1) != 62
+            )) -> index;
+        true -> assignment_at(
+            source,
+            index + 1,
+            step(state, source.utf8_byte_at(index)),
+        )
+    }.
+
+/** Returns the first top-level assignment `=` that is not comparison/fat-arrow syntax. */
+@pure
+pub top_level_assignment(source: String): Int ->
+    assignment_at(source, 0, initial()).

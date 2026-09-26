@@ -8,6 +8,7 @@ use super::{resolve_breakpoint, source_line_span, source_path_matches};
 /// Creates one source record suitable for breakpoint-resolution tests.
 fn record(source_file: String) -> TvmNativeDebugRecord {
     TvmNativeDebugRecord {
+        callable_id: 1,
         source_file,
         module: "app.Main".to_string(),
         function: "main".to_string(),

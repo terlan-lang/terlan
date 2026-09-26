@@ -6,12 +6,12 @@ classification. They verify the contract consumed by lowering; they do not
 claim that the generated Rust parser implementation is formally verified.
 -/
 
--- canonical-ebnf-sha256: f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405
+-- canonical-ebnf-sha256: 0563b5f85ba00c4943a9f41b990739aea1278f3ccff3f9be7bdfb507d9d8fe87
 
 namespace Terlan.ParserShape
 
 def canonicalEbnfSha256 : String :=
-  "f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405"
+  "0563b5f85ba00c4943a9f41b990739aea1278f3ccff3f9be7bdfb507d9d8fe87"
 
 def syntaxOutputSchema : String := "terlan.lalrpop-module-output.v1"
 

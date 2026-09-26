@@ -1,0 +1,161 @@
+/** Implementation-neutral tokens and contextual marks used by LR projection. */
+module self_host.ProjectionSyntax.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+pub type AtomProjection.
+pub type VarProjection.
+pub type ModuleProjection.
+pub type CommentProjection.
+pub type DocProjection.
+pub type LParenProjection.
+pub type RParenProjection.
+pub type LBracketProjection.
+pub type RBracketProjection.
+pub type LBraceProjection.
+pub type RBraceProjection.
+pub type LtProjection.
+pub type GtProjection.
+pub type ColonProjection.
+pub type ArrowProjection.
+pub type SemicolonProjection.
+pub type DotProjection.
+pub type CommaProjection.
+pub type LetProjection.
+pub type IfProjection.
+pub type AsProjection.
+pub type WhereProjection.
+pub type WhenProjection.
+pub type AndProjection.
+pub type OrProjection.
+pub type IntProjection.
+pub type FloatProjection.
+pub type StringProjection.
+pub type BinaryProjection.
+pub type MinusProjection.
+pub type BangProjection.
+pub type EndProjection.
+pub type OtherProjection.
+
+pub type ProjectionTokenKind =
+    AtomProjection
+    | VarProjection
+    | ModuleProjection
+    | CommentProjection
+    | DocProjection
+    | LParenProjection
+    | RParenProjection
+    | LBracketProjection
+    | RBracketProjection
+    | LBraceProjection
+    | RBraceProjection
+    | LtProjection
+    | GtProjection
+    | ColonProjection
+    | ArrowProjection
+    | SemicolonProjection
+    | DotProjection
+    | CommaProjection
+    | LetProjection
+    | IfProjection
+    | AsProjection
+    | WhereProjection
+    | WhenProjection
+    | AndProjection
+    | OrProjection
+    | IntProjection
+    | FloatProjection
+    | StringProjection
+    | BinaryProjection
+    | MinusProjection
+    | BangProjection
+    | EndProjection
+    | OtherProjection.
+
+pub type FunctionBodyArrowProjection.
+pub type HeadConstraintListProjection.
+pub type LambdaOpeningProjection.
+pub type TypedLambdaPatternProjection.
+pub type LambdaSequenceSemicolonProjection.
+pub type IfClauseSemicolonProjection.
+pub type CastTypeLBracketProjection.
+pub type ExpressionRawMacroProjection.
+pub type NativeRawDeclarationProjection.
+pub type ConfigRawDeclarationProjection.
+
+pub type ProjectionClass =
+    FunctionBodyArrowProjection
+    | HeadConstraintListProjection
+    | LambdaOpeningProjection
+    | TypedLambdaPatternProjection
+    | LambdaSequenceSemicolonProjection
+    | IfClauseSemicolonProjection
+    | CastTypeLBracketProjection
+    | ExpressionRawMacroProjection
+    | NativeRawDeclarationProjection
+    | ConfigRawDeclarationProjection.
+
+pub struct ProjectionToken {
+    kind: self_host.ProjectionSyntax.ProjectionTokenKind,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor ProjectionToken {
+    (kind: self_host.ProjectionSyntax.ProjectionTokenKind, text: String, start_byte: Int, end_byte: Int): ProjectionToken ->
+        ProjectionToken {
+            kind: kind,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+
+pub struct ProjectionMark {
+    class: self_host.ProjectionSyntax.ProjectionClass,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor ProjectionMark {
+    (class: self_host.ProjectionSyntax.ProjectionClass, start_byte: Int, end_byte: Int): ProjectionMark ->
+        ProjectionMark {
+            class: class,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+
+pub struct ProjectionOutput {
+    marks: List[self_host.ProjectionSyntax.ProjectionMark],
+}.
+
+pub constructor ProjectionOutput {
+    (marks: List[self_host.ProjectionSyntax.ProjectionMark]): ProjectionOutput ->
+        ProjectionOutput {
+            marks: marks,
+        }
+}.
+
+
+pub struct ProjectedCanonicalToken {
+    terminal: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor ProjectedCanonicalToken {
+    (terminal: String, text: String, start_byte: Int, end_byte: Int): ProjectedCanonicalToken ->
+        ProjectedCanonicalToken {
+            terminal: terminal,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+

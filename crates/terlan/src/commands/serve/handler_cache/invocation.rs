@@ -8,7 +8,6 @@ use crate::runtime::vm::protocol_task_executor::{
     current_protocol_task_route, protocol_sleep_until, with_current_protocol_resource,
     with_existing_current_protocol_resource, VmProtocolTaskRoute,
 };
-#[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::pure_native::{
     PureNativeCapabilityRequest, PureNativeCapabilityWait, PureNativeIoWait, PureNativeSuspension,
@@ -197,6 +196,29 @@ impl AotHandlerCapabilityInvocation {
         self.resume(outcome)
     }
 
+    /// Resolves a direct-safe trusted adapter without entering the worker pump.
+    pub(in crate::commands::serve) fn resume_from_trusted_host(
+        self,
+    ) -> Result<AotHandlerInvocationStep, String> {
+        let wait = self.wait.as_ref().ok_or_else(|| {
+            "error[serve.aot.capability]: capability wait is no longer active".to_string()
+        })?;
+        let request = wait.request();
+        let capability = request.capability.clone();
+        let operation = request.operation.clone();
+        let outcome = super::protocol_capability::dispatch_trusted_capability(
+            self.generation.identity,
+            self.owner,
+            wait,
+        )?
+        .ok_or_else(|| {
+            format!(
+                "error[serve.aot.capability_orchestration]: capability `{capability}` operation `{operation}` requires the capability worker event pump"
+            )
+        })?;
+        self.resume(outcome)
+    }
+
     /// Publishes one worker reply through the fixed actor owner.
     pub(in crate::commands::serve) fn resume(
         mut self,
@@ -284,7 +306,6 @@ pub(in crate::commands::serve) struct AotHandlerInvocation {
     /// Typed external wait captured before the owner returns to its event loop.
     wait: PureNativeIoWait,
     /// Exact protocol connection allowed to publish this request's completion.
-    #[cfg(test)]
     protocol_origin: Option<VmProtocolTaskRoute>,
     execution_owner: InvocationOwner,
     /// Reservation in the generation's fixed scheduler routing table.
@@ -299,10 +320,12 @@ impl AotHandlerRuntime {
         function: &str,
         args: Vec<ReplValue>,
     ) -> Result<AotHandlerInvocationStep, String> {
-        if module != self.module {
+        let export = format!("{module}.{function}");
+        let arity = args.len();
+        if !self.generation.has_export(&export, arity) {
             return Err(format!(
-                "error[serve.aot.module_missing]: native handler image `{}` does not own module `{module}`",
-                self.module
+                "error[serve.aot.callable_missing]: native handler image `{}` does not export `{export}/{arity}`",
+                self.module,
             ));
         }
         let generation = Arc::clone(&self.generation);
@@ -312,8 +335,6 @@ impl AotHandlerRuntime {
             |origin| generation.route_new_actor_on(origin.scheduler()),
         )?;
         let shard_index = route.scheduler().index();
-        let export = format!("{module}.{function}");
-        let arity = args.len();
         let execution_owner = protocol_origin
             .map(InvocationOwner::Protocol)
             .unwrap_or(InvocationOwner::Dedicated);
@@ -389,7 +410,6 @@ impl AotHandlerInvocation {
     }
 
     /// Resumes generated code through execution-shard authority after one wake.
-    #[cfg(test)]
     pub(in crate::commands::serve) fn resume(
         mut self,
         wake: PureNativeIoWake,
@@ -407,9 +427,21 @@ impl AotHandlerInvocation {
                     |shard| shard.resume(self.route, self.owner, suspension, wake),
                 )
             }
-            InvocationOwner::Dedicated => generation
-                .shard(self.route.scheduler().index())
-                .and_then(|shard| shard.resume(self.route, self.owner, suspension, wake)),
+            InvocationOwner::Dedicated => {
+                #[cfg(test)]
+                {
+                    generation
+                        .shard(self.route.scheduler().index())
+                        .and_then(|shard| shard.resume(self.route, self.owner, suspension, wake))
+                }
+                #[cfg(not(test))]
+                {
+                    Err(
+                        "error[serve.aot.callback_owner]: channel continuation is outside its protocol owner"
+                            .to_string(),
+                    )
+                }
+            }
         };
         let step = match result {
             Ok(step) => step,
@@ -422,7 +454,6 @@ impl AotHandlerInvocation {
     }
 
     /// Rejects completion publication outside the connection that parked it.
-    #[cfg(test)]
     fn validate_protocol_origin(&self) -> Result<(), String> {
         let Some(expected) = self.protocol_origin else {
             return Ok(());
@@ -511,7 +542,6 @@ fn materialize_step(
             owner,
             suspension: Some(suspension),
             wait,
-            #[cfg(test)]
             protocol_origin: current_protocol_task_route(),
             execution_owner,
             active_route: true,

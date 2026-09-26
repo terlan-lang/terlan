@@ -243,6 +243,13 @@ where
                 let mut resumed_items = items.clone();
                 let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
                 for (index, earlier) in items[..call_index].iter().enumerate() {
+                    // A checked valued-union discriminant is compile-time
+                    // metadata, not an effectful value. Keeping it literal
+                    // lets type-directed union lowering select the variant
+                    // after a later tuple item resumes.
+                    if is_checked_atom_literal(earlier) {
+                        continue;
+                    }
                     let name = unique_prefix_name(
                         &format!("$native_sequence_item_{index}"),
                         &region,
@@ -332,6 +339,25 @@ where
                 target_type: target_type.clone(),
             }))
         }
+        CoreExpr::FieldAccess { base, field } => {
+            let region =
+                composed_call_region_at(base, suspending, is_composable, result_name, reserved)?;
+            Some(map_region_resumes(region, |resume| CoreExpr::FieldAccess {
+                base: Box::new(resume),
+                field: field.clone(),
+            }))
+        }
+        CoreExpr::RecordAccess { base, name, field } => {
+            let region =
+                composed_call_region_at(base, suspending, is_composable, result_name, reserved)?;
+            Some(map_region_resumes(region, |resume| {
+                CoreExpr::RecordAccess {
+                    base: Box::new(resume),
+                    name: name.clone(),
+                    field: field.clone(),
+                }
+            }))
+        }
         CoreExpr::ListCons { head, tail } => {
             if let Some(region) =
                 composed_call_region_at(head, suspending, is_composable, result_name, reserved)
@@ -381,8 +407,16 @@ where
             if matches!(operator.as_str(), "and" | "or") {
                 let gated_prefix = std::mem::take(&mut region.prefix);
                 let call_when_true = operator == "and";
-                let bypass_resume =
-                    CoreExpr::Atom(if operator == "or" { "true" } else { "false" }.to_string());
+                // These literals are introduced after type checking. Preserve
+                // the source-level Bool type explicitly; a bare Core atom
+                // would otherwise be inferred as NativeType::Atom at the
+                // shared short-circuit join.
+                let bypass_resume = CoreExpr::Cast {
+                    expr: Box::new(CoreExpr::Atom(
+                        if operator == "or" { "true" } else { "false" }.to_string(),
+                    )),
+                    target_type: CoreType::Bool,
+                };
                 if gated_prefix.is_empty()
                     && region.gates.first().is_some_and(|gate| {
                         gate.call_when_true == call_when_true && gate.bypass_resume == bypass_resume
@@ -550,6 +584,14 @@ where
             }))
         }
         _ => None,
+    }
+}
+
+fn is_checked_atom_literal(value: &CoreExpr) -> bool {
+    match value {
+        CoreExpr::Atom(_) => true,
+        CoreExpr::Cast { expr, .. } => is_checked_atom_literal(expr),
+        _ => false,
     }
 }
 

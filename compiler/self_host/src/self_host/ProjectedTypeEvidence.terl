@@ -1,0 +1,32 @@
+/** Stable preorder evidence for projected type trees. */
+module self_host.ProjectedTypeEvidence.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode, ProjectedTypeResult}.
+
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+rows(values: List[ProjectedTypeNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            Int.to_string(depth), "\t", value.kind, "\t", value.text, "\t",
+            Int.to_string(value.start_byte), "\t", Int.to_string(value.end_byte), "\n",
+            rows(value.children, depth + 1),
+            rows(rest, depth),
+        ])
+    }.
+
+@pure
+pub document(value: ProjectedTypeResult): String ->
+    String.concat([
+        "schema terlan.self-host.type-tree/v1\nvalid\t",
+        if { value.valid -> "true"; true -> "false" },
+        "\ndepth\tkind\ttext\tstart\tend\n",
+        case value.node { Some(node) -> rows([node], 0); None -> "" },
+    ]).

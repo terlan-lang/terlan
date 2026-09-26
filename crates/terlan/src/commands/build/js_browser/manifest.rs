@@ -50,6 +50,7 @@ pub(super) fn write_browser_manifest(
 /// Writes the route manifest for a native VM service package.
 pub(super) fn write_vm_service_manifest(
     web_root: &Path,
+    assets: Vec<WebAssetArtifact>,
     routes: WebRouteManifestRows,
     error_handler: Option<WebErrorHandlerArtifact>,
     incremental: bool,
@@ -58,7 +59,7 @@ pub(super) fn write_vm_service_manifest(
         web_root,
         "vm",
         None,
-        Vec::new(),
+        assets,
         routes,
         error_handler,
         incremental,
@@ -444,6 +445,9 @@ pub(super) struct WebResponseHeaderArtifact {
 ///   VM handlers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct WebFileResponseArtifact {
+    pub(super) module: String,
+    pub(super) function: String,
+    pub(super) arity: usize,
     pub(super) method: String,
     pub(super) route: String,
     pub(super) path: String,

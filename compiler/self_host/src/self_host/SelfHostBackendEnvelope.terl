@@ -1,0 +1,20 @@
+/**
+ * ABI-1 envelope creation and compatibility checks.
+ */
+module self_host.SelfHostBackendEnvelope.
+
+import self_host.SelfHostIrSyntax.
+
+import self_host.SelfHostIrSyntax.{BackendEnvelope, IrModule}.
+@pure
+pub current(ir_module: IrModule, target: String): BackendEnvelope ->
+    BackendEnvelope(
+        abi_major = 1,
+        abi_minor = 0,
+        target = target,
+        ir_module = ir_module,
+    ).
+
+@pure
+pub compatible(envelope: BackendEnvelope): Bool ->
+    envelope.abi_major == 1 and envelope.abi_minor >= 0.

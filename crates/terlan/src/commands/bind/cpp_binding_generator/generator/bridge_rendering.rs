@@ -54,7 +54,47 @@ pub(super) fn validate_build_plan(build: &CppBuildPlan, input_dir: &Path) -> Res
         )?;
         validate_linked_libraries(&condition.linked_libraries)?;
     }
+    let mut external_envs = BTreeSet::new();
+    for external in &build.external_roots {
+        if !is_environment_name(&external.env) {
+            return Err(format!(
+                "invalid external C++ SDK environment variable `{}`",
+                external.env
+            ));
+        }
+        if !external_envs.insert(external.env.as_str()) {
+            return Err(format!(
+                "duplicate external C++ SDK environment variable `{}`",
+                external.env
+            ));
+        }
+        if external.include_roots.is_empty() {
+            return Err(format!(
+                "external C++ SDK `{}` requires at least one include root",
+                external.env
+            ));
+        }
+        validate_unique_paths("external include root", &external.include_roots)?;
+        validate_unique_paths(
+            "external library search path",
+            &external.library_search_paths,
+        )?;
+        validate_linked_libraries(&external.linked_libraries)?;
+        validate_unique_paths("external rebuild input", &external.rebuild_inputs)?;
+    }
     Ok(())
+}
+
+/// Restricts build-time environment lookups to conventional constant names.
+fn is_environment_name(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|character| {
+            character.is_ascii_uppercase() || character.is_ascii_digit() || character == '_'
+        })
+        && value
+            .chars()
+            .next()
+            .is_some_and(|character| character.is_ascii_uppercase())
 }
 
 /// Validates adapter-relative paths and rejects duplicate entries.
@@ -163,8 +203,19 @@ pub(super) fn validate_resource_roles(manifest: &NativeBindingManifest) -> Resul
                 })
                 .filter(|(owner, function)| {
                     native_role_can_produce_resource(function.role)
-                        && (function.returns == qualified
-                            || (owner.module == module.module && function.returns == ty.name))
+                        && (terlan_type_matches(&function.returns, &qualified)
+                            || (owner.module == module.module
+                                && terlan_type_matches(&function.returns, &ty.name))
+                            || (function.role == NativeFunctionRole::ResourceListProjection
+                                && function
+                                    .returns
+                                    .strip_prefix("List[")
+                                    .and_then(|value| value.strip_suffix(']'))
+                                    .is_some_and(|element| {
+                                        terlan_type_matches(element, &qualified)
+                                            || (owner.module == module.module
+                                                && terlan_type_matches(element, &ty.name))
+                                    })))
                 })
                 .count();
             if producers == 0 {
@@ -194,6 +245,8 @@ pub(super) fn validate_resource_roles(manifest: &NativeBindingManifest) -> Resul
                     | NativeFunctionRole::MutableMethod
                     | NativeFunctionRole::ValueProjection
                     | NativeFunctionRole::EnumProjection
+                    | NativeFunctionRole::StringProjection
+                    | NativeFunctionRole::IntListProjection
                     | NativeFunctionRole::ExceptionMethod
             ) && !function.args.first().is_some_and(|arg| {
                 manifest
@@ -282,6 +335,12 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
         "/**\n * {}\n */\n\nmodule {}.\n\n",
         module.documentation, module.module
     );
+    for imported in &module.type_imports {
+        source.push_str(&format!("import type {imported}.\n"));
+    }
+    if !module.type_imports.is_empty() {
+        source.push('\n');
+    }
     for ty in &module.types {
         match ty.kind {
             NativeBindingTypeKind::OpaqueResource => source.push_str(&format!(
@@ -333,22 +392,52 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
                     ty.name,
                     ty.variants
                         .iter()
-                        .map(|variant| variant.name.as_str())
+                        .map(|variant| format!("Atom[{value:?}]", value = variant.atom))
                         .collect::<Vec<_>>()
                         .join(" | ")
                 ));
             }
+            NativeBindingTypeKind::StringValue => source.push_str(&format!(
+                "/** {} */\npub type {} = String.\n\n",
+                ty.documentation, ty.name
+            )),
         }
     }
     for function in &module.functions {
-        source.push_str(&format!(
-            "/** {} */\n@compiler.native {{{}}}\npub {}({}): {} -> native.\n\n",
-            function.documentation,
-            function.operation,
-            function.name,
-            render_args(&function.args),
-            function.returns
-        ));
+        let visibility = if function.visibility.is_public() {
+            "pub "
+        } else {
+            ""
+        };
+        if let Some(body) = function.terlan_body.as_deref() {
+            let body = body
+                .lines()
+                .map(|line| {
+                    if line.is_empty() {
+                        String::new()
+                    } else {
+                        format!("    {line}")
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            source.push_str(&format!(
+                "/** {} */\n{visibility}{}({}): {} ->\n{body}.\n\n",
+                function.documentation,
+                function.name,
+                render_args(&function.args),
+                function.returns
+            ));
+        } else {
+            source.push_str(&format!(
+                "/** {} */\n@compiler.native {{{}}}\n{visibility}{}({}): {} -> native.\n\n",
+                function.documentation,
+                function.operation,
+                function.name,
+                render_args(&function.args),
+                function.returns
+            ));
+        }
     }
     source
 }
@@ -368,11 +457,15 @@ pub(super) fn render_module_docs(
                 docs.push_str(&format!("- C++ symbol: `{}`\n", symbol.cpp_name));
             }
         }
-        docs.push_str(&format!(
-            "- NativeBoundary operation: `{}`\n- Ownership: `{}`\n\n",
-            function.operation,
-            resource_policy_name(&function.resource)
-        ));
+        if function.terlan_body.is_some() {
+            docs.push_str("- Implementation: generated Terlan composition\n\n");
+        } else {
+            docs.push_str(&format!(
+                "- NativeBoundary operation: `{}`\n- Ownership: `{}`\n\n",
+                function.operation,
+                resource_policy_name(&function.resource)
+            ));
+        }
     }
     docs
 }
@@ -404,7 +497,11 @@ pub(super) fn render_native_boundary_metadata(
         null_failure_transport
     );
     for module in &manifest.modules {
-        for function in &module.functions {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function.terlan_body.is_none())
+        {
             metadata.push_str(&format!(
                 "[functions.{:?}]\noperation = {:?}\narity = {}\nreturns = {:?}\nblocking = {:?}\nresource = {:?}\n\n",
                 format!("{}.{}", module.module, function.name),
@@ -431,14 +528,18 @@ pub(super) fn render_cxx_build(
     cpp: &CppMetadata,
     plan: &CppBuildPlan,
     enum_adapters: bool,
+    string_adapters: bool,
+    collection_adapters: bool,
     exception_adapters: bool,
+    owned_value_adapters: bool,
+    mutation_adapters: bool,
 ) -> String {
     let mut build = String::from(
-        "fn main() {\n    let root = std::path::PathBuf::from(std::env::var_os(\"CARGO_MANIFEST_DIR\").expect(\"CARGO_MANIFEST_DIR\"));\n    let mut build = cxx_build::bridge(root.join(\"src/lib.rs\"));\n",
+        "fn main() {\n    let root = std::path::PathBuf::from(std::env::var_os(\"CARGO_MANIFEST_DIR\").expect(\"CARGO_MANIFEST_DIR\"));\n    let mut build = cxx_build::bridge(root.join(\"src/lib.rs\"));\n    build.include(&root);\n",
     );
     for source in &cpp.sources {
         build.push_str(&format!(
-            "    build.file({:?});\n",
+            "    build.file(root.join({:?}));\n",
             format!(
                 "cpp/{}",
                 Path::new(source)
@@ -449,10 +550,22 @@ pub(super) fn render_cxx_build(
         ));
     }
     if enum_adapters {
-        build.push_str("    build.file(\"cpp/terlan_enum_adapters.cc\");\n");
+        build.push_str("    build.file(root.join(\"cpp/terlan_enum_adapters.cc\"));\n");
+    }
+    if string_adapters {
+        build.push_str("    build.file(root.join(\"cpp/terlan_string_adapters.cc\"));\n");
+    }
+    if collection_adapters {
+        build.push_str("    build.file(root.join(\"cpp/terlan_collection_adapters.cc\"));\n");
     }
     if exception_adapters {
-        build.push_str("    build.file(\"cpp/terlan_exception_adapters.cc\");\n");
+        build.push_str("    build.file(root.join(\"cpp/terlan_exception_adapters.cc\"));\n");
+    }
+    if owned_value_adapters {
+        build.push_str("    build.file(root.join(\"cpp/terlan_owned_value_adapters.cc\"));\n");
+    }
+    if mutation_adapters {
+        build.push_str("    build.file(root.join(\"cpp/terlan_mutation_adapters.cc\"));\n");
     }
     for root in &plan.include_roots {
         build.push_str(&format!("    build.include(root.join({root:?}));\n"));
@@ -485,6 +598,33 @@ pub(super) fn render_cxx_build(
         }
         build.push_str("    }\n");
     }
+    for (index, external) in plan.external_roots.iter().enumerate() {
+        let variable = format!("external_root_{index}");
+        build.push_str(&format!(
+            "    println!(\"cargo:rerun-if-env-changed={}\");\n    let {variable} = std::path::PathBuf::from(std::env::var_os({:?}).expect({:?}));\n",
+            external.env,
+            external.env,
+            format!("{} must point at the external C++ SDK root", external.env)
+        ));
+        for root in &external.include_roots {
+            build.push_str(&format!("    build.include({variable}.join({root:?}));\n"));
+        }
+        for path in &external.library_search_paths {
+            build.push_str(&format!(
+                "    println!(\"cargo:rustc-link-search=native={{}}\", {variable}.join({:?}).display());\n",
+                escape_cargo_directive(path)
+            ));
+        }
+        for library in &external.linked_libraries {
+            render_linked_library(&mut build, "    ", library);
+        }
+        for input in &external.rebuild_inputs {
+            build.push_str(&format!(
+                "    println!(\"cargo:rerun-if-changed={{}}\", {variable}.join({:?}).display());\n",
+                escape_cargo_directive(input)
+            ));
+        }
+    }
     build.push_str(&format!(
         "    build.std({:?}).compile(\"terlan_native_boundary_cxx\");\n",
         cpp.compile.language_standard
@@ -509,13 +649,39 @@ pub(super) fn has_enum_adapters(manifest: &NativeBindingManifest) -> bool {
     })
 }
 
-/// Returns whether this package requires generated exception containment.
-pub(super) fn has_exception_adapters(manifest: &NativeBindingManifest) -> bool {
+/// Returns whether this package requires generated copied-value string adapters.
+pub(super) fn has_string_adapters(manifest: &NativeBindingManifest) -> bool {
     manifest.modules.iter().any(|module| {
         module
             .functions
             .iter()
-            .any(|function| function.role == NativeFunctionRole::ExceptionMethod)
+            .any(|function| function.role == NativeFunctionRole::StringProjection)
+    })
+}
+
+/// Returns whether this package copies borrowed C++ collections into Terlan.
+pub(super) fn has_collection_adapters(manifest: &NativeBindingManifest) -> bool {
+    manifest.modules.iter().any(|module| {
+        module.functions.iter().any(|function| {
+            matches!(
+                function.role,
+                NativeFunctionRole::IntListProjection | NativeFunctionRole::ResourceListProjection
+            )
+        })
+    })
+}
+
+/// Returns whether this package requires generated exception containment.
+pub(super) fn has_exception_adapters(manifest: &NativeBindingManifest) -> bool {
+    manifest.modules.iter().any(|module| {
+        module.functions.iter().any(|function| {
+            matches!(
+                function.role,
+                NativeFunctionRole::ExceptionMethod
+                    | NativeFunctionRole::ScalarProjection
+                    | NativeFunctionRole::MutableFreeFunction
+            )
+        })
     })
 }
 
@@ -592,8 +758,20 @@ pub(super) fn render_cxx_bridge(
     if has_enum_adapters(manifest) {
         source.push_str("        include!(\"include/terlan_enum_adapters.hpp\");\n");
     }
+    if has_string_adapters(manifest) {
+        source.push_str("        include!(\"include/terlan_string_adapters.hpp\");\n");
+    }
+    if has_collection_adapters(manifest) {
+        source.push_str("        include!(\"include/terlan_collection_adapters.hpp\");\n");
+    }
     if has_exception_adapters(manifest) {
         source.push_str("        include!(\"include/terlan_exception_adapters.hpp\");\n");
+    }
+    if has_owned_value_adapters(manifest, &symbols.declarations) {
+        source.push_str("        include!(\"include/terlan_owned_value_adapters.hpp\");\n");
+    }
+    if has_mutation_adapters(manifest) {
+        source.push_str("        include!(\"include/terlan_mutation_adapters.hpp\");\n");
     }
     let mut opaque_symbols = manifest
         .modules
@@ -630,7 +808,38 @@ pub(super) fn render_cxx_bridge(
         .values()
         .filter(|symbol| opaque_symbols.contains(symbol.id.as_str()))
     {
-        source.push_str(&format!("        type {};\n", symbol.cpp_name));
+        let cpp_namespace = symbol
+            .overload_set
+            .rsplit_once("::")
+            .map(|(namespace, _)| namespace)
+            .unwrap_or(&manifest.cpp_metadata.namespace);
+        if cpp_namespace == manifest.cpp_metadata.namespace {
+            source.push_str(&format!("        type {};\n", symbol.cpp_name));
+        } else {
+            source.push_str(&format!(
+                "        #[namespace = {:?}]\n        type {};\n",
+                cpp_namespace, symbol.cpp_name
+            ));
+        }
+    }
+    for (module, resource, symbol) in used_resource_list_inputs(manifest, &symbols.declarations) {
+        let collector = resource_list_input_name(module, resource);
+        source.push_str(&format!(
+            "        type {collector};\n        fn {}() -> UniquePtr<{collector}>;\n        fn {}(values: Pin<&mut {collector}>, value: &{}) -> bool;\n",
+            resource_list_input_new_name(module, resource),
+            resource_list_input_push_name(module, resource),
+            symbol.cpp_name,
+        ));
+    }
+    for (module, resource, symbol) in
+        used_mutable_secondary_resources(manifest, &symbols.declarations)
+    {
+        source.push_str(&format!(
+            "        fn {}(value: &{}) -> UniquePtr<{}>;\n",
+            resource_input_copy_name(module, resource),
+            symbol.cpp_name,
+            symbol.cpp_name,
+        ));
     }
     let adapted_enum_symbols = manifest
         .modules
@@ -639,62 +848,505 @@ pub(super) fn render_cxx_bridge(
         .filter(|function| function.role == NativeFunctionRole::EnumProjection)
         .filter_map(|function| function.cpp_symbol.as_deref())
         .collect::<BTreeSet<_>>();
+    let adapted_string_symbols = manifest
+        .modules
+        .iter()
+        .flat_map(|module| {
+            let stringifiers = module
+                .types
+                .iter()
+                .filter(|ty| ty.kind == NativeBindingTypeKind::StringValue)
+                .filter_map(|ty| ty.stringifier.as_deref());
+            let getters = module
+                .functions
+                .iter()
+                .filter(|function| function.role == NativeFunctionRole::StringProjection)
+                .filter_map(|function| function.cpp_symbol.as_deref());
+            stringifiers.chain(getters)
+        })
+        .collect::<BTreeSet<_>>();
     let contained_exception_symbols = manifest
         .modules
         .iter()
         .flat_map(|module| &module.functions)
-        .filter(|function| function.role == NativeFunctionRole::ExceptionMethod)
+        .filter(|function| {
+            matches!(
+                function.role,
+                NativeFunctionRole::ExceptionMethod | NativeFunctionRole::ScalarProjection
+            )
+        })
+        .filter_map(|function| function.cpp_symbol.as_deref())
+        .collect::<BTreeSet<_>>();
+    let adapted_collection_symbols = manifest
+        .modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .filter(|function| {
+            matches!(
+                function.role,
+                NativeFunctionRole::IntListProjection | NativeFunctionRole::ResourceListProjection
+            )
+        })
+        .filter_map(|function| function.cpp_symbol.as_deref())
+        .collect::<BTreeSet<_>>();
+    let owned_value_symbols = manifest
+        .modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .filter(|function| {
+            function_owned_value_resource(manifest, function, &symbols.declarations).is_some()
+                || function_owned_value_resource_tuple(manifest, function, &symbols.declarations)
+                    .is_some()
+        })
+        .filter_map(|function| function.cpp_symbol.as_deref())
+        .collect::<BTreeSet<_>>();
+    for module in &manifest.modules {
+        for function in &module.functions {
+            if function_owned_value_resource_tuple(manifest, function, &symbols.declarations)
+                .is_some()
+            {
+                source.push_str(&format!(
+                    "        type {};\n",
+                    owned_tuple_carrier_name(module, function)
+                ));
+            }
+        }
+    }
+    let mutation_symbols = manifest
+        .modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .filter(|function| function_uses_mutation_adapter(manifest, function))
         .filter_map(|function| function.cpp_symbol.as_deref())
         .collect::<BTreeSet<_>>();
     for symbol in symbols.declarations.values().filter(|symbol| {
         symbols.is_bindable(&symbol.id)
             && !matches!(symbol.kind, CppSymbolKind::Record | CppSymbolKind::Enum)
             && !adapted_enum_symbols.contains(symbol.id.as_str())
+            && !adapted_string_symbols.contains(symbol.id.as_str())
             && !contained_exception_symbols.contains(symbol.id.as_str())
+            && !adapted_collection_symbols.contains(symbol.id.as_str())
+            && !owned_value_symbols.contains(symbol.id.as_str())
+            && !mutation_symbols.contains(symbol.id.as_str())
     }) {
-        source.push_str(&render_bridge_function(symbol)?);
+        source.push_str(&render_bridge_function(
+            symbol,
+            &manifest.cpp_metadata.namespace,
+        )?);
     }
-    if has_exception_adapters(manifest) {
-        source.push_str(&format!(
-            "        type {EXCEPTION_ENVELOPE};\n        fn is_ok(self: &{EXCEPTION_ENVELOPE}) -> bool;\n        fn value(self: &{EXCEPTION_ENVELOPE}) -> i64;\n        fn code(self: &{EXCEPTION_ENVELOPE}) -> &CxxString;\n        fn message(self: &{EXCEPTION_ENVELOPE}) -> &CxxString;\n"
-        ));
-        for module in &manifest.modules {
-            for function in module
-                .functions
-                .iter()
-                .filter(|function| function.role == NativeFunctionRole::ExceptionMethod)
-            {
+    for module in &manifest.modules {
+        for function in &module.functions {
+            let Some((resource, callable)) =
+                function_owned_value_resource(manifest, function, &symbols.declarations)
+            else {
+                continue;
+            };
+            let resource_symbol = symbols
+                .declarations
+                .get(resource.cpp_symbol.as_str())
+                .ok_or_else(|| format!("unknown C++ type symbol `{}`", resource.cpp_symbol))?;
+            let mut args = Vec::new();
+            if callable.kind == CppSymbolKind::Method {
+                let receiver = callable
+                    .receiver
+                    .as_deref()
+                    .ok_or_else(|| format!("C++ method `{}` has no receiver", callable.id))?;
+                args.push(format!("value: &{}", cpp_short_name(receiver)));
+            }
+            for mapping in public_cpp_parameter_mappings(function, callable) {
+                let parameter = &callable.parameters[mapping.cpp_parameter_index];
+                if let Some(choice) = mapping.scalar_choice {
+                    args.push(format!("{}: bool", choice.tag_name));
+                    args.push(format!("{}: i64", choice.integer_name));
+                    args.push(format!("{}: f64", choice.floating_name));
+                    continue;
+                }
+                if let Some(presence) = mapping.presence_name {
+                    args.push(format!("{presence}: bool"));
+                }
+                // `self` has method semantics in a CXX bridge even when Clang
+                // extracted it from an ordinary free function.
+                let bridge_name =
+                    if callable.kind != CppSymbolKind::Method && parameter.name == "self" {
+                        "self_value"
+                    } else {
+                        parameter.name.as_str()
+                    };
+                args.push(format!(
+                    "{}: {}",
+                    bridge_name,
+                    owned_value_bridge_parameter_type(manifest, parameter, mapping.public_type,)?
+                ));
+            }
+            let args = args.join(", ");
+            source.push_str(&format!(
+                "        fn {}({args}) -> UniquePtr<{}>;\n",
+                owned_value_adapter_name(module, function),
+                resource_symbol.cpp_name
+            ));
+        }
+    }
+    for module in &manifest.modules {
+        for function in &module.functions {
+            let Some((resources, callable)) =
+                function_owned_value_resource_tuple(manifest, function, &symbols.declarations)
+            else {
+                continue;
+            };
+            let mut args = Vec::new();
+            if callable.kind == CppSymbolKind::Method {
+                let receiver = callable
+                    .receiver
+                    .as_deref()
+                    .ok_or_else(|| format!("C++ method `{}` has no receiver", callable.id))?;
+                args.push(format!("value: &{}", cpp_short_name(receiver)));
+            }
+            for mapping in public_cpp_parameter_mappings(function, callable) {
+                let parameter = &callable.parameters[mapping.cpp_parameter_index];
+                if let Some(choice) = mapping.scalar_choice {
+                    args.push(format!("{}: bool", choice.tag_name));
+                    args.push(format!("{}: i64", choice.integer_name));
+                    args.push(format!("{}: f64", choice.floating_name));
+                    continue;
+                }
+                if let Some(presence) = mapping.presence_name {
+                    args.push(format!("{presence}: bool"));
+                }
+                let bridge_name =
+                    if callable.kind != CppSymbolKind::Method && parameter.name == "self" {
+                        "self_value"
+                    } else {
+                        parameter.name.as_str()
+                    };
+                args.push(format!(
+                    "{}: {}",
+                    bridge_name,
+                    owned_value_bridge_parameter_type(manifest, parameter, mapping.public_type)?
+                ));
+            }
+            let carrier = owned_tuple_carrier_name(module, function);
+            source.push_str(&format!(
+                "        fn {}({}) -> UniquePtr<{carrier}>;\n",
+                owned_tuple_adapter_name(module, function),
+                args.join(", ")
+            ));
+            for (index, (_, _, resource_symbol)) in resources.iter().enumerate() {
+                source.push_str(&format!(
+                    "        fn {}(value: Pin<&mut {carrier}>) -> UniquePtr<{}>;\n",
+                    owned_tuple_take_name(module, function, index),
+                    resource_symbol.cpp_name
+                ));
+            }
+        }
+    }
+    for module in &manifest.modules {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function_uses_mutation_adapter(manifest, function))
+        {
+            let callable = function_symbol(function, &symbols.declarations)?;
+            let mut args = Vec::new();
+            if callable.kind == CppSymbolKind::Method {
                 let resource = function
                     .args
                     .first()
                     .and_then(|arg| {
-                        module.types.iter().find(|ty| {
-                            ty.kind == NativeBindingTypeKind::OpaqueResource
-                                && terlan_type_matches(&arg.ty, &ty.name)
-                        })
+                        manifest
+                            .modules
+                            .iter()
+                            .flat_map(|owner| &owner.types)
+                            .find(|resource| {
+                                resource.kind == NativeBindingTypeKind::OpaqueResource
+                                    && terlan_type_matches(&arg.ty, &resource.name)
+                            })
                     })
-                    .ok_or_else(|| {
-                        format!("exception method `{}` has no resource", function.name)
-                    })?;
-                let resource_symbol = symbols
+                    .ok_or_else(|| format!("mutable method `{}` has no resource", function.name))?;
+                let receiver = symbols
                     .declarations
                     .get(resource.cpp_symbol.as_str())
                     .ok_or_else(|| {
-                        format!("exception method `{}` has unknown resource", function.name)
+                        format!("mutable method `{}` has unknown resource", function.name)
                     })?;
-                let args = std::iter::once(format!("value: &{}", resource_symbol.cpp_name))
-                    .chain(
-                        function
-                            .args
-                            .iter()
-                            .skip(1)
-                            .map(|arg| format!("{}: i64", arg.name)),
+                args.push(format!("self_value: Pin<&mut {}>", receiver.cpp_name));
+            }
+            args.extend(
+                public_cpp_parameter_mappings(function, callable)
+                    .into_iter()
+                    .map(|mapping| {
+                        let index = mapping.cpp_parameter_index;
+                        let parameter = &callable.parameters[index];
+                        let bridge_name = if parameter.name == "self" {
+                            "self_value"
+                        } else {
+                            parameter.name.as_str()
+                        };
+                        let mutable_resource = callable.kind != CppSymbolKind::Method
+                            && (index == 0
+                                || function.args[mapping.public_argument_index].mutable);
+                        if mutable_resource {
+                            let resource = manifest
+                                .modules
+                                .iter()
+                                .flat_map(|owner| &owner.types)
+                                .find(|resource| {
+                                    resource.kind == NativeBindingTypeKind::OpaqueResource
+                                        && mapping.public_type.is_some_and(|ty| {
+                                            terlan_type_matches(ty, &resource.name)
+                                        })
+                                })
+                                .ok_or_else(|| {
+                                    format!(
+                                        "mutable free function `{}` has no mutable resource for `{}`",
+                                        function.name, bridge_name
+                                    )
+                                })?;
+                            let resource_symbol = symbols
+                                .declarations
+                                .get(resource.cpp_symbol.as_str())
+                                .ok_or_else(|| {
+                                    format!(
+                                        "mutable free function `{}` has unknown mutable resource for `{}`",
+                                        function.name, bridge_name
+                                    )
+                                })?;
+                            Ok(format!(
+                                "{}: Pin<&mut {}>",
+                                bridge_name, resource_symbol.cpp_name
+                            ))
+                        } else {
+                            let mut values = Vec::new();
+                            if let Some(choice) = mapping.scalar_choice {
+                                values.push(format!("{}: bool", choice.tag_name));
+                                values.push(format!("{}: i64", choice.integer_name));
+                                values.push(format!("{}: f64", choice.floating_name));
+                                return Ok(values.join(", "));
+                            }
+                            if let Some(presence) = mapping.presence_name {
+                                values.push(format!("{presence}: bool"));
+                            }
+                            values.push(format!(
+                                "{}: {}",
+                                bridge_name,
+                                owned_value_bridge_parameter_type(
+                                    manifest,
+                                    parameter,
+                                    mapping.public_type,
+                                )?
+                            ));
+                            Ok(values.join(", "))
+                        }
+                    })
+                    .collect::<Result<Vec<_>, String>>()?,
+            );
+            let args = args.join(", ");
+            source.push_str(&format!(
+                "        fn {}({args}) -> UniquePtr<{EXCEPTION_ENVELOPE}>;\n",
+                mutation_adapter_name(module, function)
+            ));
+        }
+    }
+    for module in &manifest.modules {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function.role == NativeFunctionRole::StringProjection)
+        {
+            let resource = function
+                .args
+                .first()
+                .and_then(|arg| {
+                    module.types.iter().find(|ty| {
+                        ty.kind == NativeBindingTypeKind::OpaqueResource
+                            && terlan_type_matches(&arg.ty, &ty.name)
+                    })
+                })
+                .ok_or_else(|| format!("string projection `{}` has no resource", function.name))?;
+            let resource_symbol = symbols
+                .declarations
+                .get(resource.cpp_symbol.as_str())
+                .ok_or_else(|| {
+                    format!("string projection `{}` has unknown resource", function.name)
+                })?;
+            source.push_str(&format!(
+                "        fn {}(value: &{}) -> UniquePtr<CxxString>;\n",
+                string_adapter_name(module, function),
+                resource_symbol.cpp_name
+            ));
+        }
+    }
+    for module in &manifest.modules {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function.role == NativeFunctionRole::IntListProjection)
+        {
+            let resource = function
+                .args
+                .first()
+                .and_then(|arg| {
+                    module.types.iter().find(|ty| {
+                        ty.kind == NativeBindingTypeKind::OpaqueResource
+                            && terlan_type_matches(&arg.ty, &ty.name)
+                    })
+                })
+                .ok_or_else(|| {
+                    format!(
+                        "integer-list projection `{}` has no resource",
+                        function.name
                     )
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                })?;
+            let resource_symbol = symbols
+                .declarations
+                .get(resource.cpp_symbol.as_str())
+                .ok_or_else(|| {
+                    format!(
+                        "integer-list projection `{}` has unknown resource",
+                        function.name
+                    )
+                })?;
+            source.push_str(&format!(
+                "        fn {}(value: &{}) -> UniquePtr<CxxVector<i64>>;\n",
+                collection_adapter_name(module, function),
+                resource_symbol.cpp_name
+            ));
+        }
+    }
+    for module in &manifest.modules {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function.role == NativeFunctionRole::ResourceListProjection)
+        {
+            let (receiver, element, callable) =
+                resource_list_parts(manifest, module, function, &symbols.declarations)?;
+            let receiver_symbol = receiver
+                .map(|receiver| {
+                    symbols
+                        .declarations
+                        .get(receiver.cpp_symbol.as_str())
+                        .ok_or_else(|| {
+                            format!(
+                                "resource-list projection `{}` has unknown receiver",
+                                function.name
+                            )
+                        })
+                })
+                .transpose()?;
+            let element_symbol = symbols
+                .declarations
+                .get(element.cpp_symbol.as_str())
+                .ok_or_else(|| {
+                    format!(
+                        "resource-list projection `{}` has unknown element resource",
+                        function.name
+                    )
+                })?;
+            let result = resource_list_result_name(module, function);
+            let adapter = resource_list_adapter_name(module, function);
+            let mut args = receiver_symbol
+                .map(|receiver| vec![format!("value: &{}", receiver.cpp_name)])
+                .unwrap_or_default();
+            for mapping in public_cpp_parameter_mappings(function, callable) {
+                let parameter = &callable.parameters[mapping.cpp_parameter_index];
+                if let Some(choice) = mapping.scalar_choice {
+                    args.push(format!("{}: bool", choice.tag_name));
+                    args.push(format!("{}: i64", choice.integer_name));
+                    args.push(format!("{}: f64", choice.floating_name));
+                    continue;
+                }
+                if let Some(presence) = mapping.presence_name {
+                    args.push(format!("{presence}: bool"));
+                }
+                // CXX reserves `self` for a method receiver, while ATen also
+                // uses that spelling for ordinary free parameters.
+                let bridge_name = if receiver_symbol.is_none() && parameter.name == "self" {
+                    "self_value"
+                } else {
+                    parameter.name.as_str()
+                };
+                args.push(format!(
+                    "{}: {}",
+                    bridge_name,
+                    owned_value_bridge_parameter_type(manifest, parameter, mapping.public_type,)?
+                ));
+            }
+            source.push_str(&format!(
+                "        type {result};\n        fn {adapter}({}) -> UniquePtr<{result}>;\n        fn {adapter}_is_ok(result: &{result}) -> bool;\n        fn {adapter}_len(result: &{result}) -> usize;\n        fn {adapter}_element(result: &{result}, index: usize) -> UniquePtr<{}>;\n        fn {adapter}_code(result: &{result}) -> &CxxString;\n        fn {adapter}_message(result: &{result}) -> &CxxString;\n",
+                args.join(", "),
+                element_symbol.cpp_name,
+            ));
+        }
+    }
+    if has_exception_adapters(manifest) {
+        source.push_str(&format!(
+            "        type {EXCEPTION_ENVELOPE};\n        fn is_ok(self: &{EXCEPTION_ENVELOPE}) -> bool;\n        fn value(self: &{EXCEPTION_ENVELOPE}) -> i64;\n        fn float_value(self: &{EXCEPTION_ENVELOPE}) -> f64;\n        fn bool_value(self: &{EXCEPTION_ENVELOPE}) -> bool;\n        fn code(self: &{EXCEPTION_ENVELOPE}) -> &CxxString;\n        fn message(self: &{EXCEPTION_ENVELOPE}) -> &CxxString;\n"
+        ));
+        for module in &manifest.modules {
+            for function in module.functions.iter().filter(|function| {
+                matches!(
+                    function.role,
+                    NativeFunctionRole::ExceptionMethod | NativeFunctionRole::ScalarProjection
+                )
+            }) {
+                let callable = function_symbol(function, &symbols.declarations)?;
+                let mut args = Vec::new();
+                if callable.kind == CppSymbolKind::Method {
+                    let resource = function
+                        .args
+                        .first()
+                        .and_then(|arg| {
+                            manifest
+                                .modules
+                                .iter()
+                                .flat_map(|owner| &owner.types)
+                                .find(|ty| {
+                                    ty.kind == NativeBindingTypeKind::OpaqueResource
+                                        && terlan_type_matches(&arg.ty, &ty.name)
+                                })
+                        })
+                        .ok_or_else(|| {
+                            format!("exception method `{}` has no resource", function.name)
+                        })?;
+                    let resource_symbol = symbols
+                        .declarations
+                        .get(resource.cpp_symbol.as_str())
+                        .ok_or_else(|| {
+                            format!("exception method `{}` has unknown resource", function.name)
+                        })?;
+                    args.push(format!("value: &{}", resource_symbol.cpp_name));
+                }
+                for mapping in public_cpp_parameter_mappings(function, callable) {
+                    let parameter = &callable.parameters[mapping.cpp_parameter_index];
+                    if let Some(choice) = mapping.scalar_choice {
+                        args.push(format!("{}: bool", choice.tag_name));
+                        args.push(format!("{}: i64", choice.integer_name));
+                        args.push(format!("{}: f64", choice.floating_name));
+                        continue;
+                    }
+                    if let Some(presence) = mapping.presence_name {
+                        args.push(format!("{presence}: bool"));
+                    }
+                    let bridge_name =
+                        if callable.kind != CppSymbolKind::Method && parameter.name == "self" {
+                            "self_value"
+                        } else {
+                            parameter.name.as_str()
+                        };
+                    args.push(format!(
+                        "{}: {}",
+                        bridge_name,
+                        owned_value_bridge_parameter_type(
+                            manifest,
+                            parameter,
+                            mapping.public_type,
+                        )?
+                    ));
+                }
                 source.push_str(&format!(
-                    "        fn {}({args}) -> UniquePtr<{EXCEPTION_ENVELOPE}>;\n",
-                    exception_adapter_name(module, function)
+                    "        fn {}({}) -> UniquePtr<{EXCEPTION_ENVELOPE}>;\n",
+                    exception_adapter_name(module, function),
+                    args.join(", "),
                 ));
             }
         }
@@ -732,7 +1384,10 @@ pub(super) fn render_cxx_bridge(
     Ok(source)
 }
 
-pub(super) fn render_bridge_function(symbol: &CppSymbol) -> Result<String, String> {
+pub(super) fn render_bridge_function(
+    symbol: &CppSymbol,
+    default_namespace: &str,
+) -> Result<String, String> {
     let mut args = Vec::new();
     if symbol.kind == CppSymbolKind::Method {
         let receiver = symbol
@@ -758,8 +1413,19 @@ pub(super) fn render_bridge_function(symbol: &CppSymbol) -> Result<String, Strin
         }
         _ => String::new(),
     };
+    let namespace_attribute = if symbol.kind == CppSymbolKind::Function {
+        symbol
+            .overload_set
+            .rsplit_once("::")
+            .map(|(namespace, _)| namespace)
+            .filter(|namespace| *namespace != default_namespace)
+            .map(|namespace| format!("        #[namespace = {namespace:?}]\n"))
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
     Ok(format!(
-        "        fn {}({}){};\n",
+        "{namespace_attribute}        fn {}({}){};\n",
         symbol.cpp_name,
         args.join(", "),
         return_text
@@ -793,6 +1459,9 @@ pub(super) fn rust_bridge_type(cpp_type: &CppTypeMetadata) -> Result<String, Str
     }
     if is_owned_f64_vector_type(cpp_type) {
         return Ok("UniquePtr<CxxVector<f64>>".into());
+    }
+    if is_owned_string_vector_type(cpp_type) {
+        return Ok("UniquePtr<CxxVector<CxxString>>".into());
     }
     if let Some(record) = borrowed_const_record_name(cpp_type) {
         return Ok(format!("&{}", cpp_short_name(record)));

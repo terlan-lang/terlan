@@ -1,0 +1,91 @@
+/**
+ * Callable declarations and call-site resolution independent of expression AST shape.
+ */
+module self_host.ProjectedCallableSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+pub struct CallableDeclaration {
+    module_name: String,
+    name: String,
+    arity: Int,
+    callable_kind: String,
+    return_type: Option[String],
+    byte_offset: Int,
+}.
+
+pub constructor CallableDeclaration {
+    (module_name: String, name: String, arity: Int, callable_kind: String, return_type: Option[String], byte_offset: Int): CallableDeclaration ->
+        CallableDeclaration {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            callable_kind: callable_kind,
+            return_type: return_type,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct CallableUse {
+    module_name: Option[String],
+    name: String,
+    arity: Int,
+    byte_offset: Int,
+}.
+
+pub constructor CallableUse {
+    (module_name: Option[String], name: String, arity: Int, byte_offset: Int): CallableUse ->
+        CallableUse {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct ResolvedCallableUse {
+    source: self_host.ProjectedCallableSyntax.CallableUse,
+    declaration: Option[self_host.ProjectedCallableSyntax.CallableDeclaration],
+}.
+
+pub constructor ResolvedCallableUse {
+    (source: self_host.ProjectedCallableSyntax.CallableUse, declaration: Option[self_host.ProjectedCallableSyntax.CallableDeclaration]): ResolvedCallableUse ->
+        ResolvedCallableUse {
+            source: source,
+            declaration: declaration,
+        }
+}.
+
+
+pub struct CallableDiagnostic {
+    code: String,
+    message: String,
+    byte_offset: Int,
+}.
+
+pub constructor CallableDiagnostic {
+    (code: String, message: String, byte_offset: Int): CallableDiagnostic ->
+        CallableDiagnostic {
+            code: code,
+            message: message,
+            byte_offset: byte_offset,
+        }
+}.
+
+
+pub struct CallableResolution {
+    uses: List[self_host.ProjectedCallableSyntax.ResolvedCallableUse],
+    diagnostics: List[self_host.ProjectedCallableSyntax.CallableDiagnostic],
+}.
+
+pub constructor CallableResolution {
+    (uses: List[self_host.ProjectedCallableSyntax.ResolvedCallableUse], diagnostics: List[self_host.ProjectedCallableSyntax.CallableDiagnostic]): CallableResolution ->
+        CallableResolution {
+            uses: uses,
+            diagnostics: diagnostics,
+        }
+}.
+

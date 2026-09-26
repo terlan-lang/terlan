@@ -1,0 +1,8 @@
+module self_host_probe.RootCaseThree.
+
+pub classify(value: Int): String ->
+    case value {
+        0 -> "zero";
+        1 -> "one";
+        _ -> "other"
+    }.

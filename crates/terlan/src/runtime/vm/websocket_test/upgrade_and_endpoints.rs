@@ -103,6 +103,7 @@ pub(super) fn vm_websocket_adapter_endpoint_validates_channel_limits() {
             max_frame_bytes: 4096,
             binary_payload_policy: VmWebSocketBinaryPayloadPolicy::Reject,
             callbacks: None,
+            pairing: None,
         }
     );
     let pending = endpoint(0, 4096).expect_err("zero pending frames");

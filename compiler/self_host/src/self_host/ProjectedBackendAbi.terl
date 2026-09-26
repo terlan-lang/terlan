@@ -1,0 +1,12 @@
+/** Produces the recursive ABI 2 handoff from a complete projected frontend. */
+module self_host.ProjectedBackendAbi.
+
+import self_host.ProjectedBackendAbiSyntax.{ProjectedBackendAbiModule}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+
+import self_host.BackendAbi.
+
+
+@pure
+pub lower(source: ProjectedFrontendModule): ProjectedBackendAbiModule ->
+    ProjectedBackendAbiModule("terlan.self-host.backend-abi/v2", source.valid, BackendAbi.lower(source.backend), source.concrete, source.signatures, source.bodies, source.message).

@@ -784,33 +784,7 @@ fn formal_cast_expr_preserves_ebnf_precedence() {
     assert!(matches!(expr.as_ref(), Expr::Case { .. }));
 }
 
-/// Verifies that canonical Terlan source rejects backend-style equality
-/// spellings.
-///
-/// Inputs:
-/// - Three source expressions using deprecated equality spellings.
-///
-/// Output:
-/// - Test passes when all deprecated spellings fail parsing.
-///
-/// Transformation:
-/// - Parses each expression through the recursive-descent parser and
-///   asserts the comparison operator guard fires before syntax output is
-///   accepted.
-
-/// Verifies that canonical Terlan source rejects backend-style equality
-/// spellings.
-///
-/// Inputs:
-/// - Three source expressions using deprecated equality spellings.
-///
-/// Output:
-/// - Test passes when all deprecated spellings fail parsing.
-///
-/// Transformation:
-/// - Parses each expression through the recursive-descent parser and
-///   asserts the comparison operator guard fires before syntax output is
-///   accepted.
+/// Deprecated equality spellings fail before generated syntax is accepted.
 #[test]
 fn formal_deprecated_equality_operators_are_rejected() {
     for operator in ["=:=", "/=", "=/="] {

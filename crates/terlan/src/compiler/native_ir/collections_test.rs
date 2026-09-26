@@ -51,6 +51,56 @@ fn inventories_nested_collection_schemas_deterministically() {
 }
 
 #[test]
+/// Preserves concrete reference alternatives for recursive transparent-union lists.
+fn inventories_transparent_union_list_reference_variants() {
+    let array = CoreType::Named("ndarray.Array".to_string());
+    let nested = CoreType::List(Box::new(CoreType::Named("ndarray.Block".to_string())));
+    let block = CoreType::Union(vec![array.clone(), nested.clone()]);
+    let list = CoreType::List(Box::new(block));
+
+    let layouts = managed_collection_layouts([&list]).expect("union list inventory");
+    let descriptor = layouts
+        .iter()
+        .map(|layout| decode_collection_layout(layout).expect("collection schema"))
+        .find(|descriptor| descriptor.canonical_type() == list.contract_text())
+        .expect("outer union list descriptor");
+    let list_descriptor = descriptor.list_descriptor().expect("list descriptor");
+    let mut expected = vec![
+        SemanticTypeId::from_canonical(&array.contract_text()).expect("array semantic"),
+        SemanticTypeId::from_canonical(&nested.contract_text()).expect("nested semantic"),
+        SemanticTypeId::from_canonical(&list.contract_text()).expect("fixpoint semantic"),
+    ];
+    expected.sort_unstable();
+
+    assert_eq!(list_descriptor.reference_variants(), expected);
+}
+
+#[test]
+fn recursive_union_unrolling_emits_one_schema_per_managed_semantic() {
+    let leaf = CoreType::Named("ndarray.Array".to_string());
+    let once = CoreType::Union(vec![
+        leaf.clone(),
+        CoreType::List(Box::new(CoreType::Named("ndarray.Block".to_string()))),
+    ]);
+    let twice = CoreType::Union(vec![leaf, CoreType::List(Box::new(once.clone()))]);
+    let once_list = CoreType::List(Box::new(once));
+    let twice_list = CoreType::List(Box::new(twice));
+
+    let layouts = managed_collection_layouts([&once_list, &twice_list])
+        .expect("recursive collection inventory");
+    let semantics = layouts
+        .iter()
+        .map(|layout| {
+            decode_collection_layout(layout)
+                .expect("collection schema")
+                .semantic_id()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(semantics.len(), layouts.len());
+}
+
+#[test]
 /// Rejects dynamic slots and malformed generic collection applications.
 fn rejects_nonconcrete_collection_slots_and_invalid_arity() {
     let dynamic = CoreType::List(Box::new(CoreType::Dynamic));

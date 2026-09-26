@@ -1,0 +1,53 @@
+/** Typed payload for closed nominal valued unions. */
+module self_host.ValuedUnionSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ValuedUnionArmSyntax {
+    valid: Bool,
+    name: String,
+    value: ExpressionParse,
+    message: String,
+}.
+
+pub constructor ValuedUnionArmSyntax {
+    (valid: Bool, name: String, value: ExpressionParse, message: String): ValuedUnionArmSyntax ->
+        ValuedUnionArmSyntax {
+            valid: valid,
+            name: name,
+            value: value,
+            message: message,
+        }
+}.
+
+
+pub struct ValuedUnionSyntax {
+    valid: Bool,
+    name: String,
+    base: TypeParse,
+    arms: List[self_host.ValuedUnionSyntax.ValuedUnionArmSyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ValuedUnionSyntax {
+    (valid: Bool, name: String, base: TypeParse, arms: List[self_host.ValuedUnionSyntax.ValuedUnionArmSyntax], is_public: Bool, span: SyntaxSpan, message: String): ValuedUnionSyntax ->
+        ValuedUnionSyntax {
+            valid: valid,
+            name: name,
+            base: base,
+            arms: arms,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

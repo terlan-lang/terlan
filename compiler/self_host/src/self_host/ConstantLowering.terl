@@ -1,0 +1,58 @@
+/** Self-hosted lowering for typed constant declarations. */
+module self_host.ConstantLowering.
+
+import self_host.DeclarationPayloadSyntax.{ConstantSyntax}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{ConstantDeclaration}.
+
+import std.core.{Bool, Int, String}.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.TypeParser.
+
+
+@pure
+terminal_body(source: String, start: Int): String ->
+    let value = String.trim(source.utf8_slice(start, source.byte_size() - start));
+    if {
+        String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1));
+        true -> value
+    }.
+
+@pure
+failure(source: DeclarationSyntax, message: String): ConstantSyntax ->
+    ConstantSyntax(false, source.name, TypeParser.parse(""), ExpressionParser.parse(""), source.is_public, source.span, message).
+
+@pure
+validation_message(
+    annotation_valid: Bool,
+    annotation_message: String,
+    value_valid: Bool,
+    value_message: String,
+): String ->
+    if {
+        not annotation_valid -> annotation_message;
+        not value_valid -> value_message;
+        true -> ""
+    }.
+
+@pure
+pub lower(source: DeclarationSyntax): ConstantSyntax ->
+    let colon = Delimited.top_level_byte(source.body, 58);
+    let assignment = Delimited.top_level_assignment(source.body);
+    if {
+        source.class != ConstantDeclaration -> failure(source, "declaration is not a constant");
+        colon < 0 or assignment < 0 or colon >= assignment -> failure(source, "constant declaration is incomplete");
+        true ->
+            let annotation = TypeParser.parse(String.trim(source.body.utf8_slice(colon + 1, assignment - colon - 1)));
+            let value = ExpressionParser.parse(terminal_body(source.body, assignment + 1));
+            ConstantSyntax(
+                annotation.valid and value.valid,
+                source.name,
+                annotation,
+                value,
+                source.is_public,
+                source.span,
+                validation_message(annotation.valid, annotation.message, value.valid, value.message),
+            )
+    }.

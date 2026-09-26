@@ -1,0 +1,124 @@
+/** Derives a deterministic public interface from an analyzed module. */
+module self_host.ModuleInterface.
+
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.SemanticSyntax.{InterfaceSource, SemanticModule, SemanticSymbol}.
+import self_host.Syntax.{ExportDeclaration, FunctionDeclaration, MethodDeclaration}.
+import self_host.TypedModuleSyntax.{TypedDeclaration}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import std.core.Option.{Some}.
+import self_host.CallableArity.
+import self_host.ExportReferenceLowering.
+
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+prepend_reversed[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_reversed(rest, [value | output])
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    prepend_reversed(reverse_at(left, List.new[T]()), right).
+
+@pure
+declaration_arity(
+    name: String,
+    start_byte: Int,
+    values: List[TypedDeclaration],
+): Int ->
+    case values {
+        [] -> -1;
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte ->
+                case CallableArity.of(value) {
+                    Some(arity) -> arity;
+                    _ -> -1
+                };
+            true -> declaration_arity(name, start_byte, rest)
+        }
+    }.
+
+@pure
+exported(
+    values: List[SemanticSymbol],
+    declarations: List[TypedDeclaration],
+): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] where value.is_public -> [ExportedSymbol(
+            value.name,
+            declaration_arity(value.name, value.span.start_byte, declarations),
+            value.class,
+            value.span,
+        ) | exported(rest, declarations)];
+        [_value | rest] -> exported(rest, declarations)
+    }.
+
+@pure
+exported_interface_declarations(values: List[SemanticSymbol]): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest]
+            where value.is_public
+                and value.class != FunctionDeclaration
+                and value.class != MethodDeclaration -> [ExportedSymbol(value.name, -1, value.class, value.span) | exported_interface_declarations(rest)];
+        [_value | rest] -> exported_interface_declarations(rest)
+    }.
+
+@pure
+interface_exports(values: List[TypedDeclaration]): List[ExportedSymbol] ->
+    case values {
+        [] -> List.new[ExportedSymbol]();
+        [value | rest] where value.class == ExportDeclaration ->
+            let reference = ExportReferenceLowering.lower(value);
+            if {
+                reference.valid -> [ExportedSymbol(reference.name, reference.arity, value.class, value.span) | interface_exports(rest)];
+                true -> interface_exports(rest)
+            };
+        [_value | rest] -> interface_exports(rest)
+    }.
+
+@pure
+pub lower(source: SemanticModule): ModuleInterface ->
+    ModuleInterface("terlan.self-host.interface/v1", source.name, if {
+            source.source_kind == InterfaceSource ->
+                append(exported_interface_declarations(source.symbols), interface_exports(source.declarations));
+            true -> exported(source.symbols, source.declarations)
+        }).
+
+@pure
+render_symbols(values: List[ExportedSymbol]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.append(
+            String.append(
+                "export ",
+                String.append(value.name, String.append(
+                    if {
+                        value.arity < 0 -> "";
+                        true -> String.append("/", Int.to_string(value.arity))
+                    },
+                    ".\n",
+                )),
+            ),
+            render_symbols(rest),
+        )
+    }.
+
+@pure
+pub render(source: ModuleInterface): String ->
+    String.append(
+        "schema terlan.self-host.interface/v1.\nmodule ",
+        String.append(source.module_name, String.append(".\n", render_symbols(source.symbols))),
+    ).

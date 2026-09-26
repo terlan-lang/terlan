@@ -333,7 +333,7 @@ FieldSuffix ::= "." LowerIdent | "." "#" LowerIdent .
 RecordAccessSuffix ::= "#" TypeName "." RecordFieldName .
 RecordUpdateSuffix ::= "#" TypeName "{" [ RecordFieldName "=" Expr { "," RecordFieldName "=" Expr } [ "," ] ] "}" .
 IndexSuffix ::= "[" Expr "]" .
-FunCallSuffix ::= "." "(" [ CallArgList ] ")" .
+FunCallSuffix ::= [ TypeArgs ] "(" [ CallArgList ] ")" .
 MacroExpr ::= "?" NameRef [ "(" [ Expr { "," Expr } [ "," ] ] ")" ] .
 
 Pattern ::= PrimaryPattern .

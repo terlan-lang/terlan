@@ -1,0 +1,95 @@
+/** Derives projected type identities from resolved module imports. */
+module self_host.ProjectedTypeEnvironment.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ImportResolutionSyntax.{ResolvedCompilationBundle, ResolvedImport}.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.{OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
+
+
+import std.collections.List.
+import std.core.String.
+
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+contains(values: List[String], name: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
+
+@pure
+unique(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] where contains(output, value) -> unique(rest, output);
+        [value | rest] -> unique(rest, [value | output])
+    }.
+
+@pure
+last(values: List[String], fallback: String): String ->
+    case values { [] -> fallback; [value] -> value; [_value | rest] -> last(rest, fallback) }.
+
+@pure
+module_alias(name: String): String -> last(String.split(name, "."), name).
+
+@pure
+is_type_symbol(value: ExportedSymbol): Bool ->
+    value.class == TypeDeclaration
+        or value.class == OpaqueTypeDeclaration
+        or value.class == StructDeclaration
+        or value.class == TraitDeclaration.
+
+@pure
+find_interface(values: List[ModuleInterface], name: String): Option[ModuleInterface] ->
+    case values {
+        [] -> None;
+        [value | _rest] where value.module_name == name -> Some(value);
+        [_value | rest] -> find_interface(rest, name)
+    }.
+
+@pure
+qualified_types(
+    symbols: List[ExportedSymbol],
+    module_name: String,
+    alias: String,
+): List[String] ->
+    case symbols {
+        [] -> List.new[String]();
+        [value | rest] where is_type_symbol(value) -> append([
+            String.concat([module_name, ".", value.name]),
+            String.concat([alias, ".", value.name]),
+        ], qualified_types(rest, module_name, alias));
+        [_value | rest] -> qualified_types(rest, module_name, alias)
+    }.
+
+@pure
+import_types(
+    values: List[ResolvedImport],
+    interfaces: List[ModuleInterface],
+    owner: String,
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] where value.owner_module != owner -> import_types(rest, interfaces, owner);
+        [value | rest] where value.local_name != "" and value.is_type ->
+            [value.local_name | import_types(rest, interfaces, owner)];
+        [value | rest] where value.local_name == "" ->
+            let imported = case find_interface(interfaces, value.source_module) {
+                Some(interface) -> qualified_types(
+                    interface.symbols,
+                    value.source_module,
+                    module_alias(value.source_module),
+                );
+                None -> List.new[String]()
+            };
+            append(imported, import_types(rest, interfaces, owner));
+        [_value | rest] -> import_types(rest, interfaces, owner)
+    }.
+
+/** Returns unique type identities visible to one resolved module. */
+@pure
+pub for_module(source: ResolvedCompilationBundle, owner: String): List[String] ->
+    unique(import_types(source.imports, source.interfaces, owner), List.new[String]()).

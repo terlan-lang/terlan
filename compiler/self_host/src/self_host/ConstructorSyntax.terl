@@ -1,0 +1,54 @@
+/** Typed syntax for constructor declarations and clauses. */
+module self_host.ConstructorSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ConstructorClauseSyntax {
+    valid: Bool,
+    parameters: List[ParameterSyntax],
+    return_type: TypeParse,
+    body: ExpressionParse,
+    message: String,
+}.
+
+pub constructor ConstructorClauseSyntax {
+    (valid: Bool, parameters: List[ParameterSyntax], return_type: TypeParse, body: ExpressionParse, message: String): ConstructorClauseSyntax ->
+        ConstructorClauseSyntax {
+            valid: valid,
+            parameters: parameters,
+            return_type: return_type,
+            body: body,
+            message: message,
+        }
+}.
+
+
+pub struct ConstructorSyntax {
+    valid: Bool,
+    name: String,
+    clauses: List[self_host.ConstructorSyntax.ConstructorClauseSyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ConstructorSyntax {
+    (valid: Bool, name: String, clauses: List[self_host.ConstructorSyntax.ConstructorClauseSyntax], is_public: Bool, span: SyntaxSpan, message: String): ConstructorSyntax ->
+        ConstructorSyntax {
+            valid: valid,
+            name: name,
+            clauses: clauses,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

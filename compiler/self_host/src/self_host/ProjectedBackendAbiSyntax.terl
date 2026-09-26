@@ -1,0 +1,35 @@
+/** ABI 2 handoff retaining recursive projected syntax trees. */
+module self_host.ProjectedBackendAbiSyntax.
+
+import self_host.BackendAbiSyntax.{BackendAbiModule}.
+import self_host.ConcreteSyntaxTree.{ConcreteSyntaxDocument}.
+import self_host.ProjectedBodySyntax.{ProjectedBodies}.
+import self_host.ProjectedSignatureSyntax.{ProjectedSignatureDocument}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ProjectedBackendAbiModule {
+    schema: String,
+    valid: Bool,
+    declarations: BackendAbiModule,
+    concrete: ConcreteSyntaxDocument,
+    signatures: ProjectedSignatureDocument,
+    bodies: ProjectedBodies,
+    message: String,
+}.
+
+pub constructor ProjectedBackendAbiModule {
+    (schema: String, valid: Bool, declarations: BackendAbiModule, concrete: ConcreteSyntaxDocument, signatures: ProjectedSignatureDocument, bodies: ProjectedBodies, message: String): ProjectedBackendAbiModule ->
+        ProjectedBackendAbiModule {
+            schema: schema,
+            valid: valid,
+            declarations: declarations,
+            concrete: concrete,
+            signatures: signatures,
+            bodies: bodies,
+            message: message,
+        }
+}.
+

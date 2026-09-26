@@ -1,0 +1,193 @@
+/** Deterministic declaration-level semantic analysis for the self-hosted frontend. */
+module self_host.SemanticAnalysis.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.SemanticSyntax.{DuplicateCallable, DuplicateDeclaration, InterfaceSource, InvalidDeclaration, InvalidSourceExport, MissingExportDefinition, ModuleSource, SemanticDiagnostic, SemanticModule, SemanticSourceKind, SemanticSymbol}.
+import self_host.Syntax.{ExportDeclaration, FunctionDeclaration, MethodDeclaration, OpaqueTypeDeclaration, StructDeclaration, TypeDeclaration}.
+import self_host.TypedModuleSyntax.{TypedDeclaration, TypedModule}.
+
+
+import std.collections.List.
+import std.core.String.
+import self_host.ExportReferenceLowering.
+import self_host.CallableArity.
+
+
+@pure
+arity_matches(actual: Option[Int], expected: Int): Bool ->
+    case actual { Some(value) -> value == expected; None -> false }.
+
+struct AnalysisState {
+    valid: Bool,
+    symbols: List[SemanticSymbol],
+    diagnostics: List[SemanticDiagnostic],
+}.
+
+constructor AnalysisState {
+    (valid: Bool, symbols: List[SemanticSymbol], diagnostics: List[SemanticDiagnostic]): AnalysisState ->
+        AnalysisState {
+            valid: valid,
+            symbols: symbols,
+            diagnostics: diagnostics,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+is_type_class(class: self_host.Syntax.DeclarationClass): Bool ->
+    case class {
+        TypeDeclaration -> true;
+        OpaqueTypeDeclaration -> true;
+        StructDeclaration -> true;
+        _ -> false
+    }.
+
+@pure
+contains_duplicate_type(values: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            not is_type_class(value.class) -> contains_duplicate_type(rest, declaration);
+            not is_type_class(declaration.class) -> contains_duplicate_type(rest, declaration);
+            value.name == declaration.symbol_name -> true;
+            true -> contains_duplicate_type(rest, declaration)
+        }
+    }.
+
+@pure
+is_callable_class(class: self_host.Syntax.DeclarationClass): Bool ->
+    case class { FunctionDeclaration -> true; MethodDeclaration -> true; _ -> false }.
+
+@pure
+contains_identical_callable(values: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            not is_callable_class(value.class) -> contains_identical_callable(rest, declaration);
+            not is_callable_class(declaration.class) -> contains_identical_callable(rest, declaration);
+            value.name != declaration.symbol_name -> contains_identical_callable(rest, declaration);
+            value.identity == declaration.semantic_identity -> true;
+            true -> contains_identical_callable(rest, declaration)
+        }
+    }.
+
+@pure
+invalid(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
+    AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(InvalidDeclaration, declaration.message, declaration.symbol_name, declaration.span) | state.diagnostics]).
+
+@pure
+duplicate(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
+    AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(DuplicateDeclaration, String.append("duplicate type declaration: ", declaration.symbol_name), declaration.symbol_name, declaration.span) | state.diagnostics]).
+
+@pure
+duplicate_callable(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
+    AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(DuplicateCallable, String.append("duplicate function definition: ", declaration.symbol_name), declaration.symbol_name, declaration.span) | state.diagnostics]).
+
+@pure
+invalid_source_export(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
+    AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(InvalidSourceExport, "source export declarations are not part of canonical Terlan; use pub on declarations", declaration.symbol_name, declaration.span) | state.diagnostics]).
+
+@pure
+contains_callable_definition(values: List[TypedDeclaration], name: String, arity: Int): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            not is_callable_class(value.class) -> contains_callable_definition(rest, name, arity);
+            value.symbol_name != name -> contains_callable_definition(rest, name, arity);
+            arity_matches(CallableArity.of(value), arity) -> true;
+            true -> contains_callable_definition(rest, name, arity)
+        }
+    }.
+
+@pure
+missing_export(state: AnalysisState, declaration: TypedDeclaration, name: String): AnalysisState ->
+    AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(MissingExportDefinition, String.append("exported function is not defined: ", name), name, declaration.span) | state.diagnostics]).
+
+@pure
+validate_interface_exports(
+    declarations: List[TypedDeclaration],
+    all_declarations: List[TypedDeclaration],
+    state: AnalysisState,
+): AnalysisState ->
+    case declarations {
+        [] -> state;
+        [value | rest] where value.class == ExportDeclaration ->
+            let reference = ExportReferenceLowering.lower(value);
+            let defined = if {
+                not reference.valid -> false;
+                true -> contains_callable_definition(
+                    all_declarations,
+                    reference.name,
+                    reference.arity,
+                )
+            };
+            let next = if {
+                defined -> state;
+                true -> missing_export(state, value, reference.name)
+            };
+            validate_interface_exports(rest, all_declarations, next);
+        [_value | rest] -> validate_interface_exports(rest, all_declarations, state)
+    }.
+
+@pure
+accept(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
+    if {
+        declaration.symbol_name == "" -> state;
+        true -> AnalysisState(valid = state.valid, symbols = [SemanticSymbol(declaration.symbol_name, declaration.class, declaration.semantic_identity, declaration.is_public, declaration.span) | state.symbols], diagnostics = state.diagnostics)
+    }.
+
+@pure
+analyze_at(
+    values: List[TypedDeclaration],
+    source_kind: SemanticSourceKind,
+    state: AnalysisState,
+): AnalysisState ->
+    case values {
+        [] -> state;
+        [value | rest] ->
+            let duplicate_type_found = if {
+                value.symbol_name == "" -> false;
+                true -> contains_duplicate_type(state.symbols, value)
+            };
+            let duplicate_callable_found = if {
+                value.symbol_name == "" -> false;
+                true -> contains_identical_callable(state.symbols, value)
+            };
+            let next = if {
+                not value.valid -> invalid(state, value);
+                source_kind == ModuleSource and value.class == ExportDeclaration -> invalid_source_export(state, value);
+                duplicate_type_found -> duplicate(state, value);
+                duplicate_callable_found -> duplicate_callable(state, value);
+                true -> accept(state, value)
+            };
+            analyze_at(rest, source_kind, next)
+    }.
+
+/** Checks declaration validity and module-scope symbols for one source kind. */
+@pure
+pub analyze_as(source: TypedModule, source_kind: SemanticSourceKind): SemanticModule ->
+    let declarations_state = analyze_at(source.declarations, source_kind, AnalysisState(valid = source.valid, symbols = List.new[SemanticSymbol](), diagnostics = List.new[SemanticDiagnostic]()));
+    let state = if {
+        source_kind == InterfaceSource -> validate_interface_exports(
+            source.declarations,
+            source.declarations,
+            declarations_state,
+        );
+        true -> declarations_state
+    };
+    SemanticModule(state.valid, source.name, source_kind, source.declarations, reverse(state.symbols), reverse(state.diagnostics)).
+
+/** Checks an ordinary `.terl` source module. */
+@pure
+pub analyze(source: TypedModule): SemanticModule -> analyze_as(source, ModuleSource).
+
+/** Checks a `.terli` interface summary. */
+@pure
+pub analyze_interface(source: TypedModule): SemanticModule -> analyze_as(source, InterfaceSource).

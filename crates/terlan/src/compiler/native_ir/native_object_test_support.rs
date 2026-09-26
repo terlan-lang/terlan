@@ -24,6 +24,7 @@ type NativeDispatch = unsafe extern "C" fn(
     *const c_void,
     *const c_void,
     *const c_void,
+    *const c_void,
     u64,
     *const i64,
     u64,
@@ -274,7 +275,7 @@ pub(super) fn assert_managed_native_object_invocations(
     let (library, root) = link_managed_library(label, object);
     let dispatch: Symbol<'_, NativeDispatch> = unsafe {
         library
-            .get(b"terlan_native_dispatch_v3")
+            .get(b"terlan_native_dispatch_v4")
             .expect("managed dispatch symbol")
     };
     for (index, invocation) in invocations.iter().enumerate() {
@@ -293,6 +294,7 @@ pub(super) fn assert_managed_native_object_invocations(
                     allocator,
                     resolver,
                     tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
+                    std::ptr::null(),
                     export_id,
                     if arguments.is_empty() {
                         std::ptr::null()
@@ -564,11 +566,12 @@ const NATIVE_OBJECT_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -593,11 +596,12 @@ fn main() {
         };
         let mut transition_len = 0_u64;
         let status = unsafe {
-            terlan_native_dispatch_v3(
+            terlan_native_dispatch_v4(
                 std::ptr::null_mut(),
                 std::ptr::null(),
                 std::ptr::null(),
                 dispatch_lookup as *const c_void,
+                std::ptr::null(),
                 entry,
                 argument_pointer,
                 arguments.len() as u64,
@@ -628,11 +632,12 @@ const NATIVE_OBJECT_BATCH_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -659,11 +664,12 @@ fn main() {
         let mut transitions = [0_i64; 128];
         let mut transition_len = 99_u64;
         let status = unsafe {
-            terlan_native_dispatch_v3(
+            terlan_native_dispatch_v4(
                 std::ptr::null_mut(),
                 std::ptr::null(),
                 std::ptr::null(),
                 dispatch_lookup as *const c_void,
+                std::ptr::null(),
                 *export_id,
                 argument_pointer,
                 arguments.len() as u64,

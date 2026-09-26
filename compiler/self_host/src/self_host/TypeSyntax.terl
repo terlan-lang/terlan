@@ -1,0 +1,63 @@
+/** Stable self-hosted type-syntax contract. */
+module self_host.TypeSyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub type NamedType.
+pub type AppliedType.
+pub type UnionType.
+pub type TupleType.
+pub type ListType.
+pub type MapType.
+pub type FunctionType.
+pub type ImplicationType.
+pub type ExistentialType.
+pub type GroupedType.
+pub type InvalidType.
+
+pub type TypeClass =
+    NamedType
+    | AppliedType
+    | UnionType
+    | TupleType
+    | ListType
+    | MapType
+    | FunctionType
+    | ImplicationType
+    | ExistentialType
+    | GroupedType
+    | InvalidType.
+
+/** Lossless type node whose `parts` are normalized top-level components. */
+pub struct TypeSyntax {
+    class: self_host.TypeSyntax.TypeClass,
+    text: String,
+    parts: List[String],
+}.
+
+pub constructor TypeSyntax {
+    (class: self_host.TypeSyntax.TypeClass, text: String, parts: List[String]): TypeSyntax ->
+        TypeSyntax {
+            class: class,
+            text: text,
+            parts: parts,
+        }
+}.
+
+
+pub struct TypeParse {
+    valid: Bool,
+    syntax: self_host.TypeSyntax.TypeSyntax,
+    message: String,
+}.
+
+pub constructor TypeParse {
+    (valid: Bool, syntax: self_host.TypeSyntax.TypeSyntax, message: String): TypeParse ->
+        TypeParse {
+            valid: valid,
+            syntax: syntax,
+            message: message,
+        }
+}.
+

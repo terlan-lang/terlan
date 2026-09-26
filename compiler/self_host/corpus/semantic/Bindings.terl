@@ -1,0 +1,7 @@
+module self_host_fixture.Bindings.
+
+pub identity(value: Int): Int -> value.
+
+pub add(left: Int, right: Int): Int ->
+    let total = left + right;
+    total.

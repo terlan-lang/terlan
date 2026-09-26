@@ -1,0 +1,214 @@
+/**
+ * Recovery-oriented surface parser for the self-hosted frontend.
+ *
+ * This parser owns module and declaration boundaries. It intentionally retains
+ * each declaration as source text until the dedicated declaration/type/pattern/
+ * expression lowering modules replace the corresponding Rust stages.
+ */
+module self_host.Parser.
+
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, InvalidModuleDeclaration, MethodDeclaration, MissingModuleDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ParseError, ShapeDeclaration, SourceBeforeModuleDeclaration, StructDeclaration, SurfaceDeclaration, SurfaceModule, SyntaxSpan, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration, UnknownDeclaration, UnterminatedDeclaration}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+struct ParseState {
+    saw_module: Bool,
+    module_name: String,
+    current_text: String,
+    current_start: Int,
+    offset: Int,
+    declarations: List[SurfaceDeclaration],
+    errors: List[ParseError],
+}.
+
+constructor ParseState {
+    (saw_module: Bool, module_name: String, current_text: String, current_start: Int, offset: Int, declarations: List[SurfaceDeclaration], errors: List[ParseError]): ParseState ->
+        ParseState {
+            saw_module: saw_module,
+            module_name: module_name,
+            current_text: current_text,
+            current_start: current_start,
+            offset: offset,
+            declarations: declarations,
+            errors: errors,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+reverse[T](values: List[T]): List[T] ->
+    reverse_at(values, List.new[T]()).
+
+@pure
+span(start_byte: Int, end_byte: Int): SyntaxSpan ->
+    SyntaxSpan(start_byte, end_byte).
+
+@pure
+error(class: self_host.Syntax.ParseErrorClass, message: String, at: SyntaxSpan): ParseError ->
+    ParseError(class, message, at).
+
+@pure
+initial_state(): ParseState ->
+    ParseState(saw_module = false, module_name = "", current_text = "", current_start = 0, offset = 0, declarations = List.new[SurfaceDeclaration](), errors = List.new[ParseError]()).
+
+@pure
+is_trivia(line: String): Bool ->
+    line == ""
+        or String.starts_with(line, "//")
+        or String.starts_with(line, "%")
+        or String.starts_with(line, "/*")
+        or String.starts_with(line, "*")
+        or line == "*/".
+
+@pure
+module_name(line: String): String ->
+    line.utf8_slice(7, String.byte_size(line) - 8).
+
+@pure
+append_line(current: String, line: String): String ->
+    if {
+        current == "" -> line;
+        true -> String.append(current, String.append("\n", line))
+    }.
+
+@pure
+declaration_head_at(lines: List[String]): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                is_trivia(normalized) or String.starts_with(normalized, "@") -> declaration_head_at(rest);
+                true -> normalized
+            }
+    }.
+
+@pure
+pub declaration_head(text: String): String ->
+    declaration_head_at(String.split(text, "\n")).
+
+@pure
+without_public(head: String): String ->
+    if {
+        String.starts_with(head, "pub ") -> head.utf8_slice(4, String.byte_size(head) - 4);
+        true -> head
+    }.
+
+@pure
+pub declaration_class(text: String): DeclarationClass ->
+    let original_head = declaration_head(text);
+    let head = without_public(original_head);
+    if {
+        String.starts_with(head, "import ") -> ImportDeclaration;
+        String.starts_with(head, "export ") -> ExportDeclaration;
+        String.starts_with(head, "const ") and String.contains(head, "(") -> ConstFunctionDeclaration;
+        String.starts_with(head, "const ") -> ConstantDeclaration;
+        String.starts_with(head, "opaque type ") -> OpaqueTypeDeclaration;
+        String.starts_with(head, "type ") -> TypeDeclaration;
+        String.starts_with(head, "struct ") -> StructDeclaration;
+        String.starts_with(head, "constructor ") -> ConstructorDeclaration;
+        String.starts_with(head, "trait ") -> TraitDeclaration;
+        String.starts_with(head, "impl ") or String.starts_with(head, "!impl ") -> TraitImplDeclaration;
+        String.starts_with(head, "annotation ") -> AnnotationSchemaDeclaration;
+        String.starts_with(head, "template ") -> TemplateDeclaration;
+        String.starts_with(head, "shape ") -> ShapeDeclaration;
+        String.starts_with(head, "config ") -> ConfigDeclaration;
+        String.starts_with(head, "target ") -> ConfigDeclaration;
+        String.starts_with(head, "machine ") -> ConfigDeclaration;
+        String.starts_with(head, "static ") -> ConfigDeclaration;
+        String.starts_with(head, "native ") -> NativeDeclaration;
+        String.starts_with(head, "(") -> MethodDeclaration;
+        String.contains(head, "(") and String.contains(text, ")") and String.contains(text, "->") -> FunctionDeclaration;
+        true -> UnknownDeclaration
+    }.
+
+@pure
+finish_declaration(state: ParseState, end_byte: Int): ParseState ->
+    let head = declaration_head(state.current_text);
+    let declaration = SurfaceDeclaration(declaration_class(state.current_text), state.current_text, span(state.current_start, end_byte), String.starts_with(head, "pub "));
+    ParseState(saw_module = state.saw_module, module_name = state.module_name, current_text = "", current_start = end_byte, offset = state.offset, declarations = [declaration | state.declarations], errors = state.errors).
+
+@pure
+with_offset(state: ParseState, offset: Int): ParseState ->
+    ParseState(saw_module = state.saw_module, module_name = state.module_name, current_text = state.current_text, current_start = state.current_start, offset = offset, declarations = state.declarations, errors = state.errors).
+
+@pure
+before_module(state: ParseState, line: String, normalized: String, next_offset: Int): ParseState ->
+    if {
+        is_trivia(normalized) -> with_offset(state, next_offset);
+        String.starts_with(normalized, "module ") and String.ends_with(normalized, ".") ->
+            ParseState(saw_module = true, module_name = module_name(normalized), current_text = "", current_start = next_offset, offset = next_offset, declarations = state.declarations, errors = state.errors);
+        String.starts_with(normalized, "module ") ->
+            ParseState(saw_module = true, module_name = "", current_text = "", current_start = next_offset, offset = next_offset, declarations = state.declarations, errors = [error(
+                    InvalidModuleDeclaration,
+                    "module declaration must end with a dot",
+                    span(state.offset, state.offset + String.byte_size(line)),
+                ) | state.errors]);
+        true ->
+            ParseState(saw_module = false, module_name = state.module_name, current_text = state.current_text, current_start = state.current_start, offset = next_offset, declarations = state.declarations, errors = [error(
+                    SourceBeforeModuleDeclaration,
+                    "source declaration appears before the module declaration",
+                    span(state.offset, state.offset + String.byte_size(line)),
+                ) | state.errors])
+    }.
+
+@pure
+after_module(state: ParseState, line: String, normalized: String, next_offset: Int): ParseState ->
+    if {
+        state.current_text == "" and is_trivia(normalized) -> with_offset(state, next_offset);
+        true ->
+            let start = if { state.current_text == "" -> state.offset; true -> state.current_start };
+            let accumulated = append_line(state.current_text, line);
+            let pending = ParseState(saw_module = state.saw_module, module_name = state.module_name, current_text = accumulated, current_start = start, offset = next_offset, declarations = state.declarations, errors = state.errors);
+            if {
+                String.ends_with(normalized, ".") -> finish_declaration(pending, state.offset + String.byte_size(line));
+                true -> pending
+            }
+    }.
+
+@pure
+parse_lines(lines: List[String], state: ParseState): ParseState ->
+    case lines {
+        [] -> state;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            let next_offset = state.offset + String.byte_size(line) + 1;
+            let next = if {
+                state.saw_module -> after_module(state, line, normalized, next_offset);
+                true -> before_module(state, line, normalized, next_offset)
+            };
+            parse_lines(rest, next)
+    }.
+
+@pure
+finalize(source: String, state: ParseState): SurfaceModule ->
+    let missing_module_errors = if {
+        state.saw_module -> state.errors;
+        true -> [error(
+            MissingModuleDeclaration,
+            "source is missing a module declaration",
+            span(0, 0),
+        ) | state.errors]
+    };
+    let final_errors = if {
+        state.current_text == "" -> missing_module_errors;
+        true -> [error(
+            UnterminatedDeclaration,
+            "top-level declaration must end with a dot",
+            span(state.current_start, String.byte_size(source)),
+        ) | missing_module_errors]
+    };
+    SurfaceModule(List.is_empty(final_errors), state.module_name, reverse(state.declarations), reverse(final_errors), span(0, String.byte_size(source))).
+
+/** Parses module and top-level declaration boundaries with error recovery. */
+@pure
+pub parse_surface(source: String): SurfaceModule ->
+    finalize(source, parse_lines(String.split(source, "\n"), initial_state())).

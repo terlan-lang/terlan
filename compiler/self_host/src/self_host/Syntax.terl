@@ -1,0 +1,140 @@
+/**
+ * Lossless syntax contracts owned by the self-hosted frontend.
+ *
+ * Phase 2 deliberately keeps declaration text intact. Typed declaration,
+ * expression, pattern, and type nodes are lowering products; this surface tree
+ * is the stable recovery and differential-testing boundary.
+ */
+module self_host.Syntax.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+/** Half-open UTF-8 byte range in the original source. */
+pub struct SyntaxSpan {
+    start_byte: Int,
+    end_byte: Int,
+}.
+
+pub constructor SyntaxSpan {
+    (start_byte: Int, end_byte: Int): SyntaxSpan ->
+        SyntaxSpan {
+            start_byte: start_byte,
+            end_byte: end_byte,
+        }
+}.
+
+
+/** Canonical top-level declaration categories. */
+pub type ImportDeclaration.
+pub type ExportDeclaration.
+pub type ConstantDeclaration.
+pub type ConstFunctionDeclaration.
+pub type TypeDeclaration.
+pub type OpaqueTypeDeclaration.
+pub type StructDeclaration.
+pub type ConstructorDeclaration.
+pub type FunctionDeclaration.
+pub type MethodDeclaration.
+pub type TraitDeclaration.
+pub type TraitImplDeclaration.
+pub type AnnotationSchemaDeclaration.
+pub type TemplateDeclaration.
+pub type ShapeDeclaration.
+pub type ConfigDeclaration.
+pub type NativeDeclaration.
+pub type UnknownDeclaration.
+
+pub type DeclarationClass =
+    ImportDeclaration
+    | ExportDeclaration
+    | ConstantDeclaration
+    | ConstFunctionDeclaration
+    | TypeDeclaration
+    | OpaqueTypeDeclaration
+    | StructDeclaration
+    | ConstructorDeclaration
+    | FunctionDeclaration
+    | MethodDeclaration
+    | TraitDeclaration
+    | TraitImplDeclaration
+    | AnnotationSchemaDeclaration
+    | TemplateDeclaration
+    | ShapeDeclaration
+    | ConfigDeclaration
+    | NativeDeclaration
+    | UnknownDeclaration.
+
+/** One source-preserving top-level declaration. */
+pub struct SurfaceDeclaration {
+    class: self_host.Syntax.DeclarationClass,
+    text: String,
+    span: self_host.Syntax.SyntaxSpan,
+    is_public: Bool,
+}.
+
+pub constructor SurfaceDeclaration {
+    (class: self_host.Syntax.DeclarationClass, text: String, span: self_host.Syntax.SyntaxSpan, is_public: Bool): SurfaceDeclaration ->
+        SurfaceDeclaration {
+            class: class,
+            text: text,
+            span: span,
+            is_public: is_public,
+        }
+}.
+
+
+pub type MissingModuleDeclaration.
+pub type InvalidModuleDeclaration.
+pub type SourceBeforeModuleDeclaration.
+pub type LexicalParseError.
+pub type UnterminatedDeclaration.
+
+pub type ParseErrorClass =
+    MissingModuleDeclaration
+    | InvalidModuleDeclaration
+    | SourceBeforeModuleDeclaration
+    | LexicalParseError
+    | UnterminatedDeclaration.
+
+/** Recoverable syntax diagnostic produced by the surface parser. */
+pub struct ParseError {
+    class: self_host.Syntax.ParseErrorClass,
+    message: String,
+    span: self_host.Syntax.SyntaxSpan,
+}.
+
+pub constructor ParseError {
+    (class: self_host.Syntax.ParseErrorClass, message: String, span: self_host.Syntax.SyntaxSpan): ParseError ->
+        ParseError {
+            class: class,
+            message: message,
+            span: span,
+        }
+}.
+
+
+/** Complete result, including declarations recovered before an error. */
+pub struct SurfaceModule {
+    valid: Bool,
+    name: String,
+    declarations: List[self_host.Syntax.SurfaceDeclaration],
+    errors: List[self_host.Syntax.ParseError],
+    span: self_host.Syntax.SyntaxSpan,
+}.
+
+pub constructor SurfaceModule {
+    (valid: Bool, name: String, declarations: List[self_host.Syntax.SurfaceDeclaration], errors: List[self_host.Syntax.ParseError], span: self_host.Syntax.SyntaxSpan): SurfaceModule ->
+        SurfaceModule {
+            valid: valid,
+            name: name,
+            declarations: declarations,
+            errors: errors,
+            span: span,
+        }
+}.
+
+
+@pure
+pub empty_span(offset: Int): SyntaxSpan ->
+    SyntaxSpan(offset, offset).

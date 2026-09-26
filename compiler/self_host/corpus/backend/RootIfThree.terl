@@ -1,0 +1,8 @@
+module self_host_probe.RootIfThree.
+
+pub classify(value: Int): String ->
+    if {
+        value < 0 -> "negative";
+        value == 0 -> "zero";
+        true -> "positive"
+    }.

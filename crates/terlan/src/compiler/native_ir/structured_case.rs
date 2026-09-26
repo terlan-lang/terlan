@@ -29,8 +29,8 @@ pub(super) use lowering::{
 };
 pub(super) use suspending::lower_suspending_case;
 use type_support::{
-    list_element_type, map_key, map_types, native_core_type, option_element_type,
-    struct_field_type, tuple_element_type,
+    list_element_type, list_variant_type, map_key, map_types, native_core_type,
+    option_element_type, struct_field_type, tuple_element_type,
 };
 
 const MAX_STRUCTURED_PATTERN_DEPTH: usize = 64;
@@ -615,16 +615,27 @@ fn tuple_plan(
 fn list_plan(
     patterns: &[CorePattern],
     value: NativeExpr,
-    value_type: NativeType,
+    _value_type: NativeType,
     core_type: Option<&CoreType>,
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
-    let element = list_element_type(core_type)?;
+    let list = list_variant_type(core_type)?;
+    let element = list_element_type(Some(list))?;
     let element_native = native_core_type(element)?;
-    let semantic = managed_semantic(value_type)?;
+    let list_native = native_core_type(list)?;
+    let semantic = managed_semantic(list_native)?;
     let mut current = value;
     let mut plans = Vec::with_capacity(patterns.len() * 2 + 1);
+    if matches!(core_type, Some(CoreType::Union(_))) {
+        plans.push(PatternPlan {
+            predicate: NativeExpr::ManagedOperation {
+                encoded: Arc::from(encode_managed_type_is_operation(semantic)),
+                args: vec![current.clone()],
+            },
+            bindings: Vec::new(),
+        });
+    }
     for pattern in patterns {
         plans.push(nonempty(current.clone(), semantic));
         let first = NativeExpr::ManagedOperation {
@@ -654,14 +665,16 @@ fn list_cons_plan(
     head: &CorePattern,
     tail: &CorePattern,
     value: NativeExpr,
-    value_type: NativeType,
+    _value_type: NativeType,
     core_type: Option<&CoreType>,
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<PatternPlan, String> {
-    let element = list_element_type(core_type)?;
+    let list = list_variant_type(core_type)?;
+    let element = list_element_type(Some(list))?;
     let element_native = native_core_type(element)?;
-    let semantic = managed_semantic(value_type)?;
+    let list_native = native_core_type(list)?;
+    let semantic = managed_semantic(list_native)?;
     let first = NativeExpr::ManagedOperation {
         encoded: Arc::from(encode_list_first_operation(
             semantic,
@@ -673,7 +686,17 @@ fn list_cons_plan(
         encoded: Arc::from(encode_list_rest_operation(semantic)),
         args: vec![value.clone()],
     };
-    merge(vec![
+    let mut plans = Vec::new();
+    if matches!(core_type, Some(CoreType::Union(_))) {
+        plans.push(PatternPlan {
+            predicate: NativeExpr::ManagedOperation {
+                encoded: Arc::from(encode_managed_type_is_operation(semantic)),
+                args: vec![value.clone()],
+            },
+            bindings: Vec::new(),
+        });
+    }
+    plans.extend([
         nonempty(value, semantic),
         pattern_plan(
             head,
@@ -683,8 +706,9 @@ fn list_cons_plan(
             constructors,
             depth + 1,
         )?,
-        pattern_plan(tail, rest, value_type, core_type, constructors, depth + 1)?,
-    ])
+        pattern_plan(tail, rest, list_native, Some(list), constructors, depth + 1)?,
+    ]);
+    merge(plans)
 }
 fn structural_map_plan(
     patterns: &[crate::terlan_typeck::CoreMapPatternField],

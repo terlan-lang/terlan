@@ -1,0 +1,8 @@
+name	expectation	owner
+minimal	accept	phase-1-interface
+imports-and-types	accept	phase-1-interface
+unicode-and-comments	accept	phase-1-lexer
+missing-module	reject	phase-1-interface
+unterminated-string	reject	phase-1-lexer
+unterminated-comment	reject	phase-1-lexer
+unicode-identifier-rejected	reject	canonical-ebnf

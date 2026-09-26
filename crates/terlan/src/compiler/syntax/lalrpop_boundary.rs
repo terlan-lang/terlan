@@ -81,6 +81,8 @@ pub enum LalrpopLexicalError {
 /// Parser terminal preserving the tight-dot distinction encoded by spans.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LalrpopToken {
+    /// Single-quoted text belongs to opaque embedded languages, not Terlan literals.
+    RawQuotedText,
     /// An ordinary token category from the canonical lexer.
     Canonical(TokenKind),
     /// A grammar-significant word intentionally contextual in the old parser.
@@ -133,8 +135,6 @@ pub enum LalrpopToken {
     NativeRawDeclaration,
     /// One balanced target configuration declaration.
     ConfigRawDeclaration,
-    /// A legacy `:name` atom collapsed before grammar routing.
-    LegacyAtom,
 }
 
 /// Contextual terminals required by the canonical EBNF grammar.
@@ -275,22 +275,6 @@ fn projected_tokens(
         let head_constraint_end = classify_lambda_delimiters
             .then(|| head_constraint_list_end(&tokens, index))
             .flatten();
-        let legacy_atom_end = (classify_lambda_delimiters
-            && token.kind == TokenKind::Colon
-            && tokens.get(index + 1).is_some_and(|next| {
-                token.end == next.start && matches!(next.kind, TokenKind::Atom | TokenKind::String)
-            })
-            && previous_significant().is_none_or(|previous| {
-                !matches!(
-                    previous.kind,
-                    TokenKind::Atom
-                        | TokenKind::Var
-                        | TokenKind::RParen
-                        | TokenKind::RBracket
-                        | TokenKind::RBrace
-                )
-            }))
-        .then_some(index + 1);
         let parser_token = if native_raw_end.is_some() {
             LalrpopToken::NativeRawDeclaration
         } else if config_raw_end.is_some() {
@@ -299,8 +283,6 @@ fn projected_tokens(
             LalrpopToken::TypedLambdaPattern
         } else if head_constraint_end.is_some() {
             LalrpopToken::HeadConstraintList
-        } else if legacy_atom_end.is_some() {
-            LalrpopToken::LegacyAtom
         } else if expression_raw_end.is_some() {
             LalrpopToken::ExpressionRawMacro
         } else if raw_block_end.is_some() {
@@ -353,6 +335,8 @@ fn projected_tokens(
             && previous_significant().is_some_and(|previous| previous.kind == TokenKind::Impl)
         {
             LalrpopToken::NegativeImplNot
+        } else if token.kind == TokenKind::String && token.text.starts_with('\'') {
+            LalrpopToken::RawQuotedText
         } else if token.text == "_" {
             LalrpopToken::Placeholder
         } else if lambda_openings.binary_search(&index).is_ok() {
@@ -377,7 +361,6 @@ fn projected_tokens(
             .or(config_raw_end)
             .or(typed_lambda_pattern_end)
             .or(head_constraint_end)
-            .or(legacy_atom_end)
             .or(expression_raw_end)
             .or(raw_block_end);
         let end = collapsed_end.map_or(token.end, |close| tokens[close].end);
@@ -642,7 +625,7 @@ pub fn parse_lalrpop_type(input: &str) -> LalrpopBoundaryResult<LalrpopFragmentO
             input,
             &source_index,
             identity.as_str(),
-            spanned_tokens(tokens),
+            expression_spanned_tokens(tokens),
         )
         .map_err(lalrpop_error)
 }
@@ -714,7 +697,7 @@ fn lex_fragment(input: &str) -> LalrpopBoundaryResult<(Vec<Token>, String)> {
 }
 
 fn ensure_generated_nesting_limit(tokens: &[Token]) -> LalrpopBoundaryResult<()> {
-    const MAX_SYNTACTIC_NESTING: usize = 16;
+    const MAX_SYNTACTIC_NESTING: usize = 64;
     let mut depth = 0usize;
     for token in tokens {
         match token.kind {

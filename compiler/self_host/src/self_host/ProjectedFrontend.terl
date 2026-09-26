@@ -1,0 +1,43 @@
+/** Authoritative composition of projected lexer/parser/typed frontend stages. */
+module self_host.ProjectedFrontend.
+
+import self_host.CanonicalToken.{CanonicalToken}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.BackendHandoff.
+import self_host.ConcreteSyntaxParser.
+import self_host.ProjectionAdapter.
+import self_host.ProjectedBodyParser.
+import self_host.ProjectedDeclarationLowering.
+import self_host.ProjectedParser.
+import self_host.ProjectedSignatureParser.
+import self_host.SemanticAnalysis.
+import self_host.TypedModuleLowering.
+
+
+/** Runs every self-hosted frontend stage exactly once over one canonical token stream. */
+@pure
+pub compile(source: String, canonical: List[CanonicalToken]): ProjectedFrontendModule ->
+    let tokens = ProjectionAdapter.rewrite(source, canonical);
+    let concrete = ConcreteSyntaxParser.parse(tokens);
+    let surface = ProjectedParser.parse(source, tokens);
+    let signatures = ProjectedSignatureParser.parse(tokens, surface.declarations);
+    let bodies = ProjectedBodyParser.parse(tokens, surface.declarations);
+    let backend = BackendHandoff.lower(SemanticAnalysis.analyze(TypedModuleLowering.lower(
+        ProjectedDeclarationLowering.lower(surface),
+    )));
+    let valid = concrete.valid
+        and surface.valid
+        and signatures.valid
+        and bodies.valid
+        and backend.valid;
+    ProjectedFrontendModule(valid, source, tokens, concrete, surface, signatures, bodies, backend, if {
+            not concrete.valid -> concrete.message;
+            not surface.valid -> surface.message;
+            not signatures.valid -> "one or more declaration signatures are invalid";
+            not bodies.valid -> "one or more callable bodies are invalid";
+            not backend.valid -> backend.message;
+            true -> ""
+        }).

@@ -37,6 +37,7 @@ struct ShapeIndirectCall {
     managed_allocator: Value,
     closure_resolver: Value,
     lookup_callback: Value,
+    callable_coverage: Value,
     args_pointer: Value,
     transition_pointer: Value,
     transition_len_pointer: Value,
@@ -47,6 +48,7 @@ pub(super) fn dispatch_signature(module: &ObjectModule) -> Signature {
     let pointer = module.target_config().pointer_type();
     Signature {
         params: vec![
+            AbiParam::new(pointer),
             AbiParam::new(pointer),
             AbiParam::new(pointer),
             AbiParam::new(pointer),
@@ -68,6 +70,7 @@ fn rare_dispatch_signature(module: &ObjectModule) -> Signature {
     let pointer = module.target_config().pointer_type();
     Signature {
         params: vec![
+            AbiParam::new(pointer),
             AbiParam::new(pointer),
             AbiParam::new(pointer),
             AbiParam::new(pointer),
@@ -128,13 +131,14 @@ pub(super) fn define_dispatch(
         let managed_allocator = params[1];
         let closure_resolver = params[2];
         let lookup_callback = params[3];
-        let export_id = params[4];
-        let args_pointer = params[5];
-        let supplied_arity = params[6];
-        let result_pointer = params[7];
-        let transition_pointer = params[8];
-        let transition_capacity = params[9];
-        let transition_len_pointer = params[10];
+        let callable_coverage = params[4];
+        let export_id = params[5];
+        let args_pointer = params[6];
+        let supplied_arity = params[7];
+        let result_pointer = params[8];
+        let transition_pointer = params[9];
+        let transition_capacity = params[10];
+        let transition_len_pointer = params[11];
         let zero = builder.ins().iconst(types::I64, 0);
         builder
             .ins()
@@ -252,6 +256,7 @@ pub(super) fn define_dispatch(
                     managed_allocator,
                     closure_resolver,
                     lookup_callback,
+                    callable_coverage,
                     args_pointer,
                     transition_pointer,
                     transition_len_pointer,
@@ -272,6 +277,7 @@ pub(super) fn define_dispatch(
                     managed_allocator,
                     closure_resolver,
                     lookup_callback,
+                    callable_coverage,
                     function_pointer,
                     shape,
                     args_pointer,
@@ -365,11 +371,12 @@ fn define_rare_dispatch(
         let managed_allocator = params[1];
         let closure_resolver = params[2];
         let lookup_callback = params[3];
-        let function_pointer = params[4];
-        let shape = params[5];
-        let args_pointer = params[6];
-        let transition_pointer = params[7];
-        let transition_len_pointer = params[8];
+        let callable_coverage = params[4];
+        let function_pointer = params[5];
+        let shape = params[6];
+        let args_pointer = params[7];
+        let transition_pointer = params[8];
+        let transition_len_pointer = params[9];
         let invalid_shape = builder.create_block();
         let call_blocks = shapes
             .iter()
@@ -393,6 +400,7 @@ fn define_rare_dispatch(
                     managed_allocator,
                     closure_resolver,
                     lookup_callback,
+                    callable_coverage,
                     args_pointer,
                     transition_pointer,
                     transition_len_pointer,
@@ -429,6 +437,7 @@ fn emit_shape_indirect_call(
         call.managed_allocator,
         call.closure_resolver,
         call.lookup_callback,
+        call.callable_coverage,
     ]);
     for argument_index in 0..function_arity {
         let offset = i32::try_from(argument_index.saturating_mul(8))

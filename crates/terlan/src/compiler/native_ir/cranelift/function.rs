@@ -1,8 +1,8 @@
 //! Definition of one local native function with its closed suspension ABI.
 
 use cranelift_codegen::ir::{
-    types, BlockArg, Function, InstBuilder, Signature, StackSlotData, StackSlotKind, UserFuncName,
-    Value,
+    types, AbiParam, BlockArg, Function, InstBuilder, Signature, StackSlotData, StackSlotKind,
+    UserFuncName, Value,
 };
 use cranelift_codegen::Context;
 use cranelift_frontend::{FunctionBuilder, FunctionBuilderContext};
@@ -17,13 +17,14 @@ use super::{
 };
 
 /// Context plus the allocator, closure resolver, and dispatch lookup services.
-pub(super) const RUNTIME_ARGUMENT_COUNT: usize = 4;
+pub(super) const RUNTIME_ARGUMENT_COUNT: usize = 5;
 /// Scalar recursive edges admitted before the actor cooperatively yields.
 pub(super) const SCALAR_REDUCTIONS_PER_NATIVE_SLICE: i64 = 4_000;
 
 /// Body, ABI, and tail-loop identity of one function definition.
 pub(super) struct NativeFunctionDefinition<'a> {
     pub(super) id: FuncId,
+    pub(super) coverage_id: u64,
     pub(super) self_function: Option<usize>,
     pub(super) tail_component_bodies: Option<&'a [(usize, usize, &'a NativeExpr)]>,
     pub(super) signature: &'a Signature,
@@ -38,6 +39,7 @@ pub(super) fn define_native_function(
 ) -> super::super::NativeIrResult<()> {
     let NativeFunctionDefinition {
         id: function_id,
+        coverage_id,
         self_function,
         tail_component_bodies,
         signature,
@@ -120,6 +122,13 @@ pub(super) fn define_native_function(
             slot
         });
         let entry_params = builder.block_params(entry).to_vec();
+        emit_callable_coverage(
+            &mut builder,
+            module,
+            entry_params[0],
+            entry_params[4],
+            coverage_id,
+        );
         let managed_pressure = managed_loop_slots.iter().any(|managed| *managed);
         let mut loop_args = entry_params
             .iter()
@@ -262,6 +271,16 @@ pub(super) fn define_native_function(
         builder.ins().return_(&[error_status, zero]);
         builder.seal_all_blocks();
         builder.finalize();
+    }
+    if let Some(filter) = std::env::var_os("TERLAN_CRANELIFT_DUMP_FUNCTION")
+        .and_then(|value| value.to_string_lossy().parse::<usize>().ok())
+    {
+        if self_function == Some(filter) {
+            eprintln!(
+                "cranelift function {self_function:?}:\n{}",
+                context.func.display()
+            );
+        }
     }
     Ok(module
         .define_function(function_id, &mut context)
@@ -748,7 +767,9 @@ fn emit_pure_component_dispatch(
     tail: NativeTailFrame<'_>,
 ) -> super::super::NativeIrResult<()> {
     let NativeFunctionCatalog {
-        parameter_types, ..
+        coverage_ids,
+        parameter_types,
+        ..
     } = catalog;
     let NativeTailFrame { error_block, .. } = tail;
     let (tag, params) = loop_params.split_last().ok_or_else(|| {
@@ -769,6 +790,13 @@ fn emit_pure_component_dispatch(
         );
         builder.ins().brif(matches, selected, &[], next, &[]);
         builder.switch_to_block(selected);
+        emit_callable_coverage(
+            builder,
+            module,
+            params[0],
+            params[4],
+            coverage_ids[*function],
+        );
         let types = parameter_types.get(*function).ok_or_else(|| {
             format!("error[cranelift.tail_component]: parameter types for function {function} are unavailable")
         })?;
@@ -809,6 +837,7 @@ fn emit_suspending_component_dispatch(
     tail: NativeTailFrame<'_>,
 ) -> super::super::NativeIrResult<()> {
     let NativeFunctionCatalog {
+        coverage_ids,
         parameter_types,
         suspending: function_suspending,
         transition_counts: function_transition_counts,
@@ -843,6 +872,13 @@ fn emit_suspending_component_dispatch(
         );
         builder.ins().brif(matches, selected, &[], next, &[]);
         builder.switch_to_block(selected);
+        emit_callable_coverage(
+            builder,
+            module,
+            loop_params[0],
+            loop_params[4],
+            coverage_ids[*function],
+        );
         let types = parameter_types.get(*function).ok_or_else(|| {
             format!("error[cranelift.tail_component]: parameter types for function {function} are unavailable")
         })?;
@@ -877,4 +913,37 @@ fn emit_suspending_component_dispatch(
         .iconst(types::I32, i64::from(status::NO_MATCHING_BRANCH));
     builder.ins().jump(error_block, &[BlockArg::Value(status)]);
     Ok(())
+}
+
+/// Emits one optional call-scoped coverage probe at a native callable entry.
+fn emit_callable_coverage(
+    builder: &mut FunctionBuilder<'_>,
+    module: &ObjectModule,
+    runtime_context: Value,
+    recorder: Value,
+    callable_id: u64,
+) {
+    let pointer = module.target_config().pointer_type();
+    let enabled = builder.create_block();
+    let next = builder.create_block();
+    let recorder_available = builder.ins().icmp_imm(
+        cranelift_codegen::ir::condcodes::IntCC::NotEqual,
+        recorder,
+        0,
+    );
+    builder
+        .ins()
+        .brif(recorder_available, enabled, &[], next, &[]);
+    builder.switch_to_block(enabled);
+    let signature = builder.import_signature(Signature {
+        params: vec![AbiParam::new(pointer), AbiParam::new(types::I64)],
+        returns: Vec::new(),
+        call_conv: module.target_config().default_call_conv,
+    });
+    let callable_id = builder.ins().iconst(types::I64, callable_id as i64);
+    builder
+        .ins()
+        .call_indirect(signature, recorder, &[runtime_context, callable_id]);
+    builder.ins().jump(next, &[]);
+    builder.switch_to_block(next);
 }

@@ -582,7 +582,7 @@ pub(super) fn native_handle_layouts(
                 && !is_compiler_managed_value_facade(&canonical)
         })
         .map(|declaration| {
-            let canonical = format!("{}.{}", core.module, declaration.name);
+            let canonical = format!("Named({}.{})", core.module, declaration.name);
             let descriptor = ManagedAggregateDescriptor::record(
                 &canonical,
                 vec![

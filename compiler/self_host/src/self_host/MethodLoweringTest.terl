@@ -1,0 +1,32 @@
+/** Positive and negative receiver-method contracts. */
+module self_host.MethodLoweringTest.
+
+import std.collections.List.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.MethodLowering.
+
+@pure
+positive_method(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.User.\npub (user: User) display(prefix: String): String -> prefix + user.name.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let method = MethodLowering.lower(declaration);
+            method.valid
+                and method.name == "display"
+                and method.receiver.name == "user"
+                and List.length(method.parameters) == 1;
+        _ -> false
+    }.
+
+@pure
+negative_method(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.User.\npub (user User) display(): String -> user.name.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not MethodLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_method() and negative_method().
+

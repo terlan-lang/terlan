@@ -1,6 +1,10 @@
 //! Tests for closure-free AOT router-plan extraction.
 
-use crate::terlan_hir::resolve_syntax_module_output;
+use std::collections::HashMap;
+
+use crate::terlan_hir::{
+    resolve_syntax_module_output, resolve_syntax_module_output_with_interfaces,
+};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::lower_syntax_module_output_to_core;
 
@@ -157,6 +161,186 @@ pub router(): Router ->
     assert_eq!(callbacks.writable.function, "writable");
     assert_eq!(callbacks.close.function, "closed");
     assert_eq!(callbacks.cancellation.function, "cancelled");
+}
+
+/// Verifies paired endpoints retain source-owned payloads and callback identities.
+#[test]
+fn aot_router_plan_materializes_websocket_pairing() {
+    let source = r#"module app.PairedSocket.
+
+import std.core.Unit.
+import std.http.{Router, WebSocket}.
+import type std.http.Router.
+pub inbound(_frame: String): String -> "update".
+pub cancelled(_reason: String): Unit -> Unit.
+pub router(): Router ->
+    Router.new().websocket(
+        "/paired",
+        WebSocket.endpoint(4, 1024).paired_callbacks(
+            "waiting", "first", "second", "left", inbound, cancelled
+        )
+    ).
+"#;
+    let syntax = parse_module_as_syntax_output(source).expect("parse paired router fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+
+    let (_, plan) = prepare_aot_router_module(&core).expect("extract paired router plan");
+    let plan = plan.expect("router plan");
+    let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[0].target else {
+        panic!("expected WebSocket target")
+    };
+    let pairing = websocket.pairing().expect("pairing plan");
+    assert_eq!(pairing.waiting, "waiting");
+    assert_eq!(pairing.first_matched, "first");
+    assert_eq!(pairing.second_matched, "second");
+    assert_eq!(pairing.peer_left, "left");
+    assert!(!pairing.stateful);
+    assert_eq!(pairing.inbound.function, "inbound");
+    assert_eq!(pairing.cancellation.function, "cancelled");
+}
+
+/// Verifies stateful paired endpoints retain the five-argument transition callback.
+#[test]
+fn aot_router_plan_materializes_stateful_websocket_pairing() {
+    let source = r#"module app.StatefulSocket.
+
+import std.core.Unit.
+import std.http.{Router, WebSocket}.
+import type std.http.Router.
+pub inbound(
+    state: String,
+    _role: Int,
+    _frame: String,
+    _first: String,
+    _second: String,
+): {String, String, String} -> {state, "first update", "second update"}.
+pub cancelled(_reason: String): Unit -> Unit.
+pub router(): Router ->
+    Router.new().websocket(
+        "/paired",
+        WebSocket.endpoint(4, 1024).stateful_paired_callbacks(
+            "waiting", "first", "second", "left", inbound, cancelled
+        )
+    ).
+"#;
+    let syntax = parse_module_as_syntax_output(source).expect("parse stateful router fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+
+    let (_, plan) = prepare_aot_router_module(&core).expect("extract stateful router plan");
+    let plan = plan.expect("router plan");
+    let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[0].target else {
+        panic!("expected WebSocket target")
+    };
+    let pairing = websocket.pairing().expect("pairing plan");
+    assert!(pairing.stateful);
+    assert_eq!(pairing.inbound.arity, 5);
+}
+
+/// Verifies restorable endpoints retain source-owned identity and entry callbacks.
+#[test]
+fn aot_router_plan_materializes_restorable_websocket_pairing() {
+    let source = r#"module app.RestorableSocket.
+
+import std.core.Unit.
+import std.http.{Router, WebSocket}.
+import type std.http.Router.
+pub waiting(): String -> "waiting".
+pub peer_left(): String -> "left".
+pub matched(room: String, _role: Int, _first: String, _second: String): String -> room.
+pub restored(room: String, _state: String, _role: Int, _first: String, _second: String): String -> room.
+pub inbound(state: String, _role: Int, _frame: String, _first: String, _second: String): {String, String, String} -> {state, "first", "second"}.
+pub cancelled(_reason: String): Unit -> Unit.
+pub router(): Router ->
+    Router.new().websocket(
+        "/paired",
+        WebSocket.endpoint(4, 1024).restorable_stateful_paired_callbacks(
+            waiting, peer_left, "room_id", "player_id", "room-",
+            "player-1", "player-2", 300000, 1024,
+            matched, restored, inbound, cancelled
+        )
+    ).
+"#;
+    let syntax = parse_module_as_syntax_output(source).expect("parse restorable router fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+
+    let (_, plan) = prepare_aot_router_module(&core).expect("extract restorable router plan");
+    let plan = plan.expect("router plan");
+    let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[0].target else {
+        panic!("expected WebSocket target")
+    };
+    let pairing = websocket.pairing().expect("pairing plan");
+    let restoration = pairing.restoration.as_ref().expect("restoration plan");
+    assert!(pairing.stateful);
+    assert_eq!(restoration.room_query, "room_id");
+    assert_eq!(restoration.player_query, "player_id");
+    assert_eq!(restoration.room_prefix, "room-");
+    assert_eq!(restoration.first_player, "player-1");
+    assert_eq!(restoration.second_player, "player-2");
+    assert_eq!(restoration.retention_ms, 300000);
+    assert_eq!(restoration.retained_room_capacity, 1024);
+    assert_eq!(restoration.waiting.function, "waiting");
+    assert_eq!(restoration.waiting.arity, 0);
+    assert_eq!(restoration.peer_left.function, "peer_left");
+    assert_eq!(restoration.peer_left.arity, 0);
+    assert_eq!(restoration.matched.arity, 4);
+    assert_eq!(restoration.restored.arity, 5);
+}
+
+/// Verifies selected callback imports retain their provider identity.
+#[test]
+fn aot_router_plan_materializes_imported_websocket_callbacks() {
+    let provider_source = r#"module app.SocketHandlers.
+
+import std.core.Unit.
+
+pub waiting(): String -> "waiting".
+pub peer_left(): String -> "left".
+pub matched(room: String, _role: Int, _first: String, _second: String): String -> room.
+pub restored(room: String, _state: String, _role: Int, _first: String, _second: String): String -> room.
+pub inbound(state: String, _role: Int, _frame: String, _first: String, _second: String): {String, String, String} -> {state, "first", "second"}.
+pub cancelled(_reason: String): Unit -> Unit.
+"#;
+    let provider_syntax =
+        parse_module_as_syntax_output(provider_source).expect("parse callback provider");
+    let provider = resolve_syntax_module_output(&provider_syntax).module;
+    let interfaces = HashMap::from([(provider.name.clone(), provider.interface.clone())]);
+    let router_source = r#"module app.Socket.
+
+import app.SocketHandlers.{cancelled, inbound, matched, peer_left, restored, waiting}.
+import std.http.{Router, WebSocket}.
+import type std.http.Router.
+
+pub router(): Router ->
+    Router.new().websocket(
+        "/paired",
+        WebSocket.endpoint(4, 1024).restorable_stateful_paired_callbacks(
+            waiting, peer_left, "room_id", "player_id", "room-",
+            "player-1", "player-2", 300000, 1024,
+            matched, restored, inbound, cancelled
+        )
+    ).
+"#;
+    let router_syntax =
+        parse_module_as_syntax_output(router_source).expect("parse imported callback router");
+    let router = resolve_syntax_module_output_with_interfaces(&router_syntax, &interfaces).module;
+    let core = lower_syntax_module_output_to_core(&router_syntax, &router);
+
+    let (_, plan) = prepare_aot_router_module(&core).expect("extract imported callback router");
+    let plan = plan.expect("router plan");
+    let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[0].target else {
+        panic!("expected WebSocket target")
+    };
+    let pairing = websocket.pairing().expect("pairing plan");
+    let restoration = pairing.restoration.as_ref().expect("restoration plan");
+
+    assert_eq!(restoration.waiting.module, "app.SocketHandlers");
+    assert_eq!(restoration.waiting.function, "waiting");
+    assert_eq!(restoration.waiting.arity, 0);
+    assert_eq!(pairing.inbound.module, "app.SocketHandlers");
+    assert_eq!(pairing.inbound.arity, 5);
 }
 
 /// Verifies SSE callback builders retain one complete static callback set.

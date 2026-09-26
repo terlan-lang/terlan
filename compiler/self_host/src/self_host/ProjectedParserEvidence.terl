@@ -1,0 +1,55 @@
+/** Stable declaration-boundary evidence for projected parser parity. */
+module self_host.ProjectedParserEvidence.
+
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.BackendAbi.
+import self_host.Parser.
+
+
+@pure
+row(value: ProjectedSurfaceDeclaration): String ->
+    String.concat([
+        BackendAbi.class_name(value.class),
+        "\t",
+        Parser.declaration_head(value.text),
+        "\t",
+        if { value.is_public -> "public"; true -> "private" },
+        "\t",
+        Int.to_string(value.span.start_byte),
+        "\t",
+        Int.to_string(value.span.end_byte),
+        "\t",
+        Int.to_string(String.byte_size(value.text)),
+        "\n",
+    ]).
+
+@pure
+rows(values: List[ProjectedSurfaceDeclaration]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [row(value) | rows(rest)]
+    }.
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_strings(rest, right)]
+    }.
+
+@pure
+pub document(value: ProjectedSurfaceModule): String ->
+    String.concat(append_strings([
+        "schema terlan.self-host.projected-parser/v1\nmodule\t",
+        value.name,
+        "\nvalid\t",
+        if { value.valid -> "true"; true -> "false" },
+        "\nmessage_bytes\t",
+        Int.to_string(String.byte_size(value.message)),
+        "\ndeclarations\t",
+        Int.to_string(List.length(value.declarations)),
+        "\nclass\thead\tvisibility\tstart\tend\tbytes\n",
+    ], rows(value.declarations))).

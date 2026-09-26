@@ -1,0 +1,64 @@
+/** Evidence and decision model for frontend authority transfer. */
+module self_host.AuthoritySyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub type TokenParityGate.
+pub type AcceptedParserParityGate.
+pub type RejectedParserParityGate.
+pub type SemanticParityGate.
+pub type BackendContractParityGate.
+pub type BootstrapFixedPointGate.
+
+pub type AuthorityGate =
+    TokenParityGate
+    | AcceptedParserParityGate
+    | RejectedParserParityGate
+    | SemanticParityGate
+    | BackendContractParityGate
+    | BootstrapFixedPointGate.
+
+pub struct AuthorityEvidence {
+    token_parity: Bool,
+    accepted_parser_parity: Bool,
+    rejected_parser_parity: Bool,
+    semantic_parity: Bool,
+    backend_contract_parity: Bool,
+    stage0_artifact_hash: String,
+    stage1_artifact_hash: String,
+}.
+
+pub constructor AuthorityEvidence {
+    (token_parity: Bool, accepted_parser_parity: Bool, rejected_parser_parity: Bool, semantic_parity: Bool, backend_contract_parity: Bool, stage0_artifact_hash: String, stage1_artifact_hash: String): AuthorityEvidence ->
+        AuthorityEvidence {
+            token_parity: token_parity,
+            accepted_parser_parity: accepted_parser_parity,
+            rejected_parser_parity: rejected_parser_parity,
+            semantic_parity: semantic_parity,
+            backend_contract_parity: backend_contract_parity,
+            stage0_artifact_hash: stage0_artifact_hash,
+            stage1_artifact_hash: stage1_artifact_hash,
+        }
+}.
+
+
+pub struct AuthorityDecision {
+    transferable: Bool,
+    passed: List[self_host.AuthoritySyntax.AuthorityGate],
+    failed: List[self_host.AuthoritySyntax.AuthorityGate],
+    retain_rust_frontend: Bool,
+    message: String,
+}.
+
+pub constructor AuthorityDecision {
+    (transferable: Bool, passed: List[self_host.AuthoritySyntax.AuthorityGate], failed: List[self_host.AuthoritySyntax.AuthorityGate], retain_rust_frontend: Bool, message: String): AuthorityDecision ->
+        AuthorityDecision {
+            transferable: transferable,
+            passed: passed,
+            failed: failed,
+            retain_rust_frontend: retain_rust_frontend,
+            message: message,
+        }
+}.
+

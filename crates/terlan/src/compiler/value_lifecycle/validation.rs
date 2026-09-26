@@ -288,23 +288,30 @@ pub(super) fn validate_nominal_valued_union_uses(
     for declaration in &module.declarations {
         match &declaration.payload {
             SyntaxDeclarationPayload::Function {
+                params,
                 return_type,
                 clauses,
                 ..
             } => {
+                let mut value_types = constant_types.clone();
+                value_types.extend(
+                    params
+                        .iter()
+                        .map(|param| (param.name.clone(), param.annotation.text.clone())),
+                );
                 for clause in clauses {
                     validate_union_expected_expr(
                         &clause.body,
                         &return_type.text,
                         &unions,
-                        &constant_types,
+                        &value_types,
                         &functions,
                         &mut diagnostics,
                     );
                     validate_union_call_arguments(
                         &clause.body,
                         &unions,
-                        &constant_types,
+                        &value_types,
                         &functions,
                         &mut diagnostics,
                     );

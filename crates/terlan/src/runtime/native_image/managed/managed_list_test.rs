@@ -2,6 +2,7 @@ use super::*;
 use crate::runtime::native_image::managed::{
     ActorId, HeapLimits, ManagedBytes, ManagedRoot, RootLocation,
 };
+use std::sync::Arc;
 
 fn heap() -> ActorHeap {
     ActorHeap::new(
@@ -15,6 +16,15 @@ fn ints(count: usize) -> Vec<ManagedFieldValue> {
     (0..count)
         .map(|value| ManagedFieldValue::Int(value as i64))
         .collect()
+}
+
+fn opaque_reference(heap: &mut ActorHeap, semantic: SemanticTypeId) -> TvmRef<()> {
+    let descriptor = Arc::new(
+        ManagedTypeDescriptor::new(semantic, 8, 8, Vec::new(), AllocationClass::Young)
+            .expect("opaque descriptor"),
+    );
+    heap.allocate::<()>(descriptor, &[0; 8], &[])
+        .expect("opaque value")
 }
 
 #[test]
@@ -53,6 +63,46 @@ fn adaptive_list_selects_empty_inline_regular_and_relaxed_profiles() {
     );
     assert_eq!(heap.list_is_empty(&descriptor, empty), Ok(true));
     assert_eq!(heap.list_is_empty(&descriptor, inline), Ok(false));
+}
+
+#[test]
+fn transparent_union_lists_accept_only_declared_reference_variants() {
+    let union = SemanticTypeId::from_canonical("example.Block").expect("union semantic");
+    let array = SemanticTypeId::from_canonical("example.Array").expect("array semantic");
+    let nested = SemanticTypeId::from_canonical("List(example.Block)").expect("list semantic");
+    let unrelated = SemanticTypeId::from_canonical("example.Unrelated").expect("other semantic");
+    let descriptor = ManagedListDescriptor::with_reference_variants(
+        "List(example.Block)",
+        ManagedFieldType::Reference(union),
+        vec![array, nested],
+    )
+    .expect("union list descriptor");
+    let mut heap = heap();
+    let array_value = opaque_reference(&mut heap, array);
+    let nested_value = opaque_reference(&mut heap, nested);
+    let unrelated_value = opaque_reference(&mut heap, unrelated);
+    let values = (0_usize..40)
+        .map(|index| {
+            ManagedFieldValue::Reference(if index.is_multiple_of(2) {
+                array_value
+            } else {
+                nested_value
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let list = heap
+        .list_from_elements(&descriptor, &values)
+        .expect("union list");
+    assert_eq!(heap.list_elements(&descriptor, list), Ok(values));
+    assert_eq!(
+        heap.list_append(
+            &descriptor,
+            list,
+            ManagedFieldValue::Reference(unrelated_value),
+        ),
+        Err(ManagedMemoryError::InvalidAggregateField)
+    );
 }
 
 #[test]

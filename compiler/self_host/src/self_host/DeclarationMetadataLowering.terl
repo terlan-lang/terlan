@@ -1,0 +1,83 @@
+/** Separates leading metadata from the declaration consumed by typed lowerers. */
+module self_host.DeclarationMetadataLowering.
+
+import self_host.DeclarationMetadataSyntax.{AnnotationUse, DeclarationMetadata, PreparedDeclaration}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+
+import std.collections.List.
+import std.core.String.
+
+
+struct MetadataState {
+    annotations: List[AnnotationUse],
+    docs: List[String],
+    body: String,
+    leading: Bool,
+}.
+
+constructor MetadataState {
+    (annotations: List[AnnotationUse], docs: List[String], body: String, leading: Bool): MetadataState ->
+        MetadataState {
+            annotations: annotations,
+            docs: docs,
+            body: body,
+            leading: leading,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+before(value: String, separator: String): String ->
+    case String.split(value, separator) { [] -> String.trim(value); [head | _rest] -> String.trim(head) }.
+
+@pure
+annotation(line: String): AnnotationUse ->
+    let normalized = String.trim(line);
+    let payload = normalized.utf8_slice(1, normalized.byte_size() - 1);
+    AnnotationUse(before(payload, "("), normalized).
+
+@pure
+is_doc(line: String): Bool ->
+    String.starts_with(line, "///")
+        or String.starts_with(line, "/**")
+        or String.starts_with(line, "*")
+        or line == "*/".
+
+@pure
+is_ordinary_trivia(line: String): Bool ->
+    line == ""
+        or String.starts_with(line, "//")
+        or String.starts_with(line, "%")
+        or String.starts_with(line, "/*")
+        or String.starts_with(line, "*")
+        or line == "*/".
+
+@pure
+append_line(body: String, line: String): String ->
+    if { body == "" -> line; true -> String.append(body, String.append("\n", line)) }.
+
+@pure
+scan(lines: List[String], state: MetadataState): MetadataState ->
+    case lines {
+        [] -> state;
+        [line | rest] ->
+            let normalized = String.trim(line);
+            if {
+                state.leading and String.starts_with(normalized, "@") -> scan(rest, MetadataState(annotations = [annotation(normalized) | state.annotations], docs = state.docs, body = state.body, leading = true));
+                state.leading and is_doc(normalized) -> scan(rest, MetadataState(annotations = state.annotations, docs = [line | state.docs], body = state.body, leading = true));
+                state.leading and is_ordinary_trivia(normalized) -> scan(rest, state);
+                true -> scan(rest, MetadataState(annotations = state.annotations, docs = state.docs, body = append_line(state.body, line), leading = false))
+            }
+    }.
+
+/** Returns structured metadata and a declaration body ready for typed lowering. */
+@pure
+pub prepare(source: DeclarationSyntax): PreparedDeclaration ->
+    let state = scan(String.split(source.body, "\n"), MetadataState(annotations = List.new[AnnotationUse](), docs = List.new[String](), body = "", leading = true));
+    PreparedDeclaration(DeclarationSyntax(source.class, source.name, source.header, state.body, source.is_public, source.span), DeclarationMetadata(reverse(state.annotations), reverse(state.docs))).

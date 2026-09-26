@@ -96,9 +96,12 @@ const REQUIRED_VM_INSTRUMENTATION_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_BENCHMARK_ANCHORS: &[&str] = &[
-    "terlan-vm-http-runtime",
-    "http_runtime",
-    "RuntimeCapabilityStatus::Available",
+    "HttpPerformanceReport",
+    "p50_ns",
+    "p95_ns",
+    "p99_ns",
+    "throughput_requests_per_second",
+    "process_memory_snapshot",
 ];
 
 const REQUIRED_GATE_TERMS: &[&str] = &[
@@ -276,7 +279,7 @@ pub fn run_vm_web_observability(root: &Path) -> QualityResult<VmWebObservability
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/benchmark/http_runtime_lane.rs",
+        "crates/terlan/src/benchmark/http_aot_performance.rs",
         REQUIRED_BENCHMARK_ANCHORS,
         "VM HTTP benchmark observability",
     )?);

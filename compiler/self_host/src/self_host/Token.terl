@@ -1,0 +1,81 @@
+/** Canonical lexical values emitted by the self-hosted Terlan lexer. */
+module self_host.Token.
+
+import self_host.Source.{Span}.
+
+
+pub type Identifier.
+pub type Keyword.
+pub type IntegerLiteral.
+pub type StringLiteral.
+pub type Symbol.
+
+pub type TokenKind = Identifier | Keyword | IntegerLiteral | StringLiteral | Symbol.
+
+pub struct Token {
+    kind: self_host.Token.TokenKind,
+    lexeme: String,
+    span: Span,
+}.
+
+pub constructor Token {
+    (kind: self_host.Token.TokenKind, lexeme: String, span: Span): Token ->
+        Token {
+            kind: kind,
+            lexeme: lexeme,
+            span: span,
+        }
+}.
+
+
+pub struct LexicalError {
+    code: String,
+    message: String,
+    span: Span,
+}.
+
+pub constructor LexicalError {
+    (code: String, message: String, span: Span): LexicalError ->
+        LexicalError {
+            code: code,
+            message: message,
+            span: span,
+        }
+}.
+
+
+pub struct LexResult {
+    tokens: List[Token],
+    errors: List[LexicalError],
+}.
+
+pub constructor LexResult {
+    (tokens: List[Token], errors: List[LexicalError]): LexResult ->
+        LexResult {
+            tokens: tokens,
+            errors: errors,
+        }
+}.
+
+
+@pure
+pub token(kind: TokenKind, lexeme: String, span: Span): Token ->
+    Token(kind, lexeme, span).
+
+@pure
+pub lexical_error(code: String, message: String, span: Span): LexicalError ->
+    LexicalError(code, message, span).
+
+@pure
+pub result(tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    LexResult(tokens, errors).
+
+@pure
+pub kind_name(kind: TokenKind): String ->
+    if {
+        kind == Identifier -> "identifier";
+        kind == Keyword -> "keyword";
+        kind == IntegerLiteral -> "integer";
+        kind == StringLiteral -> "string";
+        true -> "symbol"
+    }.

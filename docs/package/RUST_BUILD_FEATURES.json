@@ -64,7 +64,7 @@
       "artifact_smoke_tests": [
         "release-artifact-smoke",
         "release-artifact-installer-smoke",
-        "terlc-build-executable-check",
+        "cli-terlc-build-executable-check",
         "terlan-vm-run-command-check"
       ]
     }

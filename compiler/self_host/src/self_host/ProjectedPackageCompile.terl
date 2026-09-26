@@ -1,0 +1,63 @@
+/** Resolves and compiles an explicit multi-module source closure to ABI-1. */
+module self_host.ProjectedPackageCompile.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
+
+import self_host.CanonicalLexer.
+import self_host.ProgramCompiler.
+import self_host.ProjectedBackendCompile.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedPackageSyntax.
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
+import std.collections.List.
+import std.core.{String}.
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+compile_modules(
+    sources: List[String],
+    interfaces: List[ModuleInterface],
+    target: String,
+): List[ProjectedPackageArtifact] ->
+    case sources {
+        [] -> List.new[ProjectedPackageArtifact]();
+        [source | rest] ->
+            let lexed = CanonicalLexer.lex(source);
+            let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+            let backend = ProjectedBackendCompile.compile(frontend, interfaces, target);
+            [ProjectedPackageArtifact(frontend.backend.module_name, if { lexed.valid and frontend.valid -> backend.json; true -> None }, if {
+                    lexed.valid and frontend.valid -> backend.diagnostics;
+                    true -> ["projected-frontend-invalid" | backend.diagnostics]
+                }) | compile_modules(rest, interfaces, target)]
+    }.
+
+@pure
+artifacts_valid(values: List[ProjectedPackageArtifact]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> case value.json {
+            Some(_json) -> List.is_empty(value.diagnostics) and artifacts_valid(rest);
+            None -> false
+        }
+    }.
+
+@pure
+artifact_diagnostics(values: List[ProjectedPackageArtifact]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> append(value.diagnostics, artifact_diagnostics(rest))
+    }.
+
+/** Compiles all sources against interfaces derived from the complete closure. */
+pub compile(sources: List[String], external: List[ModuleInterface], target: String): ProjectedPackageCompilation ->
+    let program = ProgramCompiler.compile(sources, external);
+    let artifacts = compile_modules(sources, program.interfaces, target);
+    let valid = program.valid and artifacts_valid(artifacts);
+    ProjectedPackageCompilation(valid, artifacts, append(
+            if { program.valid -> List.new[String](); true -> ["package-import-resolution-failed"] },
+            artifact_diagnostics(artifacts),
+        )).

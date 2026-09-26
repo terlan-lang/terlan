@@ -1,0 +1,16 @@
+/** Public/private module interface contracts. */
+module self_host.ModuleInterfaceTest.
+
+import std.core.String.
+import self_host.Compiler.
+
+@pure
+visibility_contract(): Bool ->
+    let result = Compiler.compile(
+        "module demo.Interface.\npub visible(x: Int): Int -> x.\nhidden(x: Int): Int -> x.\n",
+    );
+    result.valid
+        and String.contains(result.interface_text, "export visible.")
+        and not String.contains(result.interface_text, "export hidden.").
+
+pub self_test(): Bool -> visibility_contract().

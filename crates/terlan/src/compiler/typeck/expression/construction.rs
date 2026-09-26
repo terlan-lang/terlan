@@ -449,6 +449,7 @@ fn infer_qualified_interface_struct_field(
     .unwrap_or(Type::Dynamic);
     let parsed = expand_type_aliases(&parsed, &interface_type_aliases(interface));
     let parsed = qualify_type_names(&parsed, &interface_qualified_type_names(interface));
+    let parsed = expand_type_aliases(&parsed, ctx.aliases);
     let mapping = generic_params
         .iter()
         .enumerate()

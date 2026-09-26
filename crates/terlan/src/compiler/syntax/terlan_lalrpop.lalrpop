@@ -1,4 +1,4 @@
-// canonical-ebnf-sha256: f15e5e3b8d546024312cb9e097495f268c179e272e341e26c04fe2811fd53405
+// canonical-ebnf-sha256: 0563b5f85ba00c4943a9f41b990739aea1278f3ccff3f9be7bdfb507d9d8fe87
 //
 // This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
 // canonical EBNF edit therefore requires an explicit generated-grammar audit.
@@ -766,7 +766,7 @@ GeneratedTraitMethod: LalrpopSyntaxNode = {
 
 GeneratedTraitImplementationDeclaration: LalrpopSyntaxNode = {
     <start:@L> <public:"pub"?> "impl" <negative:"negative-impl-not"?>
-        <trait_ref:TypeExpression>
+        <trait_ref:GeneratedTraitImplReference>
         <body:GeneratedTraitImplementationBody> <end:@R>
         => {
             let has_body = !body.is_empty();
@@ -785,6 +785,30 @@ GeneratedTraitImplementationDeclaration: LalrpopSyntaxNode = {
                 children,
             )
         },
+};
+
+GeneratedTraitImplReference: LalrpopSyntaxNode = {
+    <start:@L> TypeReferencePath
+        <args:("[" <NonEmptyComma<GeneratedTraitImplArgument>> "]")?> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            args.unwrap_or_default(),
+        ),
+};
+
+GeneratedTraitImplArgument: LalrpopSyntaxNode = {
+    <start:@L> TypeName "=>" <evidence:GeneratedStructuralEvidenceShape> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Type,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            vec![evidence],
+        ),
+    TypeExpression,
 };
 
 GeneratedTraitImplementationBody: Vec<LalrpopSyntaxNode> = {
@@ -1566,7 +1590,7 @@ CastTypePrimary: LalrpopSyntaxNode = {
 
 TypeExpression: LalrpopSyntaxNode = {
     <start:@L> "exists" <variables:NonEmptyComma<TypeNameNode>>
-        "." <body:TypeExpression> <end:@R> => {
+        ExistentialDot <body:TypeExpression> <end:@R> => {
         let mut children = variables;
         children.push(body);
         LalrpopSyntaxNode::branch(
@@ -1578,6 +1602,11 @@ TypeExpression: LalrpopSyntaxNode = {
         )
     },
     TypeArrow,
+};
+
+ExistentialDot: () = {
+    ".",
+    "selector-dot",
 };
 
 TypeArrow: LalrpopSyntaxNode = {
@@ -1593,25 +1622,7 @@ TypeArrow: LalrpopSyntaxNode = {
             children,
         )
     },
-    TypeImplication,
-};
-
-TypeImplication: LalrpopSyntaxNode = {
-    <left:TypeUnion> <evidence:("=>" <GeneratedStructuralEvidenceShape>)?> => {
-        if let Some(evidence) = evidence {
-            let start = left.span.start;
-            let end = evidence.span.end;
-            LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Type,
-                start,
-                end,
-                Some("=>".to_string()),
-                vec![left, evidence],
-            )
-        } else {
-            left
-        }
-    },
+    TypeUnion,
 };
 
 TypeUnion: LalrpopSyntaxNode = {
@@ -1713,8 +1724,6 @@ TypePrimary: LalrpopSyntaxNode = {
     <start:@L> "float" <end:@R>
         => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
     <start:@L> "string" <end:@R>
-        => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
-    <start:@L> "legacy-atom" <end:@R>
         => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
     <start:@L> "placeholder" <end:@R>
         => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Type, source, source_index, start, end),
@@ -1988,14 +1997,6 @@ PrimaryExpression: LalrpopSyntaxNode = {
             Some(source_index.text(source, start, end).to_string()),
             Vec::new(),
         ),
-    <start:@L> "legacy-atom" <end:@R>
-        => LalrpopSyntaxNode::branch(
-            LalrpopSyntaxNodeKind::AtomLiteral,
-            start,
-            end,
-            Some(source_index.text(source, start + 1, end).to_string()),
-            Vec::new(),
-        ),
     <start:@L> "int" <end:@R>
         => LalrpopSyntaxNode::leaf(LalrpopSyntaxNodeKind::Int, source, source_index, start, end),
     <start:@L> "float" <end:@R>
@@ -2063,11 +2064,6 @@ PrimaryExpression: LalrpopSyntaxNode = {
             None,
             items,
         ),
-};
-
-LegacyAtomValue: () = {
-    NameToken,
-    "string",
 };
 
 CallTypeArguments: Vec<LalrpopSyntaxNode> = {
@@ -2140,7 +2136,6 @@ CaseClause: LalrpopSyntaxNode = {
 
 GuardKeyword: () = {
     "where",
-    "when",
 };
 
 IfClause: LalrpopSyntaxNode = {
@@ -2570,6 +2565,7 @@ Terminal: &'static str = {
     "int" => "int",
     "float" => "float",
     "string" => "string",
+    "raw-quoted-text" => "raw-quoted-text",
     "binary" => "binary",
     "(" => "(",
     ")" => ")",
@@ -2604,7 +2600,6 @@ Terminal: &'static str = {
     "cast-type-[" => "[",
     "function-clause-(" => "(",
     "native-raw-declaration" => "native core module",
-    "legacy-atom" => ":atom",
     "|" => "|",
     "|>" => "|>",
     "->" => "->",
@@ -2697,7 +2692,6 @@ extern {
         "function-clause-(" => LalrpopToken::FunctionClauseLParen,
         "native-raw-declaration" => LalrpopToken::NativeRawDeclaration,
         "config-raw-declaration" => LalrpopToken::ConfigRawDeclaration,
-        "legacy-atom" => LalrpopToken::LegacyAtom,
         "annotation" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::Annotation),
         "applies_to" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::AppliesTo),
         "as" => LalrpopToken::Contextual(super::LalrpopContextualKeyword::As),
@@ -2770,6 +2764,7 @@ extern {
         "int" => LalrpopToken::Canonical(super::TokenKind::Int),
         "float" => LalrpopToken::Canonical(super::TokenKind::Float),
         "string" => LalrpopToken::Canonical(super::TokenKind::String),
+        "raw-quoted-text" => LalrpopToken::RawQuotedText,
         "binary" => LalrpopToken::Canonical(super::TokenKind::Binary),
         "(" => LalrpopToken::Canonical(super::TokenKind::LParen),
         ")" => LalrpopToken::Canonical(super::TokenKind::RParen),

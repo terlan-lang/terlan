@@ -2,6 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use sha2::{Digest as _, Sha256};
+
 use crate::terlan_syntax::{
     cached_canonical_terlan_syntax_contract_artifact,
     cached_canonical_terlan_syntax_contract_artifact_json,
@@ -28,6 +30,10 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         }
         Ok(SyntaxContractCommand::Check { path }) => run_syntax_contract_check(&path),
         Ok(SyntaxContractCommand::Validate { path, strict }) => run_ebnf_validation(&path, strict),
+        Ok(SyntaxContractCommand::Tokens {
+            source_path,
+            out_path,
+        }) => run_token_evidence(&source_path, out_path),
         Err(SyntaxContractCommandParseError) => {
             crate::print_usage();
             ExitCode::from(2)
@@ -76,6 +82,10 @@ pub(crate) enum SyntaxContractCommand {
         path: PathBuf,
         strict: bool,
     },
+    Tokens {
+        source_path: PathBuf,
+        out_path: Option<PathBuf>,
+    },
 }
 
 /// Marker error for invalid `syntax-contract` arguments.
@@ -109,6 +119,19 @@ pub(crate) struct SyntaxContractCommandParseError;
 pub(crate) fn parse_syntax_contract_command(
     args: &[String],
 ) -> Result<SyntaxContractCommand, SyntaxContractCommandParseError> {
+    if args.first().map(String::as_str) == Some("--tokens") {
+        return match args {
+            [_, source] => Ok(SyntaxContractCommand::Tokens {
+                source_path: PathBuf::from(source),
+                out_path: None,
+            }),
+            [_, source, flag, output] if flag == "--out" => Ok(SyntaxContractCommand::Tokens {
+                source_path: PathBuf::from(source),
+                out_path: Some(PathBuf::from(output)),
+            }),
+            _ => Err(SyntaxContractCommandParseError),
+        };
+    }
     if args.first().map(String::as_str) == Some("--validate") {
         return match args {
             [_, path] => Ok(SyntaxContractCommand::Validate {
@@ -163,6 +186,67 @@ pub(crate) fn parse_syntax_contract_command(
     } else {
         Ok(SyntaxContractCommand::Emit { mode, out_path })
     }
+}
+
+/// Emits canonical Rust lexer/boundary evidence for one Terlan source file.
+fn run_token_evidence(source_path: &Path, out_path: Option<PathBuf>) -> ExitCode {
+    let source = match fs::read_to_string(source_path) {
+        Ok(source) => source,
+        Err(error) => {
+            eprintln!(
+                "failed to read token evidence source {}: {error}",
+                source_path.display()
+            );
+            return ExitCode::from(2);
+        }
+    };
+    let output = match crate::terlan_syntax::lalrpop_boundary::parse_lalrpop_token_output(&source) {
+        Ok(output) => output,
+        Err(error) => {
+            eprintln!(
+                "token evidence parse failed for {} at {}..{}: {}",
+                source_path.display(),
+                error.span.start,
+                error.span.end,
+                error.message,
+            );
+            return ExitCode::from(1);
+        }
+    };
+    let mut rows = String::new();
+    for token in &output.tokens {
+        let lexeme = &source[token.span.start..token.span.end];
+        rows.push_str(&format!(
+            "{}\t{}\t{}\t{}\n",
+            token.terminal,
+            token.span.start,
+            token.span.end,
+            sha256_hex(lexeme.as_bytes()),
+        ));
+    }
+    let document = format!(
+        "schema\tterlan.self-host.token-authority/v1\nsource_sha256\t{}\ntoken_count\t{}\nrows_sha256\t{}\n--\n{}",
+        sha256_hex(source.as_bytes()),
+        output.tokens.len(),
+        sha256_hex(rows.as_bytes()),
+        rows,
+    );
+    if let Some(path) = out_path {
+        if let Err(error) = fs::write(&path, document) {
+            eprintln!("failed to write token evidence {}: {error}", path.display());
+            return ExitCode::from(1);
+        }
+    } else {
+        print!("{document}");
+    }
+    ExitCode::SUCCESS
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn run_ebnf_validation(path: &Path, strict: bool) -> ExitCode {

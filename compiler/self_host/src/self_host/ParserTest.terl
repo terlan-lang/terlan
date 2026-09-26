@@ -1,0 +1,46 @@
+/** Positive and negative contracts for the self-hosted surface parser. */
+module self_host.ParserTest.
+
+import self_host.Syntax.{FunctionDeclaration, ImportDeclaration, ShapeDeclaration}.
+
+import std.collections.List.
+import self_host.Parser.
+
+@pure
+positive_surface(): Bool ->
+    let source = "module demo.Surface.\n\nimport std.core.String.\n\npub shape Named(Name) = {name: Name}.\n\npub render(value: String): String ->\n    value.\n";
+    let parsed = Parser.parse_surface(source);
+    parsed.valid
+        and parsed.name == "demo.Surface"
+        and List.length(parsed.declarations) == 3
+        and case parsed.declarations {
+            [first, second, third] ->
+                first.class == ImportDeclaration
+                    and second.class == ShapeDeclaration
+                    and third.class == FunctionDeclaration;
+            _ -> false
+        }.
+
+@pure
+negative_missing_module(): Bool ->
+    let parsed = Parser.parse_surface("pub answer(): Int -> 42.\n");
+    not parsed.valid and List.length(parsed.errors) > 0.
+
+@pure
+negative_unterminated_declaration(): Bool ->
+    let parsed = Parser.parse_surface("module demo.Broken.\npub answer(): Int -> 42\n");
+    not parsed.valid and List.length(parsed.errors) == 1.
+
+@pure
+positive_multiline_function_signature(): Bool ->
+    let parsed = Parser.parse_surface("module demo.Multiline.\npub combine(\n    left: Int,\n    right: Int,\n): Int ->\n    left + right.\n");
+    parsed.valid and case parsed.declarations {
+        [declaration] -> declaration.class == FunctionDeclaration;
+        _ -> false
+    }.
+
+pub self_test(): Bool ->
+    positive_surface()
+        and positive_multiline_function_signature()
+        and negative_missing_module()
+        and negative_unterminated_declaration().

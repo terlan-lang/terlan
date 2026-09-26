@@ -153,11 +153,17 @@ fn top_level_usage_hides_internal_scratch_commands() {
         ),
         concat!(
             "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] ",
-            "[--name <function>]... [--bench [--warmup <count>] [--samples <count>]]"
+            "[--name <function>]... [--coverage [--coverage-threshold <0..100>]] ",
+            "[--bench [--warmup <count>] [--samples <count>]]"
         ),
         "terlc static <emit|serve|check> <file.terl>",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
         "terlc api <emit|check|import>",
+        "terlc login --cloud <url> --user-id <id> --token-file <path>",
+        "terlc deploy [project-dir] [--project <slug>] [--release-id <id>]",
+        "terlc status [--project <slug>] [--deployment <id>]",
+        "terlc logs [--project <slug>] [--deployment <id>]",
+        "terlc rollback [--project <slug>] [--deployment <id>]",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         concat!(
             "terlc debug <image.tvm> ",
@@ -183,7 +189,6 @@ fn top_level_usage_hides_internal_scratch_commands() {
         "bind cpp",
         "bind c",
         "--experimental",
-        "deploy",
         "terlc --experimental vm",
         "otp-runtime",
         "emit <file.terl>",
@@ -558,10 +563,10 @@ fn run_cli_rejects_help_command_for_unknown_command() {
 }
 
 #[test]
-fn run_cli_keeps_experimental_deploy_hidden_from_command_help() {
+fn run_cli_accepts_public_deploy_command_help() {
     assert_eq!(
         run_cli(vec!["help".to_string(), "deploy".to_string()]),
-        ExitCode::from(2)
+        ExitCode::SUCCESS
     );
 }
 

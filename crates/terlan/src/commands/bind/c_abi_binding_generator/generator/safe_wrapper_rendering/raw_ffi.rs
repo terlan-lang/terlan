@@ -22,7 +22,8 @@ pub(in super::super) fn render_raw_ffi_function(
         format!(" -> {returns}")
     };
     Ok(format!(
-        "        pub fn {}({}){};\n",
+        "        /// Invokes the raw `{}` C ABI symbol.\n        pub fn {}({}){};\n",
+        symbol.c_name,
         symbol.c_name,
         args.join(", "),
         return_text

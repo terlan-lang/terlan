@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use super::arguments::{parse_test_args, TestArgs, TestTarget, TEST_SOURCE_PATTERN_DESCRIPTION};
+use super::coverage::DeclarationCoverage;
 use super::discovery::{discover_tests, select_tests, TestKind};
 use super::manifest::{
     print_validation_pass_report, validation_pass_report, write_test_manifest,
@@ -16,7 +17,10 @@ use super::project_context::{
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
 use super::wasm::run_wasm_tests;
+use crate::commands::build::vm_artifact::native_debug::NativeDebugInput;
+use crate::commands::build::vm_artifact::native_image::compile_test_native_image;
 use crate::commands::dev_dependencies;
+use crate::terlan_syntax::SyntaxModuleOutput;
 use crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic;
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::validation::target_profile::TargetProfile;
@@ -40,6 +44,14 @@ pub(super) struct TestProjectContext {
     pub(super) cache_dir: PathBuf,
     pub(super) source_roots: Vec<PathBuf>,
     pub(super) native_helper_environment: Vec<(String, PathBuf)>,
+}
+
+/// Checked module plus the source metadata needed by native coverage records.
+pub(super) struct TestCompiledModule {
+    source_path: String,
+    source_text: String,
+    syntax: SyntaxModuleOutput,
+    core: CoreModule,
 }
 
 /// Executes the `test` CLI command.
@@ -253,6 +265,18 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
     if Path::new(path).is_dir() {
         return run_terlan_vm_test_directory(args, state);
     }
+    let mut coverage = args.coverage.then(DeclarationCoverage::default);
+    let status = run_terlan_vm_test_file(args, state, coverage.as_mut());
+    finish_declaration_coverage(status, args.coverage_threshold, coverage.as_ref())
+}
+
+/// Executes one Terlan VM test file and optionally contributes native coverage.
+pub(super) fn run_terlan_vm_test_file(
+    args: &TestArgs,
+    state: CliState,
+    coverage: Option<&mut DeclarationCoverage>,
+) -> ExitCode {
+    let path = args.path.as_str();
     if !is_test_source_path(path) {
         eprintln!(
             "terlc test requires a {TEST_SOURCE_PATTERN_DESCRIPTION} source file for Terlan VM execution: {path}"
@@ -337,7 +361,7 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
         None => Vec::new(),
     };
     let std_import_roots = std::iter::once(&compiled.core)
-        .chain(project_core_modules.iter())
+        .chain(project_core_modules.iter().map(|module| &module.core))
         .collect::<Vec<_>>();
     let imported_std_core_modules = match compile_imported_std_source_core_modules(
         &std_import_roots,
@@ -347,19 +371,39 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
         Ok(modules) => modules,
         Err(exit_code) => return exit_code,
     };
-    let support_core_modules = project_core_modules
-        .iter()
-        .chain(imported_std_core_modules.iter())
-        .cloned()
-        .collect::<Vec<_>>();
-    let mut core = compiled.core;
+    let core = compiled.core;
     let test_roots = tests
         .iter()
-        .map(|test| test.name.as_str())
+        .map(|test| {
+            (
+                compiled.syntax_output.module_name.clone(),
+                test.name.clone(),
+                0,
+            )
+        })
         .collect::<Vec<_>>();
-    crate::compiler::native_ir::prune_module_to_function_roots(&mut core, &test_roots);
     let application_cores = std::iter::once(&core)
-        .chain(support_core_modules.iter())
+        .chain(project_core_modules.iter().map(|module| &module.core))
+        .chain(imported_std_core_modules.iter().map(|module| &module.core))
+        .collect::<Vec<_>>();
+    let active_debug_input = NativeDebugInput {
+        source_path: path,
+        source_text: &source,
+        core: &core,
+        syntax: &compiled.syntax_output,
+    };
+    let debug_inputs = std::iter::once(active_debug_input)
+        .chain(
+            project_core_modules
+                .iter()
+                .chain(imported_std_core_modules.iter())
+                .map(|module| NativeDebugInput {
+                    source_path: &module.source_path,
+                    source_text: &module.source_text,
+                    core: &module.core,
+                    syntax: &module.syntax,
+                }),
+        )
         .collect::<Vec<_>>();
 
     let module_stem = compiled.syntax_output.module_name.replace('.', "_");
@@ -369,20 +413,21 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
-    let native_image =
-        match crate::commands::build::vm_artifact::native_image::compile_test_native_image(
-            &test_aot_workspace,
-            &native_cache_root,
-            &module_stem,
-            &application_cores,
-            state.incremental,
-        ) {
-            Ok(image) => image,
-            Err(message) => {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        };
+    let native_image = match compile_test_native_image(
+        &test_aot_workspace,
+        &native_cache_root,
+        &module_stem,
+        &application_cores,
+        &test_roots,
+        &debug_inputs,
+        state.incremental,
+    ) {
+        Ok(image) => image,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
 
     let report = match run_discovered_terlan_vm_tests(
         compiled.syntax_output.module_name.as_str(),
@@ -403,6 +448,26 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
             return ExitCode::from(1);
         }
     };
+    if let Some(coverage) = coverage {
+        let Some(project_context) = project_context.as_ref() else {
+            eprintln!(
+                "error[test.coverage.project]: declaration coverage requires a terlan.toml project with source roots"
+            );
+            return ExitCode::from(1);
+        };
+        let Some(native_image) = native_image.as_deref() else {
+            eprintln!("error[test.coverage.image]: VM tests did not produce a native image");
+            return ExitCode::from(1);
+        };
+        if let Err(message) = coverage.record_image(
+            native_image,
+            &project_context.source_roots,
+            &report.covered_callables,
+        ) {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
     if let Some(result_manifest_path) = args.emit_test_result_manifest.as_deref() {
         if let Err(message) = write_test_result_manifest(
             result_manifest_path,
@@ -429,6 +494,34 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
     }
 }
 
+/// Applies one command-level declaration coverage threshold after test execution.
+pub(super) fn finish_declaration_coverage(
+    status: ExitCode,
+    threshold: Option<u8>,
+    coverage: Option<&DeclarationCoverage>,
+) -> ExitCode {
+    if status != ExitCode::SUCCESS {
+        return status;
+    }
+    let Some(coverage) = coverage else {
+        return status;
+    };
+    match coverage.finish(threshold) {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => {
+            eprintln!(
+                "error[test.coverage.threshold]: Terlan declaration coverage is below {}%",
+                threshold.unwrap_or_default()
+            );
+            ExitCode::from(1)
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            ExitCode::from(1)
+        }
+    }
+}
+
 /// Compiles project source-root modules for VM test execution.
 ///
 /// Inputs:
@@ -446,7 +539,7 @@ pub(super) fn run_terlan_vm_tests(args: &TestArgs, state: CliState) -> ExitCode 
 pub(super) fn compile_project_source_core_modules(
     context: &TestProjectContext,
     state: &CliState,
-) -> Result<Vec<CoreModule>, ExitCode> {
+) -> Result<Vec<TestCompiledModule>, ExitCode> {
     let mut modules = Vec::new();
     for root in &context.source_roots {
         let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
@@ -475,7 +568,12 @@ pub(super) fn compile_project_source_core_modules(
                     TargetProfile::Vm,
                     test_target_profile_options(state, true),
                 )?;
-            modules.push(compiled.core);
+            modules.push(TestCompiledModule {
+                source_path: path,
+                source_text: source,
+                syntax: compiled.syntax_output,
+                core: compiled.core,
+            });
         }
     }
     Ok(modules)
@@ -501,7 +599,7 @@ pub(super) fn compile_imported_std_source_core_modules(
     root_cores: &[&CoreModule],
     test_path: &Path,
     state: &CliState,
-) -> Result<Vec<CoreModule>, ExitCode> {
+) -> Result<Vec<TestCompiledModule>, ExitCode> {
     let mut modules = Vec::new();
     let mut seen = BTreeSet::new();
     let mut pending = root_cores
@@ -553,7 +651,12 @@ pub(super) fn compile_imported_std_source_core_modules(
         );
         remove_compiler_intrinsic_functions(&mut core);
         if !core.functions.is_empty() {
-            modules.push(core);
+            modules.push(TestCompiledModule {
+                source_path: path_text,
+                source_text: source,
+                syntax: compiled.syntax_output,
+                core,
+            });
         }
     }
     Ok(modules)

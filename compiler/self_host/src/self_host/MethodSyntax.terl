@@ -1,0 +1,42 @@
+/** Typed syntax for receiver method declarations. */
+module self_host.MethodSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct MethodSyntax {
+    valid: Bool,
+    name: String,
+    receiver: ParameterSyntax,
+    parameters: List[ParameterSyntax],
+    return_type: TypeParse,
+    has_body: Bool,
+    body: ExpressionParse,
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor MethodSyntax {
+    (valid: Bool, name: String, receiver: ParameterSyntax, parameters: List[ParameterSyntax], return_type: TypeParse, has_body: Bool, body: ExpressionParse, is_public: Bool, span: SyntaxSpan, message: String): MethodSyntax ->
+        MethodSyntax {
+            valid: valid,
+            name: name,
+            receiver: receiver,
+            parameters: parameters,
+            return_type: return_type,
+            has_body: has_body,
+            body: body,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

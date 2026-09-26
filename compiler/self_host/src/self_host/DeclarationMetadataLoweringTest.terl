@@ -1,0 +1,38 @@
+/** Positive and negative declaration metadata contracts. */
+module self_host.DeclarationMetadataLoweringTest.
+
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.DeclarationMetadataLowering.
+
+@pure
+positive_metadata(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Metadata.\n/** Computes a value. */\n@pure\nvalue(x: Int): Int -> x.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let prepared = DeclarationMetadataLowering.prepare(declaration);
+            case prepared.metadata.annotations {
+                [annotation] ->
+                    annotation.path == "pure"
+                        and prepared.metadata.docs != []
+                        and prepared.declaration.body == "value(x: Int): Int -> x.";
+                _ -> false
+            };
+        _ -> false
+    }.
+
+@pure
+negative_metadata(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Metadata.\nvalue(x: Int): Int -> x.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let prepared = DeclarationMetadataLowering.prepare(declaration);
+            prepared.metadata.annotations == [] and prepared.metadata.docs == [];
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_metadata() and negative_metadata().

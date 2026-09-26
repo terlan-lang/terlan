@@ -1,12 +1,28 @@
 //! Canonical source identities embedded in admitted TVM native images.
 
 use object::{BinaryFormat, Object, ObjectSection};
-#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use sha2::{Digest, Sha256};
 
-const MAGIC: &[u8; 8] = b"TVMDBG05";
+const MAGIC: &[u8; 8] = b"TVMDBG06";
 const COFF_DEBUG_SECTION: &str = ".tdbg$D";
 const PE_DEBUG_SECTION: &str = ".tdbg";
+
+/// Derives the content-stable identity shared by native and manifest coverage.
+pub(crate) fn tvm_coverage_callable_id(module: &str, function: &str, arity: usize) -> u64 {
+    let mut digest = Sha256::new();
+    digest.update(b"terlan-coverage-callable-v1\0");
+    for component in [module.as_bytes(), function.as_bytes()] {
+        digest.update((component.len() as u64).to_le_bytes());
+        digest.update(component);
+    }
+    digest.update((arity as u64).to_le_bytes());
+    let bytes = digest.finalize();
+    u64::from_le_bytes(
+        bytes[..8]
+            .try_into()
+            .expect("SHA-256 prefix is eight bytes"),
+    )
+}
 
 /// Returns the canonical digest used to bind debug records to compiler input.
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
@@ -20,6 +36,8 @@ pub(crate) fn tvm_debug_source_sha256(source: &[u8]) -> String {
 /// One compiler source identity carried by a native function.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct TvmNativeDebugRecord {
+    /// Stable callable identity emitted at every native function entry.
+    pub(crate) callable_id: u64,
     /// Source file used to compile the function.
     pub(crate) source_file: String,
     /// Fully qualified Terlan module name.
@@ -63,6 +81,7 @@ pub(crate) fn encode_tvm_native_debug(records: &[TvmNativeDebugRecord]) -> Resul
     bytes.extend_from_slice(MAGIC);
     push_u32(&mut bytes, records.len())?;
     for record in records {
+        push_u64_value(&mut bytes, record.callable_id);
         push_string(&mut bytes, &record.source_file)?;
         push_string(&mut bytes, &record.module)?;
         push_string(&mut bytes, &record.function)?;
@@ -102,6 +121,7 @@ pub(crate) fn decode_tvm_native_debug(bytes: &[u8]) -> Result<Vec<TvmNativeDebug
     let mut records = Vec::with_capacity(count);
     for _ in 0..count {
         records.push(TvmNativeDebugRecord {
+            callable_id: read_u64(&mut input)?,
             source_file: read_string(&mut input)?,
             module: read_string(&mut input)?,
             function: read_string(&mut input)?,

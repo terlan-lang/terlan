@@ -71,66 +71,6 @@ const REQUIRED_BENCHMARK_ANCHORS: &[&str] = &[
     "error[http_aot.memory_regression]",
 ];
 
-const REQUIRED_RUNTIME_ATTRIBUTION_ANCHORS: &[&str] = &[
-    "terlan-vm-http-runtime-attribution-v1",
-    "accept_wait_ns",
-    "request_read_parse_ns",
-    "route_match_ns",
-    "request_decode_ns",
-    "handler_run_ns",
-    "synthetic_delay_ns",
-    "response_decode_encode_ns",
-    "response_write_wait_ns",
-    "dominantBottleneck",
-    "latencyBuckets",
-    "transportNs",
-    "parserNs",
-    "schedulerNs",
-    "routingNs",
-    "allocationAndConversionNs",
-    "handlerNs",
-    "responseWriteNs",
-    "dominantCause",
-    "sourceCounter",
-    "phaseBucketsMatchAccountedTotal",
-    "completedMatchesReductions",
-    "schedulerPressure",
-    "runnableProcessCount",
-    "parkedProcessCount",
-    "queueSaturationCount",
-    "backpressureWaitNs",
-    "wakeupCount",
-    "handlerRetryCount",
-    "queueBalanced",
-    "parkedProcessesReleased",
-    "saturationHasBackpressureOutcome",
-    "connections_closed",
-    "cancellations",
-    "timeouts",
-    "request_read_cancellations",
-    "request_read_timeouts",
-    "response_write_cancellations",
-    "response_write_timeouts",
-    "handlerWorkloads",
-    "static_handler_count",
-    "json_handler_count",
-    "add_handler_count",
-    "route_param_handler_count",
-    "stateful_counter_handler_count",
-    "classifiedHandlerWorkloadsWithinCompleted",
-];
-
-const REQUIRED_RUNTIME_ATTRIBUTION_TEST_ANCHORS: &[&str] = &[
-    "runtime_attribution_aggregates_phases_and_classifies_dominant_bottleneck",
-    "runtime_attribution_exposes_inconsistent_completion_accounting",
-    "runtime_attribution_preserves_typed_terminal_stage_reasons",
-    "runtime_attribution_reports_scheduler_pressure_and_consistency",
-    "runtime_attribution_rejects_unexplained_scheduler_saturation",
-    "runtime_attribution_buckets_every_measured_phase_once",
-    "runtime_attribution_classifies_scheduler_as_dominant_cause",
-    "runtime_attribution_classifies_deterministic_handler_workloads",
-];
-
 const REQUIRED_AOT_REPLAY_INTEGRATION_ANCHORS: &[&str] = &[
     "AotHandlerGeneration",
     "multicore_replay_evidence",
@@ -163,16 +103,10 @@ const FAIRNESS_FIXTURES: &[&str] = &[
     "socket benchmark pool sizing",
     "socket benchmark latency and throughput report",
     "large upload versus small static route mix fairness",
-    "per-handler reduction accounting in HTTP benchmark report",
-    "response-write wait attribution",
     "one slow client among fast socket clients",
     "queued SSE response pressure",
     "stateful actor contention fairness",
     "c10/c100/c1000 long-running load profile plans",
-    "per-phase runtime attribution with dominant bottleneck classification",
-    "scheduler pressure attribution with queue consistency invariants",
-    "exclusive latency buckets with dominant runtime cause attribution",
-    "deterministic source-backed synthetic handler matrix",
     "canonical replay fingerprints across fresh VM executions",
     "typed cancellation timeout and fragmented slow-write request outcomes",
     "typed cancellation storm timeout and fragmented response-write outcomes",
@@ -222,48 +156,6 @@ const ROUTE_MIX: &[&str] = &[
 const LATENCY_PERCENTILES: &[&str] = &["p50_ns", "p95_ns", "p99_ns"];
 
 const THROUGHPUT: &[&str] = &["throughput_requests_per_second"];
-
-const RUNTIME_ATTRIBUTION_PHASES: &[&str] = &[
-    "accept_wait",
-    "request_read_parse",
-    "route_match",
-    "request_decode",
-    "handler_run",
-    "synthetic_delay",
-    "response_decode_encode",
-    "response_write_wait",
-];
-
-const RUNTIME_TERMINAL_OUTCOMES: &[&str] = &[
-    "completed_requests",
-    "closed_connections",
-    "cancellations",
-    "timeouts",
-];
-
-const RUNTIME_SCHEDULER_PRESSURE: &[&str] = &[
-    "runnable_process_count",
-    "parked_process_count",
-    "queue_depth",
-    "queue_max_depth",
-    "queue_saturation_count",
-    "backpressure_wait_ns",
-    "wakeup_count",
-    "handler_retry_count",
-];
-
-const RUNTIME_LATENCY_BUCKETS: &[&str] = &[
-    "transport",
-    "parser",
-    "scheduler",
-    "routing",
-    "allocation_conversion",
-    "handler",
-    "response_write",
-];
-
-const DOMINANT_BOTTLENECK: &str =
-    "reported by queue pressure, handler delay, and listener/handler counters";
 
 const QUEUE_SATURATION_REASONS: &[&str] = &[
     "bounded queue capacity",
@@ -332,18 +224,6 @@ pub fn run_vm_http_handler_scheduler_fairness(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/vm/main/http_attribution.rs",
-        REQUIRED_RUNTIME_ATTRIBUTION_ANCHORS,
-        "VM HTTP runtime attribution",
-    )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "crates/terlan/src/vm/main/http_attribution_test.rs",
-        REQUIRED_RUNTIME_ATTRIBUTION_TEST_ANCHORS,
-        "VM HTTP runtime attribution adversarial tests",
-    )?);
-    diagnostics.extend(validate_required_terms(
-        root,
         "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
         REQUIRED_AOT_REPLAY_INTEGRATION_ANCHORS,
         "VM HTTP AOT replay integration",
@@ -373,26 +253,14 @@ pub fn run_vm_http_handler_scheduler_fairness(
         })?;
     }
     let report = json!({
-        "schema": "terlan-vm-http-handler-scheduler-fairness-report-v1",
+        "schema": "terlan-vm-http-handler-scheduler-fairness-report-v2",
+        "evidenceKind": "source-contract-inventory",
+        "runtimeValidated": false,
         "concurrencyProfiles": CONCURRENCY_PROFILES,
         "fairnessCounters": FAIRNESS_COUNTERS,
         "routeMix": ROUTE_MIX,
         "latencyPercentiles": LATENCY_PERCENTILES,
         "throughput": THROUGHPUT,
-        "runtimeAttribution": {
-            "schema": "terlan-vm-http-runtime-attribution-v1",
-            "phases": RUNTIME_ATTRIBUTION_PHASES,
-            "terminalOutcomes": RUNTIME_TERMINAL_OUTCOMES,
-            "schedulerPressure": RUNTIME_SCHEDULER_PRESSURE,
-            "latencyBuckets": RUNTIME_LATENCY_BUCKETS,
-            "dominantBottleneckClassified": true,
-            "dominantCauseCounterNamed": true,
-            "completionConsistencyChecked": true,
-            "phaseBucketAccountingChecked": true,
-            "queueConsistencyChecked": true,
-            "saturationOutcomeChecked": true
-        },
-        "dominantBottleneck": DOMINANT_BOTTLENECK,
         "queueSaturationReasons": QUEUE_SATURATION_REASONS,
         "replaySeeds": REPLAY_SEEDS,
         "replayDeterminism": {
@@ -474,10 +342,6 @@ pub fn validate_no_placeholder_report_entries() -> Vec<String> {
         ("route mix", ROUTE_MIX),
         ("latency percentiles", LATENCY_PERCENTILES),
         ("throughput", THROUGHPUT),
-        ("runtime attribution phases", RUNTIME_ATTRIBUTION_PHASES),
-        ("runtime terminal outcomes", RUNTIME_TERMINAL_OUTCOMES),
-        ("runtime scheduler pressure", RUNTIME_SCHEDULER_PRESSURE),
-        ("runtime latency buckets", RUNTIME_LATENCY_BUCKETS),
         ("queue saturation reasons", QUEUE_SATURATION_REASONS),
         ("replay seeds", REPLAY_SEEDS),
         ("long-running profiles", LONG_RUNNING_PROFILES),
@@ -487,10 +351,6 @@ pub fn validate_no_placeholder_report_entries() -> Vec<String> {
     ]
     .into_iter()
     .flat_map(|(label, entries)| validate_entries_for_placeholder_terms(label, entries))
-    .chain(validate_entries_for_placeholder_terms(
-        "dominant bottleneck",
-        &[DOMINANT_BOTTLENECK],
-    ))
     .collect()
 }
 

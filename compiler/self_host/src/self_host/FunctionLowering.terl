@@ -1,0 +1,51 @@
+/** Connects declaration identity to self-hosted type and expression parsing. */
+module self_host.FunctionLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.FunctionSyntax.{FunctionSyntax}.
+import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration}.
+
+import std.core.{Int, String}.
+import self_host.Delimited.
+import self_host.ExpressionParser.
+import self_host.ParameterParser.
+import self_host.TypeParser.
+
+
+@pure
+without_terminal_dot(source: String): String ->
+    if {
+        String.ends_with(String.trim(source), ".") ->
+            let normalized = String.trim(source);
+            String.trim(normalized.utf8_slice(0, normalized.byte_size() - 1));
+        true -> String.trim(source)
+    }.
+
+@pure
+failure(source: DeclarationSyntax, message: String): FunctionSyntax ->
+    FunctionSyntax(false, source.name, "", ParameterParser.parse_all(""), TypeParser.parse(""), ExpressionParser.parse(""), source.is_public, source.class == ConstFunctionDeclaration, source.span, message).
+
+/** Lowers one function declaration through nested type/expression parsers. */
+@pure
+pub lower(source: DeclarationSyntax): FunctionSyntax ->
+    let open = Delimited.top_level_byte(source.body, 40);
+    let colon = Delimited.top_level_byte(source.body, 58);
+    let arrow = Delimited.top_level_pair(source.body, 45, 62);
+    if {
+        source.class != FunctionDeclaration and source.class != ConstFunctionDeclaration -> failure(source, "declaration is not a function");
+        open < 0 or colon < 0 or arrow < 0 or not (open < colon and colon < arrow) ->
+            failure(source, "function signature is incomplete");
+        true ->
+            let parameters = String.trim(source.body.utf8_slice(open + 1, colon - open - 2));
+            let typed_parameters = ParameterParser.parse_all(parameters);
+            let return_text = String.trim(source.body.utf8_slice(colon + 1, arrow - colon - 1));
+            let body_text = without_terminal_dot(source.body.utf8_slice(arrow + 2, source.body.byte_size() - arrow - 2));
+            let return_type = TypeParser.parse(return_text);
+            let body = ExpressionParser.parse(body_text);
+            FunctionSyntax(ParameterParser.all_valid(typed_parameters) and return_type.valid and body.valid, source.name, parameters, typed_parameters, return_type, body, source.is_public, source.class == ConstFunctionDeclaration, source.span, if {
+                    not ParameterParser.all_valid(typed_parameters) -> ParameterParser.first_error(typed_parameters);
+                    not return_type.valid -> return_type.message;
+                    not body.valid -> body.message;
+                    true -> ""
+                })
+    }.

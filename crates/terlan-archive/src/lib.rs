@@ -64,6 +64,46 @@ pub struct TarZstdSummary {
     pub unpacked_bytes: u64,
 }
 
+/// Explicit limits for extracting an untrusted zstd-compressed tar archive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TarZstdLimits {
+    pub max_archive_bytes: u64,
+    pub max_unpacked_bytes: u64,
+    pub max_entries: u32,
+    pub max_path_bytes: usize,
+}
+
+/// Explicit limits for creating a deterministic zstd-compressed tar archive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TarZstdCreateLimits {
+    pub max_files: usize,
+    pub max_path_bytes: usize,
+    pub max_unpacked_bytes: u64,
+    pub compression_level: i32,
+}
+
+impl Default for TarZstdCreateLimits {
+    fn default() -> Self {
+        Self {
+            max_files: 4_096,
+            max_path_bytes: 240,
+            max_unpacked_bytes: 256 * 1024 * 1024,
+            compression_level: 19,
+        }
+    }
+}
+
+impl Default for TarZstdLimits {
+    fn default() -> Self {
+        Self {
+            max_archive_bytes: 64 * 1024 * 1024,
+            max_unpacked_bytes: 256 * 1024 * 1024,
+            max_entries: 4_096,
+            max_path_bytes: 240,
+        }
+    }
+}
+
 /// Creates a deterministic zstd-compressed tar from explicit relative files.
 ///
 /// Paths must be UTF-8, relative, traversal-free regular files beneath
@@ -74,10 +114,21 @@ pub fn create_tar_zstd_files(
     relative_files: &[PathBuf],
     archive: &Path,
 ) -> Result<TarZstdSummary, ArchiveError> {
-    const MAX_FILES: usize = 4_096;
-    const MAX_PATH_BYTES: usize = 240;
-    const MAX_UNPACKED_BYTES: u64 = 256 * 1024 * 1024;
+    create_tar_zstd_files_with_limits(
+        source,
+        relative_files,
+        archive,
+        TarZstdCreateLimits::default(),
+    )
+}
 
+/// Creates a deterministic zstd-compressed tar with caller-selected limits.
+pub fn create_tar_zstd_files_with_limits(
+    source: &Path,
+    relative_files: &[PathBuf],
+    archive: &Path,
+    limits: TarZstdCreateLimits,
+) -> Result<TarZstdSummary, ArchiveError> {
     let archive_name = archive.display().to_string();
     let source_name = source.display().to_string();
     if archive.exists() {
@@ -91,12 +142,12 @@ pub fn create_tar_zstd_files(
     let mut files = relative_files.to_vec();
     files.sort();
     files.dedup();
-    if files.len() != relative_files.len() || files.len() > MAX_FILES {
+    if files.len() != relative_files.len() || files.len() > limits.max_files {
         return Err(error(
             "archive.limit",
             &archive_name,
             &source_name,
-            "archive contains duplicate paths or exceeds 4096 files",
+            "archive contains duplicate paths or exceeds the configured file limit",
         ));
     }
 
@@ -116,7 +167,7 @@ pub fn create_tar_zstd_files(
         };
         if !valid_components
             || relative_text.is_empty()
-            || relative_text.len() > MAX_PATH_BYTES
+            || relative_text.len() > limits.max_path_bytes
             || relative_text.contains('\\')
         {
             return Err(error(
@@ -145,12 +196,12 @@ pub fn create_tar_zstd_files(
                 "archive unpacked byte count overflow",
             )
         })?;
-        if unpacked_bytes > MAX_UNPACKED_BYTES {
+        if unpacked_bytes > limits.max_unpacked_bytes {
             return Err(error(
                 "archive.limit",
                 &archive_name,
                 &source_name,
-                "archive exceeds 256 MiB unpacked",
+                "archive exceeds the configured unpacked-byte limit",
             ));
         }
         entries.push(ArchiveEntry {
@@ -162,7 +213,13 @@ pub fn create_tar_zstd_files(
     }
 
     create_parent(archive, &archive_name, &source_name)?;
-    let result = create_tar_zstd(archive, &entries, &archive_name, &source_name);
+    let result = create_tar_zstd(
+        archive,
+        &entries,
+        &archive_name,
+        &source_name,
+        limits.compression_level,
+    );
     if result.is_err() {
         let _ = fs::remove_file(archive);
     }
@@ -177,10 +234,11 @@ fn create_tar_zstd(
     entries: &[ArchiveEntry],
     archive: &str,
     source: &str,
+    compression_level: i32,
 ) -> Result<(), ArchiveError> {
     let output =
         fs::File::create(archive_path).map_err(|failure| io_error(archive, source, failure))?;
-    let encoder = zstd::stream::write::Encoder::new(output, 19)
+    let encoder = zstd::stream::write::Encoder::new(output, compression_level)
         .map_err(|failure| io_error(archive, source, failure))?;
     let mut builder = tar::Builder::new(encoder);
     builder.mode(tar::HeaderMode::Deterministic);
@@ -510,11 +568,19 @@ pub fn extract(archive: &str, destination: &str) -> Result<(), ArchiveError> {
 /// traversal, oversized paths, excessive entries, and archive bombs are
 /// rejected before their entry is unpacked.
 pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), ArchiveError> {
-    const MAX_ARCHIVE_BYTES: u64 = 64 * 1024 * 1024;
-    const MAX_UNPACKED_BYTES: u64 = 256 * 1024 * 1024;
-    const MAX_ENTRIES: u32 = 4_096;
-    const MAX_PATH_BYTES: usize = 240;
+    extract_tar_zstd_with_limits(archive, destination, TarZstdLimits::default())
+}
 
+/// Extracts a zstd-compressed tar using caller-selected finite limits.
+///
+/// This is intended for products whose compiler-produced artifacts are larger
+/// than the package-registry defaults while retaining the same traversal,
+/// symbolic-link, special-file, and partial-output protections.
+pub fn extract_tar_zstd_with_limits(
+    archive: &Path,
+    destination: &Path,
+    limits: TarZstdLimits,
+) -> Result<(), ArchiveError> {
     let archive_text = archive.to_string_lossy();
     let destination_text = destination.to_string_lossy();
     if destination.exists() {
@@ -528,12 +594,12 @@ pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), Archiv
     let compressed_bytes = fs::metadata(archive)
         .map_err(|failure| io_error(&archive_text, &destination_text, failure))?
         .len();
-    if compressed_bytes > MAX_ARCHIVE_BYTES {
+    if compressed_bytes > limits.max_archive_bytes {
         return Err(error(
             "archive.limit",
             &archive_text,
             &destination_text,
-            "archive exceeds 64 MiB compressed",
+            "archive exceeds the configured compressed-byte limit",
         ));
     }
     fs::create_dir_all(destination)
@@ -543,9 +609,9 @@ pub fn extract_tar_zstd(archive: &Path, destination: &Path) -> Result<(), Archiv
         destination,
         &archive_text,
         &destination_text,
-        MAX_UNPACKED_BYTES,
-        MAX_ENTRIES,
-        MAX_PATH_BYTES,
+        limits.max_unpacked_bytes,
+        limits.max_entries,
+        limits.max_path_bytes,
     );
     if result.is_err() {
         let _ = fs::remove_dir_all(destination);

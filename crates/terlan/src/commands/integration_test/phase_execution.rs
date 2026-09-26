@@ -1,6 +1,6 @@
 use super::manifest_and_arguments::{
-    HttpCheck, HttpResponse, IntegrationArgs, ServerGuard, WebSocketCheck, DEFAULT_DB_HOST,
-    DEFAULT_DB_NAME, DEFAULT_DB_PASSWORD, DEFAULT_DB_PORT, DEFAULT_DB_USER,
+    HttpCheck, HttpResponse, IntegrationArgs, ServerGuard, DEFAULT_DB_HOST, DEFAULT_DB_NAME,
+    DEFAULT_DB_PASSWORD, DEFAULT_DB_PORT, DEFAULT_DB_USER,
 };
 
 use std::collections::BTreeMap;
@@ -13,8 +13,10 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::CliState;
-use tungstenite::stream::MaybeTlsStream;
-use tungstenite::{connect, Message, WebSocket};
+
+#[path = "phase_execution_websocket.rs"]
+mod websocket_checks;
+pub(super) use websocket_checks::run_websocket_check;
 
 pub(super) fn read_env_file(path: &Path) -> Result<BTreeMap<String, String>, String> {
     let mut env = BTreeMap::new();
@@ -103,6 +105,44 @@ pub(super) fn normalize_database_host_port(
     app_env: &mut BTreeMap<String, String>,
 ) -> Result<(), String> {
     normalize_database_host_port_with(app_env, port_is_available, free_local_port)
+}
+
+pub(super) fn configure_database_url(app_env: &mut BTreeMap<String, String>) -> Result<(), String> {
+    if app_env
+        .get("TERLAN_DATABASE_URL")
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        return Ok(());
+    }
+    if app_env
+        .get("DATABASE_URL")
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        app_env.remove("TERLAN_DATABASE_URL");
+        return Ok(());
+    }
+
+    let host = env_value(app_env, "POSTGRES_HOST", DEFAULT_DB_HOST);
+    let user = env_value(app_env, "POSTGRES_USER", DEFAULT_DB_USER);
+    let password = env_value(app_env, "POSTGRES_PASSWORD", DEFAULT_DB_PASSWORD);
+    let database = env_value(app_env, "POSTGRES_DB", DEFAULT_DB_NAME);
+    let port = env_value(app_env, "POSTGRES_PORT", DEFAULT_DB_PORT)
+        .parse::<u16>()
+        .map_err(|error| format!("invalid POSTGRES_PORT for database URL: {error}"))?;
+
+    let mut url = url::Url::parse("postgresql://localhost")
+        .map_err(|error| format!("cannot initialize database URL: {error}"))?;
+    url.set_username(user)
+        .map_err(|()| "invalid POSTGRES_USER for database URL".to_string())?;
+    url.set_password(Some(password))
+        .map_err(|()| "invalid POSTGRES_PASSWORD for database URL".to_string())?;
+    url.set_host(Some(host))
+        .map_err(|error| format!("invalid POSTGRES_HOST for database URL: {error}"))?;
+    url.set_port(Some(port))
+        .map_err(|()| "invalid POSTGRES_PORT for database URL".to_string())?;
+    url.set_path(database);
+    app_env.insert("TERLAN_DATABASE_URL".to_string(), url.into());
+    Ok(())
 }
 
 pub(super) fn normalize_database_host_port_with(
@@ -298,11 +338,17 @@ pub(super) fn run_build_phase(project_dir: &Path, state: &CliState) -> Result<()
     let out_arg = out_dir.to_string_lossy().to_string();
     let terlc = current_terlc()?;
 
-    println!("integration: building Vm target");
+    println!("integration: building VM target");
     run_command(
         project_dir,
         &terlc,
-        &["build", "--target", "erlang", "--out-dir", out_arg.as_str()],
+        &[
+            "build",
+            "--target",
+            "terlan-vm",
+            "--out-dir",
+            out_arg.as_str(),
+        ],
     )?;
     println!("integration: building browser target");
     run_command(
@@ -366,6 +412,8 @@ pub(super) fn spawn_server(
         ])
         .current_dir(project_dir)
         .envs(app_env)
+        .env("TERLAN_SERVE_RUNTIME_ONLY", "1")
+        .env("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES", "1")
         .spawn()
         .map_err(|error| format!("cannot start integration server: {error}"))?;
     Ok(ServerGuard { child })
@@ -425,124 +473,6 @@ pub(super) fn run_http_check(host: &str, port: u16, check: &HttpCheck) -> Result
         check.method, check.path, check.status
     );
     Ok(())
-}
-
-pub(super) fn run_websocket_check(
-    host: &str,
-    port: u16,
-    check: &WebSocketCheck,
-) -> Result<(), String> {
-    let first_url = websocket_url(host, port, &check.first_path);
-    let second_url = websocket_url(host, port, &check.second_path);
-    let (mut first_socket, _) = connect(first_url.as_str())
-        .map_err(|error| format!("cannot connect WebSocket {first_url}: {error}"))?;
-    set_websocket_timeouts(&mut first_socket)?;
-    let first_initial = next_websocket_text(&mut first_socket)?;
-    require_websocket_contains(
-        "first initial",
-        &first_url,
-        &first_initial,
-        &check.first_initial_contains,
-    )?;
-
-    let (mut second_socket, _) = connect(second_url.as_str())
-        .map_err(|error| format!("cannot connect WebSocket {second_url}: {error}"))?;
-    set_websocket_timeouts(&mut second_socket)?;
-    let second_match = next_websocket_text(&mut second_socket)?;
-    let first_match = next_websocket_text(&mut first_socket)?;
-    require_websocket_contains(
-        "first match",
-        &first_url,
-        &first_match,
-        &check.first_match_contains,
-    )?;
-    require_websocket_contains(
-        "second match",
-        &second_url,
-        &second_match,
-        &check.second_match_contains,
-    )?;
-    if let Some(move_check) = &check.move_check {
-        let message = format!(
-            r#"{{"type":"move","row":{},"column":{}}}"#,
-            move_check.row, move_check.column
-        );
-        first_socket
-            .send(Message::Text(message.into()))
-            .map_err(|error| format!("cannot send WebSocket move to {first_url}: {error}"))?;
-        let first_update = next_websocket_text(&mut first_socket)?;
-        let second_update = next_websocket_text(&mut second_socket)?;
-        require_websocket_contains(
-            "first update",
-            &first_url,
-            &first_update,
-            &move_check.first_update_contains,
-        )?;
-        require_websocket_contains(
-            "second update",
-            &second_url,
-            &second_update,
-            &move_check.second_update_contains,
-        )?;
-    }
-    let _ = first_socket.close(None);
-    let _ = second_socket.close(None);
-
-    if check.move_check.is_some() {
-        println!(
-            "integration: WS PAIR_MOVE {} + {} -> matched and moved",
-            check.first_path, check.second_path
-        );
-    } else {
-        println!(
-            "integration: WS PAIR {} + {} -> matched",
-            check.first_path, check.second_path
-        );
-    }
-    Ok(())
-}
-
-pub(super) fn websocket_url(host: &str, port: u16, path: &str) -> String {
-    format!("ws://{host}:{port}{path}")
-}
-
-pub(super) type BlockingWebSocket = WebSocket<MaybeTlsStream<StdTcpStream>>;
-
-pub(super) fn set_websocket_timeouts(socket: &mut BlockingWebSocket) -> Result<(), String> {
-    if let MaybeTlsStream::Plain(stream) = socket.get_mut() {
-        stream
-            .set_read_timeout(Some(Duration::from_secs(5)))
-            .map_err(|error| format!("cannot set WebSocket read timeout: {error}"))?;
-        stream
-            .set_write_timeout(Some(Duration::from_secs(5)))
-            .map_err(|error| format!("cannot set WebSocket write timeout: {error}"))?;
-    }
-    Ok(())
-}
-
-pub(super) fn next_websocket_text(socket: &mut BlockingWebSocket) -> Result<String, String> {
-    match socket.read() {
-        Ok(Message::Text(text)) => Ok(text.to_string()),
-        Ok(Message::Binary(bytes)) => String::from_utf8(bytes.to_vec())
-            .map_err(|error| format!("WebSocket binary message was not UTF-8: {error}")),
-        Ok(Message::Close(_)) => Err("WebSocket closed before expected message".to_string()),
-        Ok(other) => Err(format!("unexpected WebSocket message: {other:?}")),
-        Err(error) => Err(format!("cannot read WebSocket message: {error}")),
-    }
-}
-
-pub(super) fn require_websocket_contains(
-    label: &str,
-    url: &str,
-    actual: &str,
-    expected: &str,
-) -> Result<(), String> {
-    if actual.contains(expected) {
-        return Ok(());
-    }
-    Err(format!(
-        "WebSocket {label} message from {url} expected to contain `{expected}`, got `{actual}`"
-    ))
 }
 
 pub(super) fn http_request(
@@ -703,6 +633,7 @@ websocket_checks = ["PAIR:/ws?player=Ada&board=%5B%5B%22X%22%5D%5D:lobby_waiting
         assert_eq!(check.first_match_contains, "match_found");
         assert_eq!(check.second_match_contains, "match_found");
         assert_eq!(check.move_check, None);
+        assert_eq!(check.restore_check, None);
     }
 
     #[test]
@@ -722,6 +653,21 @@ websocket_checks = ["PAIR:/ws?player=Ada&board=%5B%5B%22X%22%5D%5D:lobby_waiting
         assert_eq!(move_check.column, 0);
         assert_eq!(move_check.first_update_contains, "opponent_board");
         assert_eq!(move_check.second_update_contains, "+");
+        assert_eq!(check.restore_check, None);
+    }
+
+    #[test]
+    fn parses_websocket_pair_restore_check() {
+        let check = parse_websocket_check(
+            "PAIR_RESTORE:/ws?player=Ada:lobby_waiting:/ws?player=Grace:match_found:match_found:0:0:room_update:+:/ws?room_id=room-1&player_id=player-2:room_joined:+",
+        )
+        .expect("websocket restore check");
+
+        assert!(check.move_check.is_some());
+        let restore = check.restore_check.expect("restore check");
+        assert_eq!(restore.path, "/ws?room_id=room-1&player_id=player-2");
+        assert_eq!(restore.entry_contains, "room_joined");
+        assert_eq!(restore.view_contains, "+");
     }
 
     #[test]
@@ -799,6 +745,41 @@ traits = ["websocket-checks"]
         normalize_database_host_port_with(&mut env, |_| false, || Ok(replacement))
             .expect("normalize");
         assert_eq!(env.get("POSTGRES_PORT"), Some(&replacement.to_string()));
+    }
+
+    #[test]
+    fn configure_database_url_uses_normalized_postgres_environment() {
+        let mut env = BTreeMap::from([
+            ("POSTGRES_HOST".to_string(), "127.0.0.1".to_string()),
+            ("POSTGRES_PORT".to_string(), "55433".to_string()),
+            ("POSTGRES_USER".to_string(), "test user".to_string()),
+            ("POSTGRES_PASSWORD".to_string(), "p@ss/word".to_string()),
+            ("POSTGRES_DB".to_string(), "test db".to_string()),
+        ]);
+
+        configure_database_url(&mut env).expect("configure database URL");
+
+        assert_eq!(
+            env.get("TERLAN_DATABASE_URL").map(String::as_str),
+            Some("postgresql://test%20user:p%40ss%2Fword@127.0.0.1:55433/test%20db")
+        );
+    }
+
+    #[test]
+    fn configure_database_url_preserves_explicit_database_url() {
+        let database_url = "postgresql://external.example/demo";
+        let mut env = BTreeMap::from([
+            ("TERLAN_DATABASE_URL".to_string(), String::new()),
+            ("DATABASE_URL".to_string(), database_url.to_string()),
+        ]);
+
+        configure_database_url(&mut env).expect("preserve database URL");
+
+        assert!(!env.contains_key("TERLAN_DATABASE_URL"));
+        assert_eq!(
+            env.get("DATABASE_URL").map(String::as_str),
+            Some(database_url)
+        );
     }
 
     #[test]

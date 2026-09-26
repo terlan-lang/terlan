@@ -36,9 +36,7 @@ pub use super::editor_completion_signature_report::{
 pub use super::editor_definition_navigation_report::{
     run_editor_definition_navigation_report, EditorDefinitionNavigationReportSummary,
 };
-pub use super::erlang_backend_classification::{
-    run_erlang_backend_classification, ErlangBackendClassificationSummary,
-};
+pub use super::erlang_backend_classification::run_erlang_backend_classification;
 pub use super::executable_docs_vm::{run_executable_docs_vm, ExecutableDocsVmSummary};
 pub use super::function_head_migration_diagnostic_policy::{
     run_function_head_migration_diagnostic_policy, FunctionHeadMigrationDiagnosticPolicySummary,
@@ -100,7 +98,6 @@ pub use super::operator_full_coverage::{run_operator_coverage_100, OperatorCover
 pub use super::otp_reference_inventory::{
     run_otp_reference_inventory, OtpReferenceInventorySummary,
 };
-pub use super::otp_runtime_exit::{run_otp_runtime_exit, OtpRuntimeExitSummary};
 pub use super::otp_test_pipeline_inventory::{
     run_otp_test_pipeline_inventory, OtpTestPipelineInventorySummary,
 };

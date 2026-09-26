@@ -1,0 +1,33 @@
+/** Positive and negative declaration-lowering contracts. */
+module self_host.DeclarationLoweringTest.
+
+import self_host.Syntax.{FunctionDeclaration, TypeDeclaration}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+
+@pure
+positive_lowering(): Bool ->
+    let source = "module demo.Typed.\npub type State = Ready | Failed(String).\npub run(value: String): String -> value.\n";
+    let lowered = DeclarationLowering.lower(Parser.parse_surface(source));
+    lowered.valid
+        and lowered.name == "demo.Typed"
+        and case lowered.declarations {
+            [state, run] ->
+                state.class == TypeDeclaration
+                    and state.name == "State"
+                    and run.class == FunctionDeclaration
+                    and run.name == "run"
+                    and String.contains(run.header, "->");
+            _ -> false
+        }.
+
+@pure
+negative_lowering_preserves_errors(): Bool ->
+    let lowered = DeclarationLowering.lower(Parser.parse_surface("pub run(): Int -> 1.\n"));
+    not lowered.valid and List.length(lowered.errors) > 0.
+
+pub self_test(): Bool ->
+    positive_lowering() and negative_lowering_preserves_errors().

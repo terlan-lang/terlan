@@ -1,0 +1,27 @@
+module self_host.EvidenceTest.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import self_host.Evidence.
+import std.core.String.
+
+@test
+pub evidence_accepts_valid_source_with_digest_and_interface(): Bool ->
+    case Evidence.render("sample.terl", "module sample.App.\npub run(): Int -> 1.\n") {
+        Ok(rendered) ->
+            String.contains(rendered, "terlan.self-host.source-evidence.v1")
+                and String.contains(rendered, "source_sha256")
+                and String.contains(rendered, "\"accepted\": true")
+                and String.contains(rendered, "sample.App");
+        Err(_reason) -> false
+    }.
+
+@test
+pub evidence_rejects_invalid_source_with_typed_diagnostic(): Bool ->
+    case Evidence.render("bad.terl", "pub run(): String -> \"unterminated") {
+        Ok(rendered) ->
+            String.contains(rendered, "\"accepted\": false")
+                and String.contains(rendered, "unterminated_string")
+                and String.contains(rendered, "missing_module");
+        Err(_reason) -> false
+    }.

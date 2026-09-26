@@ -312,12 +312,27 @@ fn lower_case(
     let scrutinee_value = NativeExpr::Param(scrutinee_slot);
 
     let mut native_clauses = Vec::with_capacity(clauses.len());
+    let mut covered_empty_list = false;
+    let mut covered_nonempty_list = false;
     for clause in clauses {
+        let residual_core = if covered_empty_list
+            && covered_nonempty_list
+            && matches!(clause.pattern, CorePattern::Var(_) | CorePattern::Wildcard)
+        {
+            scrutinee_core.as_ref().and_then(non_list_union_residual)
+        } else {
+            None
+        };
+        let clause_core = residual_core.as_ref().or(scrutinee_core.as_ref());
+        let clause_type = residual_core
+            .as_ref()
+            .and_then(|ty| crate::compiler::native_ir::native_type(Some(ty), &ty.contract_text()))
+            .unwrap_or(scrutinee_type);
         let plan = pattern_plan(
             &clause.pattern,
             scrutinee_value.clone(),
-            scrutinee_type,
-            scrutinee_core.as_ref(),
+            clause_type,
+            clause_core,
             constructors,
             0,
         )?;
@@ -360,6 +375,11 @@ fn lower_case(
             environment,
         )?;
         native_clauses.push((condition, bind_values(&plan.bindings, selected)));
+        if clause.guard.is_none() {
+            covered_empty_list |=
+                matches!(&clause.pattern, CorePattern::List(items) if items.is_empty());
+            covered_nonempty_list |= matches!(clause.pattern, CorePattern::ListCons { .. });
+        }
     }
     Ok(NativeExpr::Let {
         bindings: vec![scrutinee],
@@ -367,6 +387,30 @@ fn lower_case(
             clauses: native_clauses,
         }),
     })
+}
+
+/// Returns the non-list members left after exhaustive list clauses.
+fn non_list_union_residual(core_type: &CoreType) -> Option<CoreType> {
+    let CoreType::Union(variants) = core_type else {
+        return None;
+    };
+    let remaining = variants
+        .iter()
+        .filter(|variant| {
+            !matches!(variant, CoreType::List(_))
+                && !matches!(
+                    variant,
+                    CoreType::Apply { constructor, args }
+                        if constructor.rsplit('.').next() == Some("List") && args.len() == 1
+                )
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    match remaining.as_slice() {
+        [only] => Some(only.clone()),
+        [] => None,
+        _ => Some(CoreType::Union(remaining)),
+    }
 }
 
 fn tuple_scrutinee<'a>(

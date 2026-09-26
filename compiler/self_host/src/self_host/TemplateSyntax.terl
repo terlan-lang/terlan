@@ -1,0 +1,32 @@
+/** Typed syntax for compile-time template declarations. */
+module self_host.TemplateSyntax.
+
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct TemplateSyntax {
+    valid: Bool,
+    name: String,
+    source_path: String,
+    properties: List[StructFieldSyntax],
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor TemplateSyntax {
+    (valid: Bool, name: String, source_path: String, properties: List[StructFieldSyntax], span: SyntaxSpan, message: String): TemplateSyntax ->
+        TemplateSyntax {
+            valid: valid,
+            name: name,
+            source_path: source_path,
+            properties: properties,
+            span: span,
+            message: message,
+        }
+}.
+
+

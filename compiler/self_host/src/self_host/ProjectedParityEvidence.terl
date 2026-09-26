@@ -1,0 +1,88 @@
+/**
+ * Compact parser-parity artifact shared with the canonical Rust oracle.
+ */
+module self_host.ProjectedParityEvidence.
+
+
+import std.core.Result.{Result}.
+import std.data.Json.
+import std.collections.List.
+import type std.data.Json.{Json, JsonError}.
+import self_host.BackendAbi.
+import self_host.BackendSyntax.
+
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
+
+surface_class_name(value: DeclarationClass): String ->
+    case value {
+        ImportDeclaration -> "ImportDecl";
+        ExportDeclaration -> "ExportDecl";
+        ConstantDeclaration -> "ConstantDecl";
+        ConstFunctionDeclaration -> "ConstFunctionDecl";
+        OpaqueTypeDeclaration -> "OpaqueTypeDecl";
+        TypeDeclaration -> "TypeDecl";
+        StructDeclaration -> "StructDecl";
+        ConstructorDeclaration -> "ConstructorDecl";
+        FunctionDeclaration -> "FunctionDecl";
+        MethodDeclaration -> "MethodDecl";
+        TraitDeclaration -> "TraitDecl";
+        TraitImplDeclaration -> "TraitImplDecl";
+        AnnotationSchemaDeclaration -> "AnnotationSchemaDecl";
+        TemplateDeclaration -> "TemplateDecl";
+        ShapeDeclaration -> "ShapeDecl";
+        ConfigDeclaration -> "ConfigDecl";
+        NativeDeclaration -> "NativeDecl";
+        _ -> "UnknownDecl"
+    }.
+
+declaration(value: BackendDeclaration): Json ->
+    Json.object()
+        .put("class", Json.string(surface_class_name(value.class)))
+        .put("symbol_name", Json.string(value.symbol_name))
+        .put("is_public", Json.bool(value.is_public)).
+
+declarations_at(values: List[BackendDeclaration], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> declarations_at(rest, output.push(declaration(value)))
+    }.
+
+pub document(value: BackendModule): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self_host.surface.v1"))
+        .put("valid", Json.bool(value.valid))
+        .put("module_name", Json.string(value.module_name))
+        .put("declarations", declarations_at(value.declarations, Json.array())).
+
+pub encode(value: BackendModule): Result[String, JsonError] ->
+    Json.stringify_pretty(document(value)).
+
+surface_declaration(value: DeclarationSyntax): Json ->
+    Json.object()
+        .put("class", Json.string(surface_class_name(value.class)))
+        .put("symbol_name", Json.string(value.name))
+        .put("is_public", Json.bool(value.is_public)).
+
+surface_declarations_at(values: List[DeclarationSyntax], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] -> surface_declarations_at(rest, output.push(surface_declaration(value)))
+    }.
+
+pub surface_document_with_validity(value: ModuleSyntax, valid: Bool): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self_host.surface.v1"))
+        .put("valid", Json.bool(valid))
+        .put("module_name", Json.string(value.name))
+        .put("declarations", surface_declarations_at(value.declarations, Json.array())).
+
+pub surface_document(value: ModuleSyntax): Json ->
+    surface_document_with_validity(value, value.valid).
+
+pub encode_surface(value: ModuleSyntax): Result[String, JsonError] ->
+    Json.stringify_pretty(surface_document(value)).
+
+pub encode_surface_with_validity(value: ModuleSyntax, valid: Bool): Result[String, JsonError] ->
+    Json.stringify_pretty(surface_document_with_validity(value, valid)).

@@ -5,6 +5,7 @@ fn prepare_fake_build_output(root: &Path) {
     fs::create_dir_all(root.join("vm")).expect("create fake vm output");
     fs::create_dir_all(root.join("web/.terlan/serve-aot/runtime"))
         .expect("create fake service web output");
+    fs::create_dir_all(root.join("web/build/artifacts")).expect("create volatile serve artifacts");
     fs::write(root.join("bin/terlan-registry"), b"launcher\n").expect("write launcher");
     fs::write(root.join("bin/terlan-vm"), b"runtime\n").expect("write runtime");
     fs::write(root.join("bin/terlan-native-worker"), b"worker\n").expect("write worker");
@@ -21,6 +22,11 @@ fn prepare_fake_build_output(root: &Path) {
         b"{\"generation\":\"one\"}\n",
     )
     .expect("write service runtime metadata");
+    fs::write(
+        root.join("web/build/artifacts/serve-effective-config.json"),
+        b"{\"runtime\":\"volatile\"}\n",
+    )
+    .expect("write volatile serve artifact");
     fs::write(
         root.join(BUILD_PACKAGE_METADATA_FILE),
         r#"{
@@ -82,9 +88,13 @@ fn release_bundle_is_complete_portable_and_deterministic() {
         "artifact/vm/terlan_registry_Main.tvm",
         "artifact/web/manifest.json",
         "artifact/web/.terlan/serve-aot/runtime/active.json",
+        "priv/migrations/001_packages.sql",
     ] {
         assert!(first.join(required).is_file(), "missing {required}");
     }
+    assert!(!first
+        .join("artifact/web/build/artifacts/serve-effective-config.json")
+        .exists());
 
     let first_files =
         release_bundle::collect_file_identities(&first, None).expect("fingerprint first bundle");
@@ -98,4 +108,6 @@ fn release_bundle_is_complete_portable_and_deterministic() {
     let manifest_text = fs::read_to_string(first.join("manifest.json")).expect("read manifest");
     assert!(!manifest_text.contains(&root.display().to_string()));
     assert!(!manifest_text.contains("postgres://"));
+    let checksums = fs::read_to_string(first.join("checksums.json")).expect("read checksums");
+    assert!(checksums.contains("priv/migrations/001_packages.sql"));
 }

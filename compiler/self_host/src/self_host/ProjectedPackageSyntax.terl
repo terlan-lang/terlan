@@ -1,0 +1,37 @@
+/** Multi-module ABI artifacts emitted by the self-host package compiler. */
+module self_host.ProjectedPackageSyntax.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+pub struct ProjectedPackageArtifact {
+    module_name: String,
+    json: Option[String],
+    diagnostics: List[String],
+}.
+
+pub constructor ProjectedPackageArtifact {
+    (module_name: String, json: Option[String], diagnostics: List[String]): ProjectedPackageArtifact ->
+        ProjectedPackageArtifact {
+            module_name: module_name,
+            json: json,
+            diagnostics: diagnostics,
+        }
+}.
+
+
+pub struct ProjectedPackageCompilation {
+    valid: Bool,
+    artifacts: List[self_host.ProjectedPackageSyntax.ProjectedPackageArtifact],
+    diagnostics: List[String],
+}.
+
+pub constructor ProjectedPackageCompilation {
+    (valid: Bool, artifacts: List[self_host.ProjectedPackageSyntax.ProjectedPackageArtifact], diagnostics: List[String]): ProjectedPackageCompilation ->
+        ProjectedPackageCompilation {
+            valid: valid,
+            artifacts: artifacts,
+            diagnostics: diagnostics,
+        }
+}.
+

@@ -59,7 +59,21 @@ pub(in crate::commands::build) fn run_terlan_vm_source_roots_build(
         Ok(prepared) => prepared,
         Err(status) => return status,
     };
-    match vm_artifact::build_vm_application_artifacts(&files, &directory_state, policy) {
+    let entry_module = source_roots
+        .last()
+        .and_then(|root| root.package_path.as_ref())
+        .map(|package| format!("{}.Main", package.join(".")));
+    let result = if let Some(entry_module) = entry_module {
+        vm_artifact::build_vm_application_artifacts_with_entry(
+            &files,
+            &directory_state,
+            policy,
+            &entry_module,
+        )
+    } else {
+        vm_artifact::build_vm_application_artifacts(&files, &directory_state, policy)
+    };
+    match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => error.into_exit_code(),
     }
@@ -412,9 +426,9 @@ pub(in crate::commands::build) fn write_vm_service_launcher(
         })?;
     }
     let contents = if cfg!(windows) {
-        "@echo off\r\nset SCRIPT_DIR=%~dp0\r\nif not defined TERLAN_SERVE_PORT if defined PORT set TERLAN_SERVE_PORT=%PORT%\r\nif not defined TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES set TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1\r\n\"%SCRIPT_DIR%terlan-serve-runtime.exe\" \"%SCRIPT_DIR%..\\web\" %*\r\n".to_string()
+        "@echo off\r\nset SCRIPT_DIR=%~dp0\r\nif not defined TERLAN_SERVE_PORT if defined PORT set TERLAN_SERVE_PORT=%PORT%\r\nif not defined TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES set TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1\r\nset TERLAN_SERVE_MANIFEST_ONLY=1\r\n\"%SCRIPT_DIR%terlan-serve-runtime.exe\" \"%SCRIPT_DIR%..\\web\" %*\r\n".to_string()
     } else {
-        "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -z \"${TERLAN_SERVE_PORT:-}\" ] && [ -n \"${PORT:-}\" ]; then\n  export TERLAN_SERVE_PORT=$PORT\nfi\nexport TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}\nexec \"$SCRIPT_DIR/terlan-serve-runtime\" \"$SCRIPT_DIR/../web\" \"$@\"\n".to_string()
+        "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -z \"${TERLAN_SERVE_PORT:-}\" ] && [ -n \"${PORT:-}\" ]; then\n  export TERLAN_SERVE_PORT=$PORT\nfi\nexport TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}\nexport TERLAN_SERVE_MANIFEST_ONLY=1\nexec \"$SCRIPT_DIR/terlan-serve-runtime\" \"$SCRIPT_DIR/../web\" \"$@\"\n".to_string()
     };
     write_build_file(executable_path, contents.as_bytes(), incremental)?;
     set_launcher_executable(executable_path)

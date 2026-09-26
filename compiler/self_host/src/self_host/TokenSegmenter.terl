@@ -1,0 +1,95 @@
+/** Splits module declarations from contextual canonical token streams. */
+module self_host.TokenSegmenter.
+
+import self_host.CanonicalToken.{CanonicalToken, CommentToken, DocCommentToken, EndToken, ModuleDocCommentToken, TokenCategory}.
+import self_host.TokenSegment.{TokenSegment, TokenSegments}.
+
+import std.collections.List.
+import std.core.Int.
+
+
+struct SegmentState {
+    depth: Int,
+    start_byte: Int,
+    has_tokens: Bool,
+    has_significant: Bool,
+    current: List[CanonicalToken],
+    output: List[TokenSegment],
+}.
+
+constructor SegmentState {
+    (depth: Int, start_byte: Int, has_tokens: Bool, has_significant: Bool, current: List[CanonicalToken], output: List[TokenSegment]): SegmentState ->
+        SegmentState {
+            depth: depth,
+            start_byte: start_byte,
+            has_tokens: has_tokens,
+            has_significant: has_significant,
+            current: current,
+            output: output,
+        }
+}.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+is_trivia(category: TokenCategory): Bool ->
+    category == CommentToken or category == DocCommentToken or category == ModuleDocCommentToken.
+
+@pure
+is_open(terminal: String): Bool ->
+    terminal == "("
+        or terminal == "lambda-("
+        or terminal == "function-clause-("
+        or terminal == "["
+        or terminal == "generic-call-["
+        or terminal == "binary-layout-["
+        or terminal == "cast-type-["
+        or terminal == "{"
+        or terminal == "nominal-keyed-{".
+
+@pure
+is_close(terminal: String): Bool -> terminal == ")" or terminal == "]" or terminal == "}".
+
+@pure
+depth_after(depth: Int, token: CanonicalToken): Int ->
+    if {
+        is_open(token.terminal) -> depth + 1;
+        is_close(token.terminal) and depth > 0 -> depth - 1;
+        true -> depth
+    }.
+
+@pure
+initial(): SegmentState ->
+    SegmentState(depth = 0, start_byte = 0, has_tokens = false, has_significant = false, current = List.new[CanonicalToken](), output = List.new[TokenSegment]()).
+
+@pure
+append_token(state: SegmentState, token: CanonicalToken): SegmentState ->
+    SegmentState(depth = depth_after(state.depth, token), start_byte = if { state.has_tokens -> state.start_byte; true -> token.start_byte }, has_tokens = true, has_significant = state.has_significant or not is_trivia(token.category), current = [token | state.current], output = state.output).
+
+@pure
+finish(state: SegmentState, end_byte: Int): SegmentState ->
+    let segment = TokenSegment(state.start_byte, end_byte, reverse_at(state.current, List.new[CanonicalToken]()));
+    SegmentState(depth = 0, start_byte = end_byte, has_tokens = false, has_significant = false, current = List.new[CanonicalToken](), output = [segment | state.output]).
+
+@pure
+split_at(tokens: List[CanonicalToken], state: SegmentState): TokenSegments ->
+    case tokens {
+        [] -> TokenSegments(not state.has_significant, reverse_at(state.output, List.new[TokenSegment]()), if { state.has_significant -> state.start_byte; true -> 0 });
+        [token | rest] -> if {
+            token.category == EndToken -> split_at(rest, state);
+            true ->
+                let appended = append_token(state, token);
+                let next = if {
+                    token.terminal == "." and state.depth == 0 -> finish(appended, token.end_byte);
+                    true -> appended
+                };
+                split_at(rest, next)
+        }
+    }.
+
+/** Splits complete module source into module-header and declaration segments. */
+@pure
+pub split(tokens: List[CanonicalToken]): TokenSegments ->
+    split_at(tokens, initial()).

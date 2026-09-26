@@ -153,6 +153,12 @@ pub(in crate::commands::serve) struct WebPackageStaticResponse {
 ///   without dispatching through dynamic handler code.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub(in crate::commands::serve) struct WebPackageFileResponse {
+    #[serde(default)]
+    pub(in crate::commands::serve) module: String,
+    #[serde(default)]
+    pub(in crate::commands::serve) function: String,
+    #[serde(default)]
+    pub(in crate::commands::serve) arity: usize,
     pub(in crate::commands::serve) method: String,
     pub(in crate::commands::serve) route: String,
     pub(in crate::commands::serve) path: String,

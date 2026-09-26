@@ -1,0 +1,25 @@
+/** Unified semantic result for one projected frontend module. */
+module self_host.ProjectedSemanticSyntax.
+
+import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypecheck}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeResolution}.
+
+
+pub struct ProjectedSemanticModule {
+    valid: Bool,
+    frontend: ProjectedFrontendModule,
+    type_resolution: ProjectedTypeResolution,
+    expression_typecheck: ProjectedExpressionTypecheck,
+}.
+
+pub constructor ProjectedSemanticModule {
+    (valid: Bool, frontend: ProjectedFrontendModule, type_resolution: ProjectedTypeResolution, expression_typecheck: ProjectedExpressionTypecheck): ProjectedSemanticModule ->
+        ProjectedSemanticModule {
+            valid: valid,
+            frontend: frontend,
+            type_resolution: type_resolution,
+            expression_typecheck: expression_typecheck,
+        }
+}.
+

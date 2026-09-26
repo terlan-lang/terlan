@@ -1,0 +1,46 @@
+/** Stable preorder evidence for concrete parser-tree parity. */
+module self_host.ConcreteSyntaxEvidence.
+
+import self_host.ConcreteSyntaxTree.{ConcreteSyntaxDocument, ConcreteSyntaxNode}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+@pure
+row(value: ConcreteSyntaxNode, depth: Int): String ->
+    String.concat([
+        Int.to_string(depth),
+        "\t",
+        value.terminal,
+        "\t",
+        Int.to_string(value.start_byte),
+        "\t",
+        Int.to_string(value.end_byte),
+        "\t",
+        Int.to_string(String.byte_size(value.text)),
+        "\n",
+    ]).
+
+@pure
+rows(values: List[ConcreteSyntaxNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            row(value, depth),
+            rows(value.children, depth + 1),
+            rows(rest, depth),
+        ])
+    }.
+
+@pure
+pub document(value: ConcreteSyntaxDocument): String ->
+    String.concat([
+        "schema terlan.self-host.concrete-syntax/v1\n",
+        "valid\t",
+        if { value.valid -> "true"; true -> "false" },
+        "\nmessage_bytes\t",
+        Int.to_string(String.byte_size(value.message)),
+        "\ndepth\tterminal\tstart\tend\tlexeme_bytes\n",
+        rows(value.nodes, 0),
+    ]).

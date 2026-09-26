@@ -1,0 +1,361 @@
+/**
+ * Bounded, persistent module-interface catalog for self-hosted compilation.
+ *
+ * Each source is compiled independently to a small interface artifact. Backend
+ * units then load those artifacts instead of retaining the complete source and
+ * syntax closure in one actor heap.
+ */
+module self_host.ProjectedInterfaceCatalog.
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.io.File.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.Syntax.{
+    AnnotationSchemaDeclaration,
+    ConfigDeclaration,
+    ConstantDeclaration,
+    ConstFunctionDeclaration,
+    ConstructorDeclaration,
+    DeclarationClass,
+    ExportDeclaration,
+    FunctionDeclaration,
+    ImportDeclaration,
+    MethodDeclaration,
+    NativeDeclaration,
+    OpaqueTypeDeclaration,
+    ShapeDeclaration,
+    StructDeclaration,
+    SyntaxSpan,
+    TemplateDeclaration,
+    TraitDeclaration,
+    TraitImplDeclaration,
+    TypeDeclaration,
+    UnknownDeclaration
+}.
+
+import self_host.CanonicalLexer.
+import self_host.Compiler.
+import self_host.CompilerPipeline.
+import self_host.ProjectedBackendCompile.
+import self_host.ProjectedFrontend.
+import self_host.SemanticSyntax.{SemanticDiagnostic}.
+
+
+pub struct InterfaceCatalog {
+    valid: Bool,
+    interfaces: List[ModuleInterface],
+    message: String,
+}.
+
+pub constructor InterfaceCatalog {
+    (valid: Bool, interfaces: List[ModuleInterface], message: String): InterfaceCatalog ->
+        InterfaceCatalog {
+            valid: valid,
+            interfaces: interfaces,
+            message: message,
+        }
+}.
+
+
+struct InterfaceParse {
+    valid: Bool,
+    interface: ModuleInterface,
+    message: String,
+}.
+
+constructor InterfaceParse {
+    (valid: Bool, interface: ModuleInterface, message: String): InterfaceParse ->
+        InterfaceParse {
+            valid: valid,
+            interface: interface,
+            message: message,
+        }
+}.
+
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+class_name(value: DeclarationClass): String ->
+    case value {
+        ImportDeclaration -> "import";
+        ExportDeclaration -> "export";
+        ConstantDeclaration -> "constant";
+        ConstFunctionDeclaration -> "const-function";
+        TypeDeclaration -> "type";
+        OpaqueTypeDeclaration -> "opaque-type";
+        StructDeclaration -> "struct";
+        ConstructorDeclaration -> "constructor";
+        FunctionDeclaration -> "function";
+        MethodDeclaration -> "method";
+        TraitDeclaration -> "trait";
+        TraitImplDeclaration -> "trait-impl";
+        AnnotationSchemaDeclaration -> "annotation-schema";
+        TemplateDeclaration -> "template";
+        ShapeDeclaration -> "shape";
+        ConfigDeclaration -> "config";
+        NativeDeclaration -> "native";
+        UnknownDeclaration -> "unknown"
+    }.
+
+@pure
+known_class(value: String): Bool ->
+    value == "import"
+        or value == "export"
+        or value == "constant"
+        or value == "const-function"
+        or value == "type"
+        or value == "opaque-type"
+        or value == "struct"
+        or value == "constructor"
+        or value == "function"
+        or value == "method"
+        or value == "trait"
+        or value == "trait-impl"
+        or value == "annotation-schema"
+        or value == "template"
+        or value == "shape"
+        or value == "config"
+        or value == "native"
+        or value == "unknown".
+
+@pure
+class_from_name(value: String): DeclarationClass ->
+    case value {
+        "import" -> ImportDeclaration;
+        "export" -> ExportDeclaration;
+        "constant" -> ConstantDeclaration;
+        "const-function" -> ConstFunctionDeclaration;
+        "type" -> TypeDeclaration;
+        "opaque-type" -> OpaqueTypeDeclaration;
+        "struct" -> StructDeclaration;
+        "constructor" -> ConstructorDeclaration;
+        "function" -> FunctionDeclaration;
+        "method" -> MethodDeclaration;
+        "trait" -> TraitDeclaration;
+        "trait-impl" -> TraitImplDeclaration;
+        "annotation-schema" -> AnnotationSchemaDeclaration;
+        "template" -> TemplateDeclaration;
+        "shape" -> ShapeDeclaration;
+        "config" -> ConfigDeclaration;
+        "native" -> NativeDeclaration;
+        _ -> UnknownDeclaration
+    }.
+
+@pure
+render_symbols(values: List[ExportedSymbol]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            "symbol\t",
+            value.name,
+            "\t",
+            Int.to_string(value.arity),
+            "\t",
+            class_name(value.class),
+            "\t",
+            Int.to_string(value.span.start_byte),
+            "\t",
+            Int.to_string(value.span.end_byte),
+            "\n",
+            render_symbols(rest),
+        ])
+    }.
+
+/** Serializes every interface field consumed by import and callable analysis. */
+@pure
+pub render(value: ModuleInterface): String ->
+    String.concat([
+        "interface\tterlan.self-host.interface-catalog/v1\t",
+        value.module_name,
+        "\n",
+        render_symbols(value.symbols),
+    ]).
+
+@pure
+parse_symbols(
+    lines: List[String],
+    module_name: String,
+    symbols: List[ExportedSymbol],
+): InterfaceParse ->
+    case lines {
+        [] -> InterfaceParse(
+            module_name != "",
+            ModuleInterface(
+                "terlan.self-host.interface/v1",
+                module_name,
+                reverse(symbols),
+            ),
+            if { module_name == "" -> "missing interface header"; true -> "" },
+        );
+        [line | rest] where String.trim(line) == "" ->
+            parse_symbols(rest, module_name, symbols);
+        [line | rest] -> case String.split(line, "\t") {
+            ["interface", "terlan.self-host.interface-catalog/v1", name]
+                where module_name == "" and name != "" ->
+                    parse_symbols(rest, name, symbols);
+            ["symbol", name, arity_source, class_source, start_source, end_source]
+                where module_name != "" and name != "" and known_class(class_source) ->
+                    case Int.from_string(arity_source) {
+                        None -> InterfaceParse(false, ModuleInterface("", "", List.new[ExportedSymbol]()), "invalid interface symbol arity");
+                        Some(arity) -> case Int.from_string(start_source) {
+                            None -> InterfaceParse(false, ModuleInterface("", "", List.new[ExportedSymbol]()), "invalid interface symbol start");
+                            Some(start_byte) -> case Int.from_string(end_source) {
+                                None -> InterfaceParse(false, ModuleInterface("", "", List.new[ExportedSymbol]()), "invalid interface symbol end");
+                                Some(end_byte) -> parse_symbols(
+                                    rest,
+                                    module_name,
+                                    [ExportedSymbol(
+                                        name,
+                                        arity,
+                                        class_from_name(class_source),
+                                        SyntaxSpan(start_byte, end_byte),
+                                    ) | symbols],
+                                )
+                            }
+                        }
+                    };
+            _ -> InterfaceParse(false, ModuleInterface("", "", List.new[ExportedSymbol]()), "invalid interface catalog record")
+        }
+    }.
+
+@pure
+parse(source: String): InterfaceParse ->
+    parse_symbols(String.split(source, "\n"), "", List.new[ExportedSymbol]()).
+
+/** Compiles one source and writes its complete public interface artifact. */
+pub write_interface(source_path: String, output: String): Bool ->
+    case File.read_text(source_path) {
+        Err(_error) -> false;
+        Ok(source) ->
+            let compiled = Compiler.compile(source);
+            if {
+                not compiled.valid -> false;
+                true -> case File.write_text(output, render(compiled.interface)) {
+                    Err(_error) -> false;
+                    Ok(_unit) -> true
+                }
+            }
+    }.
+
+@pure
+semantic_diagnostics(values: List[SemanticDiagnostic]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.concat([
+            value.symbol_name,
+            "\t",
+            Int.to_string(value.span.start_byte),
+            "\t",
+            Int.to_string(value.span.end_byte),
+            "\t",
+            value.message,
+            "\n",
+        ]) | semantic_diagnostics(rest)]
+    }.
+
+/** Reports why the canonical compiler cannot emit one source interface. */
+pub canonical_diagnostic(source_path: String): String ->
+    case File.read_text(source_path) {
+        Err(_error) -> "cannot read canonical interface source";
+        Ok(source) ->
+            let analyzed = CompilerPipeline.analyze(source);
+            if {
+                analyzed.valid -> "valid";
+                not List.is_empty(analyzed.diagnostics) -> String.concat(
+                    semantic_diagnostics(analyzed.diagnostics),
+                );
+                true -> "canonical compiler rejected source without a diagnostic"
+            }
+    }.
+
+read_interfaces(
+    paths: List[String],
+    interfaces: List[ModuleInterface],
+): InterfaceCatalog ->
+    case paths {
+        [] -> InterfaceCatalog(true, reverse(interfaces), "");
+        [path | rest] where String.trim(path) == "" ->
+            read_interfaces(rest, interfaces);
+        [path | rest] -> case File.read_text(String.trim(path)) {
+            Err(_error) -> InterfaceCatalog(false, List.new[ModuleInterface](), String.concat(["cannot read interface artifact: ", String.trim(path)]));
+            Ok(source) ->
+                let parsed = parse(source);
+                if {
+                    not parsed.valid -> InterfaceCatalog(false, List.new[ModuleInterface](), String.concat([String.trim(path), ": ", parsed.message]));
+                    true -> read_interfaces(rest, [parsed.interface | interfaces])
+                }
+        }
+    }.
+
+/** Loads a deterministic newline-delimited manifest of interface artifacts. */
+pub load(manifest: String): InterfaceCatalog ->
+    case File.read_text(manifest) {
+        Err(_error) -> InterfaceCatalog(false, List.new[ModuleInterface](), "cannot read interface manifest");
+        Ok(paths) -> read_interfaces(String.split(paths, "\n"), List.new[ModuleInterface]())
+    }.
+
+@pure
+diagnostics_text(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([value, "\n", diagnostics_text(rest)])
+    }.
+
+write_failure(diagnostics_output: String, message: String): Bool ->
+    case File.write_text(diagnostics_output, String.concat([message, "\n"])) {
+        Err(_error) -> false;
+        Ok(_unit) -> false
+    }.
+
+/** Compiles one source against a persistent complete-closure interface set. */
+pub write_backend(
+    source_path: String,
+    interface_manifest: String,
+    output: String,
+    diagnostics_output: String,
+): Bool ->
+    let catalog = load(interface_manifest);
+    if {
+        not catalog.valid -> write_failure(diagnostics_output, catalog.message);
+        true -> case File.read_text(source_path) {
+            Err(_error) -> write_failure(diagnostics_output, "cannot read backend source");
+            Ok(source) ->
+                let lexed = CanonicalLexer.lex(source);
+                let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+                let backend = ProjectedBackendCompile.compile(frontend, catalog.interfaces, "terlan-vm");
+                let diagnostic_text = diagnostics_text(backend.diagnostics);
+                if {
+                    not lexed.valid -> write_failure(diagnostics_output, "canonical lexer rejected backend source");
+                    not frontend.valid -> write_failure(diagnostics_output, String.concat([
+                        "projected frontend rejected backend source: ",
+                        frontend.message,
+                    ]));
+                    not List.is_empty(backend.diagnostics) -> case File.write_text(diagnostics_output, diagnostic_text) {
+                        Err(_error) -> false;
+                        Ok(_unit) -> false
+                    };
+                    true -> case backend.json {
+                        None -> write_failure(diagnostics_output, "backend emitted no ABI-1 envelope");
+                        Some(json) -> case File.write_text(output, json) {
+                            Err(_error) -> write_failure(diagnostics_output, "cannot write ABI-1 envelope");
+                            Ok(_unit) -> case File.write_text(diagnostics_output, "") {
+                                Err(_error) -> false;
+                                Ok(_unit) -> true
+                            }
+                        }
+                    }
+                }
+        }
+    }.

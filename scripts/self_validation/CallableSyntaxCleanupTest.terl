@@ -83,9 +83,10 @@ has_scanned_suffix(path: String): Bool ->
 
 @pure
 allowed_negative_fixture(path: String, line: String): Bool ->
-    path == "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs"
-    and String.contains(line, removed_named_call())
-        or String.contains(line, removed_parenthesized_call()).
+    path == "crates/terlan/src/compiler/syntax/retired_syntax_test.rs"
+        or (path == "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs"
+            and (String.contains(line, removed_named_call())
+                or String.contains(line, removed_parenthesized_call()))).
 
 @pure
 removed_named_call(): String ->
@@ -133,3 +134,7 @@ pub similar_files_cannot_claim_the_fixture_exception(): Bool ->
     "crates/terlan/src/compiler/syntax/parser_expr_test/other.rs",
     String.append(removed_named_call(), "."),
 ).
+
+@test
+pub parenthesized_calls_cannot_bypass_fixture_path_check(): Bool ->
+    not fixture_holds("tests/rejected.terl", removed_parenthesized_call()).

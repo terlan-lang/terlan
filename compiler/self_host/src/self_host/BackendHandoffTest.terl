@@ -1,0 +1,24 @@
+/** Positive and negative end-to-end frontend handoff contracts. */
+module self_host.BackendHandoffTest.
+
+import std.core.String.
+import self_host.Compiler.
+
+@pure
+positive_handoff(): Bool ->
+    let result = Compiler.compile(
+        "module demo.Backend.\nconst answer: Int = 42.\nvalue(x: Int): Int -> x.\n",
+    );
+    result.valid
+        and result.schema == "terlan.self-host.backend/v1"
+        and String.contains(result.text, "module demo.Backend.")
+        and String.contains(result.text, "symbol answer.")
+        and String.contains(result.text, "symbol value.").
+
+@pure
+negative_handoff(): Bool ->
+    not Compiler.compile(
+        "module demo.Backend.\nstruct User { id: Int }.\ntype User = Int.\n",
+    ).valid.
+
+pub self_test(): Bool -> positive_handoff() and negative_handoff().

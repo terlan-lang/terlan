@@ -1,0 +1,41 @@
+/** Typed nested syntax for one function declaration. */
+module self_host.FunctionSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct FunctionSyntax {
+    valid: Bool,
+    name: String,
+    parameters: String,
+    typed_parameters: List[ParameterSyntax],
+    return_type: TypeParse,
+    body: ExpressionParse,
+    is_public: Bool,
+    is_const: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor FunctionSyntax {
+    (valid: Bool, name: String, parameters: String, typed_parameters: List[ParameterSyntax], return_type: TypeParse, body: ExpressionParse, is_public: Bool, is_const: Bool, span: SyntaxSpan, message: String): FunctionSyntax ->
+        FunctionSyntax {
+            valid: valid,
+            name: name,
+            parameters: parameters,
+            typed_parameters: typed_parameters,
+            return_type: return_type,
+            body: body,
+            is_public: is_public,
+            is_const: is_const,
+            span: span,
+            message: message,
+        }
+}.
+

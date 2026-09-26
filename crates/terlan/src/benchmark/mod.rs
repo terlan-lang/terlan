@@ -4,31 +4,23 @@
 
 use std::env;
 use std::fs;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, ExitCode, Stdio};
-use std::sync::Arc;
+use std::process::{Command, ExitCode};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::runtime::native::http;
 use crate::runtime::native::json;
 use crate::runtime::native::postgres::{self, Config, Pool, PostgresError};
 use serde::Serialize;
 
-mod http_runtime_lane;
-
-mod aot_compilation;
 mod binary_protocol;
 mod hardware;
 mod http_aot_performance;
 mod managed_heap;
 mod persistent_actor;
 mod runtime_workloads;
-mod vm_runtime;
 
-pub(crate) use vm_runtime::{
+pub(crate) use crate::runtime::vm::{
     actor, map_value, process, resource, scheduler, table, timer, ReplValue,
 };
 
@@ -42,15 +34,15 @@ use ReplValue as VmPrimitiveValue;
 
 mod cli;
 mod database;
-mod http_and_build;
 mod map_workloads;
 mod measurement;
+mod vm_artifact;
 
 use cli::*;
 use database::*;
-use http_and_build::*;
 use map_workloads::*;
 use measurement::*;
+use vm_artifact::*;
 
 /// Runs the benchmark command selected by process arguments.
 pub fn run_from_env() -> ExitCode {

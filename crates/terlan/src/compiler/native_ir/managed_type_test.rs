@@ -213,6 +213,30 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
 }
 
 #[test]
+fn managed_semantics_collapse_repeated_recursive_union_unrolling() {
+    let leaf = CoreType::Struct {
+        name: "example.Leaf".to_string(),
+        fields: Vec::new(),
+    };
+    let once = CoreType::Union(vec![
+        leaf.clone(),
+        CoreType::List(Box::new(CoreType::Named("Node".to_string()))),
+    ]);
+    let twice = CoreType::Union(vec![leaf, CoreType::List(Box::new(once.clone()))]);
+    let once_list = CoreType::List(Box::new(once));
+    let twice_list = CoreType::List(Box::new(twice));
+
+    assert_eq!(
+        super::super::expression::managed_semantic_contract(&once_list),
+        super::super::expression::managed_semantic_contract(&twice_list)
+    );
+    assert_eq!(
+        super::super::native_type(Some(&once_list), "List[Node]"),
+        super::super::native_type(Some(&twice_list), "List[Node]")
+    );
+}
+
+#[test]
 fn typed_public_lifecycle_operations_lower_to_existing_vm_transitions() {
     let syntax = parse_module_as_syntax_output(concat!(
         "module typed_lifecycle.\n\nimport std.vm.Process.\n",
@@ -551,11 +575,12 @@ const TYPED_RECEIVE_HARNESS: &str = r#"
 use std::ffi::c_void;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -571,11 +596,12 @@ fn main() {
     let mut transitions = [0_i64; 8];
     let mut transition_len = 0_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             std::ptr::null_mut(),
             std::ptr::null(),
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             $EXPORT_ID,
             std::ptr::null(),
             0,

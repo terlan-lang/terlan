@@ -1,0 +1,30 @@
+/** Positive and negative template-lowering contracts. */
+module self_host.TemplateLoweringTest.
+
+import std.collections.List.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+import self_host.TemplateLowering.
+
+@pure
+positive_template(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.View.\ntemplate UserCard from \"./UserCard.terl.html\" { user: User, compact: Bool = false, }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_template = TemplateLowering.lower(declaration);
+            lowered_template.valid
+                and lowered_template.source_path == "./UserCard.terl.html"
+                and List.length(lowered_template.properties) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_template(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.View.\ntemplate UserCard from path { user: User }.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not TemplateLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_template() and negative_template().

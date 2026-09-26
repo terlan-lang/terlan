@@ -72,7 +72,7 @@ fn table_dispatch_routes_large_inventories_without_per_export_code_growth() {
     let parsed = object::File::parse(object.as_slice()).expect("parse native dispatch object");
     let dispatch = parsed
         .symbols()
-        .find(|symbol| symbol.name().ok() == Some("terlan_native_dispatch_v3"))
+        .find(|symbol| symbol.name().ok() == Some("terlan_native_dispatch_v4"))
         .expect("exported dispatch symbol");
     assert!(
         dispatch.size() < 65_536,

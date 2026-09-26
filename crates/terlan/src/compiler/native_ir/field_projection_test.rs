@@ -373,11 +373,12 @@ type Allocator = unsafe extern "C" fn(
 ) -> i32;
 
 unsafe extern "C" {
-    fn terlan_native_dispatch_v3(
+    fn terlan_native_dispatch_v4(
         context: *mut c_void,
         allocator: *const c_void,
         closure_resolver: *const c_void,
         dispatch_lookup: *const c_void,
+        callable_recorder: *const c_void,
         export_id: u64,
         arguments: *const i64,
         arity: u64,
@@ -430,11 +431,12 @@ fn main() {
     let mut transitions = [0_i64; 1];
     let mut transition_len = 0_u64;
     let status = unsafe {
-        terlan_native_dispatch_v3(
+        terlan_native_dispatch_v4(
             (&mut heap as *mut Heap).cast(),
             managed as Allocator as *const c_void,
             std::ptr::null(),
             dispatch_lookup as *const c_void,
+            std::ptr::null(),
             $EXPORT_ID,
             std::ptr::null(),
             0,

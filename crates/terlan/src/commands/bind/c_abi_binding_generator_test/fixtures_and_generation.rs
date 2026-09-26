@@ -6,6 +6,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
+#[path = "fixtures_and_generation/dispatcher_outputs.rs"]
+mod dispatcher_outputs;
+#[path = "fixtures_and_generation/sharding.rs"]
+mod sharding;
+#[path = "fixtures_and_generation/value_adapters.rs"]
+mod value_adapters;
+
 pub(super) fn temp_dir(name: &str) -> PathBuf {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -136,6 +143,12 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     }
 
     let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
+    assert!(adapter.contains("//! Generated Rust adapter for the `c_abi_fixture` native package."));
+    assert!(adapter.contains("/// Raw C ABI declarations used by the safe generated adapter."));
+    assert!(adapter.contains("/// Invokes the raw `terlan_c_native_boundary_create` C ABI symbol."));
+    assert!(
+        adapter.contains("/// Copies a handle-owned borrowed array into an owned integer list.")
+    );
     assert!(adapter.contains("unsafe extern \"C\""));
     assert!(adapter.contains("pub struct TerlanCNativeBoundary"));
     assert!(contains_ignoring_whitespace(
@@ -359,66 +372,6 @@ pub(super) fn package_owned_terlan_module_extension_rejects_invalid_inputs() {
 }
 
 #[test]
-pub(super) fn large_c_surfaces_shard_ffi_and_free_function_adapters() {
-    let manifest = write_fixture_variant("large_surface", |metadata| {
-        let free_function = metadata["modules"][0]["functions"]
-            .as_array()
-            .expect("functions")
-            .iter()
-            .find(|function| function["name"] == "live_count")
-            .expect("free function")
-            .clone();
-        let free_symbol = metadata["c_metadata"]["symbols"]
-            .as_array()
-            .expect("symbols")
-            .iter()
-            .find(|symbol| symbol["id"] == "function.native_boundary_live_count")
-            .expect("free symbol")
-            .clone();
-
-        for index in 0..60 {
-            let mut function = free_function.clone();
-            function["name"] = format!("large_value_{index}").into();
-            function["operation"] =
-                format!("c_abi_fixture.native_boundary.large_value_{index}").into();
-            function["c_symbol"] = format!("function.large_value_{index}").into();
-            metadata["modules"][0]["functions"]
-                .as_array_mut()
-                .expect("functions")
-                .push(function);
-
-            let mut symbol = free_symbol.clone();
-            symbol["id"] = format!("function.large_value_{index}").into();
-            symbol["c_name"] = format!("terlan_c_large_value_{index}").into();
-            metadata["c_metadata"]["symbols"]
-                .as_array_mut()
-                .expect("symbols")
-                .push(symbol);
-        }
-    });
-    let out_dir = temp_dir("large_surface_output");
-
-    generate_c_abi_bindings(&manifest, &out_dir).expect("generate large C ABI package");
-
-    let source_dir = out_dir.join("native/rust/src");
-    let root = fs::read_to_string(source_dir.join("lib.rs")).expect("adapter root");
-    assert!(root.lines().count() < 1_000);
-    assert!(root.contains("include!(\"generated_ffi_0.rs\")"));
-    assert!(root.contains("include!(\"generated_free_adapter_0.rs\")"));
-    assert!(!root.contains("pub fn terlan_c_large_value_59"));
-    assert!(!root.contains("pub fn large_value_59"));
-
-    let ffi = fs::read_to_string(source_dir.join("generated_ffi_1.rs")).expect("FFI shard");
-    assert!(ffi.contains("pub fn terlan_c_large_value_59"));
-    let adapters = fs::read_to_string(source_dir.join("generated_free_adapter_2.rs"))
-        .expect("free adapter shard");
-    assert!(adapters.contains("pub fn large_value_59"));
-
-    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove generated outputs");
-}
-
-#[test]
 pub(super) fn immutable_only_packages_do_not_emit_unused_mutable_accessors() {
     let manifest = write_fixture_variant("immutable_only_accessors", |metadata| {
         metadata["modules"][0]["functions"]
@@ -571,6 +524,51 @@ pub(super) fn generated_scalar_smoke_can_defer_package_specific_operation_domain
 }
 
 #[test]
+pub(super) fn dispatcher_metadata_generates_owned_handle_tuple_results() {
+    let manifest = write_fixture_variant("dispatcher_handle_tuple", |metadata| {
+        let functions = metadata["modules"][0]["functions"]
+            .as_array_mut()
+            .expect("functions");
+        let function = functions
+            .iter_mut()
+            .find(|function| function["name"] == "clone")
+            .expect("clone binding");
+        function["name"] = Value::String("split_pair".to_string());
+        function["operation"] =
+            Value::String("c_abi_fixture.native_boundary.split_pair".to_string());
+        function["returns"] = Value::String("{NativeBoundary, NativeBoundary}".to_string());
+        function["dispatcher"]["output"] = serde_json::json!({
+            "kind": "owned_handle_tuple",
+            "indices": [0, 1]
+        });
+    });
+    let out_dir = temp_dir("dispatcher_handle_tuple_output");
+
+    generate_c_abi_bindings(&manifest, &out_dir).expect("generate tuple dispatcher package");
+
+    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
+    assert!(adapter.contains("pub fn split_pair(&self) -> Result<(Self, Self), CAbiError>"));
+    assert!(
+        adapter.contains("let mut stack = [dispatcher_input_boundary.into_stable_ivalue(), 0u64]")
+    );
+    assert!(adapter.contains("let output_0 = DispatcherOutputGuard::new(raw_0)"));
+    assert!(adapter.contains("let output_1 = DispatcherOutputGuard::new(raw_1)"));
+    assert!(adapter
+        .contains("Ok((Self { raw: output_0.into_raw() }, Self { raw: output_1.into_raw() }))"));
+    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
+        .expect("helper");
+    assert!(helper.contains("fn store_handles("));
+    assert!(helper.contains("ok_tuple_handles"));
+    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
+        .expect("Terlan source");
+    assert!(source
+        .contains("pub split_pair(boundary: NativeBoundary): {NativeBoundary, NativeBoundary}"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
 pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stack_values() {
     let manifest = write_fixture_variant("dispatcher_optional_bool", |metadata| {
         let symbols = metadata["c_metadata"]["symbols"]
@@ -598,6 +596,32 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
             "success_code": 0,
             "parameters": [
                 {"name": "value", "c_type": "uint64_t *", "direction": "input", "ownership": "transfer_full"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
+            "id": "function.new_string",
+            "c_name": "terlan_c_new_string",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "data", "c_type": "const char *", "direction": "input", "ownership": "borrowed_call"},
+                {"name": "length", "c_type": "size_t", "direction": "input", "ownership": "value"},
+                {"name": "string", "c_type": "void **", "direction": "output", "ownership": "transfer_full"}
+            ]
+        }));
+        symbols.push(serde_json::json!({
+            "id": "function.delete_string",
+            "c_name": "terlan_c_delete_string",
+            "kind": "function",
+            "status": "bind",
+            "returns": "int32_t",
+            "error_model": "status_code",
+            "success_code": 0,
+            "parameters": [
+                {"name": "string", "c_type": "void *", "direction": "input", "ownership": "transfer_full"}
             ]
         }));
         symbols.push(serde_json::json!({
@@ -652,7 +676,8 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
                     {"name": "dimensions", "ty": "List[Int]"},
                     {"name": "dimension", "ty": "Int"},
                     {"name": "keep_dimension", "ty": "Bool"},
-                    {"name": "smoothing", "ty": "Float"}
+                    {"name": "smoothing", "ty": "Float"},
+                    {"name": "normalization", "ty": "String"}
                 ],
                 "returns": "NativeBoundary",
                 "blocking": "fast",
@@ -663,6 +688,8 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
                     "duplicate_handle_symbol": "function.native_boundary_duplicate_handle",
                     "optional_value_allocator_symbol": "function.new_stable_ivalue",
                     "optional_value_destructor_symbol": "function.delete_stable_ivalue",
+                    "string_allocator_symbol": "function.new_string",
+                    "string_destructor_symbol": "function.delete_string",
                     "list_allocator_symbol": "function.new_list",
                     "list_push_symbol": "function.list_push",
                     "list_destructor_symbol": "function.delete_list",
@@ -675,7 +702,37 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
                         {"kind": "owned_optional_int_list_argument", "argument": "dimensions"},
                         {"kind": "owned_optional_int_argument", "argument": "dimension"},
                         {"kind": "bool_argument", "argument": "keep_dimension"},
-                        {"kind": "float_argument", "argument": "smoothing"}
+                        {"kind": "owned_optional_float_argument", "argument": "smoothing"},
+                        {"kind": "owned_optional_string_argument", "argument": "normalization"}
+                    ],
+                    "output": {"kind": "owned_handle", "index": 0}
+                }
+            }));
+        metadata["modules"][0]["functions"]
+            .as_array_mut()
+            .expect("functions")
+            .push(serde_json::json!({
+                "name": "combine_dispatcher",
+                "operation": "c_abi_fixture.native_boundary.combine_dispatcher",
+                "c_symbol": "function.call_dispatcher",
+                "role": "constructor",
+                "args": [
+                    {"name": "boundaries", "ty": "List[NativeBoundary]"}
+                ],
+                "returns": "NativeBoundary",
+                "blocking": "fast",
+                "resource": "opaque_handle",
+                "documentation": "Exercises an owned list of duplicated opaque resources.",
+                "dispatcher": {
+                    "duplicate_handle_symbol": "function.native_boundary_duplicate_handle",
+                    "list_allocator_symbol": "function.new_list",
+                    "list_push_symbol": "function.list_push",
+                    "list_destructor_symbol": "function.delete_list",
+                    "operator_name": "fixture::combine_dispatcher",
+                    "overload_name": "",
+                    "extension_abi_version": "0x0001000000000000",
+                    "stack": [
+                        {"kind": "owned_handle_list_argument", "argument": "boundaries"}
                     ],
                     "output": {"kind": "owned_handle", "index": 0}
                 }
@@ -688,6 +745,9 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
     assert!(adapter.contains("struct DispatcherOptionalValueGuard"));
     assert!(adapter.contains("ffi::terlan_c_new_stable_ivalue"));
     assert!(adapter.contains("ffi::terlan_c_delete_stable_ivalue"));
+    assert!(adapter.contains("struct DispatcherStringGuard"));
+    assert!(adapter.contains("ffi::terlan_c_new_string"));
+    assert!(adapter.contains("ffi::terlan_c_delete_string"));
     assert!(adapter.contains("struct DispatcherListGuard"));
     assert!(adapter.contains("ffi::terlan_c_new_list(dimensions.len()"));
     assert!(adapter.contains("ffi::terlan_c_list_push(dispatcher_list_dimensions.as_ptr()"));
@@ -701,15 +761,27 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
         "dispatcher_optional_weight.write_stable_ivalue(dispatcher_input_weight.into_stable_ivalue())"
     ));
     assert!(adapter.contains("dispatcher_optional_dimension.write_i64(dimension)"));
+    assert!(adapter.contains("dispatcher_optional_smoothing.write_f64(smoothing)"));
     assert!(contains_ignoring_whitespace(
         &adapter,
-        "dispatcher_optional_weight.into_stable_ivalue(), dispatcher_optional_dimensions.into_stable_ivalue(), dispatcher_optional_dimension.into_stable_ivalue(), u64::from(keep_dimension), smoothing.to_bits()"
+        "dispatcher_optional_normalization.write_stable_ivalue(dispatcher_string_6.into_stable_ivalue())"
     ));
+    assert!(contains_ignoring_whitespace(
+        &adapter,
+        "dispatcher_optional_weight.into_stable_ivalue(), dispatcher_optional_dimensions.into_stable_ivalue(), dispatcher_optional_dimension.into_stable_ivalue(), u64::from(keep_dimension), dispatcher_optional_smoothing.into_stable_ivalue(), dispatcher_optional_normalization.into_stable_ivalue()"
+    ));
+    assert!(adapter.contains(
+        "pub fn combine_dispatcher(boundaries: &[&NativeBoundary]) -> Result<Self, CAbiError>"
+    ));
+    assert!(adapter.contains("for element in boundaries"));
+    assert!(adapter.contains("ffi::terlan_c_native_boundary_duplicate_handle(element.raw.as_ptr()"));
+    assert!(adapter.contains("ffi::terlan_c_list_push(dispatcher_list_boundaries.as_ptr()"));
+    assert!(adapter.contains("dispatcher_list_boundaries.into_stable_ivalue()"));
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(contains_ignoring_whitespace(
         &source,
-        "pub reduce_index(boundary: NativeBoundary, weight: NativeBoundary, dimensions: List[Int], dimension: Int, keep_dimension: Bool, smoothing: Float): NativeBoundary"
+        "pub reduce_index(boundary: NativeBoundary, weight: NativeBoundary, dimensions: List[Int], dimension: Int, keep_dimension: Bool, smoothing: Float, normalization: String): NativeBoundary"
     ));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
@@ -748,9 +820,10 @@ pub(super) fn dispatcher_metadata_generates_owned_fixed_string_stack_values() {
                 {"name": "string", "c_type": "void *", "direction": "input", "ownership": "transfer_full"}
             ]
         }));
-        let function = metadata["modules"][0]["functions"]
+        let functions = metadata["modules"][0]["functions"]
             .as_array_mut()
-            .expect("functions")
+            .expect("functions");
+        let function = functions
             .iter_mut()
             .find(|function| function["name"] == "clone")
             .expect("clone binding");
@@ -766,6 +839,20 @@ pub(super) fn dispatcher_metadata_generates_owned_fixed_string_stack_values() {
             "kind": "owned_string_literal",
             "value": "none"
         });
+        let mut dynamic = function.clone();
+        dynamic["name"] = Value::String("linalg_qr".to_string());
+        dynamic["operation"] = Value::String("c_abi_fixture.native_boundary.linalg_qr".to_string());
+        dynamic["documentation"] = Value::String("Computes exact QR.".to_string());
+        dynamic["args"]
+            .as_array_mut()
+            .expect("arguments")
+            .push(serde_json::json!({"name": "mode", "ty": "String"}));
+        dynamic["dispatcher"]["operator_name"] = Value::String("aten::linalg_qr".to_string());
+        dynamic["dispatcher"]["stack"][1] = serde_json::json!({
+            "kind": "owned_string_argument",
+            "argument": "mode"
+        });
+        functions.push(dynamic);
     });
     let out_dir = temp_dir("dispatcher_owned_string_output");
 
@@ -773,6 +860,8 @@ pub(super) fn dispatcher_metadata_generates_owned_fixed_string_stack_values() {
     let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
     assert!(adapter.contains("struct DispatcherStringGuard"));
     assert!(adapter.contains("let dispatcher_string_1_bytes: &[u8] = \"none\".as_bytes()"));
+    assert!(adapter.contains("let dispatcher_string_1_bytes: &[u8] = mode.as_bytes()"));
+    assert!(adapter.contains("pub fn linalg_qr(&self, mode: &str)"));
     assert!(adapter.contains("ffi::terlan_c_new_string("));
     assert!(adapter.contains("ffi::terlan_c_delete_string"));
     assert!(contains_ignoring_whitespace(
@@ -782,323 +871,40 @@ pub(super) fn dispatcher_metadata_generates_owned_fixed_string_stack_values() {
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(source.contains("pub gelu(boundary: NativeBoundary): NativeBoundary"));
+    assert!(
+        source.contains("pub linalg_qr(boundary: NativeBoundary, mode: String): NativeBoundary")
+    );
+    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
+        .expect("native helper");
+    assert!(helper.contains("Arg::String(mode)"));
+    assert!(helper.contains("value_boundary.linalg_qr(mode.as_str())"));
+
+    let mut invalid = serde_json::from_str::<Value>(
+        &fs::read_to_string(&manifest).expect("read generated string fixture"),
+    )
+    .expect("parse generated string fixture");
+    let dynamic = invalid["modules"][0]["functions"]
+        .as_array_mut()
+        .expect("functions")
+        .iter_mut()
+        .find(|function| function["name"] == "linalg_qr")
+        .expect("dynamic string function");
+    dynamic["dispatcher"]["stack"][1]["argument"] = Value::String("unknown".to_string());
+    fs::write(
+        &manifest,
+        serde_json::to_string_pretty(&invalid).expect("serialize invalid string fixture"),
+    )
+    .expect("write invalid string fixture");
+    let invalid_out = temp_dir("dispatcher_invalid_string_output");
+    let error = generate_c_abi_bindings(&manifest, &invalid_out)
+        .expect_err("unknown dynamic string arguments must fail");
+    assert!(error.contains(
+        "must encode every declared String argument exactly once as owned_string_argument"
+    ));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
-}
-
-#[test]
-pub(super) fn direct_c_wrapper_maps_multiple_handle_inputs_and_scalar_conversion() {
-    let manifest = write_fixture_variant("direct_multiple_handles", |metadata| {
-        metadata["c_metadata"]["symbols"]
-            .as_array_mut()
-            .expect("symbols")
-            .push(serde_json::json!({
-                "id": "function.native_boundary_subtract",
-                "c_name": "terlan_c_native_boundary_subtract",
-                "kind": "function",
-                "status": "bind",
-                "returns": "int32_t",
-                "error_model": "status_code",
-                "success_code": 0,
-                "parameters": [
-                    {"name": "left", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                    {"name": "right", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                    {"name": "alpha", "c_type": "double", "direction": "input", "ownership": "value"},
-                    {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
-                ]
-            }));
-        metadata["modules"][0]["functions"]
-            .as_array_mut()
-            .expect("functions")
-            .push(serde_json::json!({
-                "name": "subtract",
-                "operation": "c_abi_fixture.native_boundary.subtract",
-                "c_symbol": "function.native_boundary_subtract",
-                "role": "immutable_method",
-                "args": [
-                    {"name": "left", "ty": "NativeBoundary"},
-                    {"name": "right", "ty": "NativeBoundary"},
-                    {"name": "alpha", "ty": "Int"}
-                ],
-                "returns": "NativeBoundary",
-                "blocking": "fast",
-                "resource": "opaque_handle",
-                "documentation": "Exercises two direct handle inputs and scalar conversion."
-            }));
-    });
-    let out_dir = temp_dir("direct_multiple_handles_output");
-
-    generate_c_abi_bindings(&manifest, &out_dir).expect("generate multi-handle C wrapper");
-    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
-    assert!(adapter
-        .contains("pub fn subtract(&self, right: &Self, alpha: i64) -> Result<Self, CAbiError>"));
-    assert!(contains_ignoring_whitespace(
-        &adapter,
-        "ffi::terlan_c_native_boundary_subtract(self.raw.as_ptr(), right.raw.as_ptr(), alpha as f64, &mut raw)"
-    ));
-    let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
-        .expect("generated consumer");
-    assert!(!consumer.contains("returned_subtract"));
-
-    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove output");
-}
-
-#[test]
-pub(super) fn direct_c_constructor_names_each_borrowed_handle_argument() {
-    let manifest = write_fixture_variant("direct_handle_constructor", |metadata| {
-        metadata["c_metadata"]["symbols"]
-            .as_array_mut()
-            .expect("symbols")
-            .push(serde_json::json!({
-                "id": "function.native_boundary_blend",
-                "c_name": "terlan_c_native_boundary_blend",
-                "kind": "function",
-                "status": "bind",
-                "returns": "int32_t",
-                "error_model": "status_code",
-                "success_code": 0,
-                "parameters": [
-                    {"name": "start", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                    {"name": "stop", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                    {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
-                ]
-            }));
-        metadata["modules"][0]["functions"]
-            .as_array_mut()
-            .expect("functions")
-            .push(serde_json::json!({
-                "name": "blend",
-                "operation": "c_abi_fixture.native_boundary.blend",
-                "c_symbol": "function.native_boundary_blend",
-                "role": "constructor",
-                "args": [
-                    {"name": "start", "ty": "NativeBoundary"},
-                    {"name": "stop", "ty": "NativeBoundary"}
-                ],
-                "returns": "NativeBoundary",
-                "blocking": "fast",
-                "resource": "opaque_handle",
-                "documentation": "Exercises named resource inputs on an associated constructor."
-            }));
-    });
-    let out_dir = temp_dir("direct_handle_constructor_output");
-
-    generate_c_abi_bindings(&manifest, &out_dir).expect("generate resource constructor");
-    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
-    assert!(adapter.contains("pub fn blend(start: &Self, stop: &Self) -> Result<Self, CAbiError>"));
-    assert!(contains_ignoring_whitespace(
-        &adapter,
-        "ffi::terlan_c_native_boundary_blend(start.raw.as_ptr(), stop.raw.as_ptr(), &mut raw)"
-    ));
-    assert!(!adapter.contains("terlan_c_native_boundary_blend(self.raw.as_ptr()"));
-
-    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove output");
-}
-
-#[test]
-pub(super) fn c_abi_wrapper_supports_float_constructors_arguments_and_results() {
-    let manifest = write_fixture_variant("float_values", |metadata| {
-        let symbols = metadata["c_metadata"]["symbols"]
-            .as_array_mut()
-            .expect("symbols");
-        symbols.push(serde_json::json!({
-            "id": "function.native_boundary_create_float",
-            "c_name": "terlan_c_native_boundary_create_float",
-            "kind": "function",
-            "status": "bind",
-            "returns": "int32_t",
-            "error_model": "status_code",
-            "success_code": 0,
-            "parameters": [
-                {"name": "value", "c_type": "double", "direction": "input", "ownership": "value"},
-                {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
-            ]
-        }));
-        symbols.push(serde_json::json!({
-            "id": "function.native_boundary_ratio",
-            "c_name": "terlan_c_native_boundary_ratio",
-            "kind": "function",
-            "status": "bind",
-            "returns": "int32_t",
-            "error_model": "status_code",
-            "success_code": 0,
-            "parameters": [
-                {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                {"name": "out_ratio", "c_type": "double *", "direction": "output", "ownership": "borrowed_call"}
-            ]
-        }));
-        let functions = metadata["modules"][0]["functions"]
-            .as_array_mut()
-            .expect("functions");
-        functions.push(serde_json::json!({
-            "name": "new_float",
-            "operation": "c_abi_fixture.native_boundary.new_float",
-            "c_symbol": "function.native_boundary_create_float",
-            "role": "constructor",
-            "args": [{"name": "value", "ty": "Float"}],
-            "returns": "NativeBoundary",
-            "blocking": "fast",
-            "resource": "opaque_handle",
-            "documentation": "Creates a boundary from a float."
-        }));
-        functions.push(serde_json::json!({
-            "name": "ratio",
-            "operation": "c_abi_fixture.native_boundary.ratio",
-            "c_symbol": "function.native_boundary_ratio",
-            "role": "immutable_method",
-            "args": [{"name": "boundary", "ty": "NativeBoundary"}],
-            "returns": "Float",
-            "blocking": "fast",
-            "resource": "borrowed_handle",
-            "documentation": "Reads a floating-point ratio."
-        }));
-    });
-    let out_dir = temp_dir("float_values_output");
-
-    generate_c_abi_bindings(&manifest, &out_dir).expect("generate float C wrapper");
-    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
-    assert!(adapter.contains("pub fn new_float(value: f64) -> Result<Self, CAbiError>"));
-    assert!(adapter.contains("pub fn ratio(&self) -> Result<f64, CAbiError>"));
-    assert!(adapter.contains("terlan_c_native_boundary_create_float(value, &mut raw)"));
-    assert!(adapter.contains("Ok(out_out_ratio)"));
-    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
-        .expect("helper");
-    assert!(helper.contains("Arg::Float(value)"));
-    assert!(helper.contains("ok_float {value}"));
-    assert!(helper.contains("strip_prefix(\"f:\")"));
-    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
-        .expect("Terlan source");
-    assert!(source.contains("pub new_float(value: Float): NativeBoundary"));
-    assert!(source.contains("pub ratio(boundary: NativeBoundary): Float"));
-
-    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove output");
-}
-
-#[test]
-pub(super) fn c_abi_wrapper_supports_bool_constructors_arguments_and_results() {
-    let manifest = write_fixture_variant("bool_values", |metadata| {
-        let symbols = metadata["c_metadata"]["symbols"]
-            .as_array_mut()
-            .expect("symbols");
-        symbols.push(serde_json::json!({
-            "id": "function.native_boundary_create_bool",
-            "c_name": "terlan_c_native_boundary_create_bool",
-            "kind": "function",
-            "status": "bind",
-            "returns": "int32_t",
-            "error_model": "status_code",
-            "success_code": 0,
-            "parameters": [
-                {"name": "value", "c_type": "bool", "direction": "input", "ownership": "value"},
-                {"name": "out_boundary", "c_type": "TerlanCNativeBoundary **", "direction": "output", "ownership": "transfer_full"}
-            ]
-        }));
-        symbols.push(serde_json::json!({
-            "id": "function.native_boundary_enabled",
-            "c_name": "terlan_c_native_boundary_enabled",
-            "kind": "function",
-            "status": "bind",
-            "returns": "int32_t",
-            "error_model": "status_code",
-            "success_code": 0,
-            "parameters": [
-                {"name": "boundary", "c_type": "const TerlanCNativeBoundary *", "direction": "input", "ownership": "borrowed_call"},
-                {"name": "enabled", "c_type": "bool *", "direction": "output", "ownership": "borrowed_call"}
-            ]
-        }));
-        let functions = metadata["modules"][0]["functions"]
-            .as_array_mut()
-            .expect("functions");
-        functions.push(serde_json::json!({
-            "name": "new_bool",
-            "operation": "c_abi_fixture.native_boundary.new_bool",
-            "c_symbol": "function.native_boundary_create_bool",
-            "role": "constructor",
-            "args": [{"name": "value", "ty": "Bool"}],
-            "returns": "NativeBoundary",
-            "blocking": "fast",
-            "resource": "opaque_handle",
-            "documentation": "Creates a boundary from a boolean."
-        }));
-        functions.push(serde_json::json!({
-            "name": "enabled",
-            "operation": "c_abi_fixture.native_boundary.enabled",
-            "c_symbol": "function.native_boundary_enabled",
-            "role": "immutable_method",
-            "args": [{"name": "boundary", "ty": "NativeBoundary"}],
-            "returns": "Bool",
-            "blocking": "fast",
-            "resource": "borrowed_handle",
-            "documentation": "Reads a boolean property."
-        }));
-    });
-    let out_dir = temp_dir("bool_values_output");
-
-    generate_c_abi_bindings(&manifest, &out_dir).expect("generate bool C wrapper");
-    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
-    assert!(adapter.contains("pub fn new_bool(value: bool) -> Result<Self, CAbiError>"));
-    assert!(adapter.contains("pub fn enabled(&self) -> Result<bool, CAbiError>"));
-    assert!(adapter.contains("terlan_c_native_boundary_create_bool(value, &mut raw)"));
-    assert!(adapter.contains("Ok(out_enabled)"));
-    let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
-        .expect("helper");
-    assert!(helper.contains("Arg::Bool(value)"));
-    assert!(helper.contains("ok_bool {value}"));
-    assert!(helper.contains("strip_prefix(\"b:\")"));
-    let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
-        .expect("Terlan source");
-    assert!(source.contains("pub new_bool(value: Bool): NativeBoundary"));
-    assert!(source.contains("pub enabled(boundary: NativeBoundary): Bool"));
-
-    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove output");
-}
-
-#[test]
-pub(super) fn c_abi_value_only_package_builds_without_an_opaque_resource() {
-    let manifest = write_fixture_variant("value_only", |metadata| {
-        metadata["validation"]["smoke"] = Value::String("package_owned_live".into());
-        metadata["c_metadata"]["symbols"]
-            .as_array_mut()
-            .expect("symbols")
-            .retain(|symbol| symbol["id"] == "function.native_boundary_live_count");
-        metadata["modules"][0]["types"] = serde_json::json!([]);
-        let functions = metadata["modules"][0]["functions"]
-            .as_array_mut()
-            .expect("functions");
-        functions.retain(|function| function["name"] == "live_count");
-        functions[0]["generated_smoke"] = Value::String("package_owned".into());
-    });
-    let out_dir = temp_dir("value_only_output");
-    let target_dir = temp_dir("value_only_target");
-
-    let summary =
-        generate_c_abi_bindings(&manifest, &out_dir).expect("generate a value-only C ABI package");
-    assert_eq!(summary.function_count, 1);
-    let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs"))
-        .expect("read value-only adapter");
-    assert!(adapter.contains("pub fn live_count() -> i64"));
-    assert!(!adapter.contains("pub struct NativeBoundary"));
-
-    let output =
-        std::process::Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string()))
-            .args(["build", "--offline", "--quiet", "--manifest-path"])
-            .arg(out_dir.join("native/rust/Cargo.toml"))
-            .env("CARGO_TARGET_DIR", &target_dir)
-            .output()
-            .expect("build generated value-only package");
-    assert!(
-        output.status.success(),
-        "value-only package build failed\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
-    fs::remove_dir_all(out_dir).expect("remove output");
-    fs::remove_dir_all(target_dir).expect("remove target");
+    if invalid_out.exists() {
+        fs::remove_dir_all(invalid_out).expect("remove invalid output");
+    }
 }

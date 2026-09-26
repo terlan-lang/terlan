@@ -91,6 +91,59 @@ pub (value: Box) identity(): Box ->\n\
 }
 
 #[test]
+fn selected_import_canonicalization_preserves_shadowing_parameters() {
+    let module = parse_module_as_syntax_output(
+        "module core_import_shadow.\n\
+import helper.Array.{shape}.\n\
+pub preserve(shape: Int): Int ->\n\
+    shape.\n",
+    )
+    .expect("parse selected-import shadowing fixture");
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "preserve")
+        .expect("preserve core function");
+
+    assert_eq!(
+        function.clauses[0].body.core_expr,
+        Some(CoreExpr::Var("shape".to_string()))
+    );
+}
+
+#[test]
+fn selected_import_canonicalization_preserves_let_shadowing() {
+    let module = parse_module_as_syntax_output(
+        "module core_import_let_shadow.\n\
+import helper.Array.{inverse}.\n\
+pub preserve(): Int ->\n\
+    let inverse = 1;\n\
+    inverse.\n",
+    )
+    .expect("parse selected-import let-shadowing fixture");
+    let resolved = resolve_syntax_module_output(&module).module;
+    let core = lower_syntax_module_output_to_core(&module, &resolved);
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "preserve")
+        .expect("preserve core function");
+
+    assert_eq!(
+        function.clauses[0].body.core_expr,
+        Some(CoreExpr::Let {
+            bindings: vec![CoreLetBinding {
+                pattern: CorePattern::Var("inverse".to_string()),
+                value: CoreExpr::Int(1),
+            }],
+            body: Box::new(CoreExpr::Var("inverse".to_string())),
+        })
+    );
+}
+
+#[test]
 pub(super) fn syntax_output_lowering_to_core_preserves_generic_receiver_methods() {
     let module = parse_module_as_syntax_output(
         "module core_generic_receiver.\n\npub struct Presenter { prefix: String }.\npub (presenter: Presenter) present[T => {name: String}](value: T): String -> value.name.\n",

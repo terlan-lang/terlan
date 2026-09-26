@@ -1,0 +1,62 @@
+/** Filesystem and JSON adapter for self-hosted bootstrap fixed-point comparison. */
+module self_host.SelfHostBootstrapTool.
+
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.core.Option.{None, Option, Some}.
+import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
+
+import self_host.SelfHostBootstrapParity.
+import self_host.SelfHostBootstrapParity.{BootstrapArtifact}.
+import std.core.{String}.
+import std.data.Json.
+import std.io.File.
+
+import type std.data.Json.Json.
+
+string_field(document: Json, name: String): Option[String] ->
+    case document.get(name) {
+        Err(_reason) -> None;
+        Ok(value) -> case value.as_string() {
+            Ok(text) -> Some(text);
+            Err(_reason) -> None
+        }
+    }.
+
+decode(text: String): Option[BootstrapArtifact] ->
+    case Json.parse(text) {
+        Err(_reason) -> None;
+        Ok(document) -> case {
+            string_field(document, "module_name"),
+            string_field(document, "token_digest"),
+            string_field(document, "syntax_digest"),
+            string_field(document, "semantic_digest"),
+            string_field(document, "backend_digest"),
+        } {
+            {Some(module_name), Some(token_digest), Some(syntax_digest), Some(semantic_digest), Some(backend_digest)} ->
+                Some(BootstrapArtifact(module_name, token_digest, syntax_digest, semantic_digest, backend_digest));
+            _ -> None
+        }
+    }.
+
+read(path: String): Option[BootstrapArtifact] ->
+    case File.read_text(path) {
+        Err(_reason) -> None;
+        Ok(text) -> decode(text)
+    }.
+
+/** Writes an exact marker only when every bootstrap stage digest is equal. */
+pub compare_files(reference: String, candidate: String, marker: String): Bool ->
+    case {read(reference), read(candidate)} {
+        {Some(left), Some(right)} ->
+            let parity = SelfHostBootstrapParity.compare(left, right);
+            case File.write_text(
+                marker,
+                if { parity.fixed_point -> "fixed-point\n"; true -> "not-fixed-point\n" },
+            ) {
+                Ok(_unit) -> parity.fixed_point;
+                Err(_reason) -> false
+            };
+        _ -> false
+    }.

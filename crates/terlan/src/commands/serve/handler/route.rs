@@ -199,9 +199,9 @@ fn manifest_route_for_loaded_manifest(
             .map(|response| WebPackageHandler {
                 method: response.method.clone(),
                 route: response.route.clone(),
-                module: "static".to_string(),
-                function: "file".to_string(),
-                arity: 1,
+                module: response.module.clone(),
+                function: response.function.clone(),
+                arity: response.arity,
                 source: response.source.clone(),
             }),
     );

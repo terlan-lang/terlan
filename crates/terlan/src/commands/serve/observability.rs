@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::config::EffectiveServeConfig;
-use super::manifest;
 
 pub(super) const OBSERVABILITY_SCHEMA: &str = "terlan-vm-observability-v1";
 
@@ -265,9 +264,7 @@ impl VmServeObservability {
     }
 
     pub(super) fn flush(&self, web_root: &Path) -> super::ServeResult<VmObservabilityArtifacts> {
-        let root =
-            manifest::adjacent_project_root(web_root).unwrap_or_else(|| web_root.to_path_buf());
-        let directory = root.join("build/artifacts");
+        let directory = super::runtime_artifact_directory(web_root)?;
         fs::create_dir_all(&directory).map_err(|error| {
             format!(
                 "error[vm.observability.flush]: create {}: {error}",

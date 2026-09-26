@@ -1,0 +1,209 @@
+/** Deterministic Terlan source-closure discovery for bootstrap stages. */
+module self_host.SelfHostSourceClosure.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.collections.List.
+import std.core.{Bool, String}.
+import std.io.Directory.
+import std.io.File.
+
+
+struct ClosureState {
+    queue: List[String],
+    seen: List[String],
+    unresolved: List[String],
+}.
+
+constructor ClosureState {
+    (queue: List[String], seen: List[String], unresolved: List[String]): ClosureState ->
+        ClosureState {
+            queue: queue,
+            seen: seen,
+            unresolved: unresolved,
+        }
+}.
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    case left { [] -> right; [value | rest] -> [value | append_strings(rest, right)] }.
+
+@pure
+reverse_strings_at(values: List[String], output: List[String]): List[String] ->
+    case values { [] -> output; [value | rest] -> reverse_strings_at(rest, [value | output]) }.
+
+@pure
+reverse_strings(values: List[String]): List[String] ->
+    reverse_strings_at(values, List.new[String]()).
+
+@pure
+contains(values: List[String], target: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == target or contains(rest, target) }.
+
+@pure
+source_file(path: String): Bool ->
+    String.ends_with(path, ".terl")
+        and not String.ends_with(path, "Test.terl")
+        and not String.ends_with(path, "PropertyTest.terl").
+
+@pure
+add_path(path: String, state: ClosureState): ClosureState ->
+    if {
+        not source_file(path) or contains(state.seen, path) -> state;
+        true -> ClosureState(queue = append_strings(state.queue, [path]), seen = [path | state.seen], unresolved = state.unresolved)
+    }.
+
+@pure
+add_paths(values: List[String], state: ClosureState): ClosureState ->
+    case values {
+        [] -> state;
+        [value | rest] -> add_paths(rest, add_path(value, state))
+    }.
+
+@pure
+strip_terminal_dot(value: String): String ->
+    if {
+        String.ends_with(value, ".") -> String.trim(String.utf8_slice(
+            value,
+            0,
+            String.byte_size(value) - 1,
+        ));
+        true -> value
+    }.
+
+@pure
+import_module(line: String): String ->
+    let declaration = String.trim(line);
+    let imported = if {
+        String.starts_with(declaration, "import ") -> String.trim(String.utf8_slice(
+            declaration,
+            7,
+            String.byte_size(declaration) - 7,
+        ));
+        true -> ""
+    };
+    let typed = if {
+        String.starts_with(imported, "type ") -> String.trim(String.utf8_slice(
+            imported,
+            5,
+            String.byte_size(imported) - 5,
+        ));
+        true -> imported
+    };
+    let body = strip_terminal_dot(typed);
+    let selected = case String.split(body, ".{") {
+        [module_name | _rest] -> String.trim(module_name);
+        [] -> body
+    };
+    let module_name = case String.split(selected, " as ") {
+        [name | _rest] -> String.trim(name);
+        [] -> selected
+    };
+    if {
+        String.starts_with(module_name, "asset ") or String.starts_with(module_name, "native ") -> "";
+        String.contains(module_name, "\"") or String.contains(module_name, "'") -> "";
+        true -> module_name
+    }.
+
+@pure
+import_modules(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> let module_name = import_module(value);
+            if {
+                module_name == "" -> import_modules(rest);
+                true -> [module_name | import_modules(rest)]
+            }
+    }.
+
+@pure
+module_file(name: String): String ->
+    if {
+        String.starts_with(name, "self_host.") -> String.concat([
+            "compiler/self_host/src/self_host/",
+            String.utf8_slice(name, 10, String.byte_size(name) - 10),
+            ".terl",
+        ]);
+        true -> String.append(String.replace(name, ".", "/"), ".terl")
+    }.
+
+@pure
+module_directory(name: String): String ->
+    if {
+        String.starts_with(name, "self_host.") -> String.concat([
+            "compiler/self_host/src/self_host/",
+            String.utf8_slice(name, 10, String.byte_size(name) - 10),
+        ]);
+        true -> String.replace(name, ".", "/")
+    }.
+
+@pure
+module_parent_parts(parts: List[String], output: String): String ->
+    case parts {
+        [] -> output;
+        [_last] -> output;
+        [part | rest] -> module_parent_parts(rest, if {
+                output == "" -> part;
+                true -> String.concat([output, ".", part])
+            })
+    }.
+
+@pure
+module_parent(name: String): String ->
+    module_parent_parts(String.split(name, "."), "").
+
+expand_module(module_name: String, state: ClosureState): ClosureState ->
+    let file = module_file(module_name);
+    if {
+        File.exists(file) -> add_path(file, state);
+        true -> case Directory.entries(module_directory(module_name)) {
+            Ok(entries) -> add_paths(entries, state);
+            Err(_reason) -> if {
+                String.starts_with(module_name, "self_host.") -> state;
+                module_parent(module_name) != "" -> expand_module(module_parent(module_name), state);
+                true -> ClosureState(queue = state.queue, seen = state.seen, unresolved = [module_name | state.unresolved])
+            }
+        }
+    }.
+
+expand_modules(values: List[String], state: ClosureState): ClosureState ->
+    case values {
+        [] -> state;
+        [value | rest] -> expand_modules(rest, expand_module(value, state))
+    }.
+
+discover(state: ClosureState): ClosureState ->
+    case state.queue {
+        [] -> state;
+        [path | rest] -> case File.read_text(path) {
+            Err(_reason) -> discover(ClosureState(queue = rest, seen = state.seen, unresolved = [path | state.unresolved]));
+            Ok(source) ->
+                discover(expand_modules(
+                    import_modules(String.split(source, "\n")),
+                    ClosureState(queue = rest, seen = state.seen, unresolved = state.unresolved),
+                ))
+        }
+    }.
+
+@pure
+manifest(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([value, "\n", manifest(rest)])
+    }.
+
+/** Discovers the compiler and imported std source closure and writes a manifest. */
+pub write(output: String): Bool ->
+    case Directory.files_recursive("compiler/self_host/src/self_host") {
+        Err(_reason) -> false;
+        Ok(initial) ->
+            let seeded = add_paths(initial, ClosureState(queue = List.new[String](), seen = List.new[String](), unresolved = List.new[String]()));
+            let closure = discover(seeded);
+            if {
+                closure.unresolved != [] -> false;
+                true -> case File.write_text(output, manifest(reverse_strings(closure.seen))) {
+                    Ok(_unit) -> true;
+                    Err(_reason) -> false
+                }
+            }
+    }.

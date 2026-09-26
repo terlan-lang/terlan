@@ -40,6 +40,7 @@
       {"symbol": "function.take_last_failure", "disposition": "bind"},
       {"symbol": "method.native_boundary.value", "disposition": "bind"},
       {"symbol": "method.native_boundary.doubled", "disposition": "bind"},
+      {"symbol": "method.native_boundary.shifted", "disposition": "bind"},
       {"symbol": "method.native_boundary.label", "disposition": "bind"},
       {"symbol": "method.native_boundary.bytes", "disposition": "bind"},
       {"symbol": "method.native_boundary.samples", "disposition": "bind"},
@@ -343,8 +344,8 @@
         "annotations": ["TERLAN_BIND"],
         "overload_set": "terlan_fixture::make_native_boundary",
         "returns": {
-          "spelling": "std::unique_ptr<NativeBoundary>",
-          "canonical": "std::unique_ptr<NativeBoundary>",
+          "spelling": "NativeBoundary",
+          "canonical": "terlan_fixture::NativeBoundary",
           "is_const": false,
           "pointer_depth": 0,
           "reference": "none",
@@ -355,6 +356,19 @@
           {
             "name": "value",
             "ty": {
+              "spelling": "IntArrayRef",
+              "canonical": "terlan_fixture::ArrayRef<long>",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          },
+          {
+            "name": "offset",
+            "ty": {
               "spelling": "std::int64_t",
               "canonical": "std::int64_t",
               "is_const": false,
@@ -363,7 +377,8 @@
               "function_pointer": false,
               "template_dependent": false
             },
-            "direction": "input"
+            "direction": "input",
+            "default": "0"
           }
         ],
         "noexcept": true,
@@ -414,6 +429,44 @@
           "template_dependent": false
         },
         "parameters": [],
+        "noexcept": true,
+        "template_parameters": [],
+        "overload_candidates": 1
+      },
+      {
+        "id": "method.native_boundary.shifted",
+        "cpp_name": "shifted",
+        "source": {"path": "native_boundary.hpp", "line": 20, "column": 18},
+        "kind": "method",
+        "documentation": "Returns a shifted boundary value.",
+        "annotations": ["TERLAN_BIND"],
+        "overload_set": "terlan_fixture::NativeBoundary::shifted",
+        "receiver": "terlan_fixture::NativeBoundary",
+        "receiver_mutable": false,
+        "returns": {
+          "spelling": "NativeBoundary",
+          "canonical": "terlan_fixture::NativeBoundary",
+          "is_const": false,
+          "pointer_depth": 0,
+          "reference": "none",
+          "function_pointer": false,
+          "template_dependent": false
+        },
+        "parameters": [
+          {
+            "name": "delta",
+            "ty": {
+              "spelling": "std::int64_t",
+              "canonical": "std::int64_t",
+              "is_const": false,
+              "pointer_depth": 0,
+              "reference": "none",
+              "function_pointer": false,
+              "template_dependent": false
+            },
+            "direction": "input"
+          }
+        ],
         "noexcept": true,
         "template_parameters": [],
         "overload_candidates": 1
@@ -1143,7 +1196,7 @@
           "operation": "cpp_fixture.native_boundary.new",
           "cpp_symbol": "function.make_native_boundary",
           "role": "constructor",
-          "args": [{"name": "value", "ty": "Int"}],
+          "args": [{"name": "value", "ty": "List[Int]"}],
           "returns": "NativeBoundary",
           "blocking": "fast",
           "resource": "owned_handle",
@@ -1173,6 +1226,20 @@
           "blocking": "fast",
           "resource": "mutable_handle",
           "documentation": "Mutates the value owned by a live handle."
+        },
+        {
+          "name": "shifted",
+          "operation": "cpp_fixture.native_boundary.shifted",
+          "cpp_symbol": "method.native_boundary.shifted",
+          "role": "immutable_method",
+          "args": [
+            {"name": "boundary", "ty": "NativeBoundary"},
+            {"name": "delta", "ty": "Int"}
+          ],
+          "returns": "NativeBoundary",
+          "blocking": "fast",
+          "resource": "owned_handle",
+          "documentation": "Creates a shifted uniquely owned NativeBoundary handle."
         },
         {
           "name": "snapshot",

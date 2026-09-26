@@ -1,6 +1,5 @@
 //! Exclusive actor-local transient construction for persistent RRB lists.
 
-use super::super::aggregates::validate_typed_value;
 use super::*;
 
 /// Bounded transient buffer that publishes one canonical persistent list.
@@ -50,7 +49,7 @@ impl ManagedListBuilder<'_> {
             .checked_add(1)
             .ok_or(ManagedMemoryError::CollectionTooLarge)?;
         validate_element_count(next_length)?;
-        validate_typed_value(self.heap, self.descriptor.element_type, value)?;
+        validate_list_value(self.heap, &self.descriptor, value)?;
         self.elements.push(value);
         Ok(())
     }
@@ -67,7 +66,7 @@ impl ManagedListBuilder<'_> {
             .ok_or(ManagedMemoryError::CollectionTooLarge)?;
         validate_element_count(next_length)?;
         for value in values {
-            validate_typed_value(self.heap, self.descriptor.element_type, *value)?;
+            validate_list_value(self.heap, &self.descriptor, *value)?;
         }
         self.elements.extend_from_slice(values);
         Ok(())

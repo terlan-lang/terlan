@@ -1,0 +1,107 @@
+/** Typed nested payloads for canonical declaration families. */
+module self_host.DeclarationPayloadSyntax.
+
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.Syntax.{SyntaxSpan}.
+import self_host.TypeSyntax.{TypeParse}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub struct ConstantSyntax {
+    valid: Bool,
+    name: String,
+    annotation: TypeParse,
+    value: ExpressionParse,
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ConstantSyntax {
+    (valid: Bool, name: String, annotation: TypeParse, value: ExpressionParse, is_public: Bool, span: SyntaxSpan, message: String): ConstantSyntax ->
+        ConstantSyntax {
+            valid: valid,
+            name: name,
+            annotation: annotation,
+            value: value,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+
+pub struct TypeDeclarationSyntax {
+    valid: Bool,
+    name: String,
+    has_representation: Bool,
+    representation: TypeParse,
+    is_opaque: Bool,
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor TypeDeclarationSyntax {
+    (valid: Bool, name: String, has_representation: Bool, representation: TypeParse, is_opaque: Bool, is_public: Bool, span: SyntaxSpan, message: String): TypeDeclarationSyntax ->
+        TypeDeclarationSyntax {
+            valid: valid,
+            name: name,
+            has_representation: has_representation,
+            representation: representation,
+            is_opaque: is_opaque,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+
+pub struct StructFieldSyntax {
+    valid: Bool,
+    name: String,
+    annotation: TypeParse,
+    has_default: Bool,
+    default_value: ExpressionParse,
+    is_private: Bool,
+    message: String,
+}.
+
+pub constructor StructFieldSyntax {
+    (valid: Bool, name: String, annotation: TypeParse, has_default: Bool, default_value: ExpressionParse, is_private: Bool, message: String): StructFieldSyntax ->
+        StructFieldSyntax {
+            valid: valid,
+            name: name,
+            annotation: annotation,
+            has_default: has_default,
+            default_value: default_value,
+            is_private: is_private,
+            message: message,
+        }
+}.
+
+
+pub struct StructSyntax {
+    valid: Bool,
+    name: String,
+    fields: List[self_host.DeclarationPayloadSyntax.StructFieldSyntax],
+    is_public: Bool,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor StructSyntax {
+    (valid: Bool, name: String, fields: List[self_host.DeclarationPayloadSyntax.StructFieldSyntax], is_public: Bool, span: SyntaxSpan, message: String): StructSyntax ->
+        StructSyntax {
+            valid: valid,
+            name: name,
+            fields: fields,
+            is_public: is_public,
+            span: span,
+            message: message,
+        }
+}.
+
+

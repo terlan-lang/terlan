@@ -642,6 +642,27 @@ pub(super) fn lower_selected_application(
         )
         .into());
     }
+    let final_profiles = call_profiles.clone();
+    for profile in call_profiles.values_mut() {
+        for continuation in &mut profile.continuations {
+            super::super::call_composition::close_direct_call_contracts(
+                &mut continuation.body,
+                &final_profiles,
+            );
+        }
+    }
+    for (native, continuations, _, _) in profile_lowerings.values_mut() {
+        super::super::call_composition::close_direct_call_contracts(
+            &mut native.body,
+            &final_profiles,
+        );
+        for continuation in continuations {
+            super::super::call_composition::close_direct_call_contracts(
+                &mut continuation.body,
+                &final_profiles,
+            );
+        }
+    }
     let mut profile_owners = call_profiles.keys().copied().collect::<Vec<_>>();
     profile_owners.sort_unstable();
     let profile_destination_capture_counts = call_profiles

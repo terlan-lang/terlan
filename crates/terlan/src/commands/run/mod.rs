@@ -371,7 +371,7 @@ fn run_source_path(args: &[String]) -> PathBuf {
 fn infer_run_target_profile(
     path: &Path,
 ) -> Result<crate::validation::target_profile::TargetInference, String> {
-    let sources = run_target_inference_sources(path)?;
+    let sources = crate::commands::build::target_inference_sources(path)?;
     let mut syntax_outputs = Vec::new();
 
     for source in sources {
@@ -395,31 +395,6 @@ fn infer_run_target_profile(
     let input = TargetInferenceInput::from_syntax_modules(syntax_outputs.iter());
     infer_target_profile_from_typed_evidence(&input)
         .map_err(|conflict| format!("terlc run target inference error: {}", conflict.message))
-}
-
-/// Lists source files that participate in run-target inference.
-///
-/// Inputs:
-/// - `path`: source file or directory passed to `terlc run`.
-///
-/// Output:
-/// - Sorted Terlan source files used for inference.
-///
-/// Transformation:
-/// - Uses direct file input when provided and the shared recursive source scan
-///   for directory/project input. Build remains responsible for final source
-///   root validation and artifact planning.
-fn run_target_inference_sources(path: &Path) -> Result<Vec<PathBuf>, String> {
-    if path.is_file() {
-        return Ok(vec![path.to_path_buf()]);
-    }
-    if !path.is_dir() {
-        return Err(format!("source path does not exist: {}", path.display()));
-    }
-
-    let mut files = crate::formal_pipeline::terlan_sources_in_dir(path)?;
-    files.sort();
-    Ok(files)
 }
 
 /// Builds the command forwarded from `terlc run` to `terlc build`.

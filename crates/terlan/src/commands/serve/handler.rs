@@ -68,7 +68,6 @@ pub(super) use websocket::{
     execute_vm_router_websocket_admission_with_package_root, validate_websocket,
     websocket_router_handler, VmWebSocketRouterAdmission,
 };
-#[cfg(test)]
 pub(in crate::commands::serve) use websocket_invocation::AotWebSocketCallbackSession;
 
 /// Handler identity used by local request logs.

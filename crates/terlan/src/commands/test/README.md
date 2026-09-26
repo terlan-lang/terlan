@@ -129,6 +129,13 @@ from production test-command sources.
 - A test returning `false` fails the run.
 - A test returning anything other than `true` or `false` fails the run with a
   stable test-result diagnostic.
+- `--coverage` reports runtime-backed source-declaration coverage for project
+  source roots. Generated specializations and continuations are grouped under
+  their owning declaration; `--coverage-threshold` makes the percentage a
+  command gate.
+- `TERLAN_CALLABLE_COVERAGE_FILE` enables append-only callable hit collection
+  across server and test processes so integration traffic can contribute to
+  the same declaration report.
 
 ## Destruction And Cleanup
 
@@ -138,7 +145,8 @@ fails, the command does not mask an earlier test failure.
 ## Types And Interfaces
 
 `TestArgs`
-: Parsed command-local arguments: one source path and one target runner.
+: Parsed command-local arguments: source paths, target runner, selectors,
+  benchmark controls, declaration-coverage policy, and manifest outputs.
 
 `TestTarget`
 : Supported target runner selector. `terlan-vm` executes VM artifacts, `wasm`

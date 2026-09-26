@@ -1,0 +1,25 @@
+/** Opaque typed boundary for canonical native declarations. */
+module self_host.NativeSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.core.String.
+
+
+pub struct NativeSyntax {
+    valid: Bool,
+    raw: String,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor NativeSyntax {
+    (valid: Bool, raw: String, span: SyntaxSpan, message: String): NativeSyntax ->
+        NativeSyntax {
+            valid: valid,
+            raw: raw,
+            span: span,
+            message: message,
+        }
+}.
+

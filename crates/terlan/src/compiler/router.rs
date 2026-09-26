@@ -10,6 +10,8 @@ use crate::runtime::vm::sse::VmSseEndpointPlan;
 use crate::runtime::vm::websocket::VmWebSocketCallbackPlan;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::runtime::vm::websocket::VmWebSocketEndpointPlan;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+use crate::runtime::vm::websocket::{VmWebSocketPairRestorationPlan, VmWebSocketPairingPlan};
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreModule, CorePattern};
@@ -316,6 +318,116 @@ fn websocket_endpoint(
         if matches!(
             module.as_str(),
             "std.http.WebSocket" | "WebSocket" | "__receiver__"
+        ) && matches!(
+            function.as_str(),
+            "paired_callbacks"
+                | "stateful_paired_callbacks"
+                | "restorable_stateful_paired_callbacks"
+        ) {
+            if function == "restorable_stateful_paired_callbacks" {
+                let [endpoint, waiting, peer_left, room_query, player_query, room_prefix, first_player, second_player, retention_ms, retained_room_capacity, matched, restored, inbound, cancellation] =
+                    args.as_slice()
+                else {
+                    return Err(format!(
+                        "error[native_ir.http_router]: unsupported WebSocket pairing builder `{function}/{}`",
+                        args.len()
+                    ));
+                };
+                let pairing = VmWebSocketPairingPlan {
+                    waiting: String::new(),
+                    first_matched: String::new(),
+                    second_matched: String::new(),
+                    peer_left: String::new(),
+                    stateful: true,
+                    restoration: Some(VmWebSocketPairRestorationPlan {
+                        waiting: channel_callback(
+                            core,
+                            waiting,
+                            "WebSocket",
+                            "paired waiting payload",
+                            0,
+                        )?,
+                        peer_left: channel_callback(
+                            core,
+                            peer_left,
+                            "WebSocket",
+                            "paired peer-left payload",
+                            0,
+                        )?,
+                        room_query: string_literal(room_query)?,
+                        player_query: string_literal(player_query)?,
+                        room_prefix: string_literal(room_prefix)?,
+                        first_player: string_literal(first_player)?,
+                        second_player: string_literal(second_player)?,
+                        retention_ms: positive_u64(retention_ms, "WebSocket room retention_ms")?,
+                        retained_room_capacity: positive_usize(
+                            retained_room_capacity,
+                            "WebSocket retained_room_capacity",
+                        )?,
+                        matched: channel_callback(core, matched, "WebSocket", "paired matched", 4)?,
+                        restored: channel_callback(
+                            core,
+                            restored,
+                            "WebSocket",
+                            "paired restored",
+                            5,
+                        )?,
+                    }),
+                    inbound: channel_callback(core, inbound, "WebSocket", "paired inbound", 5)?,
+                    cancellation: channel_callback(
+                        core,
+                        cancellation,
+                        "WebSocket",
+                        "paired cancellation",
+                        1,
+                    )?,
+                };
+                return websocket_endpoint(core, endpoint)?
+                    .with_pairing(pairing)
+                    .map_err(|error| {
+                        format!("error[native_ir.http_router]: invalid WebSocket pairing: {error}")
+                    });
+            }
+            let [endpoint, waiting, first_matched, second_matched, peer_left, inbound, cancellation] =
+                args.as_slice()
+            else {
+                return Err(format!(
+                    "error[native_ir.http_router]: unsupported WebSocket pairing builder `{function}/{}`",
+                    args.len()
+                ));
+            };
+            let stateful = function == "stateful_paired_callbacks";
+            let pairing = VmWebSocketPairingPlan {
+                waiting: string_literal(waiting)?,
+                first_matched: string_literal(first_matched)?,
+                second_matched: string_literal(second_matched)?,
+                peer_left: string_literal(peer_left)?,
+                stateful,
+                restoration: None,
+                inbound: channel_callback(
+                    core,
+                    inbound,
+                    "WebSocket",
+                    "paired inbound",
+                    if stateful { 5 } else { 1 },
+                )?,
+                cancellation: channel_callback(
+                    core,
+                    cancellation,
+                    "WebSocket",
+                    "paired cancellation",
+                    1,
+                )?,
+            };
+            return websocket_endpoint(core, endpoint)?
+                .with_pairing(pairing)
+                .map_err(|error| {
+                    format!("error[native_ir.http_router]: invalid WebSocket pairing: {error}")
+                });
+        }
+        if matches!(
+            module.as_str(),
+            "std.http.WebSocket" | "WebSocket" | "__receiver__"
         ) && function == "callbacks"
         {
             let [endpoint, open, inbound, writable, close, cancellation] = args.as_slice() else {
@@ -441,9 +553,22 @@ fn callable(core: &CoreModule, expr: &CoreExpr) -> Result<AotRouterCallable, Str
             ),
         };
     if module != core.module {
-        return Err(format!(
-            "error[native_ir.http_router]: callback `{module}.{function}` is outside the router image"
-        ));
+        let Some(arity) = declared_arity else {
+            return Err(format!(
+                "error[native_ir.http_router]: imported callback `{module}.{function}` is missing its declared arity"
+            ));
+        };
+        if !core.imports.iter().any(|import| import.module == module) {
+            return Err(format!(
+                "error[native_ir.http_router]: callback `{module}.{function}` is not imported by router module `{}`",
+                core.module
+            ));
+        }
+        return Ok(AotRouterCallable {
+            module: module.to_string(),
+            function: function.to_string(),
+            arity,
+        });
     }
     let candidates = core
         .functions

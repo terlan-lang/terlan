@@ -1,0 +1,113 @@
+/** Stable self-hosted expression-syntax contract. */
+module self_host.ExpressionSyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub type SequenceExpression.
+pub type LambdaExpression.
+pub type LetExpression.
+pub type RefutableLetExpression.
+pub type QuoteExpression.
+pub type AssignmentExpression.
+pub type ConstructorChainExpression.
+pub type PipeExpression.
+pub type OrExpression.
+pub type AndExpression.
+pub type CompareExpression.
+pub type AddExpression.
+pub type MultiplyExpression.
+pub type CastExpression.
+pub type UnaryExpression.
+pub type CallExpression.
+pub type CaseExpression.
+pub type TryExpression.
+pub type IfExpression.
+pub type MacroExpression.
+pub type UnquoteExpression.
+pub type IntegerExpression.
+pub type FloatExpression.
+pub type StringExpression.
+pub type BinaryExpression.
+pub type NameExpression.
+pub type GroupExpression.
+pub type TupleExpression.
+pub type MapExpression.
+pub type ListExpression.
+pub type ListConsExpression.
+pub type ListComprehensionExpression.
+pub type FixedArrayExpression.
+pub type NominalKeyedExpression.
+pub type BinaryLayoutExpression.
+pub type InvalidExpression.
+
+pub type ExpressionClass =
+    SequenceExpression
+    | LambdaExpression
+    | LetExpression
+    | RefutableLetExpression
+    | QuoteExpression
+    | AssignmentExpression
+    | ConstructorChainExpression
+    | PipeExpression
+    | OrExpression
+    | AndExpression
+    | CompareExpression
+    | AddExpression
+    | MultiplyExpression
+    | CastExpression
+    | UnaryExpression
+    | CallExpression
+    | CaseExpression
+    | TryExpression
+    | IfExpression
+    | MacroExpression
+    | UnquoteExpression
+    | IntegerExpression
+    | FloatExpression
+    | StringExpression
+    | BinaryExpression
+    | NameExpression
+    | GroupExpression
+    | TupleExpression
+    | MapExpression
+    | ListExpression
+    | ListConsExpression
+    | ListComprehensionExpression
+    | FixedArrayExpression
+    | NominalKeyedExpression
+    | BinaryLayoutExpression
+    | InvalidExpression.
+
+/** Lossless expression node with normalized immediate subexpression text. */
+pub struct ExpressionSyntax {
+    class: self_host.ExpressionSyntax.ExpressionClass,
+    text: String,
+    parts: List[String],
+}.
+
+pub constructor ExpressionSyntax {
+    (class: self_host.ExpressionSyntax.ExpressionClass, text: String, parts: List[String]): ExpressionSyntax ->
+        ExpressionSyntax {
+            class: class,
+            text: text,
+            parts: parts,
+        }
+}.
+
+
+pub struct ExpressionParse {
+    valid: Bool,
+    syntax: self_host.ExpressionSyntax.ExpressionSyntax,
+    message: String,
+}.
+
+pub constructor ExpressionParse {
+    (valid: Bool, syntax: self_host.ExpressionSyntax.ExpressionSyntax, message: String): ExpressionParse ->
+        ExpressionParse {
+            valid: valid,
+            syntax: syntax,
+            message: message,
+        }
+}.
+

@@ -1,0 +1,236 @@
+/**
+ * Builds exact-arity callable catalogs from typed backend declarations and interfaces.
+ */
+module self_host.ProjectedCallableCatalog.
+
+
+
+import std.core.Option.{None, Option, Some}.
+import std.collections.List.
+import self_host.BackendSyntax.
+import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
+import self_host.ConstructorSyntax.
+import self_host.ConstructorSyntax.{ConstructorClauseSyntax, ConstructorSyntax}.
+import self_host.DeclarationClass.
+import self_host.Syntax.{ConstFunctionDeclaration, ConstructorDeclaration, FunctionDeclaration, MethodDeclaration}.
+import self_host.ModuleInterfaceSyntax.
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedCallableSyntax.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.TypedModuleSyntax.
+
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload}.
+
+some_return_type(value: String): Option[String] -> Some(value).
+
+none_return_type(): Option[String] -> None.
+
+callable(
+    module_name: String,
+    name: String,
+    arity: Int,
+    callable_kind: String,
+    return_type: Option[String],
+    byte_offset: Int,
+): CallableDeclaration ->
+    CallableDeclaration(
+        module_name = module_name,
+        name = name,
+        arity = arity,
+        callable_kind = callable_kind,
+        return_type = return_type,
+        byte_offset = byte_offset,
+    ).
+
+declaration_offset(value: BackendDeclaration): Int ->
+    if {
+        value.is_public -> value.span.start_byte + 4;
+        true -> value.span.start_byte
+    }.
+
+constructor_clauses(
+    module_name: String,
+    name: String,
+    values: List[ConstructorClauseSyntax],
+    byte_offset: Int,
+): List[CallableDeclaration] ->
+    case values {
+        [] -> List.new[CallableDeclaration]();
+        [value | rest] -> [callable(
+            module_name,
+            name,
+            value.parameters.length(),
+            "constructor",
+            if {
+                value.return_type.valid -> some_return_type(value.return_type.syntax.text);
+                true -> none_return_type()
+            },
+            byte_offset,
+        ) | constructor_clauses(module_name, name, rest, byte_offset)]
+    }.
+
+local_declaration(
+    module_name: String,
+    value: BackendDeclaration,
+): List[CallableDeclaration] ->
+    case value.payload {
+        FunctionPayload(function) -> [callable(
+            module_name,
+            value.symbol_name,
+            function.typed_parameters.length(),
+            if { function.is_const -> "const-function"; true -> "function" },
+            if {
+                function.return_type.valid -> some_return_type(function.return_type.syntax.text);
+                true -> none_return_type()
+            },
+            declaration_offset(value),
+        )];
+        MethodPayload(method) -> [callable(
+            module_name,
+            value.symbol_name,
+            method.parameters.length(),
+            "method",
+            if {
+                method.return_type.valid -> some_return_type(method.return_type.syntax.text);
+                true -> none_return_type()
+            },
+            declaration_offset(value),
+        )];
+        ConstructorPayload(constructor_payload) -> constructor_clauses(
+            module_name,
+            value.symbol_name,
+            constructor_payload.clauses,
+            declaration_offset(value),
+        );
+        _ -> List.new[CallableDeclaration]()
+    }.
+
+prepend_all(
+    values: List[CallableDeclaration],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_all(rest, [value | output])
+    }.
+
+reverse_at(
+    values: List[CallableDeclaration],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+reverse(values: List[CallableDeclaration]): List[CallableDeclaration] ->
+    reverse_at(values, List.new[CallableDeclaration]()).
+
+local_at(
+    module_name: String,
+    values: List[BackendDeclaration],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> local_at(
+            module_name,
+            rest,
+            prepend_all(
+            local_declaration(module_name, value),
+                output,
+            ),
+        )
+    }.
+
+is_callable_class(value: DeclarationClass): Bool ->
+    case value {
+        FunctionDeclaration -> true;
+        ConstFunctionDeclaration -> true;
+        MethodDeclaration -> true;
+        ConstructorDeclaration -> true;
+        _ -> false
+    }.
+
+class_kind(value: DeclarationClass): String ->
+    case value {
+        ConstFunctionDeclaration -> "const-function";
+        MethodDeclaration -> "method";
+        ConstructorDeclaration -> "constructor";
+        _ -> "function"
+    }.
+
+interface_symbols(
+    module_name: String,
+    values: List[ExportedSymbol],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> List.new[CallableDeclaration]();
+        [value | rest] -> if {
+            is_callable_class(value.class) -> [callable(
+                module_name,
+                value.name,
+                value.arity,
+                class_kind(value.class),
+                none_return_type(),
+                value.span.start_byte,
+            ) | interface_symbols(module_name, rest)];
+            true -> interface_symbols(module_name, rest)
+        }
+    }.
+
+interface_symbols_at(
+    module_name: String,
+    values: List[ExportedSymbol],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> interface_symbols_at(
+            module_name,
+            rest,
+            if {
+                is_callable_class(value.class) -> [callable(
+                    module_name,
+                    value.name,
+                    value.arity,
+                    class_kind(value.class),
+                    none_return_type(),
+                    value.span.start_byte,
+                ) | output];
+                true -> output
+            },
+        )
+    }.
+
+interfaces_at(
+    values: List[ModuleInterface],
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> output;
+        [value | rest] -> interfaces_at(
+            rest,
+            interface_symbols_at(value.module_name, value.symbols, output),
+        )
+    }.
+
+pub local(current_module: BackendModule): List[CallableDeclaration] ->
+    reverse(local_at(
+        current_module.module_name,
+        current_module.declarations,
+        List.new[CallableDeclaration](),
+    )).
+
+pub build(
+    current_module: BackendModule,
+    imported_interfaces: List[ModuleInterface],
+): List[CallableDeclaration] ->
+    prepend_all(
+        local_at(
+            current_module.module_name,
+            current_module.declarations,
+            List.new[CallableDeclaration](),
+        ),
+        reverse(interfaces_at(imported_interfaces, List.new[CallableDeclaration]())),
+    ).

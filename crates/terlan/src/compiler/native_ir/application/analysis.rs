@@ -46,6 +46,35 @@ pub(super) fn merge_managed_layouts(
     Ok(())
 }
 
+/// Adds layouts inferred from raw Core expressions without overriding an
+/// authoritative constructor/type layout already installed for the same
+/// semantic variant. Expression scans lack constructor-field context and can
+/// otherwise reintroduce a narrow `Some(T)` field after NativeIR lowering has
+/// correctly selected `Option[T]`.
+pub(super) fn merge_expression_managed_layouts(
+    layouts: &mut Vec<Arc<[u8]>>,
+    additions: Vec<Arc<[u8]>>,
+) -> Result<(), super::super::NativeIrError> {
+    for addition in additions {
+        let candidate = crate::runtime::native_image::managed::decode_aggregate_layout(&addition)
+            .map_err(|error| format!("error[native_ir.managed_layout]: {error}"))?;
+        let already_authoritative = layouts.iter().any(|encoded| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(encoded)
+                .ok()
+                .is_some_and(|existing| {
+                    existing.managed().semantic_id() == candidate.managed().semantic_id()
+                        && existing.kind() == candidate.kind()
+                        && existing.variant_name() == candidate.variant_name()
+                        && existing.discriminant() == candidate.discriminant()
+                })
+        });
+        if !already_authoritative {
+            layouts.push(addition);
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn merge_dynamic_call_profile(
     profiles: &mut super::super::call_composition::DynamicCallProfiles,
     signature: super::super::call_composition::DynamicCallSignature,

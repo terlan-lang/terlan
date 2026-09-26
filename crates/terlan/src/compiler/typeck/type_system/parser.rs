@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::terlan_syntax::unquote_single_quoted_atom;
 use crate::terlan_typeck::types::FixedArraySize;
 use crate::terlan_typeck::{atom_type_literal_payload, MapFieldType, Type, TypeAlias, TypeVarId};
 
@@ -73,7 +72,7 @@ pub(crate) fn parse_type_expr(
         return parse_type_expr(inner.trim(), aliases, vars, next_var);
     }
 
-    if let Some(atom) = parse_type_atom_literal(&src) {
+    if let Some(atom) = atom_type_literal_payload(&src) {
         return Some(Type::LiteralAtom(atom));
     }
 
@@ -313,7 +312,7 @@ pub(crate) fn alias_constructor_param_names_from_variants(variants: &[String]) -
     let Some(tag) = items.next() else {
         return Vec::new();
     };
-    if parse_type_atom_literal(tag.trim()).is_none() {
+    if atom_type_literal_payload(tag.trim()).is_none() {
         return Vec::new();
     }
 
@@ -375,45 +374,6 @@ pub(crate) fn split_named_tuple_type_elem(input: &str) -> Option<(&str, &str)> {
         }
     }
 
-    None
-}
-
-/// Parses an atom literal used in type position.
-///
-/// Inputs:
-/// - `input`: candidate atom literal text.
-///
-/// Output:
-/// - Atom payload without source delimiters when the spelling is valid.
-///
-/// Transformation:
-/// - Accepts canonical `Atom["name"]` plus legacy colon-prefixed spellings;
-///   syntax lowering canonicalizes the latter before interface emission.
-pub(crate) fn parse_type_atom_literal(input: &str) -> Option<String> {
-    if let Some(atom) = atom_type_literal_payload(input) {
-        return Some(atom);
-    }
-
-    if let Some(inner) = input
-        .trim()
-        .strip_prefix("Atom[")
-        .and_then(|text| text.strip_suffix(']'))
-        .map(str::trim)
-        .filter(|text| text.starts_with('\'') && text.ends_with('\''))
-    {
-        return unquote_single_quoted_atom(inner);
-    }
-
-    let atom = input.strip_prefix(':')?;
-    if atom.is_empty() {
-        return None;
-    }
-    if is_type_constructor_atom(atom) {
-        return Some(atom.to_string());
-    }
-    if atom.len() >= 2 && atom.starts_with('\'') && atom.ends_with('\'') {
-        return unquote_single_quoted_atom(atom);
-    }
     None
 }
 

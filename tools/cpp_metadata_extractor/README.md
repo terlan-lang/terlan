@@ -27,6 +27,13 @@ without reparsing a header.
 Complete enum declarations include named enumerators and exact Clang-evaluated
 discriminants. Package policy maps a reviewed subset to symbolic Terlan atoms;
 the integer values remain provenance and are never part of the public binding.
+Record metadata distinguishes all direct bases from the subset reachable by a
+public derived-to-base conversion; generated inherited-method adapters use
+only the latter.
+Unannotated non-const C++ reference parameters are classified as `in_out`;
+explicit `CV_OUT` and `CV_IN_OUT` annotations remain authoritative. This lets
+ordinary upstream mutation APIs drive generated CXX mutable-free-function
+adapters without package-authored metadata patches.
 
 The live gate normalizes only the producer version, which naturally varies by
 installed Clang release. All declaration, type, source, annotation, overload,
@@ -36,3 +43,12 @@ Packages with same-named headers or transitive public declarations can opt into
 canonical matching with `--exact-headers`. Pair it with `--header-root PATH` to
 emit source paths relative to a stable package root. `--public-only` excludes
 private and protected declarations while retaining namespace declarations.
+Repeat `--qualified-symbol NAME` to emit only exact qualified declarations
+from those headers. This lets packages select an opaque record and a small
+callable slice without importing every method declared beside that record.
+Callable IDs distinguish primary templates, non-template overloads, and
+concrete template specializations; for example `item()`, `item<type>()`, and
+`Scalar::to<long>()` cannot collapse during deterministic deduplication.
+Repeat `--symbol-id ID` when one qualified name still denotes multiple
+overloads or specializations. Filtering happens after overload-family counts
+are computed, so the selected declaration retains truthful ambiguity facts.

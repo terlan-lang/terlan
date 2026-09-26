@@ -1,0 +1,48 @@
+/** Recursive canonical type tree over projected tokens. */
+module self_host.ProjectedTypeSyntax.
+
+
+import std.core.Option.{Option}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+pub struct ProjectedTypeNode {
+    kind: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+    children: List[self_host.ProjectedTypeSyntax.ProjectedTypeNode],
+}.
+
+pub constructor ProjectedTypeNode {
+    (kind: String, text: String, start_byte: Int, end_byte: Int, children: List[self_host.ProjectedTypeSyntax.ProjectedTypeNode]): ProjectedTypeNode ->
+        ProjectedTypeNode {
+            kind: kind,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            children: children,
+        }
+}.
+
+
+pub struct ProjectedTypeResult {
+    valid: Bool,
+    node: Option[self_host.ProjectedTypeSyntax.ProjectedTypeNode],
+    rest: List[ProjectedCanonicalToken],
+    message: String,
+}.
+
+pub constructor ProjectedTypeResult {
+    (valid: Bool, node: Option[self_host.ProjectedTypeSyntax.ProjectedTypeNode], rest: List[ProjectedCanonicalToken], message: String): ProjectedTypeResult ->
+        ProjectedTypeResult {
+            valid: valid,
+            node: node,
+            rest: rest,
+            message: message,
+        }
+}.
+

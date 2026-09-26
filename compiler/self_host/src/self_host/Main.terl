@@ -1,0 +1,258 @@
+/** Command entrypoint for the first self-hosted compiler frontend slice. */
+module self_host.Main.
+
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.core.Option.{None, Option, Some}.
+import self_host.Evidence.
+import self_host.CanonicalLexer.
+import self_host.ConcreteSyntaxEvidence.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedFragmentEvidence.
+import self_host.ProjectedParityEvidence.
+import self_host.ProjectedBackendEvidence.
+import self_host.ProjectedBodyEvidence.
+import self_host.ProjectedInterfaceCatalog.
+import self_host.ProjectedStageEvidence.
+import self_host.SelfHostBootstrapTool.
+import self_host.SelfHostSourceClosure.
+import self_host.ProjectedParserEvidence.
+import self_host.ProjectedSemanticEvidence.
+import self_host.ProjectedTokenEvidence.
+import self_host.ParserErrorEvidence.
+import std.collections.List.
+import std.core.{String, Unit}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.
+import std.io.File.
+import std.system.Arguments.
+
+parent(path: String): String ->
+    parent_parts(String.split(path, "/"), "").
+
+parent_parts(parts: List[String], output: String): String ->
+    case parts {
+        [] -> output;
+        [_file] -> output;
+        [part | rest] ->
+            parent_parts(
+                rest,
+                if {
+                    output == "" -> part;
+                    true -> String.concat([output, "/", part])
+                },
+            )
+    }.
+
+some_string(value: String): Option[String] ->
+    Some(value).
+
+none_string(): Option[String] ->
+    None.
+
+ensure_directory(path: String): Bool ->
+    if {
+        path == "" -> true;
+        true -> case Directory.create_all(path) {
+            Ok(_unit) -> true;
+            Err(_reason) -> false
+        }
+    }.
+
+normalize_string_option(value: Option[String]): Option[String] ->
+    case value {
+        Some(text) -> some_string(text);
+        None -> none_string()
+    }.
+
+write_or_print(output: Option[String], rendered: String): Bool ->
+    case output {
+        None -> let _printed = println(rendered);
+        true;
+        Some(path) ->
+            let directory = parent(path);
+            if {
+                not ensure_directory(directory) -> false;
+                true -> case File.write_text(path, String.append(rendered, "\n")) {
+                    Ok(_unit) -> true;
+                    Err(reason) -> let _reported = eprintln(File.message(reason));
+                    false
+                }
+            }
+    }.
+
+write_exact_or_print(output: Option[String], rendered: String): Bool ->
+    case output {
+        None -> let _printed = println(rendered);
+        true;
+        Some(path) ->
+            let directory = parent(path);
+            if {
+                not ensure_directory(directory) -> false;
+                true -> case File.write_text(path, rendered) {
+                    Ok(_unit) -> true;
+                    Err(reason) -> let _reported = eprintln(File.message(reason));
+                    false
+                }
+            }
+    }.
+
+pub analyze_file(input: String, output: Option[String]): Bool ->
+    case File.read_text(input) {
+        Err(reason) -> let _reported = eprintln(File.message(reason));
+        false;
+        Ok(source) ->
+            case Evidence.render(input, source) {
+                Err(reason) -> let _reported = eprintln(std.data.Json.error_message(reason));
+                false;
+                Ok(rendered) -> write_or_print(output, rendered)
+            }
+    }.
+
+pub frontend_file(mode: String, input: String, output: Option[String]): Bool ->
+    case File.read_text(input) {
+        Err(reason) -> let _reported = eprintln(File.message(reason));
+        false;
+        Ok(source) ->
+            let lexed = CanonicalLexer.lex(source);
+            let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+            let rendered = if {
+                mode == "semantic" -> some_string(ProjectedSemanticEvidence.common(frontend));
+                mode == "semantic-full" -> some_string(ProjectedSemanticEvidence.supplemental(frontend));
+                mode == "bodies" -> some_string(ProjectedBodyEvidence.document(frontend.bodies));
+                mode == "frontend-diagnostics" -> some_string(if {
+                    frontend.valid -> "valid";
+                    true -> frontend.message
+                });
+                mode == "backend" -> normalize_string_option(ProjectedBackendEvidence.document(frontend, "terlan-vm"));
+                mode == "backend-diagnostics" -> some_string(ProjectedBackendEvidence.diagnostics(frontend, "terlan-vm"));
+                mode == "expression" or mode == "pattern" or mode == "type" ->
+                    normalize_string_option(ProjectedFragmentEvidence.document(mode, source, lexed.valid, lexed.tokens));
+                mode == "tokens" -> some_string(ProjectedTokenEvidence.document(frontend.tokens));
+                mode == "parser" -> some_string(ProjectedParserEvidence.document(frontend.surface));
+                mode == "concrete" -> some_string(ConcreteSyntaxEvidence.document(frontend.concrete));
+                mode == "errors" -> case ParserErrorEvidence.encode(source, lexed.tokens) {
+                    Ok(text) -> some_string(text);
+                    Err(_) -> none_string()
+                };
+                mode == "parity" -> case ProjectedParityEvidence.encode(frontend.backend) {
+                    Ok(text) -> some_string(text);
+                    Err(_) -> none_string()
+                };
+                true -> none_string()
+            };
+            case rendered {
+                Some(text) -> write_exact_or_print(output, text);
+                None -> let _reported = eprintln("self-host frontend evidence generation failed");
+                false
+            }
+    }.
+
+pub main(): Unit ->
+    case Arguments.get(0) {
+        None -> let _reported = eprintln("usage: terlan-self-host <source.terl> [evidence.json]");
+        Unit;
+        Some(mode) where mode == "tokens" or mode == "parser" or mode == "parity"
+            or mode == "concrete" or mode == "errors" or mode == "expression"
+            or mode == "pattern" or mode == "type" or mode == "backend"
+            or mode == "backend-diagnostics" or mode == "semantic" or mode == "semantic-full"
+            or mode == "bodies" or mode == "frontend-diagnostics" ->
+            case Arguments.get(1) {
+                None -> let _reported = eprintln(
+                    "usage: terlan-self-host tokens|parser|parity|concrete|errors|expression|pattern|type|bodies|frontend-diagnostics|semantic|semantic-full|backend|backend-diagnostics <source.terl> [output]",
+                );
+                Unit;
+                Some(input) -> let _completed = frontend_file(mode, input, Arguments.get(2));
+                Unit
+            };
+        Some(mode) where mode == "source-closure" -> case Arguments.get(1) {
+            Some(output) -> let _completed = SelfHostSourceClosure.write(output);
+            Unit;
+            None -> let _reported = eprintln("usage: terlan-self-host source-closure <output-manifest>");
+            Unit
+        };
+        Some(mode) where mode == "stage-evidence" -> case {Arguments.get(1), Arguments.get(2)} {
+            {Some(manifest), Some(output)} -> let _completed = ProjectedStageEvidence.write(manifest, output);
+            Unit;
+            _ -> let _reported = eprintln("usage: terlan-self-host stage-evidence <sources.manifest> <output-directory>");
+            Unit
+        };
+        Some(mode) where mode == "stage-unit" -> case {
+            Arguments.get(1), Arguments.get(2), Arguments.get(3), Arguments.get(4)
+        } {
+            {Some(input), Some(tokens), Some(syntax), Some(semantics)} ->
+                let _completed = ProjectedStageEvidence.write_unit(input, tokens, syntax, semantics);
+                Unit;
+            _ -> let _reported = eprintln(
+                "usage: terlan-self-host stage-unit <source.terl> <tokens> <syntax> <semantics>",
+            );
+            Unit
+        };
+        Some(mode) where mode == "stage-layer" -> case {
+            Arguments.get(1), Arguments.get(2), Arguments.get(3)
+        } {
+            {Some(layer), Some(input), Some(output)} ->
+                let _completed = ensure_directory(parent(output))
+                    and ProjectedStageEvidence.write_layer(input, layer, output);
+                Unit;
+            _ -> let _reported = eprintln(
+                "usage: terlan-self-host stage-layer tokens|syntax|semantics <source.terl> <output>",
+            );
+            Unit
+        };
+        Some(mode) where mode == "interface-unit" -> case {
+            Arguments.get(1), Arguments.get(2)
+        } {
+            {Some(input), Some(output)} ->
+                let _completed = ensure_directory(parent(output))
+                    and ProjectedInterfaceCatalog.write_interface(input, output);
+                Unit;
+            _ -> let _reported = eprintln(
+                "usage: terlan-self-host interface-unit <source.terl> <interface>",
+            );
+            Unit
+        };
+        Some(mode) where mode == "interface-diagnostics" -> case Arguments.get(1) {
+            Some(input) -> let _reported = println(
+                ProjectedInterfaceCatalog.canonical_diagnostic(input),
+            );
+            Unit;
+            None -> let _reported = eprintln(
+                "usage: terlan-self-host interface-diagnostics <source.terl>",
+            );
+            Unit
+        };
+        Some(mode) where mode == "backend-unit" -> case {
+            Arguments.get(1), Arguments.get(2), Arguments.get(3), Arguments.get(4)
+        } {
+            {Some(input), Some(interface_manifest), Some(output), Some(diagnostics)} ->
+                let _completed = ensure_directory(parent(output))
+                    and ensure_directory(parent(diagnostics))
+                    and ProjectedInterfaceCatalog.write_backend(
+                        input,
+                        interface_manifest,
+                        output,
+                        diagnostics,
+                    );
+                Unit;
+            _ -> let _reported = eprintln(
+                "usage: terlan-self-host backend-unit <source.terl> <interfaces.manifest> <output> <diagnostics>",
+            );
+            Unit
+        };
+        Some(mode) where mode == "bootstrap-compare" -> case {
+            Arguments.get(1), Arguments.get(2), Arguments.get(3)
+        } {
+            {Some(reference), Some(candidate), Some(marker)} ->
+                let _completed = SelfHostBootstrapTool.compare_files(reference, candidate, marker);
+                Unit;
+            _ -> let _reported = eprintln(
+                "usage: terlan-self-host bootstrap-compare <stage1.json> <stage2.json> <marker>",
+            );
+            Unit
+        };
+        Some(input) -> let _completed = analyze_file(input, Arguments.get(1));
+        Unit
+    }.

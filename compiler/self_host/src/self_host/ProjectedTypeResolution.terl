@@ -1,0 +1,184 @@
+/** Resolves projected signature types against local, built-in, and external identities. */
+module self_host.ProjectedTypeResolution.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.BackendSyntax.{BackendDeclaration}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedTypeDeclarationTree}.
+import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeDiagnostic, ProjectedTypeResolution}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+import self_host.Syntax.{OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TypeDeclaration}.
+
+
+import std.collections.List.
+import std.core.String.
+
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+
+@pure
+contains(values: List[String], name: String): Bool ->
+    case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
+
+@pure
+is_builtin(name: String): Bool ->
+    name == "Int"
+        or name == "Float"
+        or name == "Bool"
+        or name == "String"
+        or name == "Binary"
+        or name == "Unit"
+        or name == "Dynamic"
+        or name == "Atom"
+        or name == "Never"
+        or name == "Any"
+        or name == "List"
+        or name == "Map"
+        or name == "Set"
+        or name == "Vector"
+        or name == "Option"
+        or name == "Result"
+        or name == "Html".
+
+@pure
+is_generic_slot(name: String): Bool -> name == "_" or name.byte_size() == 1.
+
+@pure
+known(name: String, local: List[String], external: List[String]): Bool ->
+    is_builtin(name) or is_generic_slot(name) or contains(local, name) or contains(external, name).
+
+@pure
+local_types(values: List[BackendDeclaration]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest]
+            where value.class == TypeDeclaration
+                or value.class == OpaqueTypeDeclaration
+                or value.class == StructDeclaration
+                or value.class == ShapeDeclaration ->
+            [value.symbol_name | local_types(rest)];
+        [_value | rest] -> local_types(rest)
+    }.
+
+@pure
+resolve_node(
+    value: ProjectedTypeNode,
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    let requires_name = value.kind == "named-type" or value.kind == "generic-type";
+    let next = if {
+        requires_name and not known(value.text, local, external) -> [ProjectedTypeDiagnostic(value.text, String.append("unknown type: ", value.text)) | output];
+        true -> output
+    };
+    resolve_nodes(value.children, local, external, next).
+
+@pure
+resolve_nodes(
+    values: List[ProjectedTypeNode],
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> resolve_nodes(
+            rest,
+            local,
+            external,
+            resolve_node(value, local, external, output),
+        )
+    }.
+
+@pure
+resolve_optional(
+    value: Option[ProjectedTypeNode],
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    case value {
+        Some(node) -> resolve_node(node, local, external, output);
+        None -> output
+    }.
+
+@pure
+resolve_parameters(
+    values: List[ProjectedParameterTree],
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> resolve_parameters(
+            rest,
+            local,
+            external,
+            resolve_optional(value.annotation, local, external, output),
+        )
+    }.
+
+@pure
+resolve_callables(
+    values: List[ProjectedCallableSignature],
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let parameters = resolve_parameters(value.parameters, local, external, output);
+            resolve_callables(
+                rest,
+                local,
+                external,
+                resolve_optional(value.return_type, local, external, parameters),
+            )
+    }.
+
+@pure
+resolve_declarations(
+    values: List[ProjectedTypeDeclarationTree],
+    local: List[String],
+    external: List[String],
+    output: List[ProjectedTypeDiagnostic],
+): List[ProjectedTypeDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> resolve_declarations(
+            rest,
+            local,
+            external,
+            resolve_optional(value.representation, local, external, output),
+        )
+    }.
+
+/** Resolves all projected signature type names for one frontend module. */
+@pure
+pub resolve(
+    source: ProjectedFrontendModule,
+    external_types: List[String],
+): ProjectedTypeResolution ->
+    let local = local_types(source.backend.declarations);
+    let callable_diagnostics = resolve_callables(
+        source.signatures.callables,
+        local,
+        external_types,
+        List.new[ProjectedTypeDiagnostic](),
+    );
+    let diagnostics = reverse(resolve_declarations(
+        source.signatures.types,
+        local,
+        external_types,
+        callable_diagnostics,
+    ));
+    ProjectedTypeResolution(source.valid and diagnostics == [], local, external_types, diagnostics).

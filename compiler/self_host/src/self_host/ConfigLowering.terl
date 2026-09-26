@@ -1,0 +1,47 @@
+/** Self-hosted lowering for canonical configuration declaration headers. */
+module self_host.ConfigLowering.
+
+import self_host.ConfigSyntax.{ConfigKind, ConfigSyntax, MachineConfig, RawConfig, StaticConfig, TargetConfig}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{ConfigDeclaration}.
+
+import std.core.{Int, String}.
+import self_host.Delimited.
+
+
+@pure
+strip_terminal_dot(source: String): String ->
+    let value = String.trim(source);
+    if { String.ends_with(value, ".") -> String.trim(value.utf8_slice(0, value.byte_size() - 1)); true -> value }.
+
+@pure
+prefix_size(kind: ConfigKind): Int ->
+    case kind { TargetConfig -> 7; MachineConfig -> 8; StaticConfig -> 7; RawConfig -> 0 }.
+
+@pure
+kind(source: String): ConfigKind ->
+    if {
+        String.starts_with(source, "target ") -> TargetConfig;
+        String.starts_with(source, "machine ") -> MachineConfig;
+        String.starts_with(source, "static ") -> StaticConfig;
+        true -> RawConfig
+    }.
+
+/** Lowers simple config headers and retains raw config declarations exactly. */
+@pure
+pub lower(source: DeclarationSyntax): ConfigSyntax ->
+    let text = strip_terminal_dot(source.body);
+    let kind = kind(text);
+    let payload = if { kind == RawConfig -> text; true -> String.trim(text.utf8_slice(prefix_size(kind), text.byte_size() - prefix_size(kind))) };
+    let adapter_at = if { kind == TargetConfig -> Delimited.top_level_text(payload, " with "); true -> -1 };
+    let name = if { adapter_at < 0 -> payload; true -> String.trim(payload.utf8_slice(0, adapter_at)) };
+    let adapter = if { adapter_at < 0 -> ""; true -> String.trim(payload.utf8_slice(adapter_at + 6, payload.byte_size() - adapter_at - 6)) };
+    let supported = source.class == ConfigDeclaration;
+    ConfigSyntax(supported and text != "" and (kind == RawConfig or name != "") and (adapter_at < 0 or adapter != ""), kind, if { kind == RawConfig -> ""; true -> name }, adapter, adapter_at >= 0, if { kind == RawConfig -> source.body; true -> "" }, source.span, if {
+            not supported -> "declaration is not configuration";
+            text == "" -> "configuration declaration is empty";
+            kind != RawConfig and name == "" -> "configuration name is empty";
+            adapter_at >= 0 and adapter == "" -> "target adapter path is empty";
+            true -> ""
+        }).
+

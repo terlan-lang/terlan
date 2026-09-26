@@ -956,6 +956,12 @@ fn check_syntax_callable_clauses(
         let inferred_expanded = expand_type_aliases(&inferred, aliases);
 
         if let Err(message) = unify(&expected_expanded, &inferred_expanded, &mut subst) {
+            let expected_substituted = apply_subst(&instantiated.ret, &subst);
+            let inferred_substituted = apply_subst(&inferred, &subst);
+            if is_subtype_with_aliases(&inferred_substituted, &expected_substituted, aliases) {
+                clause_patterns.push((clause.patterns.clone(), span));
+                continue;
+            }
             let revealed_inferred = reveal_opaque_aliases(&inferred_expanded, aliases);
             if unify(&expected_expanded, &revealed_inferred, &mut subst).is_ok() {
                 clause_patterns.push((clause.patterns.clone(), span));

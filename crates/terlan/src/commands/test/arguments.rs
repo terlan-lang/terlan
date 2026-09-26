@@ -20,6 +20,8 @@ pub(super) struct TestArgs {
     pub(super) benchmark: bool,
     pub(super) benchmark_warmup: usize,
     pub(super) benchmark_samples: usize,
+    pub(super) coverage: bool,
+    pub(super) coverage_threshold: Option<u8>,
     pub(super) emit_test_manifest: Option<PathBuf>,
     pub(super) emit_test_result_manifest: Option<PathBuf>,
 }
@@ -48,6 +50,8 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     let mut benchmark_warmup = 1usize;
     let mut benchmark_samples = 10usize;
     let mut benchmark_tuning_seen = false;
+    let mut coverage = false;
+    let mut coverage_threshold = None;
     let mut emit_test_manifest = None;
     let mut emit_test_result_manifest = None;
     let mut i = 0;
@@ -110,6 +114,32 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
                 benchmark_tuning_seen = true;
                 i += 2;
             }
+            "--coverage" => {
+                if coverage {
+                    return Err("duplicate --coverage".to_string());
+                }
+                coverage = true;
+                i += 1;
+            }
+            "--coverage-threshold" => {
+                let Some(value) = args.get(i + 1) else {
+                    return Err(
+                        "--coverage-threshold requires an integer from 0 to 100".to_string()
+                    );
+                };
+                let threshold = value
+                    .parse::<u8>()
+                    .ok()
+                    .filter(|threshold| *threshold <= 100)
+                    .ok_or_else(|| {
+                        "--coverage-threshold requires an integer from 0 to 100".to_string()
+                    })?;
+                if coverage_threshold.replace(threshold).is_some() {
+                    return Err("duplicate --coverage-threshold".to_string());
+                }
+                coverage = true;
+                i += 2;
+            }
             "--emit-test-manifest" => {
                 let Some(value) = args.get(i + 1) else {
                     return Err("--emit-test-manifest requires a path".to_string());
@@ -147,6 +177,9 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     if benchmark && target != TestTarget::TerlanVm {
         return Err("@benchmark execution currently requires --target terlan-vm".to_string());
     }
+    if coverage && target != TestTarget::TerlanVm {
+        return Err("declaration coverage currently requires --target terlan-vm".to_string());
+    }
     if paths.len() > 1 && (emit_test_manifest.is_some() || emit_test_result_manifest.is_some()) {
         return Err("test manifest output requires exactly one source path".to_string());
     }
@@ -165,6 +198,8 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
         benchmark,
         benchmark_warmup,
         benchmark_samples,
+        coverage,
+        coverage_threshold,
         emit_test_manifest,
         emit_test_result_manifest,
     })

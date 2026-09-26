@@ -522,7 +522,10 @@ fn adjacent_project_manifest_path(web_root: &Path) -> Option<std::path::PathBuf>
             }
         }
     }
-    candidates.into_iter().find(|candidate| candidate.is_file())
+    candidates
+        .into_iter()
+        .find(|candidate| candidate.is_file())
+        .and_then(|candidate| candidate.canonicalize().ok())
 }
 
 /// Reads a browser package manifest.

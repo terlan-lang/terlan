@@ -3,7 +3,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{run_vm_http_benchmark_comparability, run_vm_http_runtime_attribution_contract};
+use super::run_vm_http_benchmark_comparability;
 
 struct TestRepo {
     root: PathBuf,
@@ -36,20 +36,7 @@ impl TestRepo {
     }
 
     fn write_complete_fixture(&self) -> io::Result<()> {
-        self.write("benches/http/PROFILE.toml", COMPLETE_PROFILE)?;
-        self.write(
-            "crates/terlan/src/vm/main/http_attribution.rs",
-            "transportNs parserNs schedulerNs routingNs allocationAndConversionNs handlerNs responseWriteNs completedMatchesReductions phaseBucketsMatchAccountedTotal queueBalanced parkedProcessesReleased saturationHasBackpressureOutcome",
-        )?;
-        self.write(
-            "crates/terlan/src/commands/serve/handler_cache/replay_evidence.rs",
-            "AotHandlerGeneration multicore_replay_evidence multicore_replay_capture VmMulticoreReplayEvidence",
-        )?;
-        self.write(
-            "crates/terlan/src/runtime/vm/multicore_replay.rs",
-            "terlan.vm.multicore-replay.v1 VmMulticoreReplayEvidence retained_events dropped_events replayable",
-        )?;
-        self.write("Makefile", COMPLETE_MAKEFILE)
+        self.write("benches/http/PROFILE.toml", COMPLETE_PROFILE)
     }
 }
 
@@ -84,25 +71,6 @@ stable_runs_required = 3
 
 [adversarial]
 scenarios = ["malformed-headers", "large-headers", "slow-client", "cancellation", "backpressure"]
-"#;
-
-const COMPLETE_MAKEFILE: &str = r#"
-CHECK_GATES := \
-	vm-http-runtime-attribution-check \
-
-VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
-vm-http-benchmark-comparability-check: $(VM_HTTP_BENCHMARK_COMPARABILITY_DEPS)
-	cargo run -- vm-http-benchmark-comparability
-
-vm-http-runtime-attribution-check: vm-http-benchmark-comparability-check
-	cargo run -- vm-http-runtime-attribution
-
-vm-http-vs-axum-check: tvm-http-paired-performance-check
-	TERLAN_VM_BENCHMARK_GATE=vm-http-vs-axum-check target/debug/terlc test scripts/self_validation/VmBenchmarkFamilyPlanTest.terl
-
-RELEASE_EVIDENCE_GATES := \
-	vm-http-runtime-attribution-check \
-	release-version-channel-check
 "#;
 
 #[test]
@@ -146,63 +114,4 @@ fn comparability_contract_rejects_missing_adversarial_scenario() {
 
     let error = run_vm_http_benchmark_comparability(repo.root()).expect_err("must fail");
     assert!(error.contains("adversarial scenario `backpressure`"));
-}
-
-#[test]
-fn attribution_contract_writes_product_ownership_report() {
-    let repo = TestRepo::new("attribution").expect("fixture");
-    repo.write_complete_fixture().expect("write fixture");
-
-    let summary = run_vm_http_runtime_attribution_contract(repo.root()).expect("quality gate");
-
-    assert_eq!(summary.bucket_count, 7);
-    assert_eq!(summary.invariant_count, 5);
-    let report = fs::read_to_string(summary.report_path).expect("read report");
-    assert!(report.contains("workspace-benchmarks-outside-golden-release"));
-    assert!(report.contains("vm-http-benchmark-comparability-check"));
-}
-
-#[test]
-fn attribution_contract_rejects_missing_bucket() {
-    let repo = TestRepo::new("bucket").expect("fixture");
-    repo.write_complete_fixture().expect("write fixture");
-    repo.write(
-        "crates/terlan/src/vm/main/http_attribution.rs",
-        "transportNs parserNs schedulerNs routingNs allocationAndConversionNs handlerNs completedMatchesReductions phaseBucketsMatchAccountedTotal queueBalanced parkedProcessesReleased saturationHasBackpressureOutcome",
-    )
-    .expect("rewrite attribution");
-
-    let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
-    assert!(error.contains("attribution bucket `responseWriteNs`"));
-}
-
-#[test]
-fn attribution_contract_rejects_release_order_drift() {
-    let repo = TestRepo::new("release-order").expect("fixture");
-    repo.write_complete_fixture().expect("write fixture");
-    repo.write(
-        "Makefile",
-        &COMPLETE_MAKEFILE.replace("\tvm-http-runtime-attribution-check \\", ""),
-    )
-    .expect("rewrite Makefile");
-
-    let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
-    assert!(error.contains("RELEASE_EVIDENCE_GATES"));
-}
-
-#[test]
-fn attribution_contract_requires_the_paired_http_benchmark_prerequisite() {
-    let repo = TestRepo::new("benchmark-prerequisite").expect("fixture");
-    repo.write_complete_fixture().expect("write fixture");
-    repo.write(
-        "Makefile",
-        &COMPLETE_MAKEFILE.replace(
-            "vm-http-vs-axum-check: tvm-http-paired-performance-check\n",
-            "vm-http-vs-axum-check: binary-bitstring-processing-check\n",
-        ),
-    )
-    .expect("rewrite Makefile");
-
-    let error = run_vm_http_runtime_attribution_contract(repo.root()).expect_err("must fail");
-    assert!(error.contains("vm-http-vs-axum-check"));
 }

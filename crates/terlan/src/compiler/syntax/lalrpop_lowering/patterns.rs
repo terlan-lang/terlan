@@ -44,7 +44,6 @@ pub(super) fn lower_pattern(
                 .text
                 .as_deref()
                 .and_then(unquote)
-                .or_else(|| node.text.clone())
                 .ok_or_else(|| context.error(node, "invalid atom pattern literal"))?;
             Ok(Pattern::AtomLiteral(value))
         }

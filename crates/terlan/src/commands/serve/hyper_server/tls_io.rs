@@ -2,14 +2,20 @@
 
 use std::future::Future;
 use std::io::{self, Read as _, Write as _};
+use std::path::PathBuf;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use hyper::rt::{Read, ReadBufCursor, Write};
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
 use rustls::{ServerConfig, ServerConnection};
 
-use crate::runtime::vm::protocol_task_executor::VmReadyTcpStream;
+use crate::runtime::vm::protocol_task_executor::{VmProtocolTaskFactory, VmReadyTcpStream};
+
+use super::websocket_hub::WebSocketHub;
 
 const PLAINTEXT_READ_CHUNK: usize = 16 * 1024;
 
@@ -17,6 +23,81 @@ const PLAINTEXT_READ_CHUNK: usize = 16 * 1024;
 pub(super) enum VmTlsHttpProtocol {
     Http1,
     Http2,
+}
+
+pub(super) fn factory(
+    web_root: PathBuf,
+    server_config: Arc<ServerConfig>,
+    max_body_bytes: u64,
+    websocket_hub: Arc<WebSocketHub>,
+) -> VmProtocolTaskFactory {
+    let web_root = Arc::new(web_root);
+    Arc::new(move |stream, route| {
+        let web_root = super::owner_local_web_root(&web_root);
+        let server_config = Arc::clone(&server_config);
+        let websocket_hub = Arc::clone(&websocket_hub);
+        Box::pin(async move {
+            let io = VmTlsHyperIo::handshake(stream, server_config)
+                .await
+                .map_err(|error| {
+                    format!(
+                        "process {} scheduler {}: rustls handshake failed: {error}",
+                        route.process.as_u64(),
+                        route.scheduler.index()
+                    )
+                })?;
+            match io.negotiated_protocol()? {
+                VmTlsHttpProtocol::Http1 => {
+                    let pending_upgrade = Rc::new(std::cell::RefCell::new(None));
+                    let service_pending_upgrade = Rc::clone(&pending_upgrade);
+                    let service = service_fn(move |request| {
+                        let web_root = Rc::clone(&web_root);
+                        let pending_upgrade = Rc::clone(&service_pending_upgrade);
+                        async move {
+                            Ok::<_, std::convert::Infallible>(
+                                super::handle_request(
+                                    request,
+                                    web_root.as_ref().as_path(),
+                                    max_body_bytes,
+                                    Some(&pending_upgrade),
+                                )
+                                .await,
+                            )
+                        }
+                    });
+                    http1::Builder::new()
+                        .serve_connection(io, service)
+                        .with_upgrades()
+                        .await
+                        .map_err(|error| {
+                            format!("Hyper HTTP/1.1 TLS connection failed: {error}")
+                        })?;
+                    let pending = pending_upgrade.borrow_mut().take();
+                    if let Some(pending) = pending {
+                        super::pump_hyper_websocket(pending, websocket_hub).await?;
+                    }
+                    Ok(())
+                }
+                VmTlsHttpProtocol::Http2 => {
+                    let service = service_fn(move |request| {
+                        let web_root = Rc::clone(&web_root);
+                        async move {
+                            Ok::<_, std::convert::Infallible>(
+                                super::handle_request(
+                                    request,
+                                    web_root.as_ref().as_path(),
+                                    max_body_bytes,
+                                    None,
+                                )
+                                .await,
+                            )
+                        }
+                    });
+                    super::http2::serve_connection(io, service).await
+                }
+            }
+        })
+    })
 }
 
 /// One rustls connection whose socket remains registered on its VM owner.
@@ -199,5 +280,40 @@ impl Write for VmTlsHyperIo {
 
     fn is_write_vectored(&self) -> bool {
         false
+    }
+}
+
+impl std::io::Read for VmTlsHyperIo {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        loop {
+            match self.read_plaintext(buffer) {
+                Ok(read) => return Ok(read),
+                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {}
+                Err(error) => return Err(error),
+            }
+            match self.receive_tls() {
+                Poll::Ready(Ok(0)) => return Ok(0),
+                Poll::Ready(Ok(_)) => {}
+                Poll::Ready(Err(error)) => return Err(error),
+                Poll::Pending => return Err(io::ErrorKind::WouldBlock.into()),
+            }
+        }
+    }
+}
+
+impl std::io::Write for VmTlsHyperIo {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        let written = self.connection.writer().write(buffer)?;
+        match self.flush_tls() {
+            Poll::Ready(Ok(())) | Poll::Pending => Ok(written),
+            Poll::Ready(Err(error)) => Err(error),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self.flush_tls() {
+            Poll::Ready(result) => result,
+            Poll::Pending => Err(io::ErrorKind::WouldBlock.into()),
+        }
     }
 }

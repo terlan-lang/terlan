@@ -1,0 +1,170 @@
+/** Dispatches every surface declaration into the unified typed AST. */
+module self_host.TypedModuleLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
+import self_host.TypedModuleSyntax.{AnnotationSchemaPayload, ConfigPayload, ConstantPayload, ConstructorPayload, ExportPayload, FunctionPayload, ImportPayload, MethodPayload, NativePayload, ShapePayload, StructPayload, TemplatePayload, TraitImplPayload, TraitPayload, TypePayload, TypedDeclaration, TypedDeclarationPayload, TypedModule, UnsupportedPayload, ValuedUnionPayload}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.AnnotationSchemaLowering.
+import self_host.ConstantLowering.
+import self_host.ConfigLowering.
+import self_host.ConstructorLowering.
+import self_host.DeclarationLowering.
+import self_host.DeclarationMetadataLowering.
+import self_host.Delimited.
+import self_host.FunctionLowering.
+import self_host.ExportLowering.
+import self_host.ImportLowering.
+import self_host.MethodLowering.
+import self_host.NativeLowering.
+import self_host.Parser.
+import self_host.ShapeLowering.
+import self_host.StructLowering.
+import self_host.TemplateLowering.
+import self_host.TraitImplLowering.
+import self_host.TraitLowering.
+import self_host.TypeDeclarationLowering.
+import self_host.ValuedUnionLowering.
+
+
+@pure
+before(value: String, separator: String): String ->
+    case String.split(value, separator) { [] -> String.trim(value); [head | _] -> String.trim(head) }.
+
+@pure
+without_prefix(value: String, prefix: String): String ->
+    if {
+        String.starts_with(value, prefix) -> String.trim(value.utf8_slice(prefix.byte_size(), value.byte_size() - prefix.byte_size()));
+        true -> value
+    }.
+
+@pure
+method_name(head: String): String ->
+    case String.split(head, ") ") {
+        [_ | [callable | _]] -> before(callable, "(");
+        _ -> ""
+    }.
+
+/** Returns the source-level symbol introduced by a declaration, if any. */
+@pure
+pub symbol_name(source: DeclarationSyntax): String ->
+    let public_head = Parser.declaration_head(source.body);
+    let head = without_prefix(public_head, "pub ");
+    case source.class {
+        ConstantDeclaration -> before(without_prefix(head, "const "), ":");
+        ConstFunctionDeclaration -> before(without_prefix(head, "const "), "(");
+        FunctionDeclaration -> before(head, "(");
+        TypeDeclaration -> before(before(before(without_prefix(head, "type "), "["), ":"), "=");
+        OpaqueTypeDeclaration -> before(before(without_prefix(head, "opaque type "), "["), "=");
+        StructDeclaration -> before(before(without_prefix(head, "struct "), "["), " ");
+        ConstructorDeclaration -> before(before(without_prefix(head, "constructor "), "["), "(");
+        MethodDeclaration -> method_name(head);
+        TraitDeclaration -> before(before(without_prefix(head, "trait "), "["), " ");
+        AnnotationSchemaDeclaration -> before(before(without_prefix(head, "annotation "), "["), "(");
+        TemplateDeclaration -> before(before(without_prefix(head, "template "), "["), "{");
+        ShapeDeclaration -> before(before(without_prefix(head, "shape "), "["), "(");
+        _ -> ""
+    }.
+
+@pure
+semantic_identity(source: DeclarationSyntax): String ->
+    if {
+        symbol_name(source) == "" -> "";
+        true -> String.trim(source.header)
+    }.
+
+@pure
+is_valued_union(source: DeclarationSyntax): Bool ->
+    let colon = Delimited.top_level_byte(source.body, 58);
+    let assignment = Delimited.top_level_assignment(source.body);
+    colon >= 0 and assignment > colon.
+
+@pure
+payload(source: DeclarationSyntax): TypedDeclarationPayload ->
+    case source.class {
+        ImportDeclaration -> ImportPayload(ImportLowering.lower(source));
+        ConfigDeclaration -> ConfigPayload(ConfigLowering.lower(source));
+        AnnotationSchemaDeclaration -> AnnotationSchemaPayload(AnnotationSchemaLowering.lower(source));
+        ExportDeclaration -> ExportPayload(ExportLowering.lower(source));
+        ConstantDeclaration -> ConstantPayload(ConstantLowering.lower(source));
+        ConstFunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
+        FunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
+        TypeDeclaration where is_valued_union(source) -> ValuedUnionPayload(ValuedUnionLowering.lower(source));
+        TypeDeclaration -> TypePayload(TypeDeclarationLowering.lower(source));
+        OpaqueTypeDeclaration -> TypePayload(TypeDeclarationLowering.lower(source));
+        StructDeclaration -> StructPayload(StructLowering.lower(source));
+        ConstructorDeclaration -> ConstructorPayload(ConstructorLowering.lower(source));
+        MethodDeclaration -> MethodPayload(MethodLowering.lower(source));
+        NativeDeclaration -> NativePayload(NativeLowering.lower(source));
+        TraitDeclaration -> TraitPayload(TraitLowering.lower(source));
+        TraitImplDeclaration -> TraitImplPayload(TraitImplLowering.lower(source));
+        TemplateDeclaration -> TemplatePayload(TemplateLowering.lower(source));
+        ShapeDeclaration -> ShapePayload(ShapeLowering.lower(source));
+        _ -> UnsupportedPayload(source)
+    }.
+
+@pure
+payload_valid(value: TypedDeclarationPayload): Bool ->
+    case value {
+        ImportPayload(item) -> item.valid;
+        ConfigPayload(item) -> item.valid;
+        AnnotationSchemaPayload(item) -> item.valid;
+        ExportPayload(item) -> item.valid;
+        ConstantPayload(item) -> item.valid;
+        FunctionPayload(item) -> item.valid;
+        TypePayload(item) -> item.valid;
+        ValuedUnionPayload(item) -> item.valid;
+        StructPayload(item) -> item.valid;
+        ConstructorPayload(item) -> item.valid;
+        MethodPayload(item) -> item.valid;
+        NativePayload(item) -> item.valid;
+        TraitPayload(item) -> item.valid;
+        TraitImplPayload(item) -> item.valid;
+        TemplatePayload(item) -> item.valid;
+        ShapePayload(item) -> item.valid;
+        UnsupportedPayload(_item) -> false
+    }.
+
+@pure
+payload_message(value: TypedDeclarationPayload): String ->
+    case value {
+        ImportPayload(item) -> item.message;
+        ConfigPayload(item) -> item.message;
+        AnnotationSchemaPayload(item) -> item.message;
+        ExportPayload(item) -> item.message;
+        ConstantPayload(item) -> item.message;
+        FunctionPayload(item) -> item.message;
+        TypePayload(item) -> item.message;
+        ValuedUnionPayload(item) -> item.message;
+        StructPayload(item) -> item.message;
+        ConstructorPayload(item) -> item.message;
+        MethodPayload(item) -> item.message;
+        NativePayload(item) -> item.message;
+        TraitPayload(item) -> item.message;
+        TraitImplPayload(item) -> item.message;
+        TemplatePayload(item) -> item.message;
+        ShapePayload(item) -> item.message;
+        UnsupportedPayload(_item) -> "declaration class is not yet lowered"
+    }.
+
+@pure
+declarations_at(values: List[DeclarationSyntax]): List[TypedDeclaration] ->
+    case values {
+        [] -> List.new[TypedDeclaration]();
+        [value | rest] ->
+            let prepared = DeclarationMetadataLowering.prepare(value);
+            let lowered = payload(prepared.declaration);
+            [TypedDeclaration(payload_valid(lowered), lowered, value.class, symbol_name(value), semantic_identity(value), value.is_public, value.body, prepared.metadata.annotations, prepared.metadata.docs, value.span, payload_message(lowered)) | declarations_at(rest)]
+    }.
+
+@pure
+all_valid(values: List[TypedDeclaration]): Bool ->
+    case values { [] -> true; [value | rest] -> value.valid and all_valid(rest) }.
+
+/** Produces the unified typed module from a declaration-level surface module. */
+@pure
+pub lower(source: ModuleSyntax): TypedModule ->
+    let declarations = declarations_at(source.declarations);
+    TypedModule(source.valid and all_valid(declarations), source.name, declarations, source.errors).

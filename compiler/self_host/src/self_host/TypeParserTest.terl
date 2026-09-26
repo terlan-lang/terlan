@@ -1,0 +1,42 @@
+/** Positive and negative contracts for self-hosted type parsing. */
+module self_host.TypeParserTest.
+
+
+import std.core.Result.{Result}.
+import self_host.TypeSyntax.{AppliedType, ExistentialType, FunctionType, ImplicationType, MapType, UnionType}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.TypeParser.
+
+@pure
+positive_types(): Bool ->
+    let union = TypeParser.parse("Ready | Failed(String) | Result[List[Int], Error]");
+    let function_type = TypeParser.parse("(String, Int) -> Result[String, Error]");
+    let applied = TypeParser.parse("Result[List[Int], Error]");
+    let implication = TypeParser.parse(String.concat(["Value ", String.append("=", ">"), " {name: String}"]));
+    let existential = TypeParser.parse("exists T. Result[T, Error]");
+    let map = TypeParser.parse("{name: String, age: Int}");
+    union.valid
+        and union.syntax.class == UnionType
+        and List.length(union.syntax.parts) == 3
+        and function_type.valid
+        and function_type.syntax.class == FunctionType
+        and applied.valid
+        and applied.syntax.class == AppliedType
+        and implication.valid
+        and implication.syntax.class == ImplicationType
+        and existential.valid
+        and existential.syntax.class == ExistentialType
+        and map.valid
+        and map.syntax.class == MapType.
+
+@pure
+negative_types(): Bool ->
+    not TypeParser.parse("Result[String, Error").valid
+        and not TypeParser.parse("Ready | | Failed").valid
+        and not TypeParser.parse("([)]").valid
+        and not TypeParser.parse("").valid.
+
+pub self_test(): Bool ->
+    positive_types() and negative_types().

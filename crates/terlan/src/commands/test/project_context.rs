@@ -7,7 +7,10 @@ use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions
 use crate::CliState;
 
 use super::arguments::{TestArgs, TEST_SOURCE_PATTERN_DESCRIPTION};
-use super::execution::{run_js_tests, run_terlan_vm_tests, TestProjectContext};
+use super::coverage::DeclarationCoverage;
+use super::execution::{
+    finish_declaration_coverage, run_js_tests, run_terlan_vm_test_file, TestProjectContext,
+};
 
 /// Validates all JavaScript test modules below one directory.
 ///
@@ -62,6 +65,8 @@ pub(super) fn run_js_test_directory(
             benchmark: args.benchmark,
             benchmark_warmup: args.benchmark_warmup,
             benchmark_samples: args.benchmark_samples,
+            coverage: false,
+            coverage_threshold: None,
             emit_test_manifest: None,
             emit_test_result_manifest: None,
         };
@@ -118,6 +123,7 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
     }
 
     let mut failed = false;
+    let mut coverage = args.coverage.then(DeclarationCoverage::default);
     for file in files {
         let file_args = TestArgs {
             path: file.to_string_lossy().into_owned(),
@@ -127,19 +133,24 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
             benchmark: args.benchmark,
             benchmark_warmup: args.benchmark_warmup,
             benchmark_samples: args.benchmark_samples,
+            coverage: args.coverage,
+            coverage_threshold: args.coverage_threshold,
             emit_test_manifest: None,
             emit_test_result_manifest: None,
         };
-        if run_terlan_vm_tests(&file_args, state.clone()) != ExitCode::SUCCESS {
+        if run_terlan_vm_test_file(&file_args, state.clone(), coverage.as_mut())
+            != ExitCode::SUCCESS
+        {
             failed = true;
         }
     }
 
-    if failed {
+    let status = if failed {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
-    }
+    };
+    finish_declaration_coverage(status, args.coverage_threshold, coverage.as_ref())
 }
 
 /// Prepares manifest source roots for one test file.

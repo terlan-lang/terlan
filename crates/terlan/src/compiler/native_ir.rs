@@ -4,6 +4,11 @@
 type LocalFunctionIdentity = (String, usize);
 type QualifiedFunctionIdentity = (String, String, usize);
 
+pub(crate) use crate::runtime::native_image::debug::tvm_coverage_callable_id as coverage_callable_id;
+
+#[cfg(test)]
+mod coverage_callable_id_test;
+
 mod aggregate_types;
 #[cfg(test)]
 #[path = "native_ir/aot3_conformance_test.rs"]
@@ -206,6 +211,9 @@ use lowering_test_support::lower_native_function;
 mod capability_transition_test;
 mod model;
 #[cfg(test)]
+#[path = "native_ir/model_test.rs"]
+mod model_test;
+#[cfg(test)]
 #[path = "native_ir/native_object_test_support.rs"]
 #[cfg(test)]
 mod native_object_test_support;
@@ -281,7 +289,7 @@ mod typed_empty_lists_test;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use crate::runtime::native_image::{
-    TVM_DISPATCH_SYMBOL_V3 as DISPATCH_SYMBOL, TVM_IMAGE_ENTRY_SYMBOL_V1 as IMAGE_ENTRY_SYMBOL,
+    TVM_DISPATCH_SYMBOL_V4 as DISPATCH_SYMBOL, TVM_IMAGE_ENTRY_SYMBOL_V1 as IMAGE_ENTRY_SYMBOL,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use application::resolve_typed_mutable_receiver_calls;
@@ -329,9 +337,7 @@ pub(crate) use model::{
     NativeTransitionOperation, NativeType,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use open_std_pruning::{
-    prune_application_to_function_roots, prune_module_to_function_roots,
-};
+pub(crate) use open_std_pruning::prune_application_to_function_roots;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use request_projection::install_native_request_projection_exports;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]

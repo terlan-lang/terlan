@@ -29,11 +29,12 @@ mod support;
 mod transition_validation;
 
 use reply::handle_reply;
+pub(crate) use support::repl_value_to_boundary_term;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use support::transition_capture_types;
 use support::{
-    capability_identity, native_actor_exit_error, repl_value_to_boundary_term,
-    validate_capability_arguments, validate_transition_continuation,
+    capability_identity, native_actor_exit_error, validate_capability_arguments,
+    validate_transition_continuation,
 };
 pub(crate) use transition_validation::validate_transition_arguments;
 
@@ -197,33 +198,13 @@ impl PureNativeBoundary {
                     (41, 1) | (41, 2) => TvmBoundaryType::Int,
                     (50, 1) => TvmBoundaryType::Bool,
                     (21, 4) | (21, 5) => TvmBoundaryType::Int,
-                    (22, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "std.system.Process.Command",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (31, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "std.system.Process.BatchRequest",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (48, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "std.system.Process.FramedRequest",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
+                    (22, 0) => managed_capability_type("Named(std.system.Process.Command)")?,
+                    (31, 0) => {
+                        managed_capability_type("Named(std.system.Process.BatchRequest)")?
+                    }
+                    (48, 0) => {
+                        managed_capability_type("Named(std.system.Process.FramedRequest)")?
+                    }
                     (54, 0) => TvmBoundaryType::Managed(
                         crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
                             "List(Struct(std.io.File.CopyPlan;source:String,destination:String))",
@@ -793,6 +774,12 @@ impl PureNativeBoundary {
             }
         }
     }
+}
+
+fn managed_capability_type(canonical: &str) -> Result<TvmBoundaryType, String> {
+    crate::runtime::native_image::managed::SemanticTypeId::from_canonical(canonical)
+        .map(|semantic| TvmBoundaryType::Managed(semantic.bytes()))
+        .map_err(|error| format!("error[pure_native_capability_argument]: {error}"))
 }
 
 pub(crate) fn dispatch_transition_operation(

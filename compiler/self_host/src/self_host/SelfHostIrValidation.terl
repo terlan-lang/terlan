@@ -1,0 +1,225 @@
+/**
+ * Structural validation for the backend-neutral self-hosting IR.
+ */
+module self_host.SelfHostIrValidation.
+
+
+import std.core.Option.{Option}.
+import std.collections.List.
+import self_host.SelfHostIrSyntax.
+
+import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrModule, IrParameter, IrValidation}.
+@pure
+reverse_diagnostics_at(values: List[IrDiagnostic], output: List[IrDiagnostic]): List[IrDiagnostic] ->
+    case values { [] -> output; [value | rest] -> reverse_diagnostics_at(rest, [value | output]) }.
+
+@pure
+reverse_diagnostics(values: List[IrDiagnostic]): List[IrDiagnostic] ->
+    reverse_diagnostics_at(values, List.new[IrDiagnostic]()).
+
+@pure
+prepend_reversed_diagnostics(values: List[IrDiagnostic], output: List[IrDiagnostic]): List[IrDiagnostic] ->
+    case values { [] -> output; [value | rest] -> prepend_reversed_diagnostics(rest, [value | output]) }.
+
+@pure
+concat_diagnostics(left: List[IrDiagnostic], right: List[IrDiagnostic]): List[IrDiagnostic] ->
+    prepend_reversed_diagnostics(reverse_diagnostics(left), right).
+
+@pure
+count_parameters_at(values: List[IrParameter], count: Int): Int ->
+    case values { [] -> count; [_ | rest] -> count_parameters_at(rest, count + 1) }.
+
+@pure
+count_parameters(values: List[IrParameter]): Int -> count_parameters_at(values, 0).
+
+@pure
+contains_label(label: String, values: List[IrBlock]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.label == label -> true;
+            true -> contains_label(label, rest)
+        }
+    }.
+
+@pure
+duplicate_labels_at(
+    values: List[IrBlock],
+    function_name: String,
+    output: List[IrDiagnostic],
+): List[IrDiagnostic] ->
+    case values {
+        [] -> reverse_diagnostics(output);
+        [value | rest] -> if {
+            contains_label(value.label, rest) -> duplicate_labels_at(rest, function_name, [IrDiagnostic(
+                code = "duplicate-block-label",
+                message = "block labels must be unique inside a function",
+                function_name = function_name,
+                block_label = value.label,
+            ) | output]);
+            true -> duplicate_labels_at(rest, function_name, output)
+        }
+    }.
+
+@pure
+duplicate_labels(values: List[IrBlock], function_name: String): List[IrDiagnostic] ->
+    duplicate_labels_at(values, function_name, List.new[IrDiagnostic]()).
+
+@pure
+target_exists(target: String, blocks: List[IrBlock]): Bool ->
+    contains_label(target, blocks).
+
+@pure
+missing_targets(
+    targets: List[String],
+    blocks: List[IrBlock],
+    function_name: String,
+    block_label: String,
+): List[IrDiagnostic] ->
+    missing_targets_at(targets, blocks, function_name, block_label, List.new[IrDiagnostic]()).
+
+@pure
+missing_targets_at(
+    targets: List[String],
+    blocks: List[IrBlock],
+    function_name: String,
+    block_label: String,
+    output: List[IrDiagnostic],
+): List[IrDiagnostic] ->
+    case targets {
+        [] -> reverse_diagnostics(output);
+        [target | rest] -> if {
+            target_exists(target, blocks) -> missing_targets_at(rest, blocks, function_name, block_label, output);
+            true -> missing_targets_at(rest, blocks, function_name, block_label, [IrDiagnostic(
+                code = "missing-block-target",
+                message = "terminator target does not name a block in this function",
+                function_name = function_name,
+                block_label = block_label,
+            ) | output])
+        }
+    }.
+
+@pure
+terminator_supported(opcode: String): Bool ->
+    opcode == "return"
+        or opcode == "jump"
+        or opcode == "branch"
+        or opcode == "tail-call"
+        or opcode == "unreachable".
+
+@pure
+validate_blocks(
+    pending: List[IrBlock],
+    all: List[IrBlock],
+    function_name: String,
+): List[IrDiagnostic] ->
+    validate_blocks_at(pending, all, function_name, List.new[IrDiagnostic]()).
+
+@pure
+validate_blocks_at(
+    pending: List[IrBlock],
+    all: List[IrBlock],
+    function_name: String,
+    output: List[IrDiagnostic],
+): List[IrDiagnostic] ->
+    case pending {
+        [] -> reverse_diagnostics(output);
+        [block | rest] -> let unsupported = if {
+            terminator_supported(block.terminator.opcode) -> List.new[IrDiagnostic]();
+            true -> [IrDiagnostic(
+                code = "unsupported-terminator",
+                message = "block terminator is not part of self-host IR ABI 1",
+                function_name = function_name,
+                block_label = block.label,
+            )]
+        };
+        let targets = missing_targets(
+            block.terminator.targets,
+            all,
+            function_name,
+            block.label,
+        );
+        let current = concat_diagnostics(unsupported, targets);
+        validate_blocks_at(rest, all, function_name, prepend_reversed_diagnostics(current, output))
+    }.
+
+@pure
+validate_function(function: IrFunction): List[IrDiagnostic] ->
+    let arity = if {
+        count_parameters(function.parameters) == function.arity -> List.new[IrDiagnostic]();
+        true -> [IrDiagnostic(
+            code = "arity-parameter-mismatch",
+            message = "function arity must equal its parameter count",
+            function_name = function.name,
+            block_label = "",
+        )]
+    };
+    let entry = case function.blocks {
+        [] -> [IrDiagnostic(
+            code = "missing-entry-block",
+            message = "function must contain an entry block",
+            function_name = function.name,
+            block_label = "",
+        )];
+        [first | _] -> if {
+            first.label == "entry" -> List.new[IrDiagnostic]();
+            true -> [IrDiagnostic(
+                code = "invalid-entry-block",
+                message = "the first function block must be named entry",
+                function_name = function.name,
+                block_label = first.label,
+            )]
+        }
+    };
+    concat_diagnostics(
+        arity,
+        concat_diagnostics(
+            entry,
+            concat_diagnostics(
+                duplicate_labels(function.blocks, function.name),
+                validate_blocks(function.blocks, function.blocks, function.name),
+            ),
+        ),
+    ).
+
+@pure
+same_function(left: IrFunction, right: IrFunction): Bool ->
+    left.module_name == right.module_name
+        and left.name == right.name
+        and left.arity == right.arity.
+
+@pure
+contains_function(value: IrFunction, values: List[IrFunction]): Bool ->
+    case values {
+        [] -> false;
+        [candidate | rest] -> if {
+            same_function(value, candidate) -> true;
+            true -> contains_function(value, rest)
+        }
+    }.
+
+@pure
+validate_functions(values: List[IrFunction]): List[IrDiagnostic] ->
+    validate_functions_at(values, List.new[IrDiagnostic]()).
+
+@pure
+validate_functions_at(values: List[IrFunction], output: List[IrDiagnostic]): List[IrDiagnostic] ->
+    case values {
+        [] -> reverse_diagnostics(output);
+        [function | rest] -> let duplicate = if {
+            contains_function(function, rest) -> [IrDiagnostic(
+                code = "duplicate-function",
+                message = "module contains more than one function with this name and arity",
+                function_name = function.name,
+                block_label = "",
+            )];
+            true -> List.new[IrDiagnostic]()
+        };
+        let current = concat_diagnostics(duplicate, validate_function(function));
+        validate_functions_at(rest, prepend_reversed_diagnostics(current, output))
+    }.
+
+@pure
+pub validate(ir_module: IrModule): IrValidation ->
+    let diagnostics = validate_functions(ir_module.functions);
+    IrValidation(valid = diagnostics == List.new[IrDiagnostic](), diagnostics = diagnostics).

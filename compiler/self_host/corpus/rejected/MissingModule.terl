@@ -1,0 +1,2 @@
+pub answer(): Int -> 42.
+

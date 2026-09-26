@@ -1,0 +1,26 @@
+schema = "terlan.self-host.phase/v1"
+phase = 4
+name = "bootstrap-parity-and-authority-transfer"
+status = "validated-candidate"
+
+[candidate]
+entry_point = "self_host.Compiler.compile"
+backend_schema = "terlan.self-host.backend/v1"
+gate_manifest = "phase/AUTHORITY_GATES.toml"
+
+[transfer]
+automatic = false
+requires_all_gates = true
+remove_rust_frontend_immediately = false
+decision_function = "self_host.AuthorityTransfer.evaluate"
+non_empty_fixed_point_hash_required = true
+failed_gate_retains_rust_frontend = true
+
+[validation]
+explicitly_run = true
+projected_semantic_ir_planner = true
+projected_checked_backend_compile = true
+abi_1_canonical_byte_parity = true
+external_vm_consumption = true
+retained_image = "target/quality/self-host-phase4-image-13/bin/terlan-self-host-semantic-evidence"
+retained_artifact = "target/quality/self-host-phase4-backend-13/projected.json"

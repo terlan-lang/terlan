@@ -598,6 +598,53 @@ fn suspending_left_operand_short_circuits_a_later_suspending_call() {
     );
 }
 
+/// A Boolean short-circuit inside a suspending condition must enter the
+/// condition's shared join before the enclosing managed result is returned.
+#[test]
+fn short_circuit_bypass_in_suspending_condition_enters_managed_join() {
+    fn has_direct_boolean_exit(expr: &NativeExpr) -> bool {
+        match expr {
+            NativeExpr::Bool(_) => true,
+            NativeExpr::Let { body, .. } => has_direct_boolean_exit(body),
+            NativeExpr::If { clauses } => clauses
+                .iter()
+                .any(|(_, body)| has_direct_boolean_exit(body)),
+            _ => false,
+        }
+    }
+
+    let module = core(
+        "module app.ManagedConditionJoin.\n\n\
+         pub struct State { value: Int }.\n\n\
+         @compiler.native {fixture.check}\n\
+         check(): Bool -> native.\n\n\
+         pub evaluate(state: State, enabled: Bool): State ->\n\
+             if {\n\
+                 enabled and check() and enabled -> state;\n\
+                 true -> state\n\
+             }.\n",
+    );
+
+    let native = NativeModule::lower_application(&[&module])
+        .expect("lower managed conditional short-circuit join");
+    let managed_continuations = native
+        .iter()
+        .find(|module| module.name == "$terlan.continuations")
+        .expect("materialized continuation module")
+        .functions
+        .iter()
+        .filter(|function| {
+            function.source_function == "evaluate"
+                && matches!(function.return_type, NativeType::ManagedRef(_))
+        })
+        .collect::<Vec<_>>();
+
+    assert!(!managed_continuations.is_empty());
+    assert!(managed_continuations
+        .iter()
+        .all(|function| !has_direct_boolean_exit(&function.body)));
+}
+
 /// Verifies receiver calls resolve through the caller's explicit module import
 /// when multiple application modules export the same name and arity.
 #[test]

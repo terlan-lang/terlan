@@ -1,12 +1,22 @@
 mod bridge_rendering;
+mod collection_adapter;
 mod consumer_output;
 mod contract_validation;
 mod enum_adapter;
 mod exception_adapter;
+mod function_family;
+mod mutation_adapter;
 mod native_helper;
+mod owned_value_adapter;
+mod string_adapter;
 mod type_mapping_validation;
 
 use bridge_rendering::*;
+use collection_adapter::{
+    collection_adapter_name, render_collection_adapter_header, render_collection_adapter_source,
+    resource_list_adapter_name, resource_list_parts, resource_list_result_name,
+    validate_resource_list_projection,
+};
 use consumer_output::*;
 use contract_validation::*;
 use type_mapping_validation::*;
@@ -22,7 +32,24 @@ use exception_adapter::{
     exception_adapter_name, render_exception_adapter_header, render_exception_adapter_source,
     EXCEPTION_ENVELOPE,
 };
+use function_family::{expand_function_families, CppBindingFunctionFamily, CppSymbolPolicyFamily};
+use mutation_adapter::{
+    function_uses_mutation_adapter, has_mutation_adapters, mutation_adapter_name,
+    render_mutation_adapter_header, render_mutation_adapter_source,
+};
 use native_helper::render_native_helper;
+use owned_value_adapter::{
+    cpp_call_argument_with_presence, cpp_parameters, cpp_std_tuple_elements,
+    function_owned_value_resource, function_owned_value_resource_tuple, has_owned_value_adapters,
+    owned_tuple_adapter_name, owned_tuple_carrier_name, owned_tuple_take_name,
+    owned_value_adapter_name, owned_value_bridge_parameter_type, render_owned_value_adapter_header,
+    render_owned_value_adapter_source, resource_input_copy_name, resource_list_input_name,
+    resource_list_input_new_name, resource_list_input_push_name, resource_tuple_return_resources,
+    selected_overload_invocation, used_mutable_secondary_resources, used_resource_list_inputs,
+};
+use string_adapter::{
+    render_string_adapter_header, render_string_adapter_source, string_adapter_name,
+};
 
 #[cfg(test)]
 mod generator_test;
@@ -98,6 +125,9 @@ struct CppStableFailure {
 struct CppMappingPolicy {
     schema: String,
     symbols: Vec<CppSymbolPolicy>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Homogeneous policies expanded into one classification per symbol.
+    symbol_families: Vec<CppSymbolPolicyFamily>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,7 +145,7 @@ struct CppSymbolPolicy {
     exception: Option<CppExceptionPolicy>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Stable package-owned error returned when a selected C++ callable throws.
 struct CppExceptionPolicy {
@@ -148,7 +178,7 @@ enum CppThreadSafetyPolicy {
     Sync,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct CppRejectionPolicy {
     shape: UnsupportedCppShape,
@@ -179,7 +209,27 @@ struct CppBuildPlan {
     linked_libraries: Vec<CppLinkedLibrary>,
     /// Additional build settings selected from Cargo target properties.
     platform_conditions: Vec<CppPlatformCondition>,
+    #[serde(default)]
+    /// Binary SDKs resolved from explicit environment roots at build time.
+    external_roots: Vec<CppExternalRoot>,
     /// Adapter-relative files or directories that trigger a rebuild.
+    rebuild_inputs: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+/// Declares one relocatable external C++ SDK used by the generated adapter.
+struct CppExternalRoot {
+    /// Environment variable containing the SDK root directory.
+    env: String,
+    /// SDK-root-relative C++ include directories.
+    include_roots: Vec<String>,
+    /// SDK-root-relative native library directories.
+    library_search_paths: Vec<String>,
+    /// Libraries linked from this SDK.
+    linked_libraries: Vec<CppLinkedLibrary>,
+    #[serde(default)]
+    /// SDK-root-relative inputs that trigger Cargo rebuilds.
     rebuild_inputs: Vec<String>,
 }
 
@@ -283,11 +333,17 @@ struct CppSymbol {
     #[serde(default)]
     template_parameters: Vec<String>,
     #[serde(default)]
+    /// Concrete arguments for one extracted function-template specialization.
+    template_arguments: Vec<String>,
+    #[serde(default)]
     overload_candidates: usize,
     #[serde(default)]
     variadic: bool,
     #[serde(default)]
     inheritance: Vec<String>,
+    #[serde(default)]
+    /// Base records reachable through a Clang-proven public conversion.
+    public_inheritance: Vec<String>,
     #[serde(default)]
     fields: Vec<CppRecordField>,
     #[serde(default)]
@@ -422,10 +478,16 @@ enum UnsupportedCppShape {
 struct NativeBindingModule {
     module: String,
     documentation: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Fully qualified generated types imported from sibling modules.
+    type_imports: Vec<String>,
     #[serde(default)]
     types: Vec<NativeBindingType>,
     #[serde(default)]
     functions: Vec<NativeBindingFunction>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Homogeneous declarations expanded from exact extracted C++ symbols.
+    function_families: Vec<CppBindingFunctionFamily>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -440,6 +502,9 @@ struct NativeBindingType {
     #[serde(default)]
     /// Reviewed symbolic variants for generated finite enums.
     variants: Vec<NativeBindingVariant>,
+    #[serde(default)]
+    /// Extracted zero-argument method that copies this value to `std::string`.
+    stringifier: Option<String>,
     documentation: String,
 }
 
@@ -453,6 +518,8 @@ enum NativeBindingTypeKind {
     ValueRecord,
     /// Finite symbolic value converted without exposing C++ discriminants.
     Enum,
+    /// Transparent String whose C++ value is constructed inside an adapter.
+    StringValue,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -487,6 +554,12 @@ struct NativeBindingFunction {
     operation: String,
     #[serde(default)]
     cpp_symbol: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Pure Terlan implementation used to compose generated native leaves.
+    terlan_body: Option<String>,
+    #[serde(default, skip_serializing_if = "NativeVisibility::is_public")]
+    /// Controls whether a generated declaration is exported from its module.
+    visibility: NativeVisibility,
     role: NativeFunctionRole,
     #[serde(default)]
     args: Vec<NativeBindingArg>,
@@ -500,6 +573,20 @@ struct NativeBindingFunction {
     blocking: NativeBlockingPolicy,
     resource: NativeResourcePolicy,
     documentation: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum NativeVisibility {
+    #[default]
+    Public,
+    Private,
+}
+
+impl NativeVisibility {
+    fn is_public(&self) -> bool {
+        *self == Self::Public
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -522,19 +609,38 @@ struct NativeBindingProjection {
     cpp_symbol: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Declares one public Terlan argument and its optional copied-field lowering.
 struct NativeBindingArg {
     /// Public argument name.
     name: String,
     /// Public Terlan argument type.
     ty: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Exact extracted C++ parameter receiving this public argument or grouped value.
+    cpp_parameter: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    /// Retains a compatibility-only public argument without forwarding it to C++.
+    cpp_ignore: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Reviewed Terlan literal used when the public caller omits this argument.
+    default: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    /// Additional retained resource mutated by a generated free-function adapter.
+    mutable: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    /// Copies the immediately preceding resource before this resource list.
+    prepend_resource: bool,
     #[serde(default)]
     /// Explicit projections from one copied record to scalar C++ parameters.
     fields: Vec<NativeBindingArgField>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Maps one public copied-record field to one extracted C++ parameter.
 struct NativeBindingArgField {
@@ -550,6 +656,8 @@ enum NativeFunctionRole {
     Constructor,
     ImmutableMethod,
     MutableMethod,
+    /// Mutates one owned resource through a generated, exception-contained C++ free function.
+    MutableFreeFunction,
     FreeFunction,
     /// Copies reviewed getter results into an ordinary Terlan record.
     ValueProjection,
@@ -557,12 +665,20 @@ enum NativeFunctionRole {
     OwnedValueProjection,
     /// Converts one C++ enum result into a reviewed finite Terlan atom.
     EnumProjection,
+    /// Converts one copied C++ value through its extracted stringifier.
+    StringProjection,
+    /// Copies one potentially throwing C++ primitive getter through containment.
+    ScalarProjection,
+    /// Copies one borrowed C++ integer collection into an owned Terlan list.
+    IntListProjection,
+    /// Copies a returned C++ vector into independently owned resource handles.
+    ResourceListProjection,
     /// Executes a potentially throwing method through a generated `noexcept` envelope.
     ExceptionMethod,
     Dispose,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum NativeBlockingPolicy {
     Fast,
@@ -640,12 +756,14 @@ pub(in crate::commands::bind) fn generate_cpp_bindings(
             manifest_path.display()
         )
     })?;
-    let manifest: NativeBindingManifest = serde_json::from_str(&manifest_text).map_err(|err| {
-        format!(
-            "failed to parse structured C++ metadata `{}`: {err}",
-            manifest_path.display()
-        )
-    })?;
+    let mut manifest: NativeBindingManifest =
+        serde_json::from_str(&manifest_text).map_err(|err| {
+            format!(
+                "failed to parse structured C++ metadata `{}`: {err}",
+                manifest_path.display()
+            )
+        })?;
+    expand_function_families(&mut manifest)?;
     let input_dir = manifest_path.parent().unwrap_or_else(|| Path::new("."));
     let symbols = validate_manifest(&manifest, input_dir)?;
     let skipped = collect_skipped_symbols(&symbols)?;
@@ -666,7 +784,7 @@ pub(in crate::commands::bind) fn generate_cpp_bindings(
             &out_dir.join(module_docs_path(&module.module)),
             &render_module_docs(module, &symbols.declarations),
         )?;
-        if let Some(test) = render_consumer_test(module)? {
+        if let Some(test) = render_consumer_test(module, &manifest.modules)? {
             write_file(&out_dir.join(consumer_test_path(&module.module)), &test)?;
         }
     }
@@ -690,7 +808,11 @@ pub(in crate::commands::bind) fn generate_cpp_bindings(
             &manifest.cpp_metadata,
             &manifest.build,
             has_enum_adapters(&manifest),
+            has_string_adapters(&manifest),
+            has_collection_adapters(&manifest),
             has_exception_adapters(&manifest),
+            has_owned_value_adapters(&manifest, &symbols.declarations),
+            has_mutation_adapters(&manifest),
         ),
     )?;
     write_file(
@@ -702,12 +824,44 @@ pub(in crate::commands::bind) fn generate_cpp_bindings(
         &render_enum_adapter_source(&manifest, &symbols.declarations)?,
     )?;
     write_file(
+        &out_dir.join("native/rust/include/terlan_string_adapters.hpp"),
+        &render_string_adapter_header(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/cpp/terlan_string_adapters.cc"),
+        &render_string_adapter_source(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/include/terlan_collection_adapters.hpp"),
+        &render_collection_adapter_header(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/cpp/terlan_collection_adapters.cc"),
+        &render_collection_adapter_source(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
         &out_dir.join("native/rust/include/terlan_exception_adapters.hpp"),
         &render_exception_adapter_header(&manifest, &symbols.declarations)?,
     )?;
     write_file(
         &out_dir.join("native/rust/cpp/terlan_exception_adapters.cc"),
         &render_exception_adapter_source(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/include/terlan_owned_value_adapters.hpp"),
+        &render_owned_value_adapter_header(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/cpp/terlan_owned_value_adapters.cc"),
+        &render_owned_value_adapter_source(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/include/terlan_mutation_adapters.hpp"),
+        &render_mutation_adapter_header(&manifest, &symbols.declarations)?,
+    )?;
+    write_file(
+        &out_dir.join("native/rust/cpp/terlan_mutation_adapters.cc"),
+        &render_mutation_adapter_source(&manifest, &symbols.declarations)?,
     )?;
     write_file(
         &out_dir.join("native/rust/src/lib.rs"),

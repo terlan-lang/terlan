@@ -2,6 +2,10 @@ use std::path::Path;
 
 use super::super::diagnostic::{LintDiagnostic, Severity};
 
+mod named_atom;
+
+pub(super) use named_atom::named_atom_literal_diagnostics;
+
 const MODULE_ORDER_RULE_ID: &str = "TL0501";
 const MODULE_ORDER_RULE_NAME: &str = "consistency.module-order";
 const IMPORT_ORDER_RULE_ID: &str = "TL0502";

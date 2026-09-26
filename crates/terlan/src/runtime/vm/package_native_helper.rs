@@ -84,7 +84,7 @@ impl VmPackageNativeHelpers {
         Ok(helpers)
     }
 
-    fn call(
+    pub(crate) fn call(
         &mut self,
         owner_process_id: u64,
         request: &PureNativeCapabilityRequest,
@@ -837,6 +837,7 @@ fn decode_payload(fields: &[&str]) -> VmRuntimeResult<ReplValue> {
         }
         ["ok_handles"] => Ok(ReplValue::List(Vec::new())),
         ["ok_handles", handles] => decode_handles(handles).map(ReplValue::List),
+        ["ok_tuple_handles", handles] => decode_handles(handles).map(ReplValue::Tuple),
         ["result_ok_unit"] => Ok(result_ok(ReplValue::Unit)),
         ["result_ok_int", value] => value
             .parse::<i64>()

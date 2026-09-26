@@ -1,0 +1,36 @@
+/** Module and selective import semantic contracts. */
+module self_host.ImportReferenceLoweringTest.
+
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.ImportReferenceLowering.
+
+@pure
+selective_import(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Imports.\nimport type std.core.{Int, String}.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let reference = ImportReferenceLowering.lower(declaration);
+            reference.valid
+                and reference.is_type
+                and reference.selective
+                and reference.module_name == "std.core"
+                and reference.items == ["Int", "String"];
+        _ -> false
+    }.
+
+@pure
+module_import(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Imports.\nimport std.collections.List.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let reference = ImportReferenceLowering.lower(declaration);
+            reference.valid and not reference.selective and reference.module_name == "std.collections.List";
+        _ -> false
+    }.
+
+pub self_test(): Bool -> selective_import() and module_import().

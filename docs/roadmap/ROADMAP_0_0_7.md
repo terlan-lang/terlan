@@ -245,7 +245,7 @@ when user-facing.
   - Prerequisite: the completed `make vm-http-concurrency-investigation-check`
     remains green.
   - Gate: `make vm-http-benchmark-comparability-check`,
-    `make vm-http-runtime-attribution-check`, `make vm-http-soak-stability-check`,
+    `make vm-multicore-replay-observability-check`, `make vm-http-soak-stability-check`,
     `make vm-http-vs-axum-check`, and `make rust-quality-check`.
   - Acceptance: reports share workload/config hashes and reject noncomparable or
     statistically unstable claims, unexplained >15% regressions, resource leaks,

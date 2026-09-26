@@ -33,32 +33,10 @@ pub(super) enum VmCommand {
     RestorePersistentActor {
         args: VmPersistentActorRestoreCommandArgs,
     },
-    BenchmarkHttpHandler {
-        iterations: usize,
-    },
-    BenchmarkHttpStack {
-        iterations: usize,
-    },
     BenchmarkInMemoryFraming {
         iterations: usize,
         payload_bytes: usize,
         workload: BenchmarkFramingWorkload,
-    },
-    BenchmarkHttpVmStream {
-        iterations: usize,
-        payload_bytes: usize,
-        requests_per_connection: usize,
-        request_mix: BenchmarkHttpRequestMix,
-    },
-    BenchmarkHttpSocket {
-        iterations: usize,
-        concurrency: usize,
-        queue_capacity: usize,
-        warmup_requests: usize,
-        handler_delay_ms: u64,
-        requests_per_connection: usize,
-        payload_bytes: usize,
-        request_mix: BenchmarkHttpRequestMix,
     },
     Error(String),
 }
@@ -133,36 +111,6 @@ impl Default for VmPersistentActorRestoreCommandArgs {
     }
 }
 
-/// Request shape selection for VM HTTP socket benchmarks.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum BenchmarkHttpRequestMix {
-    Single,
-    Crud,
-    Add,
-    LargeStatic,
-    SlowClient,
-    Streaming,
-    SyntheticHandlers,
-}
-
-impl BenchmarkHttpRequestMix {
-    /// Parses a socket benchmark request mix name.
-    pub(super) fn parse(value: &str) -> Result<Self, String> {
-        match value {
-            "single" => Ok(Self::Single),
-            "crud" => Ok(Self::Crud),
-            "add" => Ok(Self::Add),
-            "large-static" => Ok(Self::LargeStatic),
-            "slow-client" => Ok(Self::SlowClient),
-            "streaming" => Ok(Self::Streaming),
-            "synthetic-handlers" => Ok(Self::SyntheticHandlers),
-            _ => Err(format!(
-                "terlan-vm benchmark-http-socket --request-mix expects `single`, `crud`, `add`, `large-static`, `slow-client`, `streaming`, or `synthetic-handlers`, got `{value}`"
-            )),
-        }
-    }
-}
-
 /// Read-only VM inspection subject selected from the standalone CLI.
 pub(super) enum VmInspectSubject {
     Processes,
@@ -181,9 +129,8 @@ pub(super) enum VmInspectSubject {
 ///   failure.
 ///
 /// Transformation:
-/// - Builds a complete VM artifact that can compile one Terlan source file to
-///   CoreIR, load it into the Rust VM, and execute a zero-arity entrypoint
-///   without going through the `terlc` CLI.
+/// - Loads compiler-emitted native TVM images and exposes runtime inspection
+///   and package validation without compiling or interpreting source code.
 pub(super) fn run() -> ExitCode {
     match parse_args(std::env::args().skip(1).collect()) {
         VmCommand::Help => {
@@ -322,81 +269,11 @@ pub(super) fn run() -> ExitCode {
                 }
             }
         }
-        VmCommand::BenchmarkHttpHandler { iterations } => {
-            match benchmark_http_handler(iterations) {
-                Ok(report) => {
-                    println!("{report}");
-                    ExitCode::SUCCESS
-                }
-                Err(message) => {
-                    eprintln!("{message}");
-                    ExitCode::from(1)
-                }
-            }
-        }
-        VmCommand::BenchmarkHttpStack { iterations } => match benchmark_http_stack(iterations) {
-            Ok(report) => {
-                println!("{report}");
-                ExitCode::SUCCESS
-            }
-            Err(message) => {
-                eprintln!("{message}");
-                ExitCode::from(1)
-            }
-        },
         VmCommand::BenchmarkInMemoryFraming {
             iterations,
             payload_bytes,
             workload,
         } => match benchmark_in_memory_framing(iterations, payload_bytes, workload) {
-            Ok(report) => {
-                println!("{report}");
-                ExitCode::SUCCESS
-            }
-            Err(message) => {
-                eprintln!("{message}");
-                ExitCode::from(1)
-            }
-        },
-        VmCommand::BenchmarkHttpVmStream {
-            iterations,
-            payload_bytes,
-            requests_per_connection,
-            request_mix,
-        } => match benchmark_http_vm_stream(
-            iterations,
-            payload_bytes,
-            requests_per_connection,
-            request_mix,
-        ) {
-            Ok(report) => {
-                println!("{report}");
-                ExitCode::SUCCESS
-            }
-            Err(message) => {
-                eprintln!("{message}");
-                ExitCode::from(1)
-            }
-        },
-        VmCommand::BenchmarkHttpSocket {
-            iterations,
-            concurrency,
-            queue_capacity,
-            warmup_requests,
-            handler_delay_ms,
-            requests_per_connection,
-            payload_bytes,
-            request_mix,
-        } => match benchmark_http_socket(HttpSocketBenchmarkOptions {
-            iterations,
-            concurrency,
-            queue_capacity,
-            warmup_requests,
-            handler_delay_ms,
-            requests_per_connection,
-            payload_bytes,
-            request_mix,
-        }) {
             Ok(report) => {
                 println!("{report}");
                 ExitCode::SUCCESS
@@ -434,20 +311,8 @@ pub(super) fn parse_args(args: Vec<String>) -> VmCommand {
             parse_restore_persistent_actor_args(rest)
         }
         [command, rest @ ..] if command == "inspect" => parse_inspect_args(rest),
-        [command, rest @ ..] if command == "benchmark-http-handler" => {
-            parse_benchmark_http_handler_args(rest)
-        }
-        [command, rest @ ..] if command == "benchmark-http-stack" => {
-            parse_benchmark_http_stack_args(rest)
-        }
         [command, rest @ ..] if command == "benchmark-in-memory-framing" => {
             parse_benchmark_in_memory_framing_args(rest)
-        }
-        [command, rest @ ..] if command == "benchmark-http-vm-stream" => {
-            parse_benchmark_http_vm_stream_args(rest)
-        }
-        [command, rest @ ..] if command == "benchmark-http-socket" => {
-            parse_benchmark_http_socket_args(rest)
         }
         [command, ..] => VmCommand::Error(format!("unknown terlan-vm command: {command}")),
     }

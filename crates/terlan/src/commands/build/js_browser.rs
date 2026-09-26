@@ -1,7 +1,9 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::commands::emit_js::target_contract::JsTargetContract;
+use crate::terlan_syntax::SyntaxDeclarationPayload;
 
 use super::js::JsModuleArtifact;
 use super::write_build_file;
@@ -89,6 +91,7 @@ pub(super) fn write_vm_service_package(
     build_root: &Path,
     source_roots: &[String],
     route_sources: &[WebRouteSourceArtifact],
+    static_assets: Option<&BrowserStaticAssetConfig>,
     incremental: bool,
 ) -> Result<PathBuf, String> {
     let web_root = build_root.join("web");
@@ -100,6 +103,31 @@ pub(super) fn write_vm_service_package(
             staging_root.display()
         )
     })?;
+    let mut assets = Vec::new();
+    let mut has_static_asset_entrypoint = false;
+    if let Some(static_assets) = static_assets {
+        if bundle_manifest_static_assets_with_rsbuild(
+            &staging_root,
+            static_assets,
+            &mut assets,
+            incremental,
+        )? {
+            has_static_asset_entrypoint = true;
+        } else {
+            copy_manifest_static_assets(&staging_root, static_assets, &mut assets, incremental)?;
+        }
+    }
+    if !has_static_asset_entrypoint {
+        write_build_file(
+            &staging_root.join("index.html"),
+            b"<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Terlan service</title></head><body><main>Terlan service</main></body></html>\n",
+            incremental,
+        )?;
+    }
+    // Bundle public assets before adding private compiler inputs. Rsbuild's
+    // output registration scans the web root, so this ordering prevents
+    // packaged Terlan sources, interfaces, templates, and the project manifest
+    // from becoming publicly addressable asset rows.
     copy_regular_file(
         &project_dir.join(super::TERLAN_PROJECT_MANIFEST_FILE),
         &staging_root.join(super::TERLAN_PROJECT_MANIFEST_FILE),
@@ -110,14 +138,10 @@ pub(super) fn write_vm_service_package(
             &staging_root.join(source_root),
         )?;
     }
-    write_build_file(
-        &staging_root.join("index.html"),
-        b"<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Terlan service</title></head><body><main>Terlan service</main></body></html>\n",
-        incremental,
-    )?;
+    copy_vm_service_template_dependencies(project_dir, &staging_root, source_roots)?;
     let routes = discover_web_route_manifest_from_sources(route_sources)?;
     let error_handler = discover_web_error_handler_from_sources(route_sources)?;
-    manifest::write_vm_service_manifest(&staging_root, routes, error_handler, incremental)?;
+    manifest::write_vm_service_manifest(&staging_root, assets, routes, error_handler, incremental)?;
     crate::commands::serve::prewarm_dynamic_handler_sources(&staging_root)?;
     remove_transient_vm_service_build_state(&staging_root)?;
     remove_generated_web_root(&web_root)?;
@@ -128,6 +152,101 @@ pub(super) fn write_vm_service_package(
         )
     })?;
     Ok(web_root)
+}
+
+/// Copies external templates referenced by packaged VM service sources.
+///
+/// Template paths are source-relative, so retaining their project-relative
+/// location makes the staged source tree compile exactly as it did in the
+/// project. Only declared template files inside the canonical project root are
+/// admitted; a deployable service cannot depend on an ambient host file.
+fn copy_vm_service_template_dependencies(
+    project_dir: &Path,
+    staging_root: &Path,
+    source_roots: &[String],
+) -> Result<(), String> {
+    let canonical_project = fs::canonicalize(project_dir).map_err(|error| {
+        format!(
+            "cannot canonicalize VM service project {}: {error}",
+            project_dir.display()
+        )
+    })?;
+    let mut dependencies = BTreeSet::new();
+    for source_root in source_roots {
+        for source_path in
+            crate::formal_pipeline::terlan_sources_in_dir(&project_dir.join(source_root))?
+        {
+            let source = fs::read_to_string(&source_path).map_err(|error| {
+                format!(
+                    "cannot read VM service source {} while packaging templates: {error}",
+                    source_path.display()
+                )
+            })?;
+            let syntax = crate::formal_pipeline::parse_source_as_syntax_output(
+                &source_path.to_string_lossy(),
+                &source,
+            )
+            .map_err(|error| {
+                format!(
+                    "cannot parse VM service source {} while packaging templates: {error:?}",
+                    source_path.display()
+                )
+            })?;
+            let source_parent = source_path.parent().unwrap_or(project_dir);
+            for declaration in syntax.declarations {
+                let SyntaxDeclarationPayload::Template {
+                    source_path: template_source_path,
+                    ..
+                } = declaration.payload
+                else {
+                    continue;
+                };
+                let declared = Path::new(&template_source_path);
+                let resolved = if declared.is_absolute() {
+                    declared.to_path_buf()
+                } else {
+                    source_parent.join(declared)
+                };
+                let canonical_template = fs::canonicalize(&resolved).map_err(|error| {
+                    format!(
+                        "cannot canonicalize VM service template {} declared by {}: {error}",
+                        resolved.display(),
+                        source_path.display()
+                    )
+                })?;
+                let relative = canonical_template
+                    .strip_prefix(&canonical_project)
+                    .map_err(|_| {
+                        format!(
+                            "VM service template {} escapes project root {}",
+                            canonical_template.display(),
+                            canonical_project.display()
+                        )
+                    })?;
+                if relative.as_os_str().is_empty()
+                    || relative.components().any(|component| {
+                        matches!(
+                            component,
+                            std::path::Component::ParentDir
+                                | std::path::Component::RootDir
+                                | std::path::Component::Prefix(_)
+                        )
+                    })
+                {
+                    return Err(format!(
+                        "VM service template path is unsafe: {}",
+                        relative.display()
+                    ));
+                }
+                let relative = relative.to_path_buf();
+                dependencies.insert((canonical_template, relative));
+            }
+        }
+    }
+    for (source, relative) in dependencies {
+        copy_regular_file(&source, &staging_root.join(relative))?;
+    }
+    Ok(())
 }
 
 fn remove_transient_vm_service_build_state(web_root: &Path) -> Result<(), String> {

@@ -1,0 +1,123 @@
+/** Deterministic evidence documents for canonical token differential checks. */
+module self_host.TokenEvidence.
+
+import self_host.CanonicalToken.{CanonicalToken, EndToken}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import self_host.CanonicalLexer.
+import self_host.TokenContext.
+
+
+pub struct TokenEvidenceDocument {
+    schema: String,
+    source_sha256: String,
+    token_count: Int,
+    rows: String,
+    rows_sha256: String,
+    authority_token_count: Int,
+    authority_rows: String,
+    authority_rows_sha256: String,
+}.
+
+pub constructor TokenEvidenceDocument {
+    (schema: String, source_sha256: String, token_count: Int, rows: String, rows_sha256: String, authority_token_count: Int, authority_rows: String, authority_rows_sha256: String): TokenEvidenceDocument ->
+        TokenEvidenceDocument {
+            schema: schema,
+            source_sha256: source_sha256,
+            token_count: token_count,
+            rows: rows,
+            rows_sha256: rows_sha256,
+            authority_token_count: authority_token_count,
+            authority_rows: authority_rows,
+            authority_rows_sha256: authority_rows_sha256,
+        }
+}.
+
+
+@pure
+display_terminal(terminal: String): String ->
+    if {
+        terminal == "placeholder" -> "_";
+        terminal == "tight-dot" or terminal == "selector-dot" -> ".";
+        terminal == "lambda-(" or terminal == "function-clause-(" -> "(";
+        terminal == "nominal-keyed-{" -> "{";
+        terminal == "binary-layout-[" or terminal == "generic-call-[" or terminal == "cast-type-[" -> "[";
+        terminal == "closing-semicolon" -> ";";
+        terminal == "remote-call-colon" -> ":";
+        terminal == "function-body-arrow" -> "->";
+        true -> terminal
+    }.
+
+@pure
+row(token: CanonicalToken): String ->
+    String.concat([
+        token.terminal,
+        "\t",
+        display_terminal(token.terminal),
+        "\t",
+        Int.to_string(token.start_byte),
+        "\t",
+        Int.to_string(token.end_byte),
+        "\t",
+        Hash.sha256(token.text),
+        "\n",
+    ]).
+
+@pure
+rows_at(tokens: List[CanonicalToken], output: String): String ->
+    case tokens {
+        [] -> output;
+        [token | rest] -> rows_at(rest, String.append(output, row(token)))
+    }.
+
+@pure
+authority_row(token: CanonicalToken): String ->
+    String.concat([
+        display_terminal(token.terminal),
+        "\t",
+        Int.to_string(token.start_byte),
+        "\t",
+        Int.to_string(token.end_byte),
+        "\t",
+        Hash.sha256(token.text),
+        "\n",
+    ]).
+
+@pure
+authority_rows_at(tokens: List[CanonicalToken], output: String): String ->
+    case tokens {
+        [] -> output;
+        [token | rest] -> if {
+            token.category == EndToken -> authority_rows_at(rest, output);
+            true -> authority_rows_at(rest, String.append(output, authority_row(token)))
+        }
+    }.
+
+/** Builds the canonical self-hosted lexical evidence artifact. */
+@pure
+pub document(source: String): TokenEvidenceDocument ->
+    let output = CanonicalLexer.lex(source);
+    let tokens = TokenContext.project(output.tokens);
+    let rows = rows_at(tokens, "");
+    let authority_rows = authority_rows_at(tokens, "");
+    TokenEvidenceDocument("terlan.self-host.tokens/v1", Hash.sha256(source), List.length(tokens), rows, Hash.sha256(rows), List.length(tokens) - 1, authority_rows, Hash.sha256(authority_rows)).
+
+/** Serializes the implementation-neutral authority artifact byte-for-byte. */
+@pure
+pub authority_document(source: String): String ->
+    let evidence = document(source);
+    String.concat([
+        "schema\tterlan.self-host.token-authority/v1\n",
+        "source_sha256\t",
+        evidence.source_sha256,
+        "\n",
+        "token_count\t",
+        Int.to_string(evidence.authority_token_count),
+        "\n",
+        "rows_sha256\t",
+        evidence.authority_rows_sha256,
+        "\n--\n",
+        evidence.authority_rows,
+    ]).

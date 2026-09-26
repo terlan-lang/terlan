@@ -218,7 +218,7 @@ fn managed_reference_type(core: &CoreType) -> Option<NativeType> {
 /// wrong heap semantic identity.
 pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType) -> String {
     match core {
-        CoreType::Struct { name, .. } => name.clone(),
+        CoreType::Struct { name, .. } => CoreType::Named(name.clone()).contract_text(),
         CoreType::Named(name) if is_http_request_type(name) => "Named(Request)".to_string(),
         CoreType::Named(name) if is_http_response_type(name) => "Named(Response)".to_string(),
         core @ CoreType::Union(_) if is_structural_string_option(core) => {
@@ -227,8 +227,77 @@ pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType)
         core @ CoreType::Union(_) if is_structural_http_middleware_result(core) => {
             "Named(MiddlewareResult)".to_string()
         }
-        _ => core.contract_text(),
+        _ => normalize_recursive_managed_type(core).contract_text(),
     }
+}
+
+/// Collapses repeated structural unrolling of the same recursive list union.
+/// Type checking may expose one additional recursive layer at independent use
+/// sites; managed identity must remain stable across those equivalent views.
+pub(in crate::compiler::native_ir) fn normalize_recursive_managed_type(
+    core: &CoreType,
+) -> CoreType {
+    match core {
+        CoreType::Struct { name, .. } => CoreType::Named(name.clone()),
+        CoreType::List(element) => {
+            CoreType::List(Box::new(normalize_recursive_managed_type(element)))
+        }
+        CoreType::Apply { constructor, args } => CoreType::Apply {
+            constructor: constructor.clone(),
+            args: args.iter().map(normalize_recursive_managed_type).collect(),
+        },
+        CoreType::Union(variants) => {
+            let normalized = variants
+                .iter()
+                .map(normalize_recursive_managed_type)
+                .collect::<Vec<_>>();
+            for variant in &normalized {
+                let Some(CoreType::Union(inner)) = list_type_element(variant) else {
+                    continue;
+                };
+                if recursive_list_alias(inner).is_some()
+                    && non_list_variants(&normalized) == non_list_variants(inner)
+                {
+                    return CoreType::Union(inner.clone());
+                }
+            }
+            CoreType::Union(normalized)
+        }
+        _ => core.clone(),
+    }
+}
+
+/// Returns one list element from either checked list representation.
+fn list_type_element(core: &CoreType) -> Option<&CoreType> {
+    match core {
+        CoreType::List(element) => Some(element),
+        CoreType::Apply { constructor, args }
+            if constructor.rsplit('.').next() == Some("List") && args.len() == 1 =>
+        {
+            Some(&args[0])
+        }
+        _ => None,
+    }
+}
+
+/// Finds the nominal recursion anchor in a structural list union.
+fn recursive_list_alias(variants: &[CoreType]) -> Option<&str> {
+    let mut names = variants.iter().filter_map(|variant| {
+        let CoreType::Named(name) = list_type_element(variant)? else {
+            return None;
+        };
+        Some(name.as_str())
+    });
+    let name = names.next()?;
+    names.next().is_none().then_some(name)
+}
+
+/// Returns ordered non-list variants for structural recursion comparison.
+fn non_list_variants(variants: &[CoreType]) -> Vec<&CoreType> {
+    variants
+        .iter()
+        .filter(|variant| list_type_element(variant).is_none())
+        .collect()
 }
 
 /// Recovers the semantic type of a concrete homogeneous collection literal.

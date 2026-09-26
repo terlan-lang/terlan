@@ -1,0 +1,43 @@
+module self_host.InterfaceTest.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import self_host.Canonical.
+import self_host.Corpus.
+import self_host.Interface.
+import self_host.Lexer.
+import std.collections.List.
+import std.core.String.
+
+@test
+pub interface_extracts_module_imports_and_public_declarations(): Bool ->
+    let lexical =
+        Lexer.lex(
+            "module sample.App.\nimport std.core.{String, Unit}.\nimport type std.core.Option.\npub type Name = String.\npub struct App { name: Name }.\npub run(): Int -> 1.\n",
+        );
+    let parsed = Interface.extract(lexical.tokens);
+    List.is_empty(lexical.errors)
+        and List.is_empty(parsed.errors)
+        and parsed.interface.module_name == "sample.App"
+        and List.length(parsed.interface.imports) == 2
+        and List.length(parsed.interface.declarations) == 3.
+
+@test
+pub interface_reports_missing_module(): Bool ->
+    let parsed = Interface.extract(Lexer.lex("pub run(): Int -> 1.").tokens);
+    parsed.interface.module_name == "" and List.length(parsed.errors) == 1.
+
+@test
+pub canonical_interface_has_stable_schema_and_identity(): Bool ->
+    let parsed = Interface.extract(Lexer.lex("module sample.App.\npub run(): Int -> 1.\n").tokens);
+    case Canonical.render_interface(parsed.interface) {
+        Ok(rendered) ->
+            String.contains(rendered, "terlan.self-host.interface.v1")
+                and String.contains(rendered, "sample.App")
+                and String.contains(rendered, "run");
+        Err(_reason) -> false
+    }.
+
+@test
+pub maintained_positive_and_negative_corpus_holds(): Bool ->
+    Corpus.valid().

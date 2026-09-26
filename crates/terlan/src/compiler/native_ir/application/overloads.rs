@@ -743,6 +743,11 @@ fn type_match_score_at(
         (CoreType::Dynamic | CoreType::Term, _) | (_, CoreType::Dynamic) => Some(1),
         (CoreType::Number, CoreType::Int | CoreType::Float | CoreType::Number) => Some(2),
         (CoreType::Atom, CoreType::AtomLiteral(_)) => Some(4),
+        (CoreType::Union(variants), actual) => variants
+            .iter()
+            .filter_map(|variant| type_match_score_at(variant, actual, aliases, depth + 1))
+            .max()
+            .map(|score| score + 2),
         (CoreType::List(expected), CoreType::List(actual)) => {
             type_match_score_at(expected, actual, aliases, depth).map(|score| score + 4)
         }
@@ -803,6 +808,10 @@ fn bind_pattern_type(
             bind_pattern_type(pattern, ty, environment);
         }
         CorePattern::Tuple(patterns) => {
+            if let Some((payload_pattern, payload_type)) = tagged_pattern_payload(patterns, ty) {
+                bind_pattern_type(payload_pattern, payload_type, environment);
+                return;
+            }
             if let CoreType::Tuple(elements) = ty {
                 for (pattern, element) in patterns.iter().zip(elements) {
                     let element = match element {
@@ -825,8 +834,54 @@ fn bind_pattern_type(
                 bind_pattern_type(tail, ty, environment);
             }
         }
+        CorePattern::Constructor { name, args, .. } => {
+            if let Some(payload_type) = constructor_pattern_payload(ty, name) {
+                if let Some(payload_pattern) = args.first() {
+                    bind_pattern_type(payload_pattern, payload_type, environment);
+                }
+            }
+        }
         _ => {}
     }
+}
+
+/// Returns the payload carried by a standard unary constructor pattern.
+fn constructor_pattern_payload<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
+    let constructor = name.rsplit('.').next()?;
+    match ty {
+        CoreType::Apply {
+            constructor: applied,
+            args,
+        } if applied.rsplit('.').next() == Some("Result") && args.len() == 2 => match constructor {
+            "Ok" => args.first(),
+            "Err" => args.get(1),
+            _ => None,
+        },
+        CoreType::Apply {
+            constructor: applied,
+            args,
+        } if applied.rsplit('.').next() == Some("Option") && args.len() == 1 => {
+            (constructor == "Some").then(|| &args[0])
+        }
+        _ => None,
+    }
+}
+
+/// Recognizes the lowered tagged-tuple form of Result and Option patterns.
+fn tagged_pattern_payload<'a>(
+    patterns: &'a [CorePattern],
+    ty: &'a CoreType,
+) -> Option<(&'a CorePattern, &'a CoreType)> {
+    let [CorePattern::Atom(tag), payload] = patterns else {
+        return None;
+    };
+    let payload_type = match tag.as_str() {
+        "ok" => constructor_pattern_payload(ty, "Ok"),
+        "error" => constructor_pattern_payload(ty, "Err"),
+        "some" => constructor_pattern_payload(ty, "Some"),
+        _ => None,
+    }?;
+    Some((payload, payload_type))
 }
 
 /// Collapses equal inferred branches and otherwise returns `Dynamic`.

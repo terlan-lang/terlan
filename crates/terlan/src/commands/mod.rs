@@ -11,6 +11,8 @@ pub(crate) mod check;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod clean;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod cloud;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod db;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod debug;

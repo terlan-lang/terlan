@@ -1,0 +1,57 @@
+/** Maintained accepted and rejected corpus for the first self-hosted slice. */
+module self_host.Corpus.
+
+import self_host.Interface.
+import self_host.Lexer.
+import std.collections.List.
+
+pub struct CorpusCase {
+    name: String,
+    source: String,
+    accepted: Bool,
+    module_name: String,
+    import_count: Int,
+    declaration_count: Int,
+}.
+
+pub constructor CorpusCase {
+    (name: String, source: String, accepted: Bool, module_name: String, import_count: Int, declaration_count: Int): CorpusCase ->
+        CorpusCase {
+            name: name,
+            source: source,
+            accepted: accepted,
+            module_name: module_name,
+            import_count: import_count,
+            declaration_count: declaration_count,
+        }
+}.
+
+
+pub cases(): List[CorpusCase] ->
+    [
+        CorpusCase("minimal", "module sample.Minimal.\n\npub answer(): Int -> 42.\n", true, "sample.Minimal", 0, 1),
+        CorpusCase("imports-and-types", "module sample.Types.\nimport std.core.{String, Unit}.\nimport type std.core.Option.\n\npub type Name = String.\npub struct Row { value: String }.\n", true, "sample.Types", 2, 2),
+        CorpusCase("unicode-and-comments", "/** documentation */\nmodule sample.Unicode.\n// Unicode scalar content\npub greeting(): String -> \"café λ\".\n", true, "sample.Unicode", 0, 1),
+        CorpusCase("unicode-identifier-rejected", "module sample.Unicode.\npub café(): String -> \"é\".\n", false, "sample.Unicode", 0, 0),
+        CorpusCase("missing-module", "pub answer(): Int -> 42.\n", false, "", 0, 1),
+        CorpusCase("unterminated-string", "module sample.Bad.\npub value(): String -> \"bad\n", false, "sample.Bad", 0, 1),
+        CorpusCase("unterminated-comment", "module sample.BadComment.\n/* never closed", false, "sample.BadComment", 0, 0),
+    ].
+
+case_holds(row: CorpusCase): Bool ->
+    let lexical = Lexer.lex(row.source);
+    let parsed = Interface.extract(lexical.tokens);
+    let accepted = List.is_empty(lexical.errors) and List.is_empty(parsed.errors);
+    accepted == row.accepted
+        and parsed.interface.module_name == row.module_name
+        and List.length(parsed.interface.imports) == row.import_count
+        and List.length(parsed.interface.declarations) == row.declaration_count.
+
+all_hold(rows: List[CorpusCase]): Bool ->
+    case rows {
+        [] -> true;
+        [row | rest] -> case_holds(row) and all_hold(rest)
+    }.
+
+pub valid(): Bool ->
+    all_hold(cases()).

@@ -1,0 +1,41 @@
+/** Seed-stage coordinator; Cargo is invoked only for trusted ABI validation and hashing. */
+module self_host.SelfHostSeedStage.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import self_host.ProjectedPackageWriter.
+import self_host.ProjectedStageEvidence.
+import self_host.SelfHostSourceClosure.
+import std.core.{String}.
+import std.io.Console.eprintln.
+import std.io.Directory.
+import std.system.Process.
+
+run_validator(output: String): Bool ->
+    let command = Process.with_arguments(Process.command("cargo"), [
+        "run", "--quiet", "-p", "terlan", "--bin", "terlan-self-host-parity", "--",
+        "artifact-set", "self_host",
+        String.append(output, "/evidence/tokens.bundle"),
+        String.append(output, "/evidence/syntax.bundle"),
+        String.append(output, "/evidence/semantics.bundle"),
+        String.append(output, "/package/modules"),
+        String.append(output, "/bootstrap-artifact.json"),
+    ]);
+    case Process.run(command) {
+        Err(reason) -> let _reported = eprintln(Process.error_message(reason));
+        false;
+        Ok(completion) where Process.status(completion) == 0 -> true;
+        Ok(completion) -> let _reported = eprintln(Process.stderr(completion));
+        false
+    }.
+
+/** Produces the trusted seed package and all fixed-point evidence. */
+pub run(output: String): Bool ->
+    let _created = Directory.create_all(output);
+    let package = String.append(output, "/package");
+    let manifest = String.append(package, "/sources.manifest");
+    let _package_created = Directory.create_all(package);
+    SelfHostSourceClosure.write(manifest)
+        and ProjectedPackageWriter.write(manifest, String.append(package, "/modules"))
+        and ProjectedStageEvidence.write(manifest, String.append(output, "/evidence"))
+        and run_validator(output).

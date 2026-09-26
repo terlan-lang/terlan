@@ -83,6 +83,23 @@ llvm::cl::opt<std::string> HeaderRoot(
     llvm::cl::desc("Root removed from emitted selected-header source paths"),
     llvm::cl::value_desc("path"), llvm::cl::init(""),
     llvm::cl::cat(ToolCategory));
+llvm::cl::list<std::string> QualifiedSymbols(
+    "qualified-symbol",
+    llvm::cl::desc("Emit only declarations with this exact qualified name"),
+    llvm::cl::value_desc("qualified-name"), llvm::cl::ZeroOrMore,
+    llvm::cl::cat(ToolCategory));
+llvm::cl::list<std::string> SymbolIds(
+    "symbol-id",
+    llvm::cl::desc("Emit only declarations with this exact stable symbol ID"),
+    llvm::cl::value_desc("symbol-id"), llvm::cl::ZeroOrMore,
+    llvm::cl::cat(ToolCategory));
+
+/// Applies an optional exact declaration selection after header filtering.
+bool is_selected_symbol(const std::string& qualified) {
+  return QualifiedSymbols.empty() ||
+         std::find(QualifiedSymbols.begin(), QualifiedSymbols.end(), qualified) !=
+             QualifiedSymbols.end();
+}
 
 struct ExtractedSymbol {
   std::string id;
@@ -272,7 +289,7 @@ std::string default_expression(const ParmVarDecl& parameter,
       .str();
 }
 
-/// Derives input/output direction from maintained Clang annotation facts.
+/// Derives input/output direction from annotations and C++ reference qualifiers.
 std::string parameter_direction(const ParmVarDecl& parameter) {
   for (const clang::Attr* attribute : parameter.attrs()) {
     if (const auto* annotate = llvm::dyn_cast<clang::AnnotateAttr>(attribute)) {
@@ -283,6 +300,10 @@ std::string parameter_direction(const ParmVarDecl& parameter) {
         return "in_out";
       }
     }
+  }
+  const QualType type = parameter.getType();
+  if (type->isReferenceType() && !type.getNonReferenceType().isConstQualified()) {
+    return "in_out";
   }
   return "input";
 }
@@ -322,10 +343,68 @@ llvm::json::Array template_parameters(const FunctionDecl& function) {
   return result;
 }
 
+/// Renders concrete function-template arguments with Clang's type policy.
+std::vector<std::string> template_specialization_arguments(
+    const FunctionDecl& function, ASTContext& context) {
+  std::vector<std::string> result;
+  if (const auto* specialization = function.getTemplateSpecializationArgs()) {
+    clang::PrintingPolicy policy(context.getLangOpts());
+    policy.SuppressTagKeyword = true;
+    for (const clang::TemplateArgument& argument : specialization->asArray()) {
+      std::string rendered;
+      llvm::raw_string_ostream output(rendered);
+      argument.print(policy, output, true);
+      output.flush();
+      result.push_back(std::move(rendered));
+    }
+  }
+  return result;
+}
+
 /// Produces a stable symbol ID from kind, qualified name, and canonical inputs.
 std::string symbol_id(const FunctionDecl& function, ASTContext& context) {
   std::string kind = llvm::isa<CXXMethodDecl>(function) ? "method:" : "function:";
-  std::string value = kind + function.getQualifiedNameAsString() + "(";
+  std::string value = kind + function.getQualifiedNameAsString();
+  const std::vector<std::string> specialization =
+      template_specialization_arguments(function, context);
+  if (!specialization.empty()) {
+    value += "<";
+    for (std::size_t index = 0; index < specialization.size(); ++index) {
+      if (index > 0) {
+        value += ",";
+      }
+      value += specialization[index];
+    }
+    value += ">";
+  } else if (const auto* templated = function.getDescribedFunctionTemplate()) {
+    value += "<";
+    bool first_template = true;
+    for (const clang::NamedDecl* parameter :
+         *templated->getTemplateParameters()) {
+      if (!first_template) {
+        value += ",";
+      }
+      first_template = false;
+      if (const auto* type =
+              llvm::dyn_cast<clang::TemplateTypeParmDecl>(parameter)) {
+        value += type->isParameterPack() ? "type..." : "type";
+      } else if (const auto* non_type =
+                     llvm::dyn_cast<clang::NonTypeTemplateParmDecl>(parameter)) {
+        clang::PrintingPolicy policy(context.getLangOpts());
+        policy.SuppressTagKeyword = true;
+        value += "value:";
+        value += non_type->getType().getCanonicalType().getAsString(policy);
+        if (non_type->isParameterPack()) {
+          value += "...";
+        }
+      } else if (const auto* nested =
+                     llvm::dyn_cast<clang::TemplateTemplateParmDecl>(parameter)) {
+        value += nested->isParameterPack() ? "template..." : "template";
+      }
+    }
+    value += ">";
+  }
+  value += "(";
   bool first = true;
   for (const ParmVarDecl* parameter : function.parameters()) {
     if (!first) {
@@ -443,6 +522,9 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
     remember_target(*match.Context);
     llvm::json::Object value;
     std::string qualified = enumeration.getQualifiedNameAsString();
+    if (!is_selected_symbol(qualified)) {
+      return;
+    }
     value["id"] = "enum:" + qualified;
     value["cpp_name"] = enumeration.getNameAsString();
     value["source"] = source_location(enumeration, *match.SourceManager);
@@ -475,6 +557,9 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
     remember_target(*match.Context);
     llvm::json::Object value;
     std::string qualified = record.getQualifiedNameAsString();
+    if (!is_selected_symbol(qualified)) {
+      return;
+    }
     value["id"] = "record:" + qualified;
     value["cpp_name"] = record.getNameAsString();
     value["source"] = source_location(record, *match.SourceManager);
@@ -494,11 +579,20 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
       value["fields"] = std::move(fields);
     }
     llvm::json::Array inheritance;
+    llvm::json::Array public_inheritance;
     for (const clang::CXXBaseSpecifier& base : record.bases()) {
-      inheritance.push_back(base.getType().getCanonicalType().getAsString());
+      const std::string base_name =
+          base.getType().getCanonicalType().getAsString();
+      inheritance.push_back(base_name);
+      if (base.getAccessSpecifier() == clang::AS_public) {
+        public_inheritance.push_back(base_name);
+      }
     }
     if (!inheritance.empty()) {
       value["inheritance"] = std::move(inheritance);
+    }
+    if (!public_inheritance.empty()) {
+      value["public_inheritance"] = std::move(public_inheritance);
     }
     symbols_.push_back(
         ExtractedSymbol{"record:" + qualified, qualified, std::move(value)});
@@ -516,6 +610,9 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
     }
     remember_target(*match.Context);
     std::string qualified = function.getQualifiedNameAsString();
+    if (!is_selected_symbol(qualified)) {
+      return;
+    }
     std::string id = symbol_id(function, *match.Context);
     llvm::json::Object value;
     value["id"] = id;
@@ -533,6 +630,15 @@ class DeclarationCollector final : public MatchFinder::MatchCallback {
     value["parameters"] = parameters(function, match);
     value["noexcept"] = is_noexcept(function);
     value["template_parameters"] = template_parameters(function);
+    const std::vector<std::string> specialization =
+        template_specialization_arguments(function, *match.Context);
+    if (!specialization.empty()) {
+      llvm::json::Array arguments;
+      for (const std::string& argument : specialization) {
+        arguments.push_back(argument);
+      }
+      value["template_arguments"] = std::move(arguments);
+    }
     value["variadic"] = function.isVariadic();
     llvm::json::Array calls = direct_calls(function, *match.Context);
     if (!calls.empty()) {
@@ -649,6 +755,11 @@ llvm::json::Array finalize_symbols(std::vector<ExtractedSymbol> symbols) {
         symbol.id.rfind("method:", 0) == 0) {
       symbol.value["overload_candidates"] =
           static_cast<std::int64_t>(overload_counts[symbol.overload_set]);
+    }
+    if (!SymbolIds.empty() &&
+        std::find(SymbolIds.begin(), SymbolIds.end(), symbol.id) ==
+            SymbolIds.end()) {
+      continue;
     }
     result.push_back(std::move(symbol.value));
   }

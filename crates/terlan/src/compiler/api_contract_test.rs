@@ -130,6 +130,24 @@ fn router_source_contract_extracts_group_routes() {
     );
 }
 
+/// Verifies grouped HTTP imports retain the Router capability marker.
+///
+/// Cloud applications commonly import `Response` and `Router` together; API
+/// and deploy-plan extraction must recognize the same grouped syntax as web
+/// package route discovery.
+#[test]
+fn router_source_contract_accepts_grouped_router_import() {
+    let source = router_source().replace(
+        "import std.http.Router.\nimport std.http.Response.",
+        "import std.http.{Response, Router}.",
+    );
+
+    let contract = ApiContract::from_router_source(&source, "Example", "0.0.1")
+        .expect("extract routes from grouped Router import");
+
+    assert_eq!(contract.routes.len(), 2);
+}
+
 /// Returns a route source fixture.
 fn router_source() -> &'static str {
     "module app.Http.\n\nimport std.http.Router.\nimport std.http.Response.\nimport type std.http.Request.Request.\nimport type std.http.Response.Response.\nimport type std.http.Router.Router.\n\npub router(): Router ->\n    let router = Router.get(Router.new(), \"/\", home);\n    router.get(\"/users/:id\", show_user).\n\npub home(_request: Request): Response ->\n    Response.text(\"home\").\n\npub show_user(_request: Request): Response ->\n    Response.text(\"user\").\n"

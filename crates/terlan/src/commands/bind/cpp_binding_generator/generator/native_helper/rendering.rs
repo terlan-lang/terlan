@@ -1,10 +1,21 @@
 use std::collections::BTreeMap;
 
+use super::super::collection_adapter::{
+    collection_adapter_name, resource_list_adapter_name, resource_list_parts,
+};
 use super::super::enum_adapter::enum_adapter_name;
 use super::super::exception_adapter::exception_adapter_name;
+use super::super::mutation_adapter::{function_uses_mutation_adapter, mutation_adapter_name};
+use super::super::owned_value_adapter::{
+    function_owned_value_resource, function_owned_value_resource_tuple, owned_tuple_adapter_name,
+    owned_tuple_take_name, owned_value_adapter_name, resource_input_copy_name,
+    resource_list_input_new_name, resource_list_input_push_name, resource_list_input_resource,
+};
+use super::super::string_adapter::string_adapter_name;
 use super::super::{
-    function_symbol, CppSymbol, NativeBindingArg, NativeBindingFunction, NativeBindingManifest,
-    NativeBindingModule, NativeBindingType, NativeBindingTypeKind, NativeFunctionRole,
+    function_symbol, public_cpp_parameter_mappings, CppSymbol, NativeBindingArg,
+    NativeBindingFunction, NativeBindingManifest, NativeBindingModule, NativeBindingType,
+    NativeBindingTypeKind, NativeFunctionRole,
 };
 use super::template::HELPER_TEMPLATE;
 
@@ -29,11 +40,25 @@ pub(in crate::commands::bind::cpp_binding_generator) fn render_native_helper(
     }
     let mut arms = String::new();
     for module in &manifest.modules {
-        for function in &module.functions {
+        for function in module
+            .functions
+            .iter()
+            .filter(|function| function.terlan_body.is_none())
+        {
             arms.push_str(&render_operation_arm(manifest, module, function, symbols)?);
         }
     }
     let null_failure = render_null_failure(manifest, symbols)?;
+    let live_mut = if arms.contains("self.live_mut(") {
+        "    fn live_mut(\n        &mut self,\n        handle: &HandleArg,\n        expected_type: &str,\n    ) -> Result<&mut HandleEntry, String> {\n        self.validate(handle, expected_type)?;\n        Ok(self.handles.get_mut(&handle.id).expect(\"validated handle\"))\n    }"
+    } else {
+        ""
+    };
+    let arg_handles = if arms.contains("arg_handles(") {
+        "fn arg_handles(value: &Arg) -> &[HandleArg] {\n    match value {\n        Arg::Handles(values) => values,\n        Arg::EmptyList => &[],\n        _ => unreachable!(\"generated operation pattern validates resource-list arguments\"),\n    }\n}"
+    } else {
+        ""
+    };
 
     let crate_ident = manifest.package.crate_name.replace('-', "_");
     Ok(HELPER_TEMPLATE
@@ -41,6 +66,8 @@ pub(in crate::commands::bind::cpp_binding_generator) fn render_native_helper(
         .replace("@HANDLE_VARIANTS@", &variants)
         .replace("@OPERATION_ARMS@", &arms)
         .replace("@NULL_FAILURE@", &null_failure)
+        .replace("@LIVE_MUT@", live_mut)
+        .replace("@ARG_HANDLES@", arg_handles)
         .replace(
             "@MAX_FRAME_BYTES@",
             &crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES
@@ -97,12 +124,21 @@ fn render_operation_arm(
         NativeFunctionRole::Constructor => {
             let (owner, ty) = find_return_resource(manifest, function)?;
             let symbol = function_symbol(function, symbols)?;
-            let call = render_ffi_call(manifest, &symbol.cpp_name, &function.args, 0)?;
+            let call_name =
+                if function_owned_value_resource_tuple(manifest, function, symbols).is_some() {
+                    owned_tuple_adapter_name(module, function)
+                } else if function_owned_value_resource(manifest, function, symbols).is_some() {
+                    owned_value_adapter_name(module, function)
+                } else {
+                    symbol.cpp_name.clone()
+                };
+            let call = render_ffi_call(manifest, &call_name, &function.args, 0)?;
             let borrowed = render_borrowed_resource_bindings(manifest, &function.args, 0)?;
+            let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
             let variant = resource_variant(owner, ty);
             let type_name = resource_type_name(owner, ty);
             format!(
-                "{borrowed}                let value = {call};\n                if value.is_null() {{\n                    return native_null_failure(\"constructor returned null\");\n                }}\n                self.next_id += 1;\n                let id = self.next_id;\n                self.handles.insert(id, HandleEntry {{ generation: 1, type_name: {type_name:?}, value: HandleValue::{variant}(value) }});\n                format!(\"ok_handle {{}} {{id}} 1 {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({type_name:?}))\n"
+                "{borrowed}{resource_lists}                let value = {call};\n                if value.is_null() {{\n                    return native_null_failure(\"constructor returned null\");\n                }}\n                self.next_id += 1;\n                let id = self.next_id;\n                self.handles.insert(id, HandleEntry {{ generation: 1, type_name: {type_name:?}, value: HandleValue::{variant}(value) }});\n                format!(\"ok_handle {{}} {{id}} 1 {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({type_name:?}))\n"
             )
         }
         NativeFunctionRole::ImmutableMethod | NativeFunctionRole::MutableMethod => {
@@ -118,27 +154,65 @@ fn render_operation_arm(
             let type_name = resource_type_name(owner, ty);
             let call_args = render_call_args(manifest, &function.args, 1)?;
             let borrowed = render_borrowed_resource_bindings(manifest, &function.args, 1)?;
-            let receiver = if function.role == NativeFunctionRole::MutableMethod {
+            let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
+            let receiver = if function.role == NativeFunctionRole::MutableMethod
+                && function_uses_mutation_adapter(manifest, function)
+            {
+                return render_contained_mutable_method(
+                    manifest, module, function, symbol, owner, ty,
+                )
+                .map(|body| format!("{header}{body}            }}\n"));
+            } else if function.role == NativeFunctionRole::ImmutableMethod
+                && (function_owned_value_resource(manifest, function, symbols).is_some()
+                    || function_owned_value_resource_tuple(manifest, function, symbols).is_some())
+            {
+                let adapter =
+                    if function_owned_value_resource_tuple(manifest, function, symbols).is_some() {
+                        owned_tuple_adapter_name(module, function)
+                    } else {
+                        owned_value_adapter_name(module, function)
+                    };
+                let suffix = if call_args.is_empty() {
+                    String::new()
+                } else {
+                    format!(", {call_args}")
+                };
                 format!(
-                    "                let entry = match self.live_mut(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &mut entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n{borrowed}                let result = value.pin_mut().{}({call_args});\n",
+                    "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n{borrowed}{resource_lists}                let result = ffi::{adapter}(value.as_ref().expect(\"validated non-null handle\"){suffix});\n"
+                )
+            } else if function.role == NativeFunctionRole::MutableMethod {
+                format!(
+                    "                let entry = match self.live_mut(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &mut entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n{borrowed}{resource_lists}                let result = value.pin_mut().{}({call_args});\n",
                     symbol.cpp_name
                 )
             } else {
                 format!(
-                    "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n{borrowed}                let result = value.as_ref().expect(\"validated non-null handle\").{}({call_args});\n",
+                    "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n{borrowed}{resource_lists}                let result = value.as_ref().expect(\"validated non-null handle\").{}({call_args});\n",
                     symbol.cpp_name
                 )
             };
-            receiver + &render_function_result(manifest, function)?
+            receiver + &render_function_result(manifest, module, function, symbols)?
         }
         NativeFunctionRole::FreeFunction => {
             let symbol = function_symbol(function, symbols)?;
-            let call = render_ffi_call(manifest, &symbol.cpp_name, &function.args, 0)?;
+            let call_name =
+                if function_owned_value_resource_tuple(manifest, function, symbols).is_some() {
+                    owned_tuple_adapter_name(module, function)
+                } else if function_owned_value_resource(manifest, function, symbols).is_some() {
+                    owned_value_adapter_name(module, function)
+                } else {
+                    symbol.cpp_name.clone()
+                };
+            let call = render_ffi_call(manifest, &call_name, &function.args, 0)?;
             let borrowed = render_borrowed_resource_bindings(manifest, &function.args, 0)?;
+            let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
             format!(
-                "{borrowed}                let result = {call};\n{}",
-                render_function_result(manifest, function)?
+                "{borrowed}{resource_lists}                let result = {call};\n{}",
+                render_function_result(manifest, module, function, symbols)?
             )
+        }
+        NativeFunctionRole::MutableFreeFunction => {
+            render_mutable_free_function(manifest, module, function, symbols)?
         }
         NativeFunctionRole::ValueProjection => {
             render_value_projection(manifest, module, function, symbols)?
@@ -147,6 +221,18 @@ fn render_operation_arm(
             render_owned_value_projection(manifest, module, function, symbols)?
         }
         NativeFunctionRole::EnumProjection => render_enum_projection(manifest, module, function)?,
+        NativeFunctionRole::StringProjection => {
+            render_string_projection(manifest, module, function)?
+        }
+        NativeFunctionRole::ScalarProjection => {
+            render_scalar_projection(manifest, module, function, symbols)?
+        }
+        NativeFunctionRole::IntListProjection => {
+            render_int_list_projection(manifest, module, function)?
+        }
+        NativeFunctionRole::ResourceListProjection => {
+            render_resource_list_projection(manifest, module, function, symbols)?
+        }
         NativeFunctionRole::ExceptionMethod => render_exception_method(manifest, module, function)?,
         NativeFunctionRole::Dispose => {
             let (owner, ty, handle_index) = find_handle_resource(manifest, function)?;
@@ -163,6 +249,191 @@ fn render_operation_arm(
         }
     };
     Ok(format!("{header}{body}            }}\n"))
+}
+
+/// Renders a method mutation through the same compiler-generated containment
+/// and pre-borrow resource-copy path used for mutable free functions.
+fn render_contained_mutable_method(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+    symbol: &CppSymbol,
+    owner: &NativeBindingModule,
+    resource: &NativeBindingType,
+) -> Result<String, String> {
+    let type_name = resource_type_name(owner, resource);
+    let variant = resource_variant(owner, resource);
+    let copied_resources = render_copied_resource_bindings(manifest, &function.args, 1)?;
+    let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
+    let args = render_call_args(manifest, &function.args, 1)?;
+    let suffix = if args.is_empty() {
+        String::new()
+    } else {
+        format!(", {args}")
+    };
+    Ok(format!(
+        "{copied_resources}{resource_lists}                let entry = match self.live_mut(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &mut entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let envelope = ffi::{}(value.pin_mut(){suffix});\n                let Some(envelope) = envelope.as_ref() else {{ return protocol_error(\"native_exception_envelope\", {:?}); }};\n                if envelope.is_ok() {{\n                    \"ok_unit\".to_string()\n                }} else {{\n                    protocol_error(envelope.code().to_str().unwrap_or(\"native_mutation_failed\"), envelope.message().to_str().unwrap_or(\"native mutation failed\"))\n                }}\n",
+        mutation_adapter_name(module, function),
+        format!("{} could not allocate a contained result", function.name),
+    ))
+}
+
+/// Renders a contained free function whose first argument is the sole mutable resource.
+fn render_mutable_free_function(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+    symbols: &BTreeMap<&str, &CppSymbol>,
+) -> Result<String, String> {
+    if function
+        .args
+        .iter()
+        .skip(1)
+        .any(|argument| argument.mutable)
+    {
+        return render_multi_target_mutable_free_function(manifest, module, function, symbols);
+    }
+    let (owner, resource, handle_index) = find_handle_resource(manifest, function)?;
+    if handle_index != 0 {
+        return Err(format!(
+            "mutable free function `{}` requires its resource target first",
+            function.name
+        ));
+    }
+    let symbol = function_symbol(function, symbols)?;
+    let type_name = resource_type_name(owner, resource);
+    let variant = resource_variant(owner, resource);
+    let copied_resources = render_copied_resource_bindings(manifest, &function.args, 1)?;
+    let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
+    let args = render_call_args(manifest, &function.args, 1)?;
+    let suffix = if args.is_empty() {
+        String::new()
+    } else {
+        format!(", {args}")
+    };
+    Ok(format!(
+        "{copied_resources}{resource_lists}                let entry = match self.live_mut(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &mut entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let envelope = ffi::{}(value.pin_mut(){suffix});\n                let Some(envelope) = envelope.as_ref() else {{ return protocol_error(\"native_exception_envelope\", {:?}); }};\n                if envelope.is_ok() {{\n                    \"ok_unit\".to_string()\n                }} else {{\n                    protocol_error(envelope.code().to_str().unwrap_or(\"native_mutation_failed\"), envelope.message().to_str().unwrap_or(\"native mutation failed\"))\n                }}\n",
+        mutation_adapter_name(module, function),
+        format!("{} could not allocate a contained result", function.name),
+    ))
+}
+
+/// Renders a contained mutation with multiple independently retained targets.
+/// All inputs are copied and all handles are validated before targets are
+/// temporarily removed from the table, allowing safe simultaneous mutable CXX
+/// borrows without unsafe Rust or aliasing the same public handle twice.
+fn render_multi_target_mutable_free_function(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+    symbols: &BTreeMap<&str, &CppSymbol>,
+) -> Result<String, String> {
+    let symbol = function_symbol(function, symbols)?;
+    let mutable = function
+        .args
+        .iter()
+        .enumerate()
+        .filter(|(index, argument)| *index == 0 || argument.mutable)
+        .map(|(index, argument)| {
+            let (owner, resource) =
+                find_resource_type(manifest, &argument.ty).ok_or_else(|| {
+                    format!(
+                        "mutable free function `{}` target `{}` is not an opaque resource",
+                        function.name, argument.name
+                    )
+                })?;
+            Ok((
+                index,
+                resource_type_name(owner, resource),
+                resource_variant(owner, resource),
+            ))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let copied_resources = render_copied_resource_bindings(manifest, &function.args, 1)?;
+    let resource_lists = render_resource_list_input_bindings(manifest, function, symbol)?;
+    let distinct = mutable
+        .iter()
+        .enumerate()
+        .flat_map(|(left_index, (left, _, _))| {
+            mutable
+                .iter()
+                .skip(left_index + 1)
+                .map(move |(right, _, _)| {
+                    format!(
+                        "                if arg_{left}.id == arg_{right}.id {{ return protocol_error(\"mutable_handle_alias\", \"mutable output handles must be distinct\"); }}\n"
+                    )
+                })
+        })
+        .collect::<String>();
+    let validations = mutable
+        .iter()
+        .map(|(index, type_name, _)| {
+            format!(
+                "                if let Err(error) = self.validate(arg_{index}, {type_name:?}) {{ return error; }}\n"
+            )
+        })
+        .collect::<String>();
+    let removals = mutable
+        .iter()
+        .map(|(index, _, _)| {
+            format!(
+                "                let mut arg_{index}_entry = self.handles.remove(&arg_{index}.id).expect(\"validated mutable handle\");\n"
+            )
+        })
+        .collect::<String>();
+    let value_bindings = mutable
+        .iter()
+        .map(|(index, type_name, variant)| {
+            format!(
+                "                    let HandleValue::{variant}(arg_{index}_value) = &mut arg_{index}_entry.value else {{ unreachable!(\"validated {type_name} handle variant\") }};\n"
+            )
+        })
+        .collect::<String>();
+    let reinserts = mutable
+        .iter()
+        .map(|(index, _, _)| {
+            format!("                self.handles.insert(arg_{index}.id, arg_{index}_entry);\n")
+        })
+        .collect::<String>();
+    let args = render_call_args(manifest, &function.args, 1)?;
+    let suffix = if args.is_empty() {
+        String::new()
+    } else {
+        format!(", {args}")
+    };
+    Ok(format!(
+        "{copied_resources}{resource_lists}{distinct}{validations}{removals}                let envelope = {{\n{value_bindings}                    ffi::{}(arg_0_value.pin_mut(){suffix})\n                }};\n{reinserts}                let Some(envelope) = envelope.as_ref() else {{ return protocol_error(\"native_exception_envelope\", {:?}); }};\n                if envelope.is_ok() {{\n                    \"ok_unit\".to_string()\n                }} else {{\n                    protocol_error(envelope.code().to_str().unwrap_or(\"native_mutation_failed\"), envelope.message().to_str().unwrap_or(\"native mutation failed\"))\n                }}\n",
+        mutation_adapter_name(module, function),
+        format!("{} could not allocate a contained result", function.name),
+    ))
+}
+
+/// Copies secondary resources before a mutable handle-table borrow. This also
+/// preserves calls where a secondary input aliases the mutation target.
+fn render_copied_resource_bindings(
+    manifest: &NativeBindingManifest,
+    args: &[NativeBindingArg],
+    skip: usize,
+) -> Result<String, String> {
+    let mut source = String::new();
+    for (index, arg) in args.iter().enumerate().skip(skip) {
+        if arg.cpp_ignore {
+            continue;
+        }
+        if arg.mutable {
+            continue;
+        }
+        let Some((module, ty)) = find_resource_type(manifest, &arg.ty) else {
+            continue;
+        };
+        let type_name = resource_type_name(module, ty);
+        let variant = resource_variant(module, ty);
+        let copy = resource_input_copy_name(module, ty);
+        source.push_str(&format!(
+            "                let arg_{index}_copy = {{\n                    let entry = match self.live(arg_{index}, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                    let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                    ffi::{copy}(value.as_ref().expect(\"validated non-null handle\"))\n                }};\n                if arg_{index}_copy.is_null() {{ return protocol_error(\"native_resource_copy\", \"could not copy resource argument\"); }}\n                let arg_{index}_ref = arg_{index}_copy.as_ref().expect(\"validated non-null resource copy\");\n"
+        ));
+    }
+    Ok(source)
 }
 
 /// Renders one contained throwing method into the stable `Result` protocol.
@@ -212,6 +483,136 @@ fn render_enum_projection(
         "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let result = ffi::{}(value.as_ref().expect(\"validated non-null handle\"));\n                let Some(result) = result.as_ref() else {{ return protocol_error(\"native_unknown_enum\", {:?}); }};\n                format!(\"ok_atom {{}}\", STANDARD.encode(result.as_bytes()))\n",
         enum_adapter_name(module, function),
         format!("{} returned an unselected enum value", function.name)
+    ))
+}
+
+/// Renders a copied C++ value through its generated string adapter.
+fn render_string_projection(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+) -> Result<String, String> {
+    let (owner, resource, handle_index) = find_handle_resource(manifest, function)?;
+    if handle_index != 0 || function.args.len() != 1 {
+        return Err(format!(
+            "string projection `{}` requires exactly one resource handle",
+            function.name
+        ));
+    }
+    let variant = resource_variant(owner, resource);
+    let type_name = resource_type_name(owner, resource);
+    Ok(format!(
+        "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let result = ffi::{}(value.as_ref().expect(\"validated non-null handle\"));\n                let Some(result) = result.as_ref() else {{ return protocol_error(\"native_string_projection\", {:?}); }};\n                format!(\"ok_string {{}}\", STANDARD.encode(result.as_bytes()))\n",
+        string_adapter_name(module, function),
+        format!("{} could not be converted to a string", function.name)
+    ))
+}
+
+/// Renders a contained integer getter into an ordinary public Int response.
+fn render_scalar_projection(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+    symbols: &BTreeMap<&str, &CppSymbol>,
+) -> Result<String, String> {
+    let callable = function_symbol(function, symbols)?;
+    let borrowed = render_borrowed_resource_bindings(manifest, &function.args, 0)?;
+    let resource_lists = render_resource_list_input_bindings(manifest, function, callable)?;
+    let args = render_call_args(manifest, &function.args, 0)?;
+    let success = match function.returns.as_str() {
+        "Int" => "format!(\"ok_int {}\", envelope.value())",
+        "Float" => "format!(\"ok_float {}\", envelope.float_value())",
+        "Bool" => "format!(\"ok_bool {}\", envelope.bool_value())",
+        returns => {
+            return Err(format!(
+                "scalar projection `{}` has unsupported result `{returns}`",
+                function.name
+            ));
+        }
+    };
+    Ok(format!(
+        "{borrowed}{resource_lists}                let envelope = ffi::{}({args});\n                let Some(envelope) = envelope.as_ref() else {{ return protocol_error(\"native_exception_envelope\", {:?}); }};\n                if envelope.is_ok() {{\n                    {success}\n                }} else {{\n                    protocol_error(&envelope.code().to_string_lossy(), &envelope.message().to_string_lossy())\n                }}\n",
+        exception_adapter_name(module, function),
+        format!("{} could not allocate a contained result", function.name)
+    ))
+}
+
+/// Copies a borrowed C++ integer collection through its generated vector adapter.
+fn render_int_list_projection(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+) -> Result<String, String> {
+    let (owner, resource, handle_index) = find_handle_resource(manifest, function)?;
+    if handle_index != 0 || function.args.len() != 1 {
+        return Err(format!(
+            "integer-list projection `{}` requires exactly one resource handle",
+            function.name
+        ));
+    }
+    let variant = resource_variant(owner, resource);
+    let type_name = resource_type_name(owner, resource);
+    Ok(format!(
+        "                let entry = match self.live(arg_0, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let result = ffi::{}(value.as_ref().expect(\"validated non-null handle\"));\n{}",
+        collection_adapter_name(module, function),
+        render_result(manifest, "List[Int]")?
+    ))
+}
+
+/// Copies a returned C++ vector into independently owned handles. Every native
+/// element is copied successfully before any handle is published, preserving
+/// failure atomicity at the Terlan boundary.
+fn render_resource_list_projection(
+    manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
+    function: &NativeBindingFunction,
+    symbols: &BTreeMap<&str, &CppSymbol>,
+) -> Result<String, String> {
+    let (receiver, element, callable) = resource_list_parts(manifest, module, function, symbols)?;
+    let element_owner = manifest
+        .modules
+        .iter()
+        .find(|candidate| candidate.types.iter().any(|ty| std::ptr::eq(ty, element)))
+        .ok_or_else(|| {
+            format!(
+                "resource-list projection `{}` has no element owner",
+                function.name
+            )
+        })?;
+    let element_variant = resource_variant(element_owner, element);
+    let element_type = resource_type_name(element_owner, element);
+    let adapter = resource_list_adapter_name(module, function);
+    let argument_skip = usize::from(callable.kind == super::super::CppSymbolKind::Method);
+    let args = render_call_args(manifest, &function.args, argument_skip)?;
+    let suffix = if args.is_empty() {
+        String::new()
+    } else {
+        format!(", {args}")
+    };
+    let borrowed = render_borrowed_resource_bindings(manifest, &function.args, argument_skip)?;
+    let resource_lists = render_resource_list_input_bindings(manifest, function, callable)?;
+    let invoke = if let Some(receiver) = receiver {
+        let (owner, resource, handle_index) = find_handle_resource(manifest, function)?;
+        if handle_index != 0 || !type_matches(&function.args[0].ty, receiver) {
+            return Err(format!(
+                "resource-list projection `{}` requires its receiver handle first",
+                function.name
+            ));
+        }
+        let receiver_variant = resource_variant(owner, resource);
+        let receiver_type = resource_type_name(owner, resource);
+        format!(
+            "                    let entry = match self.live(arg_0, {receiver_type:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                    let HandleValue::{receiver_variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {receiver_type:?}); }};\n{borrowed}{resource_lists}                    let envelope = ffi::{adapter}(value.as_ref().expect(\"validated non-null handle\"){suffix});\n"
+        )
+    } else {
+        format!(
+            "{borrowed}{resource_lists}                    let envelope = ffi::{adapter}({args});\n"
+        )
+    };
+    Ok(format!(
+        "                let values = {{\n{invoke}                    let Some(envelope) = envelope.as_ref() else {{ return protocol_error(\"native_resource_list_envelope\", {:?}); }};\n                    if !ffi::{adapter}_is_ok(envelope) {{\n                        return protocol_error(&ffi::{adapter}_code(envelope).to_string_lossy(), &ffi::{adapter}_message(envelope).to_string_lossy());\n                    }}\n                    let mut values = Vec::with_capacity(ffi::{adapter}_len(envelope));\n                    for index in 0..ffi::{adapter}_len(envelope) {{\n                        let value = ffi::{adapter}_element(envelope, index);\n                        if value.is_null() {{ return protocol_error(\"native_resource_list_element\", {:?}); }}\n                        values.push(value);\n                    }}\n                    values\n                }};\n                let mut handles = Vec::with_capacity(values.len());\n                for value in values {{\n                    self.next_id += 1;\n                    let id = self.next_id;\n                    let generation = 1;\n                    self.handles.insert(id, HandleEntry {{ generation, type_name: {element_type:?}, value: HandleValue::{element_variant}(value) }});\n                    handles.push(format!(\"{{}}:{{id}}:{{generation}}:{{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({element_type:?})));\n                }}\n                if handles.is_empty() {{ \"ok_handles\".to_string() }} else {{ format!(\"ok_handles {{}}\", handles.join(\",\")) }}\n",
+        format!("{} could not allocate a contained result", function.name),
+        format!("{} could not copy a returned resource", function.name),
     ))
 }
 
@@ -351,21 +752,37 @@ fn render_arg_pattern(
 ) -> Result<String, String> {
     let mut patterns = Vec::new();
     for (index, arg) in args.iter().enumerate() {
+        let binding = if arg.cpp_ignore {
+            format!("_arg_{index}")
+        } else {
+            format!("arg_{index}")
+        };
         let pattern = match arg.ty.as_str() {
-            "Int" => format!("Arg::Int(arg_{index})"),
-            "Float" => format!("Arg::Float(arg_{index})"),
-            "Bool" => format!("Arg::Bool(arg_{index})"),
-            "String" => format!("Arg::String(arg_{index})"),
-            "std.vm.Bytes.Bytes" | "Bytes" => format!("Arg::Bytes(arg_{index})"),
-            "List[Int]" => format!("arg_{index} @ (Arg::Ints(_) | Arg::EmptyList)"),
-            "List[Float]" => format!("arg_{index} @ (Arg::Floats(_) | Arg::EmptyList)"),
+            "Int" => format!("Arg::Int({binding})"),
+            "Float" => format!("Arg::Float({binding})"),
+            "Bool" => format!("Arg::Bool({binding})"),
+            "String" => format!("Arg::String({binding})"),
+            "std.vm.Bytes.Bytes" | "Bytes" => format!("Arg::Bytes({binding})"),
+            "List[Int]" => format!("{binding} @ (Arg::Ints(_) | Arg::EmptyList)"),
+            "List[Float]" => format!("{binding} @ (Arg::Floats(_) | Arg::EmptyList)"),
+            _ if find_resource_list_type(manifest, &arg.ty).is_some() => {
+                format!("{binding} @ (Arg::Handles(_) | Arg::EmptyList)")
+            }
             _ if find_enum_type(manifest, &arg.ty).is_some() => {
-                format!("Arg::Atom(arg_{index})")
+                // Public compatibility surfaces may expose reviewed C++ enum
+                // values as their stable integer codes (for example the
+                // legacy Tensor factory helpers), while newer typed surfaces
+                // use the generated enum atoms. Accept both wire forms and
+                // normalize them at the call site.
+                format!("{binding} @ (Arg::Atom(_) | Arg::Int(_))")
+            }
+            _ if find_string_value_type(manifest, &arg.ty).is_some() => {
+                format!("Arg::String({binding})")
             }
             _ if find_value_record_type(manifest, &arg.ty).is_some() => {
-                format!("Arg::Record(arg_{index})")
+                format!("Arg::Record({binding})")
             }
-            _ if is_resource_type(&arg.ty) => format!("Arg::Handle(arg_{index})"),
+            _ if is_resource_type(&arg.ty) => format!("Arg::Handle({binding})"),
             _ => {
                 return Err(format!(
                     "native helper cannot decode argument type `{}` for `{}`",
@@ -401,15 +818,34 @@ fn render_call_args(
         .enumerate()
         .skip(skip)
         .map(|(index, arg)| {
+            if arg.cpp_ignore {
+                return Ok(Vec::new());
+            }
+            if args
+                .get(index + 1)
+                .is_some_and(|next| next.prepend_resource)
+            {
+                return Ok(Vec::new());
+            }
             if let Some(ty) = find_enum_type(manifest, &arg.ty) {
                 return render_enum_argument(manifest, ty, index, &arg.name)
                     .map(|value| vec![value]);
+            }
+            if find_string_value_type(manifest, &arg.ty).is_some() {
+                return Ok(vec![format!("arg_{index}.as_str()")]);
             }
             if let Some(ty) = find_value_record_type(manifest, &arg.ty) {
                 return render_record_arguments(ty, arg, index);
             }
             if find_resource_type(manifest, &arg.ty).is_some() {
-                return Ok(vec![format!("arg_{index}_ref")]);
+                return Ok(vec![if arg.mutable {
+                    format!("arg_{index}_value.pin_mut()")
+                } else {
+                    format!("arg_{index}_ref")
+                }]);
+            }
+            if find_resource_list_type(manifest, &arg.ty).is_some() {
+                return Ok(vec![format!("arg_{index}_list_ref")]);
             }
             match arg.ty.as_str() {
                 "Int" | "Float" | "Bool" => Ok(vec![format!("*arg_{index}")]),
@@ -435,6 +871,18 @@ fn render_borrowed_resource_bindings(
 ) -> Result<String, String> {
     let mut source = String::new();
     for (index, arg) in args.iter().enumerate().skip(skip) {
+        if arg.cpp_ignore {
+            continue;
+        }
+        if args
+            .get(index + 1)
+            .is_some_and(|next| next.prepend_resource)
+        {
+            continue;
+        }
+        if arg.mutable {
+            continue;
+        }
         let Some((module, ty)) = find_resource_type(manifest, &arg.ty) else {
             continue;
         };
@@ -442,6 +890,45 @@ fn render_borrowed_resource_bindings(
         let variant = resource_variant(module, ty);
         source.push_str(&format!(
             "                let arg_{index}_entry = match self.live(arg_{index}, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(arg_{index}_value) = &arg_{index}_entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                let arg_{index}_ref = arg_{index}_value.as_ref().expect(\"validated non-null handle\");\n"
+        ));
+    }
+    Ok(source)
+}
+
+/// Copies validated handles into generated C++ collectors. The C++ values are
+/// independent of the handle table before the upstream callable is entered.
+fn render_resource_list_input_bindings(
+    manifest: &NativeBindingManifest,
+    function: &NativeBindingFunction,
+    symbol: &CppSymbol,
+) -> Result<String, String> {
+    let mut source = String::new();
+    for mapping in public_cpp_parameter_mappings(function, symbol) {
+        let parameter = &symbol.parameters[mapping.cpp_parameter_index];
+        let argument_index = mapping.public_argument_index;
+        let argument = &function.args[argument_index];
+        let Some((owner, resource, _)) =
+            resource_list_input_resource(manifest, Some(&argument.ty), &parameter.ty)
+        else {
+            continue;
+        };
+        let type_name = resource_type_name(owner, resource);
+        let variant = resource_variant(owner, resource);
+        let new = resource_list_input_new_name(owner, resource);
+        let push = resource_list_input_push_name(owner, resource);
+        source.push_str(&format!(
+            "                let mut arg_{argument_index}_list = ffi::{new}();\n                if arg_{argument_index}_list.is_null() {{ return protocol_error(\"native_resource_list_input\", \"could not allocate resource-list argument\"); }}\n"
+        ));
+        if argument.prepend_resource {
+            let prefix_index = argument_index
+                .checked_sub(1)
+                .expect("validated prepended resource argument");
+            source.push_str(&format!(
+                "                let prefix_entry = match self.live(arg_{prefix_index}, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                let HandleValue::{variant}(prefix_value) = &prefix_entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                if !ffi::{push}(arg_{argument_index}_list.pin_mut(), prefix_value.as_ref().expect(\"validated non-null handle\")) {{ return protocol_error(\"native_resource_list_input\", \"could not copy prepended resource-list argument\"); }}\n"
+            ));
+        }
+        source.push_str(&format!(
+            "                for handle in arg_handles(arg_{argument_index}) {{\n                    let entry = match self.live(handle, {type_name:?}) {{ Ok(entry) => entry, Err(error) => return error }};\n                    let HandleValue::{variant}(value) = &entry.value else {{ return protocol_error(\"handle_type_mismatch\", {type_name:?}); }};\n                    if !ffi::{push}(arg_{argument_index}_list.pin_mut(), value.as_ref().expect(\"validated non-null handle\")) {{ return protocol_error(\"native_resource_list_input\", \"could not copy resource-list argument\"); }}\n                }}\n                let arg_{argument_index}_list_ref = arg_{argument_index}_list.as_ref().expect(\"validated non-null resource-list collector\");\n"
         ));
     }
     Ok(source)
@@ -529,7 +1016,7 @@ fn render_enum_argument(
         .collect::<Result<Vec<_>, String>>()?
         .join(", ");
     Ok(format!(
-        "match arg_{index}.as_str() {{ {arms}, _ => return protocol_error(\"invalid_enum_value\", {:?}) }}",
+        "match arg_{index} {{ Arg::Atom(value) => match value.as_str() {{ {arms}, _ => return protocol_error(\"invalid_enum_value\", {:?}) }}, Arg::Int(value) => *value, _ => unreachable!(\"generated enum argument pattern validated the wire type\") }}",
         format!("{argument_name} received an unselected enum value")
     ))
 }
@@ -545,7 +1032,7 @@ fn render_result(manifest: &NativeBindingManifest, ty: &str) -> Result<String, S
             "string",
             "format!(\"ok_string {}\", STANDARD.encode(result.as_bytes()))",
         )),
-        "std.vm.Bytes.Bytes" => Ok(render_owned_copy(
+        "std.vm.Bytes.Bytes" | "Bytes" => Ok(render_owned_copy(
             manifest,
             "byte buffer",
             "format!(\"ok_bytes {}\", STANDARD.encode(result.as_slice()))",
@@ -560,6 +1047,16 @@ fn render_result(manifest: &NativeBindingManifest, ty: &str) -> Result<String, S
             "float list",
             "if result.is_empty() { \"ok_floats\".to_string() } else { format!(\"ok_floats {}\", result.iter().map(f64::to_string).collect::<Vec<_>>().join(\",\")) }",
         )),
+        "List[Bool]" => Ok(render_owned_copy(
+            manifest,
+            "boolean list",
+            "if result.is_empty() { \"ok_bools\".to_string() } else { format!(\"ok_bools {}\", result.iter().map(|value| (*value != 0).to_string()).collect::<Vec<_>>().join(\",\")) }",
+        )),
+        "List[String]" => Ok(render_owned_copy(
+            manifest,
+            "string list",
+            "if result.is_empty() { \"ok_strings\".to_string() } else { format!(\"ok_strings {}\", result.iter().map(|value| STANDARD.encode(value.as_bytes())).collect::<Vec<_>>().join(\",\")) }",
+        )),
         "Unit" => {
             Ok("                let _ = result;\n                \"ok_unit\".to_string()\n".into())
         }
@@ -570,13 +1067,58 @@ fn render_result(manifest: &NativeBindingManifest, ty: &str) -> Result<String, S
 /// Renders either an ordinary copied result or a newly owned resource handle.
 fn render_function_result(
     manifest: &NativeBindingManifest,
+    module: &NativeBindingModule,
     function: &NativeBindingFunction,
+    symbols: &BTreeMap<&str, &CppSymbol>,
 ) -> Result<String, String> {
+    if let Some((resources, _)) = function_owned_value_resource_tuple(manifest, function, symbols) {
+        let takes = resources
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                format!(
+                    "                let value_{index} = ffi::{}(result.pin_mut());\n",
+                    owned_tuple_take_name(module, function, index)
+                )
+            })
+            .collect::<String>();
+        let null_checks = resources
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                format!(
+                    "                if value_{index}.is_null() {{ return native_null_failure(\"native tuple element returned null\"); }}\n"
+                )
+            })
+            .collect::<String>();
+        let stores = resources
+            .iter()
+            .enumerate()
+            .map(|(index, (owner, resource, _))| {
+                let variant = resource_variant(owner, resource);
+                let type_name = resource_type_name(owner, resource);
+                format!(
+                    "                self.next_id += 1;\n                let id_{index} = self.next_id;\n                self.handles.insert(id_{index}, HandleEntry {{ generation: 1, type_name: {type_name:?}, value: HandleValue::{variant}(value_{index}) }});\n                encoded.push(format!(\"{{}}:{{}}:1:{{}}\", STANDARD.encode(self.owner.as_bytes()), id_{index}, STANDARD.encode({type_name:?})));\n"
+                )
+            })
+            .collect::<String>();
+        return Ok(format!(
+            "                if result.is_null() {{ return native_null_failure(\"native tuple result returned null\"); }}\n                let mut result = result;\n{takes}{null_checks}                let mut encoded = Vec::with_capacity({});\n{stores}                format!(\"ok_tuple_handles {{}}\", encoded.join(\",\"))\n",
+            resources.len()
+        ));
+    }
     if let Some((owner, resource)) = find_resource_type(manifest, &function.returns) {
         let variant = resource_variant(owner, resource);
         let type_name = resource_type_name(owner, resource);
         return Ok(format!(
             "                if result.is_null() {{ return native_null_failure(\"native operation returned null\"); }}\n                self.next_id += 1;\n                let id = self.next_id;\n                self.handles.insert(id, HandleEntry {{ generation: 1, type_name: {type_name:?}, value: HandleValue::{variant}(result) }});\n                format!(\"ok_handle {{}} {{id}} 1 {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({type_name:?}))\n"
+        ));
+    }
+    if let Some((owner, resource)) = find_optional_resource_type(manifest, &function.returns) {
+        let variant = resource_variant(owner, resource);
+        let type_name = resource_type_name(owner, resource);
+        return Ok(format!(
+            "                if result.is_null() {{\n                    \"ok_none\".to_string()\n                }} else {{\n                    self.next_id += 1;\n                    let id = self.next_id;\n                    self.handles.insert(id, HandleEntry {{ generation: 1, type_name: {type_name:?}, value: HandleValue::{variant}(result) }});\n                    format!(\"ok_some_handle {{}} {{id}} 1 {{}}\", STANDARD.encode(self.owner.as_bytes()), STANDARD.encode({type_name:?}))\n                }}\n"
         ));
     }
     render_result(manifest, &function.returns)
@@ -637,6 +1179,29 @@ fn find_resource_type<'a>(
     })
 }
 
+/// Resolves an optional opaque resource return (`Option[Resource]`). The
+/// generated CXX wrapper represents the option as a nullable unique pointer;
+/// the helper turns that pointer into the stable optional-handle protocol.
+fn find_optional_resource_type<'a>(
+    manifest: &'a NativeBindingManifest,
+    value: &str,
+) -> Option<(&'a NativeBindingModule, &'a NativeBindingType)> {
+    value
+        .strip_prefix("Option[")
+        .and_then(|inner| inner.strip_suffix(']'))
+        .and_then(|inner| find_resource_type(manifest, inner.trim()))
+}
+
+fn find_resource_list_type<'a>(
+    manifest: &'a NativeBindingManifest,
+    value: &str,
+) -> Option<(&'a NativeBindingModule, &'a NativeBindingType)> {
+    value
+        .strip_prefix("List[")
+        .and_then(|element| element.strip_suffix(']'))
+        .and_then(|element| find_resource_type(manifest, element.trim()))
+}
+
 /// Resolves a local or fully qualified Terlan type to a generated finite enum.
 fn find_enum_type<'a>(
     manifest: &'a NativeBindingManifest,
@@ -659,6 +1224,18 @@ fn find_value_record_type<'a>(
         .iter()
         .flat_map(|module| &module.types)
         .find(|ty| ty.kind == NativeBindingTypeKind::ValueRecord && type_matches(value, ty))
+}
+
+/// Resolves a transparent String mapped to a constructed C++ value.
+fn find_string_value_type<'a>(
+    manifest: &'a NativeBindingManifest,
+    value: &str,
+) -> Option<&'a NativeBindingType> {
+    manifest
+        .modules
+        .iter()
+        .flat_map(|module| &module.types)
+        .find(|ty| ty.kind == NativeBindingTypeKind::StringValue && type_matches(value, ty))
 }
 
 /// Returns whether a Terlan type name denotes a generated resource.

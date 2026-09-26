@@ -1,0 +1,42 @@
+/** Canonical self-hosted frontend composition. */
+module self_host.CanonicalParser.
+
+import self_host.CanonicalToken.{CanonicalLexError}.
+import self_host.Syntax.{SurfaceModule}.
+import self_host.TokenSegment.{TokenSegment}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.CanonicalLexer.
+import self_host.CanonicalSurface.
+import self_host.TokenContext.
+import self_host.TokenSegmenter.
+
+
+pub struct CanonicalParse {
+    valid: Bool,
+    surface: SurfaceModule,
+    lexical_errors: List[CanonicalLexError],
+    segments: List[TokenSegment],
+    has_unterminated_segment: Bool,
+}.
+
+pub constructor CanonicalParse {
+    (valid: Bool, surface: SurfaceModule, lexical_errors: List[CanonicalLexError], segments: List[TokenSegment], has_unterminated_segment: Bool): CanonicalParse ->
+        CanonicalParse {
+            valid: valid,
+            surface: surface,
+            lexical_errors: lexical_errors,
+            segments: segments,
+            has_unterminated_segment: has_unterminated_segment,
+        }
+}.
+
+
+/** Runs lexical, contextual, boundary, and surface phases as one frontend. */
+@pure
+pub parse(source: String): CanonicalParse ->
+    let lexical = CanonicalLexer.lex(source);
+    let segmented = TokenSegmenter.split(TokenContext.project(lexical.tokens));
+    let surface = CanonicalSurface.parse(source);
+    CanonicalParse(lexical.valid and segmented.valid and surface.valid, surface, lexical.errors, segmented.segments, not segmented.valid).

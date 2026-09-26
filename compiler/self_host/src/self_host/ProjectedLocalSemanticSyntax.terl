@@ -1,0 +1,50 @@
+/**
+ * One local semantic-analysis batch and its independently inspectable results.
+ */
+module self_host.ProjectedLocalSemanticSyntax.
+
+import std.collections.List.
+import self_host.ProjectedBindingSyntax.
+import self_host.ProjectedBindingSyntax.{BindingEvent, BindingResolution}.
+import self_host.ProjectedCallableSyntax.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution, CallableUse}.
+import self_host.ProjectedTypeConstraintSyntax.
+import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintEvent, TypeConstraintResolution}.
+import self_host.ProjectedSemanticEventSyntax.
+
+import self_host.ProjectedSemanticEventSyntax.{BindingTypeLink}.
+pub struct LocalSemanticInput {
+    binding_events: List[BindingEvent],
+    callable_declarations: List[CallableDeclaration],
+    callable_uses: List[CallableUse],
+    type_constraints: List[TypeConstraintEvent],
+    binding_type_links: List[BindingTypeLink],
+}.
+
+pub constructor LocalSemanticInput {
+    (binding_events: List[BindingEvent], callable_declarations: List[CallableDeclaration], callable_uses: List[CallableUse], type_constraints: List[TypeConstraintEvent], binding_type_links: List[BindingTypeLink]): LocalSemanticInput ->
+        LocalSemanticInput {
+            binding_events: binding_events,
+            callable_declarations: callable_declarations,
+            callable_uses: callable_uses,
+            type_constraints: type_constraints,
+            binding_type_links: binding_type_links,
+        }
+}.
+
+
+pub struct LocalSemanticResult {
+    bindings: BindingResolution,
+    callables: CallableResolution,
+    types: TypeConstraintResolution,
+}.
+
+pub constructor LocalSemanticResult {
+    (bindings: BindingResolution, callables: CallableResolution, types: TypeConstraintResolution): LocalSemanticResult ->
+        LocalSemanticResult {
+            bindings: bindings,
+            callables: callables,
+            types: types,
+        }
+}.
+

@@ -1,0 +1,23 @@
+/** Structural backend ABI handoff contracts. */
+module self_host.BackendAbiTest.
+
+import self_host.BackendAbi.
+import self_host.Compiler.
+
+@pure
+module_handoff(): Bool ->
+    let abi = BackendAbi.lower(Compiler.compile(
+        "module demo.Abi.\n@pure\npub value(x: Int): Int -> x.\n",
+    ));
+    case abi.declarations {
+        [declaration] ->
+            abi.valid
+                and abi.schema == "terlan.self-host.backend-abi/v1"
+                and abi.source_kind == "module"
+                and declaration.class_name == "function"
+                and declaration.symbol_name == "value"
+                and declaration.annotation_paths == ["pure"];
+        _ -> false
+    }.
+
+pub self_test(): Bool -> module_handoff().

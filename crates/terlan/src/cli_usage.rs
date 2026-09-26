@@ -30,9 +30,14 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]",
         "terlc static <emit|serve|check> <file.terl>",
         "terlc support bundle [project-dir|image.tvm] [--diagnostic <report.json>] [--out <bundle.json>]",
-        "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] [--name <function>]... [--bench [--warmup <count>] [--samples <count>]]",
+        "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] [--name <function>]... [--coverage [--coverage-threshold <0..100>]] [--bench [--warmup <count>] [--samples <count>]]",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
         "terlc api <emit|check|import>",
+        "terlc login --cloud <url> --user-id <id> --token-file <path> [--artifact-token-file <path>]",
+        "terlc deploy [project-dir] [--project <slug>] [--release-id <id>] [--out-dir <dir>]",
+        "terlc status [--project <slug>] [--deployment <id>]",
+        "terlc logs [--project <slug>] [--deployment <id>] [--lines <1..1000>]",
+        "terlc rollback [--project <slug>] [--deployment <id>]",
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc debug <image.tvm> [--break <module.function|file:line>] [--script <file.terldbg>] [--json-events]",
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
@@ -116,7 +121,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         ),
         "emit-js" => println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]"),
         "test" => println!(
-            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>]... [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
+            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>]... [--coverage [--coverage-threshold <0..100>]] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
         ),
         "interface" => println!("terlc interface <file.terl|file.terli> [--out-dir <dir>]"),
         "doc" => println!(
@@ -131,6 +136,19 @@ pub(super) fn print_command_usage(command: &str) -> bool {
                 "terlc api import <openapi.yaml|openapi.json> --module <Module.Name> --out <dir>"
             );
         }
+        "login" => println!(
+            "terlc login --cloud <url> --user-id <id> --token-file <path> [--artifact-token-file <path>] [--routing-host <host>] [--profile <path>]"
+        ),
+        "deploy" => println!("{}", crate::commands::cloud::deploy_usage()),
+        "status" => println!(
+            "terlc status [--project <slug>] [--deployment <id>] [--profile <path>]"
+        ),
+        "logs" => println!(
+            "terlc logs [--project <slug>] [--deployment <id>] [--lines <1..1000>] [--profile <path>]"
+        ),
+        "rollback" => println!(
+            "terlc rollback [--project <slug>] [--deployment <id>] [--profile <path>]"
+        ),
         "db" => {
             println!("terlc db init [migrations-dir]");
             println!("terlc db new <name> [migrations-dir]");

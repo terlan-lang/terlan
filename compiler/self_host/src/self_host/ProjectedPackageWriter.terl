@@ -1,0 +1,72 @@
+/** Filesystem writer for deterministic multi-module ABI-1 packages. */
+module self_host.ProjectedPackageWriter.
+
+
+
+import std.core.Result.{Err, Ok, Result}.
+import std.core.Option.{None, Option, Some}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact}.
+
+import self_host.ProjectedPackageCompile.
+import std.collections.List.
+import std.core.{String}.
+import std.io.Directory.
+import std.io.File.
+
+
+read_sources(paths: List[String], output: List[String]): Option[List[String]] ->
+    case paths {
+        [] -> Some(output);
+        [path | rest] -> let normalized = String.trim(path);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") -> read_sources(rest, output);
+                true -> case File.read_text(normalized) {
+                    Ok(source) -> read_sources(rest, [source | output]);
+                    Err(_reason) -> None
+                }
+            }
+    }.
+
+@pure
+artifact_bundle(values: List[ProjectedPackageArtifact], output: String): Option[String] ->
+    case values {
+        [] -> Some(output);
+        [value | rest] -> case value.json {
+            None -> None;
+            Some(json) -> artifact_bundle(rest, String.concat([output, json, "\n"]))
+        }
+    }.
+
+/** Reads a source manifest and renders one validated canonical envelope bundle. */
+pub render(manifest: String): Option[String] ->
+    case File.read_text(manifest) {
+        Err(_reason) -> None;
+        Ok(paths) -> case read_sources(String.split(paths, "\n"), List.new[String]()) {
+            None -> None;
+            Some(sources) ->
+                let package = ProjectedPackageCompile.compile(
+                    sources,
+                    List.new[ModuleInterface](),
+                    "terlan-vm",
+                );
+                if {
+                    not package.valid -> None;
+                    true -> artifact_bundle(
+                        package.artifacts,
+                        "schema\tterlan.self-host.abi-package/v1\n",
+                    )
+                }
+        }
+    }.
+
+/** Writes a rendered package bundle for non-native tooling entry points. */
+pub write(manifest: String, output: String): Bool ->
+    case render(manifest) {
+        None -> false;
+        Some(bundle) -> let _created = Directory.create_all(output);
+            case File.write_text(String.append(output, "/package.abi1.bundle"), bundle) {
+                Err(_reason) -> false;
+                Ok(_unit) -> true
+            }
+    }.

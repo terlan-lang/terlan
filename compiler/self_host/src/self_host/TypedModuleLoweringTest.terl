@@ -1,0 +1,23 @@
+/** Unified typed-module dispatch contracts. */
+module self_host.TypedModuleLoweringTest.
+
+import std.collections.List.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.TypedModuleLowering.
+
+@pure
+positive_typed_module(): Bool ->
+    let lowered_module = TypedModuleLowering.lower(DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Typed.\nimport std.core.String.\npub const LIMIT: Int = 4.\npub type State = Ready | Failed(String).\npub run(value: String): String -> value.\n",
+    )));
+    lowered_module.valid and lowered_module.name == "demo.Typed" and List.length(lowered_module.declarations) == 4.
+
+@pure
+positive_export_payload(): Bool ->
+    let lowered_module = TypedModuleLowering.lower(DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Typed.\nexport {run/0}.\n",
+    )));
+    lowered_module.valid and List.length(lowered_module.declarations) == 1.
+
+pub self_test(): Bool -> positive_typed_module() and positive_export_payload().

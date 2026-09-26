@@ -1,0 +1,20 @@
+/** Positive and negative multi-module compilation contracts. */
+module self_host.CompilationBundleTest.
+
+import self_host.CompilationBundle.
+
+@pure
+positive_bundle(): Bool ->
+    CompilationBundle.compile([
+        "module demo.First.\npub first(): Int -> 1.\n",
+        "module demo.Second.\npub second(): Int -> 2.\n",
+    ]).valid.
+
+@pure
+duplicate_bundle(): Bool ->
+    not CompilationBundle.compile([
+        "module demo.Same.\npub first(): Int -> 1.\n",
+        "module demo.Same.\npub second(): Int -> 2.\n",
+    ]).valid.
+
+pub self_test(): Bool -> positive_bundle() and duplicate_bundle().

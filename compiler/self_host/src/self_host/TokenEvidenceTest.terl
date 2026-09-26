@@ -1,0 +1,35 @@
+/** Canonical lexical evidence contracts anchored to the Rust boundary fixture. */
+module self_host.TokenEvidenceTest.
+
+import std.core.String.
+import self_host.TokenEvidence.
+
+@pure
+module_boundary_fixture(): Bool ->
+    let evidence = TokenEvidence.document("module app.Main.");
+    evidence.schema == "terlan.self-host.tokens/v1"
+        and evidence.token_count == 6
+        and String.contains(evidence.rows, "module\tmodule\t0\t6\t")
+        and String.contains(evidence.rows, "atom\tatom\t7\t10\t")
+        and String.contains(evidence.rows, "tight-dot\t.\t10\t11\t")
+        and String.contains(evidence.rows, "upper-ident\tupper-ident\t11\t15\t")
+        and String.contains(evidence.rows, "eof\teof\t16\t16\t")
+        and evidence.authority_token_count == 5
+        and not String.contains(evidence.authority_rows, "eof").
+
+@pure
+deterministic_document(): Bool ->
+    let left = TokenEvidence.document("module app.Main.");
+    let right = TokenEvidence.document("module app.Main.");
+    left.source_sha256 == right.source_sha256
+        and left.rows_sha256 == right.rows_sha256
+        and left.authority_rows_sha256 == right.authority_rows_sha256.
+
+@pure
+authority_envelope(): Bool ->
+    let artifact = TokenEvidence.authority_document("module app.Main.");
+    String.starts_with(artifact, "schema\tterlan.self-host.token-authority/v1\n")
+        and String.contains(artifact, "token_count\t5\n")
+        and String.contains(artifact, "\n--\nmodule\t0\t6\t").
+
+pub self_test(): Bool -> module_boundary_fixture() and deterministic_document() and authority_envelope().

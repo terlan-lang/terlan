@@ -1,0 +1,27 @@
+/** Interface-only exported callable identity. */
+module self_host.ExportReferenceSyntax.
+
+import self_host.Syntax.{SyntaxSpan}.
+
+import std.core.{Int, String}.
+
+
+pub struct ExportReference {
+    valid: Bool,
+    name: String,
+    arity: Int,
+    span: SyntaxSpan,
+    message: String,
+}.
+
+pub constructor ExportReference {
+    (valid: Bool, name: String, arity: Int, span: SyntaxSpan, message: String): ExportReference ->
+        ExportReference {
+            valid: valid,
+            name: name,
+            arity: arity,
+            span: span,
+            message: message,
+        }
+}.
+

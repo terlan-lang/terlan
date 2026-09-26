@@ -1,0 +1,183 @@
+/** Normalized type, pattern, and expression trees used by Phase 2 parity gates. */
+module self_host.ProjectedFragmentEvidence.
+
+
+import std.core.Option.{None, Option, Some}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
+
+import self_host.ProjectedExpressionParser.
+import self_host.ProjectedPatternParser.
+import self_host.ProjectedTypeParser.
+import self_host.ProjectionAdapter.
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+import self_host.CanonicalToken.{CanonicalToken}.
+
+@pure
+without_eof(values: List[CanonicalToken]): List[CanonicalToken] ->
+    case values {
+        [] -> List.new[CanonicalToken]();
+        [value | rest] -> if {
+            value.terminal == "eof" -> without_eof(rest);
+            true -> [value | without_eof(rest)]
+        }
+    }.
+
+@pure
+expression_kind(kind: String): String ->
+    if {
+        kind == "integer" -> "int";
+        kind == "identifier" or kind == "constructor" or kind == "atom" -> "binding";
+        kind == "tuple-or-group" or kind == "tuple" -> "group";
+        kind == "keyed-container" or kind == "nominal-keyed" -> "map";
+        kind == "keyed-field" -> "map_field";
+        kind == "field" -> "field_access";
+        kind == "dynamic-call" -> "call";
+        kind == "fixed-array" -> "fixed_array";
+        kind == "atom-literal" -> "atom_literal";
+        kind == "record-access" -> "record_access";
+        kind == "record-update" -> "record_update";
+        kind == "constructor-chain" -> "constructor_chain";
+        true -> String.replace(kind, "-", "_")
+    }.
+
+@pure
+pattern_kind(kind: String): String ->
+    if {
+        kind == "binding-pattern" or kind == "wildcard-pattern"
+            or kind == "literal-pattern" or kind == "typed-pattern"
+            or kind == "string-capture-pattern" or kind == "pattern-token" -> "pattern";
+        kind == "constructor-pattern" -> "pattern_constructor";
+        kind == "tuple-pattern" -> "pattern_tuple";
+        kind == "list-pattern" -> "pattern_list";
+        kind == "list-cons-pattern" -> "pattern_list_cons";
+        kind == "keyed-pattern" or kind == "struct-pattern"
+            or kind == "keyed-container-pattern" -> "pattern_map";
+        kind == "keyed-pattern-field" -> "pattern_field";
+        true -> expression_kind(kind)
+    }.
+
+@pure
+type_kind(kind: String): String ->
+    if {
+        kind == "named-type" or kind == "atom-type" or kind == "generic-type" -> "type";
+        kind == "union-type" -> "type_union";
+        kind == "function-type" -> "type_arrow";
+        kind == "existential-type" -> "type_existential";
+        kind == "tuple-type" or kind == "record-or-tuple-type" -> "type_aggregate";
+        kind == "field" or kind == "item" -> "type_field";
+        true -> String.replace(kind, "-", "_")
+    }.
+
+@pure
+row(depth: Int, kind: String, start_byte: Int, end_byte: Int): String ->
+    String.concat([
+        Int.to_string(depth), "\t", kind, "\t", Int.to_string(start_byte), "\t",
+        Int.to_string(end_byte), "\n",
+    ]).
+
+@pure
+expression_wrapper(value: ProjectedExpressionNode): Bool ->
+    value.kind == "call-arguments" or value.kind == "keyed-fields"
+        or value.kind == "keyed-pattern-fields" or value.kind == "patterns"
+        or (value.kind == "sequence" and value.text == ",").
+
+@pure
+expression_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] where expression_wrapper(value) -> String.concat([
+            expression_rows(value.children, depth), expression_rows(rest, depth),
+        ]);
+        [value | rest] -> String.concat([
+            row(depth, expression_kind(value.kind), value.start_byte, value.end_byte),
+            expression_rows(value.children, depth + 1), expression_rows(rest, depth),
+        ])
+    }.
+
+@pure
+pattern_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] where value.kind == "patterns" or value.kind == "keyed-pattern-fields" -> String.concat([
+            pattern_rows(value.children, depth), pattern_rows(rest, depth),
+        ]);
+        [value | rest] where value.kind == "pattern-field" or value.kind == "keyed-pattern-field" -> String.concat([
+            row(depth, "map_field", value.start_byte, value.end_byte),
+            pattern_field_rows(value.children, depth + 1), pattern_rows(rest, depth),
+        ]);
+        [value | rest] -> String.concat([
+            row(depth, pattern_kind(value.kind), value.start_byte, value.end_byte),
+            pattern_rows(value.children, depth + 1), pattern_rows(rest, depth),
+        ])
+    }.
+
+@pure
+pattern_field_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> String.concat([
+            row(depth, if {
+                value.kind == "binding-pattern" or value.kind == "pattern-token" -> "binding";
+                true -> pattern_kind(value.kind)
+            }, value.start_byte, value.end_byte),
+            pattern_rows(value.children, depth + 1), pattern_field_rows(rest, depth),
+        ])
+    }.
+
+@pure
+type_rows(values: List[ProjectedTypeNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] where value.kind == "types" or value.kind == "fields" or value.kind == "item" -> String.concat([
+            type_rows(value.children, depth), type_rows(rest, depth),
+        ]);
+        [value | rest] -> String.concat([
+            row(depth, type_kind(value.kind), value.start_byte, value.end_byte),
+            type_rows(value.children, depth + 1), type_rows(rest, depth),
+        ])
+    }.
+
+@pure
+expression_document_rows(value: Option[ProjectedExpressionNode]): String ->
+    case value { Some(node_value) -> expression_rows([node_value], 0); None -> "" }.
+
+@pure
+pattern_document_rows(value: Option[ProjectedExpressionNode]): String ->
+    case value { Some(node_value) -> pattern_rows([node_value], 0); None -> "" }.
+
+@pure
+type_document_rows(value: Option[ProjectedTypeNode]): String ->
+    case value { Some(node_value) -> type_rows([node_value], 0); None -> "" }.
+
+@pure
+header(mode: String, valid: Bool, message: String): String ->
+    String.concat([
+        "schema terlan.self-host.fragment-syntax/v1\nmode\t", mode, "\nvalid\t",
+        if { valid -> "true"; true -> "false" }, "\nmessage_bytes\t",
+        Int.to_string(String.byte_size(message)), "\ndepth\tkind\tstart\tend\n",
+    ]).
+
+/** Parses one source fragment and emits its normalized structural evidence. */
+@pure
+pub document(mode: String, source: String, lex_valid: Bool, values: List[CanonicalToken]): Option[String] ->
+    let projected = ProjectionAdapter.rewrite(source, without_eof(values));
+    if {
+        mode == "expression" -> let parsed = ProjectedExpressionParser.parse(projected);
+            Some(String.concat([
+                header(mode, lex_valid and parsed.valid, parsed.message),
+                expression_document_rows(parsed.node),
+            ]));
+        mode == "pattern" -> let parsed = ProjectedPatternParser.parse(projected);
+            Some(String.concat([
+                header(mode, lex_valid and parsed.valid, parsed.message),
+                pattern_document_rows(parsed.node),
+            ]));
+        mode == "type" -> let parsed = ProjectedTypeParser.parse(projected);
+            Some(String.concat([
+                header(mode, lex_valid and parsed.valid, parsed.message),
+                type_document_rows(parsed.node),
+            ]));
+        true -> None
+    }.

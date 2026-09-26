@@ -1,0 +1,16 @@
+[contract]
+name = "projected-surface-parity"
+schema = "terlan.self_host.surface.v1"
+status = "complete"
+
+[implemented]
+rust_surface_oracle = true
+terlan_surface_oracle = true
+self_host_frontend_entry_point = true
+span_independent_json = true
+differential_corpus_runner = true
+rejection_corpus_runner = true
+
+[evidence]
+corpus_comparison = true
+surface_parity = true

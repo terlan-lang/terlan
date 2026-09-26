@@ -926,6 +926,7 @@ fn constructor_pattern_schemes(
             .get(&imported.name)
             .map(Vec::as_slice),
         interface,
+        ctx.aliases,
     )
 }
 

@@ -330,8 +330,10 @@ fn parse_function_bound_trait_ref(
 ///
 /// Transformation:
 /// - Recursively expands aliases in compound types, but leaves selected
-///   imported named types as named references so opaque/imported identity is
-///   not erased during type checking.
+///   imported opaque or identity-only types as named references so nominal
+///   identity is not erased during type checking. Selected transparent aliases
+///   expand to their structural body just like aliases loaded from checked
+///   standard-library interfaces.
 pub(super) fn expand_imported_aliases_except_named(
     ty: &Type,
     imported_aliases: &HashMap<String, TypeAlias>,
@@ -339,7 +341,12 @@ pub(super) fn expand_imported_aliases_except_named(
     local_aliases: &HashMap<String, TypeAlias>,
 ) -> Type {
     match ty {
-        Type::Named { name, args, .. } if imported_names.contains_key(name) => {
+        Type::Named { name, args, .. }
+            if imported_names.contains_key(name)
+                && imported_aliases
+                    .get(name)
+                    .map_or(true, |alias| alias.is_opaque) =>
+        {
             let args = args
                 .iter()
                 .map(|arg| {
@@ -626,6 +633,7 @@ pub(super) fn collect_imported_struct_fields(
     alias_names: &HashSet<String>,
 ) -> HashMap<String, HashMap<String, Type>> {
     let mut out = HashMap::new();
+    let global_aliases = imported_type_aliases(resolved);
 
     for (local_name, imported) in &resolved.imported_types {
         let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
@@ -634,14 +642,26 @@ pub(super) fn collect_imported_struct_fields(
         let Some(fields) = interface.struct_fields.get(&imported.source_name) else {
             continue;
         };
+        let mut provider_type_names = alias_names.clone();
+        provider_type_names.extend(interface_type_names(interface));
+        let provider_aliases = interface_type_aliases(interface);
+        let qualified_names = interface_qualified_type_names(interface);
 
         let mut vars = HashMap::new();
         let mut next_var: TypeVarId = 0;
         let field_types = fields
             .iter()
             .map(|field| {
-                let ty = parse_type_expr(&field.annotation, alias_names, &mut vars, &mut next_var)
-                    .unwrap_or(Type::Dynamic);
+                let ty = parse_type_expr(
+                    &field.annotation,
+                    &provider_type_names,
+                    &mut vars,
+                    &mut next_var,
+                )
+                .unwrap_or(Type::Dynamic);
+                let ty = expand_type_aliases(&ty, &provider_aliases);
+                let ty = qualify_type_names(&ty, &qualified_names);
+                let ty = expand_type_aliases(&ty, &global_aliases);
                 (field.name.clone(), ty)
             })
             .collect::<HashMap<_, _>>();

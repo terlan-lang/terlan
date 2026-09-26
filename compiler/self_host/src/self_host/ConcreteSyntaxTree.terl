@@ -1,0 +1,41 @@
+/** Lossless concrete syntax tree over projected canonical terminals. */
+module self_host.ConcreteSyntaxTree.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+pub struct ConcreteSyntaxNode {
+    terminal: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+    children: List[self_host.ConcreteSyntaxTree.ConcreteSyntaxNode],
+}.
+
+pub constructor ConcreteSyntaxNode {
+    (terminal: String, text: String, start_byte: Int, end_byte: Int, children: List[self_host.ConcreteSyntaxTree.ConcreteSyntaxNode]): ConcreteSyntaxNode ->
+        ConcreteSyntaxNode {
+            terminal: terminal,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            children: children,
+        }
+}.
+
+
+pub struct ConcreteSyntaxDocument {
+    valid: Bool,
+    nodes: List[self_host.ConcreteSyntaxTree.ConcreteSyntaxNode],
+    message: String,
+}.
+
+pub constructor ConcreteSyntaxDocument {
+    (valid: Bool, nodes: List[self_host.ConcreteSyntaxTree.ConcreteSyntaxNode], message: String): ConcreteSyntaxDocument ->
+        ConcreteSyntaxDocument {
+            valid: valid,
+            nodes: nodes,
+            message: message,
+        }
+}.
+

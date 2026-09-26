@@ -1,0 +1,57 @@
+/** Self-hosted lowering for template source paths and typed properties. */
+module self_host.TemplateLowering.
+
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.Syntax.{TemplateDeclaration}.
+import self_host.TemplateSyntax.{TemplateSyntax}.
+
+import std.collections.List.
+import std.core.String.
+import self_host.Delimited.
+import self_host.StructLowering.
+
+
+@pure
+strip_quotes(source: String): String ->
+    let value = String.trim(source);
+    if {
+        value.byte_size() >= 2
+            and value.utf8_byte_at(0) == 34
+            and value.utf8_byte_at(value.byte_size() - 1) == 34 -> value.utf8_slice(1, value.byte_size() - 2);
+        true -> ""
+    }.
+
+@pure
+drop_terminal_empty(values: List[String]): List[String] ->
+    case values { [] -> List.new[String](); [""] -> List.new[String](); [value | rest] -> [value | drop_terminal_empty(rest)] }.
+
+/** Lowers one canonical `template Name from "path" { ... }.` declaration. */
+@pure
+pub lower(source: DeclarationSyntax): TemplateSyntax ->
+    let from_at = Delimited.top_level_text(source.body, " from ");
+    let open = Delimited.top_level_byte(source.body, 123);
+    let body_valid = open > from_at and String.ends_with(String.trim(source.body), "}.");
+    let path_text = if {
+        from_at >= 0 and open > from_at -> String.trim(source.body.utf8_slice(from_at + 6, open - from_at - 6));
+        true -> ""
+    };
+    let path = strip_quotes(path_text);
+    let property_text = if {
+        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
+        true -> ""
+    };
+    let properties = if {
+        body_valid -> StructLowering.lower_fields(drop_terminal_empty(Delimited.split_top_level(property_text, 44)));
+        true -> List.new[StructFieldSyntax]()
+    };
+    let supported = source.class == TemplateDeclaration;
+    TemplateSyntax(supported and body_valid and path != "" and StructLowering.fields_valid(properties), source.name, path, properties, source.span, if {
+            not supported -> "declaration is not a template";
+            from_at < 0 -> "template is missing its source path";
+            path == "" -> "template source path must be a quoted string";
+            not body_valid -> "template property body is incomplete";
+            not StructLowering.fields_valid(properties) -> StructLowering.first_error(properties);
+            true -> ""
+        }).
+

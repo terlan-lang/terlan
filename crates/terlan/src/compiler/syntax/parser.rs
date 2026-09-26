@@ -41,6 +41,9 @@ mod parser_repeated_let_test;
 #[path = "parser_trait_purity_test.rs"]
 mod parser_trait_purity_test;
 #[cfg(test)]
+#[path = "retired_syntax_test.rs"]
+mod retired_syntax_test;
+#[cfg(test)]
 #[path = "script_source_test.rs"]
 mod script_source_test;
 #[cfg(test)]
@@ -612,7 +615,7 @@ fn lex_tokens(input: &str) -> ParseResult<Vec<Token>> {
     })
 }
 
-const MAX_SYNTACTIC_NESTING: usize = 16;
+const MAX_SYNTACTIC_NESTING: usize = 64;
 
 fn ensure_token_nesting_within_limit(tokens: &[Token]) -> ParseResult<()> {
     let mut depth = 0usize;

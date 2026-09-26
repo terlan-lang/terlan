@@ -624,7 +624,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
             let mut out = String::new();
             out.push_str(&format!(
                 "case {} {{\n",
-                format_assignment_child(scrutinee, 0)
+                format_assignment_child(scrutinee, indent)
             ));
             let clause_spacing = "    ".repeat(indent + 1);
             for (i, clause) in clauses.iter().enumerate() {
@@ -747,7 +747,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                         .join(", ")
                 )
             };
-            format!("{}{} {{{}}}", name, rendered_type_args, raw)
+            format_raw_macro(name, &rendered_type_args, raw, indent)
         }
         Expr::BinaryOp { op, left, right } if matches!(op, BinaryOp::PipeForward) && indent > 0 => {
             format_pipe_forward_chain(left, right, indent)
@@ -775,6 +775,42 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Unquote(expr) => format!("unquote({})", format_expr(expr, 0)),
         Expr::HtmlBlock(block) => format_html_block(block.macro_kind.name(), &block.nodes, indent),
     }
+}
+
+/// Formats embedded raw regions without discarding deliberate multiline layout.
+fn format_raw_macro(name: &str, rendered_type_args: &str, raw: &str, indent: usize) -> String {
+    let trimmed = raw.trim();
+    if !trimmed.contains('\n') {
+        return format!("{name}{rendered_type_args} {{{trimmed}}}");
+    }
+
+    let lines = trimmed.lines().collect::<Vec<_>>();
+    let common_indent = lines
+        .iter()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| line.len() - line.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    let body_indent = "    ".repeat(indent + 1);
+    let closing_indent = "    ".repeat(indent);
+    let body = lines
+        .iter()
+        .map(|line| {
+            if name == "sql" {
+                let clause = line.trim();
+                let continuation =
+                    matches!(clause.split_whitespace().next(), Some("AND" | "OR" | "ON"));
+                let continuation_indent = if continuation { "    " } else { "" };
+                return format!("{body_indent}{continuation_indent}{clause}");
+            }
+            let relative = line
+                .get(common_indent..)
+                .unwrap_or_else(|| line.trim_start());
+            format!("{body_indent}{relative}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{name}{rendered_type_args} {{\n{body}\n{closing_indent}}}")
 }
 
 /// Formats a long boolean chain with one operator-led continuation per line.

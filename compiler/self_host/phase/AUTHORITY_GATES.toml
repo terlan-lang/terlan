@@ -1,0 +1,52 @@
+schema = "terlan.self-host.authority-gates/v1"
+status = "open"
+
+[[gate]]
+id = "token-parity"
+producer = "terlc syntax-contract --tokens"
+candidate = "self_host.TokenEvidence.authority_document"
+comparison = "byte-for-byte"
+required = true
+
+[[gate]]
+id = "accepted-parser-parity"
+producer = "rust-canonical-parser"
+candidate = "self_host.CanonicalParser.parse"
+corpus = "corpus/CORPUS_PHASE_2.tsv"
+comparison = "normalized-tree"
+required = true
+
+[[gate]]
+id = "rejected-parser-parity"
+producer = "rust-canonical-parser"
+candidate = "self_host.CanonicalParser.parse"
+corpus = "corpus/CORPUS_PHASE_2.tsv"
+comparison = "error-class-and-span"
+required = true
+
+[[gate]]
+id = "semantic-parity"
+producer = "rust-semantic-pipeline"
+candidate = "self_host.CompilerPipeline.analyze"
+comparison = "normalized-symbols-and-diagnostics"
+required = true
+
+[[gate]]
+id = "backend-contract-parity"
+producer = "rust-backend-adapter"
+candidate = "self_host.Compiler.compile"
+schema = "terlan.self-host.backend/v1"
+comparison = "byte-for-byte"
+required = true
+
+[[gate]]
+id = "bootstrap-fixed-point"
+stage0 = "rust-compiled-self-host"
+stage1 = "self-host-compiled-self-host"
+comparison = "reproducible-artifact"
+required = true
+
+[authority_transfer]
+allowed_when_all_required_gates_pass = true
+fallback_remains_available_for_one_release = true
+rust_frontend_deletion_requires_follow_up_release = true

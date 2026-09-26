@@ -39,6 +39,17 @@ section supplies a unique bind/reject disposition for every symbol, opaque
 resource ownership and thread-safety assertions, and reviewed rejection
 families. Missing, duplicate, unknown, or metadata-leaking policy entries fail
 before an output directory is created.
+Homogeneous C++ declarations may use `function_families` and mapping
+`symbol_families`. Shared public shape and reviewed policy are written once;
+each member needs only its exact extracted symbol ID unless its public name or
+documentation differs. The generator expands both shorthands into ordinary
+per-function and per-symbol records before the existing validation pipeline,
+and the normalized generated manifest retains that explicit expanded evidence.
+Generated modules may declare `type_imports` for opaque or copied types owned by
+a sibling module. Imports must resolve uniquely inside the same manifest and
+cannot name the importing module; emitted Terlan uses `import type` while the
+native helper retains one canonical resource identity and handle table for the
+whole package.
 The binding manifest separately owns a structured adapter build plan. It
 declares generated-adapter include roots, preprocessor definitions, library
 search paths, typed static/dynamic/framework links, target OS/architecture/
@@ -60,6 +71,71 @@ therefore carries the helper's package directory and isolated native target
 directory into normal build metadata. `terlc run` can build the C++ adapter
 from the immutable package cache and install its helper environment without a
 compiler-checkout path or a manually supplied helper variable.
+
+Opaque C++ records may be returned by value. The generator emits a catch-all
+`noexcept` C++ adapter that moves the value into `std::unique_ptr`, declares it
+in the generated `cxx::bridge`, and routes the helper through that generated
+function. Free factories and immutable resource methods use the same rule.
+Flat structural returns whose exact C++ type is `std::tuple<Resource, ...>`
+use a generated opaque carrier. The carrier independently owns every moved
+tuple element, generated take functions transfer each element through CXX, and
+the helper publishes the ordered Terlan handle tuple only after every element
+has been recovered successfully.
+When a selected declaration belongs to an overload set, the adapter emits an
+exact typed `static_cast` and supplies omitted reviewed trailing defaults, so
+package authors do not write overload-disambiguation shims. Integer
+`ArrayRef`-style parameters lower from a CXX integer slice
+by constructing the call-scoped upstream view from `(data, size)`. Optional
+integer ArrayRefs use the same bridge-safe slice and are constructed inside the
+generated C++ call. Trailing
+parameters with extracted C++ defaults may be omitted from the public Terlan
+operation. Cross-namespace opaque records receive per-type CXX namespace
+annotations.
+Public function arguments may independently declare Terlan defaults. The
+generator accepts only validated finite `Int`, `Float`, `Bool`, JSON string, or
+`List[Int]` literals and requires every defaulted parameter to be trailing. It
+emits the default on the original public function, so package authors do not
+create separate convenience aliases or handwritten forwarding wrappers.
+Exact overload calls normalize Clang's declaration-oriented braced-default
+spelling before placing it in a call expression.
+ATen/c10 `Scalar` inputs lower from public `Int` or `Float` arguments inside
+the same generated adapter, preserving the exact extracted overload signature.
+A public `value_is_int: Bool, value_int: Int, value_float: Float` triple may
+also map to one extracted `Scalar` parameter. Generated C++ selects and
+constructs the exact integer or floating Scalar without a package-authored
+tag-dispatch wrapper.
+Reviewed finite enums can lower into `std::optional<CppEnum>` parameters: the
+bridge transports an integer privately, and generated C++ constructs the exact
+optional enum type. Omitting a trailing optional still uses its extracted C++
+default, so package authors need no optional-value shim.
+Reviewed public overloads may also omit an extracted required
+`std::optional<T>` parameter. The generated exact call supplies
+`std::nullopt` at that position, including between mapped parameters, rather
+than requiring an author-written forwarding overload.
+Primitive `std::optional<T>` inputs also recognize the conventional adjacent
+public pair `has_<parameter>: Bool, <parameter>: T`. Generated CXX transports
+both scalars and constructs either the exact optional value or `std::nullopt`;
+the convention composes with free, owned-result, and mutable-output adapters.
+Copied C++ value records declared as `string_value` lower from public Terlan
+`String` arguments by constructing the exact value inside generated C++,
+including `std::optional<Value>` parameters. A reviewed `string_projection`
+pairs an extracted resource getter with an extracted zero-argument
+`std::string` method; the generator contains both calls and copies the result
+back to Terlan without an author-written value or ABI wrapper.
+Plain extracted `std::string_view`/`c10::string_view` inputs lower from public
+`String` through generated `rust::Str` parameters and call-scoped upstream
+views. A required public `String` can likewise supply a present extracted
+`std::optional<string_view>` parameter; generated C++ constructs both the
+call-scoped view and its optional wrapper, so package authors do not write a
+string-view conversion shim.
+Concrete function-template arguments remain extractor-owned metadata and are
+rendered into generated contained calls, allowing an exact specialization such
+as `Scalar::to<long>()` without an author-written dispatch wrapper.
+
+Build plans may declare environment-rooted external C++ SDKs with relative
+include roots, library search paths, typed linked libraries, and rebuild
+inputs. Generated packages therefore resolve binary distributions such as
+LibTorch at build time without copying them or embedding a machine-local path.
 
 The same manifest can map extractor-owned C++ record fields into ordinary
 copied Terlan structs. A `value_projection` operation names one reviewed
@@ -84,6 +160,34 @@ maps owned `std::string`, `std::vector<std::uint8_t>`, and
 use `std::unique_ptr`; the helper
 rejects null results, copies their contents into the response protocol, and
 drops the native container before returning control to Terlan.
+An `int_list_projection` handles borrowed `IntArrayRef`-style getter results:
+generated C++ copies the view into `std::vector<std::int64_t>` before the
+getter's owner can change, and CXX then carries that owned vector through the
+existing `List[Int]` result path. Inherited getters require Clang-proven public
+base conversion just like enum and integer projections.
+A `resource_list_projection` selects a const method returning
+`std::vector<Resource>` and exposes `List[Resource]` without an author-written
+wrapper. The selected callable may also be a free function, including one that
+simultaneously consumes a generated resource-list collector. Generated C++
+owns the vector, contains reviewed exceptions, and
+copies each element into a `std::unique_ptr<Resource>`. The generated helper
+collects all non-null values before allocating any public handle, so a failed
+element copy cannot publish a partial list. Reviewed trailing C++ defaults may
+be omitted from the public function exactly as for owned-value adapters.
+Public `List[Resource]` inputs map to extracted immutable
+`ArrayRef<Resource>` and `IListRef<Resource>` parameters. The VM transports a
+typed handle list; the helper validates every owner, type, and generation and
+copies each C++ value into one generated collector. That collector alone
+crosses `cxx`, and generated C++ supplies its owned vector to the upstream
+call. Empty and repeated lists are supported, no handle-table borrow escapes
+the call, and package authors write neither a collector nor a list shim.
+When an existing public contract separates the first required resource from a
+possibly empty remainder list, the list argument may declare
+`prepend_resource: true`. The generator validates an immediately preceding
+matching opaque resource, copies it into the same collector before the list
+elements, and still exposes exactly one `ArrayRef<Resource>` or
+`IListRef<Resource>` parameter to C++. This preserves nonempty public contracts
+without a package-authored forwarding wrapper.
 Copied `Bytes`, `List[Int]`, and `List[Float]` arguments lower to
 `rust::Slice<const std::uint8_t>`, `rust::Slice<const std::int64_t>`, and
 `rust::Slice<const double>` respectively. These slices remain borrowed only
@@ -101,9 +205,23 @@ opaque resource through a `const T&` C++ parameter. The public argument names
 the resource type, CXX receives `&T`, and the helper independently validates
 the secondary handle's owner, type, and generation before borrowing it only
 for that call. Passing the receiver itself is valid for immutable operations.
-Mutable methods cannot borrow another opaque resource because that would make
-aliasing dependent on runtime handle identity; generation rejects the shape
-with `cpp.lifetime.mutable_alias`.
+Mutable methods without generated containment cannot borrow another opaque
+resource because that would make aliasing dependent on runtime handle identity;
+generation rejects the shape with `cpp.lifetime.mutable_alias`. A reviewed
+mutable free function or exception-contained mutable method can accept
+secondary `const T&` resources: the helper validates and copies them through a
+generated CXX value adapter before borrowing the target, including when an
+input handle equals the output handle. A contained method whose C++ receiver is
+`const` may still declare public mutation when its extracted result is a mutable
+receiver alias; the adapter strengthens only its generated receiver parameter
+to preserve CXX `Pin<&mut T>` and handle-table exclusivity.
+Mutable free functions may retain more than one package resource when every
+additional output is explicitly marked mutable and maps to an exact non-const
+C++ reference. The helper validates distinct output handle IDs, copies all
+read-only inputs first, temporarily removes every output from the handle table,
+passes simultaneous `Pin<&mut T>` values through generated CXX, and reinserts
+all outputs before decoding success or failure. Exact tuples of output aliases
+may be discarded for public `Unit` results.
 
 Selected C++ enums become finite Terlan atom unions. Maintained Clang metadata
 retains named enumerators and exact discriminants for provenance, while package
@@ -113,6 +231,20 @@ arguments take the inverse path: the helper accepts a finite atom, rejects
 unselected values, and lowers the atom to its extractor-recorded integer only
 at the package-owned C++ wrapper call. C++ discriminants therefore remain
 private to the adapter rather than becoming public Terlan integer codes.
+The generated public union is written directly in terms of atom literals, with
+named singleton aliases retained for ergonomics, so native calls transport the
+enum as a scalar rather than an actor-owned managed allocation. Enum getters
+declared on an extracted base class may be projected from an opaque derived
+resource when Clang metadata proves the inheritance relation.
+Throwing zero-argument primitive getters use `scalar_projection` to reuse the
+same generated containment envelope while exposing an ordinary public `Int`,
+`Float`, or `Bool`. This permits inherited metadata such as rank,
+element-count, or device predicates only
+when Clang proves the concrete resource's public derived-to-base conversion.
+Trailing C++ parameters may remain absent from the public Terlan signature
+when every omitted parameter has an extracted default; the generated adapter
+invokes the method without those arguments and lets the C++ declaration own
+their exact semantics.
 
 Selected throwing C++ methods require an explicit package-owned exception
 policy. The policy defines a stable lowercase error code and public one-line

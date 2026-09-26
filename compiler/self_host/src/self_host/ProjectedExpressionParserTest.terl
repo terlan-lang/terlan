@@ -1,0 +1,97 @@
+/** Focused contracts for projected Pratt expression parsing. */
+module self_host.ProjectedExpressionParserTest.
+
+
+import std.core.Option.{None, Some}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+
+import std.collections.List.
+import std.core.{Bool, Int, String}.
+import self_host.ProjectedExpressionParser.
+
+
+@pure
+token(terminal: String, text: String, start: Int, end: Int): ProjectedCanonicalToken ->
+    ProjectedCanonicalToken(terminal, text, start, end).
+
+@pure
+list_cons_argument(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("var", "reverse_at", 0, 10),
+        token("(", "(", 10, 11),
+        token("var", "rest", 11, 15),
+        token(",", ",", 15, 16),
+        token("[", "[", 17, 18),
+        token("var", "value", 18, 23),
+        token("|", "|", 24, 25),
+        token("var", "output", 26, 32),
+        token("]", "]", 32, 33),
+        token(")", ")", 33, 34),
+    ]);
+    case parsed.node {
+        Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
+        None -> false
+    }.
+
+@pure
+nested_if_list_argument(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("upper-ident", "String", 0, 6),
+        token(".", ".", 6, 7),
+        token("var", "concat", 7, 13),
+        token("(", "(", 13, 14),
+        token("[", "[", 14, 15),
+        token("if", "if", 16, 18),
+        token("{", "{", 19, 20),
+        token("upper-ident", "true", 21, 25),
+        token("->", "->", 26, 28),
+        token("string", "yes", 29, 34),
+        token("if-clause-semicolon", ";", 34, 35),
+        token("upper-ident", "true", 36, 40),
+        token("->", "->", 41, 43),
+        token("string", "no", 44, 48),
+        token("}", "}", 49, 50),
+        token(",", ",", 50, 51),
+        token("]", "]", 51, 52),
+        token(")", ")", 52, 53),
+    ]);
+    case parsed.node {
+        Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
+        None -> false
+    }.
+
+@pure
+nested_case_list_argument(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("upper-ident", "String", 0, 6),
+        token(".", ".", 6, 7),
+        token("var", "concat", 7, 13),
+        token("(", "(", 13, 14),
+        token("[", "[", 14, 15),
+        token("case", "case", 16, 20),
+        token("{", "{", 21, 22),
+        token("var", "value", 22, 27),
+        token(",", ",", 27, 28),
+        token("var", "other", 29, 34),
+        token("}", "}", 34, 35),
+        token("{", "{", 36, 37),
+        token("var", "_", 38, 39),
+        token("->", "->", 40, 42),
+        token("string", "yes", 43, 48),
+        token("if-clause-semicolon", ";", 48, 49),
+        token("var", "_", 50, 51),
+        token("->", "->", 52, 54),
+        token("string", "no", 55, 59),
+        token("}", "}", 60, 61),
+        token(",", ",", 61, 62),
+        token("]", "]", 62, 63),
+        token(")", ")", 63, 64),
+    ]);
+    case parsed.node {
+        Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
+        None -> false
+    }.
+
+pub self_test(): Bool ->
+    list_cons_argument() and nested_if_list_argument() and nested_case_list_argument().

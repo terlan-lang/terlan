@@ -1,0 +1,72 @@
+/** Token-driven surface module construction. */
+module self_host.CanonicalSurface.
+
+import self_host.CanonicalToken.{CanonicalLexError}.
+import self_host.Syntax.{LexicalParseError, ParseError, SurfaceDeclaration, SurfaceModule, SyntaxSpan, UnterminatedDeclaration}.
+import self_host.TokenSegment.{TokenSegment}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+import self_host.CanonicalLexer.
+import self_host.Parser.
+import self_host.TokenContext.
+import self_host.TokenSegmenter.
+
+
+@pure
+span(start_byte: Int, end_byte: Int): SyntaxSpan ->
+    SyntaxSpan(start_byte, end_byte).
+
+@pure
+append_errors(left: List[ParseError], right: List[ParseError]): List[ParseError] ->
+    case left { [] -> right; [value | rest] -> [value | append_errors(rest, right)] }.
+
+@pure
+segment_text(source: String, segment: TokenSegment): String ->
+    source.utf8_slice(segment.start_byte, segment.end_byte - segment.start_byte).
+
+@pure
+declarations(source: String, segments: List[TokenSegment]): List[SurfaceDeclaration] ->
+    case segments {
+        [] -> List.new[SurfaceDeclaration]();
+        [segment | rest] ->
+            let text = segment_text(source, segment);
+            let head = Parser.declaration_head(text);
+            [SurfaceDeclaration(Parser.declaration_class(text), text, span(segment.start_byte, segment.end_byte), String.starts_with(head, "pub ")) | declarations(source, rest)]
+    }.
+
+@pure
+lexical_errors(values: List[CanonicalLexError]): List[ParseError] ->
+    case values {
+        [] -> List.new[ParseError]();
+        [value | rest] -> [ParseError(LexicalParseError, value.message, span(value.start_byte, value.end_byte)) | lexical_errors(rest)]
+    }.
+
+@pure
+boundary_errors(valid: Bool, start_byte: Int, end_byte: Int): List[ParseError] ->
+    if {
+        valid -> List.new[ParseError]();
+        true -> [ParseError(UnterminatedDeclaration, "top-level declaration must end with a dot", span(start_byte, end_byte))]
+    }.
+
+/** Builds a surface module exclusively from canonical token boundaries. */
+@pure
+pub parse(source: String): SurfaceModule ->
+    let lexical = CanonicalLexer.lex(source);
+    let segmented = TokenSegmenter.split(TokenContext.project(lexical.tokens));
+    case segmented.segments {
+        [] ->
+            let fallback = Parser.parse_surface(source);
+            let lexical_failures = lexical_errors(lexical.errors);
+            let boundary_failures = boundary_errors(segmented.valid, segmented.unterminated_start_byte, source.byte_size());
+            let canonical_errors = append_errors(lexical_failures, boundary_failures);
+            let errors = append_errors(fallback.errors, canonical_errors);
+            SurfaceModule(false, fallback.name, List.new[SurfaceDeclaration](), errors, span(0, source.byte_size()));
+        [header | rest] ->
+            let parsed_header = Parser.parse_surface(segment_text(source, header));
+            let lexical_failures = lexical_errors(lexical.errors);
+            let boundary_failures = boundary_errors(segmented.valid, segmented.unterminated_start_byte, source.byte_size());
+            let canonical_errors = append_errors(lexical_failures, boundary_failures);
+            let errors = append_errors(parsed_header.errors, canonical_errors);
+            SurfaceModule(parsed_header.valid and lexical.valid and segmented.valid, parsed_header.name, declarations(source, rest), errors, span(0, source.byte_size()))
+    }.

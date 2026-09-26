@@ -86,9 +86,36 @@ pub(super) fn assemble_native_module(
             Ok(layout.encoded_layout.clone())
         })
         .collect::<Result<Vec<_>, String>>()?;
-    managed_layouts.extend(managed_aggregate_layouts(candidate_types())?);
-    managed_layouts.extend(managed_aggregate_layouts(inferred_dynamic_returns.iter())?);
-    managed_layouts.extend(managed_expression_layouts(candidate_expressions())?);
+    merge_expression_managed_layouts(
+        &mut managed_layouts,
+        managed_aggregate_layouts(candidate_types())?,
+    )?;
+    merge_expression_managed_layouts(
+        &mut managed_layouts,
+        managed_aggregate_layouts(inferred_dynamic_returns.iter())?,
+    )?;
+    merge_expression_managed_layouts(
+        &mut managed_layouts,
+        managed_expression_layouts(candidate_expressions())?,
+    )?;
+    let mut lowered_encodings = Vec::new();
+    for function in &functions {
+        function
+            .body
+            .collect_managed_encodings(&mut lowered_encodings);
+    }
+    for continuation in &continuations {
+        continuation
+            .body
+            .collect_managed_encodings(&mut lowered_encodings);
+    }
+    let lowered_aggregates = lowered_encodings
+        .into_iter()
+        .filter(|encoded| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(encoded).is_ok()
+        })
+        .collect();
+    merge_expression_managed_layouts(&mut managed_layouts, lowered_aggregates)?;
     merge_managed_layouts(
         &mut managed_layouts,
         super::super::super::http_values::http_managed_layouts(core)?,
@@ -222,6 +249,25 @@ pub(super) fn finalize_native_application(
     super::super::super::continuation_sharing::materialize_shared_continuations(&mut modules)?;
     super::super::super::tail_position::lower_recursive_tail_calls(&mut modules);
     super::super::super::tail_position::attach_installed_reduction_yields(&mut modules);
+    if let Some(filter) = std::env::var_os("TERLAN_NATIVE_AOT_DUMP_FUNCTION") {
+        let filter = filter.to_string_lossy();
+        for module in &modules {
+            for function in &module.functions {
+                if function.name.contains(filter.as_ref())
+                    || function.source_function.contains(filter.as_ref())
+                {
+                    eprintln!(
+                        "native-ir {}.{}({:?}) -> {:?}: {:#?}",
+                        module.name,
+                        function.name,
+                        function.params,
+                        function.return_type,
+                        function.body
+                    );
+                }
+            }
+        }
+    }
     if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
         let tail_components = super::super::super::tail_position::mutual_tail_components(&modules);
         let largest = tail_components.iter().map(Vec::len).max().unwrap_or(0);

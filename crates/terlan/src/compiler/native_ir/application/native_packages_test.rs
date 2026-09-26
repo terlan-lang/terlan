@@ -118,7 +118,7 @@ fn opaque_value_alias_keeps_storage_while_bodyless_opaque_uses_handle() {
                 .to_string()
         })
         .collect::<Vec<_>>();
-    assert_eq!(canonicals, ["package.Values.Resource"]);
+    assert_eq!(canonicals, ["Named(package.Values.Resource)"]);
 }
 
 #[test]

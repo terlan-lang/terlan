@@ -1,0 +1,148 @@
+/** Framed multi-module token, syntax, and semantic bootstrap evidence. */
+module self_host.ProjectedStageEvidence.
+
+
+import std.core.Result.{Err, Ok, Result}.
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedParserEvidence.
+import self_host.ProjectedParser.
+import self_host.ProjectedSemanticEvidence.
+import self_host.ProjectedTokenEvidence.
+import self_host.ProjectionAdapter.
+import std.collections.List.
+import std.core.{Int, String, Unit}.
+import std.io.Directory.
+import std.io.File.
+
+struct StageEvidence {
+    count: Int,
+    tokens: String,
+    syntax: String,
+    semantics: String,
+}.
+
+constructor StageEvidence {
+    (count: Int, tokens: String, syntax: String, semantics: String): StageEvidence ->
+        StageEvidence {
+            count: count,
+            tokens: tokens,
+            syntax: syntax,
+            semantics: semantics,
+        }
+}.
+
+@pure
+frame(identity: String, artifact: String): String ->
+    String.concat([identity, "\t", Int.to_string(String.byte_size(artifact)), "\n", artifact, "\n"]).
+
+build(paths: List[String], evidence: StageEvidence): StageEvidence ->
+    case paths {
+        [] -> evidence;
+        [path | rest] -> let normalized = String.trim(path);
+            if {
+                normalized == "" or String.starts_with(normalized, "#") -> build(rest, evidence);
+                true -> case File.read_text(normalized) {
+                    Err(_reason) -> StageEvidence(count = -1, tokens = "", syntax = "", semantics = "");
+                    Ok(source) ->
+                        let lexed = CanonicalLexer.lex(source);
+                        let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+                        let common = ProjectedSemanticEvidence.common(frontend);
+                        let supplemental = ProjectedSemanticEvidence.supplemental(frontend);
+                        build(rest, StageEvidence(count = evidence.count + 1, tokens = String.append(
+                                evidence.tokens,
+                                frame(normalized, ProjectedTokenEvidence.document(frontend.tokens)),
+                            ), syntax = String.append(
+                                evidence.syntax,
+                                frame(normalized, ProjectedParserEvidence.document(frontend.surface)),
+                            ), semantics = String.concat([
+                                evidence.semantics,
+                                frame(String.append(normalized, ":common"), common),
+                                frame(String.append(normalized, ":supplemental"), supplemental),
+                            ])))
+                }
+            }
+    }.
+
+/** Writes bounded evidence for one source module. */
+pub write_unit(
+    input: String,
+    tokens_output: String,
+    syntax_output: String,
+    semantics_output: String,
+): Bool ->
+    case File.read_text(input) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let lexed = CanonicalLexer.lex(source);
+            let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+            let semantics = ProjectedSemanticEvidence.document(frontend);
+            case File.write_text(tokens_output, ProjectedTokenEvidence.document(frontend.tokens)) {
+                Err(_reason) -> false;
+                Ok(_unit) -> case File.write_text(
+                    syntax_output,
+                    ProjectedParserEvidence.document(frontend.surface),
+                ) {
+                    Err(_reason) -> false;
+                    Ok(_unit) -> case File.write_text(
+                        semantics_output,
+                        semantics,
+                    ) {
+                        Err(_reason) -> false;
+                        Ok(_unit) -> true
+                    }
+                }
+            }
+    }.
+
+/** Writes exactly one evidence layer without retaining sibling artifacts. */
+pub write_layer(input: String, layer: String, output: String): Bool ->
+    case File.read_text(input) {
+        Err(_reason) -> false;
+        Ok(source) ->
+            let lexed = CanonicalLexer.lex(source);
+            let rendered = if {
+                layer == "tokens" -> ProjectedTokenEvidence.document(
+                    ProjectionAdapter.rewrite(source, lexed.tokens),
+                );
+                layer == "syntax" ->
+                    let tokens = ProjectionAdapter.rewrite(source, lexed.tokens);
+                    ProjectedParserEvidence.document(ProjectedParser.parse(source, tokens));
+                layer == "semantics" ->
+                    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+                    ProjectedSemanticEvidence.document(frontend);
+                true -> ""
+            };
+            if {
+                rendered == "" -> false;
+                true -> case File.write_text(output, rendered) {
+                    Err(_reason) -> false;
+                    Ok(_unit) -> true
+                }
+            }
+    }.
+
+/** Writes all deterministic stage evidence bundles without child processes. */
+pub write(manifest: String, output: String): Bool ->
+    case File.read_text(manifest) {
+        Err(_reason) -> false;
+        Ok(paths) ->
+            let evidence = build(String.split(paths, "\n"), StageEvidence(count = 0, tokens = "", syntax = "", semantics = ""));
+            let _created = Directory.create_all(output);
+            if {
+                evidence.count <= 0 -> false;
+                true -> case File.write_text(String.append(output, "/tokens.bundle"), evidence.tokens) {
+                    Err(_reason) -> false;
+                    Ok(_unit) -> case File.write_text(String.append(output, "/syntax.bundle"), evidence.syntax) {
+                        Err(_reason) -> false;
+                        Ok(_unit) -> case File.write_text(
+                            String.append(output, "/semantics.bundle"),
+                            evidence.semantics,
+                        ) {
+                            Ok(_unit) -> true;
+                            Err(_reason) -> false
+                        }
+                    }
+                }
+            }
+    }.

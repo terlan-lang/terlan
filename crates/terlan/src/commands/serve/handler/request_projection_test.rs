@@ -61,9 +61,27 @@ fn complete_projection_preserves_every_request_field() {
     assert_eq!(fields[4], ReplValue::String("payload".to_string()));
     assert_eq!(fields[5], ReplValue::String("page=2".to_string()));
     assert!(matches!(&fields[3], ReplValue::Map(entries) if entries.len() == 1));
-    assert!(matches!(&fields[6], ReplValue::Map(entries) if entries.len() == 1));
-    assert!(matches!(&fields[7], ReplValue::Map(entries) if entries.len() == 1));
-    assert!(matches!(&fields[8], ReplValue::Map(entries) if entries.len() == 1));
+    assert_eq!(
+        fields[6],
+        ReplValue::Map(vec![(
+            ReplValue::String("page".to_string()),
+            ReplValue::String("2".to_string()),
+        )])
+    );
+    assert_eq!(
+        fields[7],
+        ReplValue::Map(vec![(
+            ReplValue::String("content-type".to_string()),
+            ReplValue::String("text/plain".to_string()),
+        )])
+    );
+    assert_eq!(
+        fields[8],
+        ReplValue::Map(vec![(
+            ReplValue::String("session".to_string()),
+            ReplValue::String("abc".to_string()),
+        )])
+    );
     assert_eq!(
         fields[10],
         ReplValue::String("/tmp/terlan-upload".to_string())

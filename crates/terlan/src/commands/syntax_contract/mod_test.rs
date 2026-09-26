@@ -76,6 +76,24 @@ fn parse_syntax_contract_command_accepts_generic_validation_modes() {
 }
 
 #[test]
+fn parse_syntax_contract_command_accepts_token_evidence_modes() {
+    assert_eq!(
+        parse_syntax_contract_command(&args(&["--tokens", "source.terl"])),
+        Ok(SyntaxContractCommand::Tokens {
+            source_path: PathBuf::from("source.terl"),
+            out_path: None,
+        })
+    );
+    assert_eq!(
+        parse_syntax_contract_command(&args(&["--tokens", "source.terl", "--out", "tokens.tsv",])),
+        Ok(SyntaxContractCommand::Tokens {
+            source_path: PathBuf::from("source.terl"),
+            out_path: Some(PathBuf::from("tokens.tsv")),
+        })
+    );
+}
+
+#[test]
 fn parse_syntax_contract_command_rejects_invalid_flag_combinations() {
     for invalid in [
         vec!["--unknown"],
@@ -87,6 +105,9 @@ fn parse_syntax_contract_command_rejects_invalid_flag_combinations() {
         vec!["--check", "contract.json", "--out", "copy.json"],
         vec!["--validate"],
         vec!["--validate", "grammar.ebnf", "--strict"],
+        vec!["--tokens"],
+        vec!["--tokens", "source.terl", "--fingerprint"],
+        vec!["--tokens", "source.terl", "--out"],
     ] {
         assert_eq!(
             parse_syntax_contract_command(&args(&invalid)),
@@ -94,6 +115,33 @@ fn parse_syntax_contract_command_rejects_invalid_flag_combinations() {
             "invalid args should fail: {invalid:?}"
         );
     }
+}
+
+#[test]
+fn run_writes_rust_token_evidence_matching_boundary_fixture() {
+    let source_path = temp_file("token-source.terl");
+    let output_path = temp_file("token-output.tsv");
+    fs::write(&source_path, "module app.Main.").expect("write token source");
+
+    let exit = run(&args(&[
+        "--tokens",
+        source_path.to_str().expect("utf8 source path"),
+        "--out",
+        output_path.to_str().expect("utf8 output path"),
+    ]));
+
+    assert_eq!(exit, ExitCode::SUCCESS);
+    let contents = fs::read_to_string(&output_path).expect("token evidence output");
+    assert!(contents.contains("schema\tterlan.self-host.token-authority/v1\n"));
+    assert!(contents.contains("token_count\t5\n"));
+    assert!(contents.contains("module\t0\t6\t"));
+    assert!(contents.contains("atom\t7\t10\t"));
+    assert!(contents.contains(".\t10\t11\t"));
+    assert!(contents.contains("upper-ident\t11\t15\t"));
+    assert!(contents.contains(".\t15\t16\t"));
+
+    let _ = fs::remove_file(&source_path);
+    let _ = fs::remove_file(&output_path);
 }
 
 #[test]

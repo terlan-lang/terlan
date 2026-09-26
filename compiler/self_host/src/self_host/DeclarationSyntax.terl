@@ -1,0 +1,58 @@
+/** Typed declaration handoff owned by the self-hosted syntax phase. */
+module self_host.DeclarationSyntax.
+
+import self_host.Syntax.{DeclarationClass, ParseError, SyntaxSpan}.
+
+import std.collections.List.
+import std.core.String.
+
+
+/**
+ * Normalized declaration identity with a lossless body.
+ *
+ * `header` is the signature-side source and `body` retains the complete source
+ * until the nested parsers become authoritative.
+ */
+pub struct DeclarationSyntax {
+    class: DeclarationClass,
+    name: String,
+    header: String,
+    body: String,
+    is_public: Bool,
+    span: SyntaxSpan,
+}.
+
+pub constructor DeclarationSyntax {
+    (class: DeclarationClass, name: String, header: String, body: String, is_public: Bool, span: SyntaxSpan): DeclarationSyntax ->
+        DeclarationSyntax {
+            class: class,
+            name: name,
+            header: header,
+            body: body,
+            is_public: is_public,
+            span: span,
+        }
+}.
+
+
+/** Typed declaration result for one source module. */
+pub struct ModuleSyntax {
+    valid: Bool,
+    name: String,
+    declarations: List[self_host.DeclarationSyntax.DeclarationSyntax],
+    errors: List[ParseError],
+    span: SyntaxSpan,
+}.
+
+pub constructor ModuleSyntax {
+    (valid: Bool, name: String, declarations: List[self_host.DeclarationSyntax.DeclarationSyntax], errors: List[ParseError], span: SyntaxSpan): ModuleSyntax ->
+        ModuleSyntax {
+            valid: valid,
+            name: name,
+            declarations: declarations,
+            errors: errors,
+            span: span,
+        }
+}.
+
+

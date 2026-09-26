@@ -1,3 +1,4 @@
+pub(super) use crate::support::statistics::percentile;
 use super::*;
 
 pub(super) fn assert_vm_wins_large_map_reference_lane(
@@ -234,11 +235,6 @@ pub(super) fn assertion(name: &'static str, detail: impl Into<String>) -> Assert
     }
 }
 
-/// Returns required VM performance tracks that are not executable yet.
-pub(super) fn vm_performance_skipped_tracks() -> Vec<SkippedTrack> {
-    REQUIRED_VM_SKIPPED_TRACKS.to_vec()
-}
-
 /// Measures adapter connection setup.
 ///
 /// Inputs:
@@ -421,23 +417,6 @@ impl Measurement {
     }
 }
 
-/// Returns a nearest-rank percentile from sorted microsecond values.
-///
-/// Inputs:
-/// - `sorted_values`: sorted non-empty duration values.
-/// - `percentile_value`: percentile from 0 to 100.
-///
-/// Output:
-/// - Value at the selected percentile rank.
-///
-/// Transformation:
-/// - Uses integer arithmetic to avoid floating-point rounding in reports.
-pub(super) fn percentile(sorted_values: &[u128], percentile_value: usize) -> u128 {
-    let max_index = sorted_values.len() - 1;
-    let index = (max_index * percentile_value).div_ceil(100);
-    sorted_values[index]
-}
-
 /// Formats a stable Postgres adapter error.
 ///
 /// Inputs:
@@ -451,44 +430,6 @@ pub(super) fn percentile(sorted_values: &[u128], percentile_value: usize) -> u12
 ///   benchmark failure diagnostics.
 pub(super) fn format_postgres_error(error: PostgresError) -> String {
     format!("error[{}]: {}", error.code(), error.message())
-}
-
-/// Formats a stable HTTP adapter error.
-///
-/// Inputs:
-/// - `error`: HTTP adapter error.
-///
-/// Output:
-/// - Human-readable error with stable code.
-///
-/// Transformation:
-/// - Preserves the portable error code for benchmark failure diagnostics.
-pub(super) fn format_http_error(error: http::HttpError) -> String {
-    format!(
-        "error[{}]: {} (status {})",
-        error.code(),
-        error.message(),
-        error.status()
-    )
-}
-
-/// Formats a stable JSON adapter error.
-///
-/// Inputs:
-/// - `error`: JSON adapter error.
-///
-/// Output:
-/// - Human-readable error with stable code.
-///
-/// Transformation:
-/// - Preserves JSON adapter diagnostics for HTTP benchmark failures.
-pub(super) fn format_json_error(error: json::JsonError) -> String {
-    format!(
-        "error[{}]: {} (offset {})",
-        error.code(),
-        error.message(),
-        error.offset()
-    )
 }
 
 /// Writes a benchmark report as pretty JSON.

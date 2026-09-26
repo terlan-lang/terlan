@@ -24,6 +24,7 @@ fn vm_service_launcher_executes_bundled_service_runtime() {
     if cfg!(windows) {
         assert!(contents.contains("TERLAN_SERVE_PORT=%PORT%"));
         assert!(contents.contains("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1"));
+        assert!(contents.contains("TERLAN_SERVE_MANIFEST_ONLY=1"));
         assert!(contents.contains("terlan-serve-runtime.exe"));
         assert!(contents.contains("..\\web"));
     } else {
@@ -31,6 +32,7 @@ fn vm_service_launcher_executes_bundled_service_runtime() {
         assert!(contents.contains(
             "export TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}"
         ));
+        assert!(contents.contains("export TERLAN_SERVE_MANIFEST_ONLY=1"));
         assert!(contents.contains("exec \"$SCRIPT_DIR/terlan-serve-runtime\""));
         assert!(contents.contains("\"$SCRIPT_DIR/../web\""));
     }
@@ -96,6 +98,65 @@ fn build_command_rejects_project_manifest_without_main_entrypoint_for_vm_artifac
     assert!(out_dir.join("vm/app_Main.tvm").exists());
     assert!(!out_dir.join("bin/app").exists());
     assert!(!out_dir.join(BUILD_PACKAGE_METADATA_FILE).exists());
+}
+
+/// Router-backed VM services use the serve runtime and need no fake `Main.main/0`.
+#[test]
+fn build_command_emits_service_launcher_without_main_entrypoint() {
+    let dir = make_temp_dir("directory_project_manifest_router_service");
+    let project_dir = dir.join("project");
+    let app_dir = project_dir.join("src/app");
+    let out_dir = dir.join("build");
+    fs::create_dir_all(&app_dir).expect("create service source directory");
+    fs::write(
+        project_dir.join(TERLAN_PROJECT_MANIFEST_FILE),
+        "[package]\nname = \"app\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+    )
+    .expect("write service manifest");
+    fs::write(
+        app_dir.join("Web.terl"),
+        r#"module app.Web.
+
+import std.http.{Request, Response, Router}.
+import type std.http.{Request, Response, Router}.
+
+pub health(_request: Request): Response -> Response.text("ok", 200).
+pub router(): Router -> Router.new().get("/health", health).
+"#,
+    )
+    .expect("write service router");
+
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let status = run(
+        CliCommand {
+            verb: Some("build".to_string()),
+            args: vec![
+                project_dir.display().to_string(),
+                "--target".to_string(),
+                "terlan-vm".to_string(),
+            ],
+        },
+        state,
+    );
+
+    assert_eq!(status, ExitCode::SUCCESS);
+    assert!(out_dir.join("bin/app").is_file());
+    assert!(out_dir.join("bin/terlan-serve-runtime").is_file());
+    assert!(!out_dir.join("vm/app_Main.tvm").exists());
+    let metadata: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
+            .expect("read service package metadata"),
+    )
+    .expect("parse service package metadata");
+    assert!(metadata["executable"].get("image").is_none());
+    assert_eq!(
+        metadata["executable"]["service_runtime"],
+        "bin/terlan-serve-runtime"
+    );
+    assert_eq!(metadata["executable"]["web_root"], "web");
 }
 
 /// Verifies executable VM artifact packages emit a runnable launcher contract.

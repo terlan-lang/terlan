@@ -1,0 +1,48 @@
+/** Multi-module result used by bootstrap and separate compilation. */
+module self_host.CompilationBundleSyntax.
+
+import self_host.BackendSyntax.{BackendModule}.
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+
+import std.collections.List.
+import std.core.String.
+
+
+pub type InvalidModule.
+pub type DuplicateModule.
+
+pub type BundleDiagnosticClass = InvalidModule | DuplicateModule.
+
+pub struct BundleDiagnostic {
+    class: self_host.CompilationBundleSyntax.BundleDiagnosticClass,
+    module_name: String,
+    message: String,
+}.
+
+pub constructor BundleDiagnostic {
+    (class: self_host.CompilationBundleSyntax.BundleDiagnosticClass, module_name: String, message: String): BundleDiagnostic ->
+        BundleDiagnostic {
+            class: class,
+            module_name: module_name,
+            message: message,
+        }
+}.
+
+
+pub struct CompilationBundle {
+    valid: Bool,
+    modules: List[BackendModule],
+    interfaces: List[ModuleInterface],
+    diagnostics: List[self_host.CompilationBundleSyntax.BundleDiagnostic],
+}.
+
+pub constructor CompilationBundle {
+    (valid: Bool, modules: List[BackendModule], interfaces: List[ModuleInterface], diagnostics: List[self_host.CompilationBundleSyntax.BundleDiagnostic]): CompilationBundle ->
+        CompilationBundle {
+            valid: valid,
+            modules: modules,
+            interfaces: interfaces,
+            diagnostics: diagnostics,
+        }
+}.
+

@@ -280,12 +280,13 @@ comprehension, or handler scope. The nested name denotes a fresh identity and
 does not alter the outer value. See
 `docs/compiler/TERLAN_BINDING_IDENTITIES.md` for the complete region contract.
 
-Refutable bindings use `<-` inside an explicitly braced group and share one
-fallback. Each right-hand side runs once from left to right, and the first
-mismatch dispatches its value to the fallback clauses. Success-bound names are
-available to later bindings and the final expression, but not to the shared
-fallback. The braces delimit only the refutable binding group; they are not a
-general block-expression form.
+A refutable binding uses `<-` with an `else` fallback. Multiple bindings use
+the canonical grouped `let { ... } else { ... }` form, not a separate `with`
+construct, and share one fallback. Each right-hand side runs once from left to
+right. The first mismatch dispatches its value to the fallback clauses.
+Success-bound names are available to later bindings and the final expression,
+but not to the shared fallback. The braces delimit only the refutable binding
+group; they are not a general block-expression form.
 
 A single refutable binding omits the grouping braces:
 
@@ -404,13 +405,16 @@ Source identifiers use explicit roles:
 
 Terlan does not treat bare identifiers as atoms. `Atom["name"]` is the
 language-neutral primitive for stable symbolic singleton values.
+Colon-prefixed and single-quoted atom spellings are rejected, including in
+patterns and type annotations. Values and types use the same quoted payload
+syntax.
 
 ## Calls
 
 Call expressions are written `Name(...)` and are resolved semantically as either
 function calls or constructor calls depending on declaration context.
 
-Function-value invocation uses postfix dot-call syntax: `f(10)` invokes the
+Function-value invocation uses ordinary postfix call syntax: `f(10)` invokes the
 value of `f` as a callable value.
 
 Function-head pattern parameters may destructure a typed argument directly in

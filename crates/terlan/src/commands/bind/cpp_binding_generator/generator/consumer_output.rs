@@ -3,27 +3,56 @@ use super::*;
 /// Renders an executable lifecycle test when a module exposes every operation
 /// needed to establish and verify resource ownership.
 ///
-/// Modules made only of static functions, copied types, or partial resource
-/// APIs return `None`; generating an unconditional passing test for those
-/// modules would falsely imply runtime coverage.
-pub(super) fn render_consumer_test(module: &NativeBindingModule) -> Result<Option<String>, String> {
+/// A constructor/disposer pair receives an executable ownership smoke test.
+/// Modules that additionally expose observation and mutation receive the full
+/// behavioral lifecycle test.
+pub(super) fn render_consumer_test(
+    module: &NativeBindingModule,
+    modules: &[NativeBindingModule],
+) -> Result<Option<String>, String> {
     let test_module = format!("{}Test", module.module);
     let Some(constructor) = optional_role_function(module, NativeFunctionRole::Constructor) else {
         return Ok(None);
     };
-    let Some(reader) = optional_role_function(module, NativeFunctionRole::ImmutableMethod) else {
+    let Some(dispose) = module.functions.iter().find(|function| {
+        function.role == NativeFunctionRole::Dispose
+            && function.args.len() == 1
+            && terlan_type_matches(&function.args[0].ty, &constructor.returns)
+    }) else {
         return Ok(None);
+    };
+    let constructor_args = render_constructor_sample_args(module, modules, constructor)?;
+    let Some(reader) = optional_role_function(module, NativeFunctionRole::ImmutableMethod) else {
+        let ownership_args =
+            render_ownership_constructor_sample_args(module, modules, constructor)?;
+        return Ok(Some(render_ownership_smoke(
+            module,
+            constructor,
+            dispose,
+            &ownership_args,
+        )));
     };
     let Some(mutator) = optional_role_function(module, NativeFunctionRole::MutableMethod) else {
-        return Ok(None);
-    };
-    let Some(dispose) = optional_role_function(module, NativeFunctionRole::Dispose) else {
-        return Ok(None);
+        let ownership_args =
+            render_ownership_constructor_sample_args(module, modules, constructor)?;
+        return Ok(Some(render_ownership_smoke(
+            module,
+            constructor,
+            dispose,
+            &ownership_args,
+        )));
     };
     let Some(counter) = module.functions.iter().find(|function| {
         function.role == NativeFunctionRole::FreeFunction && function.args.is_empty()
     }) else {
-        return Ok(None);
+        let ownership_args =
+            render_ownership_constructor_sample_args(module, modules, constructor)?;
+        return Ok(Some(render_ownership_smoke(
+            module,
+            constructor,
+            dispose,
+            &ownership_args,
+        )));
     };
     let projection = module
         .functions
@@ -36,6 +65,9 @@ pub(super) fn render_consumer_test(module: &NativeBindingModule) -> Result<Optio
         dispose.name.as_str(),
         counter.name.as_str(),
     ];
+    imports.extend(constructor.args.iter().filter_map(|argument| {
+        sample_enum_variant(module, &argument.ty).map(|variant| variant.name.as_str())
+    }));
     let copied_functions = module
         .functions
         .iter()
@@ -165,11 +197,12 @@ pub(super) fn render_consumer_test(module: &NativeBindingModule) -> Result<Optio
     imports.sort_unstable();
     imports.dedup();
     Ok(Some(format!(
-        "module {}.\n\nimport {}.{{{}}}.\n\n@test\npub generated_cpp_resource_executes(): Bool ->\n    let boundary = {}(40);\n    {}(boundary, 2);\n    let observed = {}(boundary);\n{}{}{}{}{}    {}(boundary);\n    observed == 42{}{}{}{} and {}() == 0.\n",
+        "module {}.\n\nimport {}.{{{}}}.\n\n@test\npub generated_cpp_resource_executes(): Bool ->\n    let boundary = {}({});\n    {}(boundary, 2);\n    let observed = {}(boundary);\n{}{}{}{}{}    {}(boundary);\n    observed == 42{}{}{}{} and {}() == 0.\n",
         test_module,
         module.module,
         imports.join(", "),
         constructor.name,
+        constructor_args,
         mutator.name,
         reader.name,
         projection_step,
@@ -184,6 +217,189 @@ pub(super) fn render_consumer_test(module: &NativeBindingModule) -> Result<Optio
         exception_checks,
         counter.name
     )))
+}
+
+/// Produces a non-vacuous generated test for ownership-only resource modules.
+fn render_ownership_smoke(
+    module: &NativeBindingModule,
+    constructor: &NativeBindingFunction,
+    dispose: &NativeBindingFunction,
+    constructor_args: &str,
+) -> String {
+    let derived_methods = module
+        .functions
+        .iter()
+        .filter_map(|function| {
+            if function.role != NativeFunctionRole::ImmutableMethod
+                || function.args.is_empty()
+                || !terlan_type_matches(&function.args[0].ty, &constructor.returns)
+                || !matches!(
+                    function.resource,
+                    NativeResourcePolicy::OwnedHandle | NativeResourcePolicy::OpaqueHandle
+                )
+            {
+                return None;
+            }
+            let returned = module.types.iter().find(|ty| {
+                ty.kind == NativeBindingTypeKind::OpaqueResource
+                    && terlan_type_matches(&function.returns, &ty.name)
+            })?;
+            let returned_disposer = module.functions.iter().find(|candidate| {
+                candidate.role == NativeFunctionRole::Dispose
+                    && candidate.args.len() == 1
+                    && terlan_type_matches(&candidate.args[0].ty, &returned.name)
+            })?;
+            let arguments = function
+                .args
+                .iter()
+                .map(|argument| {
+                    if terlan_type_matches(&argument.ty, &constructor.returns) {
+                        Some("resource")
+                    } else {
+                        sample_value_for_type(module, &argument.ty)
+                    }
+                })
+                .collect::<Option<Vec<_>>>()?
+                .join(", ");
+            Some((function, arguments, returned_disposer))
+        })
+        .collect::<Vec<_>>();
+    let mut imports = vec![dispose.name.as_str(), constructor.name.as_str()];
+    imports.extend(constructor.args.iter().filter_map(|argument| {
+        sample_enum_variant(module, &argument.ty).map(|variant| variant.name.as_str())
+    }));
+    imports.extend(derived_methods.iter().flat_map(|(function, _, _)| {
+        function.args.iter().filter_map(|argument| {
+            sample_enum_variant(module, &argument.ty).map(|variant| variant.name.as_str())
+        })
+    }));
+    imports.extend(
+        derived_methods
+            .iter()
+            .flat_map(|(function, _, returned_disposer)| {
+                [function.name.as_str(), returned_disposer.name.as_str()]
+            }),
+    );
+    imports.sort_unstable();
+    imports.dedup();
+    let derived_steps = derived_methods
+        .iter()
+        .enumerate()
+        .map(|(index, (function, arguments, returned_disposer))| {
+            format!(
+                "    let derived_{index} = {}({arguments});\n    {}(derived_{index});\n",
+                function.name, returned_disposer.name,
+            )
+        })
+        .collect::<String>();
+    format!(
+        "module {}Test.\n\nimport {}.{{{}}}.\n\n@test\npub generated_cpp_resource_executes(): Bool ->\n    let resource = {}({});\n{}    {}(resource);\n    true.\n",
+        module.module,
+        module.module,
+        imports.join(", "),
+        constructor.name,
+        constructor_args,
+        derived_steps,
+        dispose.name,
+    )
+}
+
+/// Renders deterministic sample arguments for generated constructor tests.
+fn render_constructor_sample_args(
+    module: &NativeBindingModule,
+    modules: &[NativeBindingModule],
+    constructor: &NativeBindingFunction,
+) -> Result<String, String> {
+    render_constructor_sample_args_with(module, modules, constructor, "40", "[40]")
+}
+
+/// Uses singleton list shapes for ownership-only modules so scalar projections
+/// such as `Tensor::item()` can participate in generated lifecycle coverage.
+fn render_ownership_constructor_sample_args(
+    module: &NativeBindingModule,
+    modules: &[NativeBindingModule],
+    constructor: &NativeBindingFunction,
+) -> Result<String, String> {
+    render_constructor_sample_args_with(module, modules, constructor, "1", "[1]")
+}
+
+fn render_constructor_sample_args_with(
+    module: &NativeBindingModule,
+    modules: &[NativeBindingModule],
+    constructor: &NativeBindingFunction,
+    integer: &'static str,
+    integer_list: &'static str,
+) -> Result<String, String> {
+    constructor
+        .args
+        .iter()
+        .map(|argument| match argument.ty.as_str() {
+            "Int" => Ok(integer.to_owned()),
+            "List[Int]" => Ok(integer_list.to_owned()),
+            ty => sample_constructor_value_for_type(module, modules, ty).ok_or_else(|| {
+                format!("consumer test cannot synthesize constructor argument type `{ty}`")
+            }),
+        })
+        .collect::<Result<Vec<_>, String>>()
+        .map(|arguments| arguments.join(", "))
+}
+
+/// Returns a deterministic constructor value, resolving qualified enum types
+/// through sibling generated modules without adding an import dependency to
+/// the generated consumer test.
+fn sample_constructor_value_for_type(
+    module: &NativeBindingModule,
+    modules: &[NativeBindingModule],
+    ty: &str,
+) -> Option<String> {
+    sample_value_for_type(module, ty)
+        .map(str::to_owned)
+        .or_else(|| {
+            modules
+                .iter()
+                .flat_map(|candidate| &candidate.types)
+                .find(|binding_type| {
+                    binding_type.kind == NativeBindingTypeKind::Enum
+                        && terlan_type_matches(ty, &binding_type.name)
+                })
+                .and_then(|binding_type| binding_type.variants.first())
+                .map(|variant| format!("Atom[\"{}\"]", variant.atom))
+        })
+}
+
+/// Returns one deterministic literal for generated lifecycle coverage.
+fn sample_value_for_type<'a>(module: &'a NativeBindingModule, ty: &str) -> Option<&'a str> {
+    match ty {
+        "Int" => Some("2"),
+        "Float" => Some("2.0"),
+        "Bool" => Some("true"),
+        "String" => Some("\"value\""),
+        "List[Int]" => Some("[2]"),
+        "List[Float]" => Some("[2.0]"),
+        _ if module.types.iter().any(|binding_type| {
+            binding_type.kind == NativeBindingTypeKind::StringValue
+                && terlan_type_matches(ty, &binding_type.name)
+        }) =>
+        {
+            Some("\"cpu\"")
+        }
+        _ => sample_enum_variant(module, ty).map(|variant| variant.name.as_str()),
+    }
+}
+
+/// Selects the first reviewed variant as a deterministic generated-test value.
+fn sample_enum_variant<'a>(
+    module: &'a NativeBindingModule,
+    ty: &str,
+) -> Option<&'a NativeBindingVariant> {
+    module
+        .types
+        .iter()
+        .find(|binding_type| {
+            binding_type.kind == NativeBindingTypeKind::Enum
+                && terlan_type_matches(ty, &binding_type.name)
+        })
+        .and_then(|binding_type| binding_type.variants.first())
 }
 
 pub(super) fn render_skipped_symbols(
@@ -229,10 +445,15 @@ pub(super) fn role_name(role: NativeFunctionRole) -> &'static str {
         NativeFunctionRole::Constructor => "constructor",
         NativeFunctionRole::ImmutableMethod => "immutable_method",
         NativeFunctionRole::MutableMethod => "mutable_method",
+        NativeFunctionRole::MutableFreeFunction => "mutable_free_function",
         NativeFunctionRole::FreeFunction => "free_function",
         NativeFunctionRole::ValueProjection => "value_projection",
         NativeFunctionRole::OwnedValueProjection => "owned_value_projection",
         NativeFunctionRole::EnumProjection => "enum_projection",
+        NativeFunctionRole::StringProjection => "string_projection",
+        NativeFunctionRole::ScalarProjection => "scalar_projection",
+        NativeFunctionRole::IntListProjection => "int_list_projection",
+        NativeFunctionRole::ResourceListProjection => "resource_list_projection",
         NativeFunctionRole::ExceptionMethod => "exception_method",
         NativeFunctionRole::Dispose => "dispose",
     }
@@ -240,7 +461,10 @@ pub(super) fn role_name(role: NativeFunctionRole) -> &'static str {
 
 pub(super) fn render_args(args: &[NativeBindingArg]) -> String {
     args.iter()
-        .map(|arg| format!("{}: {}", arg.name, arg.ty))
+        .map(|arg| match &arg.default {
+            Some(default) => format!("{}: {} = {default}", arg.name, arg.ty),
+            None => format!("{}: {}", arg.name, arg.ty),
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -336,6 +560,14 @@ pub(super) fn validate_cpp_identifier_path(kind: &str, value: &str) -> Result<()
         Ok(())
     } else {
         Err(format!("{kind} `{value}` must be a C++ identifier path"))
+    }
+}
+
+pub(super) fn validate_cpp_identifier(kind: &str, value: &str) -> Result<(), String> {
+    if is_identifier_segment(value) {
+        Ok(())
+    } else {
+        Err(format!("{kind} `{value}` must be a C++ identifier"))
     }
 }
 

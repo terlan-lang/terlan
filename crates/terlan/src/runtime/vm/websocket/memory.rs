@@ -38,7 +38,6 @@ impl VmWebSocketInboundQueue {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn push(&mut self, frame: VmWebSocketFrame) -> Result<(), String> {
         let frame_bytes = self.validate_push(&frame)?;
         self.queued_frame_bytes = self.queued_frame_bytes.saturating_add(frame_bytes);
@@ -46,7 +45,6 @@ impl VmWebSocketInboundQueue {
         Ok(())
     }
 
-    #[cfg(test)]
     fn validate_push(&self, frame: &VmWebSocketFrame) -> Result<usize, String> {
         let frame_bytes = frame.payload_len();
         if frame_bytes > self.max_frame_bytes {
@@ -58,7 +56,6 @@ impl VmWebSocketInboundQueue {
         Ok(frame_bytes)
     }
 
-    #[cfg(test)]
     pub(crate) fn pop(&mut self) -> Option<VmWebSocketFrame> {
         let frame = self.frames.pop_front()?;
         self.queued_frame_bytes = self.queued_frame_bytes.saturating_sub(frame.payload_len());

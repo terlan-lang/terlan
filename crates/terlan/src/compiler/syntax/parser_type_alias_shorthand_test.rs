@@ -93,20 +93,16 @@ pub type Component = {
         .expect("record field colons should parse as type separators");
     }
 
-    /// Verifies legacy atom types canonicalize without confusing field colons.
+    /// Verifies legacy atom types are rejected without confusing field colons.
     #[test]
-    fn raw_atom_in_record_type_canonicalizes() {
-        let module = parse_module(
+    fn raw_atom_in_record_type_is_rejected() {
+        parse_module(
             r#"
 module raw_atom_record.
 
 pub type Effect = {:effect, value: Int}.
 "#,
         )
-        .expect("raw atom type compatibility alias should parse");
-        let Decl::Type(effect) = &module.declarations[0] else {
-            panic!("expected type declaration");
-        };
-        assert_eq!(effect.variants[0].text, "{Atom[\"effect\"], value: Int}");
+        .expect_err("raw atom type compatibility alias must fail");
     }
 }

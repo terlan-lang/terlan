@@ -1,0 +1,57 @@
+/** ABI-stable structural handoff consumed by native backend implementations. */
+module self_host.BackendAbiSyntax.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+pub struct BackendAbiDeclaration {
+    class_name: String,
+    symbol_name: String,
+    semantic_identity: String,
+    is_public: Bool,
+    source_text: String,
+    start_byte: Int,
+    end_byte: Int,
+    annotation_paths: List[String],
+    docs: List[String],
+}.
+
+pub constructor BackendAbiDeclaration {
+    (class_name: String, symbol_name: String, semantic_identity: String, is_public: Bool, source_text: String, start_byte: Int, end_byte: Int, annotation_paths: List[String], docs: List[String]): BackendAbiDeclaration ->
+        BackendAbiDeclaration {
+            class_name: class_name,
+            symbol_name: symbol_name,
+            semantic_identity: semantic_identity,
+            is_public: is_public,
+            source_text: source_text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            annotation_paths: annotation_paths,
+            docs: docs,
+        }
+}.
+
+
+pub struct BackendAbiModule {
+    schema: String,
+    valid: Bool,
+    module_name: String,
+    source_kind: String,
+    declarations: List[self_host.BackendAbiSyntax.BackendAbiDeclaration],
+    interface_text: String,
+    message: String,
+}.
+
+pub constructor BackendAbiModule {
+    (schema: String, valid: Bool, module_name: String, source_kind: String, declarations: List[self_host.BackendAbiSyntax.BackendAbiDeclaration], interface_text: String, message: String): BackendAbiModule ->
+        BackendAbiModule {
+            schema: schema,
+            valid: valid,
+            module_name: module_name,
+            source_kind: source_kind,
+            declarations: declarations,
+            interface_text: interface_text,
+            message: message,
+        }
+}.
+

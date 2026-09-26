@@ -326,8 +326,9 @@ pub(super) fn execute_collection_operation(
                 .iter()
                 .map(|word| field_value(*word, descriptor.element_type()))
                 .collect::<Result<Vec<_>, _>>()?;
-            heap.list_from_elements(descriptor, &elements)
-                .map(TvmRef::encoded_abi_word)
+            let result = heap.list_from_elements(descriptor, &elements)
+                .map(TvmRef::encoded_abi_word);
+            result
         }
         LIST_PREPEND => {
             let [head, tail] = words else {

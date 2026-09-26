@@ -1,0 +1,68 @@
+/**
+ * Executes all AST-neutral local semantic passes for one projected module.
+ */
+module self_host.ProjectedLocalSemantic.
+
+import std.collections.List.
+import self_host.ProjectedBindingResolution.
+import self_host.ProjectedBindingTypeMerge.
+import self_host.ProjectedBodySyntax.
+import self_host.ProjectedBodySyntax.{ProjectedBodies}.
+import self_host.ProjectedCallableResolution.
+import self_host.ProjectedCallableCatalog.
+import self_host.ProjectedCallableSyntax.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.ProjectedCallableTypeMerge.
+import self_host.ProjectedFrontendSyntax.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectedSignatureSyntax.{ProjectedSignatureDocument}.
+import self_host.ProjectedLocalSemanticSyntax.
+import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticInput, LocalSemanticResult}.
+import self_host.ProjectedSemanticEventAdapter.
+import self_host.ProjectedTypeConstraintResolution.
+import self_host.ModuleInterfaceSyntax.
+
+import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
+pub analyze(input: LocalSemanticInput): LocalSemanticResult ->
+    let bindings = ProjectedBindingResolution.resolve(input.binding_events);
+    let callables = ProjectedCallableResolution.resolve(
+        input.callable_uses,
+        input.callable_declarations,
+    );
+    let types = ProjectedBindingTypeMerge.merge(
+        ProjectedCallableTypeMerge.merge(
+            ProjectedTypeConstraintResolution.resolve(input.type_constraints),
+            callables,
+        ),
+        bindings,
+        input.binding_type_links,
+    );
+    LocalSemanticResult(
+        bindings = bindings,
+        callables = callables,
+        types = types,
+    ).
+
+pub analyze_bodies(
+    bodies: ProjectedBodies,
+    signatures: ProjectedSignatureDocument,
+    callable_declarations: List[CallableDeclaration],
+): LocalSemanticResult ->
+    let events = ProjectedSemanticEventAdapter.adapt(bodies, signatures);
+    analyze(LocalSemanticInput(
+        binding_events = events.binding_events,
+        callable_declarations = callable_declarations,
+        callable_uses = events.callable_uses,
+        type_constraints = events.type_constraints,
+        binding_type_links = events.binding_type_links,
+    )).
+
+pub analyze_frontend(
+    frontend: ProjectedFrontendModule,
+    imported_interfaces: List[ModuleInterface],
+): LocalSemanticResult ->
+    analyze_bodies(
+        frontend.bodies,
+        frontend.signatures,
+        ProjectedCallableCatalog.build(frontend.backend, imported_interfaces),
+    ).

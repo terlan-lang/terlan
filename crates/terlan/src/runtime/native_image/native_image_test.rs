@@ -711,6 +711,7 @@ fn coff_metadata_survives_pe_linking_sealing_and_inspection() {
     let mut expected = descriptor();
     expected.target = target.clone();
     let debug_record = TvmNativeDebugRecord {
+        callable_id: 7,
         source_file: "Main.terl".to_string(),
         module: "app.Main".to_string(),
         function: "main".to_string(),

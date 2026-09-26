@@ -274,20 +274,56 @@ pub(super) fn validate_dispatcher_binding(
             function.name
         )
     };
-    if function.role != CAbiFunctionRole::ImmutableMethod
-        || function.args.is_empty()
-        || function.args[0].ty == "Int"
-        || function.returns != function.args[0].ty
-        || function.args[1..].iter().any(|argument| {
+    validate_discarded_dispatcher_output_cardinality(function, dispatcher)?;
+    let owner_type = match function.role {
+        CAbiFunctionRole::Constructor => Some(function.returns.as_str()),
+        _ => function.args.first().map(|argument| argument.ty.as_str()),
+    };
+    let owner_list_type = owner_type.map(|owner| format!("List[{owner}]"));
+    let returns_owned_handle = owner_type.is_some_and(|owner| function.returns == owner);
+    let returned_tuple = owner_type.and_then(|owner| {
+        tuple_type_elements(&function.returns)
+            .filter(|elements| elements.iter().all(|element| *element == owner))
+    });
+    let discards_owned_output = matches!(
+        dispatcher.output,
+        CDispatcherOutput::DiscardOwnedHandle { .. }
+            | CDispatcherOutput::DiscardOwnedHandleTuple { .. }
+    );
+    let additional_arguments = if matches!(
+        function.role,
+        CAbiFunctionRole::ImmutableMethod | CAbiFunctionRole::MutableMethod
+    ) {
+        function.args.get(1..).unwrap_or_default()
+    } else {
+        function.args.as_slice()
+    };
+    if !matches!(
+        function.role,
+        CAbiFunctionRole::Constructor
+            | CAbiFunctionRole::ImmutableMethod
+            | CAbiFunctionRole::MutableMethod
+    ) || (matches!(
+        function.role,
+        CAbiFunctionRole::ImmutableMethod | CAbiFunctionRole::MutableMethod
+    ) && (function.args.is_empty() || function.args[0].ty == "Int"))
+        || (!returns_owned_handle
+            && returned_tuple.is_none()
+            && !(function.role == CAbiFunctionRole::MutableMethod
+                && function.returns == "Unit"
+                && discards_owned_output))
+        || additional_arguments.iter().any(|argument| {
             argument.ty != "Int"
                 && argument.ty != "Float"
                 && argument.ty != "Bool"
                 && argument.ty != "List[Int]"
-                && argument.ty != function.args[0].ty
+                && argument.ty != "String"
+                && owner_type != Some(argument.ty.as_str())
+                && owner_list_type.as_deref() != Some(argument.ty.as_str())
         })
     {
         return Err(fail(
-            "must be an immutable same-handle method with only matching handle, Int, Float, Bool, or List[Int] arguments",
+            "must be an owner-returning immutable method or constructor, or an output-discarding mutable Unit method, with only matching handles, matching-handle lists, Int, Float, Bool, String, or List[Int] arguments",
         ));
     }
     if dispatcher.operator_name.is_empty()
@@ -316,8 +352,12 @@ pub(super) fn validate_dispatcher_binding(
             | CDispatcherStackValue::FloatArgument { .. }
             | CDispatcherStackValue::BoolArgument { .. }
             | CDispatcherStackValue::OwnedOptionalIntArgument { .. }
+            | CDispatcherStackValue::OwnedOptionalFloatArgument { .. }
             | CDispatcherStackValue::OwnedIntListArgument { .. }
             | CDispatcherStackValue::OwnedOptionalIntListArgument { .. }
+            | CDispatcherStackValue::OwnedHandleListArgument { .. }
+            | CDispatcherStackValue::OwnedStringArgument { .. }
+            | CDispatcherStackValue::OwnedOptionalStringArgument { .. }
             | CDispatcherStackValue::OwnedStringLiteral { .. }
             | CDispatcherStackValue::Null
             | CDispatcherStackValue::Unsupported => None,
@@ -326,7 +366,7 @@ pub(super) fn validate_dispatcher_binding(
     let expected_handles = function
         .args
         .iter()
-        .filter(|argument| argument.ty == function.args[0].ty)
+        .filter(|argument| owner_type == Some(argument.ty.as_str()))
         .map(|argument| argument.name.as_str())
         .collect::<BTreeSet<_>>();
     if copied.len() != expected_handles.len()
@@ -334,6 +374,27 @@ pub(super) fn validate_dispatcher_binding(
     {
         return Err(fail(
             "must encode every declared handle exactly once as owned_handle_copy or owned_optional_handle_copy",
+        ));
+    }
+    let expected_handle_lists = function
+        .args
+        .iter()
+        .filter(|argument| owner_list_type.as_deref() == Some(argument.ty.as_str()))
+        .map(|argument| argument.name.as_str())
+        .collect::<BTreeSet<_>>();
+    let stack_handle_lists = dispatcher
+        .stack
+        .iter()
+        .filter_map(|value| match value {
+            CDispatcherStackValue::OwnedHandleListArgument { argument } => Some(argument.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if stack_handle_lists.len() != expected_handle_lists.len()
+        || stack_handle_lists.iter().copied().collect::<BTreeSet<_>>() != expected_handle_lists
+    {
+        return Err(fail(
+            "must encode every declared matching-handle list exactly once as owned_handle_list_argument",
         ));
     }
     let expected_ints = function
@@ -370,7 +431,10 @@ pub(super) fn validate_dispatcher_binding(
         .stack
         .iter()
         .filter_map(|value| match value {
-            CDispatcherStackValue::FloatArgument { argument } => Some(argument.as_str()),
+            CDispatcherStackValue::FloatArgument { argument }
+            | CDispatcherStackValue::OwnedOptionalFloatArgument { argument } => {
+                Some(argument.as_str())
+            }
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -378,7 +442,7 @@ pub(super) fn validate_dispatcher_binding(
         || stack_floats.iter().copied().collect::<BTreeSet<_>>() != expected_floats
     {
         return Err(fail(
-            "must encode every declared Float argument exactly once as float_argument",
+            "must encode every declared Float argument exactly once as float_argument or owned_optional_float_argument",
         ));
     }
     let expected_bools = function
@@ -426,6 +490,30 @@ pub(super) fn validate_dispatcher_binding(
             "must encode every declared List[Int] argument exactly once as owned_int_list_argument or owned_optional_int_list_argument",
         ));
     }
+    let expected_strings = function
+        .args
+        .iter()
+        .filter(|argument| argument.ty == "String")
+        .map(|argument| argument.name.as_str())
+        .collect::<BTreeSet<_>>();
+    let stack_strings = dispatcher
+        .stack
+        .iter()
+        .filter_map(|value| match value {
+            CDispatcherStackValue::OwnedStringArgument { argument }
+            | CDispatcherStackValue::OwnedOptionalStringArgument { argument } => {
+                Some(argument.as_str())
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if stack_strings.len() != expected_strings.len()
+        || stack_strings.iter().copied().collect::<BTreeSet<_>>() != expected_strings
+    {
+        return Err(fail(
+            "must encode every declared String argument exactly once as owned_string_argument or owned_optional_string_argument",
+        ));
+    }
     if dispatcher
         .stack
         .iter()
@@ -437,8 +525,10 @@ pub(super) fn validate_dispatcher_binding(
         matches!(
             value,
             CDispatcherStackValue::OwnedOptionalIntArgument { .. }
+                | CDispatcherStackValue::OwnedOptionalFloatArgument { .. }
                 | CDispatcherStackValue::OwnedOptionalHandleCopy { .. }
                 | CDispatcherStackValue::OwnedOptionalIntListArgument { .. }
+                | CDispatcherStackValue::OwnedOptionalStringArgument { .. }
         )
     });
     if has_owned_optional {
@@ -497,14 +587,15 @@ pub(super) fn validate_dispatcher_binding(
             "must not declare optional-value symbols without an owned optional stack value",
         ));
     }
-    let has_owned_int_list = dispatcher.stack.iter().any(|value| {
+    let has_owned_list = dispatcher.stack.iter().any(|value| {
         matches!(
             value,
             CDispatcherStackValue::OwnedIntListArgument { .. }
                 | CDispatcherStackValue::OwnedOptionalIntListArgument { .. }
+                | CDispatcherStackValue::OwnedHandleListArgument { .. }
         )
     });
-    if has_owned_int_list {
+    if has_owned_list {
         let allocator_id = dispatcher
             .list_allocator_symbol
             .as_deref()
@@ -577,10 +668,14 @@ pub(super) fn validate_dispatcher_binding(
             "must not declare list symbols without an owned list stack value",
         ));
     }
-    let has_owned_string = dispatcher
-        .stack
-        .iter()
-        .any(|value| matches!(value, CDispatcherStackValue::OwnedStringLiteral { .. }));
+    let has_owned_string = dispatcher.stack.iter().any(|value| {
+        matches!(
+            value,
+            CDispatcherStackValue::OwnedStringArgument { .. }
+                | CDispatcherStackValue::OwnedOptionalStringArgument { .. }
+                | CDispatcherStackValue::OwnedStringLiteral { .. }
+        )
+    });
     if has_owned_string {
         let allocator_id = dispatcher
             .string_allocator_symbol
@@ -643,9 +738,37 @@ pub(super) fn validate_dispatcher_binding(
             "must not declare string symbols without an owned string stack value",
         ));
     }
-    if dispatcher.output.kind != CDispatcherOutputKind::OwnedHandle || dispatcher.output.index != 0
-    {
-        return Err(fail("requires one owned_handle output in stack slot zero"));
+    match (
+        &dispatcher.output,
+        returns_owned_handle,
+        returned_tuple.as_ref(),
+    ) {
+        (CDispatcherOutput::OwnedHandle { index: 0 }, true, None) => {}
+        (CDispatcherOutput::OwnedHandleTuple { indices }, false, Some(elements))
+            if indices.len() == elements.len()
+                && indices.len() <= 64
+                && indices.iter().copied().eq(0..elements.len()) => {}
+        (CDispatcherOutput::OwnedHandleTuple { indices }, _, _) if indices.len() > 64 => {
+            return Err(fail("limits owned_handle_tuple outputs to 64 stack slots"));
+        }
+        (CDispatcherOutput::DiscardOwnedHandle { index: 0 }, false, None)
+            if function.role == CAbiFunctionRole::MutableMethod && function.returns == "Unit" => {}
+        (CDispatcherOutput::DiscardOwnedHandleTuple { indices }, false, None)
+            if function.role == CAbiFunctionRole::MutableMethod
+                && function.returns == "Unit"
+                && !indices.is_empty()
+                && indices.len() <= 64
+                && indices.iter().copied().eq(0..indices.len()) => {}
+        (CDispatcherOutput::DiscardOwnedHandleTuple { indices }, _, _) if indices.len() > 64 => {
+            return Err(fail(
+                "limits discard_owned_handle_tuple outputs to 64 stack slots",
+            ));
+        }
+        _ => {
+            return Err(fail(
+                "requires an owned result matching the return type or a consecutive discarded owned result for a mutable Unit method",
+            ));
+        }
     }
     let duplicate = symbols
         .get(dispatcher.duplicate_handle_symbol.as_str())
@@ -726,8 +849,30 @@ pub(super) fn render_terlan_manifest(manifest: &CAbiBindingManifest) -> String {
         "TERLAN_{}_NATIVE_BOUNDARY_HELPER_PATH",
         manifest.package.namespace.to_ascii_uppercase()
     );
+    let dependencies = if manifest.package.terlan_dependencies.is_empty() {
+        String::new()
+    } else {
+        let entries = manifest
+            .package
+            .terlan_dependencies
+            .iter()
+            .map(|(alias, dependency)| match dependency {
+                CAbiTerlanDependency::Path { path } => {
+                    format!("{alias} = {{ path = {path:?} }}")
+                }
+                CAbiTerlanDependency::Git { git, rev } => {
+                    format!("{alias} = {{ git = {git:?}, rev = {rev:?} }}")
+                }
+                CAbiTerlanDependency::Registry { registry, version } => {
+                    format!("{alias} = {{ registry = {registry:?}, version = {version:?} }}")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!("\n[dependencies]\n{entries}\n")
+    };
     format!(
-        "[package]\nname = {:?}\nversion = {:?}\nnamespace = {:?}\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n\n[native.rust]\ncrate = {:?}\npath = \"native/rust\"\nhelper = \"native-boundary-helper\"\nhelper_env = {:?}\n",
+        "[package]\nname = {:?}\nversion = {:?}\nnamespace = {:?}\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n{dependencies}\n[native.rust]\ncrate = {:?}\npath = \"native/rust\"\nhelper = \"native-boundary-helper\"\nhelper_env = {:?}\n",
         package_name,
         package_version,
         manifest.package.namespace,
@@ -806,7 +951,7 @@ pub(super) fn render_module_source(
     for function in &module.functions {
         let visibility = if function.is_public() { "pub " } else { "" };
         source.push_str(&format!(
-            "/** {} */\n@compiler.native {{{}}}\n{visibility}{}({}): {} -> native.\n",
+            "/** {} */\n@compiler.native {{{}}} {visibility}{}({}): {} -> native.\n",
             function.documentation,
             function.operation,
             function.name,

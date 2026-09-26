@@ -1,0 +1,48 @@
+/** Canonical operator expression tree over projected tokens. */
+module self_host.ProjectedExpressionSyntax.
+
+
+import std.core.Option.{Option}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+
+pub struct ProjectedExpressionNode {
+    kind: String,
+    text: String,
+    start_byte: Int,
+    end_byte: Int,
+    children: List[self_host.ProjectedExpressionSyntax.ProjectedExpressionNode],
+}.
+
+pub constructor ProjectedExpressionNode {
+    (kind: String, text: String, start_byte: Int, end_byte: Int, children: List[self_host.ProjectedExpressionSyntax.ProjectedExpressionNode]): ProjectedExpressionNode ->
+        ProjectedExpressionNode {
+            kind: kind,
+            text: text,
+            start_byte: start_byte,
+            end_byte: end_byte,
+            children: children,
+        }
+}.
+
+
+pub struct ProjectedExpressionResult {
+    valid: Bool,
+    node: Option[self_host.ProjectedExpressionSyntax.ProjectedExpressionNode],
+    rest: List[ProjectedCanonicalToken],
+    message: String,
+}.
+
+pub constructor ProjectedExpressionResult {
+    (valid: Bool, node: Option[self_host.ProjectedExpressionSyntax.ProjectedExpressionNode], rest: List[ProjectedCanonicalToken], message: String): ProjectedExpressionResult ->
+        ProjectedExpressionResult {
+            valid: valid,
+            node: node,
+            rest: rest,
+            message: message,
+        }
+}.
+

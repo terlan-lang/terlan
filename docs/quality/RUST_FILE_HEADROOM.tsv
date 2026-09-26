@@ -1,5 +1,4 @@
 path	category	recorded_lines	headroom_limit	hard_limit	owner	milestone
-crates/terlan/src/benchmark/aot_compilation.rs	implementation	962	900	1000	benchmark-structure	0.0.9
 crates/terlan/src/benchmark/http_aot_performance.rs	implementation	987	900	1000	benchmark-structure	0.0.9
 crates/terlan/src/benchmark/http_benchmark_support.rs	implementation	973	900	1000	benchmark-structure	0.0.9
 crates/terlan/src/commands/bind/c_abi_binding_generator/generator.rs	implementation	994	900	1000	commands-structure	0.0.9
@@ -12,7 +11,7 @@ crates/terlan/src/commands/doc/render.rs	implementation	996	900	1000	commands-st
 crates/terlan/src/commands/doc/validation.rs	implementation	947	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/emit_js/direct_ast.rs	implementation	981	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/run/mod.rs	implementation	904	900	1000	commands-structure	0.0.9
-crates/terlan/src/commands/serve/handler.rs	implementation	923	900	1000	commands-structure	0.0.9
+crates/terlan/src/commands/serve/handler.rs	implementation	922	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache.rs	implementation	953	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner.rs	implementation	913	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner/owner_loop.rs	implementation	954	900	1000	commands-structure	0.0.9
@@ -81,7 +80,7 @@ crates/terlan/src/runtime/vm/postgres/runtime.rs	implementation	952	900	1000	run
 crates/terlan/src/runtime/vm/process.rs	implementation	944	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values.rs	implementation	903	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/pure_native/execution.rs	implementation	930	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/pure_native/execution_shard.rs	implementation	934	900	1000	runtime-structure	0.0.9
+crates/terlan/src/runtime/vm/pure_native/execution_shard.rs	implementation	933	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/scheduler.rs	implementation	904	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/supervision.rs	implementation	917	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/websocket_test/termination.rs	implementation	932	900	1000	runtime-structure	0.0.9

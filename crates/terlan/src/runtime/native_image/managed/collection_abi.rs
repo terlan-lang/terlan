@@ -6,8 +6,9 @@ use super::{
 };
 
 const MAGIC: &[u8; 4] = b"TVCL";
-const VERSION: u16 = 1;
+const VERSION: u16 = 2;
 const HEADER_BYTES: usize = 8;
+const MAX_REFERENCE_VARIANTS: usize = 1_024;
 
 /// Maximum encoded collection schema accepted from one native image.
 pub const MAX_MANAGED_COLLECTION_ABI_BYTES: usize = 64 * 1024;
@@ -49,12 +50,28 @@ impl ManagedCollectionDescriptor {
         canonical_type: &str,
         element_type: ManagedFieldType,
     ) -> Result<Self, ManagedMemoryError> {
+        Self::list_with_reference_variants(canonical_type, element_type, Vec::new())
+    }
+
+    /// Builds a checked `List[T]` descriptor for a transparent reference
+    /// union with a finite set of concrete runtime semantics.
+    pub fn list_with_reference_variants(
+        canonical_type: &str,
+        element_type: ManagedFieldType,
+        reference_variants: Vec<SemanticTypeId>,
+    ) -> Result<Self, ManagedMemoryError> {
+        if reference_variants.len() > MAX_REFERENCE_VARIANTS {
+            return Err(ManagedMemoryError::InvalidAggregateShape);
+        }
         Ok(Self {
             canonical_type: checked_canonical(canonical_type)?,
-            storage: ManagedCollectionStorage::List(ManagedListDescriptor::new(
-                canonical_type,
-                element_type,
-            )?),
+            storage: ManagedCollectionStorage::List(
+                ManagedListDescriptor::with_reference_variants(
+                    canonical_type,
+                    element_type,
+                    reference_variants,
+                )?,
+            ),
         })
     }
 
@@ -166,6 +183,16 @@ pub fn encode_collection_layout(
     for field in fields {
         field.encode(&mut bytes);
     }
+    let reference_variants = descriptor
+        .list_descriptor()
+        .map(ManagedListDescriptor::reference_variants)
+        .unwrap_or_default();
+    let variant_count = u16::try_from(reference_variants.len())
+        .map_err(|_| ManagedMemoryError::InvalidAggregateAbi)?;
+    bytes.extend_from_slice(&variant_count.to_le_bytes());
+    for semantic in reference_variants {
+        bytes.extend_from_slice(&semantic.bytes());
+    }
     if bytes.len() > MAX_MANAGED_COLLECTION_ABI_BYTES {
         return Err(ManagedMemoryError::InvalidAggregateAbi);
     }
@@ -186,15 +213,26 @@ pub fn decode_collection_layout(
     let fields = (0..count)
         .map(|_| input.field_type())
         .collect::<Result<Vec<_>, _>>()?;
+    let variant_count = input.u16()? as usize;
+    if variant_count > MAX_REFERENCE_VARIANTS {
+        return Err(ManagedMemoryError::InvalidAggregateAbi);
+    }
+    let reference_variants = (0..variant_count)
+        .map(|_| input.array().map(SemanticTypeId::from_bytes))
+        .collect::<Result<Vec<_>, _>>()?;
     input.finish()?;
     match (kind, fields.as_slice()) {
         (ManagedCollectionKind::List, [element]) => {
-            ManagedCollectionDescriptor::list(canonical, *element)
+            ManagedCollectionDescriptor::list_with_reference_variants(
+                canonical,
+                *element,
+                reference_variants,
+            )
         }
-        (ManagedCollectionKind::Map, [key, value]) => {
+        (ManagedCollectionKind::Map, [key, value]) if reference_variants.is_empty() => {
             ManagedCollectionDescriptor::map(canonical, *key, *value)
         }
-        (ManagedCollectionKind::Set, [element]) => {
+        (ManagedCollectionKind::Set, [element]) if reference_variants.is_empty() => {
             ManagedCollectionDescriptor::set(canonical, *element)
         }
         _ => Err(ManagedMemoryError::InvalidAggregateAbi),

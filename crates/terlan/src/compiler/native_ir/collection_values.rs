@@ -27,16 +27,70 @@ pub(super) fn lower_boundary_collection_value(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    lower_boundary_collection_value_with_recursive_element(
+        body,
+        expected,
+        None,
+        params,
+        param_types,
+        functions,
+        function_types,
+        constructors,
+    )
+}
+
+/// Lowers one collection while retaining the transparent union that owns a
+/// recursive list variant. The union remains the element contract even though
+/// the concrete list variant owns the collection's physical ABI identity.
+fn lower_boundary_collection_value_with_recursive_element(
+    body: &CoreExpr,
+    expected: Option<&CoreType>,
+    recursive_element: Option<&CoreType>,
+    params: &HashMap<String, usize>,
+    param_types: &HashMap<String, NativeType>,
+    functions: &HashMap<(String, usize), usize>,
+    function_types: &HashMap<(String, usize), NativeType>,
+    constructors: &NativeConstructorLayouts,
+) -> Result<Option<NativeExpr>, String> {
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if let Some(collection_type) = transparent_collection_variant(expected, body) {
+        if matches!(
+            collection_shape(collection_type),
+            Some(CollectionShape::List(_))
+        ) {
+            let physical = recursive_union_list_type(collection_type, expected);
+            return lower_boundary_collection_value_with_recursive_element(
+                body,
+                Some(&physical),
+                Some(expected),
+                params,
+                param_types,
+                functions,
+                function_types,
+                constructors,
+            );
+        }
+        return lower_boundary_collection_value_with_recursive_element(
+            body,
+            Some(collection_type),
+            None,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        );
+    }
     if let CoreExpr::Cast { expr, target_type } = body {
         let expected_native = native_type(Some(expected), &expected.contract_text());
         let target_native = native_type(Some(target_type), &target_type.contract_text());
         if target_type == expected || expected_native == target_native {
-            return lower_boundary_collection_value(
+            return lower_boundary_collection_value_with_recursive_element(
                 expr,
                 Some(expected),
+                recursive_element,
                 params,
                 param_types,
                 functions,
@@ -46,7 +100,7 @@ pub(super) fn lower_boundary_collection_value(
         }
     }
     if let (CoreExpr::Tuple(items), CoreType::Union(variants)) = (body, expected) {
-        let Some(CoreExpr::Atom(tag)) = items.first() else {
+        let Some(tag) = items.first().and_then(checked_atom_literal) else {
             return Ok(None);
         };
         let Some((discriminant, elements)) = tagged_union_variant(variants, tag) else {
@@ -206,7 +260,7 @@ pub(super) fn lower_boundary_collection_value(
             let semantic = semantic(expected)?;
             let args = lower_typed_values(
                 items,
-                element,
+                recursive_element.unwrap_or(element),
                 params,
                 param_types,
                 functions,
@@ -227,7 +281,7 @@ pub(super) fn lower_boundary_collection_value(
             let semantic = semantic(expected)?;
             let args = lower_typed_values(
                 args,
-                element,
+                recursive_element.unwrap_or(element),
                 params,
                 param_types,
                 functions,
@@ -243,16 +297,17 @@ pub(super) fn lower_boundary_collection_value(
             let semantic = semantic(expected)?;
             let head = lower_typed_value(
                 head,
-                element,
+                recursive_element.unwrap_or(element),
                 params,
                 param_types,
                 functions,
                 function_types,
                 constructors,
             )?;
-            let lowered_tail = lower_boundary_collection_value(
+            let lowered_tail = lower_boundary_collection_value_with_recursive_element(
                 tail,
                 Some(expected),
+                recursive_element,
                 params,
                 param_types,
                 functions,
@@ -354,6 +409,19 @@ pub(super) fn lower_boundary_collection_value(
     }
 }
 
+/// Replaces a recursive list variant's nominal element anchor with the owning
+/// transparent union while preserving the source list constructor spelling.
+fn recursive_union_list_type(collection: &CoreType, union: &CoreType) -> CoreType {
+    match collection {
+        CoreType::List(_) => CoreType::List(Box::new(union.clone())),
+        CoreType::Apply { constructor, .. } => CoreType::Apply {
+            constructor: constructor.clone(),
+            args: vec![union.clone()],
+        },
+        _ => collection.clone(),
+    }
+}
+
 fn tagged_union_variant<'a>(
     variants: &'a [CoreType],
     expected_tag: &str,
@@ -389,6 +457,17 @@ fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
     }
 }
 
+/// Recovers a checked atom literal through representation-preserving casts.
+/// Tagged valued-union tuples carry their discriminant this way after type
+/// checking, so requiring a bare atom misclassifies them as collections.
+fn checked_atom_literal(value: &CoreExpr) -> Option<&str> {
+    match value {
+        CoreExpr::Atom(value) => Some(value),
+        CoreExpr::Cast { expr, .. } => checked_atom_literal(expr),
+        _ => None,
+    }
+}
+
 enum CollectionShape<'a> {
     List(&'a CoreType),
     Map(&'a CoreType, &'a CoreType),
@@ -409,6 +488,31 @@ fn collection_shape(ty: &CoreType) -> Option<CollectionShape<'_>> {
         }
         _ => None,
     }
+}
+
+/// Selects the sole concrete collection variant represented transparently by
+/// one structural union for a literal collection value.
+pub(super) fn transparent_collection_variant<'a>(
+    target: &'a CoreType,
+    value: &CoreExpr,
+) -> Option<&'a CoreType> {
+    let CoreType::Union(variants) = target else {
+        return None;
+    };
+    let matches_value = |variant: &&CoreType| match (value, collection_shape(variant)) {
+        (CoreExpr::List(_), Some(CollectionShape::List(_))) => true,
+        (CoreExpr::Map(_), Some(CollectionShape::Map(_, _))) => true,
+        (CoreExpr::ConstructorCall { constructor, .. }, Some(CollectionShape::List(_))) => {
+            constructor.rsplit('.').next() == Some("List")
+        }
+        (CoreExpr::ConstructorCall { constructor, .. }, Some(CollectionShape::Map(_, _))) => {
+            constructor.rsplit('.').next() == Some("Map")
+        }
+        _ => false,
+    };
+    let mut matching = variants.iter().filter(matches_value);
+    let selected = matching.next()?;
+    matching.next().is_none().then_some(selected)
 }
 fn lower_typed_values(
     values: &[CoreExpr],
@@ -720,7 +824,7 @@ pub(super) fn try_lower_typed_value(
     else {
         return Ok(None);
     };
-    if actual != expected_native {
+    if actual != expected_native && !transparent_union_accepts_native(expected, actual) {
         return Err(format!(
             "error[native_ir.collection_value]: collection value type mismatch: expected {} as {expected_native:?}, found {actual:?} for {value:?}",
             expected.contract_text()
@@ -735,6 +839,17 @@ pub(super) fn try_lower_typed_value(
         constructors,
     )
     .map(Some)
+}
+
+/// Reports whether one concrete native value is a declared transparent-union
+/// variant and therefore requires no representation-changing cast.
+fn transparent_union_accepts_native(expected: &CoreType, actual: NativeType) -> bool {
+    let CoreType::Union(variants) = expected else {
+        return false;
+    };
+    variants.iter().any(|variant| {
+        native_type(Some(variant), &variant.contract_text()).is_some_and(|native| native == actual)
+    })
 }
 
 /// Reports whether a value requires the general control-flow lowerer.
@@ -757,9 +872,7 @@ fn structural_tagged_tuple_constructor(value: &CoreExpr, expected: &CoreType) ->
     let CoreExpr::Tuple(items) = value else {
         return None;
     };
-    let CoreExpr::Atom(tag) = items.first()? else {
-        return None;
-    };
+    let tag = checked_atom_literal(items.first()?)?;
     Some(CoreExpr::ConstructorCall {
         constructor: tagged_variant_name(tag)?,
         constructor_identity: None,
@@ -815,7 +928,7 @@ fn is_nullary_none_value(value: &CoreExpr) -> bool {
 }
 
 fn semantic(ty: &CoreType) -> Result<SemanticTypeId, String> {
-    SemanticTypeId::from_canonical(&ty.contract_text())
+    SemanticTypeId::from_canonical(&super::expression::managed_semantic_contract(ty))
         .map_err(|error| format!("error[native_ir.collection_type]: {error}"))
 }
 

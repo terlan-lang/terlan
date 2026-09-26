@@ -1,0 +1,34 @@
+/** Lowers projected parser declarations into the shared declaration syntax model. */
+module self_host.ProjectedDeclarationLowering.
+
+import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
+import self_host.Syntax.{ParseError, SyntaxSpan}.
+
+import std.collections.List.
+import self_host.Parser.
+import self_host.TypedModuleLowering.
+
+
+@pure
+declaration(source: ProjectedSurfaceDeclaration): DeclarationSyntax ->
+    let provisional = DeclarationSyntax(source.class, "", Parser.declaration_head(source.text), source.text, source.is_public, source.span);
+    DeclarationSyntax(provisional.class, TypedModuleLowering.symbol_name(provisional), provisional.header, provisional.body, provisional.is_public, provisional.span).
+
+@pure
+declarations(values: List[ProjectedSurfaceDeclaration]): List[DeclarationSyntax] ->
+    case values {
+        [] -> List.new[DeclarationSyntax]();
+        [value | rest] -> [declaration(value) | declarations(rest)]
+    }.
+
+/** Produces the same module input consumed by unified typed lowering. */
+@pure
+pub lower(source: ProjectedSurfaceModule): ModuleSyntax ->
+    ModuleSyntax(
+        valid = source.valid,
+        name = source.name,
+        declarations = declarations(source.declarations),
+        errors = List.new[ParseError](),
+        span = SyntaxSpan(0, 0),
+    ).

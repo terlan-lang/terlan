@@ -50,9 +50,9 @@ pub(crate) fn manifest_file_response_for_request(
         .map(|response| WebPackageHandler {
             method: response.method.clone(),
             route: response.route.clone(),
-            module: "static".to_string(),
-            function: "file".to_string(),
-            arity: 1,
+            module: response.module.clone(),
+            function: response.function.clone(),
+            arity: response.arity,
             source: response.source.clone(),
         })
         .collect();

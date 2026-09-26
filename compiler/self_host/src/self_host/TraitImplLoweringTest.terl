@@ -1,0 +1,49 @@
+/** Positive and negative explicit trait-implementation contracts. */
+module self_host.TraitImplLoweringTest.
+
+import std.collections.List.
+import self_host.CanonicalSurface.
+import self_host.DeclarationLowering.
+import self_host.TraitImplLowering.
+
+@pure
+positive_impl(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.NamedUser.\npub impl Named for User {\n    const EMPTY: String = \"\".\n    name(value: User): String -> value.name.\n}.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let implementation = TraitImplLowering.lower(declaration);
+            implementation.valid
+                and not implementation.is_negative
+                and List.length(implementation.constants) == 1
+                and List.length(implementation.methods) == 1;
+        _ -> false
+    }.
+
+@pure
+positive_negative_impl(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.Secret.\npub impl not JsonEncode[Box[Secret]].\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let implementation = TraitImplLowering.lower(declaration);
+            implementation.valid
+                and implementation.is_negative
+                and implementation.is_public
+                and implementation.trait_type.valid
+                and implementation.target_type.valid
+                and List.length(implementation.constants) == 0
+                and List.length(implementation.methods) == 0;
+        _ -> false
+    }.
+
+@pure
+negative_impl_contract(): Bool ->
+    let lowered_module = DeclarationLowering.lower(CanonicalSurface.parse(
+        "module demo.NamedUser.\nimpl Named User { }.\n",
+    ));
+    case lowered_module.declarations { [declaration] -> not TraitImplLowering.lower(declaration).valid; _ -> false }.
+
+pub self_test(): Bool -> positive_impl() and positive_negative_impl() and negative_impl_contract().

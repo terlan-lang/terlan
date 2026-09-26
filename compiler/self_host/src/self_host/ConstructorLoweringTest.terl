@@ -1,0 +1,31 @@
+/** Positive and negative constructor-lowering contracts. */
+module self_host.ConstructorLoweringTest.
+
+import std.collections.List.
+import self_host.ConstructorLowering.
+import self_host.DeclarationLowering.
+import self_host.Parser.
+
+@pure
+positive_constructor(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.User.\npub constructor User { (name: String): User -> User{name: name}; (): User -> User{name: \"anonymous\"} }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] ->
+            let lowered_constructor = ConstructorLowering.lower(declaration);
+            lowered_constructor.valid and List.length(lowered_constructor.clauses) == 2;
+        _ -> false
+    }.
+
+@pure
+negative_constructor(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.User.\npub constructor User { name: String -> value }.\n",
+    ));
+    case lowered_module.declarations {
+        [declaration] -> not ConstructorLowering.lower(declaration).valid;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> positive_constructor() and negative_constructor().

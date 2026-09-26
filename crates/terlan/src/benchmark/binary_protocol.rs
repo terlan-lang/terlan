@@ -511,11 +511,10 @@ fn mean(values: &[u64]) -> u64 {
     values.iter().sum::<u64>() / values.len() as u64
 }
 
-fn percentile(values: &[u64], percentile: usize) -> u64 {
+fn percentile(values: &[u64], percent: usize) -> u64 {
     let mut sorted = values.to_vec();
     sorted.sort_unstable();
-    let index = ((sorted.len() - 1) * percentile).div_ceil(100);
-    sorted[index]
+    crate::support::statistics::percentile(&sorted, percent)
 }
 
 fn fixture_path() -> PathBuf {

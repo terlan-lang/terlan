@@ -471,15 +471,8 @@ pub(super) fn run_compiler_and_runtime_command(
         },
         Some("erlang-backend-classification") => {
             match run_erlang_backend_classification(Path::new(".")) {
-                Ok(summary) => {
-                    println!(
-                        "[erlang-backend-classification] {} paths classified: remove={}, reference-only={}, temporary-bridge={}, historical={}.",
-                        summary.classified_count,
-                        summary.remove_count,
-                        summary.reference_only_count,
-                        summary.temporary_bridge_count,
-                        summary.historical_artifact_count
-                    );
+                Ok(()) => {
+                    println!("[erlang-backend-classification] no forbidden backend source paths found.");
                     ExitCode::SUCCESS
                 }
                 Err(message) => failure(message),
@@ -559,20 +552,6 @@ pub(super) fn run_compiler_and_runtime_command(
                         summary.concurrency_count,
                         summary.scenario_count,
                         summary.profile_fingerprint,
-                        summary.report_path.display()
-                    );
-                    ExitCode::SUCCESS
-                }
-                Err(message) => failure(message),
-            }
-        }
-        Some("vm-http-runtime-attribution") => {
-            match run_vm_http_runtime_attribution_contract(Path::new(".")) {
-                Ok(summary) => {
-                    println!(
-                        "[vm-http-runtime-attribution] {} telemetry buckets and {} accounting invariants checked; report written to {}.",
-                        summary.bucket_count,
-                        summary.invariant_count,
                         summary.report_path.display()
                     );
                     ExitCode::SUCCESS

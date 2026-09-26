@@ -27,4 +27,6 @@ void format_many(const char*, ...) {}
 
 void visit(void (*)(std::int64_t)) noexcept {}
 
+Counter& mutate_counter(Counter& counter) noexcept { return counter; }
+
 }  // namespace extractor_fixture

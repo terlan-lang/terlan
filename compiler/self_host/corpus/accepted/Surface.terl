@@ -1,0 +1,10 @@
+module corpus.Surface.
+
+import std.core.String.
+
+pub type State = Ready | Failed.
+
+pub shape Named(name) = {name: name}.
+
+pub render(value: String): String ->
+    value.

@@ -186,6 +186,102 @@ pub(crate) enum NativeExpr {
     },
 }
 
+impl NativeExpr {
+    /// Appends every managed descriptor reachable from this expression.
+    pub(crate) fn collect_managed_encodings(&self, encodings: &mut Vec<Arc<[u8]>>) {
+        match self {
+            Self::ManagedLiteral { encoded } => encodings.push(encoded.clone()),
+            Self::ManagedOperation { encoded, args } => {
+                encodings.push(encoded.clone());
+                Self::collect_many(args, encodings);
+            }
+            Self::MakeClosure { encoded, captures } => {
+                encodings.push(encoded.clone());
+                Self::collect_many(captures, encodings);
+            }
+            Self::Construct {
+                encoded_layout,
+                fields,
+                ..
+            } => {
+                encodings.push(encoded_layout.clone());
+                Self::collect_many(fields, encodings);
+            }
+            Self::Call { args, .. }
+            | Self::TailCall { args, .. }
+            | Self::ContinuationTailCall { args, .. } => Self::collect_many(args, encodings),
+            Self::InvokeClosure { callee, args, .. } => {
+                callee.collect_managed_encodings(encodings);
+                Self::collect_many(args, encodings);
+            }
+            Self::InvokeClosureThen {
+                callee,
+                args,
+                values,
+                ..
+            } => {
+                callee.collect_managed_encodings(encodings);
+                Self::collect_many(args, encodings);
+                Self::collect_many(values, encodings);
+            }
+            Self::CallThen { args, values, .. } => {
+                Self::collect_many(args, encodings);
+                Self::collect_many(values, encodings);
+            }
+            Self::Neg(value)
+            | Self::FloatNeg(value)
+            | Self::FloatFloor(value)
+            | Self::FloatCeil(value)
+            | Self::IntToFloat(value)
+            | Self::Not(value) => value.collect_managed_encodings(encodings),
+            Self::Binary { left, right, .. } => {
+                left.collect_managed_encodings(encodings);
+                right.collect_managed_encodings(encodings);
+            }
+            Self::Let { bindings, body } => {
+                Self::collect_many(bindings, encodings);
+                body.collect_managed_encodings(encodings);
+            }
+            Self::If { clauses } => {
+                for (condition, body) in clauses {
+                    condition.collect_managed_encodings(encodings);
+                    body.collect_managed_encodings(encodings);
+                }
+            }
+            Self::Try {
+                protected,
+                success,
+                failure,
+                cleanup,
+            } => {
+                protected.collect_managed_encodings(encodings);
+                success.collect_managed_encodings(encodings);
+                failure.collect_managed_encodings(encodings);
+                Self::collect_many(cleanup, encodings);
+            }
+            Self::Suspend {
+                arguments, values, ..
+            } => {
+                Self::collect_many(arguments, encodings);
+                Self::collect_many(values, encodings);
+            }
+            Self::Unit
+            | Self::Int(_)
+            | Self::Float(_)
+            | Self::Bool(_)
+            | Self::AtomLiteral(_)
+            | Self::Param(_) => {}
+        }
+    }
+
+    /// Appends managed descriptors from an ordered expression sequence.
+    fn collect_many(expressions: &[Self], encodings: &mut Vec<Arc<[u8]>>) {
+        for expression in expressions {
+            expression.collect_managed_encodings(encodings);
+        }
+    }
+}
+
 /// VM-owned operation emitted when native code suspends.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeTransitionOperation {

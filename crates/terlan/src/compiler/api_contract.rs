@@ -426,8 +426,13 @@ pub(crate) fn imports_std_http_router(syntax: &SyntaxModuleOutput) -> bool {
             SyntaxDeclarationPayload::Import {
                 import_kind: SyntaxImportKind::Module,
                 module_name,
+                items,
+                is_selected,
                 ..
             } if module_name == "std.http.Router"
+                || (module_name == "std.http"
+                    && *is_selected
+                    && items.iter().any(|item| item.name == "Router"))
         )
     })
 }

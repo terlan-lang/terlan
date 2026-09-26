@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_syntax::span::Span;
-use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern};
+use crate::terlan_typeck::{CoreExpr, CoreLetBinding, CorePattern, CoreType};
 
 use super::{
     contains_process_yield, expr_calls_suspending, free_variables, is_process_transition,
@@ -18,7 +18,8 @@ pub(super) use analysis::*;
 #[cfg(test)]
 pub(super) use contracts::validate_call_then_contracts;
 pub(super) use contracts::{
-    refresh_recursive_call_contract, validate_call_then_contracts_with_destinations,
+    close_direct_call_contracts, refresh_recursive_call_contract,
+    validate_call_then_contracts_with_destinations,
 };
 pub(super) use region::composed_call_region;
 

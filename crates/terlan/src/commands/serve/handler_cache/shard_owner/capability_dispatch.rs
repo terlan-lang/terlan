@@ -324,6 +324,7 @@ impl GeneratedCapabilityDispatcher {
                 NativeBoundaryExecutionProfile::CrashIsolated,
             )?
             .allow("filesystem")
+            .allow("clock")
             .allow("stdio")
             .with_credit_limit(GENERATED_CAPABILITY_CREDITS)?;
             if cfg!(test) && std::env::var_os("TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX").is_some() {

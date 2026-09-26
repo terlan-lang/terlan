@@ -153,6 +153,42 @@ fn parse_test_args_accepts_native_benchmark_controls() {
 }
 
 #[test]
+fn parse_test_args_accepts_declaration_coverage_gate() {
+    let parsed = parse_test_args(&args(&[
+        "tests",
+        "--coverage",
+        "--coverage-threshold",
+        "100",
+    ]))
+    .expect("coverage args");
+
+    assert!(parsed.coverage);
+    assert_eq!(parsed.coverage_threshold, Some(100));
+}
+
+#[test]
+fn parse_test_args_rejects_invalid_declaration_coverage_threshold() {
+    let error = parse_test_args(&args(&["tests", "--coverage-threshold", "101"]))
+        .expect_err("invalid coverage threshold");
+
+    assert_eq!(
+        error,
+        "--coverage-threshold requires an integer from 0 to 100"
+    );
+}
+
+#[test]
+fn parse_test_args_rejects_declaration_coverage_on_js() {
+    let error = parse_test_args(&args(&["tests", "--coverage", "--target", "js"]))
+        .expect_err("JS has no native callable coverage");
+
+    assert_eq!(
+        error,
+        "declaration coverage currently requires --target terlan-vm"
+    );
+}
+
+#[test]
 fn parse_test_args_rejects_benchmark_tuning_without_bench_selection() {
     let error = parse_test_args(&args(&[
         "tests/BenchmarkFrameworkTest.terl",

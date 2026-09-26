@@ -1,0 +1,7 @@
+module self_host_probe.MethodRootCase.
+
+pub (values: List[Int]) first_or_zero(): Int ->
+    case values {
+        [value | _rest] -> value;
+        [] -> 0
+    }.

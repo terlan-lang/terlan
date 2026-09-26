@@ -353,6 +353,30 @@ pub(super) fn dispatcher_metadata_rejects_ambiguous_or_unsupported_stack_contrac
                     Value::Number(1.into());
             },
         ),
+        (
+            "dispatcher_tuple_output_order",
+            "native_bindgen.c_dispatcher_contract",
+            |metadata| {
+                metadata["modules"][0]["functions"][5]["returns"] =
+                    Value::String("{NativeBoundary, NativeBoundary}".to_string());
+                metadata["modules"][0]["functions"][5]["dispatcher"]["output"] = serde_json::json!({
+                    "kind": "owned_handle_tuple",
+                    "indices": [1, 0]
+                });
+            },
+        ),
+        (
+            "dispatcher_tuple_output_type",
+            "native_bindgen.c_dispatcher_contract",
+            |metadata| {
+                metadata["modules"][0]["functions"][5]["returns"] =
+                    Value::String("{NativeBoundary, Int}".to_string());
+                metadata["modules"][0]["functions"][5]["dispatcher"]["output"] = serde_json::json!({
+                    "kind": "owned_handle_tuple",
+                    "indices": [0, 1]
+                });
+            },
+        ),
     ];
     for (name, family, mutate) in cases {
         let manifest = write_fixture_variant(name, *mutate);
@@ -544,6 +568,51 @@ pub(super) fn package_owned_rust_extension_is_copied_and_declares_pinned_depende
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+pub(super) fn generated_package_manifest_declares_terlan_dependencies() {
+    let manifest = write_fixture_variant("terlan_dependency", |metadata| {
+        metadata["package"]["terlan_dependencies"] = serde_json::json!({
+            "ndarray": {"path": "../../terlan-ndarray"},
+            "models": {
+                "git": "https://example.invalid/models.git",
+                "rev": "0123456789abcdef0123456789abcdef01234567"
+            }
+        });
+    });
+    let out_dir = temp_dir("terlan_dependency_out");
+
+    generate_c_abi_bindings(&manifest, &out_dir)
+        .expect("generate package with Terlan dependencies");
+
+    let generated = fs::read_to_string(out_dir.join("terlan.toml")).expect("terlan.toml");
+    assert!(generated.contains("[dependencies]"));
+    assert!(generated.contains("ndarray = { path = \"../../terlan-ndarray\" }"));
+    assert!(generated.contains(
+        "models = { git = \"https://example.invalid/models.git\", rev = \"0123456789abcdef0123456789abcdef01234567\" }"
+    ));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    fs::remove_dir_all(out_dir).expect("remove output");
+}
+
+#[test]
+pub(super) fn generated_package_manifest_rejects_absolute_terlan_dependency_paths() {
+    let manifest = write_fixture_variant("absolute_terlan_dependency", |metadata| {
+        metadata["package"]["terlan_dependencies"] =
+            serde_json::json!({"ndarray": {"path": "/tmp/terlan-ndarray"}});
+    });
+    let out_dir = temp_dir("absolute_terlan_dependency_out");
+
+    let error = generate_c_abi_bindings(&manifest, &out_dir)
+        .expect_err("absolute package dependency path must be rejected");
+    assert!(error.contains("requires a non-empty relative path"));
+
+    fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
+    if out_dir.exists() {
+        fs::remove_dir_all(out_dir).expect("remove output");
+    }
 }
 
 #[test]
@@ -880,13 +949,17 @@ pub(super) fn multiple_opaque_resources_generate_typed_owners_and_cross_resource
     assert!(helper.contains("enum HandleValue"));
     assert!(helper.contains("NativeBoundary(NativeBoundary)"));
     assert!(helper.contains("NativeModel(NativeModel)"));
-    assert!(helper.contains("fn live_nativemodel_mut("));
+    assert!(helper.contains(
+        "let mut entry_model = self.handles.remove(&model.id).expect(\"validated mutable handle\")"
+    ));
+    assert!(!helper.contains("fn live_nativemodel_mut("));
     assert!(helper.contains("let value_model = match self.live_nativemodel(model)"));
     assert!(helper.contains("NativeBoundary::from_model(value_model)"));
+    assert!(helper.contains("let previous = self.handles.insert(model.id, entry_model)"));
     assert!(helper.contains("c_abi_fixture.NativeBoundary.NativeModel"));
     assert!(helper.contains("HandleValue::NativeModel(value)"));
     assert!(helper.contains("#![forbid(unsafe_code)]"));
-    assert!(helper.contains("self.handles.get_disjoint_mut"));
+    assert!(!helper.contains("self.handles.get_disjoint_mut"));
     assert!(helper.contains("aliased_mutable_handle"));
     assert!(!helper.contains("unsafe {"));
     let model_source = fs::read_to_string(out_dir.join("src/c_abi_fixture/Model.terl"))

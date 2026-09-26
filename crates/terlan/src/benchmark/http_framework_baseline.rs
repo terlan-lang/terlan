@@ -12,6 +12,10 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
+#[path = "../support/statistics.rs"]
+mod statistics;
+use statistics::percentile;
+
 #[path = "hardware.rs"]
 mod hardware;
 #[path = "http_benchmark_support.rs"]
@@ -741,9 +745,6 @@ fn reserve_port() -> Result<u16, String> {
         .map_err(|error| error.to_string())
 }
 
-fn percentile(values: &[u128], percentile: usize) -> u128 {
-    values[(values.len() * percentile).div_ceil(100).saturating_sub(1)]
-}
 
 fn positive_env(name: &str, default: usize) -> usize {
     env::var(name)

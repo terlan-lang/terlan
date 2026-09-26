@@ -1,0 +1,37 @@
+/** Semantic type-name resolution over projected recursive type trees. */
+module self_host.ProjectedTypeResolutionSyntax.
+
+import std.collections.List.
+import std.core.String.
+
+pub struct ProjectedTypeDiagnostic {
+    type_name: String,
+    message: String,
+}.
+
+pub constructor ProjectedTypeDiagnostic {
+    (type_name: String, message: String): ProjectedTypeDiagnostic ->
+        ProjectedTypeDiagnostic {
+            type_name: type_name,
+            message: message,
+        }
+}.
+
+
+pub struct ProjectedTypeResolution {
+    valid: Bool,
+    local_types: List[String],
+    external_types: List[String],
+    diagnostics: List[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic],
+}.
+
+pub constructor ProjectedTypeResolution {
+    (valid: Bool, local_types: List[String], external_types: List[String], diagnostics: List[self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic]): ProjectedTypeResolution ->
+        ProjectedTypeResolution {
+            valid: valid,
+            local_types: local_types,
+            external_types: external_types,
+            diagnostics: diagnostics,
+        }
+}.
+
