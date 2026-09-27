@@ -41,6 +41,12 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         Some(CoreType::Named(name)) if is_http_response_type(name) => {
             managed_reference_type(&CoreType::Named("Response".to_string()))
         }
+        Some(CoreType::Named(name)) if name == "std.http.Cookies.Jar" => {
+            managed_reference_type(&CoreType::Named("Jar".to_string()))
+        }
+        Some(CoreType::Named(name)) if name == "std.http.Session.Session" => {
+            managed_reference_type(&CoreType::Named("Session".to_string()))
+        }
         Some(core @ CoreType::Union(_)) if is_structural_string_option(core) => {
             managed_reference_type(&CoreType::Apply {
                 constructor: "Option".to_string(),

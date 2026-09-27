@@ -1,10 +1,13 @@
 module std.http.CookiesTest.
 
-import std.collections.Map.
 import std.core.Option.{None, Some}.
-import std.http.Cookies.{Strict, delete_header, set_header, set_header_options, set_header_with_options}.
+import std.core.Unit.
+import std.http.Cookies.{Lax, None as CrossSite, Options, Strict, delete_header, set_header, set_header_options, set_header_with_options}.
+import std.http.Response.
 import std.test.Test.{assert_equal}.
 
+import type std.core.Option.
+import type std.http.Request.
 import type std.http.Cookies.{Jar, Options, SameSite}.
 
 pub accepts_same_site(value: SameSite): SameSite ->
@@ -39,10 +42,14 @@ pub sample_full_set_cookie_header(): String ->
         "strict",
     ).
 
-pub sample_jar(): Dynamic ->
-    {Atom["cookies"], Map({"session", "abc123"})}.
+@compiler.native {std.test.fixture.http_request}
+request_fixture(cookie_header: String): Request ->
+    native.
 
-pub option_string_or_empty(value: Dynamic): String ->
+pub sample_jar(): Jar ->
+    request_fixture("session=abc123").cookies().
+
+pub option_string_or_empty(value: Option[String]): String ->
     case value {
         Some(text) -> text;
         None -> ""
@@ -72,3 +79,40 @@ pub cookie_jar_get_reads_present_and_missing_values(): Bool ->
     let jar = sample_jar();
     assert_equal("abc123", option_string_or_empty(jar.get("session")))
         and assert_equal("", option_string_or_empty(jar.get("missing"))).
+
+@test
+pub typed_cookie_options_serialize_present_and_absent_attributes(): Bool ->
+    let options = Options(Some("/account"), Some("example.com"), Some(3600), None, true, true, Some(Strict));
+    let defaults = Options(None, None, None, None, false, false, Some(Lax));
+    let omitted = Options(None, None, None, None, false, false, None);
+    let cross_site = Options(None, None, None, None, false, true, Some(CrossSite));
+    assert_equal(
+        "session=abc123; HttpOnly; SameSite=Strict; Secure; Path=/account; Domain=example.com; Max-Age=3600",
+        sample_set_cookie_header_options(options),
+    ) and assert_equal("session=abc123; SameSite=Lax; Path=/", sample_set_cookie_header_options(defaults))
+        and assert_equal("session=abc123; Path=/", sample_set_cookie_header_options(omitted))
+        and assert_equal("session=abc123; SameSite=None; Secure; Path=/", sample_set_cookie_header_options(cross_site)).
+
+@test
+pub cookie_jar_set_threads_response_header(): Bool ->
+    let jar = sample_jar();
+    let original = jar;
+    let done = jar.set("session", "updated", "/account", true, true);
+    assert_equal(Unit, done)
+        and assert_equal(Response.text("ok"), Response.text("ok").with_cookies(original))
+        and assert_equal("abc123", option_string_or_empty(jar.get("session")))
+        and assert_equal(
+            Response.text("ok").with_header("Set-Cookie", "session=updated; HttpOnly; Secure; Path=/account"),
+            Response.text("ok").with_cookies(jar),
+        ).
+
+@test
+pub cookie_jar_delete_threads_expiring_response_header(): Bool ->
+    let jar = sample_jar();
+    let done = jar.delete("session", "/account");
+    assert_equal(Unit, done)
+        and assert_equal("abc123", option_string_or_empty(jar.get("session")))
+        and assert_equal(
+            Response.text("ok").with_header("Set-Cookie", "session=; Path=/account; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT"),
+            Response.text("ok").with_cookies(jar),
+        ).

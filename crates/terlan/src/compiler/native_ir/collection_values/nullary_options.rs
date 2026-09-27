@@ -12,14 +12,19 @@ pub(in crate::compiler::native_ir) fn is_none_option_value(
             CoreType::Apply { constructor, args } => {
                 constructor.rsplit('.').next() == Some("Option") && args.len() == 1
             }
-            CoreType::Union(variants) => variants.iter().any(|variant| {
-                matches!(variant, CoreType::AtomLiteral(name) if name == "none")
-                    || matches!(
-                        variant,
-                        CoreType::Named(name)
-                            if name.rsplit('.').next() == Some("None")
-                    )
-            }),
+            CoreType::Union(variants) => {
+                !variants
+                    .iter()
+                    .all(|variant| matches!(variant, CoreType::Atom | CoreType::AtomLiteral(_)))
+                    && variants.iter().any(|variant| {
+                        matches!(variant, CoreType::AtomLiteral(name) if name == "none")
+                            || matches!(
+                                variant,
+                                CoreType::Named(name)
+                                    if name.rsplit('.').next() == Some("None")
+                            )
+                    })
+            }
             _ => false,
         }
 }
@@ -49,5 +54,29 @@ fn is_nullary_none_value(value: &CoreExpr) -> bool {
                     .all(|clause| is_nullary_none_value(&clause.body))
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn none_in_an_atom_union_keeps_its_scalar_representation() {
+        let value = CoreExpr::Atom("none".into());
+        let same_site = CoreType::Union(
+            ["lax", "strict", "none"]
+                .into_iter()
+                .map(|name| CoreType::AtomLiteral(name.into()))
+                .collect(),
+        );
+        assert!(!is_none_option_value(&value, &same_site));
+        assert!(is_none_option_value(
+            &value,
+            &CoreType::Apply {
+                constructor: "Option".into(),
+                args: vec![same_site],
+            }
+        ));
     }
 }

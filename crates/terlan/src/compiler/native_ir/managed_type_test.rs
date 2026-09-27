@@ -174,6 +174,20 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         Some(NativeType::ManagedRef(request_expected))
     );
 
+    for (name, physical) in [
+        ("std.http.Cookies.Jar", "Jar"),
+        ("std.http.Session.Session", "Session"),
+        ("app.Cookies.Jar", "app.Cookies.Jar"),
+        ("app.Session.Session", "app.Session.Session"),
+    ] {
+        let expected = SemanticTypeId::from_canonical(&format!("Named({physical})"))
+            .expect("HTTP or package semantic type");
+        assert_eq!(
+            super::super::native_type(Some(&CoreType::Named(name.into())), name),
+            Some(NativeType::ManagedRef(expected))
+        );
+    }
+
     let structural_option = CoreType::Union(vec![
         CoreType::AtomLiteral("none".to_string()),
         CoreType::Tuple(vec![

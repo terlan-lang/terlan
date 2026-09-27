@@ -143,24 +143,35 @@ fn template_html_uses_compiler_managed_string_representation() {
 }
 
 #[test]
-fn http_request_uses_compiler_managed_tuple_representation() {
-    let syntax =
-        parse_module_as_syntax_output("module std.http.Request.\n\npub opaque type Request.\n")
-            .expect("parse request facade");
-    let resolved = resolve_syntax_module_output(&syntax).module;
-    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
-    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
-    let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
-    super::super::nominal_identity::qualify_local_nominal_types(&mut core);
+fn http_values_keep_managed_storage_without_exempting_package_namesakes() {
+    for (module, name, managed) in [
+        ("std.http.Request", "Request", true),
+        ("std.http.Response", "Response", true),
+        ("std.http.Cookies", "Jar", true),
+        ("std.http.Session", "Session", true),
+        ("app.Cookies", "Jar", false),
+        ("app.Session", "Session", false),
+    ] {
+        let syntax = parse_module_as_syntax_output(&format!(
+            "module {module}.\n\npub opaque type {name}.\n"
+        ))
+        .expect("parse HTTP facade or package namesake");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+        assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+        let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        super::super::nominal_identity::qualify_local_nominal_types(&mut core);
 
-    let aliases = native_package_aliases(std::slice::from_ref(&core));
-    assert!(!aliases.contains_key("std.http.Request.Request"));
-    assert!(
-        native_handle_layouts(&core)
-            .expect("request layouts")
-            .is_empty(),
-        "Request must not acquire a native capability-handle layout"
-    );
+        let aliases = native_package_aliases(std::slice::from_ref(&core));
+        assert_eq!(aliases.contains_key(&format!("{module}.{name}")), !managed);
+        assert_eq!(
+            native_handle_layouts(&core)
+                .expect("HTTP layouts")
+                .is_empty(),
+            managed,
+            "wrong capability-handle layout for {module}.{name}"
+        );
+    }
 }
 
 #[test]

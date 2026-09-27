@@ -29,9 +29,20 @@ pub(super) fn rewrite_children(expr: &mut CoreExpr, features: HttpFeatures) -> R
             rewrite_many(guards, features)?;
         }
         CoreExpr::Let { bindings, body } => {
-            for binding in bindings {
+            let mut rewritten = Vec::with_capacity(bindings.len());
+            for mut binding in std::mem::take(bindings) {
+                let receiver = cookie_mutation_receiver(&binding.value);
                 binding.value = rewrite(&binding.value, features)?;
+                if let Some(receiver) = receiver {
+                    rewritten.push(crate::terlan_typeck::CoreLetBinding {
+                        pattern: crate::terlan_typeck::CorePattern::Var(receiver),
+                        value: binding.value,
+                    });
+                    binding.value = CoreExpr::Atom("Unit".to_string());
+                }
+                rewritten.push(binding);
             }
+            *bindings = rewritten;
             **body = rewrite(body, features)?;
         }
         CoreExpr::Map(fields) => {
@@ -105,6 +116,32 @@ pub(super) fn rewrite_children(expr: &mut CoreExpr, features: HttpFeatures) -> R
         | CoreExpr::RemoteFunRef { .. } => {}
     }
     Ok(())
+}
+
+/// A command-style cookie mutation rebinds its persistent jar and returns Unit.
+/// Inspect source calls only, so another normalization pass cannot rebind twice.
+fn cookie_mutation_receiver(expr: &CoreExpr) -> Option<String> {
+    let args = match expr {
+        CoreExpr::Call { function, args, .. }
+            if matches!(
+                function.as_str(),
+                "std.http.Cookies.set" | "std.http.Cookies.delete"
+            ) =>
+        {
+            args
+        }
+        CoreExpr::RemoteCall {
+            module,
+            function,
+            args,
+            ..
+        } if module == COOKIES_MODULE && matches!(function.as_str(), "set" | "delete") => args,
+        _ => return None,
+    };
+    match args.first()? {
+        CoreExpr::Var(name) => Some(name.clone()),
+        _ => None,
+    }
 }
 
 fn rewrite_many(expressions: &mut [CoreExpr], features: HttpFeatures) -> Result<(), String> {

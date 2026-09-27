@@ -20,6 +20,12 @@ pub(super) fn response_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr,
 
 /// Rewrites maintained cookie serializers into bounded managed HTTP operations.
 pub(super) fn cookie_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
+    if matches!(
+        (name, args.len()),
+        ("get", 2) | ("set", 3..=6) | ("delete", 2..=3)
+    ) {
+        return super::jar_receiver_call(name, args);
+    }
     let (function, args) = match name {
         "set_header" => ("cookie_set_header", cookie_set_args(args)?),
         "set_header_with_options" => ("cookie_set_options_header", cookie_option_args(args)?),

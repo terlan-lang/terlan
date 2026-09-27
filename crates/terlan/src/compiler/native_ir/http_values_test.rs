@@ -870,6 +870,114 @@ fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
 }
 
 #[test]
+fn resolved_cookie_calls_keep_managed_operations() {
+    for (name, args, expected) in [
+        (
+            "get",
+            vec![CoreExpr::Var("jar".into()), string("session")],
+            "jar_get",
+        ),
+        (
+            "set",
+            vec![
+                CoreExpr::Var("jar".into()),
+                string("session"),
+                string("abc123"),
+            ],
+            "jar_append",
+        ),
+        (
+            "delete",
+            vec![CoreExpr::Var("jar".into()), string("session")],
+            "jar_append",
+        ),
+        (
+            "set_header",
+            vec![string("session"), string("abc123")],
+            "cookie_set_header",
+        ),
+        (
+            "set_header_with_options",
+            vec![string("session"), string("abc123")],
+            "cookie_set_options_header",
+        ),
+        (
+            "delete_header",
+            vec![string("session")],
+            "cookie_delete_header",
+        ),
+    ] {
+        let mut core = http_core();
+        *body(&mut core) = CoreExpr::Call {
+            type_args: Vec::new(),
+            function: format!("std.http.Cookies.{name}"),
+            args,
+        };
+        lower_http_values(&mut core).expect("lower resolved cookie call");
+        assert!(
+            matches!(body(&mut core), CoreExpr::RemoteCall { module, function, .. }
+            if module == "$terlan.managed.http" && function == expected),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn cookie_mutation_rebinds_once_and_preserves_unit_result() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::Let {
+        bindings: vec![crate::terlan_typeck::CoreLetBinding {
+            pattern: CorePattern::Var("done".into()),
+            value: CoreExpr::Call {
+                type_args: Vec::new(),
+                function: "std.http.Cookies.set".into(),
+                args: vec![
+                    CoreExpr::Var("jar".into()),
+                    string("session"),
+                    string("new"),
+                ],
+            },
+        }],
+        body: Box::new(CoreExpr::Var("jar".into())),
+    };
+    lower_http_values(&mut core).unwrap();
+    let once = body(&mut core).clone();
+    lower_http_values(&mut core).unwrap();
+    assert_eq!(body(&mut core), &once);
+    let CoreExpr::Let { bindings, .. } = once else {
+        panic!("lexical mutation")
+    };
+    assert_eq!(bindings.len(), 2);
+    assert_eq!(bindings[0].pattern, CorePattern::Var("jar".into()));
+    assert_eq!(bindings[1].pattern, CorePattern::Var("done".into()));
+    assert_eq!(bindings[1].value, CoreExpr::Atom("Unit".into()));
+}
+
+#[test]
+fn cookie_native_serializer_body_uses_the_managed_string_abi() {
+    let mut core = http_core();
+    core.module = "std.http.Cookies".into();
+    core.imports.clear();
+    *body(&mut core) = CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall {
+        id: crate::terlan_typeck::CoreIntrinsicId::NativeOperation {
+            operation: "std.http.cookies.set_header_with_options".into(),
+            parameter_types: vec![crate::terlan_typeck::CoreType::String; 2],
+        },
+        args: vec![string("session"), string("value")],
+        return_type: crate::terlan_typeck::CoreType::String,
+        effects: CoreEffectSet {
+            effects: vec!["native-package".into()],
+        },
+        span: crate::terlan_syntax::span::Span::new(0, 0),
+    });
+    lower_http_values(&mut core).unwrap();
+    assert!(
+        matches!(body(&mut core), CoreExpr::RemoteCall { module, function, .. }
+        if module == "$terlan.managed.http" && function == "cookie_set_options_header")
+    );
+}
+
+#[test]
 fn typed_http_error_constructor_and_accessors_lower_to_managed_values() {
     let mut constructor_core = http_error_core();
     *body(&mut constructor_core) = CoreExpr::RemoteCall {

@@ -19,6 +19,7 @@ mod postgres;
 mod postgres_transport;
 mod scheduling;
 mod storage_transport;
+mod test_fixtures;
 pub(crate) use execution::execute_call;
 pub(crate) use storage_transport::VmStorageBinding;
 #[path = "package_native_helper/helper_process.rs"]
@@ -66,6 +67,7 @@ pub(crate) struct VmPackageNativeHelpers {
     storage_workers: storage_transport::VmStorageWorkers,
     postgres: postgres::Adapter,
     postgres_workers: postgres_transport::Workers,
+    test_fixtures: bool,
     program_arguments: Vec<String>,
 }
 
@@ -100,6 +102,7 @@ impl VmPackageNativeHelpers {
         bindings: &[(String, std::path::PathBuf)],
     ) -> VmRuntimeResult<Self> {
         let mut helpers = Self::default();
+        helpers.test_fixtures = true;
         for (environment, path) in bindings {
             let namespace = helper_environment_namespace(environment)?;
             if helpers
@@ -122,6 +125,9 @@ impl VmPackageNativeHelpers {
         admitted_atoms: &[String],
     ) -> VmRuntimeResult<ReplValue> {
         let namespace = package_operation_namespace(&request.operation)?;
+        if request.operation.starts_with("std.test.fixture.") {
+            return test_fixtures::call(self.test_fixtures, request);
+        }
         if request.operation.starts_with("std.vm.fault.")
             || request.operation.starts_with("std.vm.scheduler.")
         {
