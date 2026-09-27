@@ -346,3 +346,40 @@ fn cookie_jar_replay_and_security_policy_append_persistent_headers() {
         ))
     );
 }
+
+#[test]
+fn security_policy_rejects_unknown_discriminants_without_changing_response() {
+    let layouts = registry();
+    let mut heap = heap();
+    let response = response(&mut heap, &layouts);
+    let operation = encode_response_security_headers_operation(
+        semantic(RESPONSE),
+        semantic(HEADERS),
+        semantic(HEADER),
+        semantic(SECURITY),
+        5,
+    )
+    .unwrap();
+    for (frame, referrer) in [(-1, 0), (0, -1), (2, 1), (1, 2)] {
+        let policy = heap
+            .allocate_aggregate(
+                layouts.layouts(semantic(SECURITY))[0].clone(),
+                &[
+                    ManagedFieldValue::Bool(true),
+                    ManagedFieldValue::Int(frame),
+                    ManagedFieldValue::Int(referrer),
+                    ManagedFieldValue::Int(60),
+                    ManagedFieldValue::Bool(true),
+                ],
+            )
+            .unwrap();
+        assert!(execute_managed_operation(
+            &mut heap,
+            &layouts,
+            &operation,
+            &[word(response), word(policy)]
+        )
+        .is_err());
+        assert!(response_headers(&heap, &layouts, response.erase()).is_empty());
+    }
+}

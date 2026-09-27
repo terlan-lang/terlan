@@ -3,7 +3,9 @@
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{ManagedAggregateDescriptor, ManagedFieldType};
-use crate::terlan_typeck::CoreExpr;
+use crate::terlan_typeck::{
+    CoreCaseClause, CoreExpr, CoreLetBinding, CorePattern, CoreRecordExprField,
+};
 
 use super::{bool_expr, SECURITY_HEADERS};
 
@@ -15,17 +17,25 @@ pub(super) fn security_headers_constructor(
     hsts_max_age: i64,
     include_subdomains: bool,
 ) -> CoreExpr {
-    CoreExpr::ConstructorCall {
-        type_args: Vec::new(),
-        constructor: SECURITY_CONSTRUCTOR.to_string(),
-        constructor_identity: Some(SECURITY_CONSTRUCTOR.to_string()),
-        args: vec![
-            bool_expr(true),
-            CoreExpr::Int(0),
-            CoreExpr::Int(1),
-            CoreExpr::Int(hsts_max_age),
-            bool_expr(include_subdomains),
-        ],
+    CoreExpr::RecordConstruct {
+        name: "std.http.Response.SecurityHeaders".into(),
+        fields: [
+            ("content_type_options", bool_expr(true)),
+            ("frame_options", CoreExpr::Atom("deny".into())),
+            (
+                "referrer_policy",
+                CoreExpr::Atom("strict_origin_when_cross_origin".into()),
+            ),
+            ("hsts_max_age", CoreExpr::Int(hsts_max_age)),
+            ("hsts_include_subdomains", bool_expr(include_subdomains)),
+        ]
+        .into_iter()
+        .map(|(key, value)| CoreRecordExprField {
+            key: key.into(),
+            required: true,
+            value,
+        })
+        .collect(),
     }
 }
 
@@ -72,4 +82,57 @@ fn security_marker(value: &CoreExpr, variants: &[&str]) -> Result<CoreExpr, Stri
         .ok_or_else(|| {
             format!("error[native_ir.http_security_policy]: unsupported policy marker {value}")
         })
+}
+
+/// Projects a public policy once, retaining its source record and atom fields.
+/// Only this HTTP operation boundary uses the private integer discriminants.
+pub(super) fn security_policy_argument(policy: CoreExpr) -> CoreExpr {
+    if matches!(&policy, CoreExpr::ConstructorCall { constructor, .. } if constructor == SECURITY_CONSTRUCTOR)
+    {
+        return policy;
+    }
+    let local = "$http_security_policy";
+    let field = |name: &str| CoreExpr::RecordAccess {
+        base: Box::new(CoreExpr::Var(local.into())),
+        name: "std.http.Response.SecurityHeaders".into(),
+        field: name.into(),
+    };
+    let marker = |name: &str, variants: &[&str]| CoreExpr::Case {
+        scrutinee: Box::new(field(name)),
+        clauses: variants
+            .iter()
+            .enumerate()
+            .map(|(index, atom)| CoreCaseClause {
+                pattern: CorePattern::Atom((*atom).into()),
+                guard: None,
+                body: CoreExpr::Int(index as i64),
+            })
+            .chain(std::iter::once(CoreCaseClause {
+                pattern: CorePattern::Wildcard,
+                guard: None,
+                body: CoreExpr::Int(-1),
+            }))
+            .collect(),
+    };
+    CoreExpr::Let {
+        bindings: vec![CoreLetBinding {
+            pattern: CorePattern::Var(local.into()),
+            value: policy,
+        }],
+        body: Box::new(CoreExpr::ConstructorCall {
+            type_args: Vec::new(),
+            constructor: SECURITY_CONSTRUCTOR.into(),
+            constructor_identity: Some(SECURITY_CONSTRUCTOR.into()),
+            args: vec![
+                field("content_type_options"),
+                marker("frame_options", &["deny", "same_origin"]),
+                marker(
+                    "referrer_policy",
+                    &["no_referrer", "strict_origin_when_cross_origin"],
+                ),
+                field("hsts_max_age"),
+                field("hsts_include_subdomains"),
+            ],
+        }),
+    }
 }

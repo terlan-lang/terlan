@@ -119,8 +119,12 @@ stdlib-data-check:
 stdlib-db-check:
 	@$(TERLC) test std/db
 
-stdlib-http-check:
+stdlib-http-check: stdlib-http-security-check
 	@$(TERLC) test std/http
+
+.PHONY: stdlib-http-security-check
+stdlib-http-security-check:
+	@$(TERLC) test tests/fixtures/http/SecurityHeadersTest.terl
 
 stdlib-log-check:
 	@$(TERLC) test std/log/LogTest.terl
@@ -132,7 +136,7 @@ stdlib-sync-check:
 stdlib-release-contracts-check:
 	@$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::std_contract_test::syntax_output_accepts_release_core_collection_contracts -- --ignored --exact
 
-stdlib-release-tests: | terlan-stdlib-validation-bootstrap
+stdlib-release-tests: stdlib-http-security-check | terlan-stdlib-validation-bootstrap
 	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 	TERLAN_STDLIB_VALIDATION_TERLC="$(CURDIR)/target/debug/terlc" \
 		$(TERLAN_STDLIB_VALIDATION) release-tests

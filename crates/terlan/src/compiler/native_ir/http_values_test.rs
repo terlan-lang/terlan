@@ -792,8 +792,8 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
     lower_http_values(&mut core).expect("lower security constructor");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::ConstructorCall { constructor_identity: Some(identity), args, .. }
-            if identity == "$terlan.http.security_headers" && args.len() == 5
+        CoreExpr::RecordConstruct { name, fields }
+            if name == "std.http.Response.SecurityHeaders" && fields.len() == 5
     ));
 
     let mut core = http_core();

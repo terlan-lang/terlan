@@ -6,7 +6,7 @@ use super::cookies::{cookie_delete_args, cookie_option_args, cookie_set_args};
 use super::core_helpers::{
     empty_response_headers, managed_http_call, response_cookie_header, string_expr,
 };
-use super::security::security_headers_constructor;
+use super::security::{security_headers_constructor, security_policy_argument};
 use super::{COOKIES_MODULE, MANAGED_HTTP_MODULE, RESPONSE_CONSTRUCTOR_PREFIX};
 
 /// Creates one managed response constructor call with an explicit status.
@@ -14,6 +14,12 @@ pub(super) fn response_call(name: &str, args: Vec<CoreExpr>) -> Result<CoreExpr,
     match (name, args.len()) {
         ("default_security_headers", 0) => Ok(security_headers_constructor(0, false)),
         ("production_security_headers", 0) => Ok(security_headers_constructor(31_536_000, true)),
+        ("$constructor_call_SecurityHeaders_5", 5) => Ok(CoreExpr::RemoteCall {
+            type_args: Vec::new(),
+            module: super::RESPONSE_MODULE.to_string(),
+            function: name.to_string(),
+            args,
+        }),
         _ => response_builder(name, args),
     }
 }
@@ -144,7 +150,7 @@ pub(super) fn response_mutation(
         "security_headers" | "with_security_headers" if args.len() == 1 => {
             return Ok(managed_http_call(
                 "response_security_headers",
-                vec![receiver, args.remove(0)],
+                vec![receiver, security_policy_argument(args.remove(0))],
             ));
         }
         "with_cookies" if args.len() == 1 => {
