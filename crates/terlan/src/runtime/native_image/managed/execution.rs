@@ -241,6 +241,7 @@ impl ManagedExecutionRuntime {
     }
 
     /// Stops coverage collection and returns the exact executed callable identities.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn finish_callable_coverage(&mut self) -> BTreeSet<u64> {
         self.callable_coverage_enabled = false;
         std::mem::take(&mut self.covered_callables)

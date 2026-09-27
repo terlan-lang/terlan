@@ -74,7 +74,7 @@ pub undeclared_scope_uses_call_site_default(): Bool ->
         and assert_equal("round_robin", Scheduler.placement_policy(placement)).
 
 @test
-pub controlled_migration_executes_in_order(): Bool ->
+pub migration_plan_commits_in_order(): Bool ->
     let scheduler = Scheduler.new(active_nodes());
     let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", true);
     let requested = Scheduler.migration(requested_result);
@@ -104,7 +104,7 @@ pub controlled_migration_executes_in_order(): Bool ->
         and assert_equal(5, events.length()).
 
 @test
-pub controlled_migration_rolls_back_with_reason(): Bool ->
+pub migration_plan_rolls_back_with_reason(): Bool ->
     let scheduler = Scheduler.new(active_nodes());
     let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", true);
     let migration = Scheduler.migration(requested_result);
@@ -119,7 +119,7 @@ pub controlled_migration_rolls_back_with_reason(): Bool ->
         and assert_equal(2, events.length()).
 
 @test
-pub controlled_migration_aborts_with_reason(): Bool ->
+pub migration_plan_aborts_with_reason(): Bool ->
     let scheduler = Scheduler.new(active_nodes());
     let requested_result = scheduler.request_migration("actor-a", "node-a", "node-b", false);
     let migration = Scheduler.migration(requested_result);
@@ -129,3 +129,16 @@ pub controlled_migration_aborts_with_reason(): Bool ->
     assert_equal("aborted", Scheduler.outcome_kind(outcome))
         and assert_equal(1, Scheduler.outcome_sequence(outcome))
         and assert_equal("node evicted", Scheduler.outcome_reason(outcome)).
+
+@test
+pub placement_preserves_original_plan_and_event_replay(): Bool ->
+    let original = Scheduler.new(active_nodes());
+    let first = original.place("actor-a", Scheduler.round_robin());
+    let updated = Scheduler.placement_scheduler(first);
+    let next = updated.place("actor-b", Scheduler.round_robin());
+    let replay = original.place("actor-c", Scheduler.round_robin());
+    assert_equal("node-b", Scheduler.placement_node_id(Scheduler.placement(next)))
+        and assert_equal("node-a", Scheduler.placement_node_id(Scheduler.placement(replay)))
+        and assert_equal(0, original.events_after(0).length())
+        and assert_equal(1, updated.events_after(0).length())
+        and assert_equal(updated.events_after(0), updated.events_after(0)).

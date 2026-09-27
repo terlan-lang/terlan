@@ -22,7 +22,6 @@ crates/terlan/src/compiler/accelerator/ir.rs	implementation	924	900	1000	compile
 crates/terlan/src/compiler/hir/interface_render.rs	implementation	936	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/application/overloads.rs	implementation	913	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/function.rs	implementation	950	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/native_ir/structured_case/lowering.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/mod.rs	implementation	950	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/trait_conformance.rs	implementation	947	900	1000	compiler-structure	0.0.9
@@ -41,7 +40,6 @@ crates/terlan/src/runtime/vm/actor.rs	implementation	922	900	1000	runtime-struct
 crates/terlan/src/runtime/vm/actor_directory.rs	implementation	965	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/capability_worker.rs	implementation	907	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/code_server.rs	implementation	905	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/distributed_scheduler/mod.rs	implementation	906	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/http/protocol/exchange.rs	implementation	905	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/http_session/state/runtime.rs	implementation	910	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/memory.rs	implementation	979	900	1000	runtime-structure	0.0.9

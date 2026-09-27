@@ -1,0 +1,188 @@
+{
+  "functions": [
+    {
+      "arity": 3,
+      "name": "policy",
+      "operation": "std.vm.fault.policy"
+    },
+    {
+      "arity": 2,
+      "name": "resolve_policy",
+      "operation": "std.vm.fault.resolve_policy"
+    },
+    {
+      "arity": 2,
+      "name": "compatibility",
+      "operation": "std.vm.fault.compatibility"
+    },
+    {
+      "arity": 2,
+      "name": "monitor",
+      "operation": "std.vm.fault.monitor"
+    },
+    {
+      "arity": 3,
+      "name": "record_heartbeat",
+      "operation": "std.vm.fault.record_heartbeat"
+    },
+    {
+      "arity": 4,
+      "name": "suspect",
+      "operation": "std.vm.fault.suspect"
+    },
+    {
+      "arity": 4,
+      "name": "degrade",
+      "operation": "std.vm.fault.degrade"
+    },
+    {
+      "arity": 4,
+      "name": "isolate",
+      "operation": "std.vm.fault.isolate"
+    },
+    {
+      "arity": 4,
+      "name": "begin_recovery",
+      "operation": "std.vm.fault.begin_recovery"
+    },
+    {
+      "arity": 4,
+      "name": "complete",
+      "operation": "std.vm.fault.complete"
+    },
+    {
+      "arity": 4,
+      "name": "expire",
+      "operation": "std.vm.fault.expire"
+    },
+    {
+      "arity": 2,
+      "name": "state_name",
+      "operation": "std.vm.fault.state_name"
+    },
+    {
+      "arity": 2,
+      "name": "transitions_after",
+      "operation": "std.vm.fault.transitions_after"
+    },
+    {
+      "arity": 2,
+      "name": "failures_after",
+      "operation": "std.vm.fault.failures_after"
+    },
+    {
+      "arity": 1,
+      "name": "close",
+      "operation": "std.vm.fault.close"
+    },
+    {
+      "arity": 1,
+      "name": "transition_node_id",
+      "operation": "std.vm.fault.transition_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "transition_previous_state",
+      "operation": "std.vm.fault.transition_previous_state"
+    },
+    {
+      "arity": 1,
+      "name": "transition_next_state",
+      "operation": "std.vm.fault.transition_next_state"
+    },
+    {
+      "arity": 1,
+      "name": "transition_tick",
+      "operation": "std.vm.fault.transition_tick"
+    },
+    {
+      "arity": 1,
+      "name": "transition_reason",
+      "operation": "std.vm.fault.transition_reason"
+    },
+    {
+      "arity": 1,
+      "name": "transition_diagnostic_kind",
+      "operation": "std.vm.fault.transition_diagnostic_kind"
+    },
+    {
+      "arity": 1,
+      "name": "failure_kind",
+      "operation": "std.vm.fault.failure_kind"
+    },
+    {
+      "arity": 1,
+      "name": "failure_node_id",
+      "operation": "std.vm.fault.failure_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "failure_tick",
+      "operation": "std.vm.fault.failure_tick"
+    },
+    {
+      "arity": 1,
+      "name": "failure_reason",
+      "operation": "std.vm.fault.failure_reason"
+    },
+    {
+      "arity": 1,
+      "name": "failure_diagnostic_kind",
+      "operation": "std.vm.fault.failure_diagnostic_kind"
+    },
+    {
+      "arity": 2,
+      "name": "state",
+      "operation": "std.vm.fault.state"
+    },
+    {
+      "arity": 5,
+      "name": "classify_heartbeat",
+      "operation": "std.vm.fault.classify_heartbeat"
+    },
+    {
+      "arity": 5,
+      "name": "isolate_partition",
+      "operation": "std.vm.fault.isolate_partition"
+    },
+    {
+      "arity": 3,
+      "name": "start_recovery",
+      "operation": "std.vm.fault.start_recovery"
+    },
+    {
+      "arity": 3,
+      "name": "complete_recovery",
+      "operation": "std.vm.fault.complete_recovery"
+    },
+    {
+      "arity": 4,
+      "name": "expire_recovery",
+      "operation": "std.vm.fault.expire_recovery"
+    },
+    {
+      "arity": 7,
+      "name": "migration_timeout",
+      "operation": "std.vm.fault.migration_timeout"
+    },
+    {
+      "arity": 7,
+      "name": "migration_partial_commit",
+      "operation": "std.vm.fault.migration_partial_commit"
+    },
+    {
+      "arity": 1,
+      "name": "failure",
+      "operation": "std.vm.fault.failure"
+    },
+    {
+      "arity": 6,
+      "name": "stale_placement_update",
+      "operation": "std.vm.fault.stale_placement_update"
+    }
+  ],
+  "module": "std_vm_fault_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.Fault"
+}

@@ -63,15 +63,43 @@ All 17 `BoolTest`, 17 `OptionTest`, 19 `IntTest`, 15 `HashTest`, and 28 `FileTes
 cases pass through the rebuilt compiler and VM. The Hash cases cover ordered
 content framing, forbidden-content audits, pattern expansion, and missing files.
 
-The full standard-library run now reaches `std/vm/FaultTest.terl` after passing
-the cluster, distributed-state, and local-storage suites. It fails because
-`std.vm.Fault.begin_recovery/4` still has an unbound native body. This remains
-a release blocker, not complete API execution coverage. The hosted Linux
-packaging failures used the stale Hash record-list identity repaired above;
-fresh exact-commit platform validation remains required. Compiler CI separately
-found that its canonical test build omitted the feature-gated service runtime.
-The shared build now includes it, with a fresh Cargo fixture that builds and
-executes the paired binary. These local results do not close the release gates.
+Candidate `818399e1` passed all six hosted platform builds, the release workflow's
+security audit and sanitizer gates, Docs CI, and CodeQL. Compiler CI failed three
+Postgres tests after its shared build enabled the compiler-free serve runtime.
+The driver tests now run in the profile that owns the in-process driver, while
+the serve profile checks explicit worker-required errors, secret redaction,
+actor-owned replies, and complete control-queue drainage. The focused runs pass
+100 tests with default features and 101 with the canonical shared features;
+neither profile reports ignored tests.
+
+The unbound Fault and Scheduler declarations now dispatch to actor-owned VM
+adapters over the existing scheduler model. All nine Fault source tests and nine
+Scheduler source tests pass, including replay identity and immutable plan updates.
+Five Rust adapter tests cover ownership, resource kinds, stale generations,
+cleanup, rejected transitions, and stale migration descriptors; all 56 scheduler
+model tests pass. Migration operations update local plans and diagnostics only:
+they do not transfer live actor state or provide replication or failover.
+Generated summaries, native boundary artifacts, and documentation format pass.
+
+The full standard-library run passes those suites and reaches
+`std/db/PostgresTest.terl`. It exposed missing lexical type recovery for anonymous
+records before suspending calls. Recovery and lowering now preserve the checked
+field types; all 656 NativeIR tests pass, including 15 structured-case tests.
+The Postgres source test now compiles but cannot execute `std.db.postgres.connect`
+without a configured std native helper. That production routing gap remains a
+release blocker. This is not a passing full standard-library run or complete API
+execution coverage. These local runs include the separately active native-IR
+edits; fresh hosted validation of the committed candidate remains required.
+
+The compiler-free serve profile exposed two coverage-result accessors whose
+only production caller is the compiler test command. Their feature guards now
+match that caller; the compiler-free `cargo check` passes without lint allowances.
+The refreshed quality inventory has 51 near-limit files (down from 53), with
+3,030 internal string errors and unchanged budgets. Headroom, API-boundary,
+module-structure, dependency, lint-allowance, and documentation checks pass;
+strict workspace binary Clippy passes with default and all features. These
+quality checks use the proposed committed Rust files while preserving the two
+separate native-IR edits in the shared checkout.
 
 The first validation-tool bootstrap now follows the user-approved hermetic
 policy: frozen working-source bytes, the pinned Rust toolchain, and isolated

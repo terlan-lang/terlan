@@ -1,8 +1,11 @@
 //! Terlan VM distributed scheduler contract.
 //!
-//! `std.vm.Scheduler` exposes the source-level shape for VM-owned process
-//! placement, shard affinity, and controlled actor migration. The VM owns the
-//! actual placement table, migration sequencing, and scheduler event log.
+//! `std.vm.Scheduler` executes local placement and migration-plan state changes.
+//! Values are immutable actor-owned plans: each update returns a new scheduler
+//! value and leaves its input unchanged. Migration phases and commits describe
+//! that plan's control state; they do not transfer actor heaps, continuations,
+//! mailboxes, timers, or network traffic. Live actor migration is unsupported.
+//! Node membership and load are supplied explicitly by the caller.
 
 module std.vm.Scheduler.
 
@@ -105,7 +108,7 @@ pub opaque type Scheduler.
 
 pub (scheduler: Scheduler) abort_migration(migration: Migration, reason: String): MigrationOutcomeResult.
 
-/// Advances a migration phase.
+/// Advances a local migration-plan phase.
 ///
 /// Input: scheduler receiver, migration descriptor, and phase tag.
 /// Output: migration transition with the updated intent and scheduler.
@@ -113,12 +116,12 @@ pub (scheduler: Scheduler) abort_migration(migration: Migration, reason: String)
 
 pub (scheduler: Scheduler) advance_migration(migration: Migration, phase: String): MigrationResult.
 
-/// Commits a migration that has reached the resuming phase.
+/// Commits a local migration plan that has reached the resuming phase.
 ///
 /// Input: scheduler receiver and current migration descriptor.
 /// Output: committed outcome and updated scheduler.
 /// Transformation: validates actor and sequence identity, records the terminal
-/// outcome, and emits one ordered commit event.
+/// outcome, and emits one ordered commit event. This does not move a live actor.
 
 pub (scheduler: Scheduler) commit_migration(migration: Migration): MigrationOutcomeResult.
 
@@ -297,13 +300,13 @@ pub placement_scheduler(result: PlacementResult): Scheduler.
 
 pub (scheduler: Scheduler) refresh(nodes: List[Node]): Scheduler.
 
-/// Requests controlled migration for one actor.
+/// Adds a migration intent to a local plan.
 ///
 /// Input: scheduler receiver, actor id, source node, target node, and
 /// statefulness flag.
 /// Output: migration transition with the intent and updated scheduler.
-/// Transformation: records an ordered migration intent before VM-owned
-/// snapshot, transfer, resume, rollback, or abort work can proceed.
+/// Transformation: records intent metadata and sequencing. It does not start
+/// snapshot, transfer, or actor-resume work.
 
 pub (scheduler: Scheduler) request_migration(actor_id: String, from_node_id: String, to_node_id: String, stateful: Bool): MigrationResult.
 

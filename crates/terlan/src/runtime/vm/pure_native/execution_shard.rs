@@ -1,6 +1,8 @@
 //! Same-shard ownership for ordinary native actor execution.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::atomic::AtomicU64;
 
@@ -247,6 +249,7 @@ impl PureNativeExecutionShard {
     }
 
     /// Stops callable coverage and returns the stable identities actually entered.
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) fn finish_callable_coverage(&mut self) -> BTreeSet<u64> {
         self.execution.managed().finish_callable_coverage()
     }

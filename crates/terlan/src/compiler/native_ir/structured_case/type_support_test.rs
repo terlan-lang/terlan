@@ -111,3 +111,40 @@ fn unit_expression_alias_and_call_results_share_one_control_join_type() {
         Some(CoreType::AtomLiteral("none".into()))
     );
 }
+
+#[test]
+fn structural_record_prefix_recovers_checked_fields_without_guessing_unknown_values() {
+    use crate::terlan_typeck::{CoreMapExprField, CoreMapTypeField};
+    let record = CoreExpr::Map(vec![
+        CoreMapExprField {
+            key: "url".into(),
+            required: true,
+            value: CoreExpr::Var("url".into()),
+        },
+        CoreMapExprField {
+            key: "attempts".into(),
+            required: true,
+            value: CoreExpr::Int(3),
+        },
+    ]);
+    let variables = HashMap::from([("url".into(), CoreType::String)]);
+    assert_eq!(
+        core_expr_type(&record, &variables, &HashMap::new()),
+        Some(CoreType::Map(vec![
+            CoreMapTypeField {
+                key: "url".into(),
+                operator: ":".into(),
+                value: CoreType::String
+            },
+            CoreMapTypeField {
+                key: "attempts".into(),
+                operator: ":".into(),
+                value: CoreType::Int
+            },
+        ]))
+    );
+    assert_eq!(
+        core_expr_type(&record, &HashMap::new(), &HashMap::new()),
+        None
+    );
+}

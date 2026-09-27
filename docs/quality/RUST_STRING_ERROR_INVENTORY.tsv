@@ -255,7 +255,8 @@ crates/terlan/src/compiler/native_ir/static_callable.rs	13	internal-helper	compi
 crates/terlan/src/compiler/native_ir/static_callable/preflight.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case.rs	13	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/binary.rs	1	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/structured_case/lowering.rs	7	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/structured_case/lowering.rs	6	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/structured_case/plain.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/record.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/suspending.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/tagged_union.rs	1	internal-helper	compiler-errors	0.0.9
@@ -351,8 +352,8 @@ crates/terlan/src/runtime/vm/coordination_profile.rs	2	internal-helper	runtime-e
 crates/terlan/src/runtime/vm/debugger_control.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/debugger_transport.rs	13	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/distributed_scheduler/fault.rs	15	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/distributed_scheduler/mod.rs	25	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/distributed_scheduler/placement_override.rs	7	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/distributed_scheduler/mod.rs	24	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/distributed_scheduler/placement_override.rs	8	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/distributed_scheduler/source_snapshot.rs	11	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/distributed_state.rs	4	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/distributed_storage/deadline.rs	5	internal-helper	runtime-errors	0.0.9

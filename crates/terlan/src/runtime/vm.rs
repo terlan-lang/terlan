@@ -26,7 +26,6 @@ pub(crate) mod coordination_profile;
 pub(crate) mod debugger_control;
 #[cfg(test)]
 pub(crate) mod debugger_transport;
-#[cfg(test)]
 pub(crate) mod distributed_scheduler;
 pub(crate) mod distributed_state;
 #[cfg(test)]

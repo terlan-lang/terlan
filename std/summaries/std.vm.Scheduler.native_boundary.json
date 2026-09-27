@@ -1,0 +1,198 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "node",
+      "operation": "std.vm.scheduler.node"
+    },
+    {
+      "arity": 1,
+      "name": "new",
+      "operation": "std.vm.scheduler.new"
+    },
+    {
+      "arity": 0,
+      "name": "round_robin",
+      "operation": "std.vm.scheduler.round_robin"
+    },
+    {
+      "arity": 0,
+      "name": "least_connections",
+      "operation": "std.vm.scheduler.least_connections"
+    },
+    {
+      "arity": 1,
+      "name": "pinned",
+      "operation": "std.vm.scheduler.pinned"
+    },
+    {
+      "arity": 2,
+      "name": "shard_affinity",
+      "operation": "std.vm.scheduler.shard_affinity"
+    },
+    {
+      "arity": 3,
+      "name": "update_load",
+      "operation": "std.vm.scheduler.update_load"
+    },
+    {
+      "arity": 3,
+      "name": "place",
+      "operation": "std.vm.scheduler.place"
+    },
+    {
+      "arity": 3,
+      "name": "declare_route_policy",
+      "operation": "std.vm.scheduler.declare_route_policy"
+    },
+    {
+      "arity": 4,
+      "name": "declare_actor_group_policy",
+      "operation": "std.vm.scheduler.declare_actor_group_policy"
+    },
+    {
+      "arity": 4,
+      "name": "place_for_route",
+      "operation": "std.vm.scheduler.place_for_route"
+    },
+    {
+      "arity": 5,
+      "name": "place_for_actor_group",
+      "operation": "std.vm.scheduler.place_for_actor_group"
+    },
+    {
+      "arity": 2,
+      "name": "refresh",
+      "operation": "std.vm.scheduler.refresh"
+    },
+    {
+      "arity": 5,
+      "name": "request_migration",
+      "operation": "std.vm.scheduler.request_migration"
+    },
+    {
+      "arity": 3,
+      "name": "advance_migration",
+      "operation": "std.vm.scheduler.advance_migration"
+    },
+    {
+      "arity": 2,
+      "name": "commit_migration",
+      "operation": "std.vm.scheduler.commit_migration"
+    },
+    {
+      "arity": 3,
+      "name": "rollback_migration",
+      "operation": "std.vm.scheduler.rollback_migration"
+    },
+    {
+      "arity": 3,
+      "name": "abort_migration",
+      "operation": "std.vm.scheduler.abort_migration"
+    },
+    {
+      "arity": 2,
+      "name": "events_after",
+      "operation": "std.vm.scheduler.events_after"
+    },
+    {
+      "arity": 1,
+      "name": "placement_scheduler",
+      "operation": "std.vm.scheduler.placement_scheduler"
+    },
+    {
+      "arity": 1,
+      "name": "placement",
+      "operation": "std.vm.scheduler.placement"
+    },
+    {
+      "arity": 1,
+      "name": "placement_actor_id",
+      "operation": "std.vm.scheduler.placement_actor_id"
+    },
+    {
+      "arity": 1,
+      "name": "placement_node_id",
+      "operation": "std.vm.scheduler.placement_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "placement_policy",
+      "operation": "std.vm.scheduler.placement_policy"
+    },
+    {
+      "arity": 1,
+      "name": "placement_fallback_used",
+      "operation": "std.vm.scheduler.placement_fallback_used"
+    },
+    {
+      "arity": 1,
+      "name": "migration_scheduler",
+      "operation": "std.vm.scheduler.migration_scheduler"
+    },
+    {
+      "arity": 1,
+      "name": "migration",
+      "operation": "std.vm.scheduler.migration"
+    },
+    {
+      "arity": 1,
+      "name": "migration_actor_id",
+      "operation": "std.vm.scheduler.migration_actor_id"
+    },
+    {
+      "arity": 1,
+      "name": "migration_from_node_id",
+      "operation": "std.vm.scheduler.migration_from_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "migration_to_node_id",
+      "operation": "std.vm.scheduler.migration_to_node_id"
+    },
+    {
+      "arity": 1,
+      "name": "migration_sequence",
+      "operation": "std.vm.scheduler.migration_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "migration_stateful",
+      "operation": "std.vm.scheduler.migration_stateful"
+    },
+    {
+      "arity": 1,
+      "name": "migration_phase",
+      "operation": "std.vm.scheduler.migration_phase"
+    },
+    {
+      "arity": 1,
+      "name": "outcome_scheduler",
+      "operation": "std.vm.scheduler.outcome_scheduler"
+    },
+    {
+      "arity": 1,
+      "name": "outcome",
+      "operation": "std.vm.scheduler.outcome"
+    },
+    {
+      "arity": 1,
+      "name": "outcome_kind",
+      "operation": "std.vm.scheduler.outcome_kind"
+    },
+    {
+      "arity": 1,
+      "name": "outcome_sequence",
+      "operation": "std.vm.scheduler.outcome_sequence"
+    },
+    {
+      "arity": 1,
+      "name": "outcome_reason",
+      "operation": "std.vm.scheduler.outcome_reason"
+    }
+  ],
+  "module": "std_vm_scheduler_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.Scheduler"
+}

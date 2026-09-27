@@ -1,9 +1,12 @@
 /**
  * Terlan VM distributed scheduler contract.
  *
- * `std.vm.Scheduler` exposes the source-level shape for VM-owned process
- * placement, shard affinity, and controlled actor migration. The VM owns the
- * actual placement table, migration sequencing, and scheduler event log.
+ * `std.vm.Scheduler` executes local placement and migration-plan state changes.
+ * Values are immutable actor-owned plans: each update returns a new scheduler
+ * value and leaves its input unchanged. Migration phases and commits describe
+ * that plan's control state; they do not transfer actor heaps, continuations,
+ * mailboxes, timers, or network traffic. Live actor migration is unsupported.
+ * Node membership and load are supplied explicitly by the caller.
  */
 module std.vm.Scheduler.
 
@@ -127,6 +130,7 @@ pub opaque type Event.
  * Transformation: normalizes node state for source-level scheduler scenarios.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.node}
 pub node(node_id: String, state: String): Node ->
     native.
 
@@ -139,6 +143,7 @@ pub node(node_id: String, state: String): Node ->
  * rejection to the VM distributed scheduler.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.new}
 pub new(nodes: List[Node]): Scheduler ->
     native.
 
@@ -151,6 +156,7 @@ pub new(nodes: List[Node]): Scheduler ->
  * deterministic order.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.round_robin}
 pub round_robin(): Policy ->
     native.
 
@@ -163,6 +169,7 @@ pub round_robin(): Policy ->
  * tie-breaks.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.least_connections}
 pub least_connections(): Policy ->
     native.
 
@@ -175,6 +182,7 @@ pub least_connections(): Policy ->
  * before placing the actor.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.pinned}
 pub pinned(node_id: String): Policy ->
     native.
 
@@ -187,6 +195,7 @@ pub pinned(node_id: String): Policy ->
  * whether fallback was required.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.shard_affinity}
 pub shard_affinity(shard_key: String, fallback: String): Policy ->
     native.
 
@@ -199,6 +208,7 @@ pub shard_affinity(shard_key: String, fallback: String): Policy ->
  * least-connections placement.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.update_load}
 pub (scheduler: Scheduler) update_load(node_id: String, active_connections: Int): Scheduler ->
     native.
 
@@ -211,6 +221,7 @@ pub (scheduler: Scheduler) update_load(node_id: String, active_connections: Int)
  * event inside the VM while preserving immutable source state.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.place}
 pub (scheduler: Scheduler) place(actor_id: String, policy: Policy): PlacementResult ->
     native.
 
@@ -223,6 +234,7 @@ pub (scheduler: Scheduler) place(actor_id: String, policy: Policy): PlacementRes
  * the same declaration is idempotent and conflicting declarations fail.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.declare_route_policy}
 pub (scheduler: Scheduler) declare_route_policy(route_id: String, policy: Policy): Scheduler ->
     native.
 
@@ -235,6 +247,7 @@ pub (scheduler: Scheduler) declare_route_policy(route_id: String, policy: Policy
  * exposing the VM scheduler registry.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.declare_actor_group_policy}
 pub (scheduler: Scheduler) declare_actor_group_policy(route_id: String, actor_group_id: String, policy: Policy): Scheduler ->
     native.
 
@@ -247,6 +260,7 @@ pub (scheduler: Scheduler) declare_actor_group_policy(route_id: String, actor_gr
  * applies the supplied default policy.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.place_for_route}
 pub (scheduler: Scheduler) place_for_route(actor_id: String, route_id: String, default_policy: Policy): PlacementResult ->
     native.
 
@@ -260,6 +274,7 @@ pub (scheduler: Scheduler) place_for_route(actor_id: String, route_id: String, d
  * before delegating placement to the VM scheduler.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.place_for_actor_group}
 pub (scheduler: Scheduler) place_for_actor_group(
     actor_id: String,
     route_id: String,
@@ -277,19 +292,21 @@ pub (scheduler: Scheduler) place_for_actor_group(
  * state that remains valid after membership changes.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.refresh}
 pub (scheduler: Scheduler) refresh(nodes: List[Node]): Scheduler ->
     native.
 
 /**
- * Requests controlled migration for one actor.
+ * Adds a migration intent to a local plan.
  *
  * Input: scheduler receiver, actor id, source node, target node, and
  * statefulness flag.
  * Output: migration transition with the intent and updated scheduler.
- * Transformation: records an ordered migration intent before VM-owned
- * snapshot, transfer, resume, rollback, or abort work can proceed.
+ * Transformation: records intent metadata and sequencing. It does not start
+ * snapshot, transfer, or actor-resume work.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.request_migration}
 pub (scheduler: Scheduler) request_migration(
     actor_id: String,
     from_node_id: String,
@@ -299,25 +316,27 @@ pub (scheduler: Scheduler) request_migration(
     native.
 
 /**
- * Advances a migration phase.
+ * Advances a local migration-plan phase.
  *
  * Input: scheduler receiver, migration descriptor, and phase tag.
  * Output: migration transition with the updated intent and scheduler.
  * Transformation: delegates legal phase ordering to the VM scheduler.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.advance_migration}
 pub (scheduler: Scheduler) advance_migration(migration: Migration, phase: String): MigrationResult ->
     native.
 
 /**
- * Commits a migration that has reached the resuming phase.
+ * Commits a local migration plan that has reached the resuming phase.
  *
  * Input: scheduler receiver and current migration descriptor.
  * Output: committed outcome and updated scheduler.
  * Transformation: validates actor and sequence identity, records the terminal
- * outcome, and emits one ordered commit event.
+ * outcome, and emits one ordered commit event. This does not move a live actor.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.commit_migration}
 pub (scheduler: Scheduler) commit_migration(migration: Migration): MigrationOutcomeResult ->
     native.
 
@@ -330,6 +349,7 @@ pub (scheduler: Scheduler) commit_migration(migration: Migration): MigrationOutc
  * rollback event under VM ownership.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.rollback_migration}
 pub (scheduler: Scheduler) rollback_migration(migration: Migration, reason: String): MigrationOutcomeResult ->
     native.
 
@@ -342,6 +362,7 @@ pub (scheduler: Scheduler) rollback_migration(migration: Migration, reason: Stri
  * abort event under VM ownership.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.abort_migration}
 pub (scheduler: Scheduler) abort_migration(migration: Migration, reason: String): MigrationOutcomeResult ->
     native.
 
@@ -354,6 +375,7 @@ pub (scheduler: Scheduler) abort_migration(migration: Migration, reason: String)
  * internal event log representation.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.events_after}
 pub (scheduler: Scheduler) events_after(last_event_sequence: Int): List[Event] ->
     native.
 
@@ -361,6 +383,7 @@ pub (scheduler: Scheduler) events_after(last_event_sequence: Int): List[Event] -
  * Returns the updated scheduler from a placement transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement_scheduler}
 pub placement_scheduler(result: PlacementResult): Scheduler ->
     native.
 
@@ -368,6 +391,7 @@ pub placement_scheduler(result: PlacementResult): Scheduler ->
  * Returns the placement decision from a placement transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement}
 pub placement(result: PlacementResult): Placement ->
     native.
 
@@ -375,6 +399,7 @@ pub placement(result: PlacementResult): Placement ->
  * Returns the actor id recorded by a placement decision.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement_actor_id}
 pub placement_actor_id(placement: Placement): String ->
     native.
 
@@ -382,6 +407,7 @@ pub placement_actor_id(placement: Placement): String ->
  * Returns the selected node id from a placement decision.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement_node_id}
 pub placement_node_id(placement: Placement): String ->
     native.
 
@@ -389,6 +415,7 @@ pub placement_node_id(placement: Placement): String ->
  * Returns the policy name recorded by a placement decision.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement_policy}
 pub placement_policy(placement: Placement): String ->
     native.
 
@@ -396,6 +423,7 @@ pub placement_policy(placement: Placement): String ->
  * Reports whether placement used the policy fallback path.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.placement_fallback_used}
 pub placement_fallback_used(placement: Placement): Bool ->
     native.
 
@@ -403,6 +431,7 @@ pub placement_fallback_used(placement: Placement): Bool ->
  * Returns the updated scheduler from a migration transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_scheduler}
 pub migration_scheduler(result: MigrationResult): Scheduler ->
     native.
 
@@ -410,6 +439,7 @@ pub migration_scheduler(result: MigrationResult): Scheduler ->
  * Returns the migration value from a migration transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration}
 pub migration(result: MigrationResult): Migration ->
     native.
 
@@ -417,6 +447,7 @@ pub migration(result: MigrationResult): Migration ->
  * Returns the actor id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_actor_id}
 pub migration_actor_id(migration: Migration): String ->
     native.
 
@@ -424,6 +455,7 @@ pub migration_actor_id(migration: Migration): String ->
  * Returns the source node id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_from_node_id}
 pub migration_from_node_id(migration: Migration): String ->
     native.
 
@@ -431,6 +463,7 @@ pub migration_from_node_id(migration: Migration): String ->
  * Returns the target node id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_to_node_id}
 pub migration_to_node_id(migration: Migration): String ->
     native.
 
@@ -438,6 +471,7 @@ pub migration_to_node_id(migration: Migration): String ->
  * Returns the monotonic migration sequence.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_sequence}
 pub migration_sequence(migration: Migration): Int ->
     native.
 
@@ -445,6 +479,7 @@ pub migration_sequence(migration: Migration): Int ->
  * Reports whether a migration carries actor state.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_stateful}
 pub migration_stateful(migration: Migration): Bool ->
     native.
 
@@ -452,6 +487,7 @@ pub migration_stateful(migration: Migration): Bool ->
  * Returns the current migration phase name.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.migration_phase}
 pub migration_phase(migration: Migration): String ->
     native.
 
@@ -459,6 +495,7 @@ pub migration_phase(migration: Migration): String ->
  * Returns the updated scheduler from a terminal migration transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.outcome_scheduler}
 pub outcome_scheduler(result: MigrationOutcomeResult): Scheduler ->
     native.
 
@@ -466,6 +503,7 @@ pub outcome_scheduler(result: MigrationOutcomeResult): Scheduler ->
  * Returns the terminal outcome from a migration transition.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.outcome}
 pub outcome(result: MigrationOutcomeResult): MigrationOutcome ->
     native.
 
@@ -473,6 +511,7 @@ pub outcome(result: MigrationOutcomeResult): MigrationOutcome ->
  * Returns `committed`, `rolled_back`, or `aborted`.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.outcome_kind}
 pub outcome_kind(outcome: MigrationOutcome): String ->
     native.
 
@@ -480,6 +519,7 @@ pub outcome_kind(outcome: MigrationOutcome): String ->
  * Returns the migration sequence associated with an outcome.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.outcome_sequence}
 pub outcome_sequence(outcome: MigrationOutcome): Int ->
     native.
 
@@ -487,5 +527,6 @@ pub outcome_sequence(outcome: MigrationOutcome): Int ->
  * Returns the terminal reason, or an empty String for commit.
  */
 @target.vm {process_mailbox: true}
+@compiler.native {std.vm.scheduler.outcome_reason}
 pub outcome_reason(outcome: MigrationOutcome): String ->
     native.
