@@ -205,6 +205,9 @@ pub(super) fn http_managed_collections(core: &CoreModule) -> Result<Vec<Arc<[u8]
         )?));
     }
     if router || session || imports(core, RESPONSE_MODULE) {
+        collections.extend(super::collections::managed_collection_layouts([
+            &CoreType::List(Box::new(CoreType::String)),
+        ])?);
         let descriptor = ManagedCollectionDescriptor::list(
             RESPONSE_HEADERS,
             ManagedFieldType::Reference(semantic(RESPONSE_HEADER)?),
@@ -580,6 +583,11 @@ pub(super) fn managed_http_operation_type(expr: &CoreExpr) -> Option<NativeType>
         ("option_is_none", 1) => Some(NativeType::Bool),
         ("option_some", 1) => Some(NativeType::StringRef),
         ("empty_headers", 0) => semantic(RESPONSE_HEADERS).ok().map(NativeType::ManagedRef),
+        ("empty_chunks", 0) => {
+            semantic(&CoreType::List(Box::new(CoreType::String)).contract_text())
+                .ok()
+                .map(NativeType::ManagedRef)
+        }
         ("response_build_0" | "response_build_1" | "response_build_2" | "response_build_3", 2) => {
             semantic(&CoreType::Named("Response".to_string()).contract_text())
                 .ok()
@@ -714,6 +722,14 @@ pub(super) fn lower_managed_http_operation(
                     .map_err(|error| format!("error[native_ir.http_json_response]: {error}"))?,
             ),
             args: vec![lower(&args[0])?],
+        }));
+    }
+    if function == "empty_chunks" && args.is_empty() {
+        return Ok(Some(super::NativeExpr::ManagedOperation {
+            encoded: Arc::from(encode_list_empty_operation(semantic(
+                &CoreType::List(Box::new(CoreType::String)).contract_text(),
+            )?)),
+            args: Vec::new(),
         }));
     }
     if function == "empty_headers" && args.is_empty() {

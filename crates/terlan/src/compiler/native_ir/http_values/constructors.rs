@@ -77,7 +77,10 @@ fn install_response_constructors(layouts: &mut NativeConstructorLayouts) -> Resu
         );
         let result = NativeType::ManagedRef(descriptor.managed().semantic_id());
         let arity = parameters.len();
-        let parameter_core_types = vec![None; arity];
+        let mut parameter_core_types = vec![None; arity];
+        if name == "stream" {
+            parameter_core_types[6] = Some(CoreType::List(Box::new(CoreType::String)));
+        }
         layouts.insert(
             (response_constructor(name), arity),
             NativeConstructorLayout {
@@ -186,6 +189,9 @@ fn response_semantic() -> Result<crate::runtime::native_image::managed::Semantic
 /// Builds the closed response constructor inventory admitted in this slice.
 fn response_layout_specs() -> Result<Vec<ResponseLayoutSpec>, String> {
     let headers = NativeType::ManagedRef(semantic(RESPONSE_HEADERS)?);
+    let chunks = NativeType::ManagedRef(semantic(
+        &CoreType::List(Box::new(CoreType::String)).contract_text(),
+    )?);
     let common = || {
         vec![
             NativeType::Int,
@@ -194,6 +200,9 @@ fn response_layout_specs() -> Result<Vec<ResponseLayoutSpec>, String> {
             NativeType::Int,
             NativeType::StringRef,
             headers,
+            chunks,
+            NativeType::Int,
+            NativeType::Int,
         ]
     };
     Ok(vec![
@@ -202,5 +211,6 @@ fn response_layout_specs() -> Result<Vec<ResponseLayoutSpec>, String> {
         ("json_text", response_descriptor()?, common()),
         ("redirect", response_descriptor()?, common()),
         ("file", response_descriptor()?, common()),
+        ("stream", response_descriptor()?, common()),
     ])
 }

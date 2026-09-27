@@ -41,6 +41,27 @@ pub(crate) fn write_http1_response_typed<B: AsRef<[u8]>>(
     response: &::http::Response<B>,
     close_connection: bool,
 ) -> Result<(), VmHttpResponseWriteFailure> {
+    if let Some(stream) = response
+        .extensions()
+        .get::<super::super::http_response_chunks::VmHttpResponseChunks>()
+    {
+        let mut head = ::http::Response::new(());
+        *head.status_mut() = response.status();
+        *head.headers_mut() = response.headers().clone();
+        write_http1_stream_head(writer, &head, close_connection).map_err(|message| {
+            response_write_failure(VmHttpResponseWriteFailureKind::Io, message)
+        })?;
+        let mut stream = stream.clone();
+        while let Some(chunk) = stream.next_chunk() {
+            write_http1_stream_chunk(writer, &chunk).map_err(|message| {
+                response_write_failure(VmHttpResponseWriteFailureKind::Io, message)
+            })?;
+        }
+        write_http1_stream_end(writer).map_err(|message| {
+            response_write_failure(VmHttpResponseWriteFailureKind::Io, message)
+        })?;
+        return Ok(());
+    }
     write_http1_body_typed(
         writer,
         response.status(),

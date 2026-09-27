@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
+use crate::runtime::vm::http_response_chunks::VmHttpResponseChunks;
 use crate::runtime::vm::{ReplValue, VmAotHttpResponse};
 use crate::terlan_native::http as native_http;
 
@@ -35,14 +36,17 @@ pub(crate) enum HandlerBody {
     Text(String),
     Bytes(Vec<u8>),
     Transferred(Bytes),
+    Stream(VmHttpResponseChunks),
 }
 
 impl HandlerBody {
+    #[cfg(test)]
     pub(crate) fn as_bytes(&self) -> &[u8] {
         match self {
             Self::Text(body) => body.as_bytes(),
             Self::Bytes(body) => body,
             Self::Transferred(body) => body,
+            Self::Stream(_) => panic!("stream bodies must be polled through the transport"),
         }
     }
     #[cfg(test)]
@@ -135,8 +139,11 @@ impl HandlerResponse {
 
         // File responses already perform filesystem I/O and require their
         // complete optional-field parser. Keep that uncommon path centralized.
-        if kind == "file" {
-            let mut borrowed = vec![ReplValue::Int(0), ReplValue::Int(4)];
+        if kind == "file" || kind == "stream" {
+            let mut borrowed = vec![
+                ReplValue::Int(0),
+                ReplValue::Int(if kind == "file" { 4 } else { 5 }),
+            ];
             borrowed.append(&mut rest);
             return Self::from_vm_response_inner(&ReplValue::Tuple(borrowed), Some(package_root));
         }
@@ -255,6 +262,10 @@ impl HandlerResponse {
             }
             _ => return Err("error[serve_handler]: malformed VM Response descriptor".to_string()),
         };
+        if kind == "stream" {
+            return self::stream_response::decode(rest)
+                .map_err(|error| format!("error[serve_handler]: {error}"));
+        }
         let (mut status, content_type, body, mut headers) =
             vm_response_base(kind, rest, package_root)?;
         if native {
@@ -351,6 +362,7 @@ fn native_response_kind(kind: i64) -> Result<&'static str, String> {
         2 => Ok("json_text"),
         3 => Ok("redirect"),
         4 => Ok("file"),
+        5 => Ok("stream"),
         other => Err(format!(
             "error[serve_handler]: unsupported native Response kind `{other}`"
         )),
@@ -361,6 +373,8 @@ fn native_response_kind(kind: i64) -> Result<&'static str, String> {
 #[path = "response_bridge_test.rs"]
 #[cfg(test)]
 mod response_bridge_test;
+
+mod stream_response;
 
 type VmResponseBase = (u16, String, Vec<u8>, Vec<(String, String)>);
 

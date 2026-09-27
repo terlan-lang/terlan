@@ -133,7 +133,7 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
     let core = complete_http_core();
     let mut constructors = HashMap::new();
     install_http_constructors(&core, &mut constructors).expect("install constructors");
-    assert_eq!(constructors.len(), 7);
+    assert_eq!(constructors.len(), 8);
 
     let layouts = http_managed_layouts(&core).expect("HTTP layouts");
     assert_eq!(layouts.len(), 12);
@@ -170,7 +170,7 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
     }
 
     let collections = http_managed_collections(&core).expect("HTTP collections");
-    assert_eq!(collections.len(), 3);
+    assert_eq!(collections.len(), 4);
     assert_eq!(
         collections
             .iter()
@@ -180,6 +180,7 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
             .collect::<Vec<_>>(),
         vec![
             ManagedCollectionKind::Map,
+            ManagedCollectionKind::List,
             ManagedCollectionKind::List,
             ManagedCollectionKind::List,
         ]
@@ -512,7 +513,7 @@ fn body_json_result_case_lowers_to_typed_managed_branches() {
 
 /// Verifies unsupported response builders fail with an explicit typed diagnostic.
 #[test]
-fn unsupported_response_builder_is_rejected() {
+fn stream_response_builder_rejects_missing_chunks() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
         type_args: Vec::new(),
@@ -522,7 +523,46 @@ fn unsupported_response_builder_is_rejected() {
     };
     assert_eq!(
         lower_http_values(&mut core).unwrap_err(),
-        "error[native_ir.http_response_builder]: Response.stream is not in the native managed HTTP profile"
+        "error[native_ir.http_response_arity]: Response.stream received 0 arguments"
+    );
+}
+
+#[test]
+fn stream_response_keeps_typed_chunks_and_dynamic_transport_limits() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
+        module: "std.http.Response".into(),
+        function: "stream".into(),
+        args: vec![
+            CoreExpr::Var("chunks".into()),
+            CoreExpr::Int(206),
+            string("text/plain"),
+            CoreExpr::Var("chunk_size".into()),
+            CoreExpr::Var("pending".into()),
+        ],
+    };
+    lower_http_values(&mut core).unwrap();
+    let CoreExpr::ConstructorCall {
+        constructor, args, ..
+    } = body(&mut core)
+    else {
+        panic!("stream must retain a typed response constructor");
+    };
+    assert_eq!(constructor, "$terlan.http.response.stream");
+    assert_eq!(args.len(), 9);
+    assert_eq!(args[1], CoreExpr::Int(5));
+    assert_eq!(args[3], CoreExpr::Int(206));
+    assert_eq!(args[6], CoreExpr::Var("chunks".into()));
+    assert_eq!(args[7], CoreExpr::Var("chunk_size".into()));
+    assert_eq!(args[8], CoreExpr::Var("pending".into()));
+    let mut constructors = HashMap::new();
+    install_http_constructors(&core, &mut constructors).unwrap();
+    assert_eq!(
+        constructors[&("$terlan.http.response.stream".into(), 9)].parameter_core_types[6],
+        Some(crate::terlan_typeck::CoreType::List(Box::new(
+            crate::terlan_typeck::CoreType::String
+        )))
     );
 }
 
@@ -738,7 +778,7 @@ fn session_import_installs_complete_managed_boundary_metadata() {
         http_managed_collections(&core)
             .expect("session collections")
             .len(),
-        3
+        4
     );
 }
 

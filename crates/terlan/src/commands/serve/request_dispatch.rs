@@ -477,14 +477,7 @@ pub(super) fn handle_vm_stream_request(
                 );
             match execute_websocket_vm_router(web_root, &websocket, &native_request) {
                 Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
-                    return serve_vm_stream_response(
-                        response.status,
-                        http_reason_phrase(response.status),
-                        &response.content_type,
-                        &response.headers,
-                        response.body.as_bytes(),
-                        false,
-                    );
+                    return serve_vm_stream_handler_response(response, false);
                 }
                 Ok(Some(VmWebSocketRouterAdmission::Upgrade(session))) => {
                     debug_assert!(session.is_open());
@@ -716,14 +709,7 @@ pub(super) fn handle_vm_stream_request(
                 if let Some(rendered) =
                     execute_static_vm_router(web_root, &response, &native_request)?
                 {
-                    return serve_vm_stream_response(
-                        rendered.status,
-                        http_reason_phrase(rendered.status),
-                        &rendered.content_type,
-                        &rendered.headers,
-                        rendered.body.as_bytes(),
-                        method == "HEAD",
-                    );
+                    return serve_vm_stream_handler_response(rendered, method == "HEAD");
                 }
                 let headers = static_response_header_tuples(&response.headers)?;
                 return serve_vm_stream_response(
@@ -760,14 +746,9 @@ pub(super) fn handle_vm_stream_request(
                         },
                     );
                 return match execute_sse_vm_router(web_root, &endpoint, &native_request) {
-                    Ok(VmSseRouterAdmission::Respond(response)) => serve_vm_stream_response(
-                        response.status,
-                        http_reason_phrase(response.status),
-                        &response.content_type,
-                        &response.headers,
-                        response.body.as_bytes(),
-                        method == "HEAD",
-                    ),
+                    Ok(VmSseRouterAdmission::Respond(response)) => {
+                        serve_vm_stream_handler_response(response, method == "HEAD")
+                    }
                     Ok(VmSseRouterAdmission::Stream(session)) => {
                         debug_assert!(session.is_open());
                         debug_assert_eq!(

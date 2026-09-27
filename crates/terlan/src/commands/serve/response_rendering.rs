@@ -233,6 +233,22 @@ pub(super) fn serve_vm_stream_handler_response(
     head_only: bool,
 ) -> Result<::http::Response<Bytes>, String> {
     match response.body {
+        handler::HandlerBody::Stream(stream) => {
+            let mut response = build_http_shared_response_owned_for_stream(
+                response.status,
+                &response.content_type,
+                &response.headers,
+                Bytes::new(),
+                head_only,
+            )?;
+            response
+                .headers_mut()
+                .remove(::http::header::CONTENT_LENGTH);
+            if !head_only {
+                response.extensions_mut().insert(stream);
+            }
+            Ok(response)
+        }
         handler::HandlerBody::Text(body) => {
             let response = build_http_text_response_owned_for_stream(
                 response.status,

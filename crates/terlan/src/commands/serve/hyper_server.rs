@@ -40,7 +40,9 @@ use super::server_lifecycle::{
 use super::{channel_transport, handle_vm_stream_http1_exchange};
 
 mod http2;
+mod response_body;
 use crate::runtime::vm::hyper_tls as tls_io;
+use response_body::ResponseBody;
 mod websocket_hub;
 use websocket_hub::WebSocketHub;
 
@@ -438,7 +440,7 @@ async fn handle_request(
     web_root: &Path,
     max_body_bytes: u64,
     upgrade_slot: Option<&PendingHyperUpgradeSlot>,
-) -> Response<Full<Bytes>> {
+) -> Response<ResponseBody> {
     if declared_body_exceeds_limit(request.headers(), max_body_bytes) {
         return error_response(413, format!("request body exceeds {max_body_bytes} bytes"));
     }
@@ -487,8 +489,7 @@ async fn handle_request(
     }
     match handle_suspendable_vm_stream_request(&request, web_root).await {
         Ok(Some(response)) => {
-            let (parts, body) = response.into_parts();
-            return Response::from_parts(parts, Full::new(body));
+            return ResponseBody::from_response(response);
         }
         Ok(None) => {}
         Err(error) => return error_response(500, error),
@@ -538,8 +539,7 @@ async fn handle_request(
                     route: channel_route,
                     request_target: channel_request_target,
                 });
-                let (parts, body) = response.into_parts();
-                return Response::from_parts(parts, Full::new(body));
+                return ResponseBody::from_response(response);
             }
             VmHttpChannelTransport::Sse(session) => {
                 drop(session);
@@ -553,8 +553,7 @@ async fn handle_request(
             ),
         );
     }
-    let (parts, body) = response.into_parts();
-    Response::from_parts(parts, Full::new(body))
+    ResponseBody::from_response(response)
 }
 
 type PendingHyperUpgradeSlot = Rc<RefCell<Option<PendingHyperUpgrade>>>;
@@ -857,12 +856,16 @@ fn is_websocket_disconnect(kind: io::ErrorKind) -> bool {
     )
 }
 
-fn error_response(status: u16, message: String) -> Response<Full<Bytes>> {
+fn error_response(status: u16, message: String) -> Response<ResponseBody> {
     Response::builder()
         .status(status)
         .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
-        .body(Full::new(Bytes::from(message)))
-        .unwrap_or_else(|_| Response::new(Full::new(Bytes::from_static(b"HTTP service error"))))
+        .body(ResponseBody::Buffered(Full::new(Bytes::from(message))))
+        .unwrap_or_else(|_| {
+            Response::new(ResponseBody::Buffered(Full::new(Bytes::from_static(
+                b"HTTP service error",
+            ))))
+        })
 }
 
 #[cfg(test)]
