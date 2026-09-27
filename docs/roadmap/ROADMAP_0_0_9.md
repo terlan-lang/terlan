@@ -81,10 +81,10 @@ model tests pass. Migration operations update local plans and diagnostics only:
 they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
-The standard-library execution run now passes `std/db/PostgresTest.terl` and
-reaches `std/http/CookiesTest.terl`, where the old Dynamic jar fixture fails native
-admission. The Postgres command/test runner now suspends actor-owned calls onto
-an installed external capability worker using the maintained libpq command
+The standard-library execution run now passes `std/db/PostgresTest.terl`, Cookies,
+HTTP Error, and Request before failing on the `SecurityHeaders` constructor in
+`std/http/ResponseTest.terl`. The Postgres command/test runner suspends actor-owned
+calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
 Terlan, and terminal attempts revoke transaction handles. The worker enforces
 owner, resource, request, and deadline bounds without automatic mutation retries.
@@ -105,8 +105,22 @@ passes 120 with two existing Docker tests ignored by that command. The separate
 source gate provides live execution evidence. Interfaces, native artifacts, and
 documentation format checks pass.
 
+Cookies now uses a test-runner-only request fixture built by the production
+cookie parser and shared server request projection. All seven source tests pass,
+including incoming and missing cookies, typed options for every SameSite policy,
+omitted attributes, persistent jar updates, Unit results, and outgoing set/delete
+headers. Native lowering preserves the managed Jar and Session identities,
+routes resolved cookie calls and serializer bodies through managed operations,
+and rebinds command-style jar mutations once. Atom-only unions containing `none`
+stay scalar rather than acquiring an Option layout. The API manifest points jar
+mutations and typed options at their executing tests. All 661 NativeIR tests pass.
+Fifteen request-projection tests and the fixture access check pass, as do default
+and all-feature binary Clippy, the compiler-free serve check, API manifest
+validation, and documentation format checks.
+
 This is not a passing full standard-library run or complete API execution
-coverage. Cookies, Postgres routing in the separate HTTP serve dispatchers, and
+coverage. Response constructor lowering, obsolete Dynamic response/session test
+fixtures, Postgres routing in the separate HTTP serve dispatchers, and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then
 closure-result lowering errors; its reproducer and diagnostics are retained under

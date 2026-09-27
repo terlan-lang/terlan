@@ -143,6 +143,8 @@ fn is_compiler_owned_value_facade(canonical: &str) -> bool {
             | "std.collections.Iterator.Iterator"
             | "std.http.Request.Request"
             | "std.http.Response.Response"
+            | "std.http.Cookies.Jar"
+            | "std.http.Session.Session"
             | "std.vm.Bytes.Bytes"
             | "std.vm.BitString.BitString"
             | "std.vm.Process.Process"

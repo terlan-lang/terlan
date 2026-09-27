@@ -100,6 +100,7 @@ pub(super) fn lower_http_values(core: &mut CoreModule) -> Result<(), String> {
         && !error
         && !imports(core, RESPONSE_MODULE)
         && !imports(core, COOKIES_MODULE)
+        && core.module != COOKIES_MODULE
         && !session
     {
         return Ok(());
@@ -226,6 +227,21 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
         }
     }
     match rewritten {
+        CoreExpr::Intrinsic(call)
+            if matches!(&call.id, crate::terlan_typeck::CoreIntrinsicId::NativeOperation { operation, .. }
+                if matches!(operation.as_str(),
+                    "std.http.cookies.get" | "std.http.cookies.set_header"
+                    | "std.http.cookies.set_header_with_options" | "std.http.cookies.delete_header")) =>
+        {
+            let crate::terlan_typeck::CoreIntrinsicId::NativeOperation { operation, .. } = call.id
+            else {
+                unreachable!("matched native cookie operation");
+            };
+            cookie_call(
+                operation.rsplit('.').next().expect("cookie operation"),
+                call.args,
+            )
+        }
         CoreExpr::Case { scrutinee, clauses } if features.request => {
             if let Some(lowered) = lower_body_json_case(&scrutinee, &clauses)? {
                 return Ok(lowered);
@@ -405,6 +421,9 @@ fn rewrite(expr: &CoreExpr, features: HttpFeatures) -> Result<CoreExpr, String> 
                 .and_then(|value| value.strip_prefix('.'))
                 .unwrap_or(&function);
             request_accessor(name, args)
+        }
+        CoreExpr::Call { function, args, .. } if function.starts_with("std.http.Cookies.") => {
+            cookie_call(&function[COOKIES_MODULE.len() + 1..], args)
         }
         CoreExpr::Call { function, args, .. }
             if matches!(

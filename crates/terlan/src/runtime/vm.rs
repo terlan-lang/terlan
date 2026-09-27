@@ -50,6 +50,7 @@ pub(crate) mod framing;
 pub(crate) mod http;
 #[cfg(test)]
 pub(crate) mod http_metrics;
+pub(crate) mod http_request_value;
 mod http_response_value;
 pub(crate) mod http_router;
 pub(crate) mod http_session;
