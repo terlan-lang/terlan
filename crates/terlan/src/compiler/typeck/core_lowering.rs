@@ -736,6 +736,10 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 is_public,
                 ..
             } => {
+                let internal_return = super::declarations::mutable_receiver_internal_return_type(
+                    receiver,
+                    return_type,
+                );
                 let mut core_params = Vec::with_capacity(params.len() + 1);
                 core_params.push(core_syntax_param(receiver));
                 core_params.extend(params.iter().map(core_syntax_param));
@@ -749,8 +753,8 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                     generic_params: generic_params.clone(),
                     native_operation: None,
                     params: core_params,
-                    return_type: return_type.text.clone(),
-                    core_return_type: core_type_from_text(&return_type.text),
+                    return_type: internal_return.to_string(),
+                    core_return_type: core_type_from_text(internal_return),
                     clauses: Vec::new(),
                 })
             }

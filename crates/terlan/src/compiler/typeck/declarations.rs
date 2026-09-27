@@ -713,7 +713,7 @@ pub(super) fn receiver_method_clauses_with_bindings(
 ///   methods expose `Unit` at the source level but must produce the updated
 ///   receiver value internally so backend lowering has a concrete value to
 ///   rebind.
-fn mutable_receiver_internal_return_type<'a>(
+pub(super) fn mutable_receiver_internal_return_type<'a>(
     receiver: &'a SyntaxParamOutput,
     return_type: &'a SyntaxTypeOutput,
 ) -> &'a str {

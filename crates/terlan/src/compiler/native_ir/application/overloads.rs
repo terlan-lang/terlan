@@ -301,6 +301,23 @@ fn rewrite_expr(
         CoreExpr::Call { function, args, .. } => {
             let argument_types =
                 rewrite_items(args, current_module, environment, groups, returns, aliases)?;
+            // Built-in indexing is closed by collection/aggregate lowering.
+            // An imported package trait must not capture these synthetic calls.
+            if function == "IndexGet.get_at" && args.len() == 2 {
+                match argument_types.first().and_then(Option::as_ref) {
+                    Some(CoreType::List(element)) => return Ok(Some(*element.clone())),
+                    Some(CoreType::Apply { constructor, args })
+                        if matches!(
+                            constructor.rsplit('.').next(),
+                            Some("List" | "FixedArray")
+                        ) =>
+                    {
+                        return Ok(args.last().cloned());
+                    }
+                    Some(CoreType::Tuple(_)) => return Ok(None),
+                    _ => {}
+                }
+            }
             if let Some(candidates) =
                 local_overload_candidates(current_module, function, args.len(), groups)
             {

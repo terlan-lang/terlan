@@ -158,7 +158,7 @@ impl NativeModule {
         for core in &mut normalized_cores {
             lower_compiler_native_declarations(core)?;
         }
-        canonicalize_native_package_types(&mut normalized_cores, &native_aliases)?;
+        canonicalize_native_package_types(&mut normalized_cores, &native_aliases, false)?;
         normalized_cores.iter_mut().for_each(
             super::collection_intrinsic_specialization::annotate_function_result_constructors,
         );
@@ -247,6 +247,9 @@ impl NativeModule {
             &mut normalized_cores,
             &mut specialization_budget,
         )?;
+        // Preserve generic resource arguments through specialization, then
+        // admit the same concrete capability layout as nongeneric resources.
+        canonicalize_native_package_types(&mut normalized_cores, &native_aliases, true)?;
         super::typed_empty_lists::annotate_empty_list_arguments(&mut normalized_cores);
         super::short_circuit_normalization::right_associate_short_circuit_chains(
             &mut normalized_cores,

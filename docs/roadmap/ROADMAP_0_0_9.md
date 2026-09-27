@@ -1,6 +1,6 @@
 # Terlan 0.0.9 Release Optimization Roadmap
 
-Updated: 2026-09-27. Baseline: 0.0.8 is published.
+Updated: 2026-09-28. Baseline: 0.0.8 is published.
 
 ## Scope
 
@@ -83,10 +83,10 @@ Generated summaries, native boundary artifacts, and documentation format pass.
 
 Standard-library source execution now passes `std/db/PostgresTest.terl`, Cookies,
 HTTP Error, Request, Response, Router, LiveChannel, SSE, WebSocket, TLS, List,
-Enumerable, Map, Set, Iterable, and Iterator. The full run next fails in
-`std/native/collections/VectorTest.terl`: mutation rebinding exposes `Unit` where
-the subsequent read requires `Vector[T]`. A selected bracket-read test also
-fails to resolve `IndexGet.get_at` into the native application closure.
+Enumerable, Map, Set, Iterable, Iterator, and all 15 Vector source tests.
+Vector construction, conversion, safe reads, bracket access, and successive
+mutations execute through the production native dispatcher. Generic element
+types remain available until specialization chooses concrete callables.
 The Postgres command/test runner suspends actor-owned
 calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
@@ -185,9 +185,34 @@ then exposed 54 validator files with formatting drift. Applying the repository
 formatter to those files makes the full formatting gate pass; regenerated std
 summary dependencies preserve the public interfaces.
 
-This is not a passing full standard-library run or complete API execution
-coverage. Native Vector execution, Postgres routing in the
-separate HTTP serve dispatchers, and
+The Vector correction preserves the receiver-returning internal ABI already
+required by typechecking, retains implicit indexing trait providers, adds the
+missing Vector IndexSet implementation, and admits the existing safe native
+operations in the VM dispatcher. Generic native handles resolve to storage only
+after specialization. Emitted record layouts now use the same semantic identity
+as their signatures. VM Message envelopes retain compiler-owned payload storage;
+Task source tests and a package-namesake regression verify this distinction.
+The NativeIR suite passes 665 tests, including ten native-package regressions.
+The 32 CoreIR lowering tests, phase snapshots, and five percentile tests also
+pass. Mixed List/Vector bracket access retains compiler-owned list lowering
+rather than selecting the unrelated Vector trait implementation.
+
+Hosted release validation for `d0e29134` passed. Compiler CI exposed a cross-tree
+benchmark path import and seven unreviewed canonical-type candidates. Shared
+percentile code now belongs to the benchmark tree, with direct library ownership
+and a sibling module for the standalone framework benchmark. Updated type
+classifications describe the actual database, storage, scheduling, deployment,
+and WebSocket boundaries; no gate allowance or budget is widened. The local
+build-graph gate passes after these corrections.
+Rust quality inventories remain at 3,030 internal string-error sites and 52
+near-limit files; the benchmark move reduces production domain coupling from
+14 edges to 13. Default/all-feature Clippy, the compiler-free serve profile,
+full Terlan formatting, generated native artifacts, and the API manifest pass.
+No release acceptance checkbox is closed by this checkpoint.
+
+The complete standard-library source gate passes all 73 selected modules.
+This does not establish complete declaration-derived API execution coverage.
+Postgres routing in the separate HTTP serve dispatchers and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then
 closure-result lowering errors; its reproducer and diagnostics are retained under

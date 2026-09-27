@@ -261,3 +261,66 @@ fn vm_tokens_keep_intrinsic_storage_without_exempting_package_namesakes() {
         }
     }
 }
+
+#[test]
+fn generic_native_handles_preserve_type_arguments_until_specialization() {
+    use super::native_packages::canonicalize_native_package_types;
+    let syntax = parse_module_as_syntax_output(
+        "module package.Vector.\npub opaque type Vector[T].\npub keep(value: Vector[Int]): Vector[Int] -> value.\n",
+    ).expect("parse generic resource");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let serialized = serde_json::to_string(&core).expect("serialize opaque resource");
+    let mut cores = vec![serde_json::from_str(&serialized).expect("restore resource CoreIR")];
+    super::super::nominal_identity::qualify_application_nominal_types(&mut cores);
+    let aliases = native_package_aliases(&cores);
+    let original = cores[0].functions[0].core_return_type.clone();
+    assert!(matches!(&original, Some(CoreType::Apply { args, .. }) if args == &[CoreType::Int]));
+    canonicalize_native_package_types(&mut cores, &aliases, false).expect("early identities");
+    assert_eq!(cores[0].functions[0].core_return_type, original);
+    canonicalize_native_package_types(&mut cores, &aliases, true).expect("late handle storage");
+    let result = cores[0].functions[0].core_return_type.as_ref().unwrap();
+    assert!(matches!(result, CoreType::Struct { name, fields }
+        if name == "package.Vector.Vector" && fields.len() == 4));
+    assert_eq!(
+        cores[0].functions[0].params[0].core_ty.as_ref(),
+        Some(result)
+    );
+    let layouts = super::super::aggregate_types::managed_aggregate_layouts([result])
+        .expect("admit opaque handle");
+    let descriptor = decode_aggregate_layout(&layouts[0]).expect("decode handle layout");
+    assert_eq!(
+        super::super::native_type(Some(result), &result.contract_text()),
+        Some(super::super::NativeType::ManagedRef(
+            descriptor.managed().semantic_id()
+        )),
+    );
+}
+
+#[test]
+fn mailbox_message_uses_payload_storage_without_exempting_package_namesakes() {
+    for owner in ["std.vm", "package"] {
+        let module = format!("{owner}.Message");
+        let syntax = parse_module_as_syntax_output(&format!(
+            "module {module}. pub opaque type Message[T]. pub keep(value: Message[Int]): Message[Int] -> value."
+        )).expect("parse opaque mailbox declaration");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        let mut cores = vec![core];
+        super::super::nominal_identity::qualify_application_nominal_types(&mut cores);
+        let aliases = native_package_aliases(&cores);
+        super::native_packages::canonicalize_native_package_types(&mut cores, &aliases, true)
+            .expect("late native package admission");
+        let result = cores[0].functions[0].core_return_type.as_ref().unwrap();
+        if owner == "std.vm" {
+            assert_eq!(
+                super::super::native_type(Some(result), &result.contract_text()),
+                Some(super::super::NativeType::Int)
+            );
+            assert!(native_handle_layouts(&cores[0]).unwrap().is_empty());
+        } else {
+            assert!(matches!(result, CoreType::Struct { .. }));
+            assert_eq!(native_handle_layouts(&cores[0]).unwrap().len(), 1);
+        }
+    }
+}

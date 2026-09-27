@@ -30,6 +30,15 @@ pub(super) fn supports(operation: &str) -> bool {
             | "std.random.random.choice"
             | "std.random.random.shuffle"
             | "std.random.random.sample"
+            | "std.native.collections.vector.new"
+            | "std.native.collections.vector.from_list"
+            | "std.native.collections.vector.length"
+            | "std.native.collections.vector.get_at"
+            | "std.native.collections.vector.get"
+            | "std.native.collections.vector.set_at"
+            | "std.native.collections.vector.swap"
+            | "std.native.collections.vector.push"
+            | "std.native.collections.vector.to_list"
     ) || operation.starts_with("std.data.json.")
         || operation.starts_with("std.encoding.base64.")
         || operation == "std.encoding.md5.digest"
@@ -283,6 +292,7 @@ fn supported_handle_type(type_name: &str) -> bool {
             | "std.net.Uri.Uri"
             | "std.io.Path.Path"
             | "std.random.Random.Generator"
+            | "std.native.collections.Vector.Vector"
     )
 }
 
@@ -369,6 +379,7 @@ fn native_handle_from_store(
         ResourceKind::HttpResponse => "std.http.Response.Response",
         ResourceKind::HttpCookieJar => "std.http.Cookies.Jar",
         ResourceKind::Uri => "std.net.Uri.Uri",
+        ResourceKind::NativeVector => "std.native.collections.Vector.Vector",
         kind => {
             return Err(format!(
                 "error[native_boundary.direct_std]: unsupported resource kind {kind:?}"

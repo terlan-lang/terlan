@@ -1,4 +1,4 @@
-use crate::support::statistics::percentile;
+use crate::benchmark_statistics::percentile;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};

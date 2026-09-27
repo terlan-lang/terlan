@@ -7,6 +7,14 @@ fn identities(cores: &[CoreModule]) -> impl Iterator<Item = (FunctionKey, Functi
         core.functions.iter().flat_map(move |function| {
             function.trait_method.iter().flat_map(move |identity| {
                 let mut owners = vec![identity.trait_name.clone()];
+                if let Some(short) = identity.trait_name.rsplit('.').next() {
+                    if matches!(
+                        (short, identity.method.as_str()),
+                        ("IndexGet", "get_at") | ("IndexSet", "set_at")
+                    ) {
+                        owners.push(short.to_string());
+                    }
+                }
                 // Receiver syntax retains implementation bodies until the
                 // checked receiver type selects one, even without a trait call.
                 if !function.params.is_empty() {

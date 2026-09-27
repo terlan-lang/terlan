@@ -77,8 +77,9 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive vector tests should live beside the module as `*Test.terl` sources
-  when the API becomes release-tested.
+- `VectorTest.terl` executes construction, conversion, reads, bracket access,
+  and mutation through the production VM backend, including string and boolean
+  element types and recoverable out-of-range reads.
 - Native operation metadata is checked by `make stdlib-check`.
 - Target-profile tests should cover unsupported target rejection when new
   vector backends are added.

@@ -52,6 +52,16 @@ pub(crate) fn core_syntax_concrete_impl_functions(
                 type_args: type_args.clone(),
                 method: method.name.clone(),
             };
+            let internal_return =
+                method
+                    .params
+                    .first()
+                    .map_or(method.return_type.text.as_str(), |receiver| {
+                        crate::terlan_typeck::declarations::mutable_receiver_internal_return_type(
+                            receiver,
+                            &method.return_type,
+                        )
+                    });
             functions.push(CoreFunction {
                 name: format!("__terlan_concrete_impl_{index}_{}", method.name),
                 source: Some(crate::terlan_typeck::CoreFunctionSource {
@@ -75,8 +85,8 @@ pub(crate) fn core_syntax_concrete_impl_functions(
                         core_ty: core_type_from_text(&parameter.annotation.text),
                     })
                     .collect(),
-                return_type: method.return_type.text.clone(),
-                core_return_type: core_type_from_text(&method.return_type.text),
+                return_type: internal_return.to_string(),
+                core_return_type: core_type_from_text(internal_return),
                 clauses: method
                     .clauses
                     .iter()

@@ -1,5 +1,5 @@
 use super::*;
-pub(super) use crate::support::statistics::percentile;
+pub(super) use crate::benchmark_statistics::percentile;
 
 pub(super) fn assert_vm_wins_large_map_reference_lane(
     measurements: &[Measurement],

@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
-#[path = "../support/statistics.rs"]
 mod statistics;
 use statistics::percentile;
 

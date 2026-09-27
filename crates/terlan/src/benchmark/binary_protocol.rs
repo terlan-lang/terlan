@@ -514,7 +514,7 @@ fn mean(values: &[u64]) -> u64 {
 fn percentile(values: &[u64], percent: usize) -> u64 {
     let mut sorted = values.to_vec();
     sorted.sort_unstable();
-    crate::support::statistics::percentile(&sorted, percent)
+    crate::benchmark_statistics::percentile(&sorted, percent)
 }
 
 fn fixture_path() -> PathBuf {

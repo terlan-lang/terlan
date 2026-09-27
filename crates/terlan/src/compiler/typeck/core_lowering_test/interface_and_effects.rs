@@ -284,6 +284,15 @@ pub run(map: Map): Unit ->\n\
     .unwrap_or_else(|err| panic!("failed to parse mutable receiver fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
     let core = lower_syntax_module_output_to_core(&module, &resolved);
+    let serialized = serde_json::to_string(&core).expect("serialize mutable receiver ABI");
+    let restored: CoreModule = serde_json::from_str(&serialized).expect("restore receiver ABI");
+    let method = restored
+        .functions
+        .iter()
+        .find(|function| function.name == "put")
+        .expect("mutable method");
+    assert_eq!(method.core_return_type, Some(CoreType::Named("Map".into())));
+
     let function = core
         .functions
         .iter()

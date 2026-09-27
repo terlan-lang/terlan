@@ -39,6 +39,19 @@ pub(super) fn collect(
                 parameters,
                 result,
             };
+            // Bracket syntax carries an implicit trait name without an import.
+            // Match the same IndexGet/IndexSet contracts accepted by typechecking.
+            if let Some(short) = identity.trait_name.rsplit('.').next() {
+                if matches!(
+                    (short, identity.method.as_str()),
+                    ("IndexGet", "get_at") | ("IndexSet", "set_at")
+                ) {
+                    groups
+                        .entry((short.to_string(), identity.method.clone(), function.arity))
+                        .or_default()
+                        .push(candidate.clone());
+                }
+            }
             if !identity.type_args.is_empty() {
                 groups
                     .entry((
