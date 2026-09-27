@@ -1,7 +1,7 @@
 module std.http.SessionTest.
 
-import std.collections.Map.
 import std.core.Option.{None, Some}.
+import std.core.{String, Unit}.
 import std.http.Response.
 import std.http.Session.{current, with_response}.
 import std.test.Test.{assert}.
@@ -33,49 +33,80 @@ pub sample_expire(session: Session): Unit ->
 pub sample_with_response(response: Response, session: Session): Response ->
     with_response(response, session).
 
-pub sample_request(): Dynamic ->
-    {
-        Atom["request"],
-        "GET",
-        "/account",
-        Map(),
-        "",
-        "",
-        Map(),
-        Map(),
-        Map({"terlan_session", "abc"}),
-    }.
+@compiler.native {std.test.fixture.http_request}
+request_fixture(cookie_header: String): Request ->
+    native.
 
-pub session_descriptor_has_cookie_id(value: Dynamic): Bool ->
-    case value {
-        {tag, id, _values, state} ->
-            tag == Atom["session"] and id == "abc" and state == Atom["active"];
-        _ -> false
-    }.
+@compiler.native {std.test.fixture.http_response_header}
+response_header(response: Response, name: String): String ->
+    native.
 
-pub missing_session_value_is_none(session: Session): Bool ->
-    case session.get("missing") {
-        None -> true;
-        Some(_value) -> false
-    }.
+session_cookie(session: Session): String ->
+    response_header(with_response(Response.text("ok"), session), "Set-Cookie").
 
-pub response_has_session_cookie_metadata(value: Dynamic): Bool ->
-    case value {
-        {response_tag, kind, body, {metadata, header}} ->
-            response_tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and metadata == Atom["set_cookie"]
-                and header == "terlan_session=abc; Path=/; HttpOnly; SameSite=Lax";
-        _ -> false
+value_or_empty(session: Session, key: String): String ->
+    case session.get(key) {
+        None -> "";
+        Some(value) -> value
     }.
 
 @test
 pub session_current_reads_request_cookie(): Bool ->
-    assert(session_descriptor_has_cookie_id(current(sample_request()))).
+    let session = current(request_fixture(""));
+    session.set("user_id", "ada");
+    let cookie = session_cookie(session);
+    let resumed = current(request_fixture(cookie));
+    let valid =
+        assert(String.starts_with(cookie, "terlan_session="))
+            and assert(String.contains(cookie, "; Path=/; HttpOnly; SameSite=Lax"))
+            and assert(value_or_empty(resumed, "user_id") == "ada")
+            and assert(session_cookie(resumed) == "");
+    (resumed.expire(); valid).
 
 @test
 pub session_get_and_response_threading_execute(): Bool ->
-    let session = current(sample_request());
-    assert(missing_session_value_is_none(session))
-        and assert(response_has_session_cookie_metadata(with_response(Response.text("ok"), session))).
+    let session = current(request_fixture("terlan_session=untrusted"));
+    let cookie = session_cookie(session);
+    let initially_empty = value_or_empty(session, "user_id") == "";
+    let written = session.set("user_id", "ada");
+    let found = value_or_empty(session, "user_id");
+    let deleted = session.delete("user_id");
+    let missing = value_or_empty(session, "user_id");
+    session.expire();
+    assert(initially_empty)
+        and assert(cookie != "terlan_session=untrusted; Path=/; HttpOnly; SameSite=Lax")
+        and assert(String.starts_with(cookie, "terlan_session="))
+        and assert(written == Unit and deleted == Unit)
+        and assert(found == "ada" and missing == "").
+
+@test
+pub session_rotation_preserves_values_and_revokes_old_cookie(): Bool ->
+    let session = current(request_fixture(""));
+    session.set("user_id", "ada");
+    let previous_cookie = session_cookie(session);
+    let rotated = session.rotate();
+    let next_cookie = session_cookie(rotated);
+    let resumed = current(request_fixture(next_cookie));
+    let old = current(request_fixture(previous_cookie));
+    let valid =
+        assert(next_cookie != previous_cookie)
+            and assert(value_or_empty(resumed, "user_id") == "ada")
+            and assert(value_or_empty(old, "user_id") == "")
+            and assert(session_cookie(resumed) == "");
+    (resumed.expire(); old.expire(); valid).
+
+@test
+pub session_expiration_clears_state_and_threads_deletion_cookie(): Bool ->
+    let session = current(request_fixture(""));
+    session.set("user_id", "ada");
+    let old_cookie = session_cookie(session);
+    let expired = session.expire();
+    let deletion = session_cookie(session);
+    let replacement = current(request_fixture(old_cookie));
+    let valid =
+        assert(expired == Unit)
+            and assert(String.starts_with(deletion, "terlan_session=;"))
+            and assert(String.contains(deletion, "Max-Age=0"))
+            and assert(value_or_empty(replacement, "user_id") == "")
+            and assert(session_cookie(replacement) != old_cookie);
+    (replacement.expire(); valid).

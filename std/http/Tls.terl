@@ -7,6 +7,8 @@
  */
 module std.http.Tls.
 
+import std.core.Option.{None, Some}.
+
 import type std.collections.List.
 import type std.core.Option.
 
@@ -114,9 +116,20 @@ pub type Config =
  * manual certificate fields empty so manifest validation can focus on
  * deployment-specific requirements.
  */
-@compiler.native {std.http.tls.auto}
 pub auto(domains: List[String], email: String): Config ->
-    native.
+    {
+        mode: Auto,
+        domains: domains,
+        email: Some(email),
+        primary_provider: Some(LetsEncrypt),
+        fallback_provider: Some(ZeroSsl),
+        cert: None,
+        key: None,
+        passphrase_env: None,
+        ca: None,
+        server_name: None,
+        trust_local: false,
+    }.
 
 /**
  * Builds manual certificate TLS configuration.
@@ -126,9 +139,20 @@ pub auto(domains: List[String], email: String): Config ->
  * Transformation: records explicit certificate paths while leaving ACME and
  * local trust settings empty.
  */
-@compiler.native {std.http.tls.manual}
 pub manual(cert: String, key: String): Config ->
-    native.
+    {
+        mode: Manual,
+        domains: [],
+        email: None,
+        primary_provider: None,
+        fallback_provider: None,
+        cert: Some(cert),
+        key: Some(key),
+        passphrase_env: None,
+        ca: None,
+        server_name: None,
+        trust_local: false,
+    }.
 
 /**
  * Builds local/internal TLS configuration.
@@ -139,6 +163,17 @@ pub manual(cert: String, key: String): Config ->
  * config as locally trusted while leaving public ACME and manual certificate
  * file settings empty.
  */
-@compiler.native {std.http.tls.internal}
 pub internal(server_name: String): Config ->
-    native.
+    {
+        mode: Internal,
+        domains: [],
+        email: None,
+        primary_provider: None,
+        fallback_provider: None,
+        cert: None,
+        key: None,
+        passphrase_env: None,
+        ca: None,
+        server_name: Some(server_name),
+        trust_local: true,
+    }.
