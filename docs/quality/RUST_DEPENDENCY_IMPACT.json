@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "ec8a8c1fa3d55dfdba25dfe25f840caf476cb4e9142e97b4169d6f48699a3147",
+  "compilation_input_sha256": "c96613ddfc57dd25e7646045be908d30519f38c47f48c83a4264f88dc71186bc",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -28,20 +28,25 @@
       "source_domains": []
     },
     {
+      "domain": "bin",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
       "domain": "commands",
       "reference_sites": 0,
       "source_domains": []
     },
     {
       "domain": "compiler",
-      "reference_sites": 22,
+      "reference_sites": 21,
       "source_domains": [
         "commands"
       ]
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 47,
+      "reference_sites": 48,
       "source_domains": [
         "commands",
         "lsp",
@@ -117,6 +122,11 @@
       "source_domains": []
     },
     {
+      "domain": "root:self_host_ir",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
       "domain": "root:service_foundation",
       "reference_sites": 0,
       "source_domains": []
@@ -138,7 +148,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 89,
+      "reference_sites": 93,
       "source_domains": [
         "commands",
         "compiler"
@@ -151,8 +161,9 @@
     },
     {
       "domain": "support",
-      "reference_sites": 74,
+      "reference_sites": 75,
       "source_domains": [
+        "benchmark",
         "commands",
         "root:formal_pipeline",
         "runtime"
@@ -183,6 +194,11 @@
       "dependent_count": 0,
       "dependent_domains": [],
       "domain": "benchmark"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "bin"
     },
     {
       "dependent_count": 0,
@@ -278,6 +294,11 @@
     {
       "dependent_count": 0,
       "dependent_domains": [],
+      "domain": "root:self_host_ir"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
       "domain": "root:service_foundation"
     },
     {
@@ -309,8 +330,9 @@
       "domain": "serve_runtime"
     },
     {
-      "dependent_count": 4,
+      "dependent_count": 5,
       "dependent_domains": [
+        "benchmark",
         "commands",
         "compiler",
         "root:formal_pipeline",
@@ -666,18 +688,23 @@
   },
   "production_cross_domain_edges": [
     {
+      "from": "benchmark",
+      "reference_sites": 1,
+      "to": "support"
+    },
+    {
       "from": "commands",
       "reference_sites": 2,
       "to": "backends"
     },
     {
       "from": "commands",
-      "reference_sites": 22,
+      "reference_sites": 21,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 45,
+      "reference_sites": 46,
       "to": "formal_pipeline"
     },
     {
@@ -687,7 +714,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 71,
+      "reference_sites": 72,
       "to": "runtime"
     },
     {
@@ -702,7 +729,7 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 18,
+      "reference_sites": 21,
       "to": "runtime"
     },
     {
@@ -739,18 +766,23 @@
     },
     {
       "name": "benchmark",
-      "physical_lines": 13931,
-      "rust_files": 36
+      "physical_lines": 11224,
+      "rust_files": 31
+    },
+    {
+      "name": "bin",
+      "physical_lines": 942,
+      "rust_files": 7
     },
     {
       "name": "commands",
-      "physical_lines": 127850,
-      "rust_files": 336
+      "physical_lines": 141949,
+      "rust_files": 368
     },
     {
       "name": "compiler",
-      "physical_lines": 173380,
-      "rust_files": 473
+      "physical_lines": 175188,
+      "rust_files": 476
     },
     {
       "name": "formal_pipeline",
@@ -774,7 +806,7 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1511,
+      "physical_lines": 1514,
       "rust_files": 6
     },
     {
@@ -784,8 +816,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 51030,
-      "rust_files": 154
+      "physical_lines": 50490,
+      "rust_files": 153
     },
     {
       "name": "root:accelerator_contract",
@@ -794,12 +826,12 @@
     },
     {
       "name": "root:cli_dispatch",
-      "physical_lines": 108,
+      "physical_lines": 112,
       "rust_files": 1
     },
     {
       "name": "root:cli_usage",
-      "physical_lines": 171,
+      "physical_lines": 189,
       "rust_files": 1
     },
     {
@@ -814,12 +846,17 @@
     },
     {
       "name": "root:lib",
-      "physical_lines": 825,
+      "physical_lines": 831,
       "rust_files": 1
     },
     {
       "name": "root:main",
       "physical_lines": 5,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_ir",
+      "physical_lines": 656,
       "rust_files": 1
     },
     {
@@ -844,8 +881,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 145959,
-      "rust_files": 454
+      "physical_lines": 146442,
+      "rust_files": 459
     },
     {
       "name": "serve_runtime",
@@ -854,8 +891,8 @@
     },
     {
       "name": "support",
-      "physical_lines": 1105,
-      "rust_files": 4
+      "physical_lines": 1169,
+      "rust_files": 5
     },
     {
       "name": "validation",
@@ -864,7 +901,7 @@
     },
     {
       "name": "vm",
-      "physical_lines": 3468,
+      "physical_lines": 2647,
       "rust_files": 12
     }
   ],
@@ -1143,7 +1180,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 47,
+      "reference_sites": 52,
       "to": "runtime"
     },
     {
@@ -1190,18 +1227,18 @@
     },
     {
       "name": "benchmark",
-      "physical_lines": 975,
-      "rust_files": 8
+      "physical_lines": 655,
+      "rust_files": 7
     },
     {
       "name": "commands",
-      "physical_lines": 40461,
+      "physical_lines": 41160,
       "rust_files": 175
     },
     {
       "name": "compiler",
-      "physical_lines": 45491,
-      "rust_files": 187
+      "physical_lines": 46638,
+      "rust_files": 191
     },
     {
       "name": "formal_pipeline",
@@ -1230,8 +1267,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29058,
-      "rust_files": 130
+      "physical_lines": 28800,
+      "rust_files": 129
     },
     {
       "name": "root:database_schema_test",
@@ -1260,17 +1297,17 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 80139,
+      "physical_lines": 80281,
       "rust_files": 339
     },
     {
       "name": "support",
-      "physical_lines": 256,
-      "rust_files": 7
+      "physical_lines": 341,
+      "rust_files": 8
     },
     {
       "name": "tests",
-      "physical_lines": 10455,
+      "physical_lines": 10460,
       "rust_files": 25
     },
     {
@@ -1280,7 +1317,7 @@
     },
     {
       "name": "vm",
-      "physical_lines": 1777,
+      "physical_lines": 1618,
       "rust_files": 8
     }
   ],

@@ -1,7 +1,7 @@
 //! Typed CoreIR process-transition recognition for direct AOT lowering.
 
 use crate::terlan_typeck::{
-    CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreRuntimeCapability,
+    CoreExpr, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreRuntimeCapability, CoreType,
 };
 
 use super::{expression::native_type, NativeTransitionOperation, NativeType};
@@ -290,13 +290,57 @@ fn capability_transition(
     (call.args.len() == arity).then(|| {
         let mut arguments = vec![CoreExpr::Int(tag)];
         arguments.extend(typed_transition_metadata(result));
-        arguments.extend(call.args.clone());
+        arguments.extend(
+            call.args.iter().enumerate().map(|(index, argument)| {
+                capability_collection_argument(capability, index, argument)
+            }),
+        );
         (
             NativeTransitionOperation::Capability,
             arguments,
             Some(result),
         )
     })
+}
+
+/// Preserves declared collection schemas at fixed capability boundaries,
+/// including the per-use widening of checked empty List[Never] values.
+fn capability_collection_argument(
+    capability: &CoreRuntimeCapability,
+    index: usize,
+    argument: &CoreExpr,
+) -> CoreExpr {
+    use CoreRuntimeCapability::*;
+    let element = match (capability, index) {
+        (FileCopyMany, 0) => CoreType::Named("std.io.File.CopyPlan".into()),
+        (
+            HashSha256LabeledFileDigests | HashSha256LabeledFileContents | HashAuditLabeledFiles,
+            0,
+        ) => CoreType::Named("std.crypto.Hash.LabeledFile".into()),
+        (HashAuditLabeledFilePatterns, 1) => {
+            CoreType::Named("std.crypto.Hash.LabeledFilePattern".into())
+        }
+        (FileReadTextMany, 0)
+        | (
+            DirectoryFilesRecursiveExcluding
+            | FileReadTextTreeExcluding
+            | HashSha256SelectedFiles
+            | HashAuditLabeledFiles,
+            1,
+        )
+        | (
+            DirectoryCopyTreeExcluding
+            | DirectoryFindNamedRecursiveExcluding
+            | HashAuditLabeledFilePatterns,
+            2,
+        )
+        | (FileReadTextTreeMatching, 1..=3) => CoreType::String,
+        _ => return argument.clone(),
+    };
+    CoreExpr::Cast {
+        expr: Box::new(argument.clone()),
+        target_type: CoreType::List(Box::new(element)),
+    }
 }
 
 /// Lowers one exact typed mailbox send into its fixed transition frame.

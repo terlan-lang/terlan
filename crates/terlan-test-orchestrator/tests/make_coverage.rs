@@ -95,7 +95,7 @@ fn fixture() -> Fixture {
         "rust-toolchain.toml",
         "[toolchain]\nchannel=\"1.96.0\"\nprofile=\"minimal\"\n",
     );
-    write(root, "terlan/Cargo.toml", "[package]\nname=\"terlan\"\nversion=\"0.0.0\"\nedition=\"2021\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\n");
+    write(root, "terlan/Cargo.toml", "[package]\nname=\"terlan\"\nversion=\"0.0.0\"\nedition=\"2021\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\nserve-runtime-bin=[]\n");
     let mut names = vec!["normal".to_owned(), "quality::integration".to_owned()];
     names.extend(
         include_str!("../../../docs/quality/RUST_VALIDATION_TIERS.tsv")

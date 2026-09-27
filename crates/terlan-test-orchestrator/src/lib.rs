@@ -80,7 +80,7 @@ mod cargo_runner_test;
 const DEFAULT_TEST_THREADS: usize = 1;
 const DEFAULT_PHASE_TIMEOUT_SECONDS: u64 = 1_800;
 const RELEASE_COVERAGE_OWNS_TERLC_ENV: &str = "TERLAN_RELEASE_COVERAGE_OWNS_TERLC_TESTS";
-const VALIDATION_FEATURES: &str = "quality-tools,editor-lsp,benchmark-tools";
+const VALIDATION_FEATURES: &str = "quality-tools,editor-lsp,benchmark-tools,serve-runtime-bin";
 const REPORT_PATH_ENV: &str = "TERLAN_RUST_SUITE_REPORT";
 const PHASE_TIMEOUT_ENV: &str = "TERLAN_TEST_PHASE_TIMEOUT_SECONDS";
 const TIER_INVENTORY_PATH: &str = "docs/quality/RUST_VALIDATION_TIERS.tsv";

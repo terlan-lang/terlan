@@ -47,15 +47,21 @@ pub(crate) fn core_syntax_concrete_impl_functions(
         );
         for method in methods {
             let locals = function_value_parameter_names(&method.params);
+            let identity = CoreTraitMethodIdentity {
+                trait_name: trait_name.clone(),
+                type_args: type_args.clone(),
+                method: method.name.clone(),
+            };
             functions.push(CoreFunction {
                 name: format!("__terlan_concrete_impl_{index}_{}", method.name),
-                source: None,
-                receiver_method: false,
-                trait_method: Some(CoreTraitMethodIdentity {
-                    trait_name: trait_name.clone(),
-                    type_args: type_args.clone(),
-                    method: method.name.clone(),
+                source: Some(crate::terlan_typeck::CoreFunctionSource {
+                    module: resolved.name.clone(),
+                    function: format!("{}.{}", identity.dispatch_owner(), method.name),
+                    arity: method.params.len(),
+                    declaration_span: Some(method.span.into()),
                 }),
+                receiver_method: false,
+                trait_method: Some(identity),
                 arity: method.params.len(),
                 public: *is_public,
                 generic_params: Vec::new(),

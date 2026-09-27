@@ -795,8 +795,7 @@ pub(super) fn syntax_output_lowering_to_core_remote_call_policy_switch_stays_pro
 /// function and its statically checked trait call targets that function.
 #[test]
 pub(super) fn syntax_output_lowering_rewrites_structural_impl_call_to_private_function() {
-    let module = parse_module_as_syntax_output(
-        r#"
+    let source = r#"
 module structural_impl_core_dispatch.
 
 pub struct Profile { title: String }.
@@ -811,9 +810,8 @@ pub impl Render[T => {title: String}] for T {
 
 pub display(profile: Profile): String ->
     Render.render(profile).
-"#,
-    )
-    .expect("structural impl fixture parses");
+"#;
+    let module = parse_module_as_syntax_output(source).expect("structural impl fixture parses");
     let resolved = resolve_syntax_module_output(&module).module;
     let core = lower_syntax_module_output_to_core(&module, &resolved);
 
@@ -823,6 +821,16 @@ pub display(profile: Profile): String ->
         .find(|function| function.name == "__terlan_structural_impl_Render_render_1")
         .expect("private structural impl function");
     assert!(!implementation.public);
+    let origin = implementation
+        .source
+        .as_ref()
+        .expect("structural method source");
+    assert_eq!(origin.function, "Render.render");
+    let span = origin.declaration_span.expect("nested method span");
+    assert_eq!(
+        &source[span.start..span.end],
+        "render(value: T): String -> value.title"
+    );
     let display = core
         .functions
         .iter()

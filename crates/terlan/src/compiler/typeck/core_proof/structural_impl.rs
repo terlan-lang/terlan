@@ -101,7 +101,12 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
         functions.push(CoreFunction {
             receiver_method: false,
             trait_method: None,
-            source: None,
+            source: Some(crate::terlan_typeck::CoreFunctionSource {
+                module: resolved.name.clone(),
+                function: format!("{trait_name}.{method_name}"),
+                arity: *arity,
+                declaration_span: Some(method.span.into()),
+            }),
             name: function_name.clone(),
             arity: *arity,
             public: false,

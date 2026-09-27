@@ -103,6 +103,7 @@ pub(super) fn retain_sources(core: &mut CoreModule) {
             module: core.module.clone(),
             function: constructor.name.clone(),
             arity: constructor.params.len() + usize::from(constructor.vararg.is_some()),
+            declaration_span: None,
         };
         sources.insert(implementation.function.as_str(), source.clone());
         for default in implementation.defaults.iter().flatten() {

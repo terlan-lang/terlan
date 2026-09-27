@@ -220,57 +220,26 @@ impl PureNativeBoundary {
                     (50, 1) => TvmBoundaryType::Bool,
                     (21, 4) | (21, 5) => TvmBoundaryType::Int,
                     (22, 0) => managed_capability_type("Named(std.system.Process.Command)")?,
-                    (31, 0) => {
-                        managed_capability_type("Named(std.system.Process.BatchRequest)")?
+                    (31, 0) => managed_capability_type("Named(std.system.Process.BatchRequest)")?,
+                    (48, 0) => managed_capability_type("Named(std.system.Process.FramedRequest)")?,
+                    (54, 0) => managed_capability_type("List(Named(std.io.File.CopyPlan))")?,
+                    (55 | 56 | 58, 0) => {
+                        managed_capability_type("List(Named(std.crypto.Hash.LabeledFile))")?
                     }
-                    (48, 0) => {
-                        managed_capability_type("Named(std.system.Process.FramedRequest)")?
+                    (57, 1) => {
+                        managed_capability_type("List(Named(std.crypto.Hash.LabeledFilePattern))")?
                     }
-                    (54, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "List(Struct(std.io.File.CopyPlan;source:String,destination:String))",
+                    (17, 1) | (24, 2) | (39, 2) | (47, 1) | (56, 1) | (57, 2) => {
+                        TvmBoundaryType::Managed(
+                            crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
+                                "List(String)",
+                            )
+                            .map_err(|error| {
+                                format!("error[pure_native_capability_argument]: {error}")
+                            })?
+                            .bytes(),
                         )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (55 | 58, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "List(Struct(std.crypto.Hash.LabeledFile;path:String,label:String))",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (56, 0) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "List(Struct(std.crypto.Hash.LabeledFile;path:String,label:String))",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (57, 1) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "List(Struct(std.crypto.Hash.LabeledFilePattern;id:String,pattern:String))",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
-                    (17, 1) | (24, 2) | (39, 2) | (47, 1) | (56, 1) | (57, 2) => TvmBoundaryType::Managed(
-                        crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                            "List(String)",
-                        )
-                        .map_err(|error| {
-                            format!("error[pure_native_capability_argument]: {error}")
-                        })?
-                        .bytes(),
-                    ),
+                    }
                     (18, 0) => TvmBoundaryType::Managed(
                         crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
                             "List(String)",

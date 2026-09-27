@@ -8,6 +8,9 @@ pub struct CoreFunctionSource {
     pub module: String,
     pub function: String,
     pub arity: usize,
+    /// Parser-owned declaration span for bodies materialized from nested declarations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declaration_span: Option<crate::terlan_syntax::span::Span>,
 }
 
 impl CoreFunction {
@@ -17,6 +20,7 @@ impl CoreFunction {
             module: module.to_string(),
             function: self.name.clone(),
             arity: self.arity,
+            declaration_span: None,
         })
     }
 }

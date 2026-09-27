@@ -9,7 +9,7 @@ mod selected_imports;
 mod trait_methods;
 mod type_scoring;
 pub(super) use selected_imports::resolve as resolve_selected_imports;
-use type_scoring::type_match_score;
+use type_scoring::{argument_contract, type_match_score};
 
 #[derive(Clone)]
 /// One source overload and its deterministic NativeIR-facing identity.
@@ -904,15 +904,6 @@ fn parameter_contract(parameters: &[CoreType]) -> String {
     parameters
         .iter()
         .map(|parameter| core_type_contract_text(Some(parameter)))
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-/// Renders inferred call arguments while preserving unknown positions.
-fn argument_contract(arguments: &[Option<CoreType>]) -> String {
-    arguments
-        .iter()
-        .map(|argument| core_type_contract_text(argument.as_ref()))
         .collect::<Vec<_>>()
         .join(",")
 }
