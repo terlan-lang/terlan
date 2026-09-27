@@ -108,6 +108,43 @@ impl PureNativeBoundary {
         let backend = self.backend.as_deref().ok_or_else(|| {
             "error[pure_native_backend_missing]: no active native execution backend".to_string()
         })?;
+        if arguments[0] == crate::runtime::native_image::control::package_union::TAG {
+            let operation = match backend.decode_transition_value(
+                context,
+                &TvmBoundaryType::String,
+                arguments[4],
+            )? {
+                ReplValue::String(operation) => operation,
+                _ => {
+                    return Err(
+                        "error[pure_native_capability_argument]: expected operation String".into(),
+                    )
+                }
+            };
+            let mut package_arguments = Vec::new();
+            for argument in
+                crate::runtime::native_image::control::package_union::arguments(arguments)
+                    .map_err(String::from)?
+            {
+                let mut decoded = None;
+                for metadata in argument.types.chunks_exact(3) {
+                    let ty = TvmBoundaryType::from_transition_words(metadata)?;
+                    if let Ok(value) = backend.decode_transition_value(context, &ty, argument.word)
+                    {
+                        decoded = Some(value);
+                        break;
+                    }
+                }
+                package_arguments.push(decoded.ok_or_else(|| format!("error[pure_native_capability_argument]: operation `{operation}` value is not an owner-local member of its declared boundary types"))?);
+            }
+            return Ok(PureNativeCapabilityRequest {
+                capability: "package-native".into(),
+                operation,
+                arguments: vec![],
+                package_arguments: Some(package_arguments),
+                result_type,
+            });
+        }
         if arguments[0] == 7 {
             let operation = backend
                 .decode_transition_value(context, &TvmBoundaryType::String, arguments[4])

@@ -11,6 +11,7 @@ use crate::terlan_native_boundary::metadata::{
 
 #[path = "protocol/execution.rs"]
 mod execution;
+mod postgres;
 mod storage;
 
 const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;

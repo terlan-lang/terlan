@@ -13,7 +13,7 @@ use crate::terlan_native_boundary::metadata::NativeBoundaryExecutionProfile;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 
 /// Selects only the installed sibling worker; PATH and application input grant no authority.
-fn installed_worker_path(executable: &Path) -> VmRuntimeResult<PathBuf> {
+pub(super) fn installed_worker_path(executable: &Path) -> VmRuntimeResult<PathBuf> {
     if !executable.is_absolute() || executable.file_name().is_none() {
         return Err(
             "error[vm.distributed_storage.executable]: expected an absolute executable path".into(),

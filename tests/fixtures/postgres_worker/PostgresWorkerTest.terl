@@ -1,0 +1,94 @@
+/** Exercises the installed VM and native worker against an explicitly supplied database. */
+module tests.fixtures.postgres_worker.PostgresWorkerTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, is_err}.
+import std.core.Error.{new}.
+import std.data.Json.
+import std.db.Postgres.{connect, execute, query, query_one, transaction}.
+import std.system.Environment.
+import type std.core.{Error, Result}.
+import type std.db.Postgres.{Connection, Pool}.
+
+pub type Rollback = Atom["fixture.rollback"].
+
+with_pool(body: (Pool) -> Bool): Bool ->
+    case Environment.get("TERLAN_TEST_POSTGRES_URL") {
+        None -> false;
+        Some(url) -> case connect({url: url}) {
+            Err(_) -> false;
+            Ok(pool) -> body(pool)
+        }
+    }.
+
+@test
+pub query_parameters_and_all_row_accessors(): Bool ->
+    with_pool((pool) ->
+        case query(pool, "SELECT $1::bigint AS number, $2::text AS label, $3::boolean AS enabled, $4::jsonb AS document", [Json.int(42), Json.string("terlan"), Json.bool(true), Json.int(7)]) {
+            Ok([row]) ->
+                row.int("number") == Ok(42)
+                and row.string("label") == Ok("terlan")
+                and row.bool("enabled") == Ok(true)
+                and case row.json("document") {
+                    Ok(document) -> Json.as_int(document) == Ok(7);
+                    Err(_) -> false
+                };
+            _ -> false
+        }).
+
+@test
+pub query_one_preserves_some_and_none(): Bool ->
+    with_pool((pool) ->
+        case query_one(pool, "SELECT 23::bigint AS number", []) {
+            Ok(Some(row)) -> row.int("number") == Ok(23)
+                and query_one(pool, "SELECT 1 WHERE false", []) == Ok(None);
+            _ -> false
+        }).
+
+@test
+pub database_and_decode_errors_are_typed(): Bool ->
+    with_pool((pool) ->
+        is_err(execute(pool, "SELECT nonexistent_fixture_column", []))
+        and case query_one(pool, "SELECT NULL::text AS empty, 1::bigint AS number", []) {
+            Ok(Some(row)) -> is_err(row.string("empty"))
+                and is_err(row.string("number")) and is_err(row.int("missing"));
+            _ -> false
+        }).
+
+commit_body(connection: Connection): Result[Int, Error] ->
+    execute(connection, "INSERT INTO source_worker_transaction VALUES (1)", []).
+
+rollback_body(connection: Connection): Result[Int, Error] ->
+    case execute(connection, "INSERT INTO source_worker_transaction VALUES (2)", []) {
+        Err(reason) -> Err(reason);
+        Ok(_) -> Err(new(Rollback, "intentional rollback"))
+    }.
+
+@test
+pub transaction_commits_and_rolls_back_with_local_callbacks(): Bool ->
+    with_pool((pool) ->
+        execute(pool, "CREATE TABLE source_worker_transaction (number bigint)", []) == Ok(0)
+        and transaction(pool, commit_body) == Ok(1)
+        and is_err(transaction(pool, rollback_body))
+        and case query(pool, "SELECT number FROM source_worker_transaction ORDER BY number", []) {
+            Ok([row]) -> row.int("number") == Ok(1)
+                and execute(pool, "DELETE FROM source_worker_transaction", []) == Ok(1)
+                and execute(pool, "DROP TABLE source_worker_transaction", []) == Ok(0);
+            _ -> false
+        }).
+
+@test
+pub transaction_returns_captured_managed_value(): Bool ->
+    let captured = "callback stayed in the actor";
+    with_pool((pool) ->
+        transaction[String](pool, (_connection) -> Ok(captured)) == Ok(captured)).
+
+pub type Indeterminate = Atom["postgres.indeterminate"].
+
+@test
+pub deadline_reports_indeterminate_without_retrying(): Bool ->
+    with_pool((pool) ->
+        case execute(pool, "SELECT pg_sleep(8)", []) {
+            Err(reason) -> reason.code() == Indeterminate;
+            Ok(_) -> false
+        }).

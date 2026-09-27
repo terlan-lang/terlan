@@ -4,6 +4,8 @@ use std::io::{Read, Write};
 
 use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
+pub(crate) mod package_union;
+
 const MAGIC: &[u8; 4] = b"TVMC";
 const VERSION: u16 = 1;
 const HEADER_LEN: usize = 12;

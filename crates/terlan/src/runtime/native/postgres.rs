@@ -4,6 +4,23 @@
 //! and deterministic row decoding. Live socket execution belongs to the VM
 //! Postgres driver worker; this compatibility surface must not create an
 //! independent async runtime.
+/// Finite source-visible error atoms shared by compiler inventory and worker projection.
+pub const SOURCE_ERROR_CODES: &[&str] = &[
+    "postgres.operation",
+    "postgres.invalid_url",
+    "postgres.connect",
+    "postgres.query",
+    "postgres.sql.empty",
+    "postgres.column_type",
+    "postgres.row.missing_column",
+    "postgres.decode.type",
+    "postgres.driver_unavailable",
+    "postgres.resource_limit",
+    "postgres.cancelled",
+    "postgres.timed_out",
+    "postgres.indeterminate",
+];
+
 use crate::terlan_native::json as json_adapter;
 
 #[path = "postgres/config.rs"]

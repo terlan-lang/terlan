@@ -22,11 +22,6 @@
     },
     {
       "arity": 2,
-      "name": "transaction",
-      "operation": "std.db.postgres.transaction"
-    },
-    {
-      "arity": 2,
       "name": "string",
       "operation": "std.db.postgres.string"
     },

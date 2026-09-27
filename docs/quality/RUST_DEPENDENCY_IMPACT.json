@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "fe448d27f7803bb1312101fc2cc36344110de8dc3426c5b248709756fd80f6a4",
+  "compilation_input_sha256": "5823b00c91a11fbcf4d406d13502e4d9549e6dfcaec9a7cfb74a68a0ea63e1fb",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -148,7 +148,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 93,
+      "reference_sites": 94,
       "source_domains": [
         "commands",
         "compiler"
@@ -729,7 +729,7 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 21,
+      "reference_sites": 22,
       "to": "runtime"
     },
     {
@@ -781,7 +781,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 175213,
+      "physical_lines": 175302,
       "rust_files": 477
     },
     {
@@ -806,8 +806,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1514,
-      "rust_files": 6
+      "physical_lines": 1882,
+      "rust_files": 8
     },
     {
       "name": "package_registry",
@@ -881,8 +881,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 147718,
-      "rust_files": 465
+      "physical_lines": 148443,
+      "rust_files": 468
     },
     {
       "name": "serve_runtime",
@@ -1237,7 +1237,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 46675,
+      "physical_lines": 46715,
       "rust_files": 191
     },
     {
@@ -1257,8 +1257,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1135,
-      "rust_files": 5
+      "physical_lines": 1268,
+      "rust_files": 6
     },
     {
       "name": "package_registry",
@@ -1297,8 +1297,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 80349,
-      "rust_files": 339
+      "physical_lines": 80568,
+      "rust_files": 341
     },
     {
       "name": "support",

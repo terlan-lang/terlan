@@ -139,6 +139,11 @@ pub(super) fn transition_capture_types(
 }
 
 pub(super) fn validate_capability_arguments(arguments: &[i64]) -> VmRuntimeResult<()> {
+    if arguments.first() == Some(&crate::runtime::native_image::control::package_union::TAG) {
+        return crate::runtime::native_image::control::package_union::arguments(arguments)
+            .map(|_| ())
+            .map_err(|error| error.to_string().into());
+    }
     if arguments.first() == Some(&7) {
         if arguments.len() < 6 {
             return Err(

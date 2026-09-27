@@ -81,15 +81,38 @@ model tests pass. Migration operations update local plans and diagnostics only:
 they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
-The full standard-library run passes those suites and reaches
-`std/db/PostgresTest.terl`. It exposed missing lexical type recovery for anonymous
-records before suspending calls. Recovery and lowering now preserve the checked
-field types; all 656 NativeIR tests pass, including 15 structured-case tests.
-The Postgres source test now compiles but cannot execute `std.db.postgres.connect`
-without a configured std native helper. That production routing gap remains a
-release blocker. This is not a passing full standard-library run or complete API
-execution coverage. These local runs include the separately active native-IR
-edits; fresh hosted validation of the committed candidate remains required.
+The standard-library execution run now passes `std/db/PostgresTest.terl` and
+reaches `std/http/CookiesTest.terl`, where the old Dynamic jar fixture fails native
+admission. The Postgres command/test runner now suspends actor-owned calls onto
+an installed external capability worker using the maintained libpq command
+client. JSON crosses the process boundary as text, transaction callbacks stay in
+Terlan, and terminal attempts revoke transaction handles. The worker enforces
+owner, resource, request, and deadline bounds without automatic mutation retries.
+Private helpers retain their original declaration authority after generic
+specialization. Compiler-emitted union frames preserve a finite set of admitted
+record types, including `Pool | Connection`, without relaxing heap ownership.
+
+`make stdlib-postgres-worker-check` owns a disposable Docker database and runs
+real source queries, parameters, every row accessor, optional rows, typed errors,
+commit, rollback, a captured managed callback result, and indeterminate deadlines.
+All six source tests pass. The gate is included in
+`vm-postgres-runtime-check`. Local validation passes 657 NativeIR tests, 87 package
+helper tests, 26 worker-protocol tests, and both bounded union-frame tests. A
+subsequent focused six-test adapter run also covers idle worker loss without
+stranding another owner's ready event. The
+shared-feature Postgres run passes 117 tests with none ignored; the default run
+passes 120 with two existing Docker tests ignored by that command. The separate
+source gate provides live execution evidence. Interfaces, native artifacts, and
+documentation format checks pass.
+
+This is not a passing full standard-library run or complete API execution
+coverage. Cookies, Postgres routing in the separate HTTP serve dispatchers, and
+cross-platform source evidence remain open. A captured transaction lambda with
+nested query-result matches also exposes generic-argument inference and then
+closure-result lowering errors; its reproducer and diagnostics are retained under
+`target/quality/release-diagnostics/`. Simple captured callbacks execute correctly.
+Local Rust runs include separately active native-IR edits; hosted validation of
+the exact committed candidate remains required.
 
 The compiler-free serve profile exposed two coverage-result accessors whose
 only production caller is the compiler test command. Their feature guards now

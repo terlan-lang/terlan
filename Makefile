@@ -4794,8 +4794,12 @@ vm-dev-dependency-orchestration-check:
 	$(TERLAN_QUALITY) vm-dev-dependency-orchestration
 	test -s target/quality/vm-dev-dependency-report.json
 
+.PHONY: stdlib-postgres-worker-check
+stdlib-postgres-worker-check: | terlan-compiler-bootstrap
+	bash scripts/check_postgres_source_worker.sh
+
 .PHONY: vm-postgres-runtime-check
-vm-postgres-runtime-check: vm-sql-macro-validation-check vm-native-boundary-contract-check no-default-tokio-runtime-check libpq-c-abi-check
+vm-postgres-runtime-check: stdlib-postgres-worker-check vm-sql-macro-validation-check vm-native-boundary-contract-check no-default-tokio-runtime-check libpq-c-abi-check
 	test -s target/quality/vm-postgres-runtime-report.json
 
 native-boundary-postgres-baseline-benchmark:
