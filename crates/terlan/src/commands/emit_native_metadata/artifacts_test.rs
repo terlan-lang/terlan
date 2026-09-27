@@ -607,13 +607,12 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.db.Postgres",
             postgres_std_source(),
             "std_db_postgres_native_boundary",
-            9,
+            8,
             &[
                 ("connect", 1, "std.db.postgres.connect"),
                 ("query", 3, "std.db.postgres.query"),
                 ("query_one", 3, "std.db.postgres.query_one"),
                 ("execute", 3, "std.db.postgres.execute"),
-                ("transaction", 2, "std.db.postgres.transaction"),
                 ("string", 2, "std.db.postgres.string"),
                 ("int", 2, "std.db.postgres.int"),
                 ("bool", 2, "std.db.postgres.bool"),
@@ -628,7 +627,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         assert_eq!(metadata.native_module, native_module);
         assert_eq!(metadata.scheduler, "normal");
         assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
-        assert_eq!(metadata.functions.len(), operation_count);
+        assert_eq!(metadata.functions.len(), operation_count, "{source_module}");
         for (name, arity, operation) in operations {
             assert_operation(&metadata, name, *arity, operation);
         }

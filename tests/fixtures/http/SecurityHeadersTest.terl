@@ -1,0 +1,69 @@
+module fixtures.http.SecurityHeadersTest.
+
+import std.http.Response.
+import std.http.Response.{Deny, NoReferrer, SameOrigin, SecurityHeaders, StrictOriginWhenCrossOrigin, default_security_headers, production_security_headers}.
+import std.test.Test.{assert_equal}.
+
+import type std.http.Response.{FrameOptions, ReferrerPolicy, Response, SecurityHeaders}.
+
+policy(
+    sniff: Bool,
+    frame: FrameOptions,
+    referrer: ReferrerPolicy,
+    age: Int,
+    subdomains: Bool,
+): SecurityHeaders ->
+    SecurityHeaders(sniff, frame, referrer, age, subdomains).
+
+apply_policy(value: SecurityHeaders): Response ->
+    Response.text("ok").with_security_headers(value).
+
+@test
+pub default_policy_keeps_the_public_record_identity(): Bool ->
+    assert_equal(
+    SecurityHeaders(true, Deny, StrictOriginWhenCrossOrigin, 0, false),
+    default_security_headers(),
+)
+        and assert_equal(
+    SecurityHeaders(true, Deny, StrictOriginWhenCrossOrigin, 31536000, true),
+    production_security_headers(),
+).
+
+@test
+pub default_policy_emits_three_headers(): Bool ->
+    let expected =
+        Response.text("ok")
+            .with_header("X-Frame-Options", "DENY")
+            .with_header("Referrer-Policy", "strict-origin-when-cross-origin")
+            .with_header("X-Content-Type-Options", "nosniff");
+    assert_equal(expected, apply_policy(default_security_headers())).
+
+@test
+pub production_policy_emits_hsts(): Bool ->
+    let expected =
+        Response.text("ok")
+            .with_header("X-Frame-Options", "DENY")
+            .with_header("Referrer-Policy", "strict-origin-when-cross-origin")
+            .with_header("X-Content-Type-Options", "nosniff")
+            .with_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    assert_equal(expected, apply_policy(production_security_headers())).
+
+@test
+pub dynamic_policy_preserves_markers_and_optional_headers(): Bool ->
+    let expected =
+        Response.text("ok")
+            .with_header("X-Frame-Options", "SAMEORIGIN")
+            .with_header("Referrer-Policy", "no-referrer")
+            .with_header("Strict-Transport-Security", "max-age=60");
+    assert_equal(expected, apply_policy(policy(false, SameOrigin, NoReferrer, 60, false))).
+
+@test
+pub policy_fields_survive_constructor_and_default_helpers(): Bool ->
+    let value = policy(false, SameOrigin, NoReferrer, 60, false);
+    value.content_type_options == false
+        and value.frame_options == SameOrigin
+        and value.referrer_policy == NoReferrer
+        and value.hsts_max_age == 60
+        and value.hsts_include_subdomains == false
+        and default_security_headers().frame_options == Deny
+        and default_security_headers().referrer_policy == StrictOriginWhenCrossOrigin.

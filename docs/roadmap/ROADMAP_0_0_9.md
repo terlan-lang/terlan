@@ -82,7 +82,7 @@ they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
 The standard-library execution run now passes `std/db/PostgresTest.terl`, Cookies,
-HTTP Error, and Request before failing on the `SecurityHeaders` constructor in
+HTTP Error, and Request before failing on the unsupported `Response.stream` in
 `std/http/ResponseTest.terl`. The Postgres command/test runner suspends actor-owned
 calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
@@ -118,8 +118,24 @@ Fifteen request-projection tests and the fixture access check pass, as do defaul
 and all-feature binary Clippy, the compiler-free serve check, API manifest
 validation, and documentation format checks.
 
+Hosted Compiler CI for `8f573e25` found a stale nine-operation Postgres metadata
+expectation and noncanonical CookiesTest formatting. The metadata test now
+expects the eight public native operations: `transaction` is a source wrapper,
+and its native lifecycle helpers are private. Both failed selectors pass locally.
+That commit's separate release-validation workflow passed all six platform lanes,
+both ThreadSanitizer lanes, and the dependency security audit.
+SecurityHeaders constructors now retain the public record and canonical policy
+atoms. Only header application converts those fields into the private HTTP
+discriminants, with unknown markers rejected by the runtime. Five source tests
+cover record identity, field access, default headers, production HSTS, and dynamic
+policy values. `stdlib-http-security-check` is required by the HTTP and release
+test gates. The constructor blocker is resolved; the streaming blocker remains.
+The current local run passes 660 NativeIR tests, all 11 native-artifact metadata
+tests, and all four managed HTTP runtime tests, including rejection of invalid
+policy discriminants without changing response headers.
+
 This is not a passing full standard-library run or complete API execution
-coverage. Response constructor lowering, obsolete Dynamic response/session test
+coverage. Managed streaming responses, obsolete Dynamic response/session test
 fixtures, Postgres routing in the separate HTTP serve dispatchers, and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then
