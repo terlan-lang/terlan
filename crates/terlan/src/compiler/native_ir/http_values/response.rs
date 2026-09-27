@@ -57,6 +57,31 @@ fn response_builder(name: &str, mut args: Vec<CoreExpr>) -> Result<CoreExpr, Str
         "json_text" => (2, 200, false),
         "redirect" => (3, 302, false),
         "file" => return file_response(args),
+        "stream" => {
+            if args.len() == 1 {
+                args.extend([
+                    CoreExpr::Int(200),
+                    string_expr("application/octet-stream"),
+                    CoreExpr::Int(16_384),
+                    CoreExpr::Int(128),
+                ]);
+            }
+            if args.len() != 5 {
+                return response_arity_error(name, args.len());
+            }
+            let chunks = args.remove(0);
+            let mut fields = vec![CoreExpr::Int(0), CoreExpr::Int(5), string_expr("")];
+            fields.extend(args.drain(..2));
+            fields.push(empty_response_headers());
+            fields.push(chunks);
+            fields.extend(args);
+            return Ok(CoreExpr::ConstructorCall {
+                type_args: Vec::new(),
+                constructor: response_constructor("stream"),
+                constructor_identity: Some(response_constructor("stream")),
+                args: fields,
+            });
+        }
         _ => {
             return Err(format!(
                 "error[native_ir.http_response_builder]: Response.{name} is not in the native managed HTTP profile"
@@ -105,6 +130,9 @@ fn file_response(mut args: Vec<CoreExpr>) -> Result<CoreExpr, String> {
             status,
             content_type,
             empty_response_headers(),
+            managed_http_call("empty_chunks", vec![]),
+            CoreExpr::Int(0),
+            CoreExpr::Int(0),
         ],
     })
 }

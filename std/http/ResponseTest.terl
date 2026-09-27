@@ -93,112 +93,42 @@ pub sample_cookie_with_options(response: Response): Unit ->
 pub sample_delete_cookie(response: Response): Unit ->
     response.delete_cookie("session").
 
-pub text_response_has_body(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body} -> tag == Atom["response"] and kind == Atom["text"] and body == "ok";
-        _ -> false
-    }.
+pub text_response_has_body(value: Response): Bool ->
+    value == Response.text("ok", 200) and value != Response.text("wrong", 200).
 
-pub redirect_response_has_location(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, location} ->
-            tag == Atom["response"] and kind == Atom["redirect"] and location == "/login";
-        _ -> false
-    }.
+pub redirect_response_has_location(value: Response): Bool ->
+    value == Response.redirect("/login", 302) and value != Response.redirect("/other", 302).
 
-pub stream_response_has_bounds(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, chunks, status, content_type, chunk_size, max_pending_writes} ->
-            tag == Atom["response"]
-                and kind == Atom["stream"]
-                and chunks == ["hello", " world"]
-                and status == 200
-                and content_type == "text/plain"
-                and chunk_size == 4
-                and max_pending_writes == 4;
-        _ -> false
-    }.
+pub stream_response_has_bounds(value: Response): Bool ->
+    value == Response.stream(["hello", " world"], 200, "text/plain", 4, 4)
+        and value != Response.stream(["hello", " world"], 200, "text/plain", 8, 4)
+        and value != Response.stream(["hello", " world"], 200, "text/plain", 4, 8).
 
-pub default_stream_response_has_bounds(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, chunks, status, content_type, chunk_size, max_pending_writes} ->
-            tag == Atom["response"]
-                and kind == Atom["stream"]
-                and chunks == ["ok"]
-                and status == 200
-                and content_type == "application/octet-stream"
-                and chunk_size == 16384
-                and max_pending_writes == 128;
-        _ -> false
-    }.
+pub default_stream_response_has_bounds(value: Response): Bool ->
+    value == Response.stream(["ok"], 200, "application/octet-stream", 16384, 128).
 
-pub status_response_has_metadata(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body, {metadata, status}} ->
-            tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and metadata == Atom["status"]
-                and status == 202;
-        _ -> false
-    }.
+pub status_response_has_metadata(value: Response): Bool ->
+    value == Response.text("ok", 202) and value != Response.text("ok", 200).
 
-pub header_response_has_metadata(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body, {metadata, name, header_value}} ->
-            tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and metadata == Atom["header"]
-                and name == "x-terlan"
-                and header_value == "yes";
-        _ -> false
-    }.
+pub header_response_has_metadata(value: Response): Bool ->
+    value == Response.text("ok").with_header("x-terlan", "yes")
+        and value != Response.text("ok").with_header("x-terlan", "no").
 
-pub cookie_response_has_metadata(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body, {metadata, name, cookie_value, path, http_only, secure}} ->
-            tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and metadata == Atom["cookie"]
-                and name == "session"
-                and cookie_value == "abc123"
-                and path == "/"
-                and http_only == true
-                and secure == false;
-        _ -> false
-    }.
+pub cookie_response_has_metadata(value: Response): Bool ->
+    value == Response.text("ok").with_header("Set-Cookie", "session=abc123; HttpOnly; Path=/").
 
-pub default_security_headers_response_has_metadata(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body, {header_tag_one, header_name_one, header_value_one}, {header_tag_two, header_name_two, header_value_two}, {header_tag_three, header_name_three, header_value_three}} ->
-            tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and header_tag_one == Atom["header"]
-                and header_name_one == "X-Frame-Options"
-                and header_value_one == "DENY"
-                and header_tag_two == Atom["header"]
-                and header_name_two == "Referrer-Policy"
-                and header_value_two == "strict-origin-when-cross-origin"
-                and header_tag_three == Atom["header"]
-                and header_name_three == "X-Content-Type-Options"
-                and header_value_three == "nosniff";
-        _ -> false
-    }.
+pub default_security_headers_response_has_metadata(value: Response): Bool ->
+    value == Response.text("ok")
+    .with_header("X-Frame-Options", "DENY")
+    .with_header("Referrer-Policy", "strict-origin-when-cross-origin")
+    .with_header("X-Content-Type-Options", "nosniff").
 
-pub production_security_headers_response_has_hsts(value: Dynamic): Bool ->
-    case value {
-        {tag, kind, body, {_header_tag_one, _header_name_one, _header_value_one}, {_header_tag_two, _header_name_two, _header_value_two}, {_header_tag_three, _header_name_three, _header_value_three}, {header_tag_four, header_name_four, header_value_four}} ->
-            tag == Atom["response"]
-                and kind == Atom["text"]
-                and body == "ok"
-                and header_tag_four == Atom["header"]
-                and header_name_four == "Strict-Transport-Security"
-                and header_value_four == "max-age=31536000; includeSubDomains";
-        _ -> false
-    }.
+pub production_security_headers_response_has_hsts(value: Response): Bool ->
+    value == Response.text("ok")
+    .with_header("X-Frame-Options", "DENY")
+    .with_header("Referrer-Policy", "strict-origin-when-cross-origin")
+    .with_header("X-Content-Type-Options", "nosniff")
+    .with_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains").
 
 @test
 pub response_builders_create_descriptors(): Bool ->

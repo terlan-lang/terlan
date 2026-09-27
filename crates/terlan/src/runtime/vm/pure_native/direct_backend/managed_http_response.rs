@@ -69,7 +69,7 @@ pub(super) fn materialize_http_response(
         if tag != 0 {
             return Err("error[execution_shard.http_response]: invalid Response tag".to_string());
         }
-        if kind == 4 {
+        if kind == 4 || kind == 5 {
             return Ok(None);
         }
         if !(0..=3).contains(&kind) {

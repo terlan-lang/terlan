@@ -82,8 +82,8 @@ they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
 The standard-library execution run now passes `std/db/PostgresTest.terl`, Cookies,
-HTTP Error, and Request before failing on the unsupported `Response.stream` in
-`std/http/ResponseTest.terl`. The Postgres command/test runner suspends actor-owned
+HTTP Error, Request, Response, Router, LiveChannel, SSE, and WebSocket before
+failing on the obsolete `Dynamic` argument in `std/http/TlsTest.terl`. The Postgres command/test runner suspends actor-owned
 calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
 Terlan, and terminal attempts revoke transaction handles. The worker enforces
@@ -129,14 +129,27 @@ atoms. Only header application converts those fields into the private HTTP
 discriminants, with unknown markers rejected by the runtime. Five source tests
 cover record identity, field access, default headers, production HSTS, and dynamic
 policy values. `stdlib-http-security-check` is required by the HTTP and release
-test gates. The constructor blocker is resolved; the streaming blocker remains.
+test gates. The constructor fix moved execution to the streaming blocker.
 The current local run passes 660 NativeIR tests, all 11 native-artifact metadata
 tests, and all four managed HTTP runtime tests, including rejection of invalid
 policy discriminants without changing response headers.
 
+Managed `Response.stream` now preserves typed chunks and positive stream limits
+through a uniform response layout and a VM-owned pull-driven body. The production
+Hyper adapter emits bounded byte slices without concatenating the source chunks;
+HTTP/1 framing owns completion, and dropping the body releases unconsumed chunks.
+A compiled source handler passes live HTTPS and VM HTTP/1 wire checks for chunk
+order, Unicode bytes, status and header updates, cookies, security policy, HEAD,
+empty streams, invalid limits, and coexistence with buffered responses. Separate
+polling tests cover cancellation and shared chunk storage. Response source tests
+now use the typed opaque contract instead of retired Dynamic tuples; all seven
+pass. Regression validation passes 661 NativeIR tests, 21 Hyper tests, eight
+response-bridge tests, four managed HTTP tests, and the existing buffered source
+handler test. Both binary Clippy profiles and the compiler-free serve check pass.
+
 This is not a passing full standard-library run or complete API execution
-coverage. Managed streaming responses, obsolete Dynamic response/session test
-fixtures, Postgres routing in the separate HTTP serve dispatchers, and
+coverage. Obsolete Dynamic TLS/session test fixtures, Postgres routing in the
+separate HTTP serve dispatchers, and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then
 closure-result lowering errors; its reproducer and diagnostics are retained under

@@ -3,8 +3,8 @@
 use crate::terlan_native::http as native_http;
 
 use super::super::{
-    ActorHeap, ManagedAggregate, ManagedFieldValue, ManagedLayoutRegistry, ManagedList,
-    ManagedMemoryError, SemanticTypeId, TvmRef,
+    ActorHeap, ManagedAggregate, ManagedFieldType, ManagedFieldValue, ManagedLayoutRegistry,
+    ManagedList, ManagedMemoryError, SemanticTypeId, TvmRef,
 };
 
 const MAGIC: &[u8; 4] = b"TVHO";
@@ -170,18 +170,31 @@ fn build_response(
     let empty_path = heap.allocate_string("")?.erase();
     let empty_headers = heap.list_from_elements(headers, &[])?.erase();
     let payload = super::reference_word(payload)?;
-    heap.allocate_aggregate_ref(
-        response,
-        &[
+    let mut fields = vec![
+        ManagedFieldValue::Int(0),
+        ManagedFieldValue::Int(i64::from(encoded[7])),
+        ManagedFieldValue::Reference(payload),
+        ManagedFieldValue::Int(status),
+        ManagedFieldValue::Reference(empty_path),
+        ManagedFieldValue::Reference(empty_headers),
+    ];
+    // Preserve admitted six-field images while new images carry stream storage.
+    if response.fields().len() == 9 {
+        let ManagedFieldType::Reference(chunks_semantic) = response.fields()[6].field_type() else {
+            return Err(ManagedMemoryError::ManagedTypeMismatch);
+        };
+        let chunks = layouts
+            .collection(chunks_semantic)
+            .and_then(|collection| collection.list_descriptor())
+            .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
+        fields.extend([
+            ManagedFieldValue::Reference(heap.list_from_elements(chunks, &[])?.erase()),
             ManagedFieldValue::Int(0),
-            ManagedFieldValue::Int(i64::from(encoded[7])),
-            ManagedFieldValue::Reference(payload),
-            ManagedFieldValue::Int(status),
-            ManagedFieldValue::Reference(empty_path),
-            ManagedFieldValue::Reference(empty_headers),
-        ],
-    )
-    .map(TvmRef::<ManagedAggregate>::erase)
+            ManagedFieldValue::Int(0),
+        ]);
+    }
+    heap.allocate_aggregate_ref(response, &fields)
+        .map(TvmRef::<ManagedAggregate>::erase)
 }
 
 /// Validates the common HTTP operation header.

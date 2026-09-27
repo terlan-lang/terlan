@@ -609,3 +609,125 @@ fn temp_web_root() -> PathBuf {
     std::fs::create_dir_all(&root).expect("create HTTP/2 fixture");
     root
 }
+
+#[test]
+fn source_response_stream_reaches_production_hyper_with_bounds_and_metadata() {
+    let root = temp_web_root();
+    let web = root.join("_build/web");
+    std::fs::create_dir_all(root.join("src/app")).unwrap();
+    std::fs::create_dir_all(&web).unwrap();
+    std::fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"stream_test\"\nversion = \"0.0.9\"\nnamespace = \"app\"\n",
+    )
+    .unwrap();
+    std::fs::write(web.join("index.html"), "").unwrap();
+    std::fs::write(
+        root.join("src/app/Api.terl"),
+        r#"module app.Api.
+import std.http.Response.
+import type std.http.Request.{Request}.
+import type std.http.Response.{Response}.
+pub handle(request: Request): Response ->
+    case request.query_string() {
+        "plain" -> Response.text("buffered");
+        "empty" -> Response.stream(["", ""]);
+        "invalid" -> Response.stream(["bad"], 200, "text/plain", 0, 1);
+        _ -> Response.stream(["hello", "", request.body_text(), "é🙂"], 201, "text/plain", 3, 1)
+            .with_status(202)
+            .with_cookie("session", "abc", "/", true, true)
+            .with_security_headers(Response.default_security_headers())
+    }.
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        web.join("manifest.json"),
+        r#"{
+        "schema":"terlan-web-build-v1", "target_profile":"js.browser",
+        "source_js_manifest":"../js/manifest.json", "index":"index.html", "assets":[],
+        "handlers":[{"method":"GET","route":"/stream","module":"app.Api",
+            "function":"handle","arity":1,"source":{"path":"src/app/Api.terl","line":5,"column":5}}]
+    }"#,
+    )
+    .unwrap();
+    crate::commands::serve::prewarm_dynamic_handler_sources(&web)
+        .expect("compile streaming source");
+    let (server_config, client_config) = tls_pair_with_client_alpn(b"http/1.1");
+    let listener =
+        crate::runtime::vm::protocol_task_executor::bind_protocol_listener("127.0.0.1", 0).unwrap();
+    let mut server = start_protocol_tasks_with_topology(
+        listener,
+        tls_factory(
+            web.clone(),
+            server_config,
+            1024,
+            Arc::new(WebSocketHub::default()),
+        ),
+        VmSchedulerTopology::new(1).unwrap(),
+    )
+    .unwrap();
+    let request = |method: &str, query: &str| {
+        let tcp = std::net::TcpStream::connect(server.local_addr()).unwrap();
+        tcp.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        let connection = ClientConnection::new(
+            Arc::clone(&client_config),
+            ServerName::try_from("localhost").unwrap(),
+        )
+        .unwrap();
+        let mut stream = StreamOwned::new(connection, tcp);
+        std::io::Write::write_all(&mut stream, format!("{method} /stream?{query} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: 3\r\n\r\nXYZ").as_bytes()).unwrap();
+        let mut response = Vec::new();
+        std::io::Read::read_to_end(&mut stream, &mut response).unwrap();
+        response
+    };
+    let response = request("GET", "");
+    let split = response
+        .windows(4)
+        .position(|bytes| bytes == b"\r\n\r\n")
+        .unwrap()
+        + 4;
+    let head = std::str::from_utf8(&response[..split]).unwrap();
+    assert!(head.starts_with("HTTP/1.1 202"), "{head}");
+    assert!(head.contains("transfer-encoding: chunked\r\n"), "{head}");
+    assert!(!head.contains("content-length:"), "{head}");
+    assert!(
+        head.contains("set-cookie: session=abc; HttpOnly; Secure; Path=/\r\n"),
+        "{head}"
+    );
+    assert!(head.contains("x-frame-options: DENY\r\n"), "{head}");
+    let expected = [
+        b"3\r\nhel\r\n2\r\nlo\r\n3\r\nXYZ\r\n3\r\n".as_slice(),
+        &"é🙂".as_bytes()[..3],
+        b"\r\n3\r\n",
+        &"é🙂".as_bytes()[3..],
+        b"\r\n0\r\n\r\n",
+    ]
+    .concat();
+    assert_eq!(&response[split..], expected);
+    let vm_wire = crate::commands::serve::request_dispatch::handle_vm_stream_http1_request(
+        &web,
+        b"GET /stream HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nXYZ",
+    )
+    .unwrap();
+    let vm_split = vm_wire
+        .windows(4)
+        .position(|bytes| bytes == b"\r\n\r\n")
+        .unwrap()
+        + 4;
+    assert!(vm_wire.starts_with(b"HTTP/1.1 202"));
+    assert_eq!(&vm_wire[vm_split..], expected);
+    let head = request("HEAD", "");
+    assert!(head.starts_with(b"HTTP/1.1 202"));
+    assert!(head.ends_with(b"\r\n\r\n"));
+    let plain = request("GET", "plain");
+    assert!(plain.starts_with(b"HTTP/1.1 200"));
+    assert!(plain.ends_with(b"buffered"));
+    let empty = request("GET", "empty");
+    assert!(empty.starts_with(b"HTTP/1.1 200"));
+    let invalid = request("GET", "invalid");
+    assert!(invalid.starts_with(b"HTTP/1.1 500") || invalid.starts_with(b"HTTP/1.1 502"));
+    assert!(String::from_utf8_lossy(&invalid).contains("invalid Response.stream limits"));
+    server.stop().unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -101,6 +101,11 @@ pub(super) fn response_descriptor() -> Result<Arc<ManagedAggregateDescriptor>, S
             ManagedFieldType::Int,
             ManagedFieldType::Reference(semantic("std.core.String")?),
             ManagedFieldType::Reference(semantic(RESPONSE_HEADERS)?),
+            ManagedFieldType::Reference(semantic(
+                &CoreType::List(Box::new(CoreType::String)).contract_text(),
+            )?),
+            ManagedFieldType::Int,
+            ManagedFieldType::Int,
         ],
     )
     .map(Arc::new)
