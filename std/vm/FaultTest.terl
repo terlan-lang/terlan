@@ -117,7 +117,7 @@ pub fault_monitor_classifies_isolates_and_recovers_node(): Bool ->
     complete_recovery_scenario(monitor, suspected, isolated).
 
 @test
-pub distributed_fault_recovery_and_rollback_has_no_orphaned_state(): Bool ->
+pub fault_recovery_and_migration_plan_rollback_preserve_event_history(): Bool ->
     let monitor =
         Fault.monitor(
             ["node-a", "node-b"],
@@ -146,7 +146,7 @@ pub fault_monitor_bounds_recovery_and_suppresses_transition_replay(): Bool ->
     }.
 
 @test
-pub migration_timeout_rolls_back_without_orphaned_scheduler_state(): Bool ->
+pub migration_plan_timeout_records_rollback_and_failure(): Bool ->
     let scheduler = Scheduler.new([Scheduler.node("node-a", "active"), Scheduler.node("node-b", "active")]);
     let requested = scheduler.request_migration("actor-a", "node-a", "node-b", true);
     let migration = Scheduler.migration(requested);

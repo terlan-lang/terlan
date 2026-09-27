@@ -15,6 +15,7 @@ mod direct_std;
 mod distributed_state;
 mod distributed_storage;
 mod execution;
+mod scheduling;
 mod storage_transport;
 pub(crate) use execution::execute_call;
 pub(crate) use storage_transport::VmStorageBinding;
@@ -58,6 +59,7 @@ pub(crate) struct VmPackageNativeHelpers {
     direct_std_resources: ResourceStore,
     cluster: cluster::VmClusterRuntime,
     distributed_state: distributed_state::VmDistributedStateRuntime,
+    scheduling: scheduling::VmSchedulingRuntime,
     distributed_storage: distributed_storage::VmDistributedStorageRuntime,
     storage_workers: storage_transport::VmStorageWorkers,
     program_arguments: Vec<String>,
@@ -116,6 +118,11 @@ impl VmPackageNativeHelpers {
         admitted_atoms: &[String],
     ) -> VmRuntimeResult<ReplValue> {
         let namespace = package_operation_namespace(&request.operation)?;
+        if request.operation.starts_with("std.vm.fault.")
+            || request.operation.starts_with("std.vm.scheduler.")
+        {
+            return self.scheduling.call(owner_process_id, request);
+        }
         if request.operation.starts_with("std.vm.distributed_storage.") {
             return self.distributed_storage.call(
                 owner_process_id,
@@ -214,6 +221,7 @@ impl VmPackageNativeHelpers {
         self.direct_std_resources.dispose_owner(owner_process_id);
         self.cluster.close_owner(owner_process_id);
         self.distributed_state.close_owner(owner_process_id);
+        self.scheduling.close_owner(owner_process_id);
         self.distributed_storage.close_owner(owner_process_id);
     }
 }

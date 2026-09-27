@@ -3,7 +3,8 @@
 use std::collections::HashMap;
 
 use crate::terlan_typeck::{
-    CoreExpr, CoreIntrinsicId, CorePattern, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
+    CoreExpr, CoreIntrinsicId, CoreMapTypeField, CorePattern, CorePrimitiveIntrinsic,
+    CoreTupleTypeElem, CoreType,
 };
 
 use super::super::{native_type, NativeExpr, NativeType};
@@ -110,6 +111,17 @@ pub(super) fn core_expr_type(
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
+        CoreExpr::Map(fields) if fields.iter().all(|field| field.required) => fields
+            .iter()
+            .map(|field| {
+                Some(CoreMapTypeField {
+                    key: field.key.clone(),
+                    operator: ":".into(),
+                    value: core_expr_type(&field.value, types, functions)?,
+                })
+            })
+            .collect::<Option<Vec<_>>>()
+            .map(CoreType::Map),
         CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
             core_expr_type(item, types, functions)
         }),

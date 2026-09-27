@@ -3,6 +3,10 @@
 //! `std.vm.Fault` exposes typed descriptors for scheduler-owned fault
 //! classification, recovery windows, and migration rollback diagnostics. The VM
 //! owns event ordering, duplicate replay, and state-transition validation.
+//! Monitors are mutable actor-owned resources driven by caller-supplied ticks
+//! and observations. They do not discover peers, probe networks, replicate data,
+//! or migrate live actors. Rollbacks are diagnostic descriptors; compatibility
+//! classifies the supplied policy flags, not the capabilities of a remote node.
 
 module std.vm.Fault.
 

@@ -1,7 +1,9 @@
-use super::{VmDistributedScheduler, VmMigrationOutcome, VmMigrationPhase, VmSchedulerEventKind};
+use super::{VmDistributedScheduler, VmMigrationPhase};
+#[cfg(test)]
+use super::{VmMigrationOutcome, VmSchedulerEventKind};
 
 /// Distributed fault state for one VM cluster node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum VmDistributedFaultState {
     Recovered,
     Suspected,
@@ -18,7 +20,6 @@ pub(crate) struct VmDistributedFaultPolicy {
     pub(crate) recovery_window_ticks: u64,
 }
 
-#[cfg(test)]
 impl VmDistributedFaultPolicy {
     /// Builds a fault policy with explicit non-zero ordered thresholds.
     pub(crate) fn new(
@@ -51,7 +52,6 @@ impl VmDistributedFaultPolicy {
 
 /// Explicit compatibility outcome for nodes without partition-tolerant execution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg(test)]
 pub(crate) enum VmDistributedCompatibilityOutcome {
     Supported,
     FallbackLocalOnly,
@@ -59,7 +59,6 @@ pub(crate) enum VmDistributedCompatibilityOutcome {
 }
 
 /// Classifies support without silently attempting unsafe distributed execution.
-#[cfg(test)]
 pub(crate) const fn distributed_fault_compatibility(
     partition_tolerant: bool,
     local_fallback_available: bool,
@@ -92,7 +91,7 @@ pub(crate) enum VmDistributedHeartbeatObservation {
 }
 
 /// Replayable diagnostic for one distributed fault-state transition.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct VmDistributedFaultTransition {
     pub(crate) node_id: String,
     pub(crate) previous_state: VmDistributedFaultState,
@@ -108,7 +107,6 @@ pub(super) struct VmDistributedFaultStatus {
     pub(super) last_tick: u64,
 }
 
-#[cfg(test)]
 impl VmDistributedFaultStatus {
     /// Returns a recovered status for newly active nodes.
     pub(super) const fn recovered() -> Self {
@@ -156,7 +154,6 @@ pub(crate) enum VmDistributedFailureKind {
     },
 }
 
-#[cfg(test)]
 impl VmDistributedFailureKind {
     /// Stable machine-readable failure category.
     pub(crate) const fn label(&self) -> &'static str {
@@ -171,7 +168,6 @@ impl VmDistributedFailureKind {
     }
 }
 
-#[cfg(test)]
 impl VmDistributedFaultTransition {
     /// Stable machine-readable decision represented by the state transition.
     pub(crate) const fn diagnostic_kind(&self) -> &'static str {
@@ -196,7 +192,6 @@ pub(crate) struct VmDistributedFailureEnvelope {
 
 impl VmDistributedScheduler {
     /// Records a heartbeat tick for fault detection and suppresses duplicates.
-    #[cfg(test)]
     pub(crate) fn record_fault_heartbeat_at_tick(
         &mut self,
         node_id: &str,
@@ -223,7 +218,6 @@ impl VmDistributedScheduler {
     }
 
     /// Marks a node suspected when its heartbeat gap exceeds the policy threshold.
-    #[cfg(test)]
     pub(crate) fn suspect_missed_heartbeat_at_tick(
         &mut self,
         node_id: &str,
@@ -273,7 +267,6 @@ impl VmDistributedScheduler {
     }
 
     /// Isolates a suspected node when its heartbeat gap exceeds the policy threshold.
-    #[cfg(test)]
     pub(crate) fn isolate_missed_heartbeat_at_tick(
         &mut self,
         node_id: &str,
@@ -329,7 +322,6 @@ impl VmDistributedScheduler {
     }
 
     /// Re-isolates a recovering node when its recovery window expires.
-    #[cfg(test)]
     pub(crate) fn expire_recovery_window_at_tick(
         &mut self,
         node_id: &str,
@@ -389,7 +381,6 @@ impl VmDistributedScheduler {
     }
 
     /// Completes recovery for a recovering node and refreshes its heartbeat tick.
-    #[cfg(test)]
     pub(crate) fn complete_recovery_at_tick(
         &mut self,
         node_id: &str,
@@ -535,7 +526,6 @@ impl VmDistributedScheduler {
     }
 
     /// Returns the tracked fault state for one active node.
-    #[cfg(test)]
     pub(crate) fn fault_state(&self, node_id: &str) -> Option<VmDistributedFaultState> {
         self.fault_states.get(node_id).map(|status| status.state)
     }
@@ -547,7 +537,6 @@ impl VmDistributedScheduler {
     }
 
     /// Returns replayable fault diagnostics after a scheduler tick cursor.
-    #[cfg(test)]
     pub(crate) fn fault_transitions_after(&self, tick: u64) -> Vec<VmDistributedFaultTransition> {
         let mut transitions = self
             .fault_transitions
@@ -573,7 +562,6 @@ impl VmDistributedScheduler {
     }
 
     /// Returns replayable distributed failure envelopes after a tick cursor.
-    #[cfg(test)]
     pub(crate) fn failure_envelopes_after(&self, tick: u64) -> Vec<VmDistributedFailureEnvelope> {
         let mut envelopes = self
             .failure_envelopes
@@ -599,7 +587,6 @@ impl VmDistributedScheduler {
     }
 
     /// Applies a legal distributed fault-state transition for one active node.
-    #[cfg(test)]
     pub(crate) fn transition_fault_state_at_tick(
         &mut self,
         node_id: impl Into<String>,
@@ -645,7 +632,6 @@ impl VmDistributedScheduler {
     }
 
     /// Replays a previously recorded fault transition when retry metadata matches.
-    #[cfg(test)]
     fn replay_fault_transition(
         &self,
         node_id: &str,
@@ -670,7 +656,6 @@ impl VmDistributedScheduler {
     }
 
     /// Validates that a node participates in fault tracking.
-    #[cfg(test)]
     fn validate_active_fault_node(&self, node_id: &str) -> Result<(), String> {
         if self.active_nodes.contains_key(node_id) {
             return Ok(());
@@ -681,7 +666,6 @@ impl VmDistributedScheduler {
     }
 
     /// Validates a human-readable distributed fault transition reason.
-    #[cfg(test)]
     fn validate_fault_reason(&self, reason: impl Into<String>) -> Result<String, String> {
         let reason = reason.into();
         if reason.is_empty() {
@@ -707,7 +691,6 @@ impl VmDistributedScheduler {
     }
 
     /// Returns the last recorded heartbeat tick for one active node.
-    #[cfg(test)]
     fn last_heartbeat_tick(&self, node_id: &str) -> Result<u64, String> {
         self.last_heartbeat_ticks
             .get(node_id)
@@ -749,7 +732,6 @@ pub(super) fn validate_fault_policy(policy: VmDistributedFaultPolicy) -> Result<
 }
 
 /// Returns whether a fault-state transition is legal for a VM node.
-#[cfg(test)]
 fn is_valid_fault_transition(
     previous: VmDistributedFaultState,
     next: VmDistributedFaultState,

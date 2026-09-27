@@ -19,6 +19,7 @@ mod atom;
 mod binary;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
+mod plain;
 mod record;
 mod string;
 #[path = "structured_case/suspending.rs"]

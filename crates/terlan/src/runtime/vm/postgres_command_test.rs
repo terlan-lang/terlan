@@ -11,6 +11,7 @@ fn command_client_rejects_invalid_config_before_worker_dispatch() {
     );
 }
 
+#[cfg(all(feature = "postgres-libpq", not(feature = "serve-runtime-bin")))]
 #[test]
 fn command_client_reports_unreachable_database_without_leaking_url() {
     let url = "postgres://secret:never-print@127.0.0.1:1/terlan";
@@ -27,6 +28,7 @@ fn command_client_reports_unreachable_database_without_leaking_url() {
     assert!(!error.contains("never-print"));
 }
 
+#[cfg(all(feature = "postgres-libpq", not(feature = "serve-runtime-bin")))]
 #[test]
 fn command_client_rejects_empty_batch_before_opening_a_socket() {
     let mut client = VmPostgresCommandClient::connect(
@@ -42,4 +44,16 @@ fn command_client_rejects_empty_batch_before_opening_a_socket() {
         error,
         "error[postgres.sql.empty]: Postgres SQL text must not be empty"
     );
+}
+
+#[cfg(any(feature = "serve-runtime-bin", not(feature = "postgres-libpq")))]
+#[test]
+fn command_client_requires_capability_worker_without_leaking_url() {
+    let url = "postgres://secret:never-print@127.0.0.1:1/terlan";
+    let error =
+        VmPostgresCommandClient::connect(&postgres::Config::new(url).with_timeouts(100, 100))
+            .expect_err("the compiler-free runtime must not open a database socket");
+    assert!(error.starts_with("error[postgres.capability_worker.required]:"));
+    assert!(!error.contains(url));
+    assert!(!error.contains("never-print"));
 }

@@ -1,16 +1,20 @@
 use std::collections::BTreeMap;
 
-use super::coordination::{VmClusterNodeSnapshot, VmClusterNodeState};
+use super::coordination_membership::{VmClusterNodeSnapshot, VmClusterNodeState};
 
-mod fault;
+pub(crate) mod fault;
 mod placement_override;
+use placement_override::validate_scheduling_limits;
+#[cfg(test)]
 mod source_snapshot;
 use fault::{validate_fault_policy, VmDistributedFaultStatus};
 pub(crate) use fault::{
-    VmDistributedFailureEnvelope, VmDistributedFailureKind, VmDistributedFaultPolicy,
-    VmDistributedFaultTransition,
+    VmDistributedFailureEnvelope, VmDistributedFaultPolicy, VmDistributedFaultTransition,
 };
-pub(crate) use fault::{VmDistributedFaultState, VmDistributedHeartbeatObservation};
+#[cfg(test)]
+pub(crate) use fault::{
+    VmDistributedFailureKind, VmDistributedFaultState, VmDistributedHeartbeatObservation,
+};
 
 /// Fallback behavior when a shard-affinity owner is unavailable.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,7 +61,7 @@ pub(crate) struct VmPlacementAssignment {
 }
 
 /// Ordered phase for one VM actor/process migration handoff.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub(crate) enum VmMigrationPhase {
     Requested,
     Snapshotting,
@@ -87,7 +91,7 @@ pub(crate) enum VmMigrationOutcome {
 }
 
 /// Typed VM scheduler event payload for placement and migration notifications.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) enum VmSchedulerEventKind {
     Placement {
         node_id: String,
@@ -118,7 +122,7 @@ pub(crate) enum VmSchedulerEventKind {
 }
 
 /// Inspectable scheduler notification emitted by VM-owned scheduling decisions.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct VmSchedulerEvent {
     pub(crate) event_sequence: u64,
     pub(crate) actor_id: String,
@@ -179,7 +183,6 @@ pub(crate) struct VmDistributedScheduler {
     last_heartbeat_ticks: BTreeMap<String, u64>,
 }
 
-#[cfg(test)]
 impl VmDistributedScheduler {
     /// Builds a scheduler from the active portion of a membership view.
     pub(crate) fn from_membership(
@@ -346,21 +349,25 @@ impl VmDistributedScheduler {
     }
 
     /// Returns the known owner for a shard key, if one has been assigned.
+    #[cfg(test)]
     pub(crate) fn shard_owner(&self, shard_key: &str) -> Option<&str> {
         self.shard_owners.get(shard_key).map(String::as_str)
     }
 
     /// Returns the current placement assignment for one actor, if known.
+    #[cfg(test)]
     pub(crate) fn placement_assignment(&self, actor_id: &str) -> Option<&VmPlacementAssignment> {
         self.placement_assignments.get(actor_id)
     }
 
     /// Returns the number of active nodes available for placement.
+    #[cfg(test)]
     pub(crate) fn active_node_count(&self) -> usize {
         self.active_nodes.len()
     }
 
     /// Returns the number of in-flight migrations currently tracked.
+    #[cfg(test)]
     pub(crate) fn in_flight_migration_count(&self) -> usize {
         self.in_flight_migrations.len()
     }
@@ -568,6 +575,7 @@ impl VmDistributedScheduler {
     }
 
     /// Returns the full scheduler event log in deterministic order.
+    #[cfg(test)]
     pub(crate) fn events(&self) -> &[VmSchedulerEvent] {
         &self.events
     }
@@ -582,6 +590,7 @@ impl VmDistributedScheduler {
     }
 
     /// Applies a placement update from a replayed scheduler event.
+    #[cfg(test)]
     pub(crate) fn apply_placement_update(
         &mut self,
         event: VmSchedulerEvent,
@@ -873,24 +882,7 @@ impl VmDistributedScheduler {
     }
 }
 
-/// Validates scheduler limits before construction.
-fn validate_scheduling_limits(limits: VmSchedulingLimits) -> Result<(), String> {
-    if limits.max_in_flight_migrations == 0 {
-        return Err(
-            "error[vm_distributed_scheduler]: max in-flight migrations must be non-zero"
-                .to_string(),
-        );
-    }
-    if limits.max_migrations_per_tick == 0 {
-        return Err(
-            "error[vm_distributed_scheduler]: max migrations per tick must be non-zero".to_string(),
-        );
-    }
-    Ok(())
-}
-
 /// Returns the only valid next migration phase.
-#[cfg(test)]
 fn next_migration_phase(phase: VmMigrationPhase) -> Option<VmMigrationPhase> {
     match phase {
         VmMigrationPhase::Requested => Some(VmMigrationPhase::Snapshotting),
