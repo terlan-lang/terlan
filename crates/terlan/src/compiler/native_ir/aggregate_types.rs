@@ -237,9 +237,9 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                 inventory(argument, layouts)?;
             }
         }
-        CoreType::Struct { name, fields } => {
+        CoreType::Struct { fields, .. } => {
             let descriptor = ManagedAggregateDescriptor::record(
-                name,
+                &managed_semantic_contract(ty),
                 fields
                     .iter()
                     .map(|field| {

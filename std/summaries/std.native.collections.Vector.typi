@@ -118,6 +118,9 @@ pub (vector: Vector[T]) to_list(): List[T].
 pub impl std.collections.Index.IndexGet[Vector[T], Int, T] for Vector[T] {
 }.
 
+pub impl std.collections.Index.IndexSet[Vector[T], Int, T] for Vector[T] {
+}.
+
 /// Constructs a native vector from positional values.
 ///
 /// Input: zero or more values of the same element type `T`.

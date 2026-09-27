@@ -25,7 +25,7 @@ pub from_list_and_to_list_roundtrip(): Bool ->
         1
         |> List(2, 3)
         |> Vector.from_list();
-    assert_equal(3, values.to_list().length()).
+    assert_equal(List(1, 2, 3), values.to_list()).
 
 @test
 pub get_at_reads_indexed_value(): Bool ->
@@ -75,3 +75,28 @@ pub push_appends_value(): Bool ->
     let values = empty_vector();
     values.push(7);
     assert_equal(7, values[0]).
+
+@test
+pub string_and_boolean_vectors_keep_distinct_element_types(): Bool ->
+    let strings = Vector("first", "second");
+    let booleans = Vector(true, false);
+    strings[0] = "updated";
+    booleans[1] = true;
+    assert_equal("updated", strings[0])
+        and assert_equal("second", strings[1])
+        and assert_equal(true, booleans[1]).
+
+@test
+pub mutations_preserve_receiver_for_later_operations(): Bool ->
+    let values = empty_vector();
+    values.push(10);
+    values.push(20);
+    values.set_at(0, 30);
+    values.swap(0, 1);
+    assert_equal(List(20, 30), values.to_list()).
+
+@test
+pub vector_and_portable_list_indexing_keep_their_own_dispatch(): Bool ->
+    let list = List(4, 5);
+    let vector = Vector(6, 7);
+    assert_equal(5, list[1]) and assert_equal(7, vector[1]).

@@ -1,6 +1,6 @@
 //! Loopback server and request orchestration for the HTTP AOT benchmark.
 
-use crate::support::statistics::percentile;
+use crate::benchmark_statistics::percentile;
 
 use std::env;
 use std::fs;

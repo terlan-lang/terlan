@@ -10,8 +10,6 @@ use serde::de::DeserializeOwned;
 use boundary_error::{BoundaryError, ErrorDomain};
 
 pub mod boundary_error;
-#[cfg(any(test, feature = "benchmark-tools"))]
-pub(crate) mod statistics;
 
 #[path = "sha256_file.rs"]
 mod sha256_file;

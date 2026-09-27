@@ -147,6 +147,7 @@ fn is_compiler_owned_value_facade(canonical: &str) -> bool {
             | "std.http.Session.Session"
             | "std.vm.Bytes.Bytes"
             | "std.vm.BitString.BitString"
+            | "std.vm.Message.Message"
             | "std.vm.Process.Process"
             | "std.vm.Process.Entry"
             | "std.vm.Process.Timer"
@@ -163,6 +164,7 @@ fn is_compiler_owned_value_facade(canonical: &str) -> bool {
 pub(super) fn canonicalize_native_package_types(
     cores: &mut [CoreModule],
     aliases: &HashMap<String, (String, CoreType)>,
+    include_generic_handles: bool,
 ) -> Result<(), String> {
     let opaque = cores
         .iter()
@@ -170,10 +172,11 @@ pub(super) fn canonicalize_native_package_types(
             core.types
                 .iter()
                 .filter(|&declaration| {
-                    matches!(
-                        declaration.visibility,
-                        crate::terlan_typeck::CoreVisibility::Opaque
-                    )
+                    (include_generic_handles || declaration.params.is_empty())
+                        && matches!(
+                            declaration.visibility,
+                            crate::terlan_typeck::CoreVisibility::Opaque
+                        )
                 })
                 .map(|declaration| format!("{}.{}", core.module, declaration.name))
         })
@@ -281,6 +284,24 @@ pub(super) fn resolve_imported_native_package_type(
                 resolve_imported_native_package_type(alias, module, imports, aliases, visiting)?;
             visiting.remove(&key);
             resolved
+        }
+        CoreType::Apply { constructor, .. }
+            if imported_native_package_alias(constructor, module, imports, aliases)?
+                .and_then(|key| aliases.get(&key))
+                .is_some_and(|(_, body)| {
+                    matches!(body, CoreType::Struct { fields, .. }
+                    if fields.first().is_some_and(|field| field.name == "$native_owner"))
+                }) =>
+        {
+            // Type arguments have already selected concrete callables. Opaque
+            // resources share a capability layout independent of element type.
+            resolve_imported_native_package_type(
+                &CoreType::Named(constructor.clone()),
+                module,
+                imports,
+                aliases,
+                visiting,
+            )?
         }
         CoreType::Apply { constructor, args } => CoreType::Apply {
             constructor: constructor.clone(),

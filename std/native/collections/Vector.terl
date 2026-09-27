@@ -7,7 +7,7 @@
  */
 module std.native.collections.Vector.
 
-import std.collections.Index.{IndexGet}.
+import std.collections.Index.{IndexGet, IndexSet}.
 import std.collections.List.{first}.
 import std.core.{Option, Unit}.
 
@@ -176,4 +176,16 @@ pub (vector: Vector[T]) to_list(): List[T] ->
 pub impl IndexGet[Vector[T], Int, T] for Vector[T] {
     get_at(vector: Vector[T], index: Int): T ->
         vector.get_at(index).
+}.
+
+/**
+ * Connects native vector writes to bracket assignment.
+ *
+ * Input: one mutable vector, an index, and a replacement value.
+ * Output: `Unit` after updating the indexed value.
+ * Transformation: delegates to the native mutable receiver operation.
+ */
+pub impl IndexSet[Vector[T], Int, T] for Vector[T] {
+    set_at(mut vector: Vector[T], index: Int, value: T): Unit ->
+        vector.set_at(index, value).
 }.
