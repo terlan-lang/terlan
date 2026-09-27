@@ -67,6 +67,7 @@ pub(super) struct CapabilityDispose {
 struct NativeCapabilityExecutor {
     worker: NativeBoundaryWorker,
     storage: super::storage::StorageExecutor,
+    postgres: super::postgres::PostgresExecutor,
     capabilities: Vec<String>,
     classes: Vec<NativeBoundaryWorkerClass>,
 }
@@ -77,6 +78,7 @@ impl NativeCapabilityExecutor {
         Self {
             worker: NativeBoundaryWorker::new(config.credit_limit),
             storage: super::storage::StorageExecutor::new(config),
+            postgres: super::postgres::PostgresExecutor::default(),
             capabilities: config.capabilities.iter().cloned().collect(),
             classes,
         }
@@ -89,6 +91,9 @@ impl CapabilityExecutor for NativeCapabilityExecutor {
         call: CapabilityCall,
         cancellation: &NativeBoundaryCancellationToken,
     ) -> NativeBoundaryWorkerReply {
+        if super::postgres::admits(&call.operation) {
+            return self.postgres.call(&mut self.worker, call, cancellation);
+        }
         if super::storage::admits(&call.operation) {
             return self.storage.call(&mut self.worker, call, cancellation);
         }
@@ -473,6 +478,16 @@ fn admit_call(
             "storage requires a durable binding and blocking worker admission",
         );
     }
+    if super::postgres::admits(&call.operation) && !config.worker_classes.contains("blocking") {
+        return write_rejection(
+            config,
+            output,
+            active.len(),
+            call.request_id,
+            "capability_worker.postgres_denied",
+            "Postgres requires blocking worker admission",
+        );
+    }
     if active.len() >= usize::try_from(config.credit_limit).unwrap_or(usize::MAX) {
         let error = error_for(ErrorKind::BackpressureLimit);
         return write_rejection(
@@ -514,6 +529,9 @@ fn admit_call(
 fn operation_admission(
     operation: &str,
 ) -> Option<(&'static str, NativeBoundaryCancellationPolicy)> {
+    if super::postgres::admits(operation) {
+        return Some(("postgres", NativeBoundaryCancellationPolicy::Cooperative));
+    }
     if super::storage::admits(operation) {
         return Some(("storage", NativeBoundaryCancellationPolicy::Cooperative));
     }

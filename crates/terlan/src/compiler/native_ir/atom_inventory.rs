@@ -52,6 +52,10 @@ pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> 
     for core in cores {
         for (module, errors) in [
             ("std.data.Json", RUNTIME_JSON_ERROR_ATOMS),
+            (
+                "std.db.Postgres",
+                crate::terlan_native::postgres::SOURCE_ERROR_CODES,
+            ),
             ("std.regex.Regex", RUNTIME_REGEX_ERROR_ATOMS),
             ("std.data.Toml", RUNTIME_TOML_ERROR_ATOMS),
             ("std.encoding.Base64", RUNTIME_BASE64_ERROR_ATOMS),

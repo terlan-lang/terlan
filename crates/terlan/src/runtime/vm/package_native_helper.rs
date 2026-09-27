@@ -15,6 +15,8 @@ mod direct_std;
 mod distributed_state;
 mod distributed_storage;
 mod execution;
+mod postgres;
+mod postgres_transport;
 mod scheduling;
 mod storage_transport;
 pub(crate) use execution::execute_call;
@@ -62,6 +64,8 @@ pub(crate) struct VmPackageNativeHelpers {
     scheduling: scheduling::VmSchedulingRuntime,
     distributed_storage: distributed_storage::VmDistributedStorageRuntime,
     storage_workers: storage_transport::VmStorageWorkers,
+    postgres: postgres::Adapter,
+    postgres_workers: postgres_transport::Workers,
     program_arguments: Vec<String>,
 }
 
@@ -217,6 +221,8 @@ impl VmPackageNativeHelpers {
 
     fn close_owner(&mut self, owner_process_id: u64) {
         self.storage_workers.cancel_owner(owner_process_id);
+        self.postgres_workers.close_owner(owner_process_id);
+        self.postgres.close_owner(owner_process_id);
         self.exchanges.close_owner(owner_process_id);
         self.direct_std_resources.dispose_owner(owner_process_id);
         self.cluster.close_owner(owner_process_id);

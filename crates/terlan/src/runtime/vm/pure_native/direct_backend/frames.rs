@@ -43,6 +43,12 @@ pub(super) fn frame_from_status(
                 "error[execution_shard.capability_arguments]: missing capability tag".to_string()
             })?;
             let count = match tag {
+                crate::runtime::native_image::control::package_union::TAG => {
+                    crate::runtime::native_image::control::package_union::frame_words(
+                        &transition_values,
+                    )
+                    .map_err(String::from)?
+                }
                 7 => {
                     let argument_count = transition_values
                         .get(5)

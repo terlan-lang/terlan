@@ -347,6 +347,16 @@ pub(super) fn application_resolvers(
     cores
         .iter()
         .map(|core| {
+            let source_modules = core
+                .functions
+                .iter()
+                .filter_map(|function| {
+                    function
+                        .source
+                        .as_ref()
+                        .map(|source| source.module.as_str())
+                })
+                .collect::<HashSet<_>>();
             let mut resolved = HashMap::<CallIdentity, Option<usize>>::new();
             let mut local_identities = HashSet::new();
             for (index, candidate) in candidates.iter().enumerate() {
@@ -366,7 +376,8 @@ pub(super) fn application_resolvers(
             }
             for (index, candidate) in candidates.iter().enumerate() {
                 if !selected[index]
-                    || !candidate.function.public
+                    || (!candidate.function.public
+                        && !source_modules.contains(candidate.core.module.as_str()))
                     || candidate.core.module == core.module
                 {
                     continue;
@@ -375,7 +386,9 @@ pub(super) fn application_resolvers(
                     format!("{}.{}", candidate.core.module, candidate.function.name),
                     candidate.function.arity,
                 )];
-                if imports_function(core, candidate) {
+                // Admission already checked each body's original declaration authority.
+                // Private source helpers are visible here only by qualified identity.
+                if candidate.function.public && imports_function(core, candidate) {
                     identities.push((candidate.function.name.clone(), candidate.function.arity));
                 }
                 for identity in identities {

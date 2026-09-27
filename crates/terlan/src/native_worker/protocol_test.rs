@@ -580,3 +580,29 @@ fn worker_requires_explicit_storage_binding_and_authority() {
 fn first_reply(output: &str) -> Value {
     serde_json::from_str(output.lines().next().expect("first reply")).expect("reply JSON")
 }
+
+/// Internal database commands require both capability and execution-class authority.
+#[test]
+fn worker_postgres_wire_requires_grant_and_blocking_class() {
+    for (args, expected) in [
+        (
+            vec!["--worker-class", "blocking"],
+            "native_boundary.capability_denied",
+        ),
+        (
+            vec!["--allow", "postgres", "--worker-class", "fast"],
+            "capability_worker.postgres_denied",
+        ),
+    ] {
+        let output = run_frames(
+            args,
+            concat!(
+                "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
+                "\"capability\":\"postgres\",\"operation\":\"runtime.postgres.connect\",",
+                "\"arguments\":[{\"type\":\"text\",\"value\":\"postgres://localhost/test\"}]}\n",
+                "{\"type\":\"shutdown\",\"version\":3}\n"
+            ),
+        );
+        assert_eq!(first_reply(&output)["outcome"]["code"], expected);
+    }
+}

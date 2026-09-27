@@ -54,6 +54,50 @@ fn execute_root(
     let waker = Waker::from(Arc::new(OwnerWake(std::thread::current())));
     loop {
         helpers.storage_workers.register_waker(&waker);
+        helpers.postgres_workers.register_waker(&waker);
+        let completion = match helpers.postgres_workers.poll() {
+            Ok(completion) => completion,
+            Err(error) => return cancel_with_error(shard, owner, error),
+        };
+        let postgres_progress = completion.is_some();
+        if let Some(completion) = completion {
+            let pending = completion.pending;
+            let value = helpers.postgres.complete(
+                pending.owner.as_u64(),
+                pending.projection,
+                completion.reply,
+                &mut helpers.direct_std_resources,
+            );
+            if pending.owner == owner {
+                let value = match value {
+                    Ok(value) => value,
+                    Err(error) => return cancel_with_error(shard, owner, error),
+                };
+                execution = Some(shard.resume_capability_value_call(
+                    owner,
+                    pending.suspension,
+                    pending.wait,
+                    value,
+                )?);
+            } else {
+                let value = value.map_err(|error| {
+                    fail_resident_capability(shard, helpers, pending.owner, error)
+                })?;
+                if shard
+                    .resume_resident_capability_value_call(
+                        pending.owner,
+                        pending.suspension,
+                        pending.wait,
+                        value,
+                    )
+                    .map_err(|error| {
+                        fail_resident_capability(shard, helpers, pending.owner, error)
+                    })?
+                {
+                    helpers.close_owner(pending.owner.as_u64());
+                }
+            }
+        }
         let completion = match helpers.storage_workers.poll() {
             Ok(completion) => completion,
             Err(error) => return cancel_with_error(shard, owner, error),
@@ -125,8 +169,13 @@ fn execute_root(
             Err(error) => return cancel_with_error(shard, owner, error),
         };
         let Some(current) = execution.take() else {
-            if !resident_progress && !storage_progress {
-                std::thread::park_timeout(helpers.storage_workers.idle_duration());
+            if !resident_progress && !storage_progress && !postgres_progress {
+                std::thread::park_timeout(
+                    helpers
+                        .storage_workers
+                        .idle_duration()
+                        .min(helpers.postgres_workers.idle_duration()),
+                );
             }
             continue;
         };
@@ -149,6 +198,21 @@ fn execute_root(
                     Ok(wait) => wait,
                     Err(error) => return cancel_with_error(shard, owner, error),
                 };
+                let postgres_request = match helpers.postgres.prepare(
+                    owner.as_u64(),
+                    wait.request(),
+                    &helpers.direct_std_resources,
+                ) {
+                    Ok(request) => request,
+                    Err(error) => return cancel_with_error(shard, owner, error),
+                };
+                if let Some(request) = postgres_request {
+                    if let Err(error) = submit_postgres(helpers, owner, *suspension, wait, request)
+                    {
+                        return cancel_with_error(shard, owner, error);
+                    }
+                    continue;
+                }
                 let storage_request = match helpers
                     .distributed_storage
                     .prepare(owner.as_u64(), wait.request())
@@ -211,6 +275,19 @@ fn service_resident_capability(
     let Some((owner, suspension, wait)) = shard.take_resident_capability_call()? else {
         return Ok(false);
     };
+    if let Some(request) = helpers
+        .postgres
+        .prepare(
+            owner.as_u64(),
+            wait.request(),
+            &helpers.direct_std_resources,
+        )
+        .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?
+    {
+        submit_postgres(helpers, owner, suspension, wait, request)
+            .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?;
+        return Ok(true);
+    }
     if let Some(request) = helpers
         .distributed_storage
         .prepare(owner.as_u64(), wait.request())
@@ -286,4 +363,27 @@ fn fail_resident_capability(
         Ok(()) => error,
         Err(cleanup) => format!("{error}; error[execution_shard.cleanup]: {cleanup}"),
     }
+}
+
+/// Parks the exact source continuation with database-only worker authority.
+fn submit_postgres(
+    helpers: &mut VmPackageNativeHelpers,
+    owner: VmProcessId,
+    suspension: PureNativeSuspension,
+    wait: PureNativeCapabilityWait,
+    request: postgres::Request,
+) -> VmRuntimeResult<()> {
+    let mut context = wait.worker_context()?;
+    context.capability = VmCapabilityId::new("postgres")?;
+    helpers.postgres_workers.submit(
+        &request.operation,
+        request.arguments,
+        postgres_transport::Pending {
+            owner,
+            suspension,
+            wait,
+            projection: request.projection,
+            context,
+        },
+    )
 }

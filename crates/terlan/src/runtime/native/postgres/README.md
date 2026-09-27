@@ -1,26 +1,31 @@
 # Native Postgres Internals
 
-This directory owns Postgres helper modules for the Rust-native adapter.
+This directory owns URL validation, libpq loading, and typed row decoding.
+The legacy synchronous `Pool` API rejects live execution; it is not the source
+runtime's database driver.
 
-## Responsibilities
+Command and test source calls use `runtime::vm::package_native_helper::postgres`
+to project values
+and `postgres_transport` to park the actor's continuation. An installed sibling
+`terlan-native-worker` receives the Postgres capability and blocking-worker grant.
+Its `native_worker::protocol::postgres` executor runs the maintained
+`VmPostgresCommandClient` over the nonblocking libpq driver. The compiler-free
+serve runtime never loads libpq itself.
 
-- Keep Postgres config and row decoding logic separate from pool execution.
-- Use maintained Rust Postgres crates rather than hand-rolled wire protocol.
-- Preserve typed error conversion for NativeBoundary dispatch.
+Pools, transaction connections, and rows are actor-owned. JSON parameters cross
+the process boundary as JSON text; worker handles never enter the VM's JSON
+registry. Transaction callbacks execute in Terlan, with explicit worker calls
+for begin, commit, and rollback. Terminal attempts invalidate connection handles.
+Actor exit drops the worker, closes connections, and rolls back open transactions.
 
-## Public Surface
+Each helper set admits at most 16 database worker owners and each actor may
+allocate at most 4096 worker resources during its lifetime. One request per owner
+is in flight. Transport calls have a 30-second deadline; the maintained client
+also applies its database deadlines. Worker loss or a deadline can leave a write
+outcome unknown. There is no automatic retry, worker restart, or handle reuse
+following transport failure.
 
-- `config`: Postgres connection configuration.
-- `row`: typed row value accessors.
-
-## Integration Points
-
-- `runtime::native::postgres`: owns pool, query, transaction, and execution
-  functions.
-- `runtime::native_boundary::dispatch`: exposes Postgres operations to generated
-  Terlan runtime calls.
-
-## Testing Notes
-
-- Add direct tests for config parsing and row decoding.
-- Use container-backed tests for live database behavior.
+`make stdlib-postgres-worker-check` starts a disposable Docker database and runs
+the public source API through the production compiler, VM, and external worker.
+It fails when the fixture cannot start. Rust tests cover ownership, stale handles,
+argument admission, cancellation, redaction, and representation checks.

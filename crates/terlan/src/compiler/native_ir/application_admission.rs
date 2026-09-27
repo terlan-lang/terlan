@@ -90,7 +90,12 @@ pub(super) fn validate_core_application(
                             )
                         })?,
                     );
-                    validate_expr_calls(&body, core, cores)?;
+                    validate_expr_calls(
+                        &body,
+                        core,
+                        cores,
+                        &function.source_declaration(&core.module).module,
+                    )?;
                 }
             }
         }
@@ -134,6 +139,7 @@ fn validate_expr_calls(
     expr: &CoreExpr,
     caller: &CoreModule,
     cores: &[CoreModule],
+    source_module: &str,
 ) -> Result<(), String> {
     let mut result = Ok(());
     super::application::dynamic_targets::walk_expressions(expr, &mut |expression| {
@@ -142,13 +148,19 @@ fn validate_expr_calls(
         }
         result = match expression {
             CoreExpr::Call { function, args, .. } => {
-                validate_call(function, args.len(), caller, cores)
+                validate_call(function, args.len(), caller, cores, source_module)
             }
             CoreExpr::RemoteFunRef {
                 module,
                 function,
                 arity,
-            } => validate_call(&format!("{module}.{function}"), *arity, caller, cores),
+            } => validate_call(
+                &format!("{module}.{function}"),
+                *arity,
+                caller,
+                cores,
+                source_module,
+            ),
             _ => Ok(()),
         };
     });
@@ -161,8 +173,30 @@ fn validate_call(
     arity: usize,
     caller: &CoreModule,
     cores: &[CoreModule],
+    source_module: &str,
 ) -> Result<(), String> {
-    let providers = call_providers(name, arity, caller, cores);
+    let mut providers = call_providers(name, arity, caller, cores);
+    // A specialized body retains its checked declaration's private authority.
+    // Only fully qualified calls into that original module receive this access;
+    // ordinary callers and unqualified import lookup keep public visibility.
+    if providers.is_empty() && source_module != caller.module {
+        if let Some(local) = name
+            .strip_prefix(source_module)
+            .and_then(|name| name.strip_prefix('.'))
+        {
+            if let Some(core) = cores.iter().find(|core| core.module == source_module) {
+                providers.extend(
+                    core.functions
+                        .iter()
+                        .filter(|function| function.name == local && function.arity == arity)
+                        .map(|function| Provider {
+                            module: &core.module,
+                            function,
+                        }),
+                );
+            }
+        }
+    }
     match providers.as_slice() {
         [] => Err(format!(
             "error[native_ir.unresolved_call]: `{}.{name}/{arity}` has no function in the native application closure",

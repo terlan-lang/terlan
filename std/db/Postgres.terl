@@ -2,10 +2,17 @@
  * Portable Postgres capability contract.
  *
  * `std.db.Postgres` defines the source-level Postgres API for Terlan
- * applications. Runtime execution is target-owned: the VM path uses a typed
- * NativeBoundary worker backed by the maintained Postgres adapter.
+ * applications. The VM uses an external worker backed by the maintained
+ * Postgres adapter. Pools, transaction connections, and rows belong to their
+ * creating actor and are released when that actor exits. Database calls suspend
+ * the actor while the worker performs I/O.
+ *
+ * Worker loss or an expired transport deadline can leave a mutation's outcome
+ * unknown. An `Err` does not authorize retrying a write automatically.
  */
 module std.db.Postgres.
+
+import std.core.Result.{Err, Ok}.
 
 import type std.collections.List.
 import type std.core.{Error, Option, Result}.
@@ -52,12 +59,13 @@ pub opaque type Row.
 pub type Config = {url: String}.
 
 /**
- * Connects to Postgres and returns a pool.
+ * Registers a Postgres pool; its first operation opens a connection.
  *
  * Input: one `Config`.
  * Output: `Ok(pool)` when the adapter creates a pool, otherwise `Err(Error)`.
  * Transformation: delegates connection setup to the selected Postgres runtime
- * adapter without exposing driver state to source code.
+ * adapter without exposing driver state to source code. URL validation happens
+ * immediately; network and authentication failures can occur on the first query.
  */
 @compiler.native {std.db.postgres.connect}
 pub connect(config: Config): Result[Pool, Error] ->
@@ -114,9 +122,36 @@ pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[
  * `Err(Error)`.
  * Transformation: lets source code own the transaction boundary while the
  * adapter owns begin, commit, rollback, and connection lifecycle details.
+ * The callback executes in the calling actor. `Ok` commits and `Err` rolls back;
+ * rollback failure is returned instead of the callback error. Actor failure
+ * closes the worker and its database connections. The connection handle expires
+ * after either terminal attempt.
  */
-@compiler.native {std.db.postgres.transaction}
 pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T, Error] ->
+    case begin(pool) {
+        Err(reason) -> Err(reason);
+        Ok(connection) -> case body(connection) {
+            Ok(value) -> case commit(connection) {
+                Ok(_) -> Ok(value);
+                Err(reason) -> Err(reason)
+            };
+            Err(reason) -> case rollback(connection) {
+                Ok(_) -> Err(reason);
+                Err(rollback_reason) -> Err(rollback_reason)
+            }
+        }
+    }.
+
+@compiler.native {std.db.postgres.begin}
+begin(pool: Pool): Result[Connection, Error] ->
+    native.
+
+@compiler.native {std.db.postgres.commit}
+commit(connection: Connection): Result[Unit, Error] ->
+    native.
+
+@compiler.native {std.db.postgres.rollback}
+rollback(connection: Connection): Result[Unit, Error] ->
     native.
 
 /**

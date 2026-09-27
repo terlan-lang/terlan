@@ -205,21 +205,64 @@ fn native_operation_transition(
         .iter()
         .map(|ty| native_type(Some(ty), &ty.contract_text()))
         .collect::<Option<Vec<_>>>()?;
-    let mut arguments = vec![CoreExpr::Int(7)];
+    let alternatives = parameter_types
+        .iter()
+        .map(|ty| match ty {
+            CoreType::Union(variants)
+                if variants.len() > 1
+                    && variants.len() <= 16
+                    && variants
+                        .iter()
+                        .all(|variant| matches!(variant, CoreType::Struct { .. })) =>
+            {
+                variants
+                    .iter()
+                    .map(|variant| native_type(Some(variant), &variant.contract_text()))
+                    .collect::<Option<Vec<_>>>()
+            }
+            _ => Some(Vec::new()),
+        })
+        .collect::<Option<Vec<_>>>()?;
+    let union_frame = alternatives.iter().any(|variants| !variants.is_empty());
+    let tag = if union_frame {
+        crate::runtime::native_image::control::package_union::TAG
+    } else {
+        7
+    };
+    let mut arguments = vec![CoreExpr::Int(tag)];
     arguments.extend(typed_transition_metadata(result));
     arguments.push(CoreExpr::Binary(format!("{operation:?}")));
     arguments.push(CoreExpr::Int(call.args.len() as i64));
-    for ((argument, core_type), native_type) in call
+    if union_frame {
+        arguments.push(CoreExpr::Int(0));
+    }
+    for (((argument, core_type), native_type), variants) in call
         .args
         .iter()
         .zip(parameter_types)
         .zip(parameter_native_types)
+        .zip(alternatives)
     {
-        arguments.extend(typed_transition_metadata(native_type));
+        if union_frame {
+            let variants = if variants.is_empty() {
+                vec![native_type]
+            } else {
+                variants
+            };
+            arguments.push(CoreExpr::Int(variants.len() as i64));
+            for variant in variants {
+                arguments.extend(typed_transition_metadata(variant));
+            }
+        } else {
+            arguments.extend(typed_transition_metadata(native_type));
+        }
         arguments.push(CoreExpr::Cast {
             expr: Box::new(argument.clone()),
             target_type: core_type.clone(),
         });
+    }
+    if union_frame {
+        arguments[6] = CoreExpr::Int(arguments.len() as i64);
     }
     Some((
         NativeTransitionOperation::Capability,

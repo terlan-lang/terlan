@@ -911,3 +911,43 @@ fn unsupported_reachable_function_is_rejected_before_linking() {
         "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, body-gap=FixedArray(Int(1)), missing-core=none); runtime CoreIR interpretation has been removed"
     );
 }
+
+/// Generic bodies moved into callers retain only their original module's private authority.
+#[test]
+fn specialized_bodies_retain_private_source_helpers_without_exposing_them() {
+    let provider = core("module app.Provider. hidden(): Int -> 8.");
+    let other = core("module app.Other. hidden(): Int -> 9.");
+    for (target, origin, accepted) in [
+        ("app.Provider.hidden", "app.Provider", true),
+        ("app.Provider.hidden", "app.Caller", false),
+        ("app.Other.hidden", "app.Provider", false),
+        ("hidden", "app.Provider", false),
+    ] {
+        let mut caller = core("module app.Caller. pub main(): Int -> 1.");
+        caller.functions[0].source = Some(crate::terlan_typeck::CoreFunctionSource {
+            module: origin.into(),
+            function: "wrapper".into(),
+            arity: 1,
+            declaration_span: None,
+        });
+        *body_mut(&mut caller, "main") = CoreExpr::Call {
+            type_args: vec![],
+            function: target.into(),
+            args: vec![],
+        };
+        let layouts = std::collections::HashMap::from([
+            (caller.module.clone(), Default::default()),
+            (provider.module.clone(), Default::default()),
+            (other.module.clone(), Default::default()),
+        ]);
+        assert_eq!(
+            super::application_admission::validate_core_application(
+                &[caller, provider.clone(), other.clone()],
+                &layouts
+            )
+            .is_ok(),
+            accepted,
+            "{target} with origin {origin}"
+        );
+    }
+}
