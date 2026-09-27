@@ -491,6 +491,10 @@ std.crypto.Hash.sha256.empty	std/crypto/HashTest.terl	sha256_matches_empty_vecto
 std.crypto.Hash.sha256.ascii	std/crypto/HashTest.terl	sha256_matches_ascii_vector
 std.crypto.Ed25519.invalid_material	std/crypto/Ed25519Test.terl	invalid_material_fails_closed
 std.crypto.Hash.sha256_domain_framed	std/crypto/HashTest.terl	domain_framed_hash_preserves_the_unframed_domain
+std.crypto.Hash.sha256_labeled_file_digests	std/crypto/HashTest.terl	labeled_file_hash_preserves_ordered_path_digest_rows
+std.crypto.Hash.sha256_labeled_file_contents	std/crypto/HashTest.terl	labeled_file_content_hash_preserves_binary_length_framing
+std.crypto.Hash.audit_labeled_files	std/crypto/HashTest.terl	labeled_file_audit_reports_digest_count_and_forbidden_contents
+std.crypto.Hash.audit_labeled_file_patterns	std/crypto/HashTest.terl	labeled_pattern_audit_expands_paths_and_rejects_empty_matches
 std.data.Json.Json	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.JsonError	std/data/JsonTest.terl	parse_object_get_reads_member_values
 std.data.Json.null	std/data/JsonTest.terl	parse_object_get_reads_member_values

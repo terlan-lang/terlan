@@ -342,7 +342,7 @@ fn cargo_capture_selects_and_executes_a_real_compiled_harness() {
     ));
     fs::create_dir(&path).expect("exclusively reserve Cargo fixture");
     let root = CargoFixture(path);
-    fs::write(root.0.join("Cargo.toml"), "[package]\nname = \"terlan\"\nversion = \"0.0.0\"\nedition = \"2021\"\n[lib]\npath = \"lib.rs\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\n[workspace]\n").unwrap();
+    fs::write(root.0.join("Cargo.toml"), "[package]\nname = \"terlan\"\nversion = \"0.0.0\"\nedition = \"2021\"\n[lib]\npath = \"lib.rs\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\nserve-runtime-bin=[]\n[[bin]]\nname = \"terlan-serve-runtime\"\npath = \"runtime.rs\"\nrequired-features = [\"serve-runtime-bin\"]\n[[test]]\nname = \"paired\"\npath = \"paired.rs\"\n[workspace]\n").unwrap();
     fs::write(
         root.0.join("Cargo.lock"),
         "version = 4\n[[package]]\nname = \"terlan\"\nversion = \"0.0.0\"\n",
@@ -351,6 +351,16 @@ fn cargo_capture_selects_and_executes_a_real_compiled_harness() {
     fs::write(
         root.0.join("lib.rs"),
         "#[test]\nfn owned_cargo_probe() { assert_eq!(2 + 2, 4); }\n",
+    )
+    .unwrap();
+    fs::write(
+        root.0.join("runtime.rs"),
+        "fn main() { println!(\"paired runtime\"); }\n",
+    )
+    .unwrap();
+    fs::write(
+        root.0.join("paired.rs"),
+        "#[test] fn paired_runtime() { assert!(std::path::Path::new(env!(\"CARGO_BIN_EXE_terlan-serve-runtime\")).is_file()); }\n",
     )
     .unwrap();
     let environment = crate::execution_environment::ExecutionEnvironment::from_entries(
@@ -375,6 +385,13 @@ fn cargo_capture_selects_and_executes_a_real_compiled_harness() {
     .executable;
     assert_eq!(launches, 1);
     assert!(harness.starts_with(root.0.join("target")));
+    let runtime = root.0.join("target/debug").join(format!(
+        "terlan-serve-runtime{}",
+        std::env::consts::EXE_SUFFIX
+    ));
+    let output = run_closed_command_captured(&mut Command::new(runtime), Duration::from_secs(5))
+        .expect("the shared build must produce the feature-gated paired service runtime");
+    assert_eq!(String::from_utf8(output).unwrap().trim(), "paired runtime");
     let output = run_closed_command_captured(
         Command::new(harness).args(["owned_cargo_probe", "--exact"]),
         Duration::from_secs(5),

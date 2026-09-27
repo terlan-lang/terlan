@@ -273,7 +273,7 @@ crates/terlan/src/compiler/typeck/expression/control_flow/comprehension.rs	1	int
 crates/terlan/src/compiler/typeck/expression/function_inference.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/expression/function_inference/explicit_type_args.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/expression/function_inference/trait_bounds.rs	7	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/typeck/expression/operators.rs	2	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/typeck/expression/operators.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/expression/overloads.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/patterns.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/patterns/binary_layout.rs	2	internal-helper	compiler-errors	0.0.9

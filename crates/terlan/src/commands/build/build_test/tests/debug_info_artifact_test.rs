@@ -1,6 +1,55 @@
 use super::*;
 use object::{Object, ObjectSection};
 
+/// Concrete trait bodies map to their own nested source declarations.
+#[test]
+fn debug_info_artifact_covers_concrete_trait_implementations() {
+    let dir = make_temp_dir("concrete_trait_debug");
+    let source_path = dir.join("concrete_trait_debug.terl");
+    let out_dir = dir.join("build");
+    let source = r#"module concrete_trait_debug.
+pub trait Value[T] { value(input: T): Int. }.
+impl Value[Int] for Int { value(input: Int): Int -> input + 1. }.
+impl Value[Bool] for Bool { value(input: Bool): Int -> if { input -> 1; true -> 0 }. }.
+pub main(): Int -> Value[Int].value(40) + Value[Bool].value(true).
+"#;
+    fs::write(&source_path, source).expect("write trait debug fixture");
+    let state = CliState {
+        out_dir: out_dir.clone(),
+        ..CliState::default()
+    };
+    let cmd = CliCommand {
+        verb: Some("build".into()),
+        args: vec![source_path.display().to_string()],
+    };
+    assert_eq!(run(cmd, state), ExitCode::SUCCESS);
+    let records = native_debug_records(&out_dir.join("vm/concrete_trait_debug.tvm"));
+    let mut callable_ids = std::collections::HashSet::new();
+    for (ty, declaration) in [
+        ("Int", "value(input: Int): Int -> input + 1"),
+        (
+            "Bool",
+            "value(input: Bool): Int -> if { input -> 1; true -> 0 }",
+        ),
+    ] {
+        let origin =
+            format!("generated:concrete_trait_debug.concrete_trait_debug.Value[{ty}].value/1");
+        let record = records
+            .iter()
+            .find(|record| record.source_origin == origin)
+            .expect("trait implementation debug record");
+        assert_eq!(record.source_file, source_path.display().to_string());
+        assert_eq!(
+            source[record.span_start..record.span_end].trim(),
+            declaration
+        );
+        assert!(
+            callable_ids.insert(record.callable_id),
+            "distinct implementation identity"
+        );
+    }
+}
+
 /// Constructor adapters, defaults and specializations retain their source clause.
 #[test]
 fn debug_info_artifact_covers_source_constructor_helpers() {

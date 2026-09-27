@@ -73,7 +73,7 @@ pub(super) fn workspace_native_arguments() -> Vec<&'static str> {
         "--workspace",
         "--tests",
         "--features",
-        "terlan/quality-tools,terlan/editor-lsp,terlan/benchmark-tools",
+        "terlan/quality-tools,terlan/editor-lsp,terlan/benchmark-tools,terlan/serve-runtime-bin",
         "--message-format=json",
     ]
 }

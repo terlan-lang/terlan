@@ -1,5 +1,9 @@
 use super::*;
 
+#[cfg(test)]
+#[path = "operators_test.rs"]
+mod tests;
+
 /// Infers a binary operator expression.
 ///
 /// Inputs:
@@ -304,23 +308,22 @@ fn is_string_concat_operand(ty: &Type) -> bool {
 /// - The original direct-unification diagnostic when expansion still fails.
 ///
 /// Transformation:
-/// - First attempts normal unification so existing substitutions and
-///   diagnostics remain unchanged for ordinary equality.
-/// - If that fails, expands non-opaque aliases on both sides and retries using
-///   the same substitution table.
+/// - Tries both operand directions because equality is symmetric while
+///   assignment unification is directional for unions and subtypes.
+/// - Retries with transparent aliases and commits only successful substitutions.
 fn unify_equality_types(
     left: &Type,
     right: &Type,
     aliases: &HashMap<String, TypeAlias>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
-    if let Err(original_message) = unify(left, right, subst) {
+    if let Err(original_message) = unify_equality_either_direction(left, right, subst) {
         if are_broadly_equal(left, right) {
             return Ok(());
         }
         let left_expanded = expand_type_aliases(left, aliases);
         let right_expanded = expand_type_aliases(right, aliases);
-        if unify(&left_expanded, &right_expanded, subst).is_err()
+        if unify_equality_either_direction(&left_expanded, &right_expanded, subst).is_err()
             && !are_broadly_equal(&left_expanded, &right_expanded)
         {
             return Err(original_message);
@@ -328,6 +331,29 @@ fn unify_equality_types(
     }
 
     Ok(())
+}
+
+/// Tests operand compatibility without leaking substitutions from rejected trials.
+fn unify_equality_either_direction(
+    left: &Type,
+    right: &Type,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    let mut trial = subst.clone();
+    let original_error = match unify(left, right, &mut trial) {
+        Ok(()) => {
+            *subst = trial;
+            return Ok(());
+        }
+        Err(error) => error,
+    };
+    let mut trial = subst.clone();
+    if unify(right, left, &mut trial).is_ok() {
+        *subst = trial;
+        Ok(())
+    } else {
+        Err(original_error)
+    }
 }
 
 /// Unifies ordered comparison operands with transparent alias expansion.

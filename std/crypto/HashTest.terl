@@ -3,9 +3,9 @@ module std.crypto.HashTest.
 import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
-import std.crypto.Hash.{labeled_file, sha256, sha256_bytes, sha256_domain_framed, sha256_file, sha256_framed, sha256_labeled_file_digests, sha256_nul_separated, sha256_selected_files, sha256_tree, verify_sha256_manifest}.
-import std.io.Directory.{create_temporary, remove_all}.
-import std.io.File.{write_text}.
+import std.crypto.Hash.{audit_labeled_file_patterns, audit_labeled_files, labeled_file, labeled_file_pattern, sha256, sha256_bytes, sha256_domain_framed, sha256_file, sha256_framed, sha256_labeled_file_contents, sha256_labeled_file_digests, sha256_nul_separated, sha256_selected_files, sha256_tree, verify_sha256_manifest}.
+import std.io.Directory.{create_all, create_temporary, remove_all}.
+import std.io.File.{NotFound, code, write_text}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.{from_list}.
 
@@ -176,4 +176,81 @@ pub selected_file_hash_streams_path_nul_content_newline_frames(): Bool ->
             };
             (let _removed = remove_all(root); actual == "71d40351bccb0eba3ca4fdbb0dfdf03b024d221805e140c74c5c7395fdf7c33b");
         Err(_reason) -> false
+    }.
+
+@test
+pub labeled_file_content_hash_preserves_binary_length_framing(): Bool ->
+    case create_temporary("terlan-hash-content-test.") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let first = String.append(root, "/a.txt");
+            let second = String.append(root, "/b.txt");
+            let result =
+                (let {
+    Ok(_) <- write_text(first, "a");
+    Ok(_) <- write_text(second, "bb");
+    Ok(digest) <- sha256_labeled_file_contents([labeled_file(first, "a.txt"), labeled_file(second, "b.txt")])
+} else {
+    _ -> false
+};
+digest == "ae6e2c0577dfe61fdefcf0cb3a332286d15a229a1f258caf3471bb9511c56c5b");
+            let _removed = remove_all(root);
+            result
+    }.
+
+@test
+pub labeled_file_audit_reports_digest_count_and_forbidden_contents(): Bool ->
+    case create_temporary("terlan-hash-audit-test.") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let path = String.append(root, "/a.txt");
+            let files = [labeled_file(path, "a.txt")];
+            let fragments = [];
+            let result =
+                (let {
+    Ok(_) <- write_text(path, "secret/value");
+    Ok(digest) <- sha256_labeled_file_digests(files);
+    Ok(clean) <- audit_labeled_files(files, fragments);
+    Ok(rejected) <- audit_labeled_files(files, ["secret"])
+} else {
+    _ -> false
+};
+clean.file_count == 1
+    and clean.digest == digest
+    and clean.portable
+    and rejected.file_count == 1
+    and rejected.digest == digest
+    and not rejected.portable);
+            let _removed = remove_all(root);
+            result
+    }.
+
+@test
+pub labeled_pattern_audit_expands_paths_and_rejects_empty_matches(): Bool ->
+    case create_temporary("terlan-hash-pattern-test.") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let directory = String.append(root, "/inputs");
+            let path = String.append(directory, "/a.txt");
+            let result =
+                (let {
+    Ok(_) <- create_all(directory);
+    Ok(_) <- write_text(path, "secret/value");
+    Ok(digest) <- sha256_labeled_file_digests([labeled_file(path, "source:inputs/a.txt")]);
+    Ok(audit) <-
+        audit_labeled_file_patterns(
+            root,
+            [labeled_file_pattern("source", "inputs/*.txt")],
+            ["secret"],
+        );
+    Err(missing) <- audit_labeled_file_patterns(root, [labeled_file_pattern("missing", "inputs/*.missing")], [])
+} else {
+    _ -> false
+};
+audit.file_count == 1
+    and audit.digest == digest
+    and not audit.portable
+    and code(missing) == NotFound);
+            let _removed = remove_all(root);
+            result
     }.

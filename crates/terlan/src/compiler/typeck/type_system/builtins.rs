@@ -108,3 +108,25 @@ pub(crate) fn widen_list_literal_element_type(ty: Type) -> Type {
         other => other,
     }
 }
+
+/// Widens overly specific literal types when binding generic variables.
+///
+/// Inputs:
+/// - `value`: inferred type about to bind a type variable.
+///
+/// Output:
+/// - A type suitable for reuse across generic call arguments.
+///
+/// Transformation:
+/// - Converts integer literal singleton types into `Int` so generic calls such
+///   as `Some(1)` and `Some(2)` can agree on `T = Int`; leaves atom literals
+///   unchanged because atom literals carry closed-shape domain information.
+/// - Applies the same widening inside tuple payloads, so generic table rows
+///   agree on their tuple input type across different integer values.
+pub(crate) fn widen_type_var_binding(value: Type) -> Type {
+    match value {
+        Type::LiteralInt(_) => Type::Int,
+        Type::Tuple(items) => Type::Tuple(items.into_iter().map(widen_type_var_binding).collect()),
+        other => other,
+    }
+}

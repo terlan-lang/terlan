@@ -1,6 +1,6 @@
 //! Structural compatibility scoring for static overload selection.
 
-use super::{AliasBodies, CoreType};
+use super::{core_type_contract_text, AliasBodies, CoreType};
 
 /// Scores structural compatibility, preferring exact nested type matches.
 pub(super) fn type_match_score(
@@ -73,4 +73,13 @@ fn type_match_score_at(
         }
         _ => None,
     }
+}
+
+/// Renders inferred call arguments while preserving unknown positions.
+pub(super) fn argument_contract(arguments: &[Option<CoreType>]) -> String {
+    arguments
+        .iter()
+        .map(|argument| core_type_contract_text(argument.as_ref()))
+        .collect::<Vec<_>>()
+        .join(",")
 }

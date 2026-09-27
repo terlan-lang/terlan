@@ -51,15 +51,27 @@ Integration validation and exact-commit hosted checks remain open, and 0.0.9 has
 not been tagged or published. Ordinary Rust API-boundary budgets pass, but the
 stricter 0.0.9 string-error reduction targets remain unmet.
 
-The resumed standard-library execution run exposed a selected-import identity
-gap: a single explicitly imported function could be confused with a function
-from a whole-module import. Qualification now preserves that provider, including
-generic aliases. All 2,162 selected compiler tests pass (one ignored), as do the
-five real `InstantTest` cases and both strict workspace-bin Clippy profiles.
-The full standard-library run remains failing at `std/core/BoolTest.terl`:
-native debug metadata cannot locate the source declaration for a generated
-concrete `Ordering.compare` implementation. This is not a passing release gate
-or complete API execution coverage.
+The resumed standard-library execution run exposed several compiler and runtime
+boundary gaps. Qualification now preserves explicitly imported providers,
+including generic aliases. Generated trait implementations retain their source
+identity and declaration span for native debug metadata. Equality checks accept
+compatible union members in either operand order without retaining substitutions
+from failed alternatives, and generic tuple arguments widen integer payloads
+consistently. Capability calls retain declared collection schemas, including
+empty lists; the runtime recognizes the compiler's canonical named record lists.
+All 17 `BoolTest`, 17 `OptionTest`, 19 `IntTest`, 15 `HashTest`, and 28 `FileTest`
+cases pass through the rebuilt compiler and VM. The Hash cases cover ordered
+content framing, forbidden-content audits, pattern expansion, and missing files.
+
+The full standard-library run now reaches `std/vm/FaultTest.terl` after passing
+the cluster, distributed-state, and local-storage suites. It fails because
+`std.vm.Fault.begin_recovery/4` still has an unbound native body. This remains
+a release blocker, not complete API execution coverage. The hosted Linux
+packaging failures used the stale Hash record-list identity repaired above;
+fresh exact-commit platform validation remains required. Compiler CI separately
+found that its canonical test build omitted the feature-gated service runtime.
+The shared build now includes it, with a fresh Cargo fixture that builds and
+executes the paired binary. These local results do not close the release gates.
 
 The first validation-tool bootstrap now follows the user-approved hermetic
 policy: frozen working-source bytes, the pinned Rust toolchain, and isolated

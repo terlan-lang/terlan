@@ -40,7 +40,7 @@ pub(crate) fn encode_native_debug(
                 })?;
             let (mut span_start, span_end) =
                 function_source_span(
-                    input.syntax,
+                    input,
                     &function.source_function,
                     function.source_arity,
                 )
@@ -159,11 +159,26 @@ pub(crate) fn encode_native_debug(
 
 /// Finds the combined declaration span for one exact function identity.
 fn function_source_span(
-    syntax: &SyntaxModuleOutput,
+    input: &NativeDebugInput<'_>,
     function_name: &str,
     arity: usize,
 ) -> Option<(usize, usize)> {
-    syntax
+    if let Some(span) = input
+        .core
+        .functions
+        .iter()
+        .filter_map(|function| function.source.as_ref())
+        .find(|source| {
+            source.module == input.core.module
+                && source.function == function_name
+                && source.arity == arity
+        })
+        .and_then(|source| source.declaration_span)
+    {
+        return Some((span.start, span.end));
+    }
+    input
+        .syntax
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {

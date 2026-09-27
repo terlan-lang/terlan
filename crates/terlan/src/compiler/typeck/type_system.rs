@@ -22,7 +22,7 @@ use standard_aliases::option_representation_is_subtype;
 
 pub(super) use builtins::{
     builtin_call, is_literal_atom, is_removed_implicit_builtin_call,
-    widen_list_literal_element_type,
+    widen_list_literal_element_type, widen_type_var_binding,
 };
 pub(super) use interface::{
     expand_interface_global_aliases, interface_qualified_type_names, interface_type_aliases,
@@ -794,25 +794,6 @@ pub(super) fn bind_var(
     }
     subst.insert(id, value);
     Ok(())
-}
-
-/// Widens overly specific literal types when binding generic variables.
-///
-/// Inputs:
-/// - `value`: inferred type about to bind a type variable.
-///
-/// Output:
-/// - A type suitable for reuse across generic call arguments.
-///
-/// Transformation:
-/// - Converts integer literal singleton types into `Int` so generic calls such
-///   as `Some(1)` and `Some(2)` can agree on `T = Int`; leaves atom literals
-///   unchanged because atom literals carry closed-shape domain information.
-pub(super) fn widen_type_var_binding(value: Type) -> Type {
-    match value {
-        Type::LiteralInt(_) => Type::Int,
-        other => other,
-    }
 }
 
 /// Checks whether a type variable occurs inside a candidate binding.

@@ -20,14 +20,13 @@ crates/terlan/src/commands/static_site/routes.rs	implementation	957	900	1000	com
 crates/terlan/src/compiler/accelerator.rs	implementation	910	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/accelerator/ir.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/hir/interface_render.rs	implementation	936	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/native_ir/application/overloads.rs	implementation	920	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/native_ir/application/overloads.rs	implementation	913	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/function.rs	implementation	950	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/lowering.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/mod.rs	implementation	950	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/trait_conformance.rs	implementation	947	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/trait_conformance/syntax.rs	implementation	972	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/typeck/type_system.rs	implementation	913	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/value_lifecycle.rs	implementation	926	900	1000	compiler-structure	0.0.9
 crates/terlan/src/lsp/backend/navigation.rs	implementation	931	900	1000	lsp-structure	0.0.9
 crates/terlan/src/lsp/hover.rs	implementation	942	900	1000	lsp-structure	0.0.9

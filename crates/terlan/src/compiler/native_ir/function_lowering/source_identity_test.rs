@@ -27,6 +27,7 @@ fn explicit_generic_provenance_retains_source_declaration() {
         module: "rust_quality.SourceInventory".into(),
         function: "reverse".into(),
         arity: 1,
+        declaration_span: None,
     });
 
     assert_eq!(
