@@ -84,13 +84,13 @@ pub repository_is_formatted(root: String): Bool ->
 
 formatted_pages(root: String, offset: Int): Bool ->
     case read_text_tree_matching(
-    String.append(root, "/std"),
-    ["summaries", "__pycache__"],
-    [".terl", ".terli"],
-    List.new[String](),
-    offset,
-    64,
-) {
+        String.append(root, "/std"),
+        ["summaries", "__pycache__"],
+        [".terl", ".terli"],
+        List.new[String](),
+        offset,
+        64,
+    ) {
         Ok([]) -> true;
         Ok(files) ->
             let formatted = files_are_formatted(files);
@@ -153,13 +153,13 @@ pub fix_repository(root: String): Bool ->
 
 fix_pages(root: String, offset: Int): Bool ->
     case read_text_tree_matching(
-    String.append(root, "/std"),
-    ["summaries", "__pycache__"],
-    [".terl", ".terli"],
-    List.new[String](),
-    offset,
-    64,
-) {
+        String.append(root, "/std"),
+        ["summaries", "__pycache__"],
+        [".terl", ".terli"],
+        List.new[String](),
+        offset,
+        64,
+    ) {
         Ok([]) -> true;
         Ok(files) ->
             let fixed = fix_files(files);

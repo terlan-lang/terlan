@@ -157,13 +157,13 @@ advance(root: String, phase: String): Bool ->
             true
         };
         phase == "sealed" -> case OwnerCommit.complete_many(
-    root,
-    PreparationOwner.ledger_path(owner),
-    publications(),
-    native(),
-    PreparationOwner.activity_path(owner),
-    state,
-) {
+            root,
+            PreparationOwner.ledger_path(owner),
+            publications(),
+            native(),
+            PreparationOwner.activity_path(owner),
+            state,
+        ) {
             Ok(_report) -> true;
             _ -> false
         };

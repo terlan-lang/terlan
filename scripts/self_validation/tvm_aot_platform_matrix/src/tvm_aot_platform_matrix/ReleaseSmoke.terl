@@ -212,13 +212,13 @@ write_smoke_sources(root: String): Bool ->
     let vm_source = child(root, "vm_hello.terl");
     let test_source = child(root, "ReleaseArtifactTest.terl");
     case {
-    File.write_text(asset, "hello asset\n"),
-    File.write_text(vm_source, "module vm_release.Main.\n\npub main(): Bool -> true.\n"),
-    File.write_text(
-        test_source,
-        "module vm_release.ReleaseArtifactTest.\n\n@test\npub release_artifact_test(): Bool -> true.\n",
-    ),
-} {
+        File.write_text(asset, "hello asset\n"),
+        File.write_text(vm_source, "module vm_release.Main.\n\npub main(): Bool -> true.\n"),
+        File.write_text(
+            test_source,
+            "module vm_release.ReleaseArtifactTest.\n\n@test\npub release_artifact_test(): Bool -> true.\n",
+        ),
+    } {
         {Ok(Unit), Ok(Unit), Ok(Unit)} -> true;
         _ -> failure("fixture", "cannot write release smoke fixtures")
     }.

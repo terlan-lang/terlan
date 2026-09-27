@@ -84,9 +84,8 @@ has_scanned_suffix(path: String): Bool ->
 @pure
 allowed_negative_fixture(path: String, line: String): Bool ->
     path == "crates/terlan/src/compiler/syntax/retired_syntax_test.rs"
-        or (path == "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs"
-            and (String.contains(line, removed_named_call())
-                or String.contains(line, removed_parenthesized_call()))).
+        or path == "crates/terlan/src/compiler/syntax/parser_expr_test/macros_and_constructors.rs"
+    and (String.contains(line, removed_named_call()) or String.contains(line, removed_parenthesized_call())).
 
 @pure
 removed_named_call(): String ->

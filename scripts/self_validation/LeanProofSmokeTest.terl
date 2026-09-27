@@ -755,22 +755,22 @@ persist(root: String, manifest: String, evaluation: Evaluation): Bool ->
     case report(manifest, evaluation) {
         Some(source) ->
             case write_text(
-    output_path(
-        root,
-        "TERLAN_PROOF_SMOKE_OUTPUT",
-        "target/quality/proof-artifacts/lean-proof-smoke.json",
-    ),
-    source,
-) {
+                output_path(
+                    root,
+                    "TERLAN_PROOF_SMOKE_OUTPUT",
+                    "target/quality/proof-artifacts/lean-proof-smoke.json",
+                ),
+                source,
+            ) {
                 Ok(Unit) ->
                     case write_text(
-    output_path(
-        root,
-        "TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT",
-        "target/quality/proof-artifacts/lean-proof-smoke-blockers.tsv",
-    ),
-    "smoke_id\tblocker\tremediation_plan\treviewed_by\n",
-) {
+                        output_path(
+                            root,
+                            "TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT",
+                            "target/quality/proof-artifacts/lean-proof-smoke-blockers.tsv",
+                        ),
+                        "smoke_id\tblocker\tremediation_plan\treviewed_by\n",
+                    ) {
                         Ok(Unit) ->
                             let _printed =
                                 println(
@@ -941,11 +941,11 @@ pub arbitrary_runtime_command_is_rejected(): Bool ->
 @test
 pub duplicate_smoke_ids_are_rejected(): Bool ->
     case parse_manifest(
-    String.append(
-        manifest_header(),
-        "\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\n",
-    ),
-) {
+        String.append(
+            manifest_header(),
+            "\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\nfixture\tSlice 9\tparser\tfamily\tproofs/lean/Terlan/Smoke.lean\tExample.smoke\tterlan-test\tfixture.terl\tpass\tvm\n",
+        ),
+    ) {
         None -> true;
         Some(_rows) -> false
     }.

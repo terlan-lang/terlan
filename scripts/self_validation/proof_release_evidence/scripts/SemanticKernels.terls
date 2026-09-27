@@ -463,10 +463,10 @@ selection_contract_holds(): Bool ->
             .push(selection_fixture("first", "proofs/lean/First.lean"))
             .push(selection_fixture("second", "proofs/lean/Second.lean"));
     case {
-    selected_proof_paths(families, "", 0, 2),
-    selected_proof_paths(families, "second", 0, 2),
-    selected_proof_paths(Json.array().push(Json.object()), "", 0, 1),
-} {
+        selected_proof_paths(families, "", 0, 2),
+        selected_proof_paths(families, "second", 0, 2),
+        selected_proof_paths(Json.array().push(Json.object()), "", 0, 1),
+    } {
         {Some(["proofs/lean/First.lean", "proofs/lean/Second.lean"]), Some(["proofs/lean/Second.lean"]), None} ->
             true;
         _ -> false

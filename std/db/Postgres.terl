@@ -130,16 +130,19 @@ pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[
 pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T, Error] ->
     case begin(pool) {
         Err(reason) -> Err(reason);
-        Ok(connection) -> case body(connection) {
-            Ok(value) -> case commit(connection) {
-                Ok(_) -> Ok(value);
-                Err(reason) -> Err(reason)
-            };
-            Err(reason) -> case rollback(connection) {
-                Ok(_) -> Err(reason);
-                Err(rollback_reason) -> Err(rollback_reason)
+        Ok(connection) ->
+            case body(connection) {
+                Ok(value) ->
+                    case commit(connection) {
+                        Ok(_) -> Ok(value);
+                        Err(reason) -> Err(reason)
+                    };
+                Err(reason) ->
+                    case rollback(connection) {
+                        Ok(_) -> Err(reason);
+                        Err(rollback_reason) -> Err(rollback_reason)
+                    }
             }
-        }
     }.
 
 @compiler.native {std.db.postgres.begin}

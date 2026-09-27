@@ -403,9 +403,9 @@ persist_report(root: String, rendered: String): Bool ->
         _ -> fail("counterexample report directory could not be created")
     };
     case write_text(
-    root_path(root, "target/quality/proof-artifacts/lean-proof-counterexamples.json"),
-    rendered,
-) {
+        root_path(root, "target/quality/proof-artifacts/lean-proof-counterexamples.json"),
+        rendered,
+    ) {
         Ok(Unit) ->
             let _printed =
                 println(

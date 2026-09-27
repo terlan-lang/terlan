@@ -470,7 +470,10 @@ pub record(root: String): Bool ->
         false;
         true -> let rendered = render_inventory(loaded.rows);
         let count = List.length(loaded.rows);
-        case File.write_text(SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv"), rendered) {
+        case File.write_text(
+            SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv"),
+            rendered,
+        ) {
             Ok(_unit) ->
                 let _printed =
                     println(

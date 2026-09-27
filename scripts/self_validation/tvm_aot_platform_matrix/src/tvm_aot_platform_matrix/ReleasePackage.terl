@@ -179,10 +179,10 @@ native_metadata_valid(metadata: Json, expected_target: String): Bool ->
         Err(_reason) -> failure("self_test", "native self-test metadata is incomplete");
         Ok(projection) ->
             case {
-    Json.required_field_strings(projection),
-    Json.required_field_ints(projection),
-    Json.required_field_array_lengths(projection),
-} {
+                Json.required_field_strings(projection),
+                Json.required_field_ints(projection),
+                Json.required_field_array_lengths(projection),
+            } {
                 {[target], [debug_count], [continuation_count]} ->
                     if {
                         target != expected_target -> failure("self_test", "native self-test target drifted");
@@ -201,17 +201,17 @@ inspect_self_test(
     image: String,
 ): Option[NativeSelfTest] ->
     case run_command(
-    root,
-    binaries.vm,
-    [
-        "package-image-metadata",
-        image,
-        "--entry",
-        "release_validation.Main.main",
-        "--package-path",
-        "runtime/release-self-test.tvm",
-    ],
-) {
+        root,
+        binaries.vm,
+        [
+            "package-image-metadata",
+            image,
+            "--entry",
+            "release_validation.Main.main",
+            "--package-path",
+            "runtime/release-self-test.tvm",
+        ],
+    ) {
         None -> None;
         Some(output) ->
             let metadata_text = String.trim(Process.stdout(output));

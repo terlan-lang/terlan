@@ -74,13 +74,13 @@ source_page_holds(files: List[TextFile]): Bool ->
 
 runtime_source_contract(offset: Int): Bool ->
     case read_text_tree_matching(
-    "crates/terlan/src",
-    List.new[String](),
-    [".rs"],
-    List.new[String](),
-    offset,
-    128,
-) {
+        "crates/terlan/src",
+        List.new[String](),
+        [".rs"],
+        List.new[String](),
+        offset,
+        128,
+    ) {
         Err(_reason) -> false;
         Ok([]) -> http_source_contract();
         Ok(files) ->
@@ -92,12 +92,12 @@ runtime_source_contract(offset: Int): Bool ->
 
 http_source_contract(): Bool ->
     case read_text_many(
-    [
-        "crates/terlan/src/commands/serve/handler.rs",
-        "crates/terlan/src/commands/serve/handler_cache.rs",
-        "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
-    ],
-) {
+        [
+            "crates/terlan/src/commands/serve/handler.rs",
+            "crates/terlan/src/commands/serve/handler_cache.rs",
+            "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
+        ],
+    ) {
         Err(_reason) -> false;
         Ok(files) ->
             if {
@@ -198,13 +198,13 @@ lines_contain_all(lines: List[String], patterns: List[String]): Bool ->
 
 runtime_marker_contract(): Bool ->
     case read_text_many(
-    [
-        "crates/terlan/src/commands/serve/handler_cache.rs",
-        "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
-        "crates/terlan/src/vm/execution.rs",
-        "crates/terlan/src/commands/vm.rs",
-    ],
-) {
+        [
+            "crates/terlan/src/commands/serve/handler_cache.rs",
+            "crates/terlan/src/commands/serve/handler_cache/invocation.rs",
+            "crates/terlan/src/vm/execution.rs",
+            "crates/terlan/src/commands/vm.rs",
+        ],
+    ) {
         Err(_reason) -> false;
         Ok([cache, invocation, execution, vm]) ->
             String.contains(cache.contents, "image: Arc<PureNativeExecutionImage>")

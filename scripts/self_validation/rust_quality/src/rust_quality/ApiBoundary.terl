@@ -141,10 +141,10 @@ function_failure(message: String): FunctionRow ->
 @pure
 load_function(row: RequiredFieldRow, index: Int): FunctionRow ->
     case {
-    Json.required_field_row_strings(row),
-    Json.required_field_row_ints(row),
-    Json.required_field_row_bools(row),
-} {
+        Json.required_field_row_strings(row),
+        Json.required_field_row_ints(row),
+        Json.required_field_row_bools(row),
+    } {
         {[name, path, visibility], [argument_count], [returns_string_error, explicit_ffi_parameters, implementation]} ->
             FunctionRow(
                 valid = true,
@@ -275,13 +275,13 @@ load_function_pages(
                 true -> remaining
             };
         case Json.required_field_rows_page(
-    functions,
-    index,
-    maximum,
-    ["name", "path", "visibility"],
-    ["argument_count"],
-    ["returns_string_error", "explicit_ffi_parameters", "implementation"],
-) {
+            functions,
+            index,
+            maximum,
+            ["name", "path", "visibility"],
+            ["argument_count"],
+            ["returns_string_error", "explicit_ffi_parameters", "implementation"],
+        ) {
             Err(reason) -> report_failure(Json.error_message(reason));
             Ok(projected) ->
                 let loaded = load_function_page(projected, index, analysis);
@@ -976,10 +976,14 @@ load_check_inputs(root: String): CheckInputs ->
     case File.read_text(SourceInventory.child(root, "crates/terlan-runtime-abi/src/boundary_error.rs")) {
         Err(reason) -> check_inputs_failure(File.message(reason));
         Ok(boundary_source) ->
-            case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv")) {
+            case File.read_text(
+                SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"),
+            ) {
                 Err(reason) -> check_inputs_failure(File.message(reason));
                 Ok(inventory_source) ->
-                    case File.read_text(SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv")) {
+                    case File.read_text(
+                        SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv"),
+                    ) {
                         Err(reason) -> check_inputs_failure(File.message(reason));
                         Ok(budget_source) ->
                             CheckInputs(
@@ -1104,9 +1108,9 @@ pub record(root: String): Bool ->
                 false;
                 true -> let rows = report.errors;
                 case File.write_text(
-    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"),
-    render_inventory(rows),
-) {
+                    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"),
+                    render_inventory(rows),
+                ) {
                     Err(reason) ->
                         let _printed = eprintln(File.message(reason));
                         false;
@@ -1194,9 +1198,9 @@ pub record_budgets(root: String): Bool ->
                 false;
                 true -> let rows = budgets_from_totals(owner_totals(report.errors));
                 case File.write_text(
-    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv"),
-    render_budgets(rows),
-) {
+                    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_BUDGETS.tsv"),
+                    render_budgets(rows),
+                ) {
                     Err(reason) ->
                         let _printed = eprintln(File.message(reason));
                         false;

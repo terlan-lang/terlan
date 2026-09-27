@@ -247,8 +247,8 @@ docker_daemon_available(): Bool ->
 
 command_succeeds(program: String, arguments: List[String]): Bool ->
     case Process.run(
-    Process.with_timeout_ms(Process.with_arguments(Process.command(program), arguments), 30000),
-) {
+        Process.with_timeout_ms(Process.with_arguments(Process.command(program), arguments), 30000),
+    ) {
         Ok(output) -> Process.status(output) == 0;
         _ -> false
     }.

@@ -215,9 +215,9 @@ self_test_with_ci(ci: String, native_setup: String): Bool ->
 pub self_test(): Bool ->
     let root = Environment.current_directory();
     case {
-    read_text(String.append(root, "/.github/workflows/ci.yml")),
-    read_text(String.append(root, "/.github/actions/setup-native-dependencies/action.yml")),
-} {
+        read_text(String.append(root, "/.github/workflows/ci.yml")),
+        read_text(String.append(root, "/.github/actions/setup-native-dependencies/action.yml")),
+    } {
         {Ok(ci), Ok(native_setup)} -> self_test_with_ci(ci, native_setup);
         _ -> failure("cannot read platform workflow fixtures")
     }.

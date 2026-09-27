@@ -104,11 +104,11 @@ executable(name: String, windows: Bool): String ->
 
 pub aliases_and_artifacts_are_canonical(): Bool ->
     case {
-    resolve("Linux", "AMD64"),
-    resolve("Darwin", "arm64"),
-    resolve("Windows", "ARM64"),
-    resolve("plan9", "x86_64"),
-} {
+        resolve("Linux", "AMD64"),
+        resolve("Darwin", "arm64"),
+        resolve("Windows", "ARM64"),
+        resolve("plan9", "x86_64"),
+    } {
         {Some(linux), Some(macos), Some(windows), None} ->
             artifact(linux) == "terlc-linux-x86_64.tar.gz"
                 and artifact(macos) == "terlc-macos-aarch64.tar.gz"

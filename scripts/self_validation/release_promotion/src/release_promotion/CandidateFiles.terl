@@ -177,9 +177,9 @@ excluded(path: String): Bool ->
  */
 pub directory_files(root: String, relative_directory: String): Result[List[String], String] ->
     case Directory.files_recursive_excluding(
-    child(root, relative_directory),
-    [".git", ".lake", "__pycache__", "node_modules", "target"],
-) {
+        child(root, relative_directory),
+        [".git", ".lake", "__pycache__", "node_modules", "target"],
+    ) {
         Err(reason) -> Err(Directory.message(reason));
         Ok(files) -> Ok(sort_unique(relative_paths(root, files, List.new[String]())))
     }.

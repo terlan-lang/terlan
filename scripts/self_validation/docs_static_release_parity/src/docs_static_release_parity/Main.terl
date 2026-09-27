@@ -124,11 +124,11 @@ hover_case(
     expected: String,
 ): Bool ->
     case Support.command_output(
-    compiler,
-    ["hover", source, "--line", line, "--column", column],
-    work,
-    installed,
-) {
+        compiler,
+        ["hover", source, "--line", line, "--column", column],
+        work,
+        installed,
+    ) {
         Some(output) -> String.contains(output, expected);
         None -> false
     }.
@@ -218,7 +218,11 @@ write_site_assets(
     let metadata_created = create_ok(metadata_root);
     let sources_created = create_ok(source_root);
     let docs_copied =
-        case Directory.copy_tree_excluding(Support.child(share, "docs"), Support.child(source_root, "docs"), []) {
+        case Directory.copy_tree_excluding(
+            Support.child(share, "docs"),
+            Support.child(source_root, "docs"),
+            [],
+        ) {
             Ok(_unit) -> true;
             Err(_reason) -> false
         };

@@ -668,15 +668,15 @@ write_bad_staged_checksum(
     share: String,
 ): Bool ->
     case File.write_text(
-    mirror_checksum(temporary, platform, version),
-    String.concat(
-        [
-            "0000000000000000000000000000000000000000000000000000000000000000  ",
-            ReleasePlatform.artifact(platform),
-            "\n",
-        ],
-    ),
-) {
+        mirror_checksum(temporary, platform, version),
+        String.concat(
+            [
+                "0000000000000000000000000000000000000000000000000000000000000000  ",
+                ReleasePlatform.artifact(platform),
+                "\n",
+            ],
+        ),
+    ) {
         Ok(Unit) ->
             run_checksum_mismatch(
                 root,

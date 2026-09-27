@@ -385,7 +385,14 @@ accelerator_roots_hold(repository: String, roots: List[String], pattern: Regex):
                             true -> accelerator_roots_hold(repository, rest, pattern)
                         }
                 };
-                true -> case File.read_text_tree_matching(path, List.new[String](), [".rs"], ["_test.rs"], 0, 10000) {
+                true -> case File.read_text_tree_matching(
+                    path,
+                    List.new[String](),
+                    [".rs"],
+                    ["_test.rs"],
+                    0,
+                    10000,
+                ) {
                     Err(reason) -> failure("accelerator.read", File.message(reason));
                     Ok(files) ->
                         accelerator_files_hold(files, pattern)
@@ -1127,7 +1134,12 @@ if {
         String.append("release plan requests a typed validator twice: ", duplicate_validator),
     );
     oversized != "" -> failure("build_release.size", String.append("oversized tracked file: ", oversized));
-    true -> case run_output(repository, "git", ["check-ignore", "tests/example/.terlan/native-aot/module.o"], 30000) {
+    true -> case run_output(
+        repository,
+        "git",
+        ["check-ignore", "tests/example/.terlan/native-aot/module.o"],
+        30000,
+    ) {
         Some(output) ->
             Process.status(output) == 0
                 and write_build_plan_report(repository, plan_text, duplicate_validator, rust_orchestrators)

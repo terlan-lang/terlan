@@ -72,12 +72,12 @@ stale_fixture(candidate: Candidate): {Bool, CommandResult} ->
 
 classifications_json(): Json ->
     case Json.string_object_rows(
-    ["fixture", "baseline", "classification"],
-    [
-        ["prior-baseline", "0.0.6", "direct-success"],
-        ["stale-layout", "0.0.5", "expected-diagnostic-with-guidance"],
-    ],
-) {
+        ["fixture", "baseline", "classification"],
+        [
+            ["prior-baseline", "0.0.6", "direct-success"],
+            ["stale-layout", "0.0.5", "expected-diagnostic-with-guidance"],
+        ],
+    ) {
         Ok(value) -> value;
         Err(_reason) -> Json.array()
     }.

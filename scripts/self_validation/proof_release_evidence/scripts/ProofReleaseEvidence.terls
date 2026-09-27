@@ -30,11 +30,11 @@ clone_json(value: Json): Option[Json] ->
 
 diagnostic(code: String, message: String): Bool ->
     case Json.stringify(
-    Json.object()
-        .put("schema", Json.string("terlan.proof-release-diagnostic.v1"))
-        .put("code", Json.string(code))
-        .put("message", Json.string(message)),
-) {
+        Json.object()
+            .put("schema", Json.string("terlan.proof-release-diagnostic.v1"))
+            .put("code", Json.string(code))
+            .put("message", Json.string(message)),
+    ) {
         Ok(source) ->
             let _printed = eprintln(source);
             false;

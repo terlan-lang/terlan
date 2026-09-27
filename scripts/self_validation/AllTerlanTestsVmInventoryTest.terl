@@ -539,13 +539,13 @@ scan_tree_pages(
     state: ScanState,
 ): Result[ScanState, FileError] ->
     case read_text_tree_matching(
-    tree_root,
-    [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
-    included_suffixes,
-    excluded_suffixes,
-    offset,
-    64,
-) {
+        tree_root,
+        [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
+        included_suffixes,
+        excluded_suffixes,
+        offset,
+        64,
+    ) {
         Err(reason) ->
             if {
                 code(reason) == NotFound -> Ok(state);
@@ -605,13 +605,13 @@ scan_manifest_pages(
     state: ScanState,
 ): Result[ScanState, FileError] ->
     case read_text_tree_matching(
-    repository_root,
-    [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
-    ["terlan.toml"],
-    List.new[String](),
-    offset,
-    64,
-) {
+        repository_root,
+        [".git", "target", "node_modules", "__pycache__", ".terlan", "_build"],
+        ["terlan.toml"],
+        List.new[String](),
+        offset,
+        64,
+    ) {
         Err(reason) -> Err(reason);
         Ok([]) -> Ok(state);
         Ok(files) ->
@@ -761,77 +761,85 @@ print_success(inventory: Inventory): Bool ->
 
 scan_std_tree(root: String): Bool ->
     case scan_tree_pages(
-    root,
-    child(root, "std"),
-    StdTree,
-    ["Test.terl"],
-    List.new[String](),
-    0,
-    ScanState(inventory = empty_inventory(), findings = List.new[Finding]()),
-) {
+        root,
+        child(root, "std"),
+        StdTree,
+        ["Test.terl"],
+        List.new[String](),
+        0,
+        ScanState(inventory = empty_inventory(), findings = List.new[Finding]()),
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(state) -> scan_repository_tree(root, state)
     }.
 
 scan_repository_tree(root: String, state: ScanState): Bool ->
-    case scan_tree_pages(root, child(root, "tests"), RepositoryTree, [".terl"], List.new[String](), 0, state) {
+    case scan_tree_pages(
+        root,
+        child(root, "tests"),
+        RepositoryTree,
+        [".terl"],
+        List.new[String](),
+        0,
+        state,
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(next) -> scan_test_command_tree(root, next)
     }.
 
 scan_test_command_tree(root: String, state: ScanState): Bool ->
     case scan_tree_pages(
-    root,
-    child(root, "crates/terlan/src/commands/test"),
-    CommandTree,
-    [".rs", "README.md"],
-    ["_test.rs"],
-    0,
-    state,
-) {
+        root,
+        child(root, "crates/terlan/src/commands/test"),
+        CommandTree,
+        [".rs", "README.md"],
+        ["_test.rs"],
+        0,
+        state,
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(next) -> scan_run_command_tree(root, next)
     }.
 
 scan_run_command_tree(root: String, state: ScanState): Bool ->
     case scan_tree_pages(
-    root,
-    child(root, "crates/terlan/src/commands/run"),
-    CommandTree,
-    [".rs", "README.md"],
-    ["_test.rs"],
-    0,
-    state,
-) {
+        root,
+        child(root, "crates/terlan/src/commands/run"),
+        CommandTree,
+        [".rs", "README.md"],
+        ["_test.rs"],
+        0,
+        state,
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(next) -> scan_repl_command_tree(root, next)
     }.
 
 scan_repl_command_tree(root: String, state: ScanState): Bool ->
     case scan_tree_pages(
-    root,
-    child(root, "crates/terlan/src/commands/repl"),
-    CommandTree,
-    [".rs", "README.md"],
-    ["_test.rs"],
-    0,
-    state,
-) {
+        root,
+        child(root, "crates/terlan/src/commands/repl"),
+        CommandTree,
+        [".rs", "README.md"],
+        ["_test.rs"],
+        0,
+        state,
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(next) -> scan_runner_inventory(root, next)
     }.
 
 scan_runner_inventory(root: String, state: ScanState): Bool ->
     case scan_runner_paths(
-    root,
-    [
-        "Makefile",
-        "scripts/run_exact_cargo_test.sh",
-        "scripts/self_validation/StdlibValidation.terls",
-        "std/stdlib.mk",
-    ],
-    state,
-) {
+        root,
+        [
+            "Makefile",
+            "scripts/run_exact_cargo_test.sh",
+            "scripts/self_validation/StdlibValidation.terls",
+            "std/stdlib.mk",
+        ],
+        state,
+    ) {
         Err(reason) -> report_file_error(reason);
         Ok(next) -> scan_manifest_tree(root, next)
     }.
@@ -906,9 +914,9 @@ pub forbidden_and_allowed_text_contexts_are_distinguished(): Bool ->
 @test
 pub legacy_manifest_spelling_is_rejected(): Bool ->
     case scan_manifest(
-    "terlan.toml",
-    "[build]\nartifact = \"beam-thin\"\ntarget = \"erlang\"\nruntime = \"beam\"",
-) {
+        "terlan.toml",
+        "[build]\nartifact = \"beam-thin\"\ntarget = \"erlang\"\nruntime = \"beam\"",
+    ) {
         [artifact, target, runtime] ->
             artifact.message == "declares `artifact = \"beam-thin\"`"
                 and target.message == "declares `target = \"erlang\"`"

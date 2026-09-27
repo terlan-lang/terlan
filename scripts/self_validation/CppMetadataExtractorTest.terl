@@ -240,20 +240,20 @@ command_succeeds_with_environment(
     environment: List[EnvironmentEntry],
 ): Bool ->
     case Process.run(
-    Process.with_output_limit_bytes(
-        Process.with_timeout_ms(
-            Process.with_environment(
-                Process.with_working_directory(
-                    Process.with_arguments(Process.command(program), arguments),
-                    directory,
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_environment(
+                    Process.with_working_directory(
+                        Process.with_arguments(Process.command(program), arguments),
+                        directory,
+                    ),
+                    environment,
                 ),
-                environment,
+                120000,
             ),
-            120000,
+            4194304,
         ),
-        4194304,
-    ),
-) {
+    ) {
         Ok(output) -> Process.status(output) == 0;
         Err(_reason) -> false
     }.
@@ -539,8 +539,8 @@ pub committed_cpp_metadata_contract_is_valid(): Bool ->
 @test
 pub live_producer_version_is_the_only_normalized_field(): Bool ->
     case Json.parse(
-    "{\"producer\":{\"name\":\"clang-libtooling\",\"version\":\"host\"},\"schema\":\"terlan.cpp.metadata.v1\"}",
-) {
+        "{\"producer\":{\"name\":\"clang-libtooling\",\"version\":\"host\"},\"schema\":\"terlan.cpp.metadata.v1\"}",
+    ) {
         Ok(metadata) ->
             if {
                 normalize_live(metadata) -> normalized_fixture_fields_hold(metadata);

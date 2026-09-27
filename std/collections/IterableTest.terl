@@ -13,7 +13,7 @@ sum_values(iterator: std.collections.Iterator.Iterator[Int], sum: Int): Int ->
         Some({value: value, next: rest}) -> sum_values(rest, sum + value)
     }.
 
-sum_entry_values(iterator: std.collections.Iterator.Iterator[{Binary, Int}], sum: Int): Int ->
+sum_entry_values(iterator: std.collections.Iterator.Iterator[{String, Int}], sum: Int): Int ->
     case next(iterator) {
         None -> sum;
         Some({value: {_key, value}, next: rest}) -> sum_entry_values(rest, sum + value)

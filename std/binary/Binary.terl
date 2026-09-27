@@ -639,10 +639,10 @@ pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet,
             Err(reason) -> Err(reason);
             Ok(shape_names) ->
                 case validate_protocol_shape_aliases(
-    protocol_shape_set_aliases(set),
-    shape_names,
-    Map.new[String, Bool](),
-) {
+                    protocol_shape_set_aliases(set),
+                    shape_names,
+                    Map.new[String, Bool](),
+                ) {
                     Err(reason) -> Err(reason);
                     Ok(_alias_names) -> Ok(set)
                 }
@@ -1475,7 +1475,13 @@ pub encode_protocol_fields(
             let name = protocol_field_name(field);
             case descriptor_kind(descriptor) {
                 UIntSegment ->
-                    case encode_protocol_uint_value(endian, decoded, encoded, name, descriptor_width(descriptor)) {
+                    case encode_protocol_uint_value(
+                        endian,
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor_width(descriptor),
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1487,7 +1493,13 @@ pub encode_protocol_fields(
                             )
                     };
                 IntSegment ->
-                    case encode_protocol_int_value(endian, decoded, encoded, name, descriptor_width(descriptor)) {
+                    case encode_protocol_int_value(
+                        endian,
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor_width(descriptor),
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(
@@ -1499,7 +1511,12 @@ pub encode_protocol_fields(
                             )
                     };
                 BytesSegment ->
-                    case encode_protocol_bytes_value(decoded, encoded, name, descriptor_width(descriptor)) {
+                    case encode_protocol_bytes_value(
+                        decoded,
+                        encoded,
+                        name,
+                        descriptor_width(descriptor),
+                    ) {
                         Err(reason) -> Err(reason);
                         Ok(next_encoded) ->
                             encode_protocol_fields(

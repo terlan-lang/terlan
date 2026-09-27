@@ -42,11 +42,11 @@ struct JsonWork {
  */
 pub validate_metadata(metadata: Json): Option[String] ->
     case {
-    string_field(metadata, "schema"),
-    object_field(metadata, "package"),
-    object_field(metadata, "accelerator"),
-    object_field(metadata, "accelerator_closure"),
-} {
+        string_field(metadata, "schema"),
+        object_field(metadata, "package"),
+        object_field(metadata, "accelerator"),
+        object_field(metadata, "accelerator_closure"),
+    } {
         {Some("terlan-package-build-v1"), Some(package), Some(root), Some(closure)} ->
             validate_closure(metadata, package, root, closure);
         _ -> invalid_result()
@@ -54,11 +54,11 @@ pub validate_metadata(metadata: Json): Option[String] ->
 
 validate_closure(metadata: Json, package: Json, root: Json, closure: Json): Option[String] ->
     case {
-    string_field(package, "name"),
-    array_field(closure, "packages"),
-    object_field(closure, "capability_owners"),
-    Json.stringify(root),
-} {
+        string_field(package, "name"),
+        array_field(closure, "packages"),
+        object_field(closure, "capability_owners"),
+        Json.stringify(root),
+    } {
         {Some(root_name), Some(packages), Some(owner_index), Ok(root_text)} ->
             let count = array_length(packages);
             let normalized = Json.array();

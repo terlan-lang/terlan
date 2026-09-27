@@ -244,11 +244,16 @@ dry_run_cases(root: String, items: List[InstallerCase]): Bool ->
         [] -> true;
         [item | rest] ->
             case Process.run(
-    installer_command(
-        root,
-        installer_environment(item, "/tmp/terlan-bin", "https://example.invalid/releases", true),
-    ),
-) {
+                installer_command(
+                    root,
+                    installer_environment(
+                        item,
+                        "/tmp/terlan-bin",
+                        "https://example.invalid/releases",
+                        true,
+                    ),
+                ),
+            ) {
                 Ok(output) ->
                     if {
                         Process.status(output) != 0 -> fail(String.append(item.artifact, " dry run failed"));
@@ -552,9 +557,9 @@ write_fixture_checksum(
     rollback: Bool,
 ): Bool ->
     case write_text(
-    String.append(archive, ".sha256"),
-    String.append(digest, String.append("  ", String.append(item.artifact, "\n"))),
-) {
+        String.append(archive, ".sha256"),
+        String.append(digest, String.append("  ", String.append(item.artifact, "\n"))),
+    ) {
         Ok(Unit) ->
             if {
                 rollback -> run_initial_rollback_install(root, workspace, release, item);

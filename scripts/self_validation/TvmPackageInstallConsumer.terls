@@ -441,7 +441,11 @@ check_sidecars(root: String, vm: String, image: String, sidecars: List[String]):
                     failure("sidecar", String.append("cannot stage `", String.append(sidecar, "`")));
                 Ok(_written) ->
                     let rejected =
-                        case run_failure(root, vm, ["run", image, "--entry", entry_name(), "--test-eval"]) {
+                        case run_failure(
+                            root,
+                            vm,
+                            ["run", image, "--entry", entry_name(), "--test-eval"],
+                        ) {
                             Some(output) -> Process.stderr(output).contains("tvm.image.sidecar");
                             None -> false
                         };

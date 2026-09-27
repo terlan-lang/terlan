@@ -324,7 +324,9 @@ load(root: String): CanonicalResult ->
                 message = "target/quality/rust-structural-input.json is missing",
             );
         Ok(report_source) ->
-            case File.read_text(SourceInventory.child(root, "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv")) {
+            case File.read_text(
+                SourceInventory.child(root, "docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv"),
+            ) {
                 Err(_reason) ->
                     CanonicalResult(
                         valid = false,

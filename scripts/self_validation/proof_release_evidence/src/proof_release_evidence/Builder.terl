@@ -492,7 +492,12 @@ collect_proofs(
                                         "stale_input",
                                         String.append("proof source is stale: ", artifact.path),
                                     );
-                                    true -> case artifact_inputs(root, artifact.input_paths, artifact.input_digests, result.inputs) {
+                                    true -> case artifact_inputs(
+                                        root,
+                                        artifact.input_paths,
+                                        artifact.input_digests,
+                                        result.inputs,
+                                    ) {
                                         Some(inputs) ->
                                             let proof =
                                                 Json.object()
@@ -605,11 +610,11 @@ build_records(
         [] -> finish_document(root, records, materials, repros, lanes, config);
         [binding | rest] ->
             case {
-    find_lane(lanes, binding.lane_id),
-    mapping(config, "runtime_lane_map", binding.lane_id),
-    mapping(config, "std_lane_map", binding.lane_id),
-    slice_number(binding.slice_id),
-} {
+                find_lane(lanes, binding.lane_id),
+                mapping(config, "runtime_lane_map", binding.lane_id),
+                mapping(config, "std_lane_map", binding.lane_id),
+                slice_number(binding.slice_id),
+            } {
                 {Some(lane), Some(runtime_lane), Some(std_lane), Some(number)} ->
                     if {
                         lane.status != "pass" -> invalid(
@@ -790,13 +795,13 @@ finish_document(
     config: Json,
 ): EvidenceBuild ->
     case {
-    base_materials(root, base_material_paths(), []),
-    Support.release_version(root),
-    Support.json_string(config, "target_profile"),
-    Support.json_member(config, "feature_set"),
-    RuntimeEvidence.replay_json(config, repros),
-    read_semantics(root),
-} {
+        base_materials(root, base_material_paths(), []),
+        Support.release_version(root),
+        Support.json_string(config, "target_profile"),
+        Support.json_member(config, "feature_set"),
+        RuntimeEvidence.replay_json(config, repros),
+        read_semantics(root),
+    } {
         {Some(base), Some(release), Some(profile), Some(features), Some(replay), Some(semantics)} ->
             let rust = Support.rust_identity(root);
             if {
@@ -849,12 +854,12 @@ finish_document(
 
 pub build(root: String): EvidenceBuild ->
     case {
-    Support.load_json(root, "proofs/lean/release_evidence/release-mode.json"),
-    read_artifacts(root),
-    read_repros(root),
-    read_lanes(root),
-    read_bindings(root),
-} {
+        Support.load_json(root, "proofs/lean/release_evidence/release-mode.json"),
+        read_artifacts(root),
+        read_repros(root),
+        read_lanes(root),
+        read_bindings(root),
+    } {
         {Some(config), Some(artifacts), Some(repros), Some(lanes), Some(bindings)} ->
             case Support.json_string(config, "schema") {
                 Some(schema) ->

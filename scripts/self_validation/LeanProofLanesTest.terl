@@ -1209,19 +1209,22 @@ run_repository_check(): Bool ->
         _ -> fail("prior lane report is unreadable or empty")
     };
     case read_text_many(
-    [
-        root_path(root, "docs/compiler/LEAN_PROOF_SLICE_MATRIX.tsv"),
-        root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
-        root_path(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-track.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-smoke.json"),
-        root_path(root, "target/quality/proof-artifacts/lean-proof-smoke-attempt.json"),
-        root_path(root, "Makefile"),
-        root_path(root, "docs/roadmap/ROADMAP_0_0_7.md"),
-        root_path(root, "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md"),
-    ],
-) {
+        [
+            root_path(root, "docs/compiler/LEAN_PROOF_SLICE_MATRIX.tsv"),
+            root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
+            root_path(root, "docs/compiler/proof_track/lean_proof_gaps.tsv"),
+            root_path(root, "target/quality/proof-artifacts/lean-proof-track.json"),
+            root_path(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
+            root_path(root, "target/quality/proof-artifacts/lean-proof-smoke.json"),
+            root_path(root, "target/quality/proof-artifacts/lean-proof-smoke-attempt.json"),
+            root_path(root, "Makefile"),
+            root_path(root, "docs/roadmap/ROADMAP_0_0_7.md"),
+            root_path(
+                root,
+                "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md",
+            ),
+        ],
+    ) {
         Ok([matrix, features, gaps, gate, replay, smoke, smoke_attempt, makefile, roadmap, archive]) ->
             let true <- smoke_attempt_holds(smoke_attempt.contents, smoke.contents) else {
                 _ -> fail("smoke report has no matching completed current attempt")
@@ -1400,7 +1403,14 @@ read_dynamic_lane_inputs(root: String, inputs: Inputs): Bool ->
         Ok(gap_files) ->
             case read_text_many(prerequisite_paths(root)) {
                 Ok(prerequisite_files) ->
-                    case read_text_tree_matching(root_path(root, "proofs/lean"), [".lake"], [".lean"], [], 0, 256) {
+                    case read_text_tree_matching(
+                        root_path(root, "proofs/lean"),
+                        [".lake"],
+                        [".lean"],
+                        [],
+                        0,
+                        256,
+                    ) {
                         Ok(proof_files) ->
                             let seal =
                                 compute_lane_seal(

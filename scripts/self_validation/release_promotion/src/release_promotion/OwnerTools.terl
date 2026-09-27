@@ -48,13 +48,13 @@ pub run(
     env: List[EnvironmentEntry],
 ): Result[String, String] ->
     case Process.run(
-    Process.command("/usr/bin/env")
-        .with_arguments(["-i" | PreparationOwner.environment_arguments(env, [program | args])])
-        .with_working_directory(root)
-        .with_stdin("")
-        .with_timeout_ms(30000)
-        .with_output_limit_bytes(8388608),
-) {
+        Process.command("/usr/bin/env")
+            .with_arguments(["-i" | PreparationOwner.environment_arguments(env, [program | args])])
+            .with_working_directory(root)
+            .with_stdin("")
+            .with_timeout_ms(30000)
+            .with_output_limit_bytes(8388608),
+    ) {
         Err(reason) -> Err(Process.error_message(reason));
         Ok(output) ->
             if {
