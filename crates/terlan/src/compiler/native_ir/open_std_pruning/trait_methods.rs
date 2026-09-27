@@ -7,6 +7,11 @@ fn identities(cores: &[CoreModule]) -> impl Iterator<Item = (FunctionKey, Functi
         core.functions.iter().flat_map(move |function| {
             function.trait_method.iter().flat_map(move |identity| {
                 let mut owners = vec![identity.trait_name.clone()];
+                // Receiver syntax retains implementation bodies until the
+                // checked receiver type selects one, even without a trait call.
+                if !function.params.is_empty() {
+                    owners.push("__receiver__".to_string());
+                }
                 if !identity.type_args.is_empty() {
                     owners.push(identity.dispatch_owner());
                 }

@@ -199,9 +199,9 @@ parse_binding(root: String, relative: String, source: String): Bool ->
 
 read_binding_metadata(root: String, binding: Json): Bool ->
     case binding
-    .string_fields(
-        ["schema", "generator", "generator_version", "input_manifest", "skipped_manifest"],
-    ) {
+        .string_fields(
+            ["schema", "generator", "generator_version", "input_manifest", "skipped_manifest"],
+        ) {
         Err(_reason) ->
             report(add_diagnostic([], binding_manifest_path(), "manifest must be a JSON object"));
         Ok(values) ->

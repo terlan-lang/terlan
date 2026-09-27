@@ -114,13 +114,13 @@ pub digest(value: Json): Result[String, String] ->
 
 pub command(root: String, program: String, args: List[String]): Bool ->
     case Process.run(
-    Process.command(program)
-        .with_arguments(args)
-        .with_working_directory(root)
-        .with_stdin("")
-        .with_timeout_ms(30000)
-        .with_output_limit_bytes(1048576),
-) {
+        Process.command(program)
+            .with_arguments(args)
+            .with_working_directory(root)
+            .with_stdin("")
+            .with_timeout_ms(30000)
+            .with_output_limit_bytes(1048576),
+    ) {
         Ok(output) -> Process.status(output) == 0;
         Err(_reason) -> false
     }.

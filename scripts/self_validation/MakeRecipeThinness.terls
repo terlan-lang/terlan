@@ -392,13 +392,13 @@ validate_make_files(files: List[TextFile]): Bool ->
 repository_gate(): Bool ->
     let root = environment_or("TERLAN_MAKE_RECIPE_ROOT", ".");
     case read_text_tree_matching(
-    root,
-    [".git", "target", "node_modules", "vendor", "dist", "build"],
-    ["Makefile", ".mk"],
-    List.new[String](),
-    0,
-    512,
-) {
+        root,
+        [".git", "target", "node_modules", "vendor", "dist", "build"],
+        ["Makefile", ".mk"],
+        List.new[String](),
+        0,
+        512,
+    ) {
         Ok(files) -> validate_make_files(files);
         Err(_reason) -> false
     }.
@@ -467,9 +467,9 @@ pub reads_single_line_prerequisites(): Bool ->
 @test
 pub reads_continued_prerequisites_without_recipe_lines(): Bool ->
     case make_target_prerequisites(
-    "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
-    "http-check",
-) {
+        "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
+        "http-check",
+    ) {
         Some(values) ->
             string_lists_equal(values, String.split("vm-stream-check vm-router-check", " "));
         None -> false

@@ -81,10 +81,13 @@ model tests pass. Migration operations update local plans and diagnostics only:
 they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
-The standard-library execution run now passes `std/db/PostgresTest.terl`, Cookies,
-HTTP Error, Request, Response, Router, LiveChannel, SSE, WebSocket, TLS, and List
-before failing in `EnumerableTest`: list receiver `map` incorrectly resolves to
-`Option.map`. The Postgres command/test runner suspends actor-owned
+Standard-library source execution now passes `std/db/PostgresTest.terl`, Cookies,
+HTTP Error, Request, Response, Router, LiveChannel, SSE, WebSocket, TLS, List,
+Enumerable, Map, Set, Iterable, and Iterator. The full run next fails in
+`std/native/collections/VectorTest.terl`: mutation rebinding exposes `Unit` where
+the subsequent read requires `Vector[T]`. A selected bracket-read test also
+fails to resolve `IndexGet.get_at` into the native application closure.
+The Postgres command/test runner suspends actor-owned
 calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
 Terlan, and terminal attempts revoke transaction handles. The worker enforces
@@ -166,8 +169,24 @@ and expiration to tests that execute those operations. All 33 HTTP source tests,
 34 session runtime tests, and both test-fixture access checks pass. Native
 artifacts, API manifest validation, and documentation formatting also pass.
 
+Trait receiver calls now retain implementation bodies during pruning and select
+them by receiver type before ordinary function fallback. Declared receiver
+methods retain precedence; private and ambiguous candidates are not selected.
+Trait implementation bodies now canonicalize module aliases and selected imports,
+including aliased function names. Boolean literal bindings retain their receiver
+type. All 663 NativeIR tests and 32 CoreIR lowering tests pass, including native
+execution after serialization and pruning. All 13 Enumerable and three Iterable
+source tests pass with string-key annotations matching their actual map values;
+map assertions now verify transformed values rather than only collection size.
+
+Hosted release validation for `be03312d` passed. Compiler CI reached the repository
+formatting gate and rejected Binary and Postgres formatting. The full local gate
+then exposed 54 validator files with formatting drift. Applying the repository
+formatter to those files makes the full formatting gate pass; regenerated std
+summary dependencies preserve the public interfaces.
+
 This is not a passing full standard-library run or complete API execution
-coverage. Enumerable receiver resolution, Postgres routing in the
+coverage. Native Vector execution, Postgres routing in the
 separate HTTP serve dispatchers, and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then

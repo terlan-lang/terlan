@@ -165,9 +165,9 @@ pub single_line_prerequisites_test(): Bool ->
 @test
 pub continued_prerequisites_test(): Bool ->
     case target_prerequisites(
-    "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
-    "http-check",
-) {
+        "http-check: \\\n\tvm-stream-check \\\n\tvm-router-check\n\tcargo test http\n",
+        "http-check",
+    ) {
         Some(values) -> strings_equal(values, ["vm-stream-check", "vm-router-check"]);
         None -> false
     }.

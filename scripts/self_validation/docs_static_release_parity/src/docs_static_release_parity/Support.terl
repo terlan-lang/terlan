@@ -458,7 +458,8 @@ project_site_pages(
             );
             true -> None
         };
-        true -> case modules.nested_string_field_rows_page(index, 128, ["module"], "declarations", ["kind", "name"]) {
+        true -> case modules
+            .nested_string_field_rows_page(index, 128, ["module"], "declarations", ["kind", "name"]) {
             Err(_reason) -> None;
             Ok(rows) ->
                 let remaining = total - index;
@@ -469,7 +470,10 @@ project_site_pages(
                     };
                 let next_totals = module_counts(rows, totals);
                 let {reversed, page_entries} = search_module_rows(rows, version, [], 0);
-                case Json.string_object_rows(["kind", "module", "name", "url"], reverse_search_rows(reversed, [])) {
+                case Json.string_object_rows(
+                    ["kind", "module", "name", "url"],
+                    reverse_search_rows(reversed, []),
+                ) {
                     Err(_reason) -> None;
                     Ok(page) ->
                         if {

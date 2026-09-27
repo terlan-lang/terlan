@@ -238,8 +238,8 @@ validate(duplicates: List[Duplicate], parsed: ClassificationResult): Classificat
 
 pub check(root: String, duplicates: List[Duplicate]): ClassificationResult ->
     case File.read_text(
-    SourceInventory.child(root, "docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv"),
-) {
+        SourceInventory.child(root, "docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv"),
+    ) {
         Err(reason) ->
             ClassificationResult(
                 valid = false,

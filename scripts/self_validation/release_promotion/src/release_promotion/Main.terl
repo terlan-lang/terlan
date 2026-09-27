@@ -483,9 +483,9 @@ self_test(root: String, report: Bool): Bool ->
                 };
             let stale_report =
                 case File.write_text(
-    child(fixture, "target/quality/self-test-report.json"),
-    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"fail\"}\n",
-) {
+                    child(fixture, "target/quality/self-test-report.json"),
+                    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"fail\"}\n",
+                ) {
                     Err(_reason) -> false;
                     Ok(_written) ->
                         let drift = verify(fixture, "0.0.7");
@@ -493,9 +493,9 @@ self_test(root: String, report: Bool): Bool ->
                 };
             let report_restored =
                 case File.write_text(
-    child(fixture, "target/quality/self-test-report.json"),
-    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
-) {
+                    child(fixture, "target/quality/self-test-report.json"),
+                    "{\"schema\":\"terlan.release-self-test.v1\",\"decision\":\"pass\"}\n",
+                ) {
                     Ok(_written) -> true;
                     Err(_reason) -> false
                 };

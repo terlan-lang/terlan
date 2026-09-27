@@ -260,9 +260,9 @@ report(valid: Bool, count: Int, reason: String): Bool ->
 @test
 pub relative_path_requires_exact_output_prefix(): Bool ->
     case {
-    relative_generated_path("/tmp/output", "/tmp/output/std/js/Array.terl"),
-    relative_generated_path("/tmp/output", "/tmp/output-other/file"),
-} {
+        relative_generated_path("/tmp/output", "/tmp/output/std/js/Array.terl"),
+        relative_generated_path("/tmp/output", "/tmp/output-other/file"),
+    } {
         {Some("std/js/Array.terl"), None} -> true;
         _ -> false
     }.

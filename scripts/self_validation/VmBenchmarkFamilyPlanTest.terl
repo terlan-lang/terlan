@@ -535,13 +535,13 @@ semantics_make_targets_hold(
     matrix_text: String,
 ): Bool ->
     case read_text_tree_matching(
-    root,
-    [".git", "target", "node_modules", "vendor", "dist", "build"],
-    ["Makefile", ".mk"],
-    [],
-    0,
-    512,
-) {
+        root,
+        [".git", "target", "node_modules", "vendor", "dist", "build"],
+        ["Makefile", ".mk"],
+        [],
+        0,
+        512,
+    ) {
         Ok(make_files) -> validate_semantics_documents(family, port_text, matrix_text, make_files);
         Err(_reason) -> false
     }.

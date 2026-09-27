@@ -47,13 +47,13 @@ files_contain_markers(files: List[TextFile], markers: List[String]): Bool ->
 
 serve_sources_hold(root: String): Bool ->
     case read_text_tree_matching(
-    String.append(root, "/crates/terlan/src/commands/serve"),
-    List.new[String](),
-    [".rs"],
-    ["_test.rs"],
-    0,
-    2048,
-) {
+        String.append(root, "/crates/terlan/src/commands/serve"),
+        List.new[String](),
+        [".rs"],
+        ["_test.rs"],
+        0,
+        2048,
+    ) {
         Ok(files) -> files_reject_patterns(files, forbidden_patterns());
         _ -> false
     }.

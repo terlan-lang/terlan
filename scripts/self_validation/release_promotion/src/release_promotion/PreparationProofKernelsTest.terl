@@ -26,11 +26,11 @@ fixture(root: String): Bool ->
 
 stage(root: String, valid: Bool, completed: Int, reused: Int): Bool ->
     case PrepareProofKernels.prepare(
-    root,
-    "target/tools/quality",
-    "target/tools/vm",
-    "target/tools/semantic.tvm",
-) {
+        root,
+        "target/tools/quality",
+        "target/tools/vm",
+        "target/tools/semantic.tvm",
+    ) {
         Ok(result) ->
             result.valid == valid and result.completed == completed and result.reused == reused;
         Err(reason) ->
@@ -79,11 +79,11 @@ exercise(root: String): Bool ->
         _ -> false
     };
     case PrepareProofKernels.prepare(
-    root,
-    "target/tools/quality",
-    "target/tools/vm",
-    "target/tools/semantic.tvm",
-) {
+        root,
+        "target/tools/quality",
+        "target/tools/vm",
+        "target/tools/semantic.tvm",
+    ) {
         Err(_reason) -> true;
         _ -> false
     }.

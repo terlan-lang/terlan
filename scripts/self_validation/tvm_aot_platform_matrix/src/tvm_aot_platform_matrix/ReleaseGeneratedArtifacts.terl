@@ -278,10 +278,10 @@ artifact_patterns_at(
 snapshot(root: String, artifacts: List[Artifact], inventory_source: String): Option[Snapshot] ->
     let patterns = artifact_patterns_at(artifacts, []);
     case Hash.audit_labeled_file_patterns(
-    root,
-    patterns,
-    ["/home/", "/Users/", "/tmp/", "/private/tmp/", "\\Users\\", "\\Documents and Settings\\"],
-) {
+        root,
+        patterns,
+        ["/home/", "/Users/", "/tmp/", "/private/tmp/", "\\Users\\", "\\Documents and Settings\\"],
+    ) {
         Err(_reason) -> None;
         Ok(audit) ->
             if {

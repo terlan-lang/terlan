@@ -11,6 +11,7 @@ struct ReceiverTarget {
     receiver: CoreType,
     public: bool,
     generic_params: Vec<String>,
+    trait_fallback: bool,
 }
 
 /// Resolves mutable receiver syntax to one exact application callable.
@@ -68,9 +69,13 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
     let mut targets = HashMap::<(String, usize), Vec<ReceiverTarget>>::new();
     for core in cores {
         for function in &core.functions {
-            if !function.receiver_method {
+            let method = if function.receiver_method {
+                &function.name
+            } else if let Some(identity) = &function.trait_method {
+                &identity.method
+            } else {
                 continue;
-            }
+            };
             let Some(receiver) = function.params.first().and_then(|parameter| {
                 parameter
                     .core_ty
@@ -80,13 +85,14 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
                 continue;
             };
             targets
-                .entry((function.name.clone(), function.arity))
+                .entry((method.clone(), function.arity))
                 .or_default()
                 .push(ReceiverTarget {
                     module: core.module.clone(),
                     function: function.name.clone(),
                     receiver,
                     public: function.public,
+                    trait_fallback: !function.receiver_method,
                     generic_params: super::super::generic_specialization::generic_parameters(
                         function,
                     ),
@@ -356,7 +362,7 @@ fn receiver_target<'a>(
     targets: &'a HashMap<(String, usize), Vec<ReceiverTarget>>,
 ) -> Option<&'a ReceiverTarget> {
     let identity = (method.to_string(), arity);
-    let mut matches = targets
+    let matches = targets
         .get(&identity)
         .into_iter()
         .flatten()
@@ -380,8 +386,17 @@ fn receiver_target<'a>(
                 .collect::<Vec<_>>(),
         );
     }
-    let target = matches.next()?;
-    matches.next().is_none().then_some(target)
+    // Declared receiver methods take precedence over trait fallback, matching
+    // frontend dispatch. Ambiguous candidates within either tier stay unresolved.
+    for trait_fallback in [false, true] {
+        let mut tier = matches
+            .clone()
+            .filter(|target| target.trait_fallback == trait_fallback);
+        if let Some(target) = tier.next() {
+            return tier.next().is_none().then_some(target);
+        }
+    }
+    None
 }
 
 fn callable_identity(target: &ReceiverTarget, caller_module: &str) -> String {
@@ -441,6 +456,7 @@ fn infer_core_type(
     functions: &HashMap<(String, usize), CoreType>,
 ) -> Option<CoreType> {
     match expr {
+        CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Atom(_) => Some(CoreType::Atom),

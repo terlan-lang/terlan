@@ -675,7 +675,11 @@ run_touched(root: String, artifact_directory: String, scenario: Scenario): Measu
     case File.timestamps(path) {
         Err(reason) -> measurement_failure(File.message(reason));
         Ok(original) ->
-            case File.set_timestamps(path, original.accessed_unix_ns, original.modified_unix_ns + 1000000000) {
+            case File.set_timestamps(
+                path,
+                original.accessed_unix_ns,
+                original.modified_unix_ns + 1000000000,
+            ) {
                 Err(reason) -> measurement_failure(File.message(reason));
                 Ok(_touched) ->
                     let started = Clock.monotonic_time_ns();
@@ -816,17 +820,17 @@ timing_rows_json(rows: List[TimingRow], output: Json): Json ->
 
 process_text(root: String, program: String, arguments: List[String]): String ->
     case Process.run(
-    Process.with_output_limit_bytes(
-        Process.with_timeout_ms(
-            Process.with_working_directory(
-                Process.with_arguments(Process.command(program), arguments),
-                root,
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_working_directory(
+                    Process.with_arguments(Process.command(program), arguments),
+                    root,
+                ),
+                30000,
             ),
-            30000,
+            1048576,
         ),
-        1048576,
-    ),
-) {
+    ) {
         Err(_reason) -> "";
         Ok(output) ->
             if {

@@ -410,33 +410,36 @@ if {
     not string_member(String.split(installed, "\n"), target()) -> failure("pinned ThreadSanitizer target is not installed");
     not String.starts_with(rustc, String.concat(["rustc ", toolchain(), " "])) -> failure("pinned Rust compiler is unavailable");
     true -> case run_command(
-    root,
-    "cargo",
-    [
-        String.append("+", toolchain()),
-        "test",
-        "--locked",
-        "-p",
-        "terlan",
-        "--no-default-features",
-        "--features",
-        harness_feature(),
-        "--bin",
-        harness_binary(),
-        "--target",
-        build_script_target(),
-        test_name(),
-        "--",
-        "--exact",
-        "--nocapture",
-    ],
-    [
-        Process.environment_entry("CARGO_TARGET_DIR", child(root, "target/gnutsan")),
-        Process.environment_entry("RUSTC_WRAPPER", child(root, "scripts/rustc_gnutsan_wrapper.sh")),
-        Process.environment_entry("TERLAN_VM_MULTICORE_STRESS_OUTPUT", stress_path),
-        Process.environment_entry("TSAN_OPTIONS", "halt_on_error=1 exitcode=66"),
-    ],
-) {
+        root,
+        "cargo",
+        [
+            String.append("+", toolchain()),
+            "test",
+            "--locked",
+            "-p",
+            "terlan",
+            "--no-default-features",
+            "--features",
+            harness_feature(),
+            "--bin",
+            harness_binary(),
+            "--target",
+            build_script_target(),
+            test_name(),
+            "--",
+            "--exact",
+            "--nocapture",
+        ],
+        [
+            Process.environment_entry("CARGO_TARGET_DIR", child(root, "target/gnutsan")),
+            Process.environment_entry(
+                "RUSTC_WRAPPER",
+                child(root, "scripts/rustc_gnutsan_wrapper.sh"),
+            ),
+            Process.environment_entry("TERLAN_VM_MULTICORE_STRESS_OUTPUT", stress_path),
+            Process.environment_entry("TSAN_OPTIONS", "halt_on_error=1 exitcode=66"),
+        ],
+    ) {
         None -> false;
         Some(_output) -> finish_run(root, stress_path, rustc)
     }

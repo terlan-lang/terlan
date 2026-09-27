@@ -413,22 +413,22 @@ run_native_tests(root: String): Bool ->
             true -> "target/validation-tools/terlan-test-orchestrator"
         };
     case run_command(
-    root,
-    "native library tests",
-    child(root, executable),
-    [
-        "--run-library-tests",
-        "--target-dir",
-        cargo_validation_target(root),
-        "--",
-        "commands::run::run_test::run_built_native_script_propagates_result",
-        "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
-        "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
-        "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
-        "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::bounded_seeded_multicore_memory_model_has_deadlock_watchdog",
-        "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::deadlock_watchdog_terminates_stuck_child",
-    ],
-) {
+        root,
+        "native library tests",
+        child(root, executable),
+        [
+            "--run-library-tests",
+            "--target-dir",
+            cargo_validation_target(root),
+            "--",
+            "commands::run::run_test::run_built_native_script_propagates_result",
+            "commands::vm::vm_test::vm_native_reload_executes_two_compiled_generations",
+            "commands::vm::vm_test::vm_native_reload_quarantines_timed_out_generation_without_force_unload",
+            "runtime::vm::pure_native::execution_shard::execution_shard_test::active_shard_crash_recovery_rejects_early_restart_and_stale_execution",
+            "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::bounded_seeded_multicore_memory_model_has_deadlock_watchdog",
+            "runtime::vm::fixed_scheduler_control::fixed_scheduler_control_stress_test::deadlock_watchdog_terminates_stuck_child",
+        ],
+    ) {
         Some(output) ->
             let _printed = println(Process.stdout(output));
             true;
@@ -437,20 +437,20 @@ run_native_tests(root: String): Bool ->
 
 run_package_consumer(root: String): Bool ->
     case run_command(
-    root,
-    "package consumer",
-    child(cargo_validation_target(root), "debug/terlan-vm"),
-    [
-        "run",
-        child(
-            root,
-            "target/self-validation/tvm-package-install-consumer/vm/scripts_self_validation_TvmPackageInstallConsumer.tvm",
-        ),
-        "--script-eval",
-        "--",
-        "check",
-    ],
-) {
+        root,
+        "package consumer",
+        child(cargo_validation_target(root), "debug/terlan-vm"),
+        [
+            "run",
+            child(
+                root,
+                "target/self-validation/tvm-package-install-consumer/vm/scripts_self_validation_TvmPackageInstallConsumer.tvm",
+            ),
+            "--script-eval",
+            "--",
+            "check",
+        ],
+    ) {
         Some(_output) -> true;
         None -> false
     }.

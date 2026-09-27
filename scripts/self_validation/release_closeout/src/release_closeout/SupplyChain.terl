@@ -141,7 +141,10 @@ let adversarial =
         and file_hash(root, "docs/release/MISSING") == ""
         and unsafe_classification("crates/new_unsafe_boundary.rs") == "";
 let sbom_written =
-    case File.write_text(Support.child(root, "target/quality/release-sbom.cargo-metadata.json"), metadata) {
+    case File.write_text(
+        Support.child(root, "target/quality/release-sbom.cargo-metadata.json"),
+        metadata,
+    ) {
         Ok(Unit) -> true;
         Err(_reason) -> false
     };

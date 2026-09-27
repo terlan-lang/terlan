@@ -209,7 +209,11 @@ run_scenario(root: String, scenario: Scenario): Measurement ->
                     original.accessed_unix_ns,
                     original.modified_unix_ns,
                 );
-                true -> case File.set_timestamps(edited, original.accessed_unix_ns, original.modified_unix_ns + 1000000000) {
+                true -> case File.set_timestamps(
+                    edited,
+                    original.accessed_unix_ns,
+                    original.modified_unix_ns + 1000000000,
+                ) {
                     Err(reason) ->
                         failure(String.concat([scenario.name, ": ", File.message(reason)]));
                     Ok(_touched) ->

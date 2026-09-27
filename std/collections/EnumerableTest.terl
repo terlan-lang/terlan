@@ -7,7 +7,7 @@ import std.test.Test.{assert_equal}.
 
 import type std.collections.{List, Map, Set}.
 
-value_of(entry: {Binary, Int}): Int ->
+value_of(entry: {String, Int}): Int ->
     case entry {
         {_key, value} -> value
     }.
@@ -15,7 +15,7 @@ value_of(entry: {Binary, Int}): Int ->
 ignore_int(_value: Int): Unit ->
     Unit.
 
-ignore_entry(_entry: {Binary, Int}): Unit ->
+ignore_entry(_entry: {String, Int}): Unit ->
     Unit.
 
 square_int(value: Int): Int ->
@@ -30,10 +30,10 @@ sum_int(sum: Int, value: Int): Int ->
 add_ten(value: Int): Int ->
     value + 10.
 
-entry_value_is_two(entry: {Binary, Int}): Bool ->
+entry_value_is_two(entry: {String, Int}): Bool ->
     value_of(entry) == 2.
 
-sum_entry(sum: Int, entry: {Binary, Int}): Int ->
+sum_entry(sum: Int, entry: {String, Int}): Int ->
     sum + value_of(entry).
 
 first_or_zero(values: std.collections.List.List[Int]): Int ->
@@ -42,7 +42,7 @@ first_or_zero(values: std.collections.List.List[Int]): Int ->
         None -> 0
     }.
 
-get_bob_or_zero(values: std.collections.Map.Map[Binary, Int]): Int ->
+get_bob_or_zero(values: std.collections.Map.Map[String, Int]): Int ->
     case values.get("bob") {
         Some(value) -> value;
         None -> 0
@@ -55,10 +55,10 @@ pub list_each_visits_values(): Bool ->
 @test
 pub list_map_transforms_values(): Bool ->
     let mapped =
-        1
-        |> List(2)
+        2
+        |> List(3)
         |> Enumerable[List].map(square_int);
-    assert_equal(1, first_or_zero(mapped)).
+    assert_equal(4, first_or_zero(mapped)).
 
 @test
 pub list_filter_keeps_matching_values(): Bool ->
@@ -74,8 +74,8 @@ pub list_fold_accumulates_values(): Bool ->
 
 @test
 pub list_receiver_map_uses_enumerable_trait(): Bool ->
-    let mapped = [1, 2].map(square_int);
-    assert_equal(2, mapped.length()).
+    let mapped = [2, 3].map(square_int);
+    assert_equal([4, 9], mapped).
 
 @test
 pub map_each_visits_entries(): Bool ->
@@ -109,7 +109,9 @@ pub set_map_transforms_values(): Bool ->
         1
         |> Set(2)
         |> Enumerable[Set].map(square_int);
-    assert_equal(2, mapped.size()).
+    assert_equal(2, mapped.size())
+        and assert_equal(true, mapped.contains(4))
+        and assert_equal(false, mapped.contains(2)).
 
 @test
 pub set_filter_keeps_matching_values(): Bool ->

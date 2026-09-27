@@ -29,13 +29,13 @@ source_inventory_holds("std/test/Test.terl", test_source, summary_names)
 
 inventory_pages(root: String, summary_names: Set[String], offset: Int): Bool ->
     case read_text_tree_matching(
-    String.append(root, "/std"),
-    ["summaries", "disabled", "__pycache__"],
-    [".terl"],
-    ["Test.terl"],
-    offset,
-    64,
-) {
+        String.append(root, "/std"),
+        ["summaries", "disabled", "__pycache__"],
+        [".terl"],
+        ["Test.terl"],
+        offset,
+        64,
+    ) {
         Ok([]) -> true;
         Ok(files) ->
             if {

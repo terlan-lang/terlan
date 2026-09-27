@@ -789,14 +789,14 @@ finish_valid_measurement(
                 after_hash == input_hash -> let restored = restore_quality(repository, temporary);
                 if {
                     restored -> case build_report(
-    repository,
-    policy,
-    input_hash,
-    preclean,
-    started,
-    clean_finished,
-    lane_set_list(lane_set),
-) {
+                        repository,
+                        policy,
+                        input_hash,
+                        preclean,
+                        started,
+                        clean_finished,
+                        lane_set_list(lane_set),
+                    ) {
                         Some(report) -> Some(report);
                         None -> post_measurement_failure("report assembly failed")
                     };
@@ -828,14 +828,14 @@ build_report(
     let finished = unix_time_ns();
     let generated = unix_time_ns();
     case {
-    json_member(policy, "artifact_class_maximum_bytes"),
-    json_member(policy, "executable_maximum_bytes"),
-    json_member(policy, "lane_maximum_wall_time_ms"),
-    json_int(policy, "maximum_total_target_bytes"),
-    json_string(policy, "ratchet_policy"),
-    fingerprints_value,
-    roots_value,
-} {
+        json_member(policy, "artifact_class_maximum_bytes"),
+        json_member(policy, "executable_maximum_bytes"),
+        json_member(policy, "lane_maximum_wall_time_ms"),
+        json_int(policy, "maximum_total_target_bytes"),
+        json_string(policy, "ratchet_policy"),
+        fingerprints_value,
+        roots_value,
+    } {
         {Some(class_max), Some(executable_max), Some(lane_max), Some(total_max), Some(ratchet), Some(fingerprints), Some(roots)} ->
             let report = Json.object();
             let _a = report.put("schema", Json.string(schema()));
@@ -981,11 +981,11 @@ validate(repository: String, report: Json, policy: Json): List[String] ->
         );
     let timestamp_bad =
         case {
-    json_int(report, "run_started_unix_ns"),
-    json_int(report, "clean_finished_unix_ns"),
-    json_int(report, "run_finished_unix_ns"),
-    json_int(report, "generated_unix_ns"),
-} {
+            json_int(report, "run_started_unix_ns"),
+            json_int(report, "clean_finished_unix_ns"),
+            json_int(report, "run_finished_unix_ns"),
+            json_int(report, "generated_unix_ns"),
+        } {
             {Some(start), Some(clean), Some(finish), Some(generated)} ->
                 not (0 < start and start < clean and clean < finish and finish <= generated);
             _ -> true
@@ -1152,11 +1152,11 @@ validate_lane_rows(
                         );
                     let evidence =
                         case {
-    json_int(lane, "wall_time_ms"),
-    json_int(maxima, name),
-    json_int(lane, "invalidated_artifact_count"),
-    json_string(lane, "command"),
-} {
+                            json_int(lane, "wall_time_ms"),
+                            json_int(maxima, name),
+                            json_int(lane, "invalidated_artifact_count"),
+                            json_string(lane, "command"),
+                        } {
                             {Some(wall), Some(maximum), Some(invalidated), Some(command)} ->
                                 let timed =
                                     append_finding(
@@ -1399,12 +1399,12 @@ persist_and_check(repository: String, policy: Json, report: Json): Bool ->
 
 refresh_report(repository: String, report: Json, policy: Json): Bool ->
     case {
-    json_member(policy, "artifact_class_maximum_bytes"),
-    json_member(policy, "executable_maximum_bytes"),
-    json_member(policy, "lane_maximum_wall_time_ms"),
-    json_int(policy, "maximum_total_target_bytes"),
-    json_string(policy, "ratchet_policy"),
-} {
+        json_member(policy, "artifact_class_maximum_bytes"),
+        json_member(policy, "executable_maximum_bytes"),
+        json_member(policy, "lane_maximum_wall_time_ms"),
+        json_int(policy, "maximum_total_target_bytes"),
+        json_string(policy, "ratchet_policy"),
+    } {
         {Some(class_max), Some(executable_max), Some(lane_max), Some(total_max), Some(ratchet)} ->
             let _a = report.put("artifact_class_maximum_bytes", class_max);
             let _b = report.put("executable_maximum_bytes", executable_max);

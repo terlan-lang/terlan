@@ -796,9 +796,9 @@ write_report(root: String, source: String): Bool ->
                     false;
                 Ok(rendered) ->
                     case File.write_text(
-    SourceInventory.child(root, "docs/quality/RUST_DEPENDENCY_IMPACT.json"),
-    String.append(rendered, "\n"),
-) {
+                        SourceInventory.child(root, "docs/quality/RUST_DEPENDENCY_IMPACT.json"),
+                        String.append(rendered, "\n"),
+                    ) {
                         Err(reason) ->
                             let _printed = eprintln(File.message(reason));
                             false;

@@ -40,11 +40,11 @@ locked_check_fixture(root: String): Bool ->
     if {
         not write_binary_crate(crate, "fn main() {}\n") -> false;
         true -> case Process.run(
-    Process.with_working_directory(
-        Process.with_arguments(Process.command("cargo"), ["generate-lockfile", "--offline"]),
-        crate,
-    ),
-) {
+            Process.with_working_directory(
+                Process.with_arguments(Process.command("cargo"), ["generate-lockfile", "--offline"]),
+                crate,
+            ),
+        ) {
             Ok(generated) ->
                 if {
                     Process.status(generated) != 0 -> false;

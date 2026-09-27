@@ -371,27 +371,31 @@ fn canonicalize_core_module_aliases(
     }
 
     for declaration in &mut module.declarations {
-        let clauses = match &mut declaration.payload {
+        let callables = match &mut declaration.payload {
             SyntaxDeclarationPayload::Function {
                 params, clauses, ..
             }
             | SyntaxDeclarationPayload::Method {
                 params, clauses, ..
-            } => {
-                for param in params {
-                    if let Some(default) = &mut param.default {
-                        canonicalize_core_expr_module_aliases(default, aliases);
-                    }
-                }
-                clauses
-            }
+            } => vec![(params, clauses)],
+            SyntaxDeclarationPayload::TraitImpl { methods, .. } => methods
+                .iter_mut()
+                .map(|method| (&mut method.params, &mut method.clauses))
+                .collect(),
             _ => continue,
         };
-        for clause in clauses {
-            if let Some(guard) = &mut clause.guard {
-                canonicalize_core_expr_module_aliases(guard, aliases);
+        for (params, clauses) in callables {
+            for param in params {
+                if let Some(default) = &mut param.default {
+                    canonicalize_core_expr_module_aliases(default, aliases);
+                }
             }
-            canonicalize_core_expr_module_aliases(&mut clause.body, aliases);
+            for clause in clauses {
+                if let Some(guard) = &mut clause.guard {
+                    canonicalize_core_expr_module_aliases(guard, aliases);
+                }
+                canonicalize_core_expr_module_aliases(&mut clause.body, aliases);
+            }
         }
     }
 }
@@ -446,16 +450,7 @@ fn canonicalize_core_selected_function_imports(
             SyntaxDeclarationPayload::Function {
                 params, clauses, ..
             } => {
-                let bound = params
-                    .iter()
-                    .map(|parameter| parameter.name.clone())
-                    .collect::<std::collections::HashSet<_>>();
-                for param in params {
-                    if let Some(default) = &mut param.default {
-                        canonicalize_core_expr_selected_function_imports(default, imports, &bound);
-                    }
-                }
-                canonicalize_core_selected_import_clauses(clauses, imports, &bound);
+                canonicalize_core_selected_import_function(params, clauses, imports);
             }
             SyntaxDeclarationPayload::Method {
                 receiver,
@@ -478,9 +473,35 @@ fn canonicalize_core_selected_function_imports(
                 }
                 canonicalize_core_selected_import_clauses(clauses, imports, &bound);
             }
+            SyntaxDeclarationPayload::TraitImpl { methods, .. } => {
+                for method in methods {
+                    canonicalize_core_selected_import_function(
+                        &mut method.params,
+                        &mut method.clauses,
+                        imports,
+                    );
+                }
+            }
             _ => {}
         }
     }
+}
+
+fn canonicalize_core_selected_import_function(
+    params: &mut [crate::terlan_syntax::SyntaxParamOutput],
+    clauses: &mut [crate::terlan_syntax::SyntaxFunctionClauseOutput],
+    imports: &HashMap<String, Vec<ImportedFunctionTarget>>,
+) {
+    let bound = params
+        .iter()
+        .map(|parameter| parameter.name.clone())
+        .collect::<std::collections::HashSet<_>>();
+    for param in params {
+        if let Some(default) = &mut param.default {
+            canonicalize_core_expr_selected_function_imports(default, imports, &bound);
+        }
+    }
+    canonicalize_core_selected_import_clauses(clauses, imports, &bound);
 }
 
 fn canonicalize_core_selected_import_clauses(

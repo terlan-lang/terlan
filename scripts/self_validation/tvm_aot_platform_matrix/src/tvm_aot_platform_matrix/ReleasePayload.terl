@@ -328,9 +328,9 @@ pub write_install_metadata(
 pub self_test(): Bool ->
     let relative_paths =
         case {
-    relative_path("/repo/std", "/repo/std/core/A.terl"),
-    relative_path("C:/repo/std", "C:\\repo\\std\\core\\A.terl"),
-} {
+            relative_path("/repo/std", "/repo/std/core/A.terl"),
+            relative_path("C:/repo/std", "C:\\repo\\std\\core\\A.terl"),
+        } {
             {Some(unix), Some(windows)} -> unix == "core/A.terl" and windows == unix;
             _ -> false
         };

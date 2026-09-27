@@ -213,11 +213,11 @@ pub port_validation_matches_tcp_range(): Bool ->
 @test
 pub timeout_validation_accepts_positive_fractional_seconds(): Bool ->
     case {
-    timeout_milliseconds("0.25"),
-    timeout_milliseconds("60"),
-    timeout_milliseconds("0"),
-    timeout_milliseconds("later"),
-} {
+        timeout_milliseconds("0.25"),
+        timeout_milliseconds("60"),
+        timeout_milliseconds("0"),
+        timeout_milliseconds("later"),
+    } {
         {Some(250), Some(60000), None, None} -> true;
         _ -> false
     }.

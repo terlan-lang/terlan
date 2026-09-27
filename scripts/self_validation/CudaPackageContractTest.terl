@@ -220,10 +220,10 @@ passed_execution_holds(execution: Json): Bool ->
  */
 pub report_holds(report: Json): Bool ->
     case {
-    json_string_field(report, "schema"),
-    json_field(report, "execution"),
-    json_field(report, "resources"),
-} {
+        json_string_field(report, "schema"),
+        json_field(report, "execution"),
+        json_field(report, "resources"),
+    } {
         {Some("terlan.cuda-package-execution.v2"), Some(execution), Some(resources)} ->
             json_false_field(resources, "device_pointer_exposed")
                 and case json_string_field(execution, "status") {
@@ -304,12 +304,16 @@ stage_ecosystem_dependencies(temporary: String, roots: EcosystemRoots): Bool ->
             case create_all(child(temporary, "terlan-opencv")) {
                 Ok(Unit) ->
                     case copy_tree_excluding(
-    roots.opencv,
-    child(temporary, "terlan-opencv/generated"),
-    excluded_stage_entries(),
-) {
+                        roots.opencv,
+                        child(temporary, "terlan-opencv/generated"),
+                        excluded_stage_entries(),
+                    ) {
                         Ok(Unit) ->
-                            case copy_tree_excluding(roots.pytorch, child(temporary, "terlan-pytorch"), excluded_stage_entries()) {
+                            case copy_tree_excluding(
+                                roots.pytorch,
+                                child(temporary, "terlan-pytorch"),
+                                excluded_stage_entries(),
+                            ) {
                                 Ok(Unit) -> true;
                                 Err(reason) ->
                                     let _logged =
