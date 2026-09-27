@@ -751,7 +751,7 @@ std.http.Tls.LetsEncrypt	std/http/TlsTest.terl	tls_auto_config_records_acme_defa
 std.http.Tls.ZeroSsl	std/http/TlsTest.terl	tls_auto_config_records_acme_defaults
 std.http.Tls.Provider	std/http/TlsTest.terl	tls_auto_config_records_acme_defaults
 std.http.Tls.Config	std/http/TlsTest.terl	tls_auto_config_records_acme_defaults
-std.http.Tls.auto	std/http/TlsTest.terl	tls_manual_and_internal_configs_record_mode_specific_fields
+std.http.Tls.auto	std/http/TlsTest.terl	tls_auto_config_records_acme_defaults
 std.http.Tls.manual	std/http/TlsTest.terl	tls_manual_and_internal_configs_record_mode_specific_fields
 std.http.Tls.internal	std/http/TlsTest.terl	tls_manual_and_internal_configs_record_mode_specific_fields
 std.collections.List.new	std/collections/ListTest.terl	new_starts_empty
@@ -820,8 +820,8 @@ std.http.Session.current	std/http/SessionTest.terl	session_current_reads_request
 std.http.Session.get	std/http/SessionTest.terl	session_get_and_response_threading_execute
 std.http.Session.set	std/http/SessionTest.terl	session_get_and_response_threading_execute
 std.http.Session.delete	std/http/SessionTest.terl	session_get_and_response_threading_execute
-std.http.Session.rotate	std/http/SessionTest.terl	session_current_reads_request_cookie
-std.http.Session.expire	std/http/SessionTest.terl	session_get_and_response_threading_execute
+std.http.Session.rotate	std/http/SessionTest.terl	session_rotation_preserves_values_and_revokes_old_cookie
+std.http.Session.expire	std/http/SessionTest.terl	session_expiration_clears_state_and_threads_deletion_cookie
 std.http.Session.with_response	std/http/SessionTest.terl	session_get_and_response_threading_execute
 std.js.Array.generated_surface	std/js/ArrayTest.terl	generated_surface_contract
 std.js.Dom.Document.generated_surface	std/js/dom/DocumentTest.terl	generated_binding_surface_contract

@@ -437,6 +437,9 @@ fn static_response_vm_value(response: &WebPackageStaticResponse) -> ReplValue {
                 })
                 .collect(),
         ),
+        ReplValue::List(Vec::new()),
+        ReplValue::Int(0),
+        ReplValue::Int(0),
     ])
 }
 

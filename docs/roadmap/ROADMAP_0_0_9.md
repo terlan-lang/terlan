@@ -82,8 +82,9 @@ they do not transfer live actor state or provide replication or failover.
 Generated summaries, native boundary artifacts, and documentation format pass.
 
 The standard-library execution run now passes `std/db/PostgresTest.terl`, Cookies,
-HTTP Error, Request, Response, Router, LiveChannel, SSE, and WebSocket before
-failing on the obsolete `Dynamic` argument in `std/http/TlsTest.terl`. The Postgres command/test runner suspends actor-owned
+HTTP Error, Request, Response, Router, LiveChannel, SSE, WebSocket, TLS, and List
+before failing in `EnumerableTest`: list receiver `map` incorrectly resolves to
+`Option.map`. The Postgres command/test runner suspends actor-owned
 calls onto an installed external capability worker using the maintained libpq command
 client. JSON crosses the process boundary as text, transaction callbacks stay in
 Terlan, and terminal attempts revoke transaction handles. The worker enforces
@@ -147,8 +148,26 @@ pass. Regression validation passes 661 NativeIR tests, 21 Hyper tests, eight
 response-bridge tests, four managed HTTP tests, and the existing buffered source
 handler test. Both binary Clippy profiles and the compiler-free serve check pass.
 
+Hosted Compiler CI for `7cad1445` found that manifest-cached router responses
+still used the old six-field layout before entering response middleware. The
+cached-response adapter now supplies the empty stream fields required by the
+uniform managed response layout. All 14 dynamic-dispatch regression tests pass,
+including the previously failing cached-response middleware test.
+
+TLS configuration constructors now execute ordinary Terlan bodies instead of
+unimplemented native declarations. Both typed source tests verify all three
+modes, exact ACME provider defaults, and unused optional fields. The public
+interface remains unchanged. The test runner now installs the production
+actor/table session service per invocation. Four session source tests use real
+request values and inspect actual outgoing response headers; they exercise
+resumption, invalid cookies, writes, deletion, rotation, and expiration. All HTTP
+source test modules pass. The API manifest now maps TLS auto, session rotation,
+and expiration to tests that execute those operations. All 33 HTTP source tests,
+34 session runtime tests, and both test-fixture access checks pass. Native
+artifacts, API manifest validation, and documentation formatting also pass.
+
 This is not a passing full standard-library run or complete API execution
-coverage. Obsolete Dynamic TLS/session test fixtures, Postgres routing in the
+coverage. Enumerable receiver resolution, Postgres routing in the
 separate HTTP serve dispatchers, and
 cross-platform source evidence remain open. A captured transaction lambda with
 nested query-result matches also exposes generic-argument inference and then
@@ -160,7 +179,7 @@ the exact committed candidate remains required.
 The compiler-free serve profile exposed two coverage-result accessors whose
 only production caller is the compiler test command. Their feature guards now
 match that caller; the compiler-free `cargo check` passes without lint allowances.
-The refreshed quality inventory has 51 near-limit files (down from 53), with
+The refreshed quality inventory has 52 near-limit files, with
 3,030 internal string errors and unchanged budgets. Headroom, API-boundary,
 module-structure, dependency, lint-allowance, and documentation checks pass;
 strict workspace binary Clippy passes with default and all features. These

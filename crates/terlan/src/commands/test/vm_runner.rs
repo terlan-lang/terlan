@@ -3,8 +3,9 @@ use std::time::Instant;
 
 use super::manifest::{TestRunReport, TestRunResult, TestRunStatus};
 use super::DiscoveredTest;
+use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
 use crate::runtime::vm::package_native_helper::{execute_call, VmPackageNativeHelpers};
-use crate::runtime::vm::pure_native::PureNativeExecutionShard;
+use crate::runtime::vm::pure_native::{PureNativeExecutionImage, PureNativeExecutionShard};
 use crate::runtime::vm::ReplValue;
 
 /// Executes selected tests exclusively through native exports.
@@ -20,7 +21,11 @@ pub(super) fn run_discovered_terlan_vm_tests(
             "error[test.aot_required]: test module `{module_name}` did not produce a native image; runtime CoreIR interpretation has been removed"
         )
     })?;
-    let mut native = PureNativeExecutionShard::load_image(native_image)?;
+    // Test suites use the same actor/table service as HTTP handlers, scoped to
+    // this run so session state never escapes into another invocation.
+    let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new("terlc-test", 86_400)?);
+    let mut native =
+        PureNativeExecutionImage::load_with_http_sessions(native_image, sessions)?.spawn_shard()?;
     for test in tests {
         let qualified_name = format!("{module_name}.{}", test.name);
         if !native.has_export(&qualified_name, 0) {

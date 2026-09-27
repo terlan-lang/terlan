@@ -10,7 +10,7 @@ crates/terlan/src/commands/build/project_manifest/parser.rs	implementation	948	9
 crates/terlan/src/commands/doc/render.rs	implementation	996	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/doc/validation.rs	implementation	947	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/emit_js/direct_ast.rs	implementation	981	900	1000	commands-structure	0.0.9
-crates/terlan/src/commands/serve/handler.rs	implementation	922	900	1000	commands-structure	0.0.9
+crates/terlan/src/commands/serve/handler.rs	implementation	925	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache.rs	implementation	953	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner.rs	implementation	913	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner/owner_loop.rs	implementation	954	900	1000	commands-structure	0.0.9

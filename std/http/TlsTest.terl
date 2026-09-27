@@ -56,19 +56,21 @@ pub manual_helper_typechecks(): Config ->
 pub internal_helper_typechecks(): Config ->
     internal("localhost").
 
-pub auto_config_has_defaults(value: Dynamic): Bool ->
+pub auto_config_has_defaults(value: Config): Bool ->
     case value {
-        {mode: mode, domains: domains, email: Some(email), primary_provider: Some(_primary), fallback_provider: Some(_fallback), cert: None, key: None, trust_local: trust_local} ->
+        {mode: mode, domains: domains, email: Some(email), primary_provider: Some(primary), fallback_provider: Some(fallback), cert: None, key: None, passphrase_env: None, ca: None, server_name: None, trust_local: trust_local} ->
             mode == Auto
                 and domains == ["example.com"]
                 and email == "admin@example.com"
+                and primary == LetsEncrypt
+                and fallback == ZeroSsl
                 and trust_local == false;
         _ -> false
     }.
 
-pub manual_config_has_certificates(value: Dynamic): Bool ->
+pub manual_config_has_certificates(value: Config): Bool ->
     case value {
-        {mode: mode, domains: domains, email: None, primary_provider: None, fallback_provider: None, cert: Some(cert), key: Some(key), trust_local: trust_local} ->
+        {mode: mode, domains: domains, email: None, primary_provider: None, fallback_provider: None, cert: Some(cert), key: Some(key), passphrase_env: None, ca: None, server_name: None, trust_local: trust_local} ->
             mode == Manual
                 and domains == []
                 and cert == "certs/dev.pem"
@@ -77,9 +79,9 @@ pub manual_config_has_certificates(value: Dynamic): Bool ->
         _ -> false
     }.
 
-pub internal_config_has_local_trust(value: Dynamic): Bool ->
+pub internal_config_has_local_trust(value: Config): Bool ->
     case value {
-        {mode: mode, domains: domains, server_name: Some(server_name), trust_local: trust_local} ->
+        {mode: mode, domains: domains, email: None, primary_provider: None, fallback_provider: None, cert: None, key: None, passphrase_env: None, ca: None, server_name: Some(server_name), trust_local: trust_local} ->
             mode == Internal
                 and domains == []
                 and server_name == "localhost"
