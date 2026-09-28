@@ -28,6 +28,8 @@ updates:
         versions: [">=0.40, <0.41"]
       - dependency-name: ammonia
         versions: [">=4.2, <4.3"]
+      - dependency-name: cssparser
+        versions: [">=0.38, <0.39"]
       - dependency-name: tungstenite
         versions: [">=0.30, <0.31"]
       # Oxc non-patch releases require a coordinated frontend migration for 0.0.9.

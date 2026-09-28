@@ -15,7 +15,7 @@ indexmap	1.9.3,2.14.0	transitive-upgrade-blocked	dependency-health	Foundations s
 itertools	0.13.0,0.14.0	transitive-upgrade-blocked	dependency-health	macOS libproc build-time bindgen requires itertools 0.13 while parser and editor tooling use 0.14	0.0.9
 libloading	0.8.9,0.9.0	transitive-upgrade-blocked	dependency-health	macOS libproc build-time clang-sys requires libloading 0.8 while the AOT loader uses 0.9	0.0.9
 linux-raw-sys	0.12.1,0.4.15	platform-compatibility	dependency-health	rustix generations retain matching Linux syscall bindings	0.0.9
-object	0.37.3,0.39.1	transitive-upgrade-blocked	dependency-health	psm build tooling retains object 0.37 while AOT uses object 0.39	0.0.9
+object	0.37.3,0.39.1,0.40.0	transitive-upgrade-blocked	dependency-health	psm build tooling retains object 0.37 and Cranelift retains object 0.39 while native image handling uses object 0.40	0.0.9
 r-efi	5.3.0,6.0.0	platform-compatibility	dependency-health	getrandom generations retain matching UEFI bindings	0.0.9
 rustix	0.38.44,1.1.5	platform-compatibility	dependency-health	transitive consumers currently support different rustix APIs	0.0.9
 schemars	0.9.0,1.2.2	transitive-upgrade-blocked	dependency-health	Foundations settings dependencies currently span two schema APIs	0.0.9
