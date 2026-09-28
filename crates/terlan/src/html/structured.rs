@@ -100,7 +100,7 @@ pub fn validate_xml_template_structure(
                 })?;
             }
             Event::Text(text)
-                if depth == 0 && !text.iter().all(|byte: &u8| byte.is_ascii_whitespace()) =>
+                if depth == 0 && !text.bytes().all(|byte| byte.is_ascii_whitespace()) =>
             {
                 return Err(invalid_xml_message(
                     path,
@@ -168,10 +168,8 @@ fn validate_xml_reference(
             .map_err(|error| invalid_xml(path, error))?;
         return Ok(());
     }
-    let name = reference
-        .decode()
-        .map_err(|error| invalid_xml(path, error))?;
-    if matches!(name.as_ref(), "amp" | "lt" | "gt" | "apos" | "quot") {
+    let name: &str = reference.as_ref();
+    if matches!(name, "amp" | "lt" | "gt" | "apos" | "quot") {
         return Ok(());
     }
     Err(invalid_xml_message(

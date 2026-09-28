@@ -144,8 +144,8 @@ pub(super) fn define_dispatch(
             .ins()
             .store(MemFlagsData::new(), zero, transition_len_pointer, 0);
 
-        let index_pointer = builder.ins().global_value(pointer, index_global);
-        let records_pointer = builder.ins().global_value(pointer, records_global);
+        let index_pointer = builder.ins().symbol_value(pointer, index_global);
+        let records_pointer = builder.ins().symbol_value(pointer, records_global);
         let table_mask = i64::try_from(table_length - 1)
             .map_err(|_| "error[cranelift.dispatch]: table mask exceeds i64".to_string())?;
         let mask = builder.ins().iconst(types::I64, table_mask);
@@ -166,7 +166,7 @@ pub(super) fn define_dispatch(
             &[index_pointer, records_pointer, mask, export_id],
         );
         let record = builder.inst_results(lookup)[0];
-        let found_record = builder.ins().icmp_imm(IntCC::NotEqual, record, 0);
+        let found_record = builder.ins().icmp_imm_s(IntCC::NotEqual, record, 0);
         let found = builder.create_block();
         let unknown = builder.create_block();
         builder.ins().brif(found_record, found, &[], unknown, &[]);
@@ -186,7 +186,7 @@ pub(super) fn define_dispatch(
             i32::try_from(TVM_DISPATCH_RECORD_SHAPE_OFFSET)
                 .expect("dispatch shape offset fits i32"),
         );
-        let expected_arity_i32 = builder.ins().ushr_imm(shape, 2);
+        let expected_arity_i32 = builder.ins().ushr_imm_s(shape, 2);
         let expected_arity = builder.ins().uextend(types::I64, expected_arity_i32);
         let arity_matches = builder
             .ins()
@@ -297,7 +297,7 @@ pub(super) fn define_dispatch(
         let value = builder.block_params(call_result)[1];
         let succeeded = builder
             .ins()
-            .icmp_imm(IntCC::Equal, call_status, i64::from(status::OK));
+            .icmp_imm_s(IntCC::Equal, call_status, i64::from(status::OK));
         let store_success = builder.create_block();
         let inspect_yield = builder.create_block();
         builder
@@ -336,7 +336,7 @@ pub(super) fn define_dispatch(
             .iconst(types::I32, i64::from(status::UNKNOWN_EXPORT));
         builder.ins().return_(&[unknown]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     Ok(module
         .define_function(dispatch_id, &mut context)
@@ -416,7 +416,7 @@ fn define_rare_dispatch(
         let zero = builder.ins().iconst(types::I64, 0);
         builder.ins().return_(&[invalid, zero]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     module
         .define_function(function_id, &mut context)

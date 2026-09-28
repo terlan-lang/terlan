@@ -44,12 +44,12 @@ fn image_local_function_calls_emit_on_windows_aarch64_coff() {
         let entry = builder.create_block();
         builder.switch_to_block(entry);
         let data_global = declare_image_data_in_func(&mut module, data, builder.func);
-        let _data_pointer = builder.ins().global_value(types::I64, data_global);
+        let _data_pointer = builder.ins().symbol_value(types::I64, data_global);
         let callee_ref = declare_image_func_in_func(&mut module, callee, builder.func);
         builder.ins().call(callee_ref, &[]);
         builder.ins().return_(&[]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     module
         .define_function(caller, &mut context)
@@ -77,7 +77,7 @@ fn define_return_only_function(
         builder.switch_to_block(entry);
         builder.ins().return_(&[]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     module
         .define_function(function_id, &mut context)

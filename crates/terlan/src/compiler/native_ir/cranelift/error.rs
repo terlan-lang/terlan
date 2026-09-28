@@ -49,7 +49,7 @@ pub(super) fn branch_if_error(
 ) {
     let failed = builder
         .ins()
-        .icmp_imm(IntCC::NotEqual, call_status, i64::from(status::OK));
+        .icmp_imm_s(IntCC::NotEqual, call_status, i64::from(status::OK));
     let next = builder.create_block();
     let error_args = [BlockArg::Value(call_status)];
     builder

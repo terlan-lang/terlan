@@ -2,6 +2,32 @@ use crate::compiler::native_ir::{NativeExpr, NativeFunction, NativeType};
 
 use super::*;
 
+/// Keeps cache/provenance backend identity aligned with every pinned Cranelift crate.
+#[test]
+fn native_backend_identity_matches_all_cranelift_dependency_pins() {
+    let manifest: serde_json::Value = basic_toml::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/Cargo.toml"
+    )))
+    .expect("parse compiler dependencies");
+    let version = DIRECT_AOT_BACKEND
+        .strip_prefix("cranelift-")
+        .expect("Cranelift backend identity");
+    for name in [
+        "cranelift-codegen",
+        "cranelift-frontend",
+        "cranelift-module",
+        "cranelift-native",
+        "cranelift-object",
+    ] {
+        assert_eq!(
+            manifest["dependencies"][name]["version"],
+            format!("={version}"),
+            "{name} must match the backend identity"
+        );
+    }
+}
+
 fn module(name: &str, value: i64) -> NativeModule {
     NativeModule {
         name: name.to_string(),

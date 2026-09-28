@@ -42,10 +42,15 @@ fn managed_tail_parameter_live_across_cranelift_safepoint_emits_precise_stack_ma
     builder.ins().call(safepoint, &[]);
     builder.ins().return_(&[managed_reference]);
     builder.seal_all_blocks();
-    builder.finalize();
+    builder.finalize(cranelift_codegen::isa::TargetFrontendConfig {
+        default_call_conv: CallConv::SystemV,
+        pointer_width: target_lexicon::PointerWidth::U64,
+        page_size_align_log2: 12,
+    });
 
     let emitted = function.display().to_string();
-    assert!(emitted.contains("stack_store"), "{emitted}");
+    assert!(emitted.contains("stack_addr.i64"), "{emitted}");
+    assert!(emitted.contains("store"), "{emitted}");
     assert!(emitted.contains("stack_map=[i64 @"), "{emitted}");
-    assert!(emitted.contains("stack_load.i64"), "{emitted}");
+    assert!(emitted.contains("load.i64"), "{emitted}");
 }

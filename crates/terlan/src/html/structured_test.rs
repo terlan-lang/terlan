@@ -165,6 +165,32 @@ fn validate_xml_template_structure_rejects_mismatched_elements() {
         .starts_with("invalid XML template structure:"));
 }
 
+/// Preserves UTF-8 text, predefined entities, numeric references, and root whitespace.
+#[test]
+fn validate_xml_template_structure_accepts_text_and_references() {
+    assert!(validate_xml_template_structure(
+        " \t\r\n<feed>Rīga &amp; &lt; &gt; &apos; &quot; &#65; &#x101;</feed>\n",
+        "templates/feed.terl.xml",
+    )
+    .is_ok());
+}
+
+/// Rejects non-ASCII whitespace outside the root and invalid character references.
+#[test]
+fn validate_xml_template_structure_rejects_outside_text_and_invalid_references() {
+    for source in [
+        "\u{00a0}<feed/>",
+        "<feed/>trailing",
+        "<feed>&#x110000;</feed>",
+        "<feed>&#0;</feed>",
+    ] {
+        assert!(
+            validate_xml_template_structure(source, "templates/feed.terl.xml").is_err(),
+            "unexpectedly accepted {source:?}"
+        );
+    }
+}
+
 #[test]
 fn validate_xml_template_structure_rejects_duplicate_attributes() {
     let diagnostics =

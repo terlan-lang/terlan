@@ -33,7 +33,7 @@ pub(super) fn define_image_entry(module: &mut ObjectModule) -> Result<(), String
         let success = builder.ins().iconst(types::I32, 1);
         builder.ins().return_(&[success]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     module
         .define_function(entry_id, &mut context)

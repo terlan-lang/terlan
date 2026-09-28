@@ -106,13 +106,13 @@ pub(super) fn expected_value_count(
         .uextend(cranelift_codegen::ir::types::I64, flags.sent);
     let send_count = builder
         .ins()
-        .imul_imm(send_count, TRANSITION_ARGUMENT_COUNTS.0 as i64);
+        .imul_imm_s(send_count, TRANSITION_ARGUMENT_COUNTS.0 as i64);
     let typed_send_count = builder
         .ins()
         .uextend(cranelift_codegen::ir::types::I64, flags.typed_sent);
     let typed_send_count = builder
         .ins()
-        .imul_imm(typed_send_count, TRANSITION_ARGUMENT_COUNTS.1 as i64);
+        .imul_imm_s(typed_send_count, TRANSITION_ARGUMENT_COUNTS.1 as i64);
     let send_count = builder.ins().iadd(send_count, typed_send_count);
     let one_count = builder
         .ins()
@@ -122,12 +122,12 @@ pub(super) fn expected_value_count(
         .uextend(cranelift_codegen::ir::types::I64, flags.typed_received);
     let typed_receive_count = builder
         .ins()
-        .imul_imm(typed_receive_count, TRANSITION_ARGUMENT_COUNTS.2 as i64);
+        .imul_imm_s(typed_receive_count, TRANSITION_ARGUMENT_COUNTS.2 as i64);
     let transition_count = builder.ins().iadd(send_count, one_count);
     let transition_count = builder.ins().iadd(transition_count, typed_receive_count);
     let expected = builder
         .ins()
-        .iadd_imm(transition_count, callee_capture_count as i64);
+        .iadd_imm_s(transition_count, callee_capture_count as i64);
     let injected_count = builder
         .ins()
         .uextend(cranelift_codegen::ir::types::I64, flags.injected_input);
@@ -140,5 +140,5 @@ pub(super) fn expected_value_count(
 fn status_flag(builder: &mut FunctionBuilder<'_>, call_status: Value, status: i32) -> Value {
     builder
         .ins()
-        .icmp_imm(IntCC::Equal, call_status, i64::from(status))
+        .icmp_imm_s(IntCC::Equal, call_status, i64::from(status))
 }

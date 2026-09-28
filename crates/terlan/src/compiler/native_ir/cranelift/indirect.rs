@@ -2,7 +2,7 @@
 
 use cranelift_codegen::ir::{
     types, AbiParam, Block, BlockArg, InstBuilder, Signature, StackSlot, StackSlotData,
-    StackSlotKind, Value,
+    StackSlotKind, Type, Value,
 };
 use cranelift_frontend::FunctionBuilder;
 use cranelift_module::{Linkage, Module};
@@ -121,7 +121,7 @@ fn emit_invoke_closure_raw(
     let resolver_missing =
         builder
             .ins()
-            .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::Equal, resolver, 0);
+            .icmp_imm_s(cranelift_codegen::ir::condcodes::IntCC::Equal, resolver, 0);
     let missing = builder.create_block();
     let resolver_ready = builder.create_block();
     builder
@@ -136,9 +136,9 @@ fn emit_invoke_closure_raw(
         .jump(error_block, &[BlockArg::Value(unavailable)]);
     builder.switch_to_block(resolver_ready);
 
-    let parameter_type_slot = type_words_slot(builder, parameter_types)?;
-    let result_type_slot = type_words_slot(builder, &[result_type])?;
-    let argument_slot = words_slot(builder, arguments, "closure arguments")?;
+    let parameter_type_slot = type_words_slot(builder, pointer, parameter_types)?;
+    let result_type_slot = type_words_slot(builder, pointer, &[result_type])?;
+    let argument_slot = words_slot(builder, pointer, arguments, "closure arguments")?;
     let invocation_slot = builder.create_sized_stack_slot(StackSlotData::new(
         StackSlotKind::ExplicitSlot,
         (MAX_INVOCATION_WORDS * 8) as u32,
@@ -147,8 +147,10 @@ fn emit_invoke_closure_raw(
     let target_slot = scalar_slot(builder);
     let invocation_len_slot = scalar_slot(builder);
     let zero = builder.ins().iconst(types::I64, 0);
-    builder.ins().stack_store(zero, target_slot, 0);
-    builder.ins().stack_store(zero, invocation_len_slot, 0);
+    builder.ins().stack_store(pointer, zero, target_slot, 0);
+    builder
+        .ins()
+        .stack_store(pointer, zero, invocation_len_slot, 0);
 
     let resolver_signature = Signature {
         params: vec![
@@ -205,9 +207,13 @@ fn emit_invoke_closure_raw(
         .map_err(|error| format!("error[cranelift.closure_dispatch_declare]: {error}"))?;
     let dispatch_ref = declare_image_func_in_func(module, dispatch_id, builder.func);
     let result_slot = scalar_slot(builder);
-    builder.ins().stack_store(zero, result_slot, 0);
-    let target = builder.ins().stack_load(types::I64, target_slot, 0);
-    let invocation_len = builder.ins().stack_load(types::I64, invocation_len_slot, 0);
+    builder.ins().stack_store(pointer, zero, result_slot, 0);
+    let target = builder
+        .ins()
+        .stack_load(pointer, types::I64, target_slot, 0);
+    let invocation_len = builder
+        .ins()
+        .stack_load(pointer, types::I64, invocation_len_slot, 0);
     let result_pointer = builder.ins().stack_addr(pointer, result_slot, 0);
     let null = builder.ins().iconst(pointer, 0);
     let has_transition_storage = transition.pointer.is_some();
@@ -224,7 +230,7 @@ fn emit_invoke_closure_raw(
         pointer
     } else {
         let slot = scalar_slot(builder);
-        builder.ins().stack_store(zero, slot, 0);
+        builder.ins().stack_store(pointer, zero, slot, 0);
         builder.ins().stack_addr(pointer, slot, 0)
     };
     let dispatch_call = builder.ins().call(
@@ -245,13 +251,16 @@ fn emit_invoke_closure_raw(
         ],
     );
     let dispatch_status = builder.inst_results(dispatch_call)[0];
-    let result = builder.ins().stack_load(types::I64, result_slot, 0);
+    let result = builder
+        .ins()
+        .stack_load(pointer, types::I64, result_slot, 0);
     Ok((dispatch_status, result, target))
 }
 
 /// Stores canonical three-word boundary identities in generated stack memory.
 fn type_words_slot(
     builder: &mut FunctionBuilder<'_>,
+    pointer: Type,
     native_types: &[NativeType],
 ) -> Result<StackSlot, String> {
     let mut words = Vec::with_capacity(native_types.len().saturating_mul(3));
@@ -260,12 +269,13 @@ fn type_words_slot(
             words.push(builder.ins().iconst(types::I64, word));
         }
     }
-    words_slot(builder, &words, "closure type identities")
+    words_slot(builder, pointer, &words, "closure type identities")
 }
 
 /// Allocates one bounded stack word array.
 fn words_slot(
     builder: &mut FunctionBuilder<'_>,
+    pointer: Type,
     words: &[Value],
     label: &str,
 ) -> Result<StackSlot, String> {
@@ -276,7 +286,7 @@ fn words_slot(
     for (index, word) in words.iter().enumerate() {
         let offset = i32::try_from(index.saturating_mul(8))
             .map_err(|_| format!("error[cranelift.closure_buffer]: {label} offset exceeds i32"))?;
-        builder.ins().stack_store(*word, slot, offset);
+        builder.ins().stack_store(pointer, *word, slot, offset);
     }
     Ok(slot)
 }
@@ -290,7 +300,7 @@ fn branch_status(builder: &mut FunctionBuilder<'_>, status: Value, error_block: 
     let failed =
         builder
             .ins()
-            .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::NotEqual, status, 0);
+            .icmp_imm_s(cranelift_codegen::ir::condcodes::IntCC::NotEqual, status, 0);
     let next = builder.create_block();
     builder
         .ins()

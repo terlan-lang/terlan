@@ -456,7 +456,7 @@ fn emit_suspending_body(
                 let succeeded =
                     builder
                         .ins()
-                        .icmp_imm(IntCC::Equal, call_status, i64::from(status::OK));
+                        .icmp_imm_s(IntCC::Equal, call_status, i64::from(status::OK));
                 let error_args = [BlockArg::Value(call_status)];
                 builder
                     .ins()
@@ -484,7 +484,7 @@ fn emit_suspending_body(
             let succeeded =
                 builder
                     .ins()
-                    .icmp_imm(IntCC::Equal, call_status, i64::from(status::OK));
+                    .icmp_imm_s(IntCC::Equal, call_status, i64::from(status::OK));
             builder
                 .ins()
                 .brif(succeeded, completed, &[], inspect_yield, &[]);
@@ -705,7 +705,7 @@ fn emit_suspending_body(
             let succeeded =
                 builder
                     .ins()
-                    .icmp_imm(IntCC::Equal, call_status, i64::from(status::OK));
+                    .icmp_imm_s(IntCC::Equal, call_status, i64::from(status::OK));
             builder
                 .ins()
                 .brif(succeeded, completed, &[], inspect_yield, &[]);
@@ -859,7 +859,7 @@ fn emit_suspending_body(
                 )?;
                 let selected = builder.create_block();
                 let next = builder.create_block();
-                let is_true = builder.ins().icmp_imm(IntCC::NotEqual, condition, 0);
+                let is_true = builder.ins().icmp_imm_s(IntCC::NotEqual, condition, 0);
                 builder.ins().brif(is_true, selected, &[], next, &[]);
                 builder.switch_to_block(selected);
                 emit_suspending_body(builder, module, body, params, catalog, tail, transition)?;

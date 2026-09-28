@@ -7,8 +7,26 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
+
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # 0.23.1 adds a 35th duplicate family; the release budget is 34.
+    # Revisit after transitive Base64 consumers migrate or duplicates are reduced.
+    ignore:
+      - dependency-name: base64
+        versions: ["0.23.1"]
+    groups:
+      cranelift:
+        patterns:
+          - "cranelift-*"
+      wasm-tools:
+        patterns:
+          - "wasm-encoder"
+          - "wasmparser"

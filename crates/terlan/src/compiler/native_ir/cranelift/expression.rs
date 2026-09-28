@@ -387,7 +387,7 @@ pub(super) fn emit_expr(
                 )?;
                 let selected = builder.create_block();
                 let next = builder.create_block();
-                let is_true = builder.ins().icmp_imm(IntCC::NotEqual, condition, 0);
+                let is_true = builder.ins().icmp_imm_s(IntCC::NotEqual, condition, 0);
                 builder.ins().brif(is_true, selected, &[], next, &[]);
                 builder.switch_to_block(selected);
                 let value = emit_expr(

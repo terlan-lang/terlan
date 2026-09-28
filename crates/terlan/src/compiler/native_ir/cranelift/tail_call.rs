@@ -174,9 +174,12 @@ fn emit_budget_boundary(
     let budget_slot = reduction_budget_slot.ok_or_else(|| {
         "error[cranelift.reduction_budget]: recursive backedge has no reduction budget".to_string()
     })?;
-    let current = builder.ins().stack_load(types::I64, budget_slot, 0);
-    let remaining = builder.ins().iadd_imm(current, -1);
-    let exhausted = builder.ins().icmp_imm(IntCC::Equal, remaining, 0);
+    let pointer_type = builder.func.dfg.value_type(runtime_context);
+    let current = builder
+        .ins()
+        .stack_load(pointer_type, types::I64, budget_slot, 0);
+    let remaining = builder.ins().iadd_imm_s(current, -1);
+    let exhausted = builder.ins().icmp_imm_s(IntCC::Equal, remaining, 0);
     let should_yield = if managed_pressure {
         let requested = builder.ins().load(
             types::I64,
@@ -184,7 +187,7 @@ fn emit_budget_boundary(
             runtime_context,
             MANAGED_CONTEXT_COLLECTION_REQUESTED_OFFSET,
         );
-        let requested = builder.ins().icmp_imm(IntCC::NotEqual, requested, 0);
+        let requested = builder.ins().icmp_imm_s(IntCC::NotEqual, requested, 0);
         builder.ins().bor(exhausted, requested)
     } else {
         exhausted
@@ -225,6 +228,8 @@ fn emit_budget_boundary(
     builder.ins().return_(&[status, continuation]);
 
     builder.switch_to_block(continue_block);
-    builder.ins().stack_store(remaining, budget_slot, 0);
+    builder
+        .ins()
+        .stack_store(pointer_type, remaining, budget_slot, 0);
     Ok(())
 }
