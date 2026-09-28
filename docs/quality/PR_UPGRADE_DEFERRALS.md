@@ -28,3 +28,16 @@ and four PHF families are added. Oxc non-patch updates are held for the 0.0.9
 coordinated frontend migration; patch updates remain enabled and grouped.
 Remove that hold after the frontend migration and dependency consolidation pass
 the unchanged budget and JavaScript backend checks.
+
+CSS parser [#42](https://github.com/terlan-lang/terlan/pull/42) is part of the
+same coordinated HTML migration: 0.38 adds duplicate cssparser, phf,
+phf_generator, phf_macros, and phf_shared families, raising the total to 39.
+Ammonia 4.1 retains cssparser 0.37, and the current Comrak/Oxc stack retains
+PHF 0.13. The 0.38 release line is held until that migration fits the budget.
+
+Object [#43](https://github.com/terlan-lang/terlan/pull/43), HTTP
+[#44](https://github.com/terlan-lang/terlan/pull/44), time
+[#45](https://github.com/terlan-lang/terlan/pull/45), and Comrak
+[#46](https://github.com/terlan-lang/terlan/pull/46) are integrated. Comrak's
+accessible heading links put the fragment ID on the heading itself; the
+metadata extractor now reads that ID and preserves unique heading fragments.

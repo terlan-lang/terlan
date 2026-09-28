@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "a518131a70e40db55a63e4840b2e15444fdd5b4f177a6f9f9c0545a0b1a1b29d",
+  "compilation_input_sha256": "61609b54908ceb386967d54eb13b4d1f82a361a62c06a02317a2db30549e6cf4",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -489,8 +489,8 @@
       "milestone": "0.0.9",
       "name": "object",
       "owner": "dependency-health",
-      "rationale": "psm build tooling retains object 0.37 while AOT uses object 0.39",
-      "versions": "0.37.3,0.39.1"
+      "rationale": "psm build tooling retains object 0.37 and Cranelift retains object 0.39 while native image handling uses object 0.40",
+      "versions": "0.37.3,0.39.1,0.40.0"
     },
     {
       "classification": "platform-compatibility",
@@ -789,7 +789,7 @@
     },
     {
       "name": "html",
-      "physical_lines": 5693,
+      "physical_lines": 5690,
       "rust_files": 13
     },
     {
@@ -1019,7 +1019,8 @@
       "name": "object",
       "versions": [
         "0.37.3",
-        "0.39.1"
+        "0.39.1",
+        "0.40.0"
       ]
     },
     {

@@ -128,12 +128,9 @@ fn markdown_options() -> Options<'static> {
     options
 }
 
-/// Renders Markdown with stable, keyboard-safe heading fragment anchors.
+/// Renders Markdown with stable fragment IDs and accessible heading links.
 fn render_markdown_html(source: &str) -> String {
-    markdown_to_html(source, &markdown_options()).replace(
-        " aria-hidden=\"true\" class=\"anchor\"",
-        " aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\"",
-    )
+    markdown_to_html(source, &markdown_options())
 }
 
 /// Extracts stable heading records from the parsed Markdown HTML tree.
@@ -149,7 +146,7 @@ fn collect_markdown_headings(nodes: &[HtmlNode], headings: &mut Vec<MarkdownHead
             continue;
         };
         if let Some(level) = markdown_heading_level(&element.name) {
-            if let Some(id) = markdown_heading_id(&element.children) {
+            if let Some(id) = markdown_heading_id(element) {
                 let mut title = String::new();
                 collect_markdown_heading_text(&element.children, &mut title);
                 headings.push(MarkdownHeading {
@@ -168,23 +165,15 @@ fn markdown_heading_level(name: &str) -> Option<u8> {
     (1..=6).contains(&level).then_some(level)
 }
 
-fn markdown_heading_id(nodes: &[HtmlNode]) -> Option<String> {
-    nodes.iter().find_map(|node| {
-        let HtmlNode::Element(element) = node else {
-            return None;
-        };
-        if element.name != "a" {
+fn markdown_heading_id(element: &HtmlElement) -> Option<String> {
+    element.attrs.iter().find_map(|attr| {
+        if attr.name != "id" {
             return None;
         }
-        element.attrs.iter().find_map(|attr| {
-            if attr.name != "id" {
-                return None;
-            }
-            match &attr.value {
-                Some(HtmlAttrValue::Text(value)) => Some(value.clone()),
-                _ => None,
-            }
-        })
+        match &attr.value {
+            Some(HtmlAttrValue::Text(value)) => Some(value.clone()),
+            _ => None,
+        }
     })
 }
 
