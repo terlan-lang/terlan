@@ -201,8 +201,8 @@ tungstenite = "0.28"
 ureq = { version = "=3.1.4", default-features = false, features = ["rustls"], optional = true }
 url = "2.5.8"
 docker-compose-types = "0.24.0"
-wasm-encoder = "0.258.0"
-wasmparser = "0.258.0"
+wasm-encoder = "0.259.0"
+wasmparser = "0.259.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "1.1.4", features = ["fs"] }
