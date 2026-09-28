@@ -171,7 +171,7 @@ object = { version = "=0.40.0", default-features = false, features = ["read", "w
 openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
 quick-xml = "0.42.0"
-rcgen = "0.13"
+rcgen = "0.14"
 rand = "0.9.4"
 regex = "1"
 rustls = "0.23.45"
