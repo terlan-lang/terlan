@@ -2472,6 +2472,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "object"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd229a0361b9d0d4396176e02d65897f487eebeab7caa6d443855ee152ca0b9c"
+dependencies = [
+ "crc32fast",
+ "hashbrown 0.17.1",
+ "indexmap 2.14.0",
+ "memchr",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4133,7 +4145,7 @@ dependencies = [
  "mime_guess",
  "mio",
  "notify",
- "object 0.39.1",
+ "object 0.40.0",
  "openapiv3",
  "oxc_allocator",
  "oxc_ast",

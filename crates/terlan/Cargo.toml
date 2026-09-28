@@ -167,7 +167,7 @@ hyper-util = { version = "0.1.20", features = ["tokio"], optional = true }
 instant-acme = "0.7"
 libloading = "=0.9.0"
 notify = "8"
-object = { version = "=0.39.1", default-features = false, features = ["read", "write", "std"] }
+object = { version = "=0.40.0", default-features = false, features = ["read", "write", "std"] }
 openapiv3 = "2.2.0"
 percent-encoding = "2.3.2"
 quick-xml = "0.42.0"
