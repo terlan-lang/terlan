@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
 use super::*;
+
+#[path = "interface_alias_cache.rs"]
+mod alias_cache;
 use crate::terlan_typeck::{
     normalize_type_param_name, parse_generic_bounds, parse_structural_implication_bounds,
     primitive_type_names, type_param_variances, FunctionBound, FunctionScheme,
@@ -504,6 +507,13 @@ pub(crate) fn interface_type_names(interface: &ModuleInterface) -> HashSet<Strin
 /// - Parses each non-opaque type body, normalizes unions, records type
 ///   parameters, and skips opaque types so their representation stays hidden.
 pub(crate) fn interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, TypeAlias> {
+    if interface.type_bodies.is_empty() {
+        return HashMap::new();
+    }
+    alias_cache::get_or_parse(interface, || parse_interface_type_aliases(interface))
+}
+
+fn parse_interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, TypeAlias> {
     let mut aliases = HashMap::new();
     let alias_names = interface_type_names(interface);
 
