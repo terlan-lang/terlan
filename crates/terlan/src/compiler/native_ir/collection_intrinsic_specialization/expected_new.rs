@@ -234,6 +234,12 @@ pub(super) fn specialize_expected_collection_new(
                 *expr = inner;
             }
         }
+        CoreExpr::Lam { body, .. } => {
+            if let CoreType::Arrow { return_type, .. } = expected {
+                specialize_expected_collection_new(body, return_type, functions, module);
+                annotate_expected_structural_constructors(body, return_type);
+            }
+        }
         CoreExpr::Let { body, .. } => {
             specialize_expected_collection_new(body, expected, functions, module)
         }

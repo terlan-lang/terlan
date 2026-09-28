@@ -7,6 +7,7 @@ use std::fmt;
 pub const ABI_MAJOR: u32 = 1;
 pub const ABI_MINOR: u32 = 0;
 
+/// Named, typed input to a self-hosted IR function.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrParameter {
@@ -14,6 +15,7 @@ pub struct IrParameter {
     pub type_name: String,
 }
 
+/// Backend-neutral operation with an optional result binding.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrInstruction {
@@ -23,6 +25,7 @@ pub struct IrInstruction {
     pub type_name: String,
 }
 
+/// Control-flow exit from a block, including successor labels.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrTerminator {
@@ -31,6 +34,7 @@ pub struct IrTerminator {
     pub targets: Vec<String>,
 }
 
+/// Labeled sequence of instructions ending in one terminator.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrBlock {
@@ -39,6 +43,7 @@ pub struct IrBlock {
     pub terminator: IrTerminator,
 }
 
+/// Typed function body or native symbol declaration emitted by the frontend.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrFunction {
@@ -51,6 +56,7 @@ pub struct IrFunction {
     pub native_symbol: Option<String>,
 }
 
+/// Named collection of backend-neutral function declarations.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IrModule {
@@ -58,6 +64,7 @@ pub struct IrModule {
     pub functions: Vec<IrFunction>,
 }
 
+/// Versioned IR payload identifying the intended backend target.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BackendEnvelope {
@@ -67,6 +74,7 @@ pub struct BackendEnvelope {
     pub module: IrModule,
 }
 
+/// Structural validation failure with optional function and block context.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AbiDiagnostic {
     pub code: &'static str,
@@ -75,6 +83,7 @@ pub struct AbiDiagnostic {
     pub block_label: Option<String>,
 }
 
+/// Failure to decode, negotiate, or structurally validate an IR envelope.
 #[derive(Debug)]
 pub enum AbiError {
     Decode(serde_json::Error),

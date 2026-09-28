@@ -41,6 +41,11 @@ pub(crate) fn annotate_expected_structural_constructors(expr: &mut CoreExpr, exp
         }
     }
     match expr {
+        CoreExpr::Lam { body, .. } => {
+            if let CoreType::Arrow { return_type, .. } = expected {
+                annotate_expected_structural_constructors(body, return_type);
+            }
+        }
         CoreExpr::Let { body, .. } => annotate_expected_structural_constructors(body, expected),
         CoreExpr::If { clauses } => {
             for clause in clauses {
