@@ -228,21 +228,49 @@ run_release_files(repository: String, paths: List[String]): Bool ->
         [path | rest] ->
             if {
                 not File.exists(child(repository, path)) -> failure("release.missing", String.append("missing release test: ", path));
+                not remove_previous_release_result(repository, path) -> false;
                 true -> let arguments =
                     if {
                         String.starts_with(path, "std/js/") -> ["test", path, "--target", "js", "--target-profile", "js.browser"];
                         true -> ["test", path]
                     };
                 let _printed = println(String.append("[stdlib-release-test] ", path));
-                case Process.run(bounded_test(repository, arguments)) {
+                case Process.run(
+                    bounded_test(
+                        repository,
+                        List.concat(
+                            arguments,
+                            ["--emit-test-result-manifest", release_result_path(repository, path)],
+                        ),
+                    ),
+                ) {
                     Err(reason) -> failure("release.process", Process.error_message(reason));
                     Ok(output) ->
                         if {
+                            Process.status(output) == 0
+                                and not File.exists(release_result_path(repository, path)) -> failure(
+                                "release.evidence",
+                                String.append("missing test result manifest: ", path),
+                            );
                             Process.status(output) == 0 -> run_release_files(repository, rest);
                             true -> failure("release.failed", String.concat([path, "\n", combined(output)]))
                         }
                 }
             }
+    }.
+
+@pure
+release_result_path(repository: String, path: String): String ->
+    child(repository, String.concat(["target/quality/stdlib-release-tests/", path, ".json"])).
+
+remove_previous_release_result(repository: String, path: String): Bool ->
+    let result_path = release_result_path(repository, path);
+    if {
+        not File.exists(result_path) -> true;
+        true -> case File.delete(result_path) {
+            Ok(_) -> true;
+            Err(reason) -> failure("release.stale_result", File.message(reason))
+        }
     }.
 
 release_tests(repository: String): Bool ->

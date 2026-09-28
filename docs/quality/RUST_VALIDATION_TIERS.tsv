@@ -16,3 +16,4 @@ runtime::vm::epmd::epmd_test::logical_node_bootstrap_runs_discovery_transport_an
 commands::serve::handler_cache::multicore_performance_test::multicore_runtime_width_matrix_records_workloads_and_owner_overlap	performance	vm-multicore-performance-record	manual-observation
 runtime::vm::postgres::libpq_worker::libpq_docker_gate_test::libpq_docker_gate_validates_success_failure_cancellation_and_cleanup	controlled-host	native-boundary-postgres-docker-check	declared-docker-host
 commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres	controlled-host	native-boundary-postgres-docker-check	declared-docker-host
+commands::serve::handler_cache::protocol_capability::postgres_server_test::source_postgres_resumes_protocol_and_generated_owners	controlled-host	stdlib-postgres-server-check	declared-docker-host

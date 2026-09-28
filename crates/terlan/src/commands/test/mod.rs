@@ -3,6 +3,9 @@ mod coverage;
 mod discovery;
 mod execution;
 mod manifest;
+mod manifest_evidence;
+#[cfg(test)]
+mod manifest_evidence_test;
 mod project_context;
 mod style;
 #[cfg(test)]

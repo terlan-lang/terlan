@@ -234,6 +234,7 @@ pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
             "js",
             profile.as_str(),
             &report,
+            None,
         ) {
             eprintln!("{message}");
             return ExitCode::from(1);
@@ -444,6 +445,7 @@ pub(super) fn run_terlan_vm_test_file(
         } else {
             None
         },
+        args.emit_test_result_manifest.is_some(),
     ) {
         Ok(report) => report,
         Err(message) => {
@@ -479,6 +481,7 @@ pub(super) fn run_terlan_vm_test_file(
             "terlan-vm",
             TargetProfile::Vm.as_str(),
             &report,
+            native_image.as_deref(),
         ) {
             eprintln!("{message}");
             return ExitCode::from(1);

@@ -168,7 +168,7 @@ struct ExternalTierOwner {
     isolation: &'static str,
 }
 
-const EXTERNAL_TIER_OWNERS: [ExternalTierOwner; 3] = [
+const EXTERNAL_TIER_OWNERS: [ExternalTierOwner; 4] = [
     ExternalTierOwner {
         tier: ValidationTier::ConcurrencyTimeout,
         make_target: "vm-multicore-memory-model-check",
@@ -182,6 +182,11 @@ const EXTERNAL_TIER_OWNERS: [ExternalTierOwner; 3] = [
     ExternalTierOwner {
         tier: ValidationTier::ControlledHost,
         make_target: "native-boundary-postgres-docker-check",
+        isolation: "declared-docker-host",
+    },
+    ExternalTierOwner {
+        tier: ValidationTier::ControlledHost,
+        make_target: "stdlib-postgres-server-check",
         isolation: "declared-docker-host",
     },
 ];

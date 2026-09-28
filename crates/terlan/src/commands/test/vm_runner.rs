@@ -15,6 +15,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
     native_image: Option<&Path>,
     native_helper_environment: &[(String, std::path::PathBuf)],
     benchmark: Option<(usize, usize)>,
+    capture_case_entries: bool,
 ) -> Result<TestRunReport, String> {
     let native_image = native_image.ok_or_else(|| {
         format!(
@@ -34,14 +35,21 @@ pub(super) fn run_discovered_terlan_vm_tests(
             ));
         }
     }
-    native.start_callable_coverage();
+    let native_image_digest = native.whole_image_digest()?;
+    let mut covered_callables = std::collections::BTreeSet::new();
     let mut passed = 0usize;
     let mut failed = 0usize;
     let mut results = Vec::new();
     let mut package_helpers =
         VmPackageNativeHelpers::from_helper_environment(native_helper_environment)?;
 
+    if !capture_case_entries {
+        native.start_callable_coverage();
+    }
     for test in tests {
+        if capture_case_entries {
+            native.start_callable_coverage();
+        }
         let qualified_name = format!("{module_name}.{}", test.name);
         if let Some((warmup, samples)) = benchmark {
             let result = run_benchmark_case(
@@ -55,6 +63,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
                 Ok(measurement) => {
                     passed += 1;
                     results.push(TestRunResult {
+                        entered_native_callables: Default::default(),
                         name: test.name.clone(),
                         kind: test.kind,
                         status: TestRunStatus::Passed,
@@ -70,6 +79,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
                 Err(message) => {
                     failed += 1;
                     results.push(TestRunResult {
+                        entered_native_callables: Default::default(),
                         name: test.name.clone(),
                         kind: test.kind,
                         status: TestRunStatus::Failed,
@@ -83,6 +93,13 @@ pub(super) fn run_discovered_terlan_vm_tests(
                     });
                 }
             }
+            if capture_case_entries {
+                let entered = native.finish_callable_coverage();
+                covered_callables.extend(entered.iter().copied());
+                if let Some(result) = results.last_mut() {
+                    result.entered_native_callables = entered;
+                }
+            }
             continue;
         }
 
@@ -93,6 +110,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
             Ok(()) => {
                 passed += 1;
                 results.push(TestRunResult {
+                    entered_native_callables: Default::default(),
                     name: test.name.clone(),
                     kind: test.kind,
                     status: TestRunStatus::Passed,
@@ -108,6 +126,7 @@ pub(super) fn run_discovered_terlan_vm_tests(
             Err(message) => {
                 failed += 1;
                 results.push(TestRunResult {
+                    entered_native_callables: Default::default(),
                     name: test.name.clone(),
                     kind: test.kind,
                     status: TestRunStatus::Failed,
@@ -121,11 +140,21 @@ pub(super) fn run_discovered_terlan_vm_tests(
                 });
             }
         }
+        if capture_case_entries {
+            let entered = native.finish_callable_coverage();
+            covered_callables.extend(entered.iter().copied());
+            if let Some(result) = results.last_mut() {
+                result.entered_native_callables = entered;
+            }
+        }
     }
 
-    let covered_callables = native.finish_callable_coverage();
+    if !capture_case_entries {
+        covered_callables = native.finish_callable_coverage();
+    }
     native.shutdown()?;
     Ok(TestRunReport {
+        native_image_digest: Some(native_image_digest),
         passed,
         failed,
         results,

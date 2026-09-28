@@ -36,12 +36,14 @@ struct TestResultManifest {
     passed: usize,
     failed: usize,
     not_executed: usize,
+    native_callable_evidence: Option<super::manifest_evidence::NativeCallableEvidence>,
     tests: Vec<TestResultManifestEntry>,
 }
 
 /// Serializable execution result for one discovered test.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct TestResultManifestEntry {
+    entered_native_callables: Vec<String>,
     name: String,
     kind: String,
     status: String,
@@ -57,6 +59,8 @@ struct TestResultManifestEntry {
 /// In-memory execution report for a test run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TestRunReport {
+    /// Digest bound to the executable mapping actually used by the VM.
+    pub(super) native_image_digest: Option<[u8; 32]>,
     pub(super) passed: usize,
     pub(super) failed: usize,
     pub(super) results: Vec<TestRunResult>,
@@ -67,6 +71,8 @@ pub(super) struct TestRunReport {
 /// In-memory execution result for one test.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TestRunResult {
+    /// Callable entries observed only during this test case.
+    pub(super) entered_native_callables: BTreeSet<u64>,
     pub(super) name: String,
     pub(super) kind: super::discovery::TestKind,
     pub(super) status: TestRunStatus,
@@ -144,12 +150,14 @@ impl TestRunReport {
 ///   JavaScript execution.
 pub(super) fn validation_report(tests: &[DiscoveredTest]) -> TestRunReport {
     TestRunReport {
+        native_image_digest: None,
         passed: 0,
         failed: 0,
         covered_callables: BTreeSet::new(),
         results: tests
             .iter()
             .map(|test| TestRunResult {
+                entered_native_callables: BTreeSet::new(),
                 name: test.name.clone(),
                 kind: test.kind,
                 status: TestRunStatus::NotExecuted,
@@ -282,6 +290,7 @@ pub(super) fn write_test_result_manifest(
     target: &str,
     target_profile: &str,
     report: &TestRunReport,
+    native_image: Option<&Path>,
 ) -> Result<(), String> {
     if let Some(parent) = manifest_path
         .parent()
@@ -294,7 +303,17 @@ pub(super) fn write_test_result_manifest(
             )
         })?;
     }
+    let native_callable_evidence = native_image
+        .map(|path| {
+            super::manifest_evidence::NativeCallableEvidence::read(
+                path,
+                report.native_image_digest.as_ref(),
+            )
+        })
+        .transpose()
+        .map_err(|error| error.to_string())?;
     let manifest = TestResultManifest {
+        native_callable_evidence,
         source_path: source_path.to_string(),
         module_name: module_name.to_string(),
         target: target.to_string(),
@@ -310,6 +329,11 @@ pub(super) fn write_test_result_manifest(
             .results
             .iter()
             .map(|result| TestResultManifestEntry {
+                entered_native_callables: result
+                    .entered_native_callables
+                    .iter()
+                    .map(u64::to_string)
+                    .collect(),
                 name: result.name.clone(),
                 kind: result.kind.as_str().to_string(),
                 status: result.status.as_str().to_string(),
