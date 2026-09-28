@@ -98,6 +98,7 @@ pub(super) fn run_wasm_tests(args: &TestArgs, state: CliState) -> ExitCode {
             "wasm",
             TargetProfile::WasmCore.as_str(),
             &report,
+            None,
         ) {
             eprintln!("{message}");
             return ExitCode::from(1);
@@ -135,6 +136,7 @@ fn run_discovered_wasm_tests(artifact: &Path, tests: &[DiscoveredTest]) -> TestR
                 }
             };
             TestRunResult {
+                entered_native_callables: Default::default(),
                 name: test.name.clone(),
                 kind: test.kind,
                 status,
@@ -149,6 +151,7 @@ fn run_discovered_wasm_tests(artifact: &Path, tests: &[DiscoveredTest]) -> TestR
         })
         .collect();
     TestRunReport {
+        native_image_digest: None,
         passed,
         failed,
         results,

@@ -115,11 +115,13 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
             .as_nanos()
     ));
     let report = TestRunReport {
+        native_image_digest: None,
         passed: 1,
         failed: 1,
         covered_callables: Default::default(),
         results: vec![
             TestRunResult {
+                entered_native_callables: Default::default(),
                 name: "passes".to_string(),
                 kind: TestKind::Test,
                 status: TestRunStatus::Passed,
@@ -132,6 +134,7 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
                 span_end: 20,
             },
             TestRunResult {
+                entered_native_callables: Default::default(),
                 name: "fails".to_string(),
                 kind: TestKind::Test,
                 status: TestRunStatus::Failed,
@@ -152,6 +155,7 @@ fn write_test_result_manifest_records_outcomes_and_spans() {
         "erlang",
         "erlang",
         &report,
+        None,
     )
     .expect("write result manifest");
 
@@ -356,6 +360,11 @@ fn run_js_tests_writes_incomplete_manifests_and_fails_closed() {
     assert_eq!(results["failed"], 0);
     assert_eq!(results["not_executed"], 1);
     assert_eq!(results["tests"][0]["status"], "not_executed");
+    assert!(results["native_callable_evidence"].is_null());
+    assert_eq!(
+        results["tests"][0]["entered_native_callables"],
+        serde_json::json!([])
+    );
     assert_eq!(
         results["tests"][0]["message"],
         "validated without runtime execution"

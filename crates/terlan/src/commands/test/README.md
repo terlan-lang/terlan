@@ -97,6 +97,13 @@ Important invariants:
 - The opt-in test result manifest records the same source/target identity plus
   pass/fail/not-executed counts, per-test statuses, messages, execution nanoseconds,
   and source spans. Execution timing excludes compilation and image loading.
+  Native runs also record each test's entered callable IDs, encoded as strings
+  to preserve all 64 bits, and a declaration index with compiler-input hashes.
+  The index is bound to the digest of the executed image; changed image bytes
+  are rejected. Index membership alone does not indicate execution, and failed
+  tests cannot provide passing API coverage. JS validation and Wasm runs have
+  no native callable evidence. These records support coverage reconciliation;
+  they do not supply the complete public declaration or supported-target inventory.
 
 ## Integration Points
 

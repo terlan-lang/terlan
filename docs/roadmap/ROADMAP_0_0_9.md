@@ -247,6 +247,31 @@ in 172 seconds, versus the previous run exceeding its 180-second limit. This
 single noisy-host observation is not full V9-2 comparative acceptance.
 All 73 standard-library source modules also pass with the rebuilt compiler.
 
+Hosted Compiler CI for `05b24dcc` rejected the new ignored Postgres server test
+because its execution-tier row was missing. The test now names its existing
+`stdlib-postgres-server-check` owner in the tier inventory and external-owner
+report. All 14 compiled ignored tests have exactly one tier row, and all 226
+orchestrator unit tests pass.
+
+Native test-result manifests now retain per-test callable entries and source
+declaration metadata bound to the executed image digest. Changed image bytes
+are rejected, failed cases retain their failed status, and JS validation cannot
+produce native execution evidence. Ordinary runs retain aggregate collection
+without storing per-case traces. All 62 test-command tests pass. The stdlib gate
+retains 73 result manifests covering 725 passing tests, removes each previous
+result before attempting its producer, and rejects missing output. Separate
+negative fixtures verify stale-output removal after both failed and
+successful-without-output producers.
+
+Parser-derived diagnostics reconcile 564 of 1,078 explicit public callables in
+the 85 manifest-listed modules with observed entries during passing tests.
+This is not complete API coverage: intrinsic operations, implicit constructors,
+trait members, re-exports, generated packages, supported targets, and assertions
+over documented contracts still need reconciliation. The broader self-hosting
+contract attempt exceeded 900 seconds and detected concurrent source changes;
+it is not validation evidence. Per the user's instruction, the ongoing
+self-hosting task will finish before final candidate selection.
+
 The compiler-free serve profile exposed two coverage-result accessors whose
 only production caller is the compiler test command. Their feature guards now
 match that caller; the compiler-free `cargo check` passes without lint allowances.
