@@ -118,7 +118,9 @@ pub(super) fn define_native_function(
             let budget = builder
                 .ins()
                 .iconst(types::I64, SCALAR_REDUCTIONS_PER_NATIVE_SLICE);
-            builder.ins().stack_store(budget, slot, 0);
+            builder
+                .ins()
+                .stack_store(module.target_config().pointer_type(), budget, slot, 0);
             slot
         });
         let entry_params = builder.block_params(entry).to_vec();
@@ -270,7 +272,7 @@ pub(super) fn define_native_function(
         let zero = builder.ins().iconst(types::I64, 0);
         builder.ins().return_(&[error_status, zero]);
         builder.seal_all_blocks();
-        builder.finalize();
+        builder.finalize(module.target_config());
     }
     if let Some(filter) = std::env::var_os("TERLAN_CRANELIFT_DUMP_FUNCTION")
         .and_then(|value| value.to_string_lossy().parse::<usize>().ok())
@@ -501,7 +503,7 @@ fn emit_pure_tail_body(
                 )?;
                 let selected = builder.create_block();
                 let next = builder.create_block();
-                let is_true = builder.ins().icmp_imm(
+                let is_true = builder.ins().icmp_imm_s(
                     cranelift_codegen::ir::condcodes::IntCC::NotEqual,
                     condition,
                     0,
@@ -562,7 +564,7 @@ fn emit_pure_tail_body(
                 builder.declare_value_needs_stack_map(call_value);
             }
             let completed = builder.create_block();
-            let succeeded = builder.ins().icmp_imm(
+            let succeeded = builder.ins().icmp_imm_s(
                 cranelift_codegen::ir::condcodes::IntCC::Equal,
                 call_status,
                 i64::from(status::OK),
@@ -784,7 +786,7 @@ fn emit_pure_component_dispatch(
     for (function, _arity, body) in component_bodies {
         let selected = builder.create_block();
         let next = builder.create_block();
-        let matches = builder.ins().icmp_imm(
+        let matches = builder.ins().icmp_imm_s(
             cranelift_codegen::ir::condcodes::IntCC::Equal,
             *tag,
             *function as i64,
@@ -866,7 +868,7 @@ fn emit_suspending_component_dispatch(
     for (function, _arity, body) in component_bodies {
         let selected = builder.create_block();
         let next = builder.create_block();
-        let matches = builder.ins().icmp_imm(
+        let matches = builder.ins().icmp_imm_s(
             cranelift_codegen::ir::condcodes::IntCC::Equal,
             *tag,
             *function as i64,
@@ -927,7 +929,7 @@ fn emit_callable_coverage(
     let pointer = module.target_config().pointer_type();
     let enabled = builder.create_block();
     let next = builder.create_block();
-    let recorder_available = builder.ins().icmp_imm(
+    let recorder_available = builder.ins().icmp_imm_s(
         cranelift_codegen::ir::condcodes::IntCC::NotEqual,
         recorder,
         0,

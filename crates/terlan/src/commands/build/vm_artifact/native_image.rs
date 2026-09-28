@@ -34,7 +34,7 @@ use super::native_descriptor::native_application_image_descriptor;
 use super::native_units::prepare_native_object_units;
 use super::{native_cache, output_cleanup};
 
-pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.133.1";
+pub(super) const DIRECT_AOT_BACKEND: &str = "cranelift-0.134.4";
 pub(super) const DIRECT_AOT_CACHE_SCHEMA: &str = "terlan-native-codegen-v5";
 pub(super) const DIRECT_AOT_CODEGEN_REVISION: &str = env!("TERLAN_NATIVE_CODEGEN_REVISION_SHA256");
 pub(super) const DIRECT_AOT_BUILD_POLICY: &str = env!("TERLAN_NATIVE_BUILD_POLICY_SHA256");

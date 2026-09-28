@@ -139,3 +139,12 @@ owns checkpoint persistence, and Linux `rustix` provides checked filesystem
 admission before starting its worker. Both additions remain visible in the
 inventory. The limit is fixed at 58; a further increase fails the gate and
 requires a new review. Other dependency and coupling budgets are unchanged.
+
+The 2026-09-28 dependency review defers Base64 0.23.1 (PR #16). The resolved
+graph still requires 0.22.1 through instant-acme, pem, ureq, and ureq-proto;
+upgrading the workspace adds a 35th duplicate family against the unchanged
+ceiling of 34. Dependabot ignores only 0.23.1. Reconsider the update when those
+consumers migrate or another duplicate family is removed, without raising the
+budget. Cranelift updates must move its five direct crates together, and
+wasm-encoder and wasmparser must be reviewed together to avoid avoidable
+duplicate compiler dependencies.

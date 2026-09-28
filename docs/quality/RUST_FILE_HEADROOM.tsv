@@ -21,7 +21,7 @@ crates/terlan/src/compiler/accelerator.rs	implementation	910	900	1000	compiler-s
 crates/terlan/src/compiler/accelerator/ir.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/hir/interface_render.rs	implementation	936	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/application/overloads.rs	implementation	930	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/native_ir/cranelift/function.rs	implementation	950	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/native_ir/cranelift/function.rs	implementation	952	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/native_ir/http_values.rs	implementation	915	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/mod.rs	implementation	950	900	1000	compiler-structure	0.0.9

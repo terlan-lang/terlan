@@ -125,7 +125,7 @@ pub(super) fn emit_managed_allocation(
     let allocator_missing =
         builder
             .ins()
-            .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::Equal, allocator, 0);
+            .icmp_imm_s(cranelift_codegen::ir::condcodes::IntCC::Equal, allocator, 0);
     branch_on_error(
         builder,
         allocator_missing,
@@ -148,12 +148,14 @@ pub(super) fn emit_managed_allocation(
         let offset = i32::try_from(index.saturating_mul(8)).map_err(|_| {
             "error[cranelift.managed_fields]: aggregate field offset exceeds i32".to_string()
         })?;
-        builder.ins().stack_store(*field, field_slot, offset);
+        builder
+            .ins()
+            .stack_store(pointer, *field, field_slot, offset);
     }
     let result_slot =
         builder.create_sized_stack_slot(StackSlotData::new(StackSlotKind::ExplicitSlot, 8, 3));
     let zero = builder.ins().iconst(types::I64, 0);
-    builder.ins().stack_store(zero, result_slot, 0);
+    builder.ins().stack_store(pointer, zero, result_slot, 0);
 
     layouts.admit(encoded_layout)?;
     let layout_bytes = u32::try_from(encoded_layout.len().max(1)).map_err(|_| {
@@ -169,7 +171,9 @@ pub(super) fn emit_managed_allocation(
             "error[cranelift.managed_layout]: descriptor offset exceeds i32".to_string()
         })?;
         let value = builder.ins().iconst(types::I8, i64::from(byte));
-        builder.ins().stack_store(value, layout_slot, offset);
+        builder
+            .ins()
+            .stack_store(pointer, value, layout_slot, offset);
     }
     let layout_pointer = builder.ins().stack_addr(pointer, layout_slot, 0);
     let layout_length = i64::try_from(encoded_layout.len()).map_err(|_| {
@@ -208,7 +212,7 @@ pub(super) fn emit_managed_allocation(
         ],
     );
     let callback_status = builder.inst_results(call)[0];
-    let failed = builder.ins().icmp_imm(
+    let failed = builder.ins().icmp_imm_s(
         cranelift_codegen::ir::condcodes::IntCC::NotEqual,
         callback_status,
         i64::from(status::OK),
@@ -217,13 +221,15 @@ pub(super) fn emit_managed_allocation(
     let error = [BlockArg::Value(callback_status)];
     builder.ins().brif(failed, error_block, &error, next, &[]);
     builder.switch_to_block(next);
-    let result = builder.ins().stack_load(types::I64, result_slot, 0);
+    let result = builder
+        .ins()
+        .stack_load(pointer, types::I64, result_slot, 0);
     if crate::runtime::native_image::managed::managed_abi_result_is_reference(encoded_layout) {
         builder.declare_value_needs_stack_map(result);
         let invalid_reference =
             builder
                 .ins()
-                .icmp_imm(cranelift_codegen::ir::condcodes::IntCC::Equal, result, 0);
+                .icmp_imm_s(cranelift_codegen::ir::condcodes::IntCC::Equal, result, 0);
         branch_on_error(
             builder,
             invalid_reference,

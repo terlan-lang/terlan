@@ -81,8 +81,10 @@ pub(super) fn emit_wrapped_call_yield(
         "error[cranelift.call_then]: transition buffer is unavailable".to_string()
     })?;
     let appended_count = values.len().saturating_add(2);
-    let value_count = builder.ins().iadd_imm(actual_count, appended_count as i64);
-    let exceeds_capacity = builder.ins().icmp_imm(
+    let value_count = builder
+        .ins()
+        .iadd_imm_s(actual_count, appended_count as i64);
+    let exceeds_capacity = builder.ins().icmp_imm_s(
         IntCC::UnsignedGreaterThan,
         value_count,
         TVM_COMPLETION_TRANSITION_WORD_CAPACITY as i64,
@@ -93,7 +95,7 @@ pub(super) fn emit_wrapped_call_yield(
         status::TRANSITION_CAPACITY,
         error_block,
     );
-    let byte_offset = builder.ins().imul_imm(actual_count, 8);
+    let byte_offset = builder.ins().imul_imm_s(actual_count, 8);
     let append_pointer = builder.ins().iadd(pointer, byte_offset);
     for (index, value) in values.iter().enumerate() {
         let captured = emit_expr(
