@@ -147,7 +147,7 @@ cranelift-native = { version = "=0.134.4", optional = true }
 cranelift-object = { version = "=0.134.4", optional = true }
 crossterm = "0.29.0"
 cssparser = "0.37.0"
-html5ever = "0.39.0"
+html5ever = "0.40.0"
 mime_guess = "2"
 lalrpop-util = { version = "=0.23.1", default-features = false }
 md-5 = "0.11.0"
