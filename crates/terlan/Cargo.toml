@@ -145,7 +145,7 @@ cranelift-frontend = { version = "=0.134.4", optional = true }
 cranelift-module = { version = "=0.134.4", optional = true }
 cranelift-native = { version = "=0.134.4", optional = true }
 cranelift-object = { version = "=0.134.4", optional = true }
-crossterm = "0.28.1"
+crossterm = "0.29.0"
 cssparser = "0.37.0"
 html5ever = "0.39.0"
 mime_guess = "2"
@@ -201,8 +201,8 @@ tungstenite = "0.28"
 ureq = { version = "=3.1.4", default-features = false, features = ["rustls"], optional = true }
 url = "2.5.8"
 docker-compose-types = "0.24.0"
-wasm-encoder = "0.258.0"
-wasmparser = "0.258.0"
+wasm-encoder = "0.259.0"
+wasmparser = "0.259.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rustix = { version = "1.1.4", features = ["fs"] }
