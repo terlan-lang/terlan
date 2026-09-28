@@ -41,3 +41,19 @@ Object [#43](https://github.com/terlan-lang/terlan/pull/43), HTTP
 [#46](https://github.com/terlan-lang/terlan/pull/46) are integrated. Comrak's
 accessible heading links put the fragment ID on the heading itself; the
 metadata extractor now reads that ID and preserves unique heading fragments.
+
+The remaining queued updates were resolved together to check their combined
+dependency graph. TOML [#48](https://github.com/terlan-lang/terlan/pull/48),
+Hyper-util [#49](https://github.com/terlan-lang/terlan/pull/49), and Getrandom
+[#50](https://github.com/terlan-lang/terlan/pull/50) are integrated along with
+queued updates to Cookie, Flate2, Foundations, HTTP-body-util, Mio, proc-macro2,
+Serde, serde_json, Syn, and Tokio. Ureq advances to 3.2.1.
+
+The full candidate reached 38 duplicate families; these holds keep it at 34:
+
+| Update | Blocker and reconsideration condition |
+| --- | --- |
+| RCGen [#47](https://github.com/terlan-lang/terlan/pull/47), 0.14.10 | Its PEM 4 dependency adds Base64 0.23 alongside the retained 0.22 stack. Reconsider with the Base64 migration above. |
+| Rand [#51](https://github.com/terlan-lang/terlan/pull/51), 0.10.3 | Even Foundations 5.10.2 retains Rand 0.9 through Governor 0.10.4. Updating Rand and Tungstenite together still adds rand/rand_core families. Reconsider when Governor supports the new generation. |
+| Signal-hook 0.4.4 | Crossterm 0.29 and signal-hook-mio retain 0.3, adding another family. Reconsider with the terminal dependency migration. |
+| Ureq 3.3–3.4 | Ureq 3.4 and ureq-proto 0.6.4 use Base64 0.23. Ureq 3.3 also permits that protocol version; 3.2.1 retains the compatible 0.5 protocol line. Reconsider with the Base64 migration. |

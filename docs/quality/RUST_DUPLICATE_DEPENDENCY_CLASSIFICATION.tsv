@@ -20,7 +20,7 @@ r-efi	5.3.0,6.0.0	platform-compatibility	dependency-health	getrandom generations
 rustix	0.38.44,1.1.5	platform-compatibility	dependency-health	transitive consumers currently support different rustix APIs	0.0.9
 schemars	0.9.0,1.2.2	transitive-upgrade-blocked	dependency-health	Foundations settings dependencies currently span two schema APIs	0.0.9
 shlex	1.3.0,2.0.1	transitive-upgrade-blocked	dependency-health	macOS libproc build-time bindgen requires shlex 1 while the pinned C compiler helper uses shlex 2	0.0.9
-syn	1.0.109,2.0.119,3.0.3	transitive-upgrade-blocked	dependency-health	Foundations and workspace procedural macros currently span three syn APIs	0.0.9
+syn	1.0.109,2.0.119,3.0.6	transitive-upgrade-blocked	dependency-health	Foundations and workspace procedural macros currently span three syn APIs	0.0.9
 thiserror	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	instant-acme retains thiserror 1 while newer protocol dependencies use 2	0.0.9
 thiserror-impl	1.0.69,2.0.18	transitive-upgrade-blocked	dependency-health	thiserror generations require their matching derive implementation	0.0.9
 windows-sys	0.52.0,0.60.2,0.61.2	platform-compatibility	dependency-health	cross-platform transitive dependencies retain several supported Windows API generations	0.0.9
