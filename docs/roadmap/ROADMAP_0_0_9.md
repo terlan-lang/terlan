@@ -35,9 +35,9 @@ command checks manifest consistency only; its success is not 100% API coverage.
 Completing the declaration inventory and binding it to real target execution
 remain release requirements, not accomplished capabilities.
 
-Prepare the focused 0.0.9 release, but obtain explicit user authorization before
-tagging or publicly publishing it. The exact candidate and its artifacts must
-pass verification first. This scope does not cover publishing 0.0.10.
+The user authorized continuing through publication on September 28. The exact
+candidate and its artifacts must pass verification before tagging or publicly
+publishing 0.0.9. This scope does not cover publishing 0.0.10.
 
 ## Current Status
 
@@ -235,6 +235,17 @@ Cross-platform source evidence and complete declaration-derived API coverage
 remain open.
 Local Rust runs include separately active native-IR edits; hosted validation of
 the exact committed candidate remains required.
+
+Imported type-alias parsing now reuses a bounded thread-local cache keyed by
+all relevant interface contents. Body, parameter, visibility, opacity, and valued
+union edits invalidate reuse; callers receive independent alias maps. Empty
+interfaces bypass the cache, and imported alias normalization reuses its local
+map. All 842 typechecker tests pass, including cache invalidation and retention
+checks; one existing ignored test remains outside that invocation. The four
+self-hosting bootstrap contract tests pass after their full source preparation
+in 172 seconds, versus the previous run exceeding its 180-second limit. This
+single noisy-host observation is not full V9-2 comparative acceptance.
+All 73 standard-library source modules also pass with the rebuilt compiler.
 
 The compiler-free serve profile exposed two coverage-result accessors whose
 only production caller is the compiler test command. Their feature guards now

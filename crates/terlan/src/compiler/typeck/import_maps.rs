@@ -157,11 +157,11 @@ pub(super) fn imported_type_aliases(resolved: &ResolvedModule) -> HashMap<String
     let mut aliases = HashMap::new();
     for interface in resolved.interface_map.values() {
         let interface_aliases = interface_type_aliases(interface);
-        for (name, alias) in interface_type_aliases(interface) {
+        for (name, alias) in &interface_aliases {
             aliases.insert(
                 format!("{}.{}", interface.module, name),
                 normalize_imported_provider_alias(
-                    &alias,
+                    alias,
                     interface,
                     &interface_aliases,
                     &global_interface_aliases,
