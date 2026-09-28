@@ -13,5 +13,5 @@ workspace = true
 [dependencies]
 flate2 = "1.1.9"
 tar.workspace = true
-zip = { version = "6.0.0", default-features = false, features = ["deflate-flate2"] }
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
 zstd.workspace = true
