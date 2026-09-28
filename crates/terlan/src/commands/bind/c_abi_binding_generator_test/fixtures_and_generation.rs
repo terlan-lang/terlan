@@ -184,7 +184,16 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     assert!(!adapter.contains("pjrt"));
 
     let cargo = fs::read_to_string(out_dir.join("native/rust/Cargo.toml")).expect("Cargo.toml");
-    assert!(cargo.contains("cc = \"=1.2.67\""));
+    let generated: Value = basic_toml::from_str(&cargo).expect("generated manifest");
+    let workspace: Value = basic_toml::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../Cargo.toml"
+    )))
+    .expect("workspace manifest");
+    assert_eq!(
+        generated["build-dependencies"]["cc"], workspace["workspace"]["dependencies"]["cc"],
+        "generated adapters must reuse the compiler's admitted cc version"
+    );
     assert!(cargo.contains("[workspace]"));
     assert!(!cargo.contains("cxx"));
     let package = fs::read_to_string(out_dir.join("terlan.toml")).expect("terlan.toml");

@@ -511,7 +511,7 @@ pub(super) fn external_c_distribution_can_compile_package_owned_adapter_sources(
         .expect("generate externally linked package with adapter source");
     assert!(out_dir.join("native/rust/c/external_adapter.c").is_file());
     let cargo = fs::read_to_string(out_dir.join("native/rust/Cargo.toml")).expect("Cargo.toml");
-    assert!(cargo.contains("cc = \"=1.2.67\""));
+    assert!(cargo.contains("cc = \"=1.5.1\""));
     let build = fs::read_to_string(out_dir.join("native/rust/build.rs")).expect("build.rs");
     assert!(build.contains("c_build.file(\"c/external_adapter.c\")"));
     assert!(build.contains("c_build.include(root.join(\"include\"))"));

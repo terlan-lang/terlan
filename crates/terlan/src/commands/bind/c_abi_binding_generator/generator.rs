@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 const C_ABI_BINDING_SCHEMA: &str = "terlan.c-abi.binding.v1";
 const C_METADATA_SCHEMA: &str = "terlan.c.metadata.v1";
 const SKIPPED_SYMBOLS_SCHEMA: &str = "terlan.c-abi.binding.skipped-symbols.v1";
-const CC_VERSION: &str = "1.2.67";
+const CC_VERSION: &str = "1.5.1";
 const GETRANDOM_VERSION: &str = "0.3.4";
 
 #[derive(Debug, Serialize, Deserialize)]
