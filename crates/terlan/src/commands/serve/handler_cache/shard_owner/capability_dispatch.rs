@@ -1,6 +1,8 @@
 //! Scheduler-local capability worker lifecycle for generated handlers.
 
-use std::collections::BTreeMap;
+use crate::runtime::vm::package_native_helper::{VmPackageNativeHelpers, VmPostgresDispatcher};
+use crate::runtime::vm::pure_native::repl_value_to_boundary_term;
+use std::collections::{BTreeMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::mpsc::SyncSender;
 
@@ -59,6 +61,11 @@ pub(super) struct GeneratedCapabilityDispatcher {
     enabled: bool,
     pump: Option<VmCapabilityWorkerEventPump<PendingGeneratedCapability>>,
     assignments: BTreeMap<std::num::NonZeroU64, VmCapabilityWorkerParkedRequest>,
+    helpers: VmPackageNativeHelpers,
+    postgres: VmPostgresDispatcher,
+    postgres_pending: BTreeMap<std::num::NonZeroU64, PendingGeneratedCapability>,
+    resource_owners: BTreeMap<std::num::NonZeroU64, VmProcessId>,
+    ready: VecDeque<(PendingGeneratedCapability, NativeBoundaryReplyTerm)>,
 }
 
 impl GeneratedCapabilityDispatcher {
@@ -69,6 +76,11 @@ impl GeneratedCapabilityDispatcher {
             enabled: !cfg!(test) || std::env::var_os("TERLAN_TEST_AOT_CAPABILITY_PUMP").is_some(),
             pump: None,
             assignments: BTreeMap::new(),
+            helpers: VmPackageNativeHelpers::default(),
+            postgres: VmPostgresDispatcher::default(),
+            postgres_pending: BTreeMap::new(),
+            resource_owners: BTreeMap::new(),
+            ready: VecDeque::new(),
         }
     }
 
@@ -79,7 +91,7 @@ impl GeneratedCapabilityDispatcher {
 
     /// Returns whether polling is required to settle retained actors.
     pub(super) fn has_pending(&self) -> bool {
-        !self.assignments.is_empty()
+        !self.assignments.is_empty() || !self.postgres_pending.is_empty() || !self.ready.is_empty()
     }
 
     /// Submits one generated capability wait and retains its complete caller envelope.
@@ -87,6 +99,64 @@ impl GeneratedCapabilityDispatcher {
         &mut self,
         pending: PendingGeneratedCapability,
     ) -> Result<(), GeneratedCapabilityFailure> {
+        let trusted = super::super::protocol_capability::trusted_host_capability(&pending.wait);
+        if pending
+            .wait
+            .request()
+            .operation
+            .starts_with("std.db.postgres.")
+        {
+            if !trusted {
+                return Err(("error[serve.aot.capability_denied]: database access requires trusted host capabilities".into(), Box::new(pending)));
+            }
+            let worker = match capability_worker_path() {
+                Ok(worker) => worker,
+                Err(error) => return Err((error, Box::new(pending))),
+            };
+            match self
+                .postgres
+                .submit(&mut self.helpers, pending.owner, &pending.wait, worker)
+            {
+                Ok(true) => {
+                    self.resource_owners
+                        .insert(pending.route.actor_id(), pending.owner);
+                    self.postgres_pending
+                        .insert(pending.route.actor_id(), pending);
+                    return Ok(());
+                }
+                Ok(false) => unreachable!("database namespace was checked"),
+                Err(error) => return Err((error.into(), Box::new(pending))),
+            }
+        }
+        if trusted
+            && matches!(
+                pending.wait.request().capability.as_str(),
+                "package-native" | "system.environment"
+            )
+        {
+            let request = pending.wait.request();
+            let outcome = if request.capability == "package-native" {
+                self.helpers
+                    .call(
+                        pending.owner.as_u64(),
+                        request,
+                        pending.wait.admitted_atoms(),
+                    )
+                    .and_then(repl_value_to_boundary_term)
+                    .map(NativeBoundaryReplyTerm::Ok)
+            } else {
+                crate::runtime::vm::package_native_helper::dispatch_vm_capability_with_program_arguments(request, &[])
+            };
+            match outcome {
+                Ok(outcome) => {
+                    self.resource_owners
+                        .insert(pending.route.actor_id(), pending.owner);
+                    self.ready.push_back((pending, outcome));
+                    return Ok(());
+                }
+                Err(error) => return Err((error.into(), Box::new(pending))),
+            }
+        }
         let context = match pending.wait.worker_context() {
             Ok(context) => context,
             Err(error) => return Err((error, Box::new(pending))),
@@ -148,6 +218,38 @@ impl GeneratedCapabilityDispatcher {
         control: &VmFixedSchedulerControl<AotSchedulerPublication>,
         telemetry: &VmFixedSchedulerTelemetry,
     ) -> Result<(), String> {
+        if let Some((owner, outcome)) = self
+            .postgres
+            .poll(&mut self.helpers)
+            .map_err(String::from)?
+        {
+            if let Some(actor) = self
+                .postgres_pending
+                .iter()
+                .find_map(|(actor, pending)| (pending.owner == owner).then_some(*actor))
+            {
+                let pending = self
+                    .postgres_pending
+                    .remove(&actor)
+                    .expect("located database owner");
+                self.ready.push_back((pending, outcome));
+            }
+        }
+        if let Some((pending, outcome)) = self.ready.pop_front() {
+            return self.publish_completion(
+                &mut ShardOwnerState {
+                    shard,
+                    routes,
+                    runnable,
+                    timers,
+                    control,
+                    telemetry,
+                    scheduler: self.scheduler,
+                },
+                pending,
+                outcome,
+            );
+        }
         let Some(event) = self.poll()? else {
             return Ok(());
         };
@@ -223,6 +325,17 @@ impl GeneratedCapabilityDispatcher {
         &mut self,
         route: VmFixedActorRoute,
     ) -> Result<Option<PendingGeneratedCapability>, GeneratedCapabilityFailure> {
+        self.close_route(route);
+        if let Some(pending) = self.postgres_pending.remove(&route.actor_id()) {
+            return Ok(Some(pending));
+        }
+        if let Some(index) = self
+            .ready
+            .iter()
+            .position(|(pending, _)| pending.route == route)
+        {
+            return Ok(self.ready.remove(index).map(|(pending, _)| pending));
+        }
         let Some(assignment) = self.assignments.remove(&route.actor_id()) else {
             return Ok(None);
         };
@@ -239,14 +352,36 @@ impl GeneratedCapabilityDispatcher {
     /// Cancels all retained assignments and requests orderly worker shutdown.
     pub(super) fn shutdown(&mut self) -> (Vec<PendingGeneratedCapability>, Vec<String>) {
         self.assignments.clear();
+        for (_, owner) in std::mem::take(&mut self.resource_owners) {
+            self.postgres.close_owner(&mut self.helpers, owner);
+        }
+        let mut pending = std::mem::take(&mut self.postgres_pending)
+            .into_values()
+            .collect::<Vec<_>>();
+        pending.extend(self.ready.drain(..).map(|(pending, _)| pending));
         let Some(pump) = self.pump.as_mut() else {
-            return (Vec::new(), Vec::new());
+            return (pending, Vec::new());
         };
-        let (pending, errors) = pump.shutdown();
-        (
-            pending.into_iter().map(|(_, pending)| pending).collect(),
-            errors,
-        )
+        let (external, errors) = pump.shutdown();
+        pending.extend(external.into_iter().map(|(_, pending)| pending));
+        (pending, errors)
+    }
+
+    /// Retires the actor route together with its capability resources.
+    pub(super) fn finish_route(
+        &mut self,
+        route: VmFixedActorRoute,
+        routes: &mut BTreeMap<std::num::NonZeroU64, VmProcessId>,
+    ) {
+        self.close_route(route);
+        routes.remove(&route.actor_id());
+    }
+
+    /// Releases database and package resources at the terminal actor boundary.
+    pub(super) fn close_route(&mut self, route: VmFixedActorRoute) {
+        if let Some(owner) = self.resource_owners.remove(&route.actor_id()) {
+            self.postgres.close_owner(&mut self.helpers, owner);
+        }
     }
 
     /// Cancels every retained generated actor before this scheduler exits.

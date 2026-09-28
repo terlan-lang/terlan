@@ -90,7 +90,7 @@ impl AotHandlerTimerInvocation {
         let step = match result {
             Ok(step) => step,
             Err(error) => {
-                generation.release_actor_route(self.route.scheduler().index());
+                release_invocation_route(&generation, self.route, self.execution_owner);
                 return Err(error);
             }
         };
@@ -114,8 +114,7 @@ impl AotHandlerTimerInvocation {
                 .shard(self.route.scheduler().index())
                 .and_then(|shard| shard.cancel(self.route, self.owner, reason)),
         };
-        self.generation
-            .release_actor_route(self.route.scheduler().index());
+        release_invocation_route(&self.generation, self.route, self.execution_owner);
         result
     }
 }
@@ -140,8 +139,7 @@ impl Drop for AotHandlerTimerInvocation {
             }
         }
         if self.active_route {
-            self.generation
-                .release_actor_route(self.route.scheduler().index());
+            release_invocation_route(&self.generation, self.route, self.execution_owner);
             self.active_route = false;
         }
     }
@@ -257,7 +255,7 @@ impl AotHandlerCapabilityInvocation {
         let step = match result {
             Ok(step) => step,
             Err(error) => {
-                generation.release_actor_route(self.route.scheduler().index());
+                release_invocation_route(&generation, self.route, self.execution_owner);
                 return Err(error);
             }
         };
@@ -285,8 +283,7 @@ impl Drop for AotHandlerCapabilityInvocation {
             }
         }
         if self.active_route {
-            self.generation
-                .release_actor_route(self.route.scheduler().index());
+            release_invocation_route(&self.generation, self.route, self.execution_owner);
             self.active_route = false;
         }
     }
@@ -446,7 +443,7 @@ impl AotHandlerInvocation {
         let step = match result {
             Ok(step) => step,
             Err(error) => {
-                generation.release_actor_route(self.route.scheduler().index());
+                release_invocation_route(&generation, self.route, self.execution_owner);
                 return Err(error);
             }
         };
@@ -488,8 +485,7 @@ impl AotHandlerInvocation {
                 .shard(self.route.scheduler().index())
                 .and_then(|shard| shard.cancel(self.route, self.owner, reason)),
         };
-        self.generation
-            .release_actor_route(self.route.scheduler().index());
+        release_invocation_route(&self.generation, self.route, self.execution_owner);
         result
     }
 }
@@ -513,8 +509,7 @@ impl Drop for AotHandlerInvocation {
             }
         }
         if self.active_route {
-            self.generation
-                .release_actor_route(self.route.scheduler().index());
+            release_invocation_route(&self.generation, self.route, self.execution_owner);
             self.active_route = false;
         }
     }
@@ -528,7 +523,7 @@ fn materialize_step(
 ) -> Result<AotHandlerInvocationStep, String> {
     match step {
         OwnedInvocationStep::Complete { route, value } => {
-            generation.release_actor_route(route.scheduler().index());
+            release_invocation_route(&generation, route, execution_owner);
             Ok(AotHandlerInvocationStep::Complete(value))
         }
         OwnedInvocationStep::Waiting {
@@ -592,3 +587,15 @@ mod invocation_test;
 #[path = "invocation_protocol_test.rs"]
 #[cfg(test)]
 mod invocation_protocol_test;
+
+/// Releases helper resources together with the terminal invocation's route.
+fn release_invocation_route(
+    generation: &AotHandlerGeneration,
+    route: VmFixedActorRoute,
+    owner: InvocationOwner,
+) {
+    if matches!(owner, InvocationOwner::Protocol(_)) {
+        super::protocol_capability::close_route(generation.identity, route);
+    }
+    generation.release_actor_route(route.scheduler().index());
+}

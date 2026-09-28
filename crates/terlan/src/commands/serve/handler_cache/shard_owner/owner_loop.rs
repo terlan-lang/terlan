@@ -329,7 +329,7 @@ fn handle_command(
                 .and_then(|()| validate_live_route(routes, route, owner))
                 .and_then(|()| shard.detach_actor_state(owner));
             if result.is_ok() {
-                routes.remove(&route.actor_id());
+                capabilities.finish_route(route, routes);
             }
             let _ = reply.send(result);
         }
@@ -584,7 +584,7 @@ fn finish_execution(
                     RUNNABLE_QUEUE_CAPACITY
                 );
                 let result = shard.cancel_call(owner, reason.clone()).and(Err(reason));
-                routes.remove(&route.actor_id());
+                capabilities.finish_route(route, routes);
                 let result = settle_terminal_owned(control, telemetry, lease, result);
                 let _ = reply.send(result);
                 return Ok(());
@@ -626,7 +626,7 @@ fn finish_execution(
                 let result: Result<OwnedInvocationStep, String> = shard
                     .cancel_call(owner, rejection.reason.clone())
                     .and(Err(rejection.reason));
-                routes.remove(&route.actor_id());
+                capabilities.finish_route(route, routes);
                 let result = settle_terminal_owned(control, telemetry, lease, result);
                 let _ = rejection.reply.send(result);
                 return Ok(());
@@ -659,7 +659,7 @@ fn finish_execution(
                         let pending = *pending;
                         let result: Result<OwnedInvocationStep, String> =
                             shard.cancel_call(owner, reason.clone()).and(Err(reason));
-                        routes.remove(&route.actor_id());
+                        capabilities.finish_route(route, routes);
                         let result = settle_terminal_owned(control, telemetry, lease, result);
                         let _ = pending.reply.send(result);
                     }
@@ -677,7 +677,7 @@ fn finish_execution(
             }));
         }
         Ok(ScheduledInvocationStep::Complete(value)) => {
-            routes.remove(&route.actor_id());
+            capabilities.finish_route(route, routes);
             let result = settle_terminal_owned(
                 control,
                 telemetry,
@@ -687,7 +687,7 @@ fn finish_execution(
             let _ = reply.send(result);
         }
         Err(error) => {
-            routes.remove(&route.actor_id());
+            capabilities.finish_route(route, routes);
             let result = settle_terminal_owned(control, telemetry, lease, Err(error));
             let _ = reply.send(result);
         }
@@ -714,7 +714,7 @@ pub(super) fn drain_route(
     let mut publications = control.drain_identified(&lease)?;
     if publications.len() != 1 {
         let count = publications.len();
-        routes.remove(&route.actor_id());
+        capabilities.finish_route(route, routes);
         control.release(lease, VmActorLifecycle::Exiting)?;
         control.reclaim(route)?;
         return Err(format!(
@@ -842,7 +842,7 @@ pub(super) fn drain_route(
                     result = Err(error);
                 }
             }
-            routes.remove(&route.actor_id());
+            capabilities.finish_route(route, routes);
             let result = settle_terminal_owned(control, telemetry, lease, result);
             for pending in retained {
                 let _ = pending.reply.send(Err(reason.clone()));

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::future::Future;
 use std::num::NonZeroU64;
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::task::{Context, Poll, Waker};
 
 use crate::runtime::vm::capability_worker::{
     VmCapabilityRequestContext, VmCapabilityWorkerClient, VmCapabilityWorkerEventPump,
@@ -12,10 +12,11 @@ use crate::runtime::vm::capability_worker::{
     VmCapabilityWorkerIdentity, VmCapabilityWorkerParkedRequest, VmCapabilityWorkerPolicy,
     VmCapabilityWorkerPool, VmCapabilityWorkerPoolSlot,
 };
-use crate::runtime::vm::package_native_helper::VmPackageNativeHelpers;
+use crate::runtime::vm::package_native_helper::{VmPackageNativeHelpers, VmPostgresDispatcher};
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::protocol_task_executor::{
-    with_current_protocol_resource, with_existing_current_protocol_resource,
+    protocol_sleep_until, with_current_protocol_resource, with_existing_current_protocol_resource,
+    VmProtocolSleep,
 };
 use crate::runtime::vm::pure_native::{repl_value_to_boundary_term, PureNativeCapabilityWait};
 use crate::runtime::vm::scheduler_topology::{VmFixedActorRoute, VmSchedulerId};
@@ -38,6 +39,10 @@ pub(super) struct ProtocolCapabilityDispatcher {
     assignments: BTreeMap<NonZeroU64, VmCapabilityWorkerParkedRequest>,
     completed: BTreeMap<NonZeroU64, NativeBoundaryReplyTerm>,
     trusted_helpers: VmPackageNativeHelpers,
+    postgres: VmPostgresDispatcher,
+    postgres_pending: BTreeMap<NonZeroU64, VmProcessId>,
+    resource_owners: BTreeMap<NonZeroU64, VmProcessId>,
+    postgres_wakers: BTreeMap<NonZeroU64, Waker>,
 }
 
 impl ProtocolCapabilityDispatcher {
@@ -48,6 +53,10 @@ impl ProtocolCapabilityDispatcher {
             assignments: BTreeMap::new(),
             completed: BTreeMap::new(),
             trusted_helpers: VmPackageNativeHelpers::default(),
+            postgres: VmPostgresDispatcher::default(),
+            postgres_pending: BTreeMap::new(),
+            resource_owners: BTreeMap::new(),
+            postgres_wakers: BTreeMap::new(),
         })
     }
 
@@ -78,11 +87,33 @@ impl ProtocolCapabilityDispatcher {
         owner: VmProcessId,
         wait: &PureNativeCapabilityWait,
     ) -> Result<(), String> {
-        if self.assignments.contains_key(&route.actor_id()) {
+        if self.assignments.contains_key(&route.actor_id())
+            || self.postgres_pending.contains_key(&route.actor_id())
+        {
             return Err(
                 "error[serve.aot.capability_route]: protocol route already has a worker assignment"
                     .to_string(),
             );
+        }
+        if wait.request().operation.starts_with("std.db.postgres.")
+            && !trusted_host_capability(wait)
+        {
+            return Err("error[serve.aot.capability_denied]: database access requires trusted host capabilities".into());
+        }
+        if wait.request().operation.starts_with("std.db.postgres.")
+            && self
+                .postgres
+                .submit(
+                    &mut self.trusted_helpers,
+                    owner,
+                    wait,
+                    capability_worker_path()?,
+                )
+                .map_err(String::from)?
+        {
+            self.postgres_pending.insert(route.actor_id(), owner);
+            self.resource_owners.insert(route.actor_id(), owner);
+            return Ok(());
         }
         let expected = wait.worker_context()?;
         let request = wait.request();
@@ -113,6 +144,34 @@ impl ProtocolCapabilityDispatcher {
     ) -> Result<Option<NativeBoundaryReplyTerm>, String> {
         if let Some(outcome) = self.completed.remove(&route.actor_id()) {
             return Ok(Some(outcome));
+        }
+        if let Some(owner) = self.postgres_pending.get(&route.actor_id()) {
+            self.postgres.register_waker(*owner, context.waker());
+            self.postgres_wakers
+                .insert(route.actor_id(), context.waker().clone());
+        }
+        while let Some((owner, reply)) = self
+            .postgres
+            .poll(&mut self.trusted_helpers)
+            .map_err(String::from)?
+        {
+            if let Some(actor) = self
+                .postgres_pending
+                .iter()
+                .find_map(|(actor, candidate)| (*candidate == owner).then_some(*actor))
+            {
+                self.postgres_pending.remove(&actor);
+                self.completed.insert(actor, reply);
+                if let Some(waker) = self.postgres_wakers.remove(&actor) {
+                    waker.wake();
+                }
+            }
+        }
+        if let Some(outcome) = self.completed.remove(&route.actor_id()) {
+            return Ok(Some(outcome));
+        }
+        if self.postgres_pending.contains_key(&route.actor_id()) {
+            return Ok(None);
         }
         let Some(pump) = self.pump.as_mut() else {
             return Err(
@@ -172,6 +231,11 @@ impl ProtocolCapabilityDispatcher {
 
     pub(super) fn cancel(&mut self, route: VmFixedActorRoute) {
         self.completed.remove(&route.actor_id());
+        self.postgres_pending.remove(&route.actor_id());
+        self.postgres_wakers.remove(&route.actor_id());
+        if let Some(owner) = self.resource_owners.remove(&route.actor_id()) {
+            self.postgres.close_owner(&mut self.trusted_helpers, owner);
+        }
         let Some(assignment) = self.assignments.remove(&route.actor_id()) else {
             return;
         };
@@ -214,6 +278,7 @@ pub(super) struct ProtocolCapabilityCompletion {
     route: VmFixedActorRoute,
     active: bool,
     local_outcome: Option<NativeBoundaryReplyTerm>,
+    deadline: Option<VmProtocolSleep>,
 }
 
 impl ProtocolCapabilityCompletion {
@@ -229,6 +294,7 @@ impl ProtocolCapabilityCompletion {
                 route,
                 active: false,
                 local_outcome: Some(outcome),
+                deadline: None,
             });
         }
         with_current_protocol_resource(
@@ -245,6 +311,15 @@ impl ProtocolCapabilityCompletion {
             route,
             active: true,
             local_outcome: None,
+            deadline: wait
+                .request()
+                .operation
+                .starts_with("std.db.postgres.")
+                .then(|| {
+                    protocol_sleep_until(
+                        std::time::Instant::now() + std::time::Duration::from_secs(30),
+                    )
+                }),
         })
     }
 }
@@ -255,7 +330,7 @@ pub(super) fn dispatch_trusted_capability(
     owner: VmProcessId,
     wait: &PureNativeCapabilityWait,
 ) -> Result<Option<NativeBoundaryReplyTerm>, String> {
-    if !trusted_host_capability(wait) {
+    if wait.request().operation.starts_with("std.db.postgres.") || !trusted_host_capability(wait) {
         return Ok(None);
     }
     with_current_protocol_resource(
@@ -273,7 +348,7 @@ pub(super) fn dispatch_trusted_capability(
 /// Allows the trusted native-service profile to use application-scoped host
 /// resources. Untrusted edge workloads never enable this path and remain in
 /// the sandboxed capability worker/Wasmtime boundary.
-fn trusted_host_capability(wait: &PureNativeCapabilityWait) -> bool {
+pub(super) fn trusted_host_capability(wait: &PureNativeCapabilityWait) -> bool {
     std::env::var("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES").as_deref() == Ok("1")
         && matches!(
             wait.request().capability.as_str(),
@@ -287,6 +362,9 @@ impl Future for ProtocolCapabilityCompletion {
     fn poll(mut self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(outcome) = self.local_outcome.take() {
             return Poll::Ready(Ok(outcome));
+        }
+        if let Some(deadline) = self.deadline.as_mut() {
+            let _ = Pin::new(deadline).poll(context);
         }
         let outcome = with_existing_current_protocol_resource::<ProtocolCapabilityDispatcher, _>(
             self.generation,
@@ -317,3 +395,18 @@ impl Drop for ProtocolCapabilityCompletion {
         );
     }
 }
+
+/// Releases source capability resources when a protocol actor terminates.
+pub(super) fn close_route(generation: u64, route: VmFixedActorRoute) {
+    let _ = with_existing_current_protocol_resource::<ProtocolCapabilityDispatcher, _>(
+        generation,
+        |dispatcher| {
+            dispatcher.cancel(route);
+            Ok(())
+        },
+    );
+}
+
+#[cfg(test)]
+#[path = "postgres_server_test.rs"]
+mod postgres_server_test;

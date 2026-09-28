@@ -1,5 +1,7 @@
 #[path = "postgres/batch.rs"]
 mod batch;
+#[cfg(test)]
+pub(crate) mod docker_fixture_test;
 #[path = "postgres/inspection.rs"]
 #[cfg(test)]
 mod inspection;

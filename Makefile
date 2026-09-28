@@ -4798,8 +4798,14 @@ vm-dev-dependency-orchestration-check:
 stdlib-postgres-worker-check: | terlan-compiler-bootstrap
 	bash scripts/check_postgres_source_worker.sh
 
+.PHONY: stdlib-postgres-server-check
+stdlib-postgres-server-check: | terlan-compiler-bootstrap
+	TERLAN_NATIVE_WORKER="$(CURDIR)/target/debug/terlan-native-worker" \
+	TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1 TERLAN_TEST_AOT_CAPABILITY_PUMP=1 \
+		$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::protocol_capability::postgres_server_test::source_postgres_resumes_protocol_and_generated_owners -- --ignored --exact
+
 .PHONY: vm-postgres-runtime-check
-vm-postgres-runtime-check: stdlib-postgres-worker-check vm-sql-macro-validation-check vm-native-boundary-contract-check no-default-tokio-runtime-check libpq-c-abi-check
+vm-postgres-runtime-check: stdlib-postgres-server-check stdlib-postgres-worker-check vm-sql-macro-validation-check vm-native-boundary-contract-check no-default-tokio-runtime-check libpq-c-abi-check
 	test -s target/quality/vm-postgres-runtime-report.json
 
 native-boundary-postgres-baseline-benchmark:
