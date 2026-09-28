@@ -22,6 +22,11 @@ updates:
     ignore:
       - dependency-name: base64
         versions: ["0.23.1"]
+      # These upgrades exceed the duplicate-family budget; see PR_UPGRADE_DEFERRALS.md.
+      - dependency-name: instant-acme
+        versions: ["0.8.5"]
+      - dependency-name: html5ever
+        versions: ["0.40.1"]
     groups:
       cranelift:
         patterns:
