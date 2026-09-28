@@ -28,7 +28,7 @@ base64 = "0.22.1"
 cc = "=1.5.1"
 cxx = "=1.0.197"
 cxx-build = "=1.0.197"
-getrandom = "=0.3.4"
+getrandom = "=0.4.3"
 pkg-config = "=0.3.33"
 polling = "3.11.0"
 proc-macro2 = { version = "1", features = ["span-locations"] }

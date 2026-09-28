@@ -4231,7 +4231,7 @@ version = "0.0.9"
 dependencies = [
  "base64",
  "cc",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "pkg-config",
  "polling",
 ]
@@ -4273,7 +4273,7 @@ dependencies = [
 name = "terlan-storage"
 version = "0.0.9"
 dependencies = [
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "rusqlite",
  "sha2",
  "tempfile",
@@ -4283,7 +4283,7 @@ dependencies = [
 name = "terlan-test-orchestrator"
 version = "0.0.9"
 dependencies = [
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "home",
  "openssl-probe",
  "rustix 1.1.5",
