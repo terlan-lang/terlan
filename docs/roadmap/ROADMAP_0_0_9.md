@@ -212,14 +212,27 @@ No release acceptance checkbox is closed by this checkpoint.
 
 The complete standard-library source gate passes all 73 selected modules.
 This does not establish complete declaration-derived API execution coverage.
-Postgres routing in the separate HTTP serve dispatchers and
-cross-platform source evidence remain open. Expected result types now propagate
+Expected result types now propagate
 into escaping lambda branches before structural constructors lose their identity.
 The nested query callback passes the live six-test Postgres source gate, and a
 compiled regression exercises both captured Result variants across suspension.
 All 666 NativeIR tests pass. Hosted release validation for `d11d9b0b` passed;
 Compiler CI reached Rustdoc and found nine undocumented self-host IR types.
 Their documentation now passes the zero-undocumented-items check.
+
+Both HTTP serve actor owners now route source Postgres operations through the
+same database argument/result adapter and isolated worker lifecycle as the
+command runner. Server-selected worker paths retain explicit host authority;
+database calls still require the trusted-host capability setting. Protocol
+waiters register owner-specific wakeups and deadlines, and terminal/cancelled
+routes revoke their local and remote resources. The live server gate compiles the
+complete source application, transports JSON parameters and results, executes a
+nested transaction callback on protocol and generated scheduler owners, and
+cancels one waiting actor while its peer completes. The gate is required by `vm-postgres-runtime-check`. All 90 package
+helper tests and 24 ordinary invocation tests pass; the two existing packaged
+worker invocation tests retain their separately selected execution tier.
+Cross-platform source evidence and complete declaration-derived API coverage
+remain open.
 Local Rust runs include separately active native-IR edits; hosted validation of
 the exact committed candidate remains required.
 

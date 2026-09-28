@@ -46,9 +46,8 @@ fn run_db_migration_lifecycle_against_live_postgres_when_configured() {
 #[test]
 #[ignore = "requires a local Docker daemon"]
 fn run_db_migration_and_snapshot_lifecycle_against_docker_postgres() {
-    let fixture =
-        crate::runtime::vm::postgres::libpq_worker::libpq_docker_gate_test::DockerPostgres::start()
-            .expect("start Docker Postgres fixture");
+    let fixture = crate::runtime::vm::postgres::docker_fixture_test::DockerPostgres::start()
+        .expect("start Docker Postgres fixture");
     let evidence = run_db_migration_lifecycle(&fixture.url("terlan"));
     write_live_migration_evidence(&evidence);
 }

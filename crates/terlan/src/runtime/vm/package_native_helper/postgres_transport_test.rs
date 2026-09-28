@@ -29,7 +29,7 @@ fn losing_an_idle_worker_drains_other_ready_owners_in_the_same_poll() {
     let barrier = Arc::new(Barrier::new(3));
     let notifications = Arc::new(Notifications(AtomicUsize::new(0), std::thread::current()));
     let waker = Waker::from(notifications.clone());
-    let mut workers = Workers::default();
+    let mut workers = Workers::<()>::default();
     for owner in [1, 2] {
         let identity = VmCapabilityWorkerIdentity::new(
             VmCapabilityWorkerId::new(format!("test-{owner}")).unwrap(),

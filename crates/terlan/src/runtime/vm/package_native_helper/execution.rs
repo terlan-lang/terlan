@@ -75,8 +75,8 @@ fn execute_root(
                 };
                 execution = Some(shard.resume_capability_value_call(
                     owner,
-                    pending.suspension,
-                    pending.wait,
+                    pending.payload.suspension,
+                    pending.payload.wait,
                     value,
                 )?);
             } else {
@@ -86,8 +86,8 @@ fn execute_root(
                 if shard
                     .resume_resident_capability_value_call(
                         pending.owner,
-                        pending.suspension,
-                        pending.wait,
+                        pending.payload.suspension,
+                        pending.payload.wait,
                         value,
                     )
                     .map_err(|error| {
@@ -380,8 +380,7 @@ fn submit_postgres(
         request.arguments,
         postgres_transport::Pending {
             owner,
-            suspension,
-            wait,
+            payload: postgres_transport::Continuation { suspension, wait },
             projection: request.projection,
             context,
         },

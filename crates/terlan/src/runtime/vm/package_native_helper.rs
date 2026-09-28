@@ -16,7 +16,9 @@ mod distributed_state;
 mod distributed_storage;
 mod execution;
 mod postgres;
+mod postgres_dispatch;
 mod postgres_transport;
+pub(crate) use postgres_dispatch::VmPostgresDispatcher;
 mod scheduling;
 mod storage_transport;
 mod test_fixtures;
@@ -225,7 +227,8 @@ impl VmPackageNativeHelpers {
             .map_err(native_exchange_error)?)
     }
 
-    fn close_owner(&mut self, owner_process_id: u64) {
+    /// Releases every helper resource owned by a completed or cancelled actor.
+    pub(crate) fn close_owner(&mut self, owner_process_id: u64) {
         self.storage_workers.cancel_owner(owner_process_id);
         self.postgres_workers.close_owner(owner_process_id);
         self.postgres.close_owner(owner_process_id);

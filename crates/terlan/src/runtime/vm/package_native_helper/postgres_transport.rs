@@ -15,46 +15,67 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub(super) struct Pending {
-    pub(super) owner: VmProcessId,
+/// VM-owned execution state retained while a database worker runs.
+pub(super) struct Continuation {
     pub(super) suspension: PureNativeSuspension,
     pub(super) wait: PureNativeCapabilityWait,
+}
+pub(super) struct Pending<T = Continuation> {
+    pub(super) owner: VmProcessId,
+    pub(super) payload: T,
     pub(super) projection: postgres::Projection,
     pub(super) context: VmCapabilityRequestContext,
 }
-pub(super) struct Completion {
-    pub(super) pending: Pending,
+pub(super) struct Completion<T> {
+    pub(super) pending: Pending<T>,
     pub(super) reply: NativeBoundaryReplyTerm,
 }
-struct Worker {
-    pump: VmCapabilityWorkerEventPump<Pending>,
+struct Worker<T> {
+    pump: VmCapabilityWorkerEventPump<Pending<T>>,
     deadline: Option<Instant>,
 }
-impl Drop for Worker {
+impl<T> Drop for Worker<T> {
     fn drop(&mut self) {
         let _ = self.pump.shutdown();
     }
 }
 /// A worker never changes owners or restarts with live source handles.
-#[derive(Default)]
-pub(super) struct Workers {
-    owners: BTreeMap<u64, Option<Worker>>,
+pub(super) struct Workers<T = Continuation> {
+    owners: BTreeMap<u64, Option<Worker<T>>>,
+    executable: Option<std::path::PathBuf>,
 }
-impl Workers {
+impl<T> Default for Workers<T> {
+    fn default() -> Self {
+        Self {
+            owners: BTreeMap::new(),
+            executable: None,
+        }
+    }
+}
+impl<T> Workers<T> {
+    pub(super) fn select_worker(&mut self, executable: std::path::PathBuf) {
+        self.executable.get_or_insert(executable);
+    }
+
     pub(super) fn submit(
         &mut self,
         operation: &str,
         arguments: Vec<NativeBoundaryTerm>,
-        pending: Pending,
+        pending: Pending<T>,
     ) -> VmRuntimeResult<()> {
         let owner = pending.owner.as_u64();
         if !self.owners.contains_key(&owner) {
             if self.owners.len() >= 16 {
                 return Err("error[postgres.resource_limit]: at most 16 database worker owners are admitted".into());
             }
-            let executable = std::env::current_exe()
-                .map_err(|_| "error[postgres.worker]: cannot locate installed worker")?;
-            let path = super::storage_transport::installed_worker_path(&executable)?;
+            let path = match &self.executable {
+                Some(path) => path.clone(),
+                None => {
+                    let executable = std::env::current_exe()
+                        .map_err(|_| "error[postgres.worker]: cannot locate installed worker")?;
+                    super::storage_transport::installed_worker_path(&executable)?
+                }
+            };
             let policy =
                 VmCapabilityWorkerPolicy::new(path, NativeBoundaryExecutionProfile::CrashIsolated)?
                     .allow("postgres")
@@ -96,6 +117,11 @@ impl Workers {
         worker.deadline = Some(Instant::now() + Duration::from_secs(30));
         Ok(())
     }
+    pub(super) fn register_owner_waker(&self, owner: VmProcessId, waker: &Waker) {
+        if let Some(Some(worker)) = self.owners.get(&owner.as_u64()) {
+            worker.pump.register_event_waker(waker);
+        }
+    }
     pub(super) fn register_waker(&self, waker: &Waker) {
         for worker in self
             .owners
@@ -106,7 +132,7 @@ impl Workers {
             worker.pump.register_event_waker(waker);
         }
     }
-    pub(super) fn poll(&mut self) -> VmRuntimeResult<Option<Completion>> {
+    pub(super) fn poll(&mut self) -> VmRuntimeResult<Option<Completion<T>>> {
         'owners: for slot in self.owners.values_mut() {
             let Some(worker) = slot.as_mut() else {
                 continue;
