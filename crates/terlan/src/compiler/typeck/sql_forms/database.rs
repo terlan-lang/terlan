@@ -111,6 +111,7 @@ fn projection_fields(
     let mut seen = HashSet::new();
     for item in &select.projection {
         match item {
+            SelectItem::ExprWithAliases { .. } => return Ok(None),
             SelectItem::Wildcard(_) => append_wildcard(relation, &mut fields, &mut seen)?,
             SelectItem::QualifiedWildcard(qualifier, _) => {
                 let SelectItemQualifiedWildcardKind::ObjectName(qualifier) = qualifier else {

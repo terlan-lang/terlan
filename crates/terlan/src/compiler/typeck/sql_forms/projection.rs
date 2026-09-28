@@ -81,7 +81,8 @@ fn projection_field_name(item: &SelectItem) -> Option<String> {
         SelectItem::UnnamedExpr(Expr::CompoundIdentifier(identifiers)) => {
             identifiers.last().map(postgres_identifier_name)
         }
-        SelectItem::UnnamedExpr(_)
+        SelectItem::ExprWithAliases { .. }
+        | SelectItem::UnnamedExpr(_)
         | SelectItem::QualifiedWildcard(_, _)
         | SelectItem::Wildcard(_) => None,
     }
