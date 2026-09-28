@@ -25,7 +25,7 @@ repository = "https://github.com/terlan-lang/terlan"
 
 [workspace.dependencies]
 base64 = "0.22.1"
-cc = "=1.2.67"
+cc = "=1.5.1"
 cxx = "=1.0.197"
 cxx-build = "=1.0.197"
 getrandom = "=0.3.4"
