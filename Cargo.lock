@@ -4260,7 +4260,7 @@ dependencies = [
  "quote",
  "serde_json",
  "sha2",
- "syn 2.0.119",
+ "syn 3.0.3",
 ]
 
 [[package]]
