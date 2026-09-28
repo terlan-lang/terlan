@@ -50,6 +50,23 @@ fn projection(
 }
 
 #[test]
+fn multi_column_aliases_do_not_invent_projection_types() {
+    let statements = sqlparser::parser::Parser::parse_sql(
+        &sqlparser::dialect::GenericDialect {},
+        "SELECT expand(id) AS (first, second) FROM users",
+    )
+    .expect("parse multi-column aliases");
+    assert_eq!(
+        statement_schema_projection(&statements[0], &snapshot()),
+        Ok(None)
+    );
+    assert_eq!(
+        crate::terlan_typeck::sql_forms::projection::statement_projection_fields(&statements[0]),
+        Ok(None)
+    );
+}
+
+#[test]
 fn snapshot_validation_expands_wildcards_and_respects_aliases() {
     assert_eq!(
         projection("SELECT users.* FROM public.users")

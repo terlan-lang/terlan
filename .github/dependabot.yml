@@ -28,10 +28,18 @@ updates:
         versions: [">=0.40, <0.41"]
       - dependency-name: ammonia
         versions: [">=4.2, <4.3"]
+      - dependency-name: tungstenite
+        versions: [">=0.30, <0.31"]
+      # Oxc non-patch releases require a coordinated frontend migration for 0.0.9.
+      - dependency-name: "oxc_*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     groups:
       cranelift:
         patterns:
           - "cranelift-*"
+      oxc-frontend:
+        patterns:
+          - "oxc_*"
       wasm-tools:
         patterns:
           - "wasm-encoder"

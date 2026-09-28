@@ -13,3 +13,18 @@ auditing remains enabled.
 | [#29](https://github.com/terlan-lang/terlan/pull/29), [#35](https://github.com/terlan-lang/terlan/pull/35), [#36](https://github.com/terlan-lang/terlan/pull/36) | html5ever 0.39 → 0.40; Ammonia 4.1 → 4.2 | Updating the parser alone adds nine duplicate families. Updating Ammonia, html5ever, and cssparser together still leaves duplicate phf, phf_codegen, phf_generator, phf_shared, string_cache, and string_cache_codegen families: Comrak/Oxc retain phf 0.13 and LALRPOP retains string_cache 0.9, while web_atoms 0.3 brings the new generations. Reconsider with a coordinated parser, sanitizer, and transitive dependency migration that fits the unchanged budget. |
 
 These deferrals do not change existing runtime behavior or relax quality gates.
+
+ZIP [#37](https://github.com/terlan-lang/terlan/pull/37), SQL parser
+[#38](https://github.com/terlan-lang/terlan/pull/38), and Rustix
+[#39](https://github.com/terlan-lang/terlan/pull/39) are integrated. For
+[#41](https://github.com/terlan-lang/terlan/pull/41), Tungstenite advances to 0.29;
+0.30 is deferred because it adds duplicate rand and rand_core families through
+Foundations' governor dependency, taking the graph from 34 to 36 families.
+
+Oxc [#40](https://github.com/terlan-lang/terlan/pull/40) cannot be adopted as a
+standalone oxc_ast update. Resolving all six
+direct Oxc crates together still produces 39 duplicate families: compact_str
+and four PHF families are added. Oxc non-patch updates are held for the 0.0.9
+coordinated frontend migration; patch updates remain enabled and grouped.
+Remove that hold after the frontend migration and dependency consolidation pass
+the unchanged budget and JavaScript backend checks.

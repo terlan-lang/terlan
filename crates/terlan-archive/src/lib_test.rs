@@ -1,6 +1,44 @@
 use super::*;
 
 #[test]
+fn zip_roundtrip_preserves_unicode_paths_and_deterministic_bytes() {
+    let root = temp("zip-roundtrip");
+    let source = root.join("source");
+    fs::create_dir_all(source.join("empty")).unwrap();
+    fs::write(source.join("résumé.txt"), b"archive payload").unwrap();
+    let first = root.join("first.zip");
+    let second = root.join("second.zip");
+    create(&source.to_string_lossy(), &first.to_string_lossy()).unwrap();
+    create(&source.to_string_lossy(), &second.to_string_lossy()).unwrap();
+    assert_eq!(fs::read(&first).unwrap(), fs::read(&second).unwrap());
+    let destination = root.join("extracted");
+    extract(&first.to_string_lossy(), &destination.to_string_lossy()).unwrap();
+    assert_eq!(
+        fs::read(destination.join("résumé.txt")).unwrap(),
+        b"archive payload"
+    );
+    assert!(destination.join("empty").is_dir());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn zip_extraction_rejects_parent_traversal() {
+    let root = temp("zip-traversal");
+    fs::create_dir_all(&root).unwrap();
+    let archive = root.join("attack.zip");
+    let mut writer = zip::ZipWriter::new(fs::File::create(&archive).unwrap());
+    writer
+        .start_file("../escaped", SimpleFileOptions::default())
+        .unwrap();
+    writer.finish().unwrap();
+    let destination = root.join("extracted");
+    let failure = extract(&archive.to_string_lossy(), &destination.to_string_lossy()).unwrap_err();
+    assert_eq!(failure.code(), "archive.unsafe_entry");
+    assert!(!root.join("escaped").exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn tar_zstd_extraction_rejects_symlinks_and_removes_partial_output() {
     let root = temp("symlink");
     fs::create_dir_all(&root).unwrap();
