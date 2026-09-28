@@ -164,7 +164,7 @@ http-body-util = { version = "0.1.3", features = ["channel", "full"] }
 httparse = "1.10.1"
 hyper = { version = "1.11.1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1.20", features = ["tokio"], optional = true }
-instant-acme = "0.7"
+instant-acme = "0.8"
 libloading = "=0.9.0"
 notify = "8"
 object = { version = "=0.39.1", default-features = false, features = ["read", "write", "std"] }
