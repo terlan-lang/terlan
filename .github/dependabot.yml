@@ -32,6 +32,14 @@ updates:
         versions: [">=0.38, <0.39"]
       - dependency-name: tungstenite
         versions: [">=0.30, <0.31"]
+      - dependency-name: rand
+        versions: [">=0.10, <0.11"]
+      - dependency-name: rcgen
+        versions: [">=0.14, <0.15"]
+      - dependency-name: signal-hook
+        versions: [">=0.4, <0.5"]
+      - dependency-name: ureq
+        versions: [">=3.3, <3.5"]
       # Oxc non-patch releases require a coordinated frontend migration for 0.0.9.
       - dependency-name: "oxc_*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
