@@ -17,16 +17,17 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
-    # 0.23.1 adds a 35th duplicate family; the release budget is 34.
-    # Revisit after transitive Base64 consumers migrate or duplicates are reduced.
+    # Blocked release lines exceed the duplicate-family budget of 34.
+    # Revisit after the coordinated migrations in PR_UPGRADE_DEFERRALS.md.
     ignore:
       - dependency-name: base64
-        versions: ["0.23.1"]
-      # These upgrades exceed the duplicate-family budget; see PR_UPGRADE_DEFERRALS.md.
+        versions: [">=0.23, <0.24"]
       - dependency-name: instant-acme
-        versions: ["0.8.5"]
+        versions: [">=0.8, <0.9"]
       - dependency-name: html5ever
-        versions: ["0.40.1"]
+        versions: [">=0.40, <0.41"]
+      - dependency-name: ammonia
+        versions: [">=4.2, <4.3"]
     groups:
       cranelift:
         patterns:
