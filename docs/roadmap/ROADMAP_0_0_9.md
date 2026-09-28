@@ -213,10 +213,13 @@ No release acceptance checkbox is closed by this checkpoint.
 The complete standard-library source gate passes all 73 selected modules.
 This does not establish complete declaration-derived API execution coverage.
 Postgres routing in the separate HTTP serve dispatchers and
-cross-platform source evidence remain open. A captured transaction lambda with
-nested query-result matches also exposes generic-argument inference and then
-closure-result lowering errors; its reproducer and diagnostics are retained under
-`target/quality/release-diagnostics/`. Simple captured callbacks execute correctly.
+cross-platform source evidence remain open. Expected result types now propagate
+into escaping lambda branches before structural constructors lose their identity.
+The nested query callback passes the live six-test Postgres source gate, and a
+compiled regression exercises both captured Result variants across suspension.
+All 666 NativeIR tests pass. Hosted release validation for `d11d9b0b` passed;
+Compiler CI reached Rustdoc and found nine undocumented self-host IR types.
+Their documentation now passes the zero-undocumented-items check.
 Local Rust runs include separately active native-IR edits; hosted validation of
 the exact committed candidate remains required.
 

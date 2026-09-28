@@ -116,6 +116,29 @@ pub shadowed(): Bool -> let check = shadow(negative); check(7).
     );
 }
 
+#[test]
+fn escaping_callbacks_preserve_declared_result_variants() {
+    check_callbacks(
+        r#"
+module closure_result.
+import std.vm.Process.
+import std.core.Result.{Ok, Err}.
+import type std.core.Result.
+make(captured: String): ((Int) -> Result[String, String]) ->
+    (number) ->
+        let _parked = Process.yield_now();
+        case number { 0 -> Ok(captured); _ -> Err(captured) }.
+pub success(): Bool ->
+    let callback = make("saved");
+    case callback(0) { Ok(value) -> value == "saved"; Err(_) -> false }.
+pub failure(): Bool ->
+    let callback = make("error");
+    case callback(1) { Ok(_) -> false; Err(value) -> value == "error" }.
+"#,
+        &[("success", 1), ("failure", 1)],
+    );
+}
+
 fn check_callbacks(source: &str, cases: &[(&str, i64)]) {
     let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source)
         .expect("parse suspending callback source");
