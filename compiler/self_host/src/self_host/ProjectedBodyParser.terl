@@ -76,6 +76,20 @@ before_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanoni
     }.
 
 @pure
+depth_after_open(text: String, closing: String, depth: Int): Int ->
+    if {
+        text == closing -> depth - 1;
+        true -> depth
+    }.
+
+@pure
+depth_after(text: String, opening: String, closing: String, depth: Int): Int ->
+    if {
+        text == opening -> depth + 1;
+        true -> depth_after_open(text, closing, depth)
+    }.
+
+@pure
 has_top_level_arrow_at(
     values: List[ProjectedCanonicalToken],
     parens: Int,
@@ -87,9 +101,9 @@ has_top_level_arrow_at(
         [value | _] where value.text == "->" and parens == 0 and brackets == 0 and braces == 0 -> true;
         [value | rest] -> has_top_level_arrow_at(
             rest,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+            depth_after(value.text, "(", ")", parens),
+            depth_after(value.text, "[", "]", brackets),
+            depth_after(value.text, "{", "}", braces),
         )
     }.
 
@@ -98,14 +112,24 @@ has_top_level_arrow(values: List[ProjectedCanonicalToken]): Bool ->
     has_top_level_arrow_at(values, 0, 0, 0).
 
 @pure
+before_clause_separator_head(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    if {
+        value.text == ";" -> List.new[ProjectedCanonicalToken]();
+        true -> [value | before_clause_separator(rest)]
+    }.
+
+@pure
+before_clause_separator_at(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] -> before_clause_separator_head(value, rest)
+    }.
+
+@pure
 before_clause_separator(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
     if {
         not has_top_level_arrow(values) -> values;
-        true -> case values {
-            [] -> List.new[ProjectedCanonicalToken]();
-            [value | _] where value.text == ";" -> List.new[ProjectedCanonicalToken]();
-            [value | rest] -> [value | before_clause_separator(rest)]
-        }
+        true -> before_clause_separator_at(values)
     }.
 
 @pure

@@ -18,42 +18,62 @@ terminal_is(token: CanonicalToken, lower: String, upper: String): Bool ->
     token.terminal == lower or token.terminal == upper.
 
 @pure
-kind(token: CanonicalToken): ProjectionTokenKind ->
-    if {
-        token.text == "(" -> LParenProjection;
-        token.text == ")" -> RParenProjection;
-        token.text == "[" -> LBracketProjection;
-        token.text == "]" -> RBracketProjection;
-        token.text == "{" -> LBraceProjection;
-        token.text == "}" -> RBraceProjection;
-        token.text == "<" -> LtProjection;
-        token.text == ">" -> GtProjection;
-        token.text == ":" -> ColonProjection;
-        token.text == "->" -> ArrowProjection;
-        token.text == ";" -> SemicolonProjection;
-        token.text == "." -> DotProjection;
-        token.text == "," -> CommaProjection;
-        token.text == "-" -> MinusProjection;
-        token.text == "!" -> BangProjection;
-        token.text == "module" -> ModuleProjection;
-        token.text == "let" -> LetProjection;
-        token.text == "if" -> IfProjection;
-        token.text == "as" -> AsProjection;
-        token.text == "where" -> WhereProjection;
-        token.text == "when" -> WhenProjection;
-        token.text == "and" -> AndProjection;
-        token.text == "or" -> OrProjection;
-        terminal_is(token, "atom", "Atom") -> AtomProjection;
-        token.terminal == "upper-ident" or terminal_is(token, "var", "Var") -> VarProjection;
-        terminal_is(token, "int", "Int") -> IntProjection;
-        terminal_is(token, "float", "Float") -> FloatProjection;
-        terminal_is(token, "string", "String") -> StringProjection;
-        terminal_is(token, "binary", "Binary") -> BinaryProjection;
-        String.contains(token.terminal, "comment") or String.contains(token.terminal, "Comment") -> CommentProjection;
-        String.contains(token.terminal, "doc") or String.contains(token.terminal, "Doc") -> DocProjection;
-        terminal_is(token, "eof", "EOF") or (token.text == "" and token.start_byte == token.end_byte) -> EndProjection;
-        true -> OtherProjection
+choose_kind(condition: Bool, selected: ProjectionTokenKind, fallback: ProjectionTokenKind): ProjectionTokenKind ->
+    if { condition -> selected; true -> fallback }.
+
+struct KindCandidate {
+    matches: Bool,
+    value: ProjectionTokenKind,
+}.
+
+constructor KindCandidate {
+    (matches: Bool, value: ProjectionTokenKind): KindCandidate ->
+        KindCandidate { matches: matches, value: value }
+}.
+
+@pure
+first_kind(values: List[KindCandidate]): ProjectionTokenKind ->
+    case values {
+        [] -> OtherProjection;
+        [value | rest] -> if { value.matches -> value.value; true -> first_kind(rest) }
     }.
+
+@pure
+kind(token: CanonicalToken): ProjectionTokenKind ->
+    first_kind([
+        KindCandidate(token.text == "(", LParenProjection),
+        KindCandidate(token.text == ")", RParenProjection),
+        KindCandidate(token.text == "[", LBracketProjection),
+        KindCandidate(token.text == "]", RBracketProjection),
+        KindCandidate(token.text == "{", LBraceProjection),
+        KindCandidate(token.text == "}", RBraceProjection),
+        KindCandidate(token.text == "<", LtProjection),
+        KindCandidate(token.text == ">", GtProjection),
+        KindCandidate(token.text == ":", ColonProjection),
+        KindCandidate(token.text == "->", ArrowProjection),
+        KindCandidate(token.text == ";", SemicolonProjection),
+        KindCandidate(token.text == ".", DotProjection),
+        KindCandidate(token.text == ",", CommaProjection),
+        KindCandidate(token.text == "-", MinusProjection),
+        KindCandidate(token.text == "!", BangProjection),
+        KindCandidate(token.text == "module", ModuleProjection),
+        KindCandidate(token.text == "let", LetProjection),
+        KindCandidate(token.text == "if", IfProjection),
+        KindCandidate(token.text == "as", AsProjection),
+        KindCandidate(token.text == "where", WhereProjection),
+        KindCandidate(token.text == "when", WhenProjection),
+        KindCandidate(token.text == "and", AndProjection),
+        KindCandidate(token.text == "or", OrProjection),
+        KindCandidate(terminal_is(token, "atom", "Atom"), AtomProjection),
+        KindCandidate(token.terminal == "upper-ident" or terminal_is(token, "var", "Var"), VarProjection),
+        KindCandidate(terminal_is(token, "int", "Int"), IntProjection),
+        KindCandidate(terminal_is(token, "float", "Float"), FloatProjection),
+        KindCandidate(terminal_is(token, "string", "String"), StringProjection),
+        KindCandidate(terminal_is(token, "binary", "Binary"), BinaryProjection),
+        KindCandidate(String.contains(token.terminal, "comment") or String.contains(token.terminal, "Comment"), CommentProjection),
+        KindCandidate(String.contains(token.terminal, "doc") or String.contains(token.terminal, "Doc"), DocProjection),
+        KindCandidate(terminal_is(token, "eof", "EOF") or (token.text == "" and token.start_byte == token.end_byte), EndProjection),
+    ]).
 
 @pure
 adapt_one(token: CanonicalToken): ProjectionToken ->
@@ -153,6 +173,47 @@ raw_candidate(value: ProjectionToken, rest: List[ProjectionToken]): Bool ->
     }.
 
 @pure
+raw_marks(value: ProjectionToken, values: List[ProjectionToken], rest: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    if { raw_candidate(value, rest) -> prepend(Projection.expression_raw_macro(values), output); true -> output }.
+
+@pure
+native_marks(value: ProjectionToken, values: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    if { value.text == "native" -> prepend(Projection.native_raw_declaration(values), output); true -> output }.
+
+@pure
+config_marks(value: ProjectionToken, values: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    if { value.text == "target" -> prepend(Projection.config_raw_declaration(values), output); true -> output }.
+
+@pure
+constraint_marks(value: ProjectionToken, previous: Option[ProjectionToken], values: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    if { value.kind == LtProjection -> prepend(Projection.head_constraint_list(previous, values), output); true -> output }.
+
+@pure
+lambda_mark(value: ProjectionToken, previous: Option[ProjectionToken], values: List[ProjectionToken], arrows: List[ProjectionMark]): Option[ProjectionMark] ->
+    if { value.kind == LParenProjection -> Projection.lambda_opening(previous, values, arrows); true -> none_projection_mark() }.
+
+@pure
+sequence_marks(lambda: Option[ProjectionMark], values: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    case lambda {
+        Some(_opening) -> prepend_all(Projection.lambda_sequence_semicolons(values), prepend_all(Projection.typed_lambda_patterns(values), output));
+        None -> output
+    }.
+
+@pure
+clause_marks(value: ProjectionToken, values: List[ProjectionToken], output: List[ProjectionMark]): List[ProjectionMark] ->
+    if { value.kind == IfProjection or value.text == "case" -> prepend_all(Projection.if_clause_semicolons(values), output); true -> output }.
+
+@pure
+collect_value(values: List[ProjectionToken], value: ProjectionToken, rest: List[ProjectionToken], previous: Option[ProjectionToken], arrows: List[ProjectionMark], output: List[ProjectionMark]): List[ProjectionMark] ->
+    let raw = raw_marks(value, values, rest, output);
+    let native = native_marks(value, values, raw);
+    let config = config_marks(value, values, native);
+    let constraints = constraint_marks(value, previous, values, config);
+    let lambda = lambda_mark(value, previous, values, arrows);
+    let sequences = sequence_marks(lambda, values, prepend(lambda, constraints));
+    collect_at(rest, some_projection_token(value), arrows, clause_marks(value, values, sequences)).
+
+@pure
 collect_at(
     values: List[ProjectionToken],
     previous: Option[ProjectionToken],
@@ -164,51 +225,7 @@ collect_at(
         [value | rest]
             where value.kind == CommentProjection or value.kind == DocProjection ->
             collect_at(rest, previous, arrows, output);
-        [value | rest] ->
-            let raw = if {
-                raw_candidate(value, rest) ->
-                    prepend(Projection.expression_raw_macro(values), output);
-                true -> output
-            };
-            let native = if {
-                value.text == "native" ->
-                    prepend(Projection.native_raw_declaration(values), raw);
-                true -> raw
-            };
-            let config = if {
-                value.text == "target" ->
-                    prepend(Projection.config_raw_declaration(values), native);
-                true -> native
-            };
-            let constraints = if {
-                value.kind == LtProjection ->
-                    prepend(Projection.head_constraint_list(previous, values), config);
-                true -> config
-            };
-            let lambda = if {
-                value.kind == LParenProjection ->
-                    Projection.lambda_opening(previous, values, arrows);
-                true -> none_projection_mark()
-            };
-            let lambda_marks = prepend(lambda, constraints);
-            let sequences = case lambda {
-                Some(_opening) -> prepend_all(
-                    Projection.lambda_sequence_semicolons(values),
-                    prepend_all(Projection.typed_lambda_patterns(values), lambda_marks),
-                );
-                None -> lambda_marks
-            };
-            let clauses = if {
-                value.kind == IfProjection or value.text == "case" ->
-                    prepend_all(Projection.if_clause_semicolons(values), sequences);
-                true -> sequences
-            };
-            collect_at(
-                rest,
-                some_projection_token(value),
-                arrows,
-                clauses,
-            )
+        [value | rest] -> collect_value(values, value, rest, previous, arrows, output)
     }.
 
 /** Computes every currently modeled contextual mark from canonical tokens. */
@@ -226,18 +243,39 @@ pub project(values: List[CanonicalToken]): ProjectionOutput ->
 
 @pure
 terminal(class: ProjectionClass): String ->
-    case class {
-        FunctionBodyArrowProjection -> "function-body-arrow";
-        HeadConstraintListProjection -> "head-constraints";
-        LambdaOpeningProjection -> "lambda-(";
-        TypedLambdaPatternProjection -> "typed-lambda-pattern";
-        LambdaSequenceSemicolonProjection -> "lambda-sequence-semicolon";
-        IfClauseSemicolonProjection -> "if-clause-semicolon";
-        CastTypeLBracketProjection -> "cast-type-[";
-        ExpressionRawMacroProjection -> "expression-raw-macro";
-        NativeRawDeclarationProjection -> "native-raw-declaration";
-        ConfigRawDeclarationProjection -> "config-raw-declaration"
-    }.
+    if { class == FunctionBodyArrowProjection -> "function-body-arrow"; true -> terminal_head(class) }.
+
+@pure
+terminal_head(class: ProjectionClass): String ->
+    if { class == HeadConstraintListProjection -> "head-constraints"; true -> terminal_lambda(class) }.
+
+@pure
+terminal_lambda(class: ProjectionClass): String ->
+    if { class == LambdaOpeningProjection -> "lambda-("; true -> terminal_typed(class) }.
+
+@pure
+terminal_typed(class: ProjectionClass): String ->
+    if { class == TypedLambdaPatternProjection -> "typed-lambda-pattern"; true -> terminal_sequence(class) }.
+
+@pure
+terminal_sequence(class: ProjectionClass): String ->
+    if { class == LambdaSequenceSemicolonProjection -> "lambda-sequence-semicolon"; true -> terminal_clause(class) }.
+
+@pure
+terminal_clause(class: ProjectionClass): String ->
+    if { class == IfClauseSemicolonProjection -> "if-clause-semicolon"; true -> terminal_cast(class) }.
+
+@pure
+terminal_cast(class: ProjectionClass): String ->
+    if { class == CastTypeLBracketProjection -> "cast-type-["; true -> terminal_raw(class) }.
+
+@pure
+terminal_raw(class: ProjectionClass): String ->
+    if { class == ExpressionRawMacroProjection -> "expression-raw-macro"; true -> terminal_native(class) }.
+
+@pure
+terminal_native(class: ProjectionClass): String ->
+    if { class == NativeRawDeclarationProjection -> "native-raw-declaration"; true -> "config-raw-declaration" }.
 
 @pure
 insert_mark(value: ProjectionMark, values: List[ProjectionMark]): List[ProjectionMark] ->
@@ -275,6 +313,25 @@ constructor MarkSelection {
 }.
 
 @pure
+preferred_existing(current: Option[ProjectionMark], existing: ProjectionMark, value: ProjectionMark): Option[ProjectionMark] ->
+    if { existing.end_byte >= value.end_byte -> current; true -> some_projection_mark(value) }.
+
+@pure
+preferred_mark(current: Option[ProjectionMark], value: ProjectionMark): Option[ProjectionMark] ->
+    case current {
+        Some(existing) -> preferred_existing(current, existing, value);
+        None -> some_projection_mark(value)
+    }.
+
+@pure
+select_at_or_after(values: List[ProjectionMark], value: ProjectionMark, rest: List[ProjectionMark], start_byte: Int, current: Option[ProjectionMark]): MarkSelection ->
+    if { value.start_byte == start_byte -> select_marks(rest, start_byte, preferred_mark(current, value)); true -> MarkSelection(mark = current, rest = values) }.
+
+@pure
+select_value(values: List[ProjectionMark], value: ProjectionMark, rest: List[ProjectionMark], start_byte: Int, current: Option[ProjectionMark]): MarkSelection ->
+    if { value.start_byte < start_byte -> select_marks(rest, start_byte, current); true -> select_at_or_after(values, value, rest, start_byte, current) }.
+
+@pure
 select_marks(
     values: List[ProjectionMark],
     start_byte: Int,
@@ -282,16 +339,19 @@ select_marks(
 ): MarkSelection ->
     case values {
         [] -> MarkSelection(mark = current, rest = List.new[ProjectionMark]());
-        [value | rest] where value.start_byte < start_byte ->
-            select_marks(rest, start_byte, current);
-        [value | rest] where value.start_byte == start_byte ->
-            let next = case current {
-                Some(existing) where existing.end_byte >= value.end_byte -> current;
-                _ -> some_projection_mark(value)
-            };
-            select_marks(rest, start_byte, next);
-        _ -> MarkSelection(mark = current, rest = values)
+        [value | rest] -> select_value(values, value, rest, start_byte, current)
     }.
+
+@pure
+rewrite_selected(source: String, value: CanonicalToken, rest: List[CanonicalToken], selected: MarkSelection, skip_until: Int, output: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    case selected.mark {
+        Some(mark) -> rewrite_at(source, rest, selected.rest, mark.end_byte, [ProjectedCanonicalToken(terminal(mark.class), source.utf8_slice(mark.start_byte, mark.end_byte - mark.start_byte), mark.start_byte, mark.end_byte) | output]);
+        None -> rewrite_at(source, rest, selected.rest, skip_until, [ProjectedCanonicalToken(value.terminal, value.text, value.start_byte, value.end_byte) | output])
+    }.
+
+@pure
+rewrite_value(source: String, value: CanonicalToken, rest: List[CanonicalToken], marks: List[ProjectionMark], skip_until: Int, output: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    rewrite_selected(source, value, rest, select_marks(marks, value.start_byte, none_projection_mark()), skip_until, output).
 
 @pure
 rewrite_at(
@@ -305,18 +365,7 @@ rewrite_at(
         [] -> reverse_at(output, List.new[ProjectedCanonicalToken]());
         [value | rest] where value.start_byte < skip_until ->
             rewrite_at(source, rest, marks, skip_until, output);
-        [value | rest] ->
-            let selected = select_marks(marks, value.start_byte, none_projection_mark());
-            case selected.mark {
-                Some(mark) -> rewrite_at(source, rest, selected.rest, mark.end_byte, [
-                    ProjectedCanonicalToken(terminal(mark.class), source.utf8_slice(mark.start_byte, mark.end_byte - mark.start_byte), mark.start_byte, mark.end_byte)
-                    | output
-                ]);
-                None -> rewrite_at(source, rest, selected.rest, skip_until, [
-                    ProjectedCanonicalToken(value.terminal, value.text, value.start_byte, value.end_byte)
-                    | output
-                ])
-            }
+        [value | rest] -> rewrite_value(source, value, rest, marks, skip_until, output)
     }.
 
 /** Rewrites canonical lexer tokens into the exact contextual terminal stream. */

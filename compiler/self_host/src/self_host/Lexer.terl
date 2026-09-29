@@ -2,7 +2,7 @@
 module self_host.Lexer.
 
 import self_host.Source.{span}.
-import self_host.Token.{Identifier, IntegerLiteral, Keyword, LexResult, LexicalError, StringLiteral, Symbol, Token}.
+import self_host.Token.{Identifier, IntegerLiteral, Keyword, LexResult, LexicalError, StringLiteral, Symbol, Token, TokenKind}.
 
 import std.collections.List.
 import std.core.Option.{None, Some}.
@@ -167,15 +167,34 @@ skip_line_comment(characters: List[String], byte: Int, line: Int, column: Int): 
     }.
 
 @pure
+skip_block_after_star(rest: List[String], byte: Int, line: Int, column: Int): Skip ->
+    case rest {
+        [] -> skip_block_comment(rest, byte + 1, line, column + 1);
+        [next | tail] -> if {
+            next == "/" -> Skip(tail, byte + 2, line, column + 2, true);
+            true -> skip_block_comment(rest, byte + 1, line, column + 1)
+        }
+    }.
+
+@pure
+skip_block_character(character: String, rest: List[String], byte: Int, line: Int, column: Int): Skip ->
+    if {
+        character == "*" -> skip_block_after_star(rest, byte, line, column);
+        true -> skip_block_non_star(character, rest, byte, line, column)
+    }.
+
+@pure
+skip_block_non_star(character: String, rest: List[String], byte: Int, line: Int, column: Int): Skip ->
+    if {
+        character == "\n" -> skip_block_comment(rest, byte + 1, line + 1, 1);
+        true -> skip_block_comment(rest, byte + String.byte_size(character), line, column + 1)
+    }.
+
+@pure
 skip_block_comment(characters: List[String], byte: Int, line: Int, column: Int): Skip ->
     case characters {
         [] -> Skip([], byte, line, column, false);
-        ["*" | ["/" | rest]] ->
-            Skip(rest, byte + 2, line, column + 2, true);
-        ["\n" | rest] -> skip_block_comment(rest, byte + 1, line + 1, 1);
-        [character | rest] ->
-            let width = String.byte_size(character);
-            skip_block_comment(rest, byte + width, line, column + 1)
+        [character | rest] -> skip_block_character(character, rest, byte, line, column)
     }.
 
 @pure
@@ -187,6 +206,88 @@ two_character_symbol(first: String, second: String): Bool ->
         or (first == "<" and second == "=")
         or (first == ">" and second == "=")
         or (first == ":" and second == ":").
+
+@pure
+token_kind(value: String): TokenKind ->
+    if { is_keyword(value) -> Keyword; true -> Identifier }.
+
+@pure
+scan_identifier(characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    let taken = take_identifier(characters, "", 0);
+    scan(
+        taken.rest,
+        byte + taken.bytes,
+        line,
+        column + String.length(taken.lexeme),
+        [Token(token_kind(taken.lexeme), taken.lexeme, span(byte, byte + taken.bytes, line, column, line, column + String.length(taken.lexeme))) | tokens],
+        errors,
+    ).
+
+@pure
+scan_integer(characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    let taken = take_integer(characters, "", 0);
+    scan(
+        taken.rest,
+        byte + taken.bytes,
+        line,
+        column + String.length(taken.lexeme),
+        [Token(IntegerLiteral, taken.lexeme, span(byte, byte + taken.bytes, line, column, line, column + String.length(taken.lexeme))) | tokens],
+        errors,
+    ).
+
+@pure
+unterminated_column(taken: Skip, end_column: Int): Int ->
+    if { taken.line == 0 -> end_column; true -> taken.column }.
+
+@pure
+scan_string_result(characters: List[String], taken: Skip, byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    let end_column = column + taken.column;
+    if {
+        taken.closed -> scan(
+            taken.rest,
+            byte + taken.byte,
+            line,
+            end_column,
+            [Token(StringLiteral, source_slice_string(characters, taken.byte), span(byte, byte + taken.byte, line, column, line, end_column)) | tokens],
+            errors,
+        );
+        true -> scan(
+            taken.rest,
+            byte + taken.byte,
+            line + taken.line,
+            unterminated_column(taken, end_column),
+            tokens,
+            [LexicalError("unterminated_string", "string literal is not terminated", span(byte, byte + taken.byte, line, column, line + taken.line, taken.column)) | errors],
+        )
+    }.
+
+@pure
+scan_string(characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    scan_string_result(characters, take_string(rest, 1, 1, false), byte, line, column, tokens, errors).
+
+@pure
+scan_non_digit(character: String, characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if { character == "\"" -> scan_string(characters, rest, byte, line, column, tokens, errors); true -> scan_symbol(characters, byte, line, column, tokens, errors) }.
+
+@pure
+scan_non_identifier(character: String, characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if { is_digit(character) -> scan_integer(characters, byte, line, column, tokens, errors); true -> scan_non_digit(character, characters, rest, byte, line, column, tokens, errors) }.
+
+@pure
+scan_non_slash(character: String, characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if { is_identifier_start(character) -> scan_identifier(characters, byte, line, column, tokens, errors); true -> scan_non_identifier(character, characters, rest, byte, line, column, tokens, errors) }.
+
+@pure
+scan_non_space(character: String, characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if { character == "/" and not List.is_empty(rest) -> scan_slash(characters, byte, line, column, tokens, errors); true -> scan_non_slash(character, characters, rest, byte, line, column, tokens, errors) }.
+
+@pure
+scan_character(character: String, characters: List[String], rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    let width = String.byte_size(character);
+    if {
+        character == " " or character == "\t" or character == "\r" -> scan(rest, byte + width, line, column + 1, tokens, errors);
+        true -> scan_non_space(character, characters, rest, byte, line, column, tokens, errors)
+    }.
 
 @pure
 scan(
@@ -201,78 +302,7 @@ scan(
         [] ->
             LexResult(reverse_tokens(tokens, []), reverse_errors(errors, []));
         ["\n" | rest] -> scan(rest, byte + 1, line + 1, 1, tokens, errors);
-        [character | rest] ->
-            let width = String.byte_size(character);
-            if {
-                character == " " or character == "\t" or character == "\r" ->
-                    scan(rest, byte + width, line, column + 1, tokens, errors);
-                character == "/" and not List.is_empty(rest) ->
-                    scan_slash(characters, byte, line, column, tokens, errors);
-                is_identifier_start(character) ->
-                    let taken = take_identifier(characters, "", 0);
-                    let kind = if {is_keyword(taken.lexeme) -> Keyword; true -> Identifier};
-                    scan(
-                        taken.rest,
-                        byte + taken.bytes,
-                        line,
-                        column + String.length(taken.lexeme),
-                        [
-                            Token(kind, taken.lexeme, span(
-                                    byte,
-                                    byte + taken.bytes,
-                                    line,
-                                    column,
-                                    line,
-                                    column + String.length(taken.lexeme),
-                                ))
-                            | tokens
-                        ],
-                        errors,
-                    );
-                is_digit(character) ->
-                    let taken = take_integer(characters, "", 0);
-                    scan(
-                        taken.rest,
-                        byte + taken.bytes,
-                        line,
-                        column + String.length(taken.lexeme),
-                        [
-                            Token(IntegerLiteral, taken.lexeme, span(byte, byte + taken.bytes, line, column, line, column + String.length(taken.lexeme)))
-                            | tokens
-                        ],
-                        errors,
-                    );
-                character == "\"" ->
-                    let taken = take_string(rest, 1, 1, false);
-                    let end_column = column + taken.column;
-                    if {
-                        taken.closed ->
-                            scan(
-                                taken.rest,
-                                byte + taken.byte,
-                                line,
-                                end_column,
-                                [
-                                    Token(StringLiteral, source_slice_string(characters, taken.byte), span(byte, byte + taken.byte, line, column, line, end_column))
-                                    | tokens
-                                ],
-                                errors,
-                            );
-                        true ->
-                            scan(
-                                taken.rest,
-                                byte + taken.byte,
-                                line + taken.line,
-                                if {taken.line == 0 -> end_column; true -> taken.column},
-                                tokens,
-                                [
-                                    LexicalError("unterminated_string", "string literal is not terminated", span(byte, byte + taken.byte, line, column, line + taken.line, taken.column))
-                                    | errors
-                                ],
-                            )
-                    };
-                true -> scan_symbol(characters, byte, line, column, tokens, errors)
-            }
+        [character | rest] -> scan_character(character, characters, rest, byte, line, column, tokens, errors)
     }.
 
 @pure
@@ -297,6 +327,40 @@ source_slice_string_loop(characters: List[String], bytes: Int, output: String): 
     }.
 
 @pure
+scan_block_comment(rest: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    let skipped = skip_block_comment(rest, byte + 2, line, column + 2);
+    if {
+        skipped.closed -> scan(skipped.rest, skipped.byte, skipped.line, skipped.column, tokens, errors);
+        true -> scan(
+            skipped.rest,
+            skipped.byte,
+            skipped.line,
+            skipped.column,
+            tokens,
+            [LexicalError("unterminated_comment", "block comment is not terminated", span(byte, skipped.byte, line, column, skipped.line, skipped.column)) | errors],
+        )
+    }.
+
+@pure
+scan_after_slash(second: String, tail: List[String], characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if {
+        second == "/" -> let skipped = skip_line_comment(tail, byte + 2, line, column + 2);
+            scan(skipped.rest, skipped.byte, skipped.line, skipped.column, tokens, errors);
+        true -> scan_after_non_line_slash(second, tail, characters, byte, line, column, tokens, errors)
+    }.
+
+@pure
+scan_after_non_line_slash(second: String, tail: List[String], characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if { second == "*" -> scan_block_comment(tail, byte, line, column, tokens, errors); true -> scan_symbol(characters, byte, line, column, tokens, errors) }.
+
+@pure
+scan_slash_rest(rest: List[String], characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    case rest {
+        [] -> scan_symbol(characters, byte, line, column, tokens, errors);
+        [second | tail] -> scan_after_slash(second, tail, characters, byte, line, column, tokens, errors)
+    }.
+
+@pure
 scan_slash(
     characters: List[String],
     byte: Int,
@@ -306,28 +370,23 @@ scan_slash(
     errors: List[LexicalError],
 ): LexResult ->
     case characters {
-        ["/" | ["/" | rest]] ->
-            let skipped = skip_line_comment(rest, byte + 2, line, column + 2);
-            scan(skipped.rest, skipped.byte, skipped.line, skipped.column, tokens, errors);
-        ["/" | ["*" | rest]] ->
-            let skipped = skip_block_comment(rest, byte + 2, line, column + 2);
-            if {
-                skipped.closed ->
-                    scan(skipped.rest, skipped.byte, skipped.line, skipped.column, tokens, errors);
-                true ->
-                    scan(
-                        skipped.rest,
-                        skipped.byte,
-                        skipped.line,
-                        skipped.column,
-                        tokens,
-                        [
-                            LexicalError("unterminated_comment", "block comment is not terminated", span(byte, skipped.byte, line, column, skipped.line, skipped.column))
-                            | errors
-                        ],
-                    )
-            };
-        _ -> scan_symbol(characters, byte, line, column, tokens, errors)
+        [] -> scan_symbol(characters, byte, line, column, tokens, errors);
+        [_slash | rest] -> scan_slash_rest(rest, characters, byte, line, column, tokens, errors)
+    }.
+
+@pure
+scan_symbol_pair(first: String, second: String, rest: List[String], characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    if {
+        two_character_symbol(first, second) -> let lexeme = String.append(first, second);
+            scan(rest, byte + 2, line, column + 2, [Token(Symbol, lexeme, span(byte, byte + 2, line, column, line, column + 2)) | tokens], errors);
+        true -> scan_one_symbol(characters, byte, line, column, tokens, errors)
+    }.
+
+@pure
+scan_symbol_rest(first: String, rest: List[String], characters: List[String], byte: Int, line: Int, column: Int, tokens: List[Token], errors: List[LexicalError]): LexResult ->
+    case rest {
+        [] -> scan_one_symbol(characters, byte, line, column, tokens, errors);
+        [second | tail] -> scan_symbol_pair(first, second, tail, characters, byte, line, column, tokens, errors)
     }.
 
 @pure
@@ -340,21 +399,8 @@ scan_symbol(
     errors: List[LexicalError],
 ): LexResult ->
     case characters {
-        [first | [second | rest]] ->
-            if {
-                two_character_symbol(first, second) ->
-                    let lexeme = String.append(first, second);
-                    scan(
-                        rest,
-                        byte + 2,
-                        line,
-                        column + 2,
-                        [Token(Symbol, lexeme, span(byte, byte + 2, line, column, line, column + 2)) | tokens],
-                        errors,
-                    );
-                true -> scan_one_symbol(characters, byte, line, column, tokens, errors)
-            };
-        _ -> scan_one_symbol(characters, byte, line, column, tokens, errors)
+        [] -> scan_one_symbol(characters, byte, line, column, tokens, errors);
+        [first | rest] -> scan_symbol_rest(first, rest, characters, byte, line, column, tokens, errors)
     }.
 
 @pure

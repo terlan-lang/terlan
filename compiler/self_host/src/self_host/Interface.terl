@@ -154,23 +154,25 @@ qualified(tokens: List[Token]): Qualified ->
     }.
 
 @pure
+qualified_next(name: String, next: Token, remaining: List[Token], rest: List[Token]): Qualified ->
+    if { next.kind == Identifier -> qualified_tail(String.concat([name, ".", next.lexeme]), remaining); true -> Qualified(true, name, rest) }.
+
+@pure
+qualified_after_dot(name: String, rest: List[Token]): Qualified ->
+    case rest {
+        [next | remaining] -> qualified_next(name, next, remaining, rest);
+        [] -> Qualified(true, name, [])
+    }.
+
+@pure
+qualified_dot(name: String, tokens: List[Token], dot: Token, rest: List[Token]): Qualified ->
+    if { dot.lexeme != "." -> Qualified(false, "", tokens); true -> qualified_after_dot(name, rest) }.
+
+@pure
 qualified_tail(name: String, tokens: List[Token]): Qualified ->
     case tokens {
-        [dot | rest] ->
-            if {
-                dot.lexeme != "." -> Qualified(false, "", tokens);
-                true ->
-                    case rest {
-                        [next | remaining] ->
-                            if {
-                                next.kind == Identifier ->
-                                    qualified_tail(String.concat([name, ".", next.lexeme]), remaining);
-                                true -> Qualified(true, name, rest)
-                            };
-                        [] -> Qualified(true, name, [])
-                    }
-            };
-        _ -> Qualified(false, "", tokens)
+        [dot | rest] -> qualified_dot(name, tokens, dot, rest);
+        [] -> Qualified(false, "", tokens)
     }.
 
 @pure
@@ -197,64 +199,150 @@ take_import(tokens: List[Token], depth: Int, output: String): ImportTake ->
     }.
 
 @pure
+receiver_candidate(name: Token, remaining: List[Token], rest: List[Token]): DeclarationTake ->
+    if { name.kind == Identifier -> DeclarationTake(Some(PublicDeclaration("receiver", name.lexeme)), remaining); true -> DeclarationTake(None, rest) }.
+
+@pure
+receiver_after_close(rest: List[Token]): DeclarationTake ->
+    case rest {
+        [name | remaining] -> receiver_candidate(name, remaining, rest);
+        [] -> DeclarationTake(None, [])
+    }.
+
+@pure
+receiver_close(tokens: List[Token], token: Token, rest: List[Token], depth: Int): DeclarationTake ->
+    if {
+        token.lexeme == ")" and depth > 1 -> receiver_name(rest, depth - 1);
+        true -> receiver_final_close(tokens, token, rest, depth)
+    }.
+
+@pure
+receiver_final_close(tokens: List[Token], token: Token, rest: List[Token], depth: Int): DeclarationTake ->
+    if { token.lexeme == ")" and depth == 1 -> receiver_after_close(rest); true -> receiver_name(rest, depth) }.
+
+@pure
+receiver_token(tokens: List[Token], token: Token, rest: List[Token], depth: Int): DeclarationTake ->
+    if { token.lexeme == "(" -> receiver_name(rest, depth + 1); true -> receiver_close(tokens, token, rest, depth) }.
+
+@pure
 receiver_name(tokens: List[Token], depth: Int): DeclarationTake ->
     case tokens {
         [] -> DeclarationTake(None, []);
-        [token | rest] ->
-            if {
-                token.lexeme == "(" -> receiver_name(rest, depth + 1);
-                token.lexeme == ")" and depth > 1 -> receiver_name(rest, depth - 1);
-                token.lexeme == ")" and depth == 1 ->
-                    case rest {
-                        [name | remaining] ->
-                            if {
-                                name.kind == Identifier ->
-                                    DeclarationTake(Some(PublicDeclaration("receiver", name.lexeme)), remaining);
-                                true -> DeclarationTake(None, rest)
-                            };
-                        [] -> DeclarationTake(None, [])
-                    };
-                true -> receiver_name(rest, depth)
-            }
+        [token | rest] -> receiver_token(tokens, token, rest, depth)
     }.
+
+@pure
+named_token(kind: String, tokens: List[Token], name: Token, rest: List[Token]): DeclarationTake ->
+    if { name.kind == Identifier -> DeclarationTake(Some(PublicDeclaration(kind, name.lexeme)), rest); true -> DeclarationTake(None, tokens) }.
 
 @pure
 named_declaration(kind: String, tokens: List[Token]): DeclarationTake ->
     case tokens {
-        [name | rest] ->
-            if {
-                name.kind == Identifier ->
-                    DeclarationTake(Some(PublicDeclaration(kind, name.lexeme)), rest);
-                true -> DeclarationTake(None, tokens)
-            };
+        [name | rest] -> named_token(kind, tokens, name, rest);
         [] -> DeclarationTake(None, [])
     }.
+
+@pure
+opaque_candidate(tokens: List[Token], type_token: Token, remaining: List[Token]): DeclarationTake ->
+    if { type_token.lexeme == "type" -> named_declaration("opaque type", remaining); true -> DeclarationTake(None, tokens) }.
+
+@pure
+opaque_declaration(tokens: List[Token], rest: List[Token]): DeclarationTake ->
+    case rest {
+        [type_token | remaining] -> opaque_candidate(tokens, type_token, remaining);
+        [] -> DeclarationTake(None, [])
+    }.
+
+@pure
+typed_declaration(tokens: List[Token], first: Token, rest: List[Token]): DeclarationTake ->
+    if {
+        first.lexeme == "type" or first.lexeme == "struct" or first.lexeme == "trait" or first.lexeme == "impl" or first.lexeme == "constructor" -> named_declaration(first.lexeme, rest);
+        true -> DeclarationTake(None, tokens)
+    }.
+
+@pure
+non_receiver_declaration(tokens: List[Token], first: Token, rest: List[Token]): DeclarationTake ->
+    if { first.lexeme == "opaque" -> opaque_declaration(tokens, rest); true -> typed_declaration(tokens, first, rest) }.
+
+@pure
+non_function_declaration(tokens: List[Token], first: Token, rest: List[Token]): DeclarationTake ->
+    if { first.lexeme == "(" -> receiver_name(tokens, 0); true -> non_receiver_declaration(tokens, first, rest) }.
+
+@pure
+declaration_token(tokens: List[Token], first: Token, rest: List[Token]): DeclarationTake ->
+    if { first.kind == Identifier -> named_declaration("function", tokens); true -> non_function_declaration(tokens, first, rest) }.
 
 @pure
 take_declaration(tokens: List[Token]): DeclarationTake ->
     case tokens {
         [] -> DeclarationTake(None, []);
-        [first | rest] ->
-            if {
-                first.kind == Identifier -> named_declaration("function", tokens);
-                first.lexeme == "(" -> receiver_name(tokens, 0);
-                first.lexeme == "opaque" ->
-                    case rest {
-                        [type_token | remaining] ->
-                            if {
-                                type_token.lexeme == "type" -> named_declaration("opaque type", remaining);
-                                true -> DeclarationTake(None, tokens)
-                            };
-                        [] -> DeclarationTake(None, [])
-                    };
-                first.lexeme == "type"
-                    or first.lexeme == "struct"
-                    or first.lexeme == "trait"
-                    or first.lexeme == "impl"
-                    or first.lexeme == "constructor" -> named_declaration(first.lexeme, rest);
-                true -> DeclarationTake(None, tokens)
-            }
+        [first | rest] -> declaration_token(tokens, first, rest)
     }.
+
+@pure
+finish_scan(module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    let final_errors = if { module_name == "" -> [InterfaceError("missing_module", "source has no module declaration") | errors]; true -> errors };
+    InterfaceResult(ModuleInterface(module_name, reverse_imports(imports, []), reverse_declarations(declarations, [])), final_errors).
+
+@pure
+invalid_module_scan(rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    scan(rest, module_name, imports, declarations, [InterfaceError("invalid_module", "module declaration is malformed") | errors]).
+
+@pure
+duplicate_module_scan(parsed: Qualified, original_rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    if {
+        parsed.accepted -> scan(parsed.rest, module_name, imports, declarations, [InterfaceError("duplicate_module", "source has more than one module declaration") | errors]);
+        true -> invalid_module_scan(original_rest, module_name, imports, declarations, errors)
+    }.
+
+@pure
+module_scan(rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    let parsed = qualified(rest);
+    if { parsed.accepted and module_name == "" -> scan(parsed.rest, parsed.name, imports, declarations, errors); true -> duplicate_module_scan(parsed, rest, module_name, imports, declarations, errors) }.
+
+@pure
+import_source(type_only: Bool, remaining: List[Token], rest: List[Token]): List[Token] ->
+    if { type_only -> remaining; true -> rest }.
+
+@pure
+parsed_import_scan(parsed: ImportTake, type_only: Bool, rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    if {
+        parsed.accepted -> scan(parsed.rest, module_name, [Import(parsed.path, type_only) | imports], declarations, errors);
+        true -> scan(rest, module_name, imports, declarations, [InterfaceError("invalid_import", "import declaration is malformed") | errors])
+    }.
+
+@pure
+import_scan(rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    case rest {
+        [next | remaining] -> let type_only = next.lexeme == "type";
+            let parsed = take_import(import_source(type_only, remaining, rest), 0, "");
+            parsed_import_scan(parsed, type_only, rest, module_name, imports, declarations, errors);
+        [] -> scan([], module_name, imports, declarations, [InterfaceError("invalid_import", "import declaration is incomplete") | errors])
+    }.
+
+@pure
+public_declaration_scan(value: Option[PublicDeclaration], parsed: DeclarationTake, rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    case value {
+        Some(declaration) -> scan(parsed.rest, module_name, imports, [declaration | declarations], errors);
+        None -> scan(rest, module_name, imports, declarations, errors)
+    }.
+
+@pure
+public_scan(rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    let parsed = take_declaration(rest);
+    public_declaration_scan(parsed.declaration, parsed, rest, module_name, imports, declarations, errors).
+
+@pure
+non_module_scan(token: Token, rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    if { token.kind == Keyword and token.lexeme == "import" -> import_scan(rest, module_name, imports, declarations, errors); true -> non_import_scan(token, rest, module_name, imports, declarations, errors) }.
+
+@pure
+non_import_scan(token: Token, rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    if { token.kind == Keyword and token.lexeme == "pub" -> public_scan(rest, module_name, imports, declarations, errors); true -> scan(rest, module_name, imports, declarations, errors) }.
+
+@pure
+scan_token(token: Token, rest: List[Token], module_name: String, imports: List[Import], declarations: List[PublicDeclaration], errors: List[InterfaceError]): InterfaceResult ->
+    if { token.kind == Keyword and token.lexeme == "module" -> module_scan(rest, module_name, imports, declarations, errors); true -> non_module_scan(token, rest, module_name, imports, declarations, errors) }.
 
 @pure
 scan(
@@ -265,79 +353,8 @@ scan(
     errors: List[InterfaceError],
 ): InterfaceResult ->
     case tokens {
-        [] ->
-            let final_errors =
-                if {
-                    module_name == "" -> [InterfaceError("missing_module", "source has no module declaration") | errors];
-                    true -> errors
-                };
-            InterfaceResult(ModuleInterface(module_name, reverse_imports(imports, []), reverse_declarations(declarations, [])), final_errors);
-        [token | rest] ->
-            if {
-                token.kind == Keyword and token.lexeme == "module" ->
-                    let parsed = qualified(rest);
-                    if {
-                        parsed.accepted and module_name == "" ->
-                            scan(parsed.rest, parsed.name, imports, declarations, errors);
-                        parsed.accepted ->
-                            scan(
-                                parsed.rest,
-                                module_name,
-                                imports,
-                                declarations,
-                                [InterfaceError("duplicate_module", "source has more than one module declaration") | errors],
-                            );
-                        true ->
-                            scan(
-                                rest,
-                                module_name,
-                                imports,
-                                declarations,
-                                [InterfaceError("invalid_module", "module declaration is malformed") | errors],
-                            )
-                    };
-                token.kind == Keyword and token.lexeme == "import" ->
-                    case rest {
-                        [next | remaining] ->
-                            let type_only = next.lexeme == "type";
-                            let import_tokens = if {type_only -> remaining; true -> rest};
-                            let parsed = take_import(import_tokens, 0, "");
-                            if {
-                                parsed.accepted ->
-                                    scan(
-                                        parsed.rest,
-                                        module_name,
-                                        [Import(parsed.path, type_only) | imports],
-                                        declarations,
-                                        errors,
-                                    );
-                                true ->
-                                    scan(
-                                        rest,
-                                        module_name,
-                                        imports,
-                                        declarations,
-                                        [InterfaceError("invalid_import", "import declaration is malformed") | errors],
-                                    )
-                            };
-                        [] ->
-                            scan(
-                                [],
-                                module_name,
-                                imports,
-                                declarations,
-                                [InterfaceError("invalid_import", "import declaration is incomplete") | errors],
-                            )
-                    };
-                token.kind == Keyword and token.lexeme == "pub" ->
-                    let parsed = take_declaration(rest);
-                    case parsed.declaration {
-                        Some(declaration) ->
-                            scan(parsed.rest, module_name, imports, [declaration | declarations], errors);
-                        None -> scan(rest, module_name, imports, declarations, errors)
-                    };
-                true -> scan(rest, module_name, imports, declarations, errors)
-            }
+        [] -> finish_scan(module_name, imports, declarations, errors);
+        [token | rest] -> scan_token(token, rest, module_name, imports, declarations, errors)
     }.
 
 @pure

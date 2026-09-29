@@ -7,7 +7,7 @@ import self_host.ImportReferenceSyntax.{ImportReference}.
 import self_host.Syntax.{ImportDeclaration}.
 
 import std.collections.List.
-import std.core.String.
+import std.core.{Bool, String}.
 
 
 @pure
@@ -30,37 +30,111 @@ all_named(values: List[String]): Bool ->
     case values { [] -> true; [value | rest] -> value != "" and all_named(rest) }.
 
 @pure
+imported_text(text: String, supported: Bool): String ->
+    if {
+        supported -> String.trim(String.utf8_slice(text, 7, String.byte_size(text) - 7));
+        true -> ""
+    }.
+
+@pure
+import_payload(imported: String, is_type: Bool): String ->
+    if {
+        is_type -> String.trim(String.utf8_slice(imported, 5, String.byte_size(imported) - 5));
+        true -> imported
+    }.
+
+@pure
+has_one(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [_ | rest] -> List.is_empty(rest)
+    }.
+
+@pure
+has_two(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [_ | rest] -> has_one(rest)
+    }.
+
+@pure
+module_name_after_first(first: String, rest: List[String], payload: String): String ->
+    if {
+        has_one(rest) -> String.trim(first);
+        true -> String.trim(payload)
+    }.
+
+@pure
+import_module_name(parts: List[String], payload: String): String ->
+    case parts {
+        [] -> String.trim(payload);
+        [first | rest] -> module_name_after_first(first, rest, payload)
+    }.
+
+@pure
+selective_items_after_raw(raw: String, tail: List[String]): List[String] ->
+    if {
+        List.is_empty(tail) and String.ends_with(raw, "}") ->
+            trim_items(String.split(String.utf8_slice(raw, 0, String.byte_size(raw) - 1), ","));
+        true -> List.new[String]()
+    }.
+
+@pure
+selective_items_after_module(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [raw | tail] -> selective_items_after_raw(raw, tail)
+    }.
+
+@pure
+selective_items(parts: List[String]): List[String] ->
+    case parts {
+        [] -> List.new[String]();
+        [_module | rest] -> selective_items_after_module(rest)
+    }.
+
+@pure
+import_message_after_module(valid_items: Bool): String ->
+    if {
+        not valid_items -> "selective import items are invalid";
+        true -> ""
+    }.
+
+@pure
+import_message_after_supported(module_name: String, valid_items: Bool): String ->
+    if {
+        module_name == "" -> "import module name is empty";
+        true -> import_message_after_module(valid_items)
+    }.
+
+@pure
+import_message(supported: Bool, module_name: String, valid_items: Bool): String ->
+    if {
+        not supported -> "declaration is not an import";
+        true -> import_message_after_supported(module_name, valid_items)
+    }.
+
+@pure
 pub lower(source: DeclarationSyntax): ImportReference ->
     let text = strip_terminal_dot(source.body);
     let supported = source.class == ImportDeclaration and String.starts_with(text, "import ");
-    let imported = if {
-        supported -> String.trim(String.utf8_slice(text, 7, String.byte_size(text) - 7));
-        true -> ""
-    };
+    let imported = imported_text(text, supported);
     let is_type = String.starts_with(imported, "type ");
-    let payload = if {
-        is_type -> String.trim(String.utf8_slice(imported, 5, String.byte_size(imported) - 5));
-        true -> imported
-    };
+    let payload = import_payload(imported, is_type);
     let parts = String.split(payload, ".{");
-    let selective = case parts { [_, _] -> true; _ -> false };
-    let module_name = case parts {
-        [module_path, _] -> String.trim(module_path);
-        _ -> String.trim(payload)
-    };
-    let items = case parts {
-        [_, raw] where String.ends_with(raw, "}") ->
-            trim_items(String.split(String.utf8_slice(raw, 0, String.byte_size(raw) - 1), ","));
-        [_, _] -> List.new[String]();
-        _ -> List.new[String]()
-    };
+    let selective = has_two(parts);
+    let module_name = import_module_name(parts, payload);
+    let items = selective_items(parts);
     let valid_items = not selective or (items != [] and all_named(items));
-    ImportReference(supported and module_name != "" and valid_items, module_name, items, selective, is_type, source.span, if {
-            not supported -> "declaration is not an import";
-            module_name == "" -> "import module name is empty";
-            not valid_items -> "selective import items are invalid";
-            true -> ""
-        }).
+    ImportReference(
+        supported and module_name != "" and valid_items,
+        module_name,
+        items,
+        selective,
+        is_type,
+        source.span,
+        import_message(supported, module_name, valid_items),
+    ).
 
 /** Lowers the source retained at the backend boundary without reparsing a module. */
 @pure

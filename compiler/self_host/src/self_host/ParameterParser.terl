@@ -4,7 +4,7 @@ module self_host.ParameterParser.
 import self_host.ParameterSyntax.{ParameterSyntax}.
 
 import std.collections.List.
-import std.core.{Int, String}.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.PatternParser.
@@ -16,13 +16,149 @@ drop_prefix(source: String, count: Int): String ->
     String.trim(source.utf8_slice(count, source.byte_size() - count)).
 
 @pure
+without_varargs(source: String): String ->
+    if {
+        String.starts_with(source, "...") -> drop_prefix(source, 3);
+        true -> source
+    }.
+
+@pure
 without_modifiers(source: String): String ->
-    let varargs_removed = if { String.starts_with(source, "...") -> drop_prefix(source, 3); true -> source };
+    let varargs_removed = without_varargs(source);
     if { String.starts_with(varargs_removed, "mut ") -> drop_prefix(varargs_removed, 4); true -> varargs_removed }.
 
 @pure
 empty_parameter(message: String): ParameterSyntax ->
     ParameterSyntax(false, "", PatternParser.parse(""), false, TypeParser.parse(""), false, ExpressionParser.parse(""), false, false, false, message).
+
+@pure
+structural_message_after_name(annotation_valid: Bool, annotation_message: String): String ->
+    if {
+        not annotation_valid -> annotation_message;
+        true -> ""
+    }.
+
+@pure
+structural_message_after_pattern(name_text: String, annotation_valid: Bool, annotation_message: String): String ->
+    if {
+        name_text == "" -> "structural binding name is empty";
+        true -> structural_message_after_name(annotation_valid, annotation_message)
+    }.
+
+@pure
+structural_message(pattern_valid: Bool, pattern_message: String, name_text: String, annotation_valid: Bool, annotation_message: String): String ->
+    if {
+        not pattern_valid -> pattern_message;
+        true -> structural_message_after_pattern(name_text, annotation_valid, annotation_message)
+    }.
+
+@pure
+parse_structural(normalized: String, assignment: Int, colon: Int): ParameterSyntax ->
+    let pattern_text = String.trim(normalized.utf8_slice(0, assignment));
+    let name_text = String.trim(normalized.utf8_slice(assignment + 1, colon - assignment - 1));
+    let annotation_text = String.trim(normalized.utf8_slice(colon + 1, normalized.byte_size() - colon - 1));
+    let pattern = PatternParser.parse(pattern_text);
+    let annotation = TypeParser.parse(annotation_text);
+    ParameterSyntax(
+        pattern.valid and name_text != "" and annotation.valid,
+        name_text,
+        pattern,
+        true,
+        annotation,
+        false,
+        ExpressionParser.parse(""),
+        false,
+        false,
+        true,
+        structural_message(pattern.valid, pattern.message, name_text, annotation.valid, annotation.message),
+    ).
+
+@pure
+left_end_after_colon(normalized: String, assignment: Int): Int ->
+    if {
+        assignment >= 0 -> assignment;
+        true -> normalized.byte_size()
+    }.
+
+@pure
+regular_left_end(normalized: String, colon: Int, assignment: Int): Int ->
+    if {
+        colon >= 0 -> colon;
+        true -> left_end_after_colon(normalized, assignment)
+    }.
+
+@pure
+regular_annotation_end(normalized: String, colon: Int, assignment: Int): Int ->
+    if {
+        assignment > colon -> assignment;
+        true -> normalized.byte_size()
+    }.
+
+@pure
+regular_annotation_text(normalized: String, colon: Int, annotation_end: Int): String ->
+    if {
+        colon < 0 -> "";
+        true -> String.trim(normalized.utf8_slice(colon + 1, annotation_end - colon - 1))
+    }.
+
+@pure
+regular_default_text(normalized: String, assignment: Int): String ->
+    if {
+        assignment < 0 -> "";
+        true -> String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1))
+    }.
+
+@pure
+regular_message_after_annotation(assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        assignment >= 0 and not default_valid -> default_message;
+        true -> ""
+    }.
+
+@pure
+regular_message_after_pattern(colon: Int, annotation_valid: Bool, annotation_message: String, assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        colon >= 0 and not annotation_valid -> annotation_message;
+        true -> regular_message_after_annotation(assignment, default_valid, default_message)
+    }.
+
+@pure
+regular_message(pattern_valid: Bool, pattern_message: String, colon: Int, annotation_valid: Bool, annotation_message: String, assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        not pattern_valid -> pattern_message;
+        true -> regular_message_after_pattern(colon, annotation_valid, annotation_message, assignment, default_valid, default_message)
+    }.
+
+@pure
+parse_regular(normalized: String, colon: Int, assignment: Int): ParameterSyntax ->
+    let left_end = regular_left_end(normalized, colon, assignment);
+    let left = String.trim(normalized.utf8_slice(0, left_end));
+    let pattern_text = without_modifiers(left);
+    let annotation_end = regular_annotation_end(normalized, colon, assignment);
+    let annotation_text = regular_annotation_text(normalized, colon, annotation_end);
+    let default_text = regular_default_text(normalized, assignment);
+    let pattern = PatternParser.parse(pattern_text);
+    let annotation = TypeParser.parse(annotation_text);
+    let default_value = ExpressionParser.parse(default_text);
+    let valid = pattern.valid
+        and (colon < 0 or annotation.valid)
+        and (assignment < 0 or default_value.valid);
+    ParameterSyntax(
+        valid,
+        pattern_text,
+        pattern,
+        colon >= 0,
+        annotation,
+        assignment >= 0,
+        default_value,
+        String.starts_with(left, "mut ") or String.starts_with(left, "...mut "),
+        String.starts_with(left, "..."),
+        String.starts_with(pattern_text, "{")
+            or String.starts_with(pattern_text, "[")
+            or (not String.starts_with(pattern_text, "{") and String.contains(pattern_text, "{"))
+            or String.contains(pattern_text, "("),
+        regular_message(pattern.valid, pattern.message, colon, annotation.valid, annotation.message, assignment, default_value.valid, default_value.message),
+    ).
 
 /** Parses one complete canonical parameter. */
 @pure
@@ -32,46 +168,8 @@ pub parse(source: String): ParameterSyntax ->
     let assignment = Delimited.top_level_assignment(normalized);
     if {
         normalized == "" -> empty_parameter("parameter is empty");
-        assignment >= 0 and colon > assignment ->
-            let pattern_text = String.trim(normalized.utf8_slice(0, assignment));
-            let name_text = String.trim(normalized.utf8_slice(assignment + 1, colon - assignment - 1));
-            let annotation_text = String.trim(normalized.utf8_slice(colon + 1, normalized.byte_size() - colon - 1));
-            let pattern = PatternParser.parse(pattern_text);
-            let annotation = TypeParser.parse(annotation_text);
-            ParameterSyntax(pattern.valid and name_text != "" and annotation.valid, name_text, pattern, true, annotation, false, ExpressionParser.parse(""), false, false, true, if {
-                    not pattern.valid -> pattern.message;
-                    name_text == "" -> "structural binding name is empty";
-                    not annotation.valid -> annotation.message;
-                    true -> ""
-                });
-        true ->
-            let left_end = if { colon >= 0 -> colon; assignment >= 0 -> assignment; true -> normalized.byte_size() };
-            let left = String.trim(normalized.utf8_slice(0, left_end));
-            let pattern_text = without_modifiers(left);
-            let annotation_end = if { assignment > colon -> assignment; true -> normalized.byte_size() };
-            let annotation_text = if {
-                colon < 0 -> "";
-                true -> String.trim(normalized.utf8_slice(colon + 1, annotation_end - colon - 1))
-            };
-            let default_text = if {
-                assignment < 0 -> "";
-                true -> String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1))
-            };
-            let pattern = PatternParser.parse(pattern_text);
-            let annotation = TypeParser.parse(annotation_text);
-            let default_value = ExpressionParser.parse(default_text);
-            let valid = pattern.valid
-                and (colon < 0 or annotation.valid)
-                and (assignment < 0 or default_value.valid);
-            ParameterSyntax(valid, pattern_text, pattern, colon >= 0, annotation, assignment >= 0, default_value, String.starts_with(left, "mut ") or String.starts_with(left, "...mut "), String.starts_with(left, "..."), String.starts_with(pattern_text, "{")
-                    or String.starts_with(pattern_text, "[")
-                    or (not String.starts_with(pattern_text, "{") and String.contains(pattern_text, "{"))
-                    or String.contains(pattern_text, "("), if {
-                    not pattern.valid -> pattern.message;
-                    colon >= 0 and not annotation.valid -> annotation.message;
-                    assignment >= 0 and not default_value.valid -> default_value.message;
-                    true -> ""
-                })
+        assignment >= 0 and colon > assignment -> parse_structural(normalized, assignment, colon);
+        true -> parse_regular(normalized, colon, assignment)
     }.
 
 @pure

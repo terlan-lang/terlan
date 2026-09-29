@@ -23,19 +23,22 @@ length[T](values: List[T]): Int -> length_at(values, 0).
 
 
 @pure
+count_nonempty_parameters(value: String): Int ->
+    let comma = Delimited.top_level_byte(value, 44);
+    if {
+        comma < 0 -> 1;
+        true -> 1 + count_parameters(String.trim(value.utf8_slice(
+            comma + 1,
+            value.byte_size() - comma - 1,
+        )))
+    }.
+
+@pure
 count_parameters(source: String): Int ->
     let value = String.trim(source);
     if {
         value == "" -> 0;
-        true ->
-            let comma = Delimited.top_level_byte(value, 44);
-            if {
-                comma < 0 -> 1;
-                true -> 1 + count_parameters(String.trim(value.utf8_slice(
-                    comma + 1,
-                    value.byte_size() - comma - 1,
-                )))
-            }
+        true -> count_nonempty_parameters(value)
     }.
 
 @pure
@@ -47,24 +50,40 @@ join_parenthesized(values: List[String]): String ->
     }.
 
 @pure
-function_arity(header: String): Option[Int] ->
-    let colon = Delimited.top_level_byte(header, 58);
-    let callable_head = if {
+callable_head(header: String, colon: Int): String ->
+    if {
         colon < 0 -> "";
         true -> String.trim(header.utf8_slice(0, colon))
-    };
-    case String.split(callable_head, "(") {
-        [name | [parameters | nested]] ->
-            let joined = join_parenthesized([parameters | nested]);
-            if {
-                String.ends_with(joined, ")") -> Some(count_parameters(joined.utf8_slice(
-                    0,
-                    joined.byte_size() - 1,
-                )));
-                true -> None
-            };
-        _ -> None
     }.
+
+@pure
+parenthesized_arity(joined: String): Option[Int] ->
+    if {
+        String.ends_with(joined, ")") -> Some(count_parameters(joined.utf8_slice(
+            0,
+            joined.byte_size() - 1,
+        )));
+        true -> None
+    }.
+
+@pure
+arity_after_name(values: List[String]): Option[Int] ->
+    case values {
+        [] -> None;
+        [parameters | nested] -> parenthesized_arity(join_parenthesized([parameters | nested]))
+    }.
+
+@pure
+arity_parts(values: List[String]): Option[Int] ->
+    case values {
+        [] -> None;
+        [_name | rest] -> arity_after_name(rest)
+    }.
+
+@pure
+function_arity(header: String): Option[Int] ->
+    let colon = Delimited.top_level_byte(header, 58);
+    arity_parts(String.split(callable_head(header, colon), "(")).
 
 /** Interface export summaries identify ordinary functions by name and arity. */
 @pure

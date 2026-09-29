@@ -5,7 +5,7 @@ import self_host.CanonicalToken.{CanonicalToken}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 
 import std.collections.List.
-import std.core.String.
+import std.core.{Bool, String}.
 import self_host.BackendHandoff.
 import self_host.ConcreteSyntaxParser.
 import self_host.ProjectionAdapter.
@@ -16,6 +16,41 @@ import self_host.ProjectedSignatureParser.
 import self_host.SemanticAnalysis.
 import self_host.TypedModuleLowering.
 
+
+@pure
+frontend_message(concrete_valid: Bool, concrete_message: String, surface_valid: Bool, surface_message: String, signatures_valid: Bool, bodies_valid: Bool, backend_valid: Bool, backend_message: String): String ->
+    if {
+        not concrete_valid -> concrete_message;
+        true -> frontend_message_after_concrete(surface_valid, surface_message, signatures_valid, bodies_valid, backend_valid, backend_message)
+    }.
+
+@pure
+frontend_message_after_concrete(surface_valid: Bool, surface_message: String, signatures_valid: Bool, bodies_valid: Bool, backend_valid: Bool, backend_message: String): String ->
+    if {
+        not surface_valid -> surface_message;
+        true -> frontend_message_after_surface(signatures_valid, bodies_valid, backend_valid, backend_message)
+    }.
+
+@pure
+frontend_message_after_surface(signatures_valid: Bool, bodies_valid: Bool, backend_valid: Bool, backend_message: String): String ->
+    if {
+        not signatures_valid -> "one or more declaration signatures are invalid";
+        true -> frontend_message_after_signatures(bodies_valid, backend_valid, backend_message)
+    }.
+
+@pure
+frontend_message_after_signatures(bodies_valid: Bool, backend_valid: Bool, backend_message: String): String ->
+    if {
+        not bodies_valid -> "one or more callable bodies are invalid";
+        true -> frontend_message_after_bodies(backend_valid, backend_message)
+    }.
+
+@pure
+frontend_message_after_bodies(backend_valid: Bool, backend_message: String): String ->
+    if {
+        not backend_valid -> backend_message;
+        true -> ""
+    }.
 
 /** Runs every self-hosted frontend stage exactly once over one canonical token stream. */
 @pure
@@ -33,11 +68,23 @@ pub compile(source: String, canonical: List[CanonicalToken]): ProjectedFrontendM
         and signatures.valid
         and bodies.valid
         and backend.valid;
-    ProjectedFrontendModule(valid, source, tokens, concrete, surface, signatures, bodies, backend, if {
-            not concrete.valid -> concrete.message;
-            not surface.valid -> surface.message;
-            not signatures.valid -> "one or more declaration signatures are invalid";
-            not bodies.valid -> "one or more callable bodies are invalid";
-            not backend.valid -> backend.message;
-            true -> ""
-        }).
+    ProjectedFrontendModule(
+        valid,
+        source,
+        tokens,
+        concrete,
+        surface,
+        signatures,
+        bodies,
+        backend,
+        frontend_message(
+            concrete.valid,
+            concrete.message,
+            surface.valid,
+            surface.message,
+            signatures.valid,
+            bodies.valid,
+            backend.valid,
+            backend.message,
+        ),
+    ).

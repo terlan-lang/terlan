@@ -2,11 +2,13 @@
 module self_host.ValuedUnionLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExpressionSyntax.{ExpressionParse}.
 import self_host.Syntax.{TypeDeclaration}.
+import self_host.TypeSyntax.{TypeParse}.
 import self_host.ValuedUnionSyntax.{ValuedUnionArmSyntax, ValuedUnionSyntax}.
 
 import std.collections.List.
-import std.core.{Int, String}.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.TypeParser.
@@ -21,18 +23,44 @@ strip_terminal_dot(source: String): String ->
     }.
 
 @pure
+arm_value(normalized: String, assignment: Int): ExpressionParse ->
+    if {
+        assignment < 0 -> ExpressionParser.parse("");
+        true -> ExpressionParser.parse(String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1)))
+    }.
+
+@pure
+arm_name(normalized: String, assignment: Int): String ->
+    if {
+        assignment < 0 -> "";
+        true -> String.trim(normalized.utf8_slice(0, assignment))
+    }.
+
+@pure
+arm_message_after_assignment(value_valid: Bool, value_message: String): String ->
+    if {
+        not value_valid -> value_message;
+        true -> ""
+    }.
+
+@pure
+arm_message(assignment: Int, value_valid: Bool, value_message: String): String ->
+    if {
+        assignment < 0 -> "valued-union arm is missing its value";
+        true -> arm_message_after_assignment(value_valid, value_message)
+    }.
+
+@pure
 lower_arm(source: String): ValuedUnionArmSyntax ->
     let normalized = String.trim(source);
     let assignment = Delimited.top_level_assignment(normalized);
-    let value = if {
-        assignment < 0 -> ExpressionParser.parse("");
-        true -> ExpressionParser.parse(String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1)))
-    };
-    ValuedUnionArmSyntax(assignment > 0 and value.valid, if { assignment < 0 -> ""; true -> String.trim(normalized.utf8_slice(0, assignment)) }, value, if {
-            assignment < 0 -> "valued-union arm is missing its value";
-            not value.valid -> value.message;
-            true -> ""
-        }).
+    let value = arm_value(normalized, assignment);
+    ValuedUnionArmSyntax(
+        assignment > 0 and value.valid,
+        arm_name(normalized, assignment),
+        value,
+        arm_message(assignment, value.valid, value.message),
+    ).
 
 @pure
 lower_arms(values: List[String]): List[ValuedUnionArmSyntax] ->
@@ -57,26 +85,61 @@ first_error(values: List[ValuedUnionArmSyntax]): String ->
     }.
 
 @pure
+union_base(source: DeclarationSyntax, colon: Int, assignment: Int, supported: Bool): TypeParse ->
+    if {
+        supported -> TypeParser.parse(String.trim(source.body.utf8_slice(colon + 1, assignment - colon - 1)));
+        true -> TypeParser.parse("")
+    }.
+
+@pure
+union_arm_text(source: DeclarationSyntax, assignment: Int, supported: Bool): String ->
+    if {
+        supported -> strip_terminal_dot(source.body.utf8_slice(assignment + 1, source.body.byte_size() - assignment - 1));
+        true -> ""
+    }.
+
+@pure
+union_arms(arm_text: String, supported: Bool): List[ValuedUnionArmSyntax] ->
+    if {
+        supported -> lower_arms(Delimited.split_top_level(arm_text, 124));
+        true -> List.new[ValuedUnionArmSyntax]()
+    }.
+
+@pure
+union_message_after_base(arms: List[ValuedUnionArmSyntax]): String ->
+    if {
+        not arms_valid(arms) -> first_error(arms);
+        true -> ""
+    }.
+
+@pure
+union_message_after_supported(base_valid: Bool, base_message: String, arms: List[ValuedUnionArmSyntax]): String ->
+    if {
+        not base_valid -> base_message;
+        true -> union_message_after_base(arms)
+    }.
+
+@pure
+union_message(supported: Bool, base_valid: Bool, base_message: String, arms: List[ValuedUnionArmSyntax]): String ->
+    if {
+        not supported -> "declaration is not a valued union";
+        true -> union_message_after_supported(base_valid, base_message, arms)
+    }.
+
+@pure
 pub lower(source: DeclarationSyntax): ValuedUnionSyntax ->
     let colon = Delimited.top_level_byte(source.body, 58);
     let assignment = Delimited.top_level_assignment(source.body);
     let supported = source.class == TypeDeclaration and colon >= 0 and assignment > colon;
-    let base = if {
-        supported -> TypeParser.parse(String.trim(source.body.utf8_slice(colon + 1, assignment - colon - 1)));
-        true -> TypeParser.parse("")
-    };
-    let arm_text = if {
-        supported -> strip_terminal_dot(source.body.utf8_slice(assignment + 1, source.body.byte_size() - assignment - 1));
-        true -> ""
-    };
-    let arms = if {
-        supported -> lower_arms(Delimited.split_top_level(arm_text, 124));
-        true -> List.new[ValuedUnionArmSyntax]()
-    };
-    ValuedUnionSyntax(supported and base.valid and arms_valid(arms), source.name, base, arms, source.is_public, source.span, if {
-            not supported -> "declaration is not a valued union";
-            not base.valid -> base.message;
-            not arms_valid(arms) -> first_error(arms);
-            true -> ""
-        }).
-
+    let base = union_base(source, colon, assignment, supported);
+    let arm_text = union_arm_text(source, assignment, supported);
+    let arms = union_arms(arm_text, supported);
+    ValuedUnionSyntax(
+        supported and base.valid and arms_valid(arms),
+        source.name,
+        base,
+        arms,
+        source.is_public,
+        source.span,
+        union_message(supported, base.valid, base.message, arms),
+    ).

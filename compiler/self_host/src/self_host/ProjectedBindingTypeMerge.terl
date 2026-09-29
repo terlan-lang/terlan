@@ -42,16 +42,19 @@ reverse_at[T](values: List[T], output: List[T]): List[T] ->
 
 reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
 
+store_reference(value: BindingReference, index: Map[Int, Int]): Unit ->
+    case value.declaration_offset {
+        Some(offset) -> index.put(value.byte_offset, offset);
+        None -> index.remove(value.byte_offset)
+    }.
+
 index_references_at(
     values: List[BindingReference],
     index: Map[Int, Int],
 ): Map[Int, Int] ->
     case values {
         [] -> index;
-        [value | rest] -> let _stored = case value.declaration_offset {
-                Some(offset) -> index.put(value.byte_offset, offset);
-                None -> index.remove(value.byte_offset)
-            };
+        [value | rest] -> let _stored = store_reference(value, index);
             index_references_at(rest, index)
     }.
 
@@ -75,6 +78,49 @@ index_links(
     index: Map[Int, Int],
 ): Map[Int, Int] -> index_links_at(reverse(values), index).
 
+resolve_link(
+    value: Option[Int],
+    remaining: Int,
+    facts: List[InferredTypeFact],
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+): Option[String] ->
+    case value {
+        None -> none_string();
+        Some(source_offset) -> resolve_type(source_offset, remaining - 1, facts, references, links)
+    }.
+
+resolve_reference(
+    value: Option[Int],
+    remaining: Int,
+    facts: List[InferredTypeFact],
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+): Option[String] ->
+    case value {
+        None -> none_string();
+        Some(declaration_offset) -> resolve_link(
+            links.get(declaration_offset),
+            remaining,
+            facts,
+            references,
+            links,
+        )
+    }.
+
+resolve_fact(
+    value: Option[String],
+    byte_offset: Int,
+    remaining: Int,
+    facts: List[InferredTypeFact],
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+): Option[String] ->
+    case value {
+        Some(name) -> some_string(name);
+        None -> resolve_reference(references.get(byte_offset), remaining, facts, references, links)
+    }.
+
 resolve_type(
     byte_offset: Int,
     remaining: Int,
@@ -84,28 +130,25 @@ resolve_type(
 ): Option[String] ->
     if {
         remaining <= 0 -> none_string();
-        true -> case fact_type(byte_offset, facts) {
-            Some(name) -> some_string(name);
-            None -> case references.get(byte_offset) {
-                None -> none_string();
-                Some(declaration_offset) -> case links.get(declaration_offset) {
-                    None -> none_string();
-                    Some(source_offset) -> resolve_type(
-                        source_offset,
-                        remaining - 1,
-                        facts,
-                        references,
-                        links,
-                    )
-                }
-            }
-        }
+        true -> resolve_fact(fact_type(byte_offset, facts), byte_offset, remaining, facts, references, links)
     }.
 
 reverse_facts(values: List[InferredTypeFact], output: List[InferredTypeFact]): List[InferredTypeFact] ->
     case values {
         [] -> output;
         [value | rest] -> reverse_facts(rest, [value | output])
+    }.
+
+merged_type(
+    value: InferredTypeFact,
+    all: List[InferredTypeFact],
+    depth: Int,
+    references: Map[Int, Int],
+    links: Map[Int, Int],
+): Option[String] ->
+    case value.type_name {
+        Some(name) -> some_string(name);
+        None -> normalize_string(resolve_type(value.byte_offset, depth, all, references, links))
     }.
 
 merge_facts(
@@ -118,10 +161,7 @@ merge_facts(
 ): List[InferredTypeFact] ->
     case values {
         [] -> reverse_facts(output, List.new[InferredTypeFact]());
-        [value | rest] -> let type_name = case value.type_name {
-            Some(name) -> some_string(name);
-            None -> normalize_string(resolve_type(value.byte_offset, depth, all, references, links))
-        };
+        [value | rest] -> let type_name = merged_type(value, all, depth, references, links);
         merge_facts(rest, all, depth, references, links, [InferredTypeFact(
             node_id = value.node_id,
             type_name = type_name,

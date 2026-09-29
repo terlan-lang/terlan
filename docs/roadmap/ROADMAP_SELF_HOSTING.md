@@ -385,6 +385,77 @@ only for bootstrap and substrate components.
 reproducible, and no normal compiler path depends on Rust-owned language
 semantics.
 
+## Phase 9: Authority Transfer And Architecture Hardening
+
+Bootstrap convergence is necessary but is not sufficient for authority
+transfer. Source rewrites introduced only to fit an incomplete bootstrap
+backend are transitional scaffolding, not the preferred architecture of the
+self-hosted compiler.
+
+### Deliverables
+
+- Complete semantic-IR and backend lowering for nested `if` and `case`
+  expressions, wide clause tables, branch-local bindings, and nested
+  expression control flow.
+- Complete lowering for tuple, list, list-cons, constructor, literal,
+  wildcard, and binding patterns wherever the released grammar permits them.
+- Pattern decision trees that preserve guards, clause order, exhaustiveness,
+  source spans, and stable diagnostic identity without requiring manual helper
+  decomposition.
+- Removal of bootstrap-only source-shape restrictions from the backend
+  admission contract.
+- Refactoring of helper-expanded bootstrap modules back to idiomatic Terlan
+  after the corresponding backend constructs are supported.
+- Canonical before-and-after evidence proving that architectural cleanup does
+  not change tokens, syntax, interfaces, diagnostics, typed Core IR, backend
+  requests, or runtime behavior.
+- Complexity and resource bounds for self-analysis, including bounded compile
+  time, memory use, recursion, diagnostic growth, and incremental invalidation
+  for every compiler unit.
+- A maintained compiler-source regression corpus containing the nested control
+  flow and structural patterns that previously required bootstrap workarounds.
+- A documented minimal trusted base. Every compiler module outside that base
+  must produce an interface and backend artifact without an ad hoc exclusion.
+- Removal of Rust frontend and type-system participation from normal build,
+  test, package, web, and release paths.
+- Promotion metadata that names the authoritative Terlan compiler image, its
+  source closure, canonical artifact digest, bootstrap ancestry, and recovery
+  compiler identity.
+
+### Architectural invariants
+
+- The compiler may use helper functions when they improve its design, but no
+  helper decomposition may be required solely because the backend cannot lower
+  valid Terlan syntax.
+- The self-hosted compiler must exercise the same released syntax and semantic
+  contracts available to ordinary Terlan applications.
+- Compiler implementation convenience must not create an undocumented subset
+  of Terlan accepted only during bootstrap.
+- Backend completeness is measured using typed semantic constructs, not by
+  matching incidental source text or compiler-module names.
+- Restoring idiomatic source must preserve deterministic bootstrap convergence.
+- Performance exceptions for self-analysis must be explicit, bounded, and
+  covered by release gates; pathological units cannot be silently excluded.
+
+### Exit gates
+
+- `self-host-backend-language-completeness-check`
+- `self-host-bootstrap-workaround-inventory-check`
+- `self-host-idiomatic-source-restoration-check`
+- `self-host-pattern-decision-tree-check`
+- `self-host-self-analysis-resource-bound-check`
+- `self-host-no-ad-hoc-exclusion-check`
+- `self-host-post-cleanup-convergence-check`
+- `self-host-authority-transfer-check`
+
+### Completion condition
+
+The Terlan compiler is promoted as authoritative only after it accepts its
+idiomatic source without bootstrap-only structural rewrites, recompiles that
+source with equivalent canonical outputs, satisfies documented self-analysis
+resource bounds, and leaves Rust language semantics reachable only through the
+identified `terlc0` bootstrap and recovery path.
+
 ## Differential Evidence
 
 Each phase emits a report containing:
@@ -474,3 +545,9 @@ Terlan is self-hosting when all of the following are true:
 - Differential and recovery gates remain part of every release candidate.
 - Rust-owned code no longer defines user-visible language semantics outside the
   documented bootstrap implementation.
+- The authoritative compiler source no longer contains helper expansion or
+  syntax avoidance required solely by incomplete self-hosted lowering.
+- Every compiler module outside the documented minimal trusted base produces
+  deterministic interface and backend artifacts without ad hoc exclusions.
+- Self-analysis compile time, memory use, recursion, and diagnostic growth stay
+  within the Phase 9 release bounds.

@@ -96,6 +96,34 @@ end(values: List[ProjectedCanonicalToken]): Int ->
     case reverse(values) { [value | _rest] -> value.end_byte; [] -> 0 }.
 
 @pure
+close_parens(text: String, current: Int): Int ->
+    if { text == ")" -> current - 1; true -> current }.
+
+@pure
+next_parens(text: String, current: Int): Int ->
+    if { text == "(" -> current + 1; true -> close_parens(text, current) }.
+
+@pure
+close_brackets(text: String, current: Int): Int ->
+    if { text == "]" -> current - 1; true -> current }.
+
+@pure
+next_brackets(text: String, current: Int): Int ->
+    if { text == "[" -> current + 1; true -> close_brackets(text, current) }.
+
+@pure
+close_braces(text: String, current: Int): Int ->
+    if { text == "}" -> current - 1; true -> current }.
+
+@pure
+next_braces(text: String, current: Int): Int ->
+    if { text == "{" -> current + 1; true -> close_braces(text, current) }.
+
+@pure
+split_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], delimiter: String, parens: Int, brackets: Int, braces: Int, output: List[ProjectedCanonicalToken]): TokenSplit ->
+    split_at(rest, delimiter, next_parens(value.text, parens), next_brackets(value.text, brackets), next_braces(value.text, braces), [value | output]).
+
+@pure
 split_at(
     values: List[ProjectedCanonicalToken],
     delimiter: String,
@@ -108,19 +136,24 @@ split_at(
         [] -> TokenSplit(found = false, left = reverse(output), separator = None, right = List.new[ProjectedCanonicalToken]());
         [value | rest]
             where value.text == delimiter and parens == 0 and brackets == 0 and braces == 0 -> TokenSplit(found = true, left = reverse(output), separator = Some(value), right = rest);
-        [value | rest] -> split_at(
-            rest,
-            delimiter,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
-            [value | output],
-        )
+        [value | rest] -> split_continue(value, rest, delimiter, parens, brackets, braces, output)
     }.
 
 @pure
 split(values: List[ProjectedCanonicalToken], delimiter: String): TokenSplit ->
     split_at(values, delimiter, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+close_group_depth(text: String, depth: Int): Int ->
+    if { text == ")" or text == "]" or text == "}" -> depth - 1; true -> depth }.
+
+@pure
+next_group_depth(text: String, depth: Int): Int ->
+    if { text == "(" or text == "[" or text == "{" -> depth + 1; true -> close_group_depth(text, depth) }.
+
+@pure
+group_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], close_text: String, depth: Int, output: List[ProjectedCanonicalToken]): GroupSlice ->
+    group_at(rest, close_text, next_group_depth(value.text, depth), [value | output]).
 
 @pure
 group_at(
@@ -133,26 +166,47 @@ group_at(
         [] -> GroupSlice(valid = false, inner = reverse(output), close = None, rest = List.new[ProjectedCanonicalToken]());
         [value | rest] where value.text == close_text and depth == 1 ->
             GroupSlice(valid = true, inner = reverse(output), close = Some(value), rest = rest);
-        [value | rest] -> group_at(
-            rest,
-            close_text,
-            if {
-                value.text == "(" or value.text == "[" or value.text == "{" -> depth + 1;
-                value.text == ")" or value.text == "]" or value.text == "}" -> depth - 1;
-                true -> depth
-            },
-            [value | output],
-        )
+        [value | rest] -> group_continue(value, rest, close_text, depth, output)
     }.
+
+@pure
+non_paren_close(text: String): String ->
+    if { text == "[" -> "]"; true -> "}" }.
+
+@pure
+group_close(text: String): String ->
+    if { text == "(" -> ")"; true -> non_paren_close(text) }.
 
 @pure
 group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
     group_at(
         values,
-        if { opening.text == "(" -> ")"; opening.text == "[" -> "]"; true -> "}" },
+        group_close(opening.text),
         1,
         List.new[ProjectedCanonicalToken](),
     ).
+
+@pure
+finish_type_list(current: ProjectedTypeResult, value: ProjectedTypeNode, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    let ordered = reverse([value | output]);
+    let types_node = node("types", "", start(comma.left), value.end_byte, ordered);
+    ProjectedTypeResult(current.valid, Some(types_node), current.rest, current.message).
+
+@pure
+continue_type_list(current: ProjectedTypeResult, value: ProjectedTypeNode, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    if { comma.found -> type_list(comma.right, [value | output]); true -> finish_type_list(current, value, comma, output) }.
+
+@pure
+type_list_node(current: ProjectedTypeResult, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    case current.node {
+        None -> current;
+        Some(value) -> continue_type_list(current, value, comma, output)
+    }.
+
+@pure
+nonempty_type_list(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    let comma = split(values, ",");
+    type_list_node(parse(comma.left), comma, output).
 
 @pure
 type_list(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeNode]): ProjectedTypeResult ->
@@ -161,18 +215,49 @@ type_list(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeNode]
             let ordered = reverse(output);
             let types_node = node("types", "", 0, 0, ordered);
             ProjectedTypeResult(true, Some(types_node), List.new[ProjectedCanonicalToken](), "");
-        true ->
-            let comma = split(values, ",");
-            let current = parse(comma.left);
-            case current.node {
-                None -> current;
-                Some(value) where comma.found -> type_list(comma.right, [value | output]);
-                Some(value) ->
-                    let ordered = reverse([value | output]);
-                    let types_node = node("types", "", start(comma.left), value.end_byte, ordered);
-                    ProjectedTypeResult(current.valid, Some(types_node), current.rest, current.message)
-            }
+        true -> nonempty_type_list(values, output)
     }.
+
+@pure
+field_type(is_field: Bool, colon: TokenSplit, comma: TokenSplit): ProjectedTypeResult ->
+    if { is_field -> parse(colon.right); true -> parse(comma.left) }.
+
+@pure
+field_kind(is_field: Bool): String ->
+    if { is_field -> "field"; true -> "item" }.
+
+@pure
+field_text(is_field: Bool, colon: TokenSplit): String ->
+    if { is_field -> token_text(colon.left); true -> "" }.
+
+@pure
+finish_record_field(values: List[ProjectedCanonicalToken], field_type_value: ProjectedTypeResult, field: ProjectedTypeNode, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    let ordered = reverse([field | output]);
+    let fields_node = node("fields", "", start(values), field.end_byte, ordered);
+    ProjectedTypeResult(field_type_value.valid, Some(fields_node), field_type_value.rest, field_type_value.message).
+
+@pure
+continue_record_field(values: List[ProjectedCanonicalToken], field_type_value: ProjectedTypeResult, field: ProjectedTypeNode, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    if { comma.found -> record_fields(comma.right, [field | output]); true -> finish_record_field(values, field_type_value, field, output) }.
+
+@pure
+record_type_node(values: List[ProjectedCanonicalToken], field_type_value: ProjectedTypeResult, type_node: ProjectedTypeNode, is_field: Bool, colon: TokenSplit, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    let field = node(field_kind(is_field), field_text(is_field, colon), start(comma.left), type_node.end_byte, [type_node]);
+    continue_record_field(values, field_type_value, field, comma, output).
+
+@pure
+record_field_node(values: List[ProjectedCanonicalToken], field_type_value: ProjectedTypeResult, is_field: Bool, colon: TokenSplit, comma: TokenSplit, output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    case field_type_value.node {
+        None -> field_type_value;
+        Some(type_node) -> record_type_node(values, field_type_value, type_node, is_field, colon, comma, output)
+    }.
+
+@pure
+nonempty_record_fields(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeNode]): ProjectedTypeResult ->
+    let comma = split(values, ",");
+    let colon = split(comma.left, ":");
+    let is_field = colon.found and colon.left != [];
+    record_field_node(values, field_type(is_field, colon, comma), is_field, colon, comma, output).
 
 @pure
 record_fields(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeNode]): ProjectedTypeResult ->
@@ -181,154 +266,185 @@ record_fields(values: List[ProjectedCanonicalToken], output: List[ProjectedTypeN
             let ordered = reverse(output);
             let fields_node = node("fields", "", 0, 0, ordered);
             ProjectedTypeResult(true, Some(fields_node), List.new[ProjectedCanonicalToken](), "");
-        true ->
-            let comma = split(values, ",");
-            let colon = split(comma.left, ":");
-            let is_field = colon.found and colon.left != [];
-            let field_type = if { is_field -> parse(colon.right); true -> parse(comma.left) };
-            case field_type.node {
-                None -> field_type;
-                Some(type_node) ->
-                    let children = [type_node];
-                    let field = node(
-                        if { is_field -> "field"; true -> "item" },
-                        if { is_field -> token_text(colon.left); true -> "" },
-                        start(comma.left),
-                        type_node.end_byte,
-                        children,
-                    );
-                    if {
-                        comma.found -> record_fields(comma.right, [field | output]);
-                        true ->
-                            let ordered = reverse([field | output]);
-                            let fields_node = node("fields", "", start(values), field.end_byte, ordered);
-                            ProjectedTypeResult(field_type.valid, Some(fields_node), field_type.rest, field_type.message)
-                    }
-            }
+        true -> nonempty_record_fields(values, output)
     }.
+
+@pure
+record_group(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice): ProjectedTypeResult ->
+    let fields = record_fields(slice.inner, List.new[ProjectedTypeNode]());
+    let grouped_node = node("record-or-tuple-type", "{}", opening.start_byte, close.end_byte, node_children(fields.node));
+    ProjectedTypeResult(slice.valid and fields.valid, Some(grouped_node), slice.rest, fields.message).
+
+@pure
+function_return_node(opening: ProjectedCanonicalToken, items: ProjectedTypeResult, return_type: ProjectedTypeResult, return_node: ProjectedTypeNode): ProjectedTypeResult ->
+    let children = append_node(node_children(items.node), return_node);
+    let function_node = node("function-type", "->", opening.start_byte, return_node.end_byte, children);
+    ProjectedTypeResult(items.valid and return_type.valid, Some(function_node), return_type.rest, return_type.message).
+
+@pure
+function_return(opening: ProjectedCanonicalToken, items: ProjectedTypeResult, return_type: ProjectedTypeResult): ProjectedTypeResult ->
+    case return_type.node {
+        Some(return_node) -> function_return_node(opening, items, return_type, return_node);
+        None -> return_type
+    }.
+
+@pure
+function_group(opening: ProjectedCanonicalToken, items: ProjectedTypeResult, return_tokens: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    function_return(opening, items, parse(return_tokens)).
+
+@pure
+tuple_group(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, items: ProjectedTypeResult): ProjectedTypeResult ->
+    let tuple_node = node("tuple-type", opening.text, opening.start_byte, close.end_byte, node_children(items.node));
+    ProjectedTypeResult(items.valid, Some(tuple_node), slice.rest, items.message).
+
+@pure
+group_rest(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, items: ProjectedTypeResult): ProjectedTypeResult ->
+    case slice.rest {
+        [] -> tuple_group(opening, close, slice, items);
+        [arrow | return_tokens] -> if {
+            opening.text == "(" and arrow.text == "->" -> function_group(opening, items, return_tokens);
+            true -> tuple_group(opening, close, slice, items)
+        }
+    }.
+
+@pure
+non_record_group(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice): ProjectedTypeResult ->
+    group_rest(opening, close, slice, type_list(slice.inner, List.new[ProjectedTypeNode]())).
+
+@pure
+closed_group(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice): ProjectedTypeResult ->
+    if { opening.text == "{" -> record_group(opening, close, slice); true -> non_record_group(opening, close, slice) }.
 
 @pure
 parse_grouped(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
     let slice = group(opening, values);
     case slice.close {
         None -> ProjectedTypeResult(false, None, slice.rest, "type group is unterminated");
-        Some(close) where opening.text == "{" ->
-            let fields = record_fields(slice.inner, List.new[ProjectedTypeNode]());
-            let children = node_children(fields.node);
-            let grouped_node = node(
-                    "record-or-tuple-type",
-                    "{}",
-                    opening.start_byte,
-                    close.end_byte,
-                    children,
-                );
-            ProjectedTypeResult(slice.valid and fields.valid, Some(grouped_node), slice.rest, fields.message);
-        Some(close) ->
-            let items = type_list(slice.inner, List.new[ProjectedTypeNode]());
-            case slice.rest {
-                [arrow | return_tokens] where opening.text == "(" and arrow.text == "->" ->
-                    let return_type = parse(return_tokens);
-                    case return_type.node {
-                        Some(return_node) ->
-                            let item_children = node_children(items.node);
-                            let children = append_node(item_children, return_node);
-                            let function_node = node(
-                                "function-type",
-                                "->",
-                                opening.start_byte,
-                                return_node.end_byte,
-                                children,
-                            );
-                            ProjectedTypeResult(items.valid and return_type.valid, Some(function_node), return_type.rest, return_type.message);
-                        None -> return_type
-                    };
-                _ ->
-                    let children = node_children(items.node);
-                    let tuple_node = node(
-                        "tuple-type",
-                        opening.text,
-                        opening.start_byte,
-                        close.end_byte,
-                        children,
-                    );
-                    ProjectedTypeResult(items.valid, Some(tuple_node), slice.rest, items.message)
-            }
+        Some(close) -> closed_group(opening, close, slice)
+    }.
+
+@pure
+atom_alias_pair(first: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): Bool ->
+    case rest {
+        [] -> first.terminal == "atom";
+        [second] -> first.text == ":" and second.terminal == "atom";
+        _ -> false
+    }.
+
+@pure
+atom_alias(values: List[ProjectedCanonicalToken]): Bool ->
+    case values {
+        [] -> false;
+        [first | rest] -> atom_alias_pair(first, rest)
+    }.
+
+@pure
+named_kind(is_atom_alias: Bool, qualified: TokenSplit): String ->
+    if { is_atom_alias and not qualified.found -> "atom-type"; true -> "named-type" }.
+
+@pure
+plain_named(values: List[ProjectedCanonicalToken], is_atom_alias: Bool, qualified: TokenSplit): ProjectedTypeResult ->
+    if { values == [] -> ProjectedTypeResult(false, None, List.new[ProjectedCanonicalToken](), "type name is empty"); true -> nonempty_named(values, is_atom_alias, qualified) }.
+
+@pure
+nonempty_named(values: List[ProjectedCanonicalToken], is_atom_alias: Bool, qualified: TokenSplit): ProjectedTypeResult ->
+    let named_node = node(named_kind(is_atom_alias, qualified), token_text(values), start(values), end(values), List.new[ProjectedTypeNode]());
+    ProjectedTypeResult(true, Some(named_node), List.new[ProjectedCanonicalToken](), "").
+
+@pure
+generic_close(generic: TokenSplit, slice: GroupSlice, arguments: ProjectedTypeResult, close: ProjectedCanonicalToken): ProjectedTypeResult ->
+    let generic_node = node("generic-type", token_text(generic.left), start(generic.left), close.end_byte, node_children(arguments.node));
+    ProjectedTypeResult(generic.left != [] and slice.valid and arguments.valid, Some(generic_node), slice.rest, arguments.message).
+
+@pure
+generic_slice(generic: TokenSplit, opening: ProjectedCanonicalToken): ProjectedTypeResult ->
+    let slice = group(opening, generic.right);
+    let arguments = type_list(slice.inner, List.new[ProjectedTypeNode]());
+    case slice.close {
+        Some(close) -> generic_close(generic, slice, arguments, close);
+        None -> ProjectedTypeResult(false, None, slice.rest, "generic type is missing ]")
+    }.
+
+@pure
+generic_named(values: List[ProjectedCanonicalToken], generic: TokenSplit): ProjectedTypeResult ->
+    case generic.separator {
+        Some(opening) -> generic_slice(generic, opening);
+        None -> ProjectedTypeResult(false, None, values, "generic type is invalid")
     }.
 
 @pure
 parse_named(values: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
     let generic = split(values, "[");
     let qualified = split(values, ".");
-    let atom_alias = case values {
-        [value] -> value.terminal == "atom";
-        [colon, value] -> colon.text == ":" and value.terminal == "atom";
-        _ -> false
-    };
-    if {
-        not generic.found -> if {
-            values == [] -> ProjectedTypeResult(false, None, List.new[ProjectedCanonicalToken](), "type name is empty");
-            true ->
-                let kind = if { atom_alias and not qualified.found -> "atom-type"; true -> "named-type" };
-                let named_node = node(
-                    kind,
-                    token_text(values),
-                    start(values),
-                    end(values),
-                    List.new[ProjectedTypeNode](),
-                );
-                ProjectedTypeResult(true, Some(named_node), List.new[ProjectedCanonicalToken](), "")
-        };
-        true -> case generic.separator {
-            Some(opening) ->
-                let slice = group(opening, generic.right);
-                let arguments = type_list(slice.inner, List.new[ProjectedTypeNode]());
-                case slice.close {
-                    Some(close) ->
-                        let children = node_children(arguments.node);
-                        let generic_node = node(
-                            "generic-type",
-                            token_text(generic.left),
-                            start(generic.left),
-                            close.end_byte,
-                            children,
-                        );
-                        ProjectedTypeResult(generic.left != [] and slice.valid and arguments.valid, Some(generic_node), slice.rest, arguments.message);
-                    None -> ProjectedTypeResult(false, None, slice.rest, "generic type is missing ]")
-                };
-            None -> ProjectedTypeResult(false, None, values, "generic type is invalid")
-        }
+    if { not generic.found -> plain_named(values, atom_alias(values), qualified); true -> generic_named(values, generic) }.
+
+@pure
+union_message(left: ProjectedTypeResult, right: ProjectedTypeResult): String ->
+    if { not left.valid -> left.message; true -> right.message }.
+
+@pure
+union_right(values: List[ProjectedCanonicalToken], left: ProjectedTypeResult, left_node: ProjectedTypeNode, right: ProjectedTypeResult): ProjectedTypeResult ->
+    case right.node {
+        Some(right_node) -> let union_node = node("union-type", "|", left_node.start_byte, right_node.end_byte, [left_node, right_node]);
+            ProjectedTypeResult(left.valid and right.valid, Some(union_node), right.rest, union_message(left, right));
+        None -> ProjectedTypeResult(false, None, values, "union type is invalid")
+    }.
+
+@pure
+union_nodes(values: List[ProjectedCanonicalToken], left: ProjectedTypeResult, right: ProjectedTypeResult): ProjectedTypeResult ->
+    case left.node {
+        Some(left_node) -> union_right(values, left, left_node, right);
+        None -> ProjectedTypeResult(false, None, values, "union type is invalid")
+    }.
+
+@pure
+parse_union(values: List[ProjectedCanonicalToken], union: TokenSplit): ProjectedTypeResult ->
+    union_nodes(values, parse(union.left), parse(union.right)).
+
+@pure
+existential_node(exists: ProjectedCanonicalToken, binder: ProjectedCanonicalToken, representation: ProjectedTypeResult, value: ProjectedTypeNode): ProjectedTypeResult ->
+    let existential = node("existential-type", binder.text, exists.start_byte, value.end_byte, [value]);
+    ProjectedTypeResult(representation.valid, Some(existential), representation.rest, representation.message).
+
+@pure
+existential_type(exists: ProjectedCanonicalToken, binder: ProjectedCanonicalToken, body: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    let representation = parse(body);
+    case representation.node {
+        Some(value) -> existential_node(exists, binder, representation, value);
+        None -> representation
+    }.
+
+@pure
+opening_or_named(values: List[ProjectedCanonicalToken], opening: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    if { opening.text == "(" or opening.text == "{" -> parse_grouped(opening, rest); true -> parse_named(values) }.
+
+@pure
+existential_candidate(values: List[ProjectedCanonicalToken], exists: ProjectedCanonicalToken, binder: ProjectedCanonicalToken, dot: ProjectedCanonicalToken, body: List[ProjectedCanonicalToken], rest: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    if { exists.text == "exists" and dot.text == "." -> existential_type(exists, binder, body); true -> opening_or_named(values, exists, rest) }.
+
+@pure
+existential_tail(values: List[ProjectedCanonicalToken], exists: ProjectedCanonicalToken, binder: ProjectedCanonicalToken, tail: List[ProjectedCanonicalToken], rest: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    case tail {
+        [dot | body] -> existential_candidate(values, exists, binder, dot, body, rest);
+        [] -> opening_or_named(values, exists, rest)
+    }.
+
+@pure
+nonunion_first(values: List[ProjectedCanonicalToken], first: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    case rest {
+        [binder | tail] -> existential_tail(values, first, binder, tail, rest);
+        [] -> opening_or_named(values, first, rest)
+    }.
+
+@pure
+parse_nonunion(values: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
+    case values {
+        [] -> parse_named(values);
+        [first | rest] -> nonunion_first(values, first, rest)
     }.
 
 /** Parses one complete canonical type expression. */
 @pure
 pub parse(values: List[ProjectedCanonicalToken]): ProjectedTypeResult ->
     let union = split(values, "|");
-    if {
-        union.found ->
-            let left = parse(union.left);
-            let right = parse(union.right);
-            case {left.node, right.node} {
-                {Some(left_node), Some(right_node)} ->
-                    let union_node = node("union-type", "|", left_node.start_byte, right_node.end_byte, [left_node, right_node]);
-                    ProjectedTypeResult(left.valid and right.valid, Some(union_node), right.rest, if { not left.valid -> left.message; true -> right.message });
-                _ -> ProjectedTypeResult(false, None, values, "union type is invalid")
-            };
-        true -> case values {
-            [exists | [binder | [dot | body]]] where exists.text == "exists" and dot.text == "." ->
-                let representation = parse(body);
-                case representation.node {
-                    Some(value) ->
-                        let existential_node = node(
-                            "existential-type",
-                            binder.text,
-                            exists.start_byte,
-                            value.end_byte,
-                            [value],
-                        );
-                        ProjectedTypeResult(representation.valid, Some(existential_node), representation.rest, representation.message);
-                    None -> representation
-                };
-            [opening | rest] where opening.text == "(" or opening.text == "{" -> parse_grouped(opening, rest);
-            _ -> parse_named(values)
-        }
-    }.
+    if { union.found -> parse_union(values, union); true -> parse_nonunion(values) }.

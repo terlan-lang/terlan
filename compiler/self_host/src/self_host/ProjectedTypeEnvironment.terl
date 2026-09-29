@@ -66,6 +66,57 @@ qualified_types(
     }.
 
 @pure
+imported_interface_types(value: ResolvedImport, interfaces: List[ModuleInterface]): List[String] ->
+    case find_interface(interfaces, value.source_module) {
+        Some(interface) -> qualified_types(
+            interface.symbols,
+            value.source_module,
+            module_alias(value.source_module),
+        );
+        None -> List.new[String]()
+    }.
+
+@pure
+import_after_selected(
+    value: ResolvedImport,
+    rest: List[ResolvedImport],
+    interfaces: List[ModuleInterface],
+    owner: String,
+): List[String] ->
+    if {
+        value.local_name == "" -> append(
+            imported_interface_types(value, interfaces),
+            import_types(rest, interfaces, owner),
+        );
+        true -> import_types(rest, interfaces, owner)
+    }.
+
+@pure
+import_after_owner(
+    value: ResolvedImport,
+    rest: List[ResolvedImport],
+    interfaces: List[ModuleInterface],
+    owner: String,
+): List[String] ->
+    if {
+        value.local_name != "" and value.is_type ->
+            [value.local_name | import_types(rest, interfaces, owner)];
+        true -> import_after_selected(value, rest, interfaces, owner)
+    }.
+
+@pure
+import_head(
+    value: ResolvedImport,
+    rest: List[ResolvedImport],
+    interfaces: List[ModuleInterface],
+    owner: String,
+): List[String] ->
+    if {
+        value.owner_module != owner -> import_types(rest, interfaces, owner);
+        true -> import_after_owner(value, rest, interfaces, owner)
+    }.
+
+@pure
 import_types(
     values: List[ResolvedImport],
     interfaces: List[ModuleInterface],
@@ -73,20 +124,7 @@ import_types(
 ): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] where value.owner_module != owner -> import_types(rest, interfaces, owner);
-        [value | rest] where value.local_name != "" and value.is_type ->
-            [value.local_name | import_types(rest, interfaces, owner)];
-        [value | rest] where value.local_name == "" ->
-            let imported = case find_interface(interfaces, value.source_module) {
-                Some(interface) -> qualified_types(
-                    interface.symbols,
-                    value.source_module,
-                    module_alias(value.source_module),
-                );
-                None -> List.new[String]()
-            };
-            append(imported, import_types(rest, interfaces, owner));
-        [_value | rest] -> import_types(rest, interfaces, owner)
+        [value | rest] -> import_head(value, rest, interfaces, owner)
     }.
 
 /** Returns unique type identities visible to one resolved module. */

@@ -1,6 +1,7 @@
 /** Positive and negative declaration-lowering contracts. */
 module self_host.DeclarationLoweringTest.
 
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{FunctionDeclaration, TypeDeclaration}.
 
 import std.collections.List.
@@ -9,20 +10,38 @@ import self_host.DeclarationLowering.
 import self_host.Parser.
 
 @pure
+expected_declaration_end(state: DeclarationSyntax, run: DeclarationSyntax, values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] ->
+            state.class == TypeDeclaration
+                and state.name == "State"
+                and run.class == FunctionDeclaration
+                and run.name == "run"
+                and String.contains(run.header, "->");
+        [_ | _] -> false
+    }.
+
+@pure
+expected_declaration_tail(state: DeclarationSyntax, values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [run | rest] -> expected_declaration_end(state, run, rest)
+    }.
+
+@pure
+expected_declarations(values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [state | rest] -> expected_declaration_tail(state, rest)
+    }.
+
+@pure
 positive_lowering(): Bool ->
     let source = "module demo.Typed.\npub type State = Ready | Failed(String).\npub run(value: String): String -> value.\n";
     let lowered = DeclarationLowering.lower(Parser.parse_surface(source));
     lowered.valid
         and lowered.name == "demo.Typed"
-        and case lowered.declarations {
-            [state, run] ->
-                state.class == TypeDeclaration
-                    and state.name == "State"
-                    and run.class == FunctionDeclaration
-                    and run.name == "run"
-                    and String.contains(run.header, "->");
-            _ -> false
-        }.
+        and expected_declarations(lowered.declarations).
 
 @pure
 negative_lowering_preserves_errors(): Bool ->

@@ -6,7 +6,7 @@ import self_host.ImportSyntax.{CssImport, FileImport, ImportItemSyntax, ImportKi
 import self_host.Syntax.{ImportDeclaration}.
 
 import std.collections.List.
-import std.core.{Int, String}.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 
 
@@ -31,10 +31,18 @@ strip_quotes(source: String): String ->
     }.
 
 @pure
+item_name(value: String, alias_at: Int): String ->
+    if { alias_at < 0 -> value; true -> String.trim(value.utf8_slice(0, alias_at)) }.
+
+@pure
+item_alias(value: String, alias_at: Int): String ->
+    if { alias_at < 0 -> ""; true -> String.trim(value.utf8_slice(alias_at + 4, value.byte_size() - alias_at - 4)) }.
+
+@pure
 item(source: String): ImportItemSyntax ->
     let value = String.trim(source);
     let alias_at = Delimited.top_level_text(value, " as ");
-    ImportItemSyntax(if { alias_at < 0 -> value; true -> String.trim(value.utf8_slice(0, alias_at)) }, if { alias_at < 0 -> ""; true -> String.trim(value.utf8_slice(alias_at + 4, value.byte_size() - alias_at - 4)) }, alias_at >= 0).
+    ImportItemSyntax(item_name(value, alias_at), item_alias(value, alias_at), alias_at >= 0).
 
 @pure
 drop_terminal_empty(values: List[String]): List[String] ->
@@ -49,8 +57,31 @@ asset_kind(source: String): ImportKind ->
     if { String.starts_with(source, "file ") -> FileImport; String.starts_with(source, "css ") -> CssImport; true -> MarkdownImport }.
 
 @pure
+asset_prefix_after_file(kind: ImportKind): Int ->
+    if {
+        kind == CssImport -> 4;
+        true -> asset_prefix_after_css(kind)
+    }.
+
+@pure
+asset_prefix_after_css(kind: ImportKind): Int ->
+    if { kind == MarkdownImport -> 9; true -> 0 }.
+
+@pure
 asset_prefix(kind: ImportKind): Int ->
-    case kind { FileImport -> 5; CssImport -> 4; MarkdownImport -> 9; _ -> 0 }.
+    if { kind == FileImport -> 5; true -> asset_prefix_after_file(kind) }.
+
+@pure
+asset_source_path(payload: String, alias_at: Int, valid: Bool): String ->
+    if { valid -> strip_quotes(String.trim(payload.utf8_slice(0, alias_at))); true -> "" }.
+
+@pure
+asset_alias(payload: String, alias_at: Int, valid: Bool): String ->
+    if { valid -> String.trim(payload.utf8_slice(alias_at + 4, payload.byte_size() - alias_at - 4)); true -> "" }.
+
+@pure
+asset_message(valid: Bool): String ->
+    if { valid -> ""; true -> "asset import requires `as Alias`" }.
 
 @pure
 lower_asset(source: DeclarationSyntax, body: String): ImportSyntax ->
@@ -58,41 +89,81 @@ lower_asset(source: DeclarationSyntax, body: String): ImportSyntax ->
     let payload = drop_prefix(body, asset_prefix(kind));
     let alias_at = Delimited.top_level_text(payload, " as ");
     let valid = alias_at > 0;
-    ImportSyntax(valid, kind, "", if { valid -> strip_quotes(String.trim(payload.utf8_slice(0, alias_at))); true -> "" }, if { valid -> String.trim(payload.utf8_slice(alias_at + 4, payload.byte_size() - alias_at - 4)); true -> "" }, valid, false, false, List.new[ImportItemSyntax](), source.span, if { valid -> ""; true -> "asset import requires `as Alias`" }).
+    ImportSyntax(valid, kind, "", asset_source_path(payload, alias_at, valid), asset_alias(payload, alias_at, valid), valid, false, false, List.new[ImportItemSyntax](), source.span, asset_message(valid)).
+
+@pure
+module_body(original: String, is_type: Bool): String ->
+    if { is_type -> drop_prefix(original, 5); true -> original }.
+
+@pure
+module_alias_at(body: String, selector_at: Int): Int ->
+    if { selector_at < 0 -> Delimited.top_level_text(body, " as "); true -> -1 }.
+
+@pure
+module_name_after_selector(body: String, alias_at: Int): String ->
+    if { alias_at >= 0 -> String.trim(body.utf8_slice(0, alias_at)); true -> body }.
+
+@pure
+import_module_name(body: String, selector_at: Int, alias_at: Int): String ->
+    if {
+        selector_at >= 0 -> String.trim(body.utf8_slice(0, selector_at));
+        true -> module_name_after_selector(body, alias_at)
+    }.
+
+@pure
+module_selected_text(body: String, selector_at: Int): String ->
+    if {
+        selector_at >= 0 and String.ends_with(body, "}") -> body.utf8_slice(selector_at + 2, body.byte_size() - selector_at - 3);
+        true -> ""
+    }.
+
+@pure
+module_selected_items(selected_text: String, selector_at: Int): List[ImportItemSyntax] ->
+    if {
+        selector_at >= 0 -> items(drop_terminal_empty(Delimited.split_top_level(selected_text, 44)));
+        true -> List.new[ImportItemSyntax]()
+    }.
+
+@pure
+module_alias(body: String, alias_at: Int): String ->
+    if { alias_at < 0 -> ""; true -> String.trim(body.utf8_slice(alias_at + 4, body.byte_size() - alias_at - 4)) }.
+
+@pure
+module_message(valid: Bool): String ->
+    if { valid -> ""; true -> "module import is incomplete" }.
 
 @pure
 lower_module(source: DeclarationSyntax, original: String): ImportSyntax ->
     let is_type = String.starts_with(original, "type ");
-    let body = if { is_type -> drop_prefix(original, 5); true -> original };
+    let body = module_body(original, is_type);
     let selector_at = Delimited.top_level_text(body, ".{");
-    let alias_at = if { selector_at < 0 -> Delimited.top_level_text(body, " as "); true -> -1 };
-    let module_name = if {
-        selector_at >= 0 -> String.trim(body.utf8_slice(0, selector_at));
-        alias_at >= 0 -> String.trim(body.utf8_slice(0, alias_at));
-        true -> body
-    };
-    let selected_text = if {
-        selector_at >= 0 and String.ends_with(body, "}") -> body.utf8_slice(selector_at + 2, body.byte_size() - selector_at - 3);
-        true -> ""
-    };
-    let selected_items = if {
-        selector_at >= 0 -> items(drop_terminal_empty(Delimited.split_top_level(selected_text, 44)));
-        true -> List.new[ImportItemSyntax]()
-    };
+    let alias_at = module_alias_at(body, selector_at);
+    let module_name = import_module_name(body, selector_at, alias_at);
+    let selected_text = module_selected_text(body, selector_at);
+    let selected_items = module_selected_items(selected_text, selector_at);
     let valid = module_name != "" and (selector_at < 0 or String.ends_with(body, "}"));
-    ImportSyntax(valid, ModuleImport, module_name, "", if { alias_at < 0 -> ""; true -> String.trim(body.utf8_slice(alias_at + 4, body.byte_size() - alias_at - 4)) }, alias_at >= 0, is_type, selector_at >= 0, selected_items, source.span, if { valid -> ""; true -> "module import is incomplete" }).
+    ImportSyntax(valid, ModuleImport, module_name, "", module_alias(body, alias_at), alias_at >= 0, is_type, selector_at >= 0, selected_items, source.span, module_message(valid)).
+
+@pure
+import_body(source: DeclarationSyntax, supported: Bool): String ->
+    if {
+        supported and String.starts_with(String.trim(source.body), "import ") -> strip_terminal_dot(drop_prefix(String.trim(source.body), 7));
+        true -> ""
+    }.
+
+@pure
+lower_supported(source: DeclarationSyntax, body: String): ImportSyntax ->
+    if {
+        String.starts_with(body, "file ") or String.starts_with(body, "css ") or String.starts_with(body, "markdown ") -> lower_asset(source, body);
+        true -> lower_module(source, body)
+    }.
 
 /** Lowers one complete canonical import declaration. */
 @pure
 pub lower(source: DeclarationSyntax): ImportSyntax ->
     let supported = source.class == ImportDeclaration;
-    let body = if {
-        supported and String.starts_with(String.trim(source.body), "import ") -> strip_terminal_dot(drop_prefix(String.trim(source.body), 7));
-        true -> ""
-    };
+    let body = import_body(source, supported);
     if {
         not supported -> ImportSyntax(false, ModuleImport, "", "", "", false, false, false, List.new[ImportItemSyntax](), source.span, "declaration is not an import");
-        String.starts_with(body, "file ") or String.starts_with(body, "css ") or String.starts_with(body, "markdown ") -> lower_asset(source, body);
-        true -> lower_module(source, body)
+        true -> lower_supported(source, body)
     }.
-

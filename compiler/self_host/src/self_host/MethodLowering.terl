@@ -2,10 +2,14 @@
 module self_host.MethodLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExpressionSyntax.{ExpressionParse}.
 import self_host.MethodSyntax.{MethodSyntax}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.Syntax.{MethodDeclaration}.
+import self_host.TypeSyntax.{TypeParse}.
 
-import std.core.{Int, String}.
+import std.collections.List.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.ParameterParser.
@@ -13,13 +17,32 @@ import self_host.TypeParser.
 
 
 @pure
+matching_after_close(source: String, index: Int, depth: Int, current: Int): Int ->
+    if {
+        current == 41 -> matching_parenthesis(source, index + 1, depth - 1);
+        true -> matching_parenthesis(source, index + 1, depth)
+    }.
+
+@pure
+matching_after_open(source: String, index: Int, depth: Int, current: Int): Int ->
+    if {
+        current == 41 and depth == 1 -> index;
+        true -> matching_after_close(source, index, depth, current)
+    }.
+
+@pure
+matching_after_end(source: String, index: Int, depth: Int): Int ->
+    let current = source.utf8_byte_at(index);
+    if {
+        current == 40 -> matching_parenthesis(source, index + 1, depth + 1);
+        true -> matching_after_open(source, index, depth, current)
+    }.
+
+@pure
 matching_parenthesis(source: String, index: Int, depth: Int): Int ->
     if {
         index == source.byte_size() -> -1;
-        source.utf8_byte_at(index) == 40 -> matching_parenthesis(source, index + 1, depth + 1);
-        source.utf8_byte_at(index) == 41 and depth == 1 -> index;
-        source.utf8_byte_at(index) == 41 -> matching_parenthesis(source, index + 1, depth - 1);
-        true -> matching_parenthesis(source, index + 1, depth)
+        true -> matching_after_end(source, index, depth)
     }.
 
 @pure
@@ -31,16 +54,97 @@ strip_terminal_dot(source: String): String ->
 failure(source: DeclarationSyntax, message: String): MethodSyntax ->
     MethodSyntax(false, "", ParameterParser.parse(""), ParameterParser.parse_all(""), TypeParser.parse(""), false, ExpressionParser.parse(""), source.is_public, source.span, message).
 
+@pure
+method_public_offset(value: String): Int ->
+    if {
+        String.starts_with(value, "pub ") -> 4;
+        true -> 0
+    }.
+
+@pure
+method_receiver_close(value: String, receiver_open: Int): Int ->
+    if {
+        receiver_open < value.byte_size() and value.utf8_byte_at(receiver_open) == 40 -> matching_parenthesis(value, receiver_open + 1, 1);
+        true -> -1
+    }.
+
+@pure
+method_parameters(callable: String, open: Int, colon: Int, parameters_closed: Bool): List[ParameterSyntax] ->
+    if {
+        parameters_closed -> ParameterParser.parse_all(callable.utf8_slice(open + 1, colon - open - 2));
+        true -> ParameterParser.parse_all("")
+    }.
+
+@pure
+method_return_end(callable: String, arrow: Int): Int ->
+    if {
+        arrow < 0 -> callable.byte_size();
+        true -> arrow
+    }.
+
+@pure
+method_return_type(callable: String, colon: Int, return_end: Int): TypeParse ->
+    if {
+        colon >= 0 -> TypeParser.parse(String.trim(callable.utf8_slice(colon + 1, return_end - colon - 1)));
+        true -> TypeParser.parse("")
+    }.
+
+@pure
+method_body(callable: String, arrow: Int): ExpressionParse ->
+    if {
+        arrow < 0 -> ExpressionParser.parse("");
+        true -> ExpressionParser.parse(String.trim(callable.utf8_slice(arrow + 2, callable.byte_size() - arrow - 2)))
+    }.
+
+@pure
+method_name(callable: String, open: Int): String ->
+    if {
+        open > 0 -> String.trim(callable.utf8_slice(0, open));
+        true -> ""
+    }.
+
+@pure
+method_message_after_return(arrow: Int, body_valid: Bool, body_message: String): String ->
+    if {
+        arrow >= 0 and not body_valid -> body_message;
+        true -> ""
+    }.
+
+@pure
+method_message_after_parameters(return_valid: Bool, return_message: String, arrow: Int, body_valid: Bool, body_message: String): String ->
+    if {
+        not return_valid -> return_message;
+        true -> method_message_after_return(arrow, body_valid, body_message)
+    }.
+
+@pure
+method_message_after_closed(parameters: List[ParameterSyntax], return_valid: Bool, return_message: String, arrow: Int, body_valid: Bool, body_message: String): String ->
+    if {
+        not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
+        true -> method_message_after_parameters(return_valid, return_message, arrow, body_valid, body_message)
+    }.
+
+@pure
+method_message_after_receiver(parameters_closed: Bool, parameters: List[ParameterSyntax], return_valid: Bool, return_message: String, arrow: Int, body_valid: Bool, body_message: String): String ->
+    if {
+        not parameters_closed -> "method parameter list is incomplete";
+        true -> method_message_after_closed(parameters, return_valid, return_message, arrow, body_valid, body_message)
+    }.
+
+@pure
+method_message(receiver_valid: Bool, receiver_message: String, parameters_closed: Bool, parameters: List[ParameterSyntax], return_valid: Bool, return_message: String, arrow: Int, body_valid: Bool, body_message: String): String ->
+    if {
+        not receiver_valid -> receiver_message;
+        true -> method_message_after_receiver(parameters_closed, parameters, return_valid, return_message, arrow, body_valid, body_message)
+    }.
+
 /** Lowers one canonical `(receiver: Type) method(...): Return` declaration. */
 @pure
 pub lower(source: DeclarationSyntax): MethodSyntax ->
     let value = strip_terminal_dot(source.body);
-    let public_offset = if { String.starts_with(value, "pub ") -> 4; true -> 0 };
+    let public_offset = method_public_offset(value);
     let receiver_open = public_offset;
-    let receiver_close = if {
-        receiver_open < value.byte_size() and value.utf8_byte_at(receiver_open) == 40 -> matching_parenthesis(value, receiver_open + 1, 1);
-        true -> -1
-    };
+    let receiver_close = method_receiver_close(value, receiver_open);
     if {
         source.class != MethodDeclaration -> failure(source, "declaration is not a method");
         receiver_close < 0 -> failure(source, "method receiver is incomplete");
@@ -52,31 +156,25 @@ pub lower(source: DeclarationSyntax): MethodSyntax ->
             let colon = Delimited.top_level_byte(callable, 58);
             let arrow = Delimited.top_level_pair(callable, 45, 62);
             let parameters_closed = open > 0 and colon > open and callable.utf8_byte_at(colon - 1) == 41;
-            let parameters = if {
-                parameters_closed -> ParameterParser.parse_all(callable.utf8_slice(open + 1, colon - open - 2));
-                true -> ParameterParser.parse_all("")
-            };
-            let return_end = if { arrow < 0 -> callable.byte_size(); true -> arrow };
-            let return_type = if {
-                colon >= 0 -> TypeParser.parse(String.trim(callable.utf8_slice(colon + 1, return_end - colon - 1)));
-                true -> TypeParser.parse("")
-            };
-            let body = if {
-                arrow < 0 -> ExpressionParser.parse("");
-                true -> ExpressionParser.parse(String.trim(callable.utf8_slice(arrow + 2, callable.byte_size() - arrow - 2)))
-            };
+            let parameters = method_parameters(callable, open, colon, parameters_closed);
+            let return_end = method_return_end(callable, arrow);
+            let return_type = method_return_type(callable, colon, return_end);
+            let body = method_body(callable, arrow);
             let valid = receiver.valid
                 and parameters_closed
                 and ParameterParser.all_valid(parameters)
                 and return_type.valid
                 and (arrow < 0 or body.valid);
-            MethodSyntax(valid, if { open > 0 -> String.trim(callable.utf8_slice(0, open)); true -> "" }, receiver, parameters, return_type, arrow >= 0, body, source.is_public, source.span, if {
-                    not receiver.valid -> receiver.message;
-                    not parameters_closed -> "method parameter list is incomplete";
-                    not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
-                    not return_type.valid -> return_type.message;
-                    arrow >= 0 and not body.valid -> body.message;
-                    true -> ""
-                })
+            MethodSyntax(
+                valid,
+                method_name(callable, open),
+                receiver,
+                parameters,
+                return_type,
+                arrow >= 0,
+                body,
+                source.is_public,
+                source.span,
+                method_message(receiver.valid, receiver.message, parameters_closed, parameters, return_type.valid, return_type.message, arrow, body.valid, body.message),
+            )
     }.
-

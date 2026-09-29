@@ -11,6 +11,13 @@ import std.io.Console.eprintln.
 import std.io.Directory.
 import std.system.Process.
 
+completion_ok(completion: std.system.Process.Output): Bool ->
+    if {
+        Process.status(completion) == 0 -> true;
+        true -> let _reported = eprintln(Process.stderr(completion));
+        false
+    }.
+
 run_validator(output: String): Bool ->
     let command = Process.with_arguments(Process.command("cargo"), [
         "run", "--quiet", "-p", "terlan", "--bin", "terlan-self-host-parity", "--",
@@ -24,9 +31,7 @@ run_validator(output: String): Bool ->
     case Process.run(command) {
         Err(reason) -> let _reported = eprintln(Process.error_message(reason));
         false;
-        Ok(completion) where Process.status(completion) == 0 -> true;
-        Ok(completion) -> let _reported = eprintln(Process.stderr(completion));
-        false
+        Ok(completion) -> completion_ok(completion)
     }.
 
 /** Produces the trusted seed package and all fixed-point evidence. */

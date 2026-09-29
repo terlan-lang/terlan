@@ -77,16 +77,12 @@ last_token_end(values: List[ProjectedCanonicalToken]): Int ->
     }.
 
 @pure
-has_prefix(value: Option[ProjectedCanonicalToken]): Bool ->
-    case value { Some(_token) -> true; None -> false }.
+prefix_text(found: Bool, value: ProjectedCanonicalToken, opening: ProjectedCanonicalToken): String ->
+    if { found -> value.text; true -> opening.text }.
 
 @pure
-prefix_text(value: Option[ProjectedCanonicalToken], opening: ProjectedCanonicalToken): String ->
-    case value { Some(token) -> token.text; None -> opening.text }.
-
-@pure
-prefix_start(value: Option[ProjectedCanonicalToken], opening: ProjectedCanonicalToken): Int ->
-    case value { Some(token) -> token.start_byte; None -> opening.start_byte }.
+prefix_start(found: Bool, value: ProjectedCanonicalToken, opening: ProjectedCanonicalToken): Int ->
+    if { found -> value.start_byte; true -> opening.start_byte }.
 
 @pure
 element_children(value: Option[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
@@ -106,6 +102,34 @@ token_nodes(values: List[ProjectedCanonicalToken]): List[ProjectedExpressionNode
     }.
 
 @pure
+close_parens(text: String, current: Int): Int ->
+    if { text == ")" -> current - 1; true -> current }.
+
+@pure
+next_parens(text: String, current: Int): Int ->
+    if { text == "(" -> current + 1; true -> close_parens(text, current) }.
+
+@pure
+close_brackets(text: String, current: Int): Int ->
+    if { text == "]" -> current - 1; true -> current }.
+
+@pure
+next_brackets(text: String, current: Int): Int ->
+    if { text == "[" -> current + 1; true -> close_brackets(text, current) }.
+
+@pure
+close_braces(text: String, current: Int): Int ->
+    if { text == "}" -> current - 1; true -> current }.
+
+@pure
+next_braces(text: String, current: Int): Int ->
+    if { text == "{" -> current + 1; true -> close_braces(text, current) }.
+
+@pure
+split_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], delimiter: String, parens: Int, brackets: Int, braces: Int, output: List[ProjectedCanonicalToken]): TokenSplit ->
+    split_at(rest, delimiter, next_parens(value.text, parens), next_brackets(value.text, brackets), next_braces(value.text, braces), [value | output]).
+
+@pure
 split_at(
     values: List[ProjectedCanonicalToken],
     delimiter: String,
@@ -119,19 +143,24 @@ split_at(
         [value | rest]
             where value.text == delimiter and parens == 0 and brackets == 0 and braces == 0 ->
             TokenSplit(found = true, left = reverse(output), right = rest);
-        [value | rest] -> split_at(
-            rest,
-            delimiter,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
-            [value | output],
-        )
+        [value | rest] -> split_continue(value, rest, delimiter, parens, brackets, braces, output)
     }.
 
 @pure
 split(values: List[ProjectedCanonicalToken], delimiter: String): TokenSplit ->
     split_at(values, delimiter, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+close_group_depth(text: String, depth: Int): Int ->
+    if { text == ")" or text == "]" or text == "}" -> depth - 1; true -> depth }.
+
+@pure
+next_group_depth(text: String, depth: Int): Int ->
+    if { text == "(" or text == "[" or text == "{" -> depth + 1; true -> close_group_depth(text, depth) }.
+
+@pure
+group_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], close_text: String, depth: Int, output: List[ProjectedCanonicalToken]): GroupSlice ->
+    group_at(rest, close_text, next_group_depth(value.text, depth), [value | output]).
 
 @pure
 group_at(
@@ -144,26 +173,48 @@ group_at(
         [] -> GroupSlice(valid = false, inner = reverse(output), close = None, rest = List.new[ProjectedCanonicalToken]());
         [value | rest] where value.text == close_text and depth == 1 ->
             GroupSlice(valid = true, inner = reverse(output), close = Some(value), rest = rest);
-        [value | rest] -> group_at(
-            rest,
-            close_text,
-            if {
-                value.text == "(" or value.text == "[" or value.text == "{" -> depth + 1;
-                value.text == ")" or value.text == "]" or value.text == "}" -> depth - 1;
-                true -> depth
-            },
-            [value | output],
-        )
+        [value | rest] -> group_continue(value, rest, close_text, depth, output)
     }.
+
+@pure
+non_paren_close(text: String): String ->
+    if { text == "[" -> "]"; true -> "}" }.
+
+@pure
+group_close(text: String): String ->
+    if { text == "(" -> ")"; true -> non_paren_close(text) }.
 
 @pure
 group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
     group_at(
         values,
-        if { opening.text == "(" -> ")"; opening.text == "[" -> "]"; true -> "}" },
+        group_close(opening.text),
         1,
         List.new[ProjectedCanonicalToken](),
     ).
+
+@pure
+finish_pattern_sequence(current: ProjectedExpressionResult, value: ProjectedExpressionNode, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    let ordered = reverse([value | output]);
+    let sequence = node("patterns", "", first_node_start(ordered), value.end_byte, ordered);
+    ProjectedExpressionResult(current.valid, Some(sequence), current.rest, current.message).
+
+@pure
+continue_pattern_sequence(current: ProjectedExpressionResult, value: ProjectedExpressionNode, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    if { comma.found -> pattern_sequence(comma.right, [value | output]); true -> finish_pattern_sequence(current, value, output) }.
+
+@pure
+pattern_sequence_node(current: ProjectedExpressionResult, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    case current.node {
+        None -> current;
+        Some(value) -> continue_pattern_sequence(current, value, comma, output)
+    }.
+
+@pure
+nonempty_pattern_sequence(values: List[ProjectedCanonicalToken], output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    let comma = split(values, ",");
+    let current = parse(comma.left);
+    pattern_sequence_node(current, comma, output).
 
 @pure
 pattern_sequence(
@@ -174,24 +225,49 @@ pattern_sequence(
         values == [] -> let ordered = reverse(output);
             let sequence = node("patterns", "", 0, 0, ordered);
             ProjectedExpressionResult(true, Some(sequence), List.new[ProjectedCanonicalToken](), "");
-        true ->
-            let comma = split(values, ",");
-            let current = parse(comma.left);
-            case current.node {
-                None -> current;
-                Some(value) where comma.found -> pattern_sequence(comma.right, [value | output]);
-                Some(value) ->
-                    let ordered = reverse([value | output]);
-                    let sequence = node(
-                            "patterns",
-                            "",
-                            first_node_start(ordered),
-                            value.end_byte,
-                            ordered,
-                        );
-                    ProjectedExpressionResult(current.valid, Some(sequence), current.rest, current.message)
-            }
+        true -> nonempty_pattern_sequence(values, output)
     }.
+
+@pure
+finish_keyed_pattern(parsed: ProjectedExpressionResult, field_node: ProjectedExpressionNode, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    let ordered = reverse([field_node | output]);
+    let fields_node = node("keyed-pattern-fields", "", first_node_start(ordered), field_node.end_byte, ordered);
+    ProjectedExpressionResult(parsed.valid, Some(fields_node), parsed.rest, parsed.message).
+
+@pure
+continue_keyed_pattern(parsed: ProjectedExpressionResult, field_node: ProjectedExpressionNode, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    if { comma.found -> keyed_pattern_sequence(comma.right, [field_node | output]); true -> finish_keyed_pattern(parsed, field_node, output) }.
+
+@pure
+keyed_value(name: ProjectedCanonicalToken, parsed: ProjectedExpressionResult, value: ProjectedExpressionNode, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    let field_node = node("keyed-pattern-field", name.text, name.start_byte, value.end_byte, [value]);
+    continue_keyed_pattern(parsed, field_node, comma, output).
+
+@pure
+keyed_parsed(name: ProjectedCanonicalToken, parsed: ProjectedExpressionResult, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    case parsed.node {
+        Some(value) -> keyed_value(name, parsed, value, comma, output);
+        None -> ProjectedExpressionResult(false, None, comma.right, "keyed pattern field is invalid")
+    }.
+
+@pure
+keyed_name(values: List[ProjectedCanonicalToken], parsed: ProjectedExpressionResult, comma: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    case values {
+        [name | _] -> keyed_parsed(name, parsed, comma, output);
+        [] -> ProjectedExpressionResult(false, None, comma.right, "keyed pattern field is invalid")
+    }.
+
+@pure
+keyed_field(comma: TokenSplit, field: TokenSplit, output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    if {
+        not field.found -> ProjectedExpressionResult(false, None, comma.right, "keyed pattern field is missing :");
+        true -> keyed_name(field.left, parse(field.right), comma, output)
+    }.
+
+@pure
+nonempty_keyed_pattern(values: List[ProjectedCanonicalToken], output: List[ProjectedExpressionNode]): ProjectedExpressionResult ->
+    let comma = split(values, ",");
+    keyed_field(comma, split(comma.left, ":"), output).
 
 @pure
 keyed_pattern_sequence(
@@ -202,39 +278,71 @@ keyed_pattern_sequence(
         values == [] -> let ordered = reverse(output);
             let fields_node = node("keyed-pattern-fields", "", 0, 0, ordered);
             ProjectedExpressionResult(true, Some(fields_node), List.new[ProjectedCanonicalToken](), "");
-        true -> let comma = split(values, ",");
-            let field = split(comma.left, ":");
-            if {
-                not field.found -> ProjectedExpressionResult(false, None, comma.right, "keyed pattern field is missing :");
-                true -> let parsed = parse(field.right);
-                    case {field.left, parsed.node} {
-                        {[name | _], Some(value)} -> let field_node = node(
-                            "keyed-pattern-field",
-                            name.text,
-                            name.start_byte,
-                            value.end_byte,
-                            [value],
-                        );
-                        if {
-                            comma.found -> keyed_pattern_sequence(comma.right, [field_node | output]);
-                            true -> let ordered = reverse([field_node | output]);
-                                let fields_node = node(
-                                        "keyed-pattern-fields",
-                                        "",
-                                        first_node_start(ordered),
-                                        field_node.end_byte,
-                                        ordered,
-                                    );
-                                ProjectedExpressionResult(parsed.valid, Some(fields_node), parsed.rest, parsed.message)
-                        };
-                        _ -> ProjectedExpressionResult(false, None, comma.right, "keyed pattern field is invalid")
-                    }
-            }
+        true -> nonempty_keyed_pattern(values, output)
     }.
 
 @pure
+list_cons_tail(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, head: ProjectedExpressionResult, head_node: ProjectedExpressionNode, tail: ProjectedExpressionResult): ProjectedExpressionResult ->
+    case tail.node {
+        Some(tail_node) -> let cons_node = node("list-cons-pattern", "|", opening.start_byte, close.end_byte, [head_node, tail_node]);
+            ProjectedExpressionResult(head.valid and tail.valid, Some(cons_node), slice.rest, "");
+        None -> ProjectedExpressionResult(false, None, slice.rest, "list cons pattern is invalid")
+    }.
+
+@pure
+list_cons_head(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, head: ProjectedExpressionResult, tail: ProjectedExpressionResult): ProjectedExpressionResult ->
+    case head.node {
+        Some(head_node) -> list_cons_tail(opening, close, slice, head, head_node, tail);
+        None -> ProjectedExpressionResult(false, None, slice.rest, "list cons pattern is invalid")
+    }.
+
+@pure
+list_cons_pattern(opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, pipe: TokenSplit): ProjectedExpressionResult ->
+    let head = parse(pipe.left);
+    let tail = parse(pipe.right);
+    list_cons_head(opening, close, slice, head, tail).
+
+@pure
+group_elements(opening: ProjectedCanonicalToken, colon: TokenSplit, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    if { opening.text == "{" and colon.found -> keyed_pattern_sequence(values, List.new[ProjectedExpressionNode]()); true -> pattern_sequence(values, List.new[ProjectedExpressionNode]()) }.
+
+@pure
+non_struct_kind(opening: ProjectedCanonicalToken, colon: TokenSplit): String ->
+    if { opening.text == "[" -> "list-pattern"; true -> container_kind(opening, colon) }.
+
+@pure
+container_kind(opening: ProjectedCanonicalToken, colon: TokenSplit): String ->
+    if { opening.text == "{" and colon.found -> "keyed-container-pattern"; true -> "tuple-pattern" }.
+
+@pure
+group_kind(prefix_found: Bool, opening: ProjectedCanonicalToken, colon: TokenSplit): String ->
+    if { prefix_found and opening.text == "{" -> "struct-pattern"; true -> prefixed_group_kind(prefix_found, opening, colon) }.
+
+@pure
+prefixed_group_kind(prefix_found: Bool, opening: ProjectedCanonicalToken, colon: TokenSplit): String ->
+    if { prefix_found -> "constructor-pattern"; true -> non_struct_kind(opening, colon) }.
+
+@pure
+regular_group(prefix_found: Bool, prefix: ProjectedCanonicalToken, opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, colon: TokenSplit): ProjectedExpressionResult ->
+    let elements = group_elements(opening, colon, slice.inner);
+    let grouped_node = node(group_kind(prefix_found, opening, colon), prefix_text(prefix_found, prefix, opening), prefix_start(prefix_found, prefix, opening), close.end_byte, element_children(elements.node));
+    ProjectedExpressionResult(slice.valid and elements.valid, Some(grouped_node), slice.rest, elements.message).
+
+@pure
+non_list_group(prefix_found: Bool, prefix: ProjectedCanonicalToken, opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, colon: TokenSplit, comma: TokenSplit): ProjectedExpressionResult ->
+    if {
+        opening.text == "{" and not prefix_found and not colon.found and not comma.found -> ProjectedExpressionResult(false, None, slice.rest, "keyed pattern field is missing :");
+        true -> regular_group(prefix_found, prefix, opening, close, slice, colon)
+    }.
+
+@pure
+closed_group(prefix_found: Bool, prefix: ProjectedCanonicalToken, opening: ProjectedCanonicalToken, close: ProjectedCanonicalToken, slice: GroupSlice, pipe: TokenSplit, colon: TokenSplit, comma: TokenSplit): ProjectedExpressionResult ->
+    if { opening.text == "[" and pipe.found -> list_cons_pattern(opening, close, slice, pipe); true -> non_list_group(prefix_found, prefix, opening, close, slice, colon, comma) }.
+
+@pure
 parse_grouped(
-    prefix: Option[ProjectedCanonicalToken],
+    prefix_found: Bool,
+    prefix: ProjectedCanonicalToken,
     opening: ProjectedCanonicalToken,
     values: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
@@ -244,79 +352,68 @@ parse_grouped(
     let comma = split(slice.inner, ",");
     case slice.close {
         None -> ProjectedExpressionResult(false, None, slice.rest, "pattern group is unterminated");
-        Some(close) where opening.text == "[" and pipe.found ->
-            let head = parse(pipe.left);
-            let tail = parse(pipe.right);
-            case {head.node, tail.node} {
-                {Some(head_node), Some(tail_node)} ->
-                    let cons_node = node("list-cons-pattern", "|", opening.start_byte, close.end_byte, [head_node, tail_node]);
-                    ProjectedExpressionResult(head.valid and tail.valid, Some(cons_node), slice.rest, "");
-                _ -> ProjectedExpressionResult(false, None, slice.rest, "list cons pattern is invalid")
-            };
-        Some(_close) where opening.text == "{" and not has_prefix(prefix) and not colon.found and not comma.found ->
-            ProjectedExpressionResult(false, None, slice.rest, "keyed pattern field is missing :");
-        Some(close) ->
-            let elements = if {
-                opening.text == "{" and colon.found -> keyed_pattern_sequence(
-                    slice.inner,
-                    List.new[ProjectedExpressionNode](),
-                );
-                true -> pattern_sequence(slice.inner, List.new[ProjectedExpressionNode]())
-            };
-            let prefixed = has_prefix(prefix);
-            let kind = if {
-                prefixed and opening.text == "{" -> "struct-pattern";
-                prefixed -> "constructor-pattern";
-                opening.text == "[" -> "list-pattern";
-                opening.text == "{" and colon.found -> "keyed-container-pattern";
-                true -> "tuple-pattern"
-            };
-            let children = element_children(elements.node);
-            let grouped_node = node(
-                    kind,
-                    prefix_text(prefix, opening),
-                    prefix_start(prefix, opening),
-                    close.end_byte,
-                    children,
-                );
-            ProjectedExpressionResult(slice.valid and elements.valid, Some(grouped_node), slice.rest, elements.message)
+        Some(close) -> closed_group(prefix_found, prefix, opening, close, slice, pipe, colon, comma)
     }.
+
+@pure
+literal_pattern_kind(value: ProjectedCanonicalToken): String ->
+    if { value.terminal == "upper-ident" -> "constructor-pattern"; true -> "literal-pattern" }.
+
+@pure
+binding_pattern_kind(value: ProjectedCanonicalToken): String ->
+    if { value.terminal == "var" or value.terminal == "atom" -> "binding-pattern"; true -> literal_pattern_kind(value) }.
+
+@pure
+capture_pattern_kind(value: ProjectedCanonicalToken): String ->
+    if { String.contains(value.text, "${") -> "string-capture-pattern"; true -> binding_pattern_kind(value) }.
+
+@pure
+wildcard_pattern_kind(value: ProjectedCanonicalToken): String ->
+    if { value.text == "_" -> "wildcard-pattern"; true -> capture_pattern_kind(value) }.
+
+@pure
+single_pattern_kind(value: ProjectedCanonicalToken): String ->
+    if { value.terminal == "typed-lambda-pattern" -> "typed-pattern"; true -> wildcard_pattern_kind(value) }.
+
+@pure
+single_pattern(value: ProjectedCanonicalToken): ProjectedExpressionResult ->
+    let value_node = node(single_pattern_kind(value), value.text, value.start_byte, value.end_byte, List.new[ProjectedExpressionNode]());
+    ProjectedExpressionResult(true, Some(value_node), List.new[ProjectedCanonicalToken](), "").
+
+@pure
+trailing_pattern_message(parsed: ProjectedExpressionResult): String ->
+    if { parsed.rest == [] -> parsed.message; true -> "constructor pattern contains trailing tokens" }.
+
+@pure
+prefixed_pattern(prefix: ProjectedCanonicalToken, opening: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let parsed = parse_grouped(true, prefix, opening, rest);
+    ProjectedExpressionResult(parsed.valid and parsed.rest == [], parsed.node, parsed.rest, trailing_pattern_message(parsed)).
+
+@pure
+multi_pattern_rest(values: List[ProjectedCanonicalToken], first: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], opening: ProjectedCanonicalToken, tail: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    if { opening.text == "(" or opening.text == "{" -> prefixed_pattern(first, opening, tail); true -> opening_pattern(values, first, rest) }.
+
+@pure
+multi_pattern(values: List[ProjectedCanonicalToken], first: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case rest {
+        [opening | tail] -> multi_pattern_rest(values, first, rest, opening, tail);
+        [] -> single_pattern(first)
+    }.
+
+@pure
+opening_pattern(values: List[ProjectedCanonicalToken], opening: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    if { opening.text == "(" or opening.text == "[" or opening.text == "{" -> parse_grouped(false, opening, opening, rest); true -> plain_pattern(values) }.
+
+@pure
+plain_pattern(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let children = token_nodes(values);
+    let pattern_node = node("pattern", "", first_token_start(values), last_token_end(values), children);
+    ProjectedExpressionResult(true, Some(pattern_node), List.new[ProjectedCanonicalToken](), "").
 
 /** Parses one complete pattern into the shared projected tree format. */
 @pure
 pub parse(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
         [] -> ProjectedExpressionResult(false, None, values, "pattern is empty");
-        [value] ->
-            let kind = if {
-                value.terminal == "typed-lambda-pattern" -> "typed-pattern";
-                value.text == "_" -> "wildcard-pattern";
-                String.contains(value.text, "${") -> "string-capture-pattern";
-                value.terminal == "var" or value.terminal == "atom" -> "binding-pattern";
-                value.terminal == "upper-ident" -> "constructor-pattern";
-                true -> "literal-pattern"
-            };
-            let value_node = node(
-                kind,
-                value.text,
-                value.start_byte,
-                value.end_byte,
-                List.new[ProjectedExpressionNode](),
-            );
-            ProjectedExpressionResult(true, Some(value_node), List.new[ProjectedCanonicalToken](), "");
-        [prefix | [opening | rest]] where opening.text == "(" or opening.text == "{" ->
-            let parsed = parse_grouped(Some(prefix), opening, rest);
-            ProjectedExpressionResult(parsed.valid and parsed.rest == [], parsed.node, parsed.rest, if { parsed.rest == [] -> parsed.message; true -> "constructor pattern contains trailing tokens" });
-        [opening | rest] where opening.text == "(" or opening.text == "[" or opening.text == "{" ->
-            parse_grouped(None, opening, rest);
-        _ ->
-            let children = token_nodes(values);
-            let pattern_node = node(
-                "pattern",
-                "",
-                first_token_start(values),
-                last_token_end(values),
-                children,
-            );
-            ProjectedExpressionResult(true, Some(pattern_node), List.new[ProjectedCanonicalToken](), "")
+        [first | rest] -> multi_pattern(values, first, rest)
     }.

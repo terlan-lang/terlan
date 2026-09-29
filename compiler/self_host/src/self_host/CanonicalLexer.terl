@@ -96,13 +96,31 @@ alphanumeric_end(source: String, index: Int): Int ->
     }.
 
 @pure
+string_after_backslash(source: String, index: Int, quote_byte: Int, byte: Int): Int ->
+    if {
+        byte == quote_byte -> index + 1;
+        true -> string_end(source, index + 1, quote_byte, false)
+    }.
+
+@pure
+string_after_escape(source: String, index: Int, quote_byte: Int, byte: Int): Int ->
+    if {
+        byte == 92 -> string_end(source, index + 1, quote_byte, true);
+        true -> string_after_backslash(source, index, quote_byte, byte)
+    }.
+
+@pure
+string_byte(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
+    if {
+        escaped -> string_end(source, index + 1, quote_byte, false);
+        true -> string_after_escape(source, index, quote_byte, source.utf8_byte_at(index))
+    }.
+
+@pure
 string_end(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
     if {
         index == source.byte_size() -> -1;
-        escaped -> string_end(source, index + 1, quote_byte, false);
-        source.utf8_byte_at(index) == 92 -> string_end(source, index + 1, quote_byte, true);
-        source.utf8_byte_at(index) == quote_byte -> index + 1;
-        true -> string_end(source, index + 1, quote_byte, false)
+        true -> string_byte(source, index, quote_byte, escaped)
     }.
 
 @pure
@@ -114,16 +132,53 @@ block_end(source: String, index: Int): Int ->
     }.
 
 @pure
+binary_quoted_after_backslash(source: String, index: Int, quote_byte: Int, byte: Int): Int ->
+    if {
+        byte == quote_byte -> binary_end(source, index + 1, 0, false);
+        true -> binary_end(source, index + 1, quote_byte, false)
+    }.
+
+@pure
+binary_quoted_after_escape(source: String, index: Int, quote_byte: Int, byte: Int): Int ->
+    if {
+        byte == 92 -> binary_end(source, index + 1, quote_byte, true);
+        true -> binary_quoted_after_backslash(source, index, quote_byte, byte)
+    }.
+
+@pure
+binary_quoted(source: String, index: Int, quote_byte: Int, escaped: Bool, byte: Int): Int ->
+    if {
+        escaped -> binary_end(source, index + 1, quote_byte, false);
+        true -> binary_quoted_after_escape(source, index, quote_byte, byte)
+    }.
+
+@pure
+binary_after_quote(source: String, index: Int): Int ->
+    if {
+        starts(source, ">>", index) -> index + 2;
+        true -> binary_end(source, index + 1, 0, false)
+    }.
+
+@pure
+binary_unquoted(source: String, index: Int, byte: Int): Int ->
+    if {
+        byte == 34 or byte == 39 -> binary_end(source, index + 1, byte, false);
+        true -> binary_after_quote(source, index)
+    }.
+
+@pure
+binary_byte(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
+    let byte = source.utf8_byte_at(index);
+    if {
+        quote_byte != 0 -> binary_quoted(source, index, quote_byte, escaped, byte);
+        true -> binary_unquoted(source, index, byte)
+    }.
+
+@pure
 binary_end(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
     if {
         index >= source.byte_size() -> -1;
-        quote_byte != 0 and escaped -> binary_end(source, index + 1, quote_byte, false);
-        quote_byte != 0 and source.utf8_byte_at(index) == 92 -> binary_end(source, index + 1, quote_byte, true);
-        quote_byte != 0 and source.utf8_byte_at(index) == quote_byte -> binary_end(source, index + 1, 0, false);
-        quote_byte != 0 -> binary_end(source, index + 1, quote_byte, false);
-        source.utf8_byte_at(index) == 34 or source.utf8_byte_at(index) == 39 -> binary_end(source, index + 1, source.utf8_byte_at(index), false);
-        starts(source, ">>", index) -> index + 2;
-        true -> binary_end(source, index + 1, 0, false)
+        true -> binary_byte(source, index, quote_byte, escaped)
     }.
 
 @pure
@@ -153,55 +208,108 @@ identifier_terminal(text: String): String ->
     }.
 
 @pure
+number_fraction_end(source: String, integer_end: Int): Int ->
+    if {
+        integer_end + 1 < source.byte_size()
+            and source.utf8_byte_at(integer_end) == 46
+            and source.utf8_byte_at(integer_end + 1) != 46
+            and is_digit(source.utf8_byte_at(integer_end + 1)) -> digits_end(source, integer_end + 2);
+        true -> integer_end
+    }.
+
+@pure
+number_sign_end(source: String, fraction_end: Int): Int ->
+    if {
+        fraction_end + 1 < source.byte_size()
+            and (source.utf8_byte_at(fraction_end + 1) == 43 or source.utf8_byte_at(fraction_end + 1) == 45) -> fraction_end + 2;
+        true -> fraction_end + 1
+    }.
+
+@pure
+number_exponent_end(source: String, fraction_end: Int, sign_end: Int): Int ->
+    let exponent_end = digits_end(source, sign_end);
+    if {
+        exponent_end > sign_end -> exponent_end;
+        true -> fraction_end
+    }.
+
+@pure
+number_after_fraction(source: String, fraction_end: Int): Int ->
+    if {
+        fraction_end < source.byte_size()
+            and (source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69) ->
+                number_exponent_end(source, fraction_end, number_sign_end(source, fraction_end));
+        true -> fraction_end
+    }.
+
+@pure
+decimal_number_end(source: String, start: Int): Int ->
+    let integer_end = digits_end(source, start + 1);
+    number_after_fraction(source, number_fraction_end(source, integer_end)).
+
+@pure
 number_end(source: String, start: Int): Int ->
     if {
         start + 2 < source.byte_size()
             and source.utf8_byte_at(start) == 48
             and (source.utf8_byte_at(start + 1) == 98 or source.utf8_byte_at(start + 1) == 111 or source.utf8_byte_at(start + 1) == 120) ->
                 alphanumeric_end(source, start + 2);
-        true ->
-            let integer_end = digits_end(source, start + 1);
-            let fraction_end = if {
-                integer_end + 1 < source.byte_size()
-                    and source.utf8_byte_at(integer_end) == 46
-                    and source.utf8_byte_at(integer_end + 1) != 46
-                    and is_digit(source.utf8_byte_at(integer_end + 1)) -> digits_end(source, integer_end + 2);
-                true -> integer_end
-            };
-            if {
-                fraction_end < source.byte_size()
-                    and (source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69) ->
-                        let sign_end = if {
-                            fraction_end + 1 < source.byte_size()
-                                and (source.utf8_byte_at(fraction_end + 1) == 43 or source.utf8_byte_at(fraction_end + 1) == 45) -> fraction_end + 2;
-                            true -> fraction_end + 1
-                        };
-                        let exponent_end = digits_end(source, sign_end);
-                        if { exponent_end > sign_end -> exponent_end; true -> fraction_end };
-                true -> fraction_end
-            }
+        true -> decimal_number_end(source, start)
     }.
 
 @pure
 is_float_text(text: String): Bool -> String.contains(text, ".") or String.contains(text, "e") or String.contains(text, "E").
 
 @pure
-operator_at(source: String, index: Int): String ->
+operator_after_greater_equal(source: String, index: Int): String ->
     if {
-        starts(source, "...", index) -> "...";
-        starts(source, "===", index) -> "===";
-        starts(source, "!==", index) -> "!==";
-        starts(source, "..", index) -> "..";
-        starts(source, "|>", index) -> "|>";
-        starts(source, "->", index) -> "->";
-        starts(source, String.append("=", ">"), index) -> String.append("=", ">");
-        starts(source, "==", index) -> "==";
-        starts(source, "!=", index) -> "!=";
-        starts(source, "<=", index) -> "<=";
-        starts(source, ">=", index) -> ">=";
         starts(source, "<-", index) -> "<-";
         true -> ""
     }.
+
+@pure
+operator_after_less_equal(source: String, index: Int): String ->
+    if { starts(source, ">=", index) -> ">="; true -> operator_after_greater_equal(source, index) }.
+
+@pure
+operator_after_not_equal(source: String, index: Int): String ->
+    if { starts(source, "<=", index) -> "<="; true -> operator_after_less_equal(source, index) }.
+
+@pure
+operator_after_equal(source: String, index: Int): String ->
+    if { starts(source, "!=", index) -> "!="; true -> operator_after_not_equal(source, index) }.
+
+@pure
+operator_after_fat_arrow(source: String, index: Int): String ->
+    if { starts(source, "==", index) -> "=="; true -> operator_after_equal(source, index) }.
+
+@pure
+operator_after_arrow(source: String, index: Int): String ->
+    if { starts(source, String.append("=", ">"), index) -> String.append("=", ">"); true -> operator_after_fat_arrow(source, index) }.
+
+@pure
+operator_after_pipe(source: String, index: Int): String ->
+    if { starts(source, "->", index) -> "->"; true -> operator_after_arrow(source, index) }.
+
+@pure
+operator_after_range(source: String, index: Int): String ->
+    if { starts(source, "|>", index) -> "|>"; true -> operator_after_pipe(source, index) }.
+
+@pure
+operator_after_strict_not(source: String, index: Int): String ->
+    if { starts(source, "..", index) -> ".."; true -> operator_after_range(source, index) }.
+
+@pure
+operator_after_strict_equal(source: String, index: Int): String ->
+    if { starts(source, "!==", index) -> "!=="; true -> operator_after_strict_not(source, index) }.
+
+@pure
+operator_after_ellipsis(source: String, index: Int): String ->
+    if { starts(source, "===", index) -> "==="; true -> operator_after_strict_equal(source, index) }.
+
+@pure
+operator_at(source: String, index: Int): String ->
+    if { starts(source, "...", index) -> "..."; true -> operator_after_ellipsis(source, index) }.
 
 @pure
 is_single_operator(byte: Int): Bool -> byte == 124 or byte == 43 or byte == 45 or byte == 42 or byte == 47 or byte == 61 or byte == 33 or byte == 60 or byte == 62.
@@ -213,40 +321,132 @@ is_punctuation(byte: Int): Bool ->
         or byte == 63 or byte == 36 or byte == 64.
 
 @pure
+completed_token(scan: Scan, source: String, index: Int, end: Int, category: TokenCategory, terminal: String, error: String): Scan ->
+    if {
+        end < 0 -> fail(scan, index, source.byte_size(), error);
+        true -> advance(scan, end, token(category, terminal, source, index, end))
+    }.
+
+@pure
+number_category(text: String): TokenCategory ->
+    if { is_float_text(text) -> FloatToken; true -> IntegerToken }.
+
+@pure
+number_terminal(text: String): String ->
+    if { is_float_text(text) -> "float"; true -> "int" }.
+
+@pure
+scan_after_single_operator(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        is_punctuation(byte) -> advance(scan, index + 1, token(PunctuationToken, slice(source, index, index + 1), source, index, index + 1));
+        true -> fail(scan, index, index + 1, "unrecognized source byte")
+    }.
+
+@pure
+scan_after_operator(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        is_single_operator(byte) -> advance(scan, index + 1, token(OperatorToken, slice(source, index, index + 1), source, index, index + 1));
+        true -> scan_after_single_operator(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_identifier(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    let operator = operator_at(source, index);
+    if {
+        operator != "" -> advance(scan, index + operator.byte_size(), token(OperatorToken, operator, source, index, index + operator.byte_size()));
+        true -> scan_after_operator(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_number(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        is_identifier_start(byte) ->
+            let end = identifier_end(source, index + 1);
+            let text = slice(source, index, end);
+            advance(scan, end, token(identifier_category(text), identifier_terminal(text), source, index, end));
+        true -> scan_after_identifier(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_binary(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        is_digit(byte) ->
+            let end = number_end(source, index);
+            let text = slice(source, index, end);
+            advance(scan, end, token(number_category(text), number_terminal(text), source, index, end));
+        true -> scan_after_number(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_string(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "<<", index) ->
+            let end = binary_end(source, index + 2, 0, false);
+            completed_token(scan, source, index, end, BinaryToken, "binary", "unterminated binary literal");
+        true -> scan_after_binary(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_comment(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        byte == 34 or byte == 39 ->
+            let end = string_end(source, index + 1, byte, false);
+            completed_token(scan, source, index, end, StringToken, "string", "unterminated string literal");
+        true -> scan_after_string(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_module_doc(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "//", index) or byte == 37 ->
+            let end = line_end(source, index + 1);
+            advance(scan, end, token(CommentToken, "comment", source, index, end));
+        true -> scan_after_comment(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_doc_line(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "//!", index) ->
+            let end = line_end(source, index + 3);
+            advance(scan, end, token(ModuleDocCommentToken, "module-doc", source, index, end));
+        true -> scan_after_module_doc(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_block_comment(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "///", index) ->
+            let end = line_end(source, index + 3);
+            advance(scan, end, token(DocCommentToken, "doc", source, index, end));
+        true -> scan_after_doc_line(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_doc_block(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "/*", index) ->
+            let end = block_end(source, index + 2);
+            completed_token(scan, source, index, end, CommentToken, "comment", "unterminated block comment");
+        true -> scan_after_block_comment(source, scan, index, byte)
+    }.
+
+@pure
+scan_after_space(source: String, scan: Scan, index: Int, byte: Int): Scan ->
+    if {
+        starts(source, "/**", index) ->
+            let end = block_end(source, index + 3);
+            completed_token(scan, source, index, end, DocCommentToken, "doc-block", "unterminated documentation block comment");
+        true -> scan_after_doc_block(source, scan, index, byte)
+    }.
+
+@pure
 scan_one(source: String, scan: Scan): Scan ->
     let index = scan.index;
     let byte = source.utf8_byte_at(index);
     if {
         is_space(byte) -> Scan(index = index + 1, tokens = scan.tokens, errors = scan.errors);
-        starts(source, "/**", index) ->
-            let end = block_end(source, index + 3);
-            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated documentation block comment"); true -> advance(scan, end, token(DocCommentToken, "doc-block", source, index, end)) };
-        starts(source, "/*", index) ->
-            let end = block_end(source, index + 2);
-            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated block comment"); true -> advance(scan, end, token(CommentToken, "comment", source, index, end)) };
-        starts(source, "///", index) -> let end = line_end(source, index + 3); advance(scan, end, token(DocCommentToken, "doc", source, index, end));
-        starts(source, "//!", index) -> let end = line_end(source, index + 3); advance(scan, end, token(ModuleDocCommentToken, "module-doc", source, index, end));
-        starts(source, "//", index) or byte == 37 -> let end = line_end(source, index + 1); advance(scan, end, token(CommentToken, "comment", source, index, end));
-        byte == 34 or byte == 39 ->
-            let end = string_end(source, index + 1, byte, false);
-            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated string literal"); true -> advance(scan, end, token(StringToken, "string", source, index, end)) };
-        starts(source, "<<", index) ->
-            let end = binary_end(source, index + 2, 0, false);
-            if { end < 0 -> fail(scan, index, source.byte_size(), "unterminated binary literal"); true -> advance(scan, end, token(BinaryToken, "binary", source, index, end)) };
-        is_digit(byte) ->
-            let end = number_end(source, index);
-            let text = slice(source, index, end);
-            advance(scan, end, token(if { is_float_text(text) -> FloatToken; true -> IntegerToken }, if { is_float_text(text) -> "float"; true -> "int" }, source, index, end));
-        is_identifier_start(byte) ->
-            let end = identifier_end(source, index + 1);
-            let text = slice(source, index, end);
-            advance(scan, end, token(identifier_category(text), identifier_terminal(text), source, index, end));
-        operator_at(source, index) != "" ->
-            let operator = operator_at(source, index);
-            advance(scan, index + operator.byte_size(), token(OperatorToken, operator, source, index, index + operator.byte_size()));
-        is_single_operator(byte) -> advance(scan, index + 1, token(OperatorToken, slice(source, index, index + 1), source, index, index + 1));
-        is_punctuation(byte) -> advance(scan, index + 1, token(PunctuationToken, slice(source, index, index + 1), source, index, index + 1));
-        true -> fail(scan, index, index + 1, "unrecognized source byte")
+        true -> scan_after_space(source, scan, index, byte)
     }.
 
 @pure

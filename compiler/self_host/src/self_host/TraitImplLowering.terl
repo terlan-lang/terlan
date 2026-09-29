@@ -2,10 +2,13 @@
 module self_host.TraitImplLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.CanonicalToken.{CanonicalLexOutput}.
+import self_host.ExpressionSyntax.{ExpressionParse}.
 import self_host.FunctionSyntax.{FunctionSyntax}.
 import self_host.Syntax.{FunctionDeclaration, SyntaxSpan, TraitImplDeclaration}.
-import self_host.TokenSegment.{TokenSegment}.
+import self_host.TokenSegment.{TokenSegment, TokenSegments}.
 import self_host.TraitImplSyntax.{ImplConstantSyntax, TraitImplSyntax}.
+import self_host.TypeSyntax.{TypeParse}.
 
 import std.collections.List.
 import std.core.{Int, String}.
@@ -62,55 +65,169 @@ method(source: String, segment: TokenSegment): FunctionSyntax ->
     FunctionLowering.lower(DeclarationSyntax(FunctionDeclaration, function_name(text), text, text, false, span(segment.start_byte, segment.end_byte))).
 
 @pure
+constant_name_end(colon: Int, assignment: Int): Int ->
+    if { colon >= 0 and colon < assignment -> colon; true -> assignment }.
+
+@pure
+constant_annotation(text: String, colon: Int, assignment: Int): TypeParse ->
+    if {
+        colon >= 0 and colon < assignment -> TypeParser.parse(String.trim(text.utf8_slice(colon + 1, assignment - colon - 1)));
+        true -> TypeParser.parse("")
+    }.
+
+@pure
+constant_value(text: String, assignment: Int): ExpressionParse ->
+    if {
+        assignment >= 0 -> ExpressionParser.parse(String.trim(text.utf8_slice(assignment + 1, text.byte_size() - assignment - 1)));
+        true -> ExpressionParser.parse("")
+    }.
+
+@pure
+constant_name(text: String, name_end: Int): String ->
+    if { name_end > 6 -> String.trim(text.utf8_slice(6, name_end - 6)); true -> "" }.
+
+@pure
+constant_value_message(value: ExpressionParse): String ->
+    if { not value.valid -> value.message; true -> "" }.
+
+@pure
+constant_annotation_message(colon: Int, assignment: Int, annotation: TypeParse, value: ExpressionParse): String ->
+    if { colon >= 0 and colon < assignment and not annotation.valid -> annotation.message; true -> constant_value_message(value) }.
+
+@pure
+constant_message(assignment: Int, colon: Int, annotation: TypeParse, value: ExpressionParse): String ->
+    if { assignment <= 6 -> "implementation constant is missing its value"; true -> constant_annotation_message(colon, assignment, annotation, value) }.
+
+@pure
 impl_constant(source: String): ImplConstantSyntax ->
     let text = strip_terminal_dot(source);
     let assignment = Delimited.top_level_assignment(text);
     let colon = Delimited.top_level_byte(text, 58);
-    let name_end = if { colon >= 0 and colon < assignment -> colon; true -> assignment };
-    let annotation = if {
-        colon >= 0 and colon < assignment -> TypeParser.parse(String.trim(text.utf8_slice(colon + 1, assignment - colon - 1)));
-        true -> TypeParser.parse("")
-    };
-    let value = if {
-        assignment >= 0 -> ExpressionParser.parse(String.trim(text.utf8_slice(assignment + 1, text.byte_size() - assignment - 1)));
-        true -> ExpressionParser.parse("")
-    };
+    let name_end = constant_name_end(colon, assignment);
+    let annotation = constant_annotation(text, colon, assignment);
+    let value = constant_value(text, assignment);
     let valid = assignment > 6 and (colon < 0 or annotation.valid) and value.valid;
-    ImplConstantSyntax(valid, if { name_end > 6 -> String.trim(text.utf8_slice(6, name_end - 6)); true -> "" }, colon >= 0 and colon < assignment, annotation, value, if {
-            assignment <= 6 -> "implementation constant is missing its value";
-            colon >= 0 and colon < assignment and not annotation.valid -> annotation.message;
-            not value.valid -> value.message;
-            true -> ""
-        }).
+    ImplConstantSyntax(valid, constant_name(text, name_end), colon >= 0 and colon < assignment, annotation, value, constant_message(assignment, colon, annotation, value)).
+
+@pure
+first_message(current: String, candidate: String): String ->
+    if { current != "" -> current; true -> candidate }.
+
+@pure
+member_at(source: String, segment: TokenSegment, rest: List[TokenSegment], state: Members): Members ->
+    let text = String.trim(segment_text(source, segment));
+    if {
+        String.starts_with(text, "const ") ->
+            let constant = impl_constant(text);
+            members_at(source, rest, Members(valid = state.valid and constant.valid, constants = [constant | state.constants], methods = state.methods, message = first_message(state.message, constant.message)));
+        true ->
+            let function = method(text, segment);
+            members_at(source, rest, Members(valid = state.valid and function.valid, constants = state.constants, methods = [function | state.methods], message = first_message(state.message, function.message)))
+    }.
 
 @pure
 members_at(source: String, segments: List[TokenSegment], state: Members): Members ->
     case segments {
         [] -> Members(valid = state.valid, constants = reverse_at(state.constants, List.new[ImplConstantSyntax]()), methods = reverse_at(state.methods, List.new[FunctionSyntax]()), message = state.message);
-        [segment | rest] ->
-            let text = String.trim(segment_text(source, segment));
-            if {
-                String.starts_with(text, "const ") ->
-                    let constant = impl_constant(text);
-                    members_at(source, rest, Members(valid = state.valid and constant.valid, constants = [constant | state.constants], methods = state.methods, message = if { state.message != "" -> state.message; true -> constant.message }));
-                true ->
-                    let function = method(text, segment);
-                    members_at(source, rest, Members(valid = state.valid and function.valid, constants = state.constants, methods = [function | state.methods], message = if { state.message != "" -> state.message; true -> function.message }))
-            }
+        [segment | rest] -> member_at(source, segment, rest, state)
     }.
 
 @pure
 empty_members(): Members -> Members(valid = true, constants = List.new[ImplConstantSyntax](), methods = List.new[FunctionSyntax](), message = "").
 
+@pure
+without_public(text: String): String ->
+    if { String.starts_with(text, "pub ") -> String.trim(text.utf8_slice(4, text.byte_size() - 4)); true -> text }.
+
+@pure
+without_impl(text: String): String ->
+    if { String.starts_with(text, "impl ") -> String.trim(text.utf8_slice(5, text.byte_size() - 5)); true -> "" }.
+
+@pure
+positive_impl_body(impl_body: String, is_negative: Bool): String ->
+    if { is_negative -> String.trim(impl_body.utf8_slice(4, impl_body.byte_size() - 4)); true -> impl_body }.
+
+@pure
+negative_contract_text(positive_body: String, is_negative: Bool): String ->
+    if { is_negative -> strip_terminal_dot(positive_body); true -> "" }.
+
+@pure
+positive_header(positive_body: String, open: Int): String ->
+    if { open >= 0 -> String.trim(positive_body.utf8_slice(0, open)); true -> "" }.
+
+@pure
+positive_trait_type(header: String, for_at: Int): TypeParse ->
+    if { for_at > 0 -> TypeParser.parse(String.trim(header.utf8_slice(0, for_at))); true -> TypeParser.parse("") }.
+
+@pure
+trait_type_for(negative_contract: String, negative_open: Int, negative_header_valid: Bool, header: String, for_at: Int): TypeParse ->
+    if { negative_header_valid -> TypeParser.parse(String.trim(negative_contract.utf8_slice(0, negative_open))); true -> positive_trait_type(header, for_at) }.
+
+@pure
+positive_target_type(header: String, for_at: Int): TypeParse ->
+    if { for_at > 0 -> TypeParser.parse(String.trim(header.utf8_slice(for_at + 5, header.byte_size() - for_at - 5))); true -> TypeParser.parse("") }.
+
+@pure
+target_type_for(negative_contract: String, negative_open: Int, negative_header_valid: Bool, header: String, for_at: Int): TypeParse ->
+    if { negative_header_valid -> TypeParser.parse(String.trim(negative_contract.utf8_slice(negative_open + 1, negative_contract.byte_size() - negative_open - 2))); true -> positive_target_type(header, for_at) }.
+
+@pure
+implementation_body(positive_body: String, open: Int, body_valid: Bool): String ->
+    if { body_valid -> positive_body.utf8_slice(open + 1, positive_body.byte_size() - open - 3); true -> "" }.
+
+@pure
+positive_members(body: String, lexical: CanonicalLexOutput, segmented: TokenSegments): Members ->
+    if { lexical.valid and segmented.valid -> members_at(body, segmented.segments, empty_members()); true -> empty_members() }.
+
+@pure
+implementation_members(is_negative: Bool, body: String, lexical: CanonicalLexOutput, segmented: TokenSegments): Members ->
+    if { is_negative -> empty_members(); true -> positive_members(body, lexical, segmented) }.
+
+@pure
+member_message(is_negative: Bool, members: Members): String ->
+    if { not is_negative and not members.valid -> members.message; true -> "" }.
+
+@pure
+segment_message(is_negative: Bool, segmented: TokenSegments, members: Members): String ->
+    if { not is_negative and not segmented.valid -> "trait implementation member is missing its terminating dot"; true -> member_message(is_negative, members) }.
+
+@pure
+lexical_message(is_negative: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not is_negative and not lexical.valid -> "trait implementation member has a lexical error"; true -> segment_message(is_negative, segmented, members) }.
+
+@pure
+body_message(is_negative: Bool, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not is_negative and not body_valid -> "trait implementation body is incomplete"; true -> lexical_message(is_negative, lexical, segmented, members) }.
+
+@pure
+target_message(target_type: TypeParse, is_negative: Bool, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not target_type.valid -> target_type.message; true -> body_message(is_negative, body_valid, lexical, segmented, members) }.
+
+@pure
+trait_message(trait_type: TypeParse, target_type: TypeParse, is_negative: Bool, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not trait_type.valid -> trait_type.message; true -> target_message(target_type, is_negative, body_valid, lexical, segmented, members) }.
+
+@pure
+positive_header_message(is_negative: Bool, for_at: Int, trait_type: TypeParse, target_type: TypeParse, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not is_negative and for_at <= 0 -> "trait implementation is missing `for Type`"; true -> trait_message(trait_type, target_type, is_negative, body_valid, lexical, segmented, members) }.
+
+@pure
+negative_header_message(is_negative: Bool, negative_header_valid: Bool, for_at: Int, trait_type: TypeParse, target_type: TypeParse, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { is_negative and not negative_header_valid -> "negative trait implementation must use `Trait[Type].`"; true -> positive_header_message(is_negative, for_at, trait_type, target_type, body_valid, lexical, segmented, members) }.
+
+@pure
+lower_message(supported: Bool, is_negative: Bool, negative_header_valid: Bool, for_at: Int, trait_type: TypeParse, target_type: TypeParse, body_valid: Bool, lexical: CanonicalLexOutput, segmented: TokenSegments, members: Members): String ->
+    if { not supported -> "declaration is not a trait implementation"; true -> negative_header_message(is_negative, negative_header_valid, for_at, trait_type, target_type, body_valid, lexical, segmented, members) }.
+
 /** Lowers one canonical `impl [not] Trait for Type { ... }.` block. */
 @pure
 pub lower(source: DeclarationSyntax): TraitImplSyntax ->
     let text = String.trim(source.body);
-    let public_body = if { String.starts_with(text, "pub ") -> String.trim(text.utf8_slice(4, text.byte_size() - 4)); true -> text };
-    let impl_body = if { String.starts_with(public_body, "impl ") -> String.trim(public_body.utf8_slice(5, public_body.byte_size() - 5)); true -> "" };
+    let public_body = without_public(text);
+    let impl_body = without_impl(public_body);
     let is_negative = String.starts_with(impl_body, "not ");
-    let positive_body = if { is_negative -> String.trim(impl_body.utf8_slice(4, impl_body.byte_size() - 4)); true -> impl_body };
-    let negative_contract = if { is_negative -> strip_terminal_dot(positive_body); true -> "" };
+    let positive_body = positive_impl_body(impl_body, is_negative);
+    let negative_contract = negative_contract_text(positive_body, is_negative);
     let negative_open = Delimited.top_level_byte(negative_contract, 91);
     let negative_header_valid = is_negative
         and String.ends_with(positive_body, ".")
@@ -118,39 +235,16 @@ pub lower(source: DeclarationSyntax): TraitImplSyntax ->
         and String.ends_with(negative_contract, "]")
         and Delimited.balanced(negative_contract);
     let open = Delimited.top_level_byte(positive_body, 123);
-    let header = if { open >= 0 -> String.trim(positive_body.utf8_slice(0, open)); true -> "" };
+    let header = positive_header(positive_body, open);
     let for_at = Delimited.top_level_text(header, " for ");
-    let trait_type = if {
-        negative_header_valid -> TypeParser.parse(String.trim(negative_contract.utf8_slice(0, negative_open)));
-        for_at > 0 -> TypeParser.parse(String.trim(header.utf8_slice(0, for_at)));
-        true -> TypeParser.parse("")
-    };
-    let target_type = if {
-        negative_header_valid -> TypeParser.parse(String.trim(negative_contract.utf8_slice(negative_open + 1, negative_contract.byte_size() - negative_open - 2)));
-        for_at > 0 -> TypeParser.parse(String.trim(header.utf8_slice(for_at + 5, header.byte_size() - for_at - 5)));
-        true -> TypeParser.parse("")
-    };
+    let trait_type = trait_type_for(negative_contract, negative_open, negative_header_valid, header, for_at);
+    let target_type = target_type_for(negative_contract, negative_open, negative_header_valid, header, for_at);
     let body_valid = open >= 0 and String.ends_with(positive_body, "}.");
-    let body = if { body_valid -> positive_body.utf8_slice(open + 1, positive_body.byte_size() - open - 3); true -> "" };
+    let body = implementation_body(positive_body, open, body_valid);
     let lexical = CanonicalLexer.lex(body);
     let segmented = TokenSegmenter.split(TokenContext.project(lexical.tokens));
-    let members = if {
-        is_negative -> empty_members();
-        lexical.valid and segmented.valid -> members_at(body, segmented.segments, empty_members());
-        true -> empty_members()
-    };
+    let members = implementation_members(is_negative, body, lexical, segmented);
     let supported = source.class == TraitImplDeclaration;
     let positive_valid = not is_negative and for_at > 0 and body_valid and lexical.valid and segmented.valid and members.valid;
     TraitImplSyntax(supported and trait_type.valid and target_type.valid
-            and (negative_header_valid or positive_valid), trait_type, target_type, is_negative, members.constants, members.methods, source.is_public, source.span, if {
-            not supported -> "declaration is not a trait implementation";
-            is_negative and not negative_header_valid -> "negative trait implementation must use `Trait[Type].`";
-            not is_negative and for_at <= 0 -> "trait implementation is missing `for Type`";
-            not trait_type.valid -> trait_type.message;
-            not target_type.valid -> target_type.message;
-            not is_negative and not body_valid -> "trait implementation body is incomplete";
-            not is_negative and not lexical.valid -> "trait implementation member has a lexical error";
-            not is_negative and not segmented.valid -> "trait implementation member is missing its terminating dot";
-            not is_negative and not members.valid -> members.message;
-            true -> ""
-        }).
+            and (negative_header_valid or positive_valid), trait_type, target_type, is_negative, members.constants, members.methods, source.is_public, source.span, lower_message(supported, is_negative, negative_header_valid, for_at, trait_type, target_type, body_valid, lexical, segmented, members)).

@@ -57,10 +57,17 @@ rows(value: ProjectedExpressionNode): String ->
     rows_at([ExpressionEvidenceTask(value, 0)], List.new[String]()).
 
 @pure
+node_rows(value: Option[ProjectedExpressionNode]): String ->
+    case value {
+        Some(node) -> rows(node);
+        None -> ""
+    }.
+
+@pure
 pub document(value: ProjectedExpressionResult): String ->
     String.concat([
         "schema terlan.self-host.expression-tree/v1\nvalid\t",
         if { value.valid -> "true"; true -> "false" },
         "\ndepth\tkind\ttext\tstart\tend\n",
-        case value.node { Some(node) -> rows(node); None -> "" },
+        node_rows(value.node),
     ]).

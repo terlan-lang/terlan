@@ -3,10 +3,13 @@ module self_host.ConstructorLowering.
 
 import self_host.ConstructorSyntax.{ConstructorClauseSyntax, ConstructorSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExpressionSyntax.{ExpressionParse}.
+import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.Syntax.{ConstructorDeclaration}.
+import self_host.TypeSyntax.{TypeParse}.
 
 import std.collections.List.
-import std.core.{Int, String}.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.ParameterParser.
@@ -22,36 +25,77 @@ drop_terminal_empty(values: List[String]): List[String] ->
     }.
 
 @pure
+clause_parameter_text(normalized: String, parameters_closed: Bool, colon: Int): String ->
+    if {
+        String.starts_with(normalized, "(") and parameters_closed -> normalized.utf8_slice(1, colon - 2);
+        true -> ""
+    }.
+
+@pure
+clause_return_type(normalized: String, colon: Int, arrow: Int): TypeParse ->
+    if {
+        colon >= 0 and arrow > colon -> TypeParser.parse(String.trim(normalized.utf8_slice(colon + 1, arrow - colon - 1)));
+        true -> TypeParser.parse("")
+    }.
+
+@pure
+clause_body(normalized: String, arrow: Int): ExpressionParse ->
+    if {
+        arrow >= 0 -> ExpressionParser.parse(String.trim(normalized.utf8_slice(arrow + 2, normalized.byte_size() - arrow - 2)));
+        true -> ExpressionParser.parse("")
+    }.
+
+@pure
+clause_message_after_return(body_valid: Bool, body_message: String): String ->
+    if {
+        not body_valid -> body_message;
+        true -> ""
+    }.
+
+@pure
+clause_message_after_parameters(return_valid: Bool, return_message: String, body_valid: Bool, body_message: String): String ->
+    if {
+        not return_valid -> return_message;
+        true -> clause_message_after_return(body_valid, body_message)
+    }.
+
+@pure
+clause_message_after_open(parameters: List[ParameterSyntax], return_valid: Bool, return_message: String, body_valid: Bool, body_message: String): String ->
+    if {
+        not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
+        true -> clause_message_after_parameters(return_valid, return_message, body_valid, body_message)
+    }.
+
+@pure
+clause_message(opened: Bool, parameters_closed: Bool, parameters: List[ParameterSyntax], return_valid: Bool, return_message: String, body_valid: Bool, body_message: String): String ->
+    if {
+        not opened or not parameters_closed -> "constructor parameter list is incomplete";
+        true -> clause_message_after_open(parameters, return_valid, return_message, body_valid, body_message)
+    }.
+
+@pure
 lower_clause(source: String): ConstructorClauseSyntax ->
     let normalized = String.trim(source);
     let colon = Delimited.top_level_byte(normalized, 58);
     let arrow = Delimited.top_level_pair(normalized, 45, 62);
     let parameters_closed = colon > 0 and normalized.utf8_byte_at(colon - 1) == 41;
-    let parameter_text = if {
-        String.starts_with(normalized, "(") and parameters_closed -> normalized.utf8_slice(1, colon - 2);
-        true -> ""
-    };
+    let opened = String.starts_with(normalized, "(");
+    let parameter_text = clause_parameter_text(normalized, parameters_closed, colon);
     let parameters = ParameterParser.parse_all(parameter_text);
-    let return_type = if {
-        colon >= 0 and arrow > colon -> TypeParser.parse(String.trim(normalized.utf8_slice(colon + 1, arrow - colon - 1)));
-        true -> TypeParser.parse("")
-    };
-    let body = if {
-        arrow >= 0 -> ExpressionParser.parse(String.trim(normalized.utf8_slice(arrow + 2, normalized.byte_size() - arrow - 2)));
-        true -> ExpressionParser.parse("")
-    };
-    let valid = String.starts_with(normalized, "(")
+    let return_type = clause_return_type(normalized, colon, arrow);
+    let body = clause_body(normalized, arrow);
+    let valid = opened
         and parameters_closed
         and ParameterParser.all_valid(parameters)
         and return_type.valid
         and body.valid;
-    ConstructorClauseSyntax(valid, parameters, return_type, body, if {
-            not String.starts_with(normalized, "(") or not parameters_closed -> "constructor parameter list is incomplete";
-            not ParameterParser.all_valid(parameters) -> ParameterParser.first_error(parameters);
-            not return_type.valid -> return_type.message;
-            not body.valid -> body.message;
-            true -> ""
-        }).
+    ConstructorClauseSyntax(
+        valid,
+        parameters,
+        return_type,
+        body,
+        clause_message(opened, parameters_closed, parameters, return_type.valid, return_type.message, body.valid, body.message),
+    ).
 
 @pure
 lower_clauses(values: List[String]): List[ConstructorClauseSyntax] ->
@@ -76,22 +120,52 @@ first_error(values: List[ConstructorClauseSyntax]): String ->
     }.
 
 @pure
+constructor_clause_text(source: DeclarationSyntax, open: Int, body_valid: Bool): String ->
+    if {
+        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
+        true -> ""
+    }.
+
+@pure
+constructor_clauses(clause_text: String, body_valid: Bool): List[ConstructorClauseSyntax] ->
+    if {
+        body_valid -> lower_clauses(drop_terminal_empty(Delimited.split_top_level(clause_text, 59)));
+        true -> List.new[ConstructorClauseSyntax]()
+    }.
+
+@pure
+constructor_message_after_body(clauses: List[ConstructorClauseSyntax]): String ->
+    if {
+        not clauses_valid(clauses) -> first_error(clauses);
+        true -> ""
+    }.
+
+@pure
+constructor_message_after_supported(body_valid: Bool, clauses: List[ConstructorClauseSyntax]): String ->
+    if {
+        not body_valid -> "constructor body is incomplete";
+        true -> constructor_message_after_body(clauses)
+    }.
+
+@pure
+constructor_message(supported: Bool, body_valid: Bool, clauses: List[ConstructorClauseSyntax]): String ->
+    if {
+        not supported -> "declaration is not a constructor";
+        true -> constructor_message_after_supported(body_valid, clauses)
+    }.
+
+@pure
 pub lower(source: DeclarationSyntax): ConstructorSyntax ->
     let open = Delimited.top_level_byte(source.body, 123);
     let supported = source.class == ConstructorDeclaration;
     let body_valid = open >= 0 and String.ends_with(String.trim(source.body), "}.");
-    let clause_text = if {
-        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
-        true -> ""
-    };
-    let clauses = if {
-        body_valid -> lower_clauses(drop_terminal_empty(Delimited.split_top_level(clause_text, 59)));
-        true -> List.new[ConstructorClauseSyntax]()
-    };
-    ConstructorSyntax(supported and body_valid and clauses_valid(clauses), source.name, clauses, source.is_public, source.span, if {
-            not supported -> "declaration is not a constructor";
-            not body_valid -> "constructor body is incomplete";
-            not clauses_valid(clauses) -> first_error(clauses);
-            true -> ""
-        }).
-
+    let clause_text = constructor_clause_text(source, open, body_valid);
+    let clauses = constructor_clauses(clause_text, body_valid);
+    ConstructorSyntax(
+        supported and body_valid and clauses_valid(clauses),
+        source.name,
+        clauses,
+        source.is_public,
+        source.span,
+        constructor_message(supported, body_valid, clauses),
+    ).

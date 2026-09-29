@@ -1,0 +1,22 @@
+#!/usr/bin/env -S terlc run
+/** Runs one focused self-host backend unit without linking the full CLI surface. */
+import std.core.Option.{None, Some}.
+import std.system.Arguments.
+import self_host.ProjectedInterfaceCatalog.
+
+case {
+    Arguments.get(0),
+    Arguments.get(1),
+    Arguments.get(2),
+    Arguments.get(3)
+} {
+    {Some(input), Some(interface_manifest), Some(output), Some(diagnostics)} ->
+        assert(ProjectedInterfaceCatalog.write_backend(
+            input,
+            interface_manifest,
+            output,
+            diagnostics,
+        ));
+    _ -> assert(false)
+};
+Unit.

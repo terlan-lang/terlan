@@ -7,7 +7,7 @@ import self_host.Syntax.{TemplateDeclaration}.
 import self_host.TemplateSyntax.{TemplateSyntax}.
 
 import std.collections.List.
-import std.core.String.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.StructLowering.
 
@@ -26,32 +26,78 @@ strip_quotes(source: String): String ->
 drop_terminal_empty(values: List[String]): List[String] ->
     case values { [] -> List.new[String](); [""] -> List.new[String](); [value | rest] -> [value | drop_terminal_empty(rest)] }.
 
+@pure
+template_path_text(source: String, from_at: Int, open: Int): String ->
+    if {
+        from_at >= 0 and open > from_at -> String.trim(source.utf8_slice(from_at + 6, open - from_at - 6));
+        true -> ""
+    }.
+
+@pure
+template_property_text(source: String, open: Int, body_valid: Bool): String ->
+    if {
+        body_valid -> source.utf8_slice(open + 1, source.byte_size() - open - 3);
+        true -> ""
+    }.
+
+@pure
+template_properties(property_text: String, body_valid: Bool): List[StructFieldSyntax] ->
+    if {
+        body_valid -> StructLowering.lower_fields(drop_terminal_empty(Delimited.split_top_level(property_text, 44)));
+        true -> List.new[StructFieldSyntax]()
+    }.
+
+@pure
+template_message_after_body(properties: List[StructFieldSyntax]): String ->
+    if {
+        not StructLowering.fields_valid(properties) -> StructLowering.first_error(properties);
+        true -> ""
+    }.
+
+@pure
+template_message_after_path(body_valid: Bool, properties: List[StructFieldSyntax]): String ->
+    if {
+        not body_valid -> "template property body is incomplete";
+        true -> template_message_after_body(properties)
+    }.
+
+@pure
+template_message_after_from(path: String, body_valid: Bool, properties: List[StructFieldSyntax]): String ->
+    if {
+        path == "" -> "template source path must be a quoted string";
+        true -> template_message_after_path(body_valid, properties)
+    }.
+
+@pure
+template_message_after_supported(from_at: Int, path: String, body_valid: Bool, properties: List[StructFieldSyntax]): String ->
+    if {
+        from_at < 0 -> "template is missing its source path";
+        true -> template_message_after_from(path, body_valid, properties)
+    }.
+
+@pure
+template_message(supported: Bool, from_at: Int, path: String, body_valid: Bool, properties: List[StructFieldSyntax]): String ->
+    if {
+        not supported -> "declaration is not a template";
+        true -> template_message_after_supported(from_at, path, body_valid, properties)
+    }.
+
 /** Lowers one canonical `template Name from "path" { ... }.` declaration. */
 @pure
 pub lower(source: DeclarationSyntax): TemplateSyntax ->
     let from_at = Delimited.top_level_text(source.body, " from ");
     let open = Delimited.top_level_byte(source.body, 123);
     let body_valid = open > from_at and String.ends_with(String.trim(source.body), "}.");
-    let path_text = if {
-        from_at >= 0 and open > from_at -> String.trim(source.body.utf8_slice(from_at + 6, open - from_at - 6));
-        true -> ""
-    };
+    let path_text = template_path_text(source.body, from_at, open);
     let path = strip_quotes(path_text);
-    let property_text = if {
-        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
-        true -> ""
-    };
-    let properties = if {
-        body_valid -> StructLowering.lower_fields(drop_terminal_empty(Delimited.split_top_level(property_text, 44)));
-        true -> List.new[StructFieldSyntax]()
-    };
+    let property_text = template_property_text(source.body, open, body_valid);
+    let properties = template_properties(property_text, body_valid);
     let supported = source.class == TemplateDeclaration;
-    TemplateSyntax(supported and body_valid and path != "" and StructLowering.fields_valid(properties), source.name, path, properties, source.span, if {
-            not supported -> "declaration is not a template";
-            from_at < 0 -> "template is missing its source path";
-            path == "" -> "template source path must be a quoted string";
-            not body_valid -> "template property body is incomplete";
-            not StructLowering.fields_valid(properties) -> StructLowering.first_error(properties);
-            true -> ""
-        }).
-
+    TemplateSyntax(
+        supported and body_valid and path != "" and StructLowering.fields_valid(properties),
+        source.name,
+        path,
+        properties,
+        source.span,
+        template_message(supported, from_at, path, body_valid, properties),
+    ).

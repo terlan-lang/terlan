@@ -101,6 +101,34 @@ append_nodes(
     }.
 
 @pure
+adjust_depth(text: String, opening: String, closing: String, depth: Int): Int ->
+    if {
+        text == opening -> depth + 1;
+        true -> reduce_depth(text, closing, depth)
+    }.
+
+@pure
+reduce_depth(text: String, closing: String, depth: Int): Int ->
+    if {
+        text == closing -> depth - 1;
+        true -> depth
+    }.
+
+@pure
+adjust_group_depth(text: String, depth: Int): Int ->
+    if {
+        text == "(" or text == "[" or text == "{" -> depth + 1;
+        true -> reduce_group_depth(text, depth)
+    }.
+
+@pure
+reduce_group_depth(text: String, depth: Int): Int ->
+    if {
+        text == ")" or text == "]" or text == "}" -> depth - 1;
+        true -> depth
+    }.
+
+@pure
 split_at(
     values: List[ProjectedCanonicalToken],
     delimiter: String,
@@ -116,9 +144,9 @@ split_at(
         [value | rest] -> split_at(
             rest,
             delimiter,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+            adjust_depth(value.text, "(", ")", parens),
+            adjust_depth(value.text, "[", "]", brackets),
+            adjust_depth(value.text, "{", "}", braces),
             [value | output],
         )
     }.
@@ -148,9 +176,9 @@ split_case_block_at(
             TokenSplit(found = true, left = reverse(output), separator = Some(value), right = rest);
         [value | rest] -> split_case_block_at(
             rest,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+            adjust_depth(value.text, "(", ")", parens),
+            adjust_depth(value.text, "[", "]", brackets),
+            adjust_depth(value.text, "{", "}", braces),
             [value | output],
         )
     }.
@@ -175,9 +203,9 @@ split_terminal_at(
         [value | rest] -> split_terminal_at(
             rest,
             delimiter,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
+            adjust_depth(value.text, "(", ")", parens),
+            adjust_depth(value.text, "[", "]", brackets),
+            adjust_depth(value.text, "{", "}", braces),
             [value | output],
         )
     }.
@@ -199,11 +227,7 @@ group_at(
         [value | rest] -> group_at(
             rest,
             close_text,
-            if {
-                value.text == "(" or value.text == "[" or value.text == "{" -> depth + 1;
-                value.text == ")" or value.text == "]" or value.text == "}" -> depth - 1;
-                true -> depth
-            },
+            adjust_group_depth(value.text, depth),
             [value | output],
         )
     }.
@@ -212,10 +236,24 @@ group_at(
 group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
     group_at(
         values,
-        if { opening.text == "(" -> ")"; opening.text == "[" -> "]"; true -> "}" },
+        group_close(opening.text),
         1,
         List.new[ProjectedCanonicalToken](),
     ).
+
+@pure
+group_close(opening: String): String ->
+    if {
+        opening == "(" -> ")";
+        true -> group_non_paren_close(opening)
+    }.
+
+@pure
+group_non_paren_close(opening: String): String ->
+    if {
+        opening == "[" -> "]";
+        true -> "}"
+    }.
 
 @pure
 node(
@@ -276,6 +314,13 @@ invalid(values: List[ProjectedCanonicalToken], message: String): ProjectedExpres
     ProjectedExpressionResult(false, None, values, message).
 
 @pure
+select_message(valid: Bool, failure: String, success: String): String ->
+    if {
+        valid -> success;
+        true -> failure
+    }.
+
+@pure
 clause(
     values: List[ProjectedCanonicalToken],
     pattern: Bool,
@@ -283,22 +328,51 @@ clause(
     let arrow = split(values, "->");
     if {
         not arrow.found -> invalid(values, "structured clause is missing ->");
-        true ->
-            let body = parse(arrow.right);
-            let left = if {
-                pattern -> ProjectedPatternParser.parse(arrow.left).node;
-                true -> parse(arrow.left).node
-            };
-            case {left, body.node} {
-                {Some(left_node), Some(body_node)} -> ProjectedExpressionResult(body.valid, Some(node(
-                        "clause",
-                        "->",
-                        left_node.start_byte,
-                        body_node.end_byte,
-                        [left_node, body_node],
-                    )), body.rest, body.message);
-                _ -> invalid(values, "structured clause is invalid")
-            }
+        true -> parse_clause_arrow(values, pattern, arrow)
+    }.
+
+@pure
+parse_clause_arrow(
+    values: List[ProjectedCanonicalToken],
+    pattern: Bool,
+    arrow: TokenSplit,
+): ProjectedExpressionResult ->
+    let body = parse(arrow.right);
+    finish_clause(values, clause_left(pattern, arrow.left), body).
+
+@pure
+clause_left(pattern: Bool, values: List[ProjectedCanonicalToken]): Option[ProjectedExpressionNode] ->
+    if {
+        pattern -> ProjectedPatternParser.parse(values).node;
+        true -> parse(values).node
+    }.
+
+@pure
+finish_clause(
+    values: List[ProjectedCanonicalToken],
+    left: Option[ProjectedExpressionNode],
+    body: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case left {
+        Some(left_node) -> finish_clause_body(values, left_node, body);
+        None -> invalid(values, "structured clause is invalid")
+    }.
+
+@pure
+finish_clause_body(
+    values: List[ProjectedCanonicalToken],
+    left_node: ProjectedExpressionNode,
+    body: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case body.node {
+        Some(body_node) -> ProjectedExpressionResult(body.valid, Some(node(
+                "clause",
+                "->",
+                left_node.start_byte,
+                body_node.end_byte,
+                [left_node, body_node],
+            )), body.rest, body.message);
+        None -> invalid(values, "structured clause is invalid")
     }.
 
 @pure
@@ -310,51 +384,106 @@ clauses_at(
 ): ClauseParse ->
     if {
         values == [] -> ClauseParse(valid = true, nodes = reverse(output), message = "");
-        true ->
-            let separator = if {
-                contextual -> split_terminal(values, "if-clause-semicolon");
-                true -> split(values, ";")
-            };
-            let current = clause(separator.left, pattern);
-            case current.node {
-                None -> ClauseParse(valid = false, nodes = reverse(output), message = current.message);
-                Some(value) where separator.found -> clauses_at(separator.right, pattern, contextual, [value | output]);
-                Some(value) -> ClauseParse(valid = current.valid, nodes = reverse([value | output]), message = current.message)
-            }
+        true -> parse_next_clause(values, pattern, contextual, output)
+    }.
+
+@pure
+clause_separator(values: List[ProjectedCanonicalToken], contextual: Bool): TokenSplit ->
+    if {
+        contextual -> split_terminal(values, "if-clause-semicolon");
+        true -> split(values, ";")
+    }.
+
+@pure
+parse_next_clause(
+    values: List[ProjectedCanonicalToken],
+    pattern: Bool,
+    contextual: Bool,
+    output: List[ProjectedExpressionNode],
+): ClauseParse ->
+    let separator = clause_separator(values, contextual);
+    let current = clause(separator.left, pattern);
+    case current.node {
+        None -> ClauseParse(valid = false, nodes = reverse(output), message = current.message);
+        Some(value) -> continue_clauses(separator, current, value, pattern, contextual, output)
+    }.
+
+@pure
+continue_clauses(
+    separator: TokenSplit,
+    current: ProjectedExpressionResult,
+    value: ProjectedExpressionNode,
+    pattern: Bool,
+    contextual: Bool,
+    output: List[ProjectedExpressionNode],
+): ClauseParse ->
+    if {
+        separator.found -> clauses_at(separator.right, pattern, contextual, [value | output]);
+        true -> ClauseParse(valid = current.valid, nodes = reverse([value | output]), message = current.message)
     }.
 
 @pure
 parse_if(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
-        [opening | rest] where opening.text == "{" ->
-            let slice = group(opening, rest);
-            let parsed = clauses_at(slice.inner, false, true, List.new[ProjectedExpressionNode]());
-            case slice.close {
-                Some(close) -> ProjectedExpressionResult(slice.valid and parsed.valid, Some(node("if", "if", keyword.start_byte, close.end_byte, parsed.nodes)), slice.rest, parsed.message);
-                None -> invalid(values, "if expression is missing its closing brace")
-            };
+        [opening | rest] where opening.text == "{" -> parse_if_block(keyword, values, opening, rest);
         _ -> invalid(values, "if expression is missing its clause block")
+    }.
+
+@pure
+parse_if_block(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    opening: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let slice = group(opening, rest);
+    let parsed = clauses_at(slice.inner, false, true, List.new[ProjectedExpressionNode]());
+    case slice.close {
+        Some(close) -> ProjectedExpressionResult(slice.valid and parsed.valid, Some(node("if", "if", keyword.start_byte, close.end_byte, parsed.nodes)), slice.rest, parsed.message);
+        None -> invalid(values, "if expression is missing its closing brace")
     }.
 
 @pure
 parse_case(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     let before_block = split_case_block(values);
     case before_block.separator {
-        Some(opening) ->
-            let subject = parse(before_block.left);
-            let slice = group(opening, before_block.right);
-            let parsed = clauses_at(slice.inner, true, true, List.new[ProjectedExpressionNode]());
-            case {subject.node, slice.close} {
-                {Some(subject_node), Some(close)} -> ProjectedExpressionResult(subject.valid and slice.valid and parsed.valid, Some(node(
-                        "case",
-                        "case",
-                        keyword.start_byte,
-                        close.end_byte,
-                        [subject_node | parsed.nodes],
-                    )), slice.rest, if { not subject.valid -> subject.message; true -> parsed.message });
-                _ -> invalid(values, "case expression is invalid")
-            };
+        Some(opening) -> parse_case_block(keyword, values, before_block, opening);
         None -> invalid(values, "case expression is missing its clause block")
+    }.
+
+@pure
+parse_case_block(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    before_block: TokenSplit,
+    opening: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    let subject = parse(before_block.left);
+    let slice = group(opening, before_block.right);
+    let parsed = clauses_at(slice.inner, true, true, List.new[ProjectedExpressionNode]());
+    case subject.node {
+        Some(subject_node) -> finish_case(values, keyword, subject, subject_node, slice, parsed);
+        None -> invalid(values, "case expression is invalid")
+    }.
+
+@pure
+finish_case(
+    values: List[ProjectedCanonicalToken],
+    keyword: ProjectedCanonicalToken,
+    subject: ProjectedExpressionResult,
+    subject_node: ProjectedExpressionNode,
+    slice: GroupSlice,
+    parsed: ClauseParse,
+): ProjectedExpressionResult ->
+    case slice.close {
+        Some(close) -> ProjectedExpressionResult(subject.valid and slice.valid and parsed.valid, Some(node(
+                "case",
+                "case",
+                keyword.start_byte,
+                close.end_byte,
+                [subject_node | parsed.nodes],
+            )), slice.rest, select_message(subject.valid, subject.message, parsed.message));
+        None -> invalid(values, "case expression is invalid")
     }.
 
 @pure
@@ -382,82 +511,206 @@ parse_try(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken
     let before_block = split(values, "{");
     case before_block.separator {
         None -> invalid(values, "try expression is missing its handler block");
-        Some(opening) ->
-            let body = parse(before_block.left);
-            let slice = group(opening, before_block.right);
-            let catch_split = split(slice.inner, "catch");
-            let after_source = if { catch_split.found -> catch_split.right; true -> slice.inner };
-            let after_split = split(after_source, "after");
-            let success_tokens = if {
-                catch_split.found -> catch_split.left;
-                true -> after_split.left
-            };
-            let catch_tokens = if {
-                catch_split.found -> after_split.left;
-                true -> List.new[ProjectedCanonicalToken]()
-            };
-            let success = clauses_at(success_tokens, true, false, List.new[ProjectedExpressionNode]());
-            let catches = clauses_at(catch_tokens, true, false, List.new[ProjectedExpressionNode]());
-            let after_clause = if {
-                after_split.found -> clause(after_split.right, false);
-                true -> ProjectedExpressionResult(true, None, List.new[ProjectedCanonicalToken](), "")
-            };
-            case {body.node, slice.close} {
-                {Some(body_node), Some(close)} ->
-                    let success_section = section("success-clauses", success.nodes, opening.end_byte);
-                    let catch_section = section("catch-clauses", catches.nodes, opening.end_byte);
-                    let handler_nodes = [success_section, catch_section];
-                    let after_nodes = after_section_nodes(after_clause.node, opening.end_byte);
-                    let children = append_nodes([body_node | handler_nodes], after_nodes);
-                    let try_node = node(
-                        "try",
-                        "try",
-                        keyword.start_byte,
-                        close.end_byte,
-                        children,
-                    );
-                    ProjectedExpressionResult(body.valid
-                            and slice.valid
-                            and success.valid
-                            and catches.valid
-                            and after_clause.valid, Some(try_node), slice.rest, if {
-                            not body.valid -> body.message;
-                            not success.valid -> success.message;
-                            not catches.valid -> catches.message;
-                            true -> after_clause.message
-                        });
-                _ -> invalid(values, "try expression is invalid")
-            }
+        Some(opening) -> parse_try_block(keyword, values, before_block, opening)
+    }.
+
+@pure
+parse_try_block(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    before_block: TokenSplit,
+    opening: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    let body = parse(before_block.left);
+    let slice = group(opening, before_block.right);
+    let catch_split = split(slice.inner, "catch");
+    let after_source = try_after_source(catch_split, slice.inner);
+    let after_split = split(after_source, "after");
+    let success_tokens = try_success_tokens(catch_split, after_split);
+    let catch_tokens = try_catch_tokens(catch_split, after_split);
+    let success = clauses_at(success_tokens, true, false, List.new[ProjectedExpressionNode]());
+    let catches = clauses_at(catch_tokens, true, false, List.new[ProjectedExpressionNode]());
+    let after_clause = try_after_clause(after_split);
+    case body.node {
+        Some(body_node) -> finish_try_close(keyword, values, opening, body, body_node, slice, success, catches, after_clause);
+        None -> invalid(values, "try expression is invalid")
+    }.
+
+@pure
+try_after_source(catch_split: TokenSplit, inner: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    if {
+        catch_split.found -> catch_split.right;
+        true -> inner
+    }.
+
+@pure
+try_success_tokens(catch_split: TokenSplit, after_split: TokenSplit): List[ProjectedCanonicalToken] ->
+    if {
+        catch_split.found -> catch_split.left;
+        true -> after_split.left
+    }.
+
+@pure
+try_catch_tokens(catch_split: TokenSplit, after_split: TokenSplit): List[ProjectedCanonicalToken] ->
+    if {
+        catch_split.found -> after_split.left;
+        true -> List.new[ProjectedCanonicalToken]()
+    }.
+
+@pure
+try_after_clause(after_split: TokenSplit): ProjectedExpressionResult ->
+    if {
+        after_split.found -> clause(after_split.right, false);
+        true -> ProjectedExpressionResult(true, None, List.new[ProjectedCanonicalToken](), "")
+    }.
+
+@pure
+finish_try_close(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    opening: ProjectedCanonicalToken,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+    slice: GroupSlice,
+    success: ClauseParse,
+    catches: ClauseParse,
+    after_clause: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case slice.close {
+        Some(close) -> build_try(keyword, opening, body, body_node, slice, close, success, catches, after_clause);
+        None -> invalid(values, "try expression is invalid")
+    }.
+
+@pure
+build_try(
+    keyword: ProjectedCanonicalToken,
+    opening: ProjectedCanonicalToken,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+    slice: GroupSlice,
+    close: ProjectedCanonicalToken,
+    success: ClauseParse,
+    catches: ClauseParse,
+    after_clause: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    let success_section = section("success-clauses", success.nodes, opening.end_byte);
+    let catch_section = section("catch-clauses", catches.nodes, opening.end_byte);
+    let handler_nodes = [success_section, catch_section];
+    let after_nodes = after_section_nodes(after_clause.node, opening.end_byte);
+    let children = append_nodes([body_node | handler_nodes], after_nodes);
+    let try_node = node(
+        "try",
+        "try",
+        keyword.start_byte,
+        close.end_byte,
+        children,
+    );
+    ProjectedExpressionResult(body.valid
+            and slice.valid
+            and success.valid
+            and catches.valid
+            and after_clause.valid, Some(try_node), slice.rest, try_message(body, success, catches, after_clause)).
+
+@pure
+try_message(
+    body: ProjectedExpressionResult,
+    success: ClauseParse,
+    catches: ClauseParse,
+    after_clause: ProjectedExpressionResult,
+): String ->
+    if {
+        not body.valid -> body.message;
+        true -> try_handler_message(success, catches, after_clause)
+    }.
+
+@pure
+try_handler_message(
+    success: ClauseParse,
+    catches: ClauseParse,
+    after_clause: ProjectedExpressionResult,
+): String ->
+    if {
+        not success.valid -> success.message;
+        true -> try_catch_message(catches, after_clause)
+    }.
+
+@pure
+try_catch_message(catches: ClauseParse, after_clause: ProjectedExpressionResult): String ->
+    if {
+        not catches.valid -> catches.message;
+        true -> after_clause.message
     }.
 
 @pure
 parse_lambda(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     let parameters = group(opening, values);
-    case {parameters.close, parameters.rest} {
-        {Some(_close), [arrow | body_tokens]} where arrow.text == "->" ->
-            let body = parse(body_tokens);
-            case body.node {
-                Some(body_node) ->
-                    let children = pattern_children(parameters.inner);
-                    let parameters_node = node(
-                        "parameters",
-                        "",
-                        opening.start_byte,
-                        arrow.start_byte,
-                        children,
-                    );
-                    let lambda_node = node(
-                        "lambda",
-                        "->",
-                        opening.start_byte,
-                        body_node.end_byte,
-                        [parameters_node, body_node],
-                    );
-                    ProjectedExpressionResult(parameters.valid and body.valid, Some(lambda_node), body.rest, body.message);
-                None -> invalid(values, "lambda body is invalid")
-            };
-        _ -> invalid(values, "lambda is missing -> body")
+    case parameters.close {
+        Some(_close) -> parse_lambda_rest(opening, values, parameters);
+        None -> invalid(values, "lambda is missing -> body")
     }.
+
+@pure
+parse_lambda_rest(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    parameters: GroupSlice,
+): ProjectedExpressionResult ->
+    case parameters.rest {
+        [arrow | body_tokens] -> parse_lambda_arrow(opening, values, parameters, arrow, body_tokens);
+        [] -> invalid(values, "lambda is missing -> body")
+    }.
+
+@pure
+parse_lambda_arrow(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    parameters: GroupSlice,
+    arrow: ProjectedCanonicalToken,
+    body_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        arrow.text == "->" -> parse_lambda_body(opening, values, parameters, arrow, body_tokens);
+        true -> invalid(values, "lambda is missing -> body")
+    }.
+
+@pure
+parse_lambda_body(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    parameters: GroupSlice,
+    arrow: ProjectedCanonicalToken,
+    body_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let body = parse(body_tokens);
+    case body.node {
+        Some(body_node) -> build_lambda(opening, parameters, arrow, body, body_node);
+        None -> invalid(values, "lambda body is invalid")
+    }.
+
+@pure
+build_lambda(
+    opening: ProjectedCanonicalToken,
+    parameters: GroupSlice,
+    arrow: ProjectedCanonicalToken,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let children = pattern_children(parameters.inner);
+    let parameters_node = node(
+        "parameters",
+        "",
+        opening.start_byte,
+        arrow.start_byte,
+        children,
+    );
+    let lambda_node = node(
+        "lambda",
+        "->",
+        opening.start_byte,
+        body_node.end_byte,
+        [parameters_node, body_node],
+    );
+    ProjectedExpressionResult(parameters.valid and body.valid, Some(lambda_node), body.rest, body.message).
 
 @pure
 bindings_at(
@@ -465,45 +718,136 @@ bindings_at(
     output: List[ProjectedExpressionNode],
 ): ClauseParse ->
     if {
-        values == [] -> ClauseParse(valid = output != [], nodes = reverse(output), message = if { output == [] -> "refutable let group requires at least one binding"; true -> "" });
-        true ->
-            let separator = split(values, ";");
-            let binding = qualifier(separator.left);
-            let is_refutable = split(separator.left, "<-").found;
-            case binding.node {
-                Some(value) where is_refutable and separator.found -> bindings_at(
-                    separator.right,
-                    [node("binding", "<-", value.start_byte, value.end_byte, value.children) | output],
-                );
-                Some(value) where is_refutable -> ClauseParse(valid = binding.valid, nodes = reverse([node(
-                        "binding",
-                        "<-",
-                        value.start_byte,
-                        value.end_byte,
-                        value.children,
-                    ) | output]), message = binding.message);
-                _ -> ClauseParse(valid = false, nodes = reverse(output), message = "refutable let binding is missing <-")
-            }
+        values == [] -> finish_bindings(output);
+        true -> parse_binding(values, output)
     }.
+
+@pure
+finish_bindings(output: List[ProjectedExpressionNode]): ClauseParse ->
+    ClauseParse(valid = output != [], nodes = reverse(output), message = binding_message(output == [])).
+
+@pure
+binding_message(empty: Bool): String ->
+    if {
+        empty -> "refutable let group requires at least one binding";
+        true -> ""
+    }.
+
+@pure
+parse_binding(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+): ClauseParse ->
+    let separator = split(values, ";");
+    let binding = qualifier(separator.left);
+    let is_refutable = split(separator.left, "<-").found;
+    case binding.node {
+        Some(value) -> continue_binding(separator, binding, value, is_refutable, output);
+        None -> invalid_binding(output)
+    }.
+
+@pure
+continue_binding(
+    separator: TokenSplit,
+    binding: ProjectedExpressionResult,
+    value: ProjectedExpressionNode,
+    is_refutable: Bool,
+    output: List[ProjectedExpressionNode],
+): ClauseParse ->
+    if {
+        not is_refutable -> invalid_binding(output);
+        true -> append_binding(separator, binding, value, output)
+    }.
+
+@pure
+append_binding(
+    separator: TokenSplit,
+    binding: ProjectedExpressionResult,
+    value: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+): ClauseParse ->
+    let binding_node = node("binding", "<-", value.start_byte, value.end_byte, value.children);
+    if {
+        separator.found -> bindings_at(separator.right, [binding_node | output]);
+        true -> ClauseParse(valid = binding.valid, nodes = reverse([binding_node | output]), message = binding.message)
+    }.
+
+@pure
+invalid_binding(output: List[ProjectedExpressionNode]): ClauseParse ->
+    ClauseParse(valid = false, nodes = reverse(output), message = "refutable let binding is missing <-").
 
 @pure
 parse_fallback(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
-        [else_token | [opening | rest]] where else_token.text == "else" and opening.text == "{" ->
-            let slice = group(opening, rest);
-            let parsed = clauses_at(slice.inner, true, false, List.new[ProjectedExpressionNode]());
-            case slice.close {
-                Some(close) where parsed.nodes != [] -> ProjectedExpressionResult(slice.valid and parsed.valid, Some(node(
-                        "fallback",
-                        "else",
-                        else_token.start_byte,
-                        close.end_byte,
-                        parsed.nodes,
-                    )), slice.rest, parsed.message);
-                Some(_close) -> invalid(values, "let else requires at least one fallback clause");
-                None -> invalid(values, "let else fallback is missing }")
-            };
-        _ -> invalid(values, "refutable let requires an else fallback")
+        [else_token | rest] -> parse_fallback_else(values, else_token, rest);
+        [] -> invalid(values, "refutable let requires an else fallback")
+    }.
+
+@pure
+parse_fallback_else(
+    values: List[ProjectedCanonicalToken],
+    else_token: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        else_token.text == "else" -> parse_fallback_opening(values, else_token, rest);
+        true -> invalid(values, "refutable let requires an else fallback")
+    }.
+
+@pure
+parse_fallback_opening(
+    values: List[ProjectedCanonicalToken],
+    else_token: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case rest {
+        [opening | tail] -> parse_fallback_group(values, else_token, opening, tail);
+        [] -> invalid(values, "refutable let requires an else fallback")
+    }.
+
+@pure
+parse_fallback_group(
+    values: List[ProjectedCanonicalToken],
+    else_token: ProjectedCanonicalToken,
+    opening: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        opening.text == "{" -> parse_fallback_clauses(values, else_token, opening, rest);
+        true -> invalid(values, "refutable let requires an else fallback")
+    }.
+
+@pure
+parse_fallback_clauses(
+    values: List[ProjectedCanonicalToken],
+    else_token: ProjectedCanonicalToken,
+    opening: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let slice = group(opening, rest);
+    let parsed = clauses_at(slice.inner, true, false, List.new[ProjectedExpressionNode]());
+    case slice.close {
+        Some(close) -> finish_fallback(values, else_token, slice, parsed, close);
+        None -> invalid(values, "let else fallback is missing }")
+    }.
+
+@pure
+finish_fallback(
+    values: List[ProjectedCanonicalToken],
+    else_token: ProjectedCanonicalToken,
+    slice: GroupSlice,
+    parsed: ClauseParse,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    if {
+        parsed.nodes != [] -> ProjectedExpressionResult(slice.valid and parsed.valid, Some(node(
+                "fallback",
+                "else",
+                else_token.start_byte,
+                close.end_byte,
+                parsed.nodes,
+            )), slice.rest, parsed.message);
+        true -> invalid(values, "let else requires at least one fallback clause")
     }.
 
 @pure
@@ -513,25 +857,72 @@ parse_refutable_tail(
     fallback_source: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     let fallback = parse_fallback(fallback_source);
-    case {fallback.node, fallback.rest} {
-        {Some(fallback_node), [separator | continuation_tokens]} where separator.text == ";" ->
-            let continuation = parse(continuation_tokens);
-            case continuation.node {
-                Some(continuation_node) ->
-                    let children = append_nodes(bindings, [fallback_node, continuation_node]);
-                    let refutable_node = node(
-                        "let-refutable",
-                        "let",
-                        keyword.start_byte,
-                        continuation_node.end_byte,
-                        children,
-                    );
-                    ProjectedExpressionResult(fallback.valid and continuation.valid, Some(refutable_node), continuation.rest, continuation.message);
-                None -> invalid(fallback_source, "refutable let continuation is invalid")
-            };
-        {Some(_fallback), _} -> invalid(fallback_source, "refutable let is missing continuation separator");
-        _ -> fallback
+    case fallback.node {
+        Some(fallback_node) -> parse_refutable_continuation(keyword, bindings, fallback_source, fallback, fallback_node);
+        None -> fallback
     }.
+
+@pure
+parse_refutable_continuation(
+    keyword: ProjectedCanonicalToken,
+    bindings: List[ProjectedExpressionNode],
+    fallback_source: List[ProjectedCanonicalToken],
+    fallback: ProjectedExpressionResult,
+    fallback_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    case fallback.rest {
+        [separator | continuation_tokens] -> parse_refutable_separator(keyword, bindings, fallback_source, fallback, fallback_node, separator, continuation_tokens);
+        [] -> invalid(fallback_source, "refutable let is missing continuation separator")
+    }.
+
+@pure
+parse_refutable_separator(
+    keyword: ProjectedCanonicalToken,
+    bindings: List[ProjectedExpressionNode],
+    fallback_source: List[ProjectedCanonicalToken],
+    fallback: ProjectedExpressionResult,
+    fallback_node: ProjectedExpressionNode,
+    separator: ProjectedCanonicalToken,
+    continuation_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        separator.text == ";" -> parse_refutable_body(keyword, bindings, fallback_source, fallback, fallback_node, continuation_tokens);
+        true -> invalid(fallback_source, "refutable let is missing continuation separator")
+    }.
+
+@pure
+parse_refutable_body(
+    keyword: ProjectedCanonicalToken,
+    bindings: List[ProjectedExpressionNode],
+    fallback_source: List[ProjectedCanonicalToken],
+    fallback: ProjectedExpressionResult,
+    fallback_node: ProjectedExpressionNode,
+    continuation_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let continuation = parse(continuation_tokens);
+    case continuation.node {
+        Some(continuation_node) -> build_refutable(keyword, bindings, fallback, fallback_node, continuation, continuation_node);
+        None -> invalid(fallback_source, "refutable let continuation is invalid")
+    }.
+
+@pure
+build_refutable(
+    keyword: ProjectedCanonicalToken,
+    bindings: List[ProjectedExpressionNode],
+    fallback: ProjectedExpressionResult,
+    fallback_node: ProjectedExpressionNode,
+    continuation: ProjectedExpressionResult,
+    continuation_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let children = append_nodes(bindings, [fallback_node, continuation_node]);
+    let refutable_node = node(
+        "let-refutable",
+        "let",
+        keyword.start_byte,
+        continuation_node.end_byte,
+        children,
+    );
+    ProjectedExpressionResult(fallback.valid and continuation.valid, Some(refutable_node), continuation.rest, continuation.message).
 
 @pure
 parse_refutable_group(
@@ -553,136 +944,265 @@ parse_refutable_single(
     values: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     let binding_source = split(values, "<-");
-    let fallback_split = split(binding_source.right, "else");
     if {
         not binding_source.found -> invalid(values, "refutable let binding is missing <-");
-        not fallback_split.found -> invalid(values, "refutable let requires an else fallback");
-        true ->
-            let source = parse(fallback_split.left);
-            case {source.node, fallback_split.separator} {
-                {Some(source_node), Some(else_token)} ->
-                    let binding_pattern = pattern_node(binding_source.left, keyword.end_byte, source_node.start_byte);
-                    let binding_node = node(
-                        "binding",
-                        "<-",
-                        keyword.end_byte,
-                        source_node.end_byte,
-                        [binding_pattern, source_node],
-                    );
-                    parse_refutable_tail(
-                        keyword,
-                        [binding_node],
-                        [else_token | fallback_split.right],
-                    );
-                _ -> invalid(values, "refutable let source is invalid")
-            }
+        true -> parse_refutable_fallback(keyword, values, binding_source)
     }.
+
+@pure
+parse_refutable_fallback(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    binding_source: TokenSplit,
+): ProjectedExpressionResult ->
+    let fallback_split = split(binding_source.right, "else");
+    if {
+        not fallback_split.found -> invalid(values, "refutable let requires an else fallback");
+        true -> parse_refutable_source(keyword, values, binding_source, fallback_split)
+    }.
+
+@pure
+parse_refutable_source(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    binding_source: TokenSplit,
+    fallback_split: TokenSplit,
+): ProjectedExpressionResult ->
+    let source = parse(fallback_split.left);
+    case source.node {
+        Some(source_node) -> parse_refutable_else(keyword, values, binding_source, fallback_split, source, source_node);
+        None -> invalid(values, "refutable let source is invalid")
+    }.
+
+@pure
+parse_refutable_else(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    binding_source: TokenSplit,
+    fallback_split: TokenSplit,
+    source: ProjectedExpressionResult,
+    source_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    case fallback_split.separator {
+        Some(else_token) -> build_refutable_single(keyword, binding_source, fallback_split, source_node, else_token);
+        None -> invalid(values, "refutable let source is invalid")
+    }.
+
+@pure
+build_refutable_single(
+    keyword: ProjectedCanonicalToken,
+    binding_source: TokenSplit,
+    fallback_split: TokenSplit,
+    source_node: ProjectedExpressionNode,
+    else_token: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    let binding_pattern = pattern_node(binding_source.left, keyword.end_byte, source_node.start_byte);
+    let binding_node = node(
+        "binding",
+        "<-",
+        keyword.end_byte,
+        source_node.end_byte,
+        [binding_pattern, source_node],
+    );
+    parse_refutable_tail(
+        keyword,
+        [binding_node],
+        [else_token | fallback_split.right],
+    ).
 
 @pure
 parse_let(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
-        [opening | rest] where opening.text == "{" ->
-            let grouped = group(opening, rest);
-            case grouped.rest {
-                [next | _] where next.text == "else" -> parse_refutable_group(keyword, opening, rest);
-                _ ->
-                    let assignment = split(values, "=");
-                    if {
-                        not assignment.found -> invalid(values, "let expression is missing =");
-                        true -> parse_ordinary_let(keyword, assignment)
-                    }
-            };
-        _ ->
-            let refutable = split(values, "<-");
-            if {
-                refutable.found -> parse_refutable_single(keyword, values);
-                true ->
-                    let assignment = split(values, "=");
-                    if {
-                        not assignment.found -> invalid(values, "let expression is missing =");
-                        true -> parse_ordinary_let(keyword, assignment)
-                    }
-            }
+        [opening | rest] where opening.text == "{" -> parse_grouped_let(keyword, values, opening, rest);
+        _ -> parse_ungrouped_let(keyword, values)
+    }.
+
+@pure
+parse_grouped_let(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    opening: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let grouped = group(opening, rest);
+    case grouped.rest {
+        [next | _tail] -> parse_grouped_let_next(keyword, values, opening, rest, next);
+        [] -> parse_let_assignment(keyword, values)
+    }.
+
+@pure
+parse_grouped_let_next(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    opening: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    next: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    if {
+        next.text == "else" -> parse_refutable_group(keyword, opening, rest);
+        true -> parse_let_assignment(keyword, values)
+    }.
+
+@pure
+parse_ungrouped_let(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let refutable = split(values, "<-");
+    if {
+        refutable.found -> parse_refutable_single(keyword, values);
+        true -> parse_let_assignment(keyword, values)
+    }.
+
+@pure
+parse_let_assignment(keyword: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let assignment = split(values, "=");
+    if {
+        not assignment.found -> invalid(values, "let expression is missing =");
+        true -> parse_ordinary_let(keyword, assignment)
     }.
 
 @pure
 parse_ordinary_let(keyword: ProjectedCanonicalToken, assignment: TokenSplit): ProjectedExpressionResult ->
-            let separator = split(assignment.right, ";");
-            let bound = parse(separator.left);
-            let continuation = if {
-                separator.found -> parse(separator.right);
-                true -> invalid(separator.right, "let expression is missing its continuation")
-            };
-            case {bound.node, continuation.node} {
-                {Some(bound_node), Some(continuation_node)} ->
-                    let binding_pattern = pattern_node(assignment.left, keyword.end_byte, bound_node.start_byte);
-                    let let_node = node(
-                        "let",
-                        "let",
-                        keyword.start_byte,
-                        continuation_node.end_byte,
-                        [binding_pattern, bound_node, continuation_node],
-                    );
-                    ProjectedExpressionResult(bound.valid and continuation.valid, Some(let_node), continuation.rest, if { not bound.valid -> bound.message; true -> continuation.message });
-                _ -> invalid(assignment.right, "let expression is invalid")
-            }.
+    let separator = split(assignment.right, ";");
+    let bound = parse(separator.left);
+    let continuation = parse_let_continuation(separator);
+    case bound.node {
+        Some(bound_node) -> finish_ordinary_let(keyword, assignment, bound, bound_node, continuation);
+        None -> invalid(assignment.right, "let expression is invalid")
+    }.
+
+@pure
+parse_let_continuation(separator: TokenSplit): ProjectedExpressionResult ->
+    if {
+        separator.found -> parse(separator.right);
+        true -> invalid(separator.right, "let expression is missing its continuation")
+    }.
+
+@pure
+finish_ordinary_let(
+    keyword: ProjectedCanonicalToken,
+    assignment: TokenSplit,
+    bound: ProjectedExpressionResult,
+    bound_node: ProjectedExpressionNode,
+    continuation: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case continuation.node {
+        Some(continuation_node) -> build_ordinary_let(keyword, assignment, bound, bound_node, continuation, continuation_node);
+        None -> invalid(assignment.right, "let expression is invalid")
+    }.
+
+@pure
+build_ordinary_let(
+    keyword: ProjectedCanonicalToken,
+    assignment: TokenSplit,
+    bound: ProjectedExpressionResult,
+    bound_node: ProjectedExpressionNode,
+    continuation: ProjectedExpressionResult,
+    continuation_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let binding_pattern = pattern_node(assignment.left, keyword.end_byte, bound_node.start_byte);
+    let let_node = node(
+        "let",
+        "let",
+        keyword.start_byte,
+        continuation_node.end_byte,
+        [binding_pattern, bound_node, continuation_node],
+    );
+    ProjectedExpressionResult(bound.valid and continuation.valid, Some(let_node), continuation.rest, select_message(bound.valid, bound.message, continuation.message)).
 
 @pure
 parse_sequence(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     let separator = split(values, ";");
     if {
         not separator.found -> ProjectedExpressionParser.parse(values);
-        true ->
-            let first = parse(separator.left);
-            let following = parse(separator.right);
-            case {first.node, following.node} {
-                {Some(first_node), Some(next_node)} ->
-                    let sequence_node = node(
-                        "sequence",
-                        ";",
-                        first_node.start_byte,
-                        next_node.end_byte,
-                        [first_node, next_node],
-                    );
-                    ProjectedExpressionResult(first.valid and following.valid, Some(sequence_node), following.rest, if { not first.valid -> first.message; true -> following.message });
-                _ -> invalid(values, "expression sequence is invalid")
-            }
+        true -> parse_sequence_parts(values, separator)
     }.
+
+@pure
+parse_sequence_parts(values: List[ProjectedCanonicalToken], separator: TokenSplit): ProjectedExpressionResult ->
+    let first = parse(separator.left);
+    let following = parse(separator.right);
+    case first.node {
+        Some(first_node) -> finish_sequence(values, first, first_node, following);
+        None -> invalid(values, "expression sequence is invalid")
+    }.
+
+@pure
+finish_sequence(
+    values: List[ProjectedCanonicalToken],
+    first: ProjectedExpressionResult,
+    first_node: ProjectedExpressionNode,
+    following: ProjectedExpressionResult,
+): ProjectedExpressionResult ->
+    case following.node {
+        Some(next_node) -> build_sequence(first, first_node, following, next_node);
+        None -> invalid(values, "expression sequence is invalid")
+    }.
+
+@pure
+build_sequence(
+    first: ProjectedExpressionResult,
+    first_node: ProjectedExpressionNode,
+    following: ProjectedExpressionResult,
+    next_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let sequence_node = node(
+        "sequence",
+        ";",
+        first_node.start_byte,
+        next_node.end_byte,
+        [first_node, next_node],
+    );
+    ProjectedExpressionResult(first.valid and following.valid, Some(sequence_node), following.rest, select_message(first.valid, first.message, following.message)).
 
 @pure
 qualifier(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     let generator = split(values, "<-");
     if {
-        generator.found ->
-            let source = parse(generator.right);
-            case source.node {
-                Some(source_node) ->
-                    let generator_pattern = pattern_node(generator.left, source_node.start_byte, source_node.start_byte);
-                    let generator_node = node(
-                        "generator",
-                        "<-",
-                        first_token_start(generator.left, source_node.start_byte),
-                        source_node.end_byte,
-                        [generator_pattern, source_node],
-                    );
-                    ProjectedExpressionResult(source.valid, Some(generator_node), source.rest, source.message);
-                None -> invalid(values, "comprehension generator source is invalid")
-            };
-        true ->
-            let filter = parse(values);
-            case filter.node {
-                Some(filter_node) ->
-                    let filter_result_node = node(
-                        "filter",
-                        "",
-                        filter_node.start_byte,
-                        filter_node.end_byte,
-                        [filter_node],
-                    );
-                    ProjectedExpressionResult(filter.valid, Some(filter_result_node), filter.rest, filter.message);
-                None -> filter
-            }
+        generator.found -> parse_generator(values, generator);
+        true -> parse_filter(values)
     }.
+
+@pure
+parse_generator(values: List[ProjectedCanonicalToken], generator: TokenSplit): ProjectedExpressionResult ->
+    let source = parse(generator.right);
+    case source.node {
+        Some(source_node) -> build_generator(generator, source, source_node);
+        None -> invalid(values, "comprehension generator source is invalid")
+    }.
+
+@pure
+build_generator(
+    generator: TokenSplit,
+    source: ProjectedExpressionResult,
+    source_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let generator_pattern = pattern_node(generator.left, source_node.start_byte, source_node.start_byte);
+    let generator_node = node(
+        "generator",
+        "<-",
+        first_token_start(generator.left, source_node.start_byte),
+        source_node.end_byte,
+        [generator_pattern, source_node],
+    );
+    ProjectedExpressionResult(source.valid, Some(generator_node), source.rest, source.message).
+
+@pure
+parse_filter(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let filter = parse(values);
+    case filter.node {
+        Some(filter_node) -> build_filter(filter, filter_node);
+        None -> filter
+    }.
+
+@pure
+build_filter(filter: ProjectedExpressionResult, filter_node: ProjectedExpressionNode): ProjectedExpressionResult ->
+    let filter_result_node = node(
+        "filter",
+        "",
+        filter_node.start_byte,
+        filter_node.end_byte,
+        [filter_node],
+    );
+    ProjectedExpressionResult(filter.valid, Some(filter_result_node), filter.rest, filter.message).
 
 @pure
 qualifiers_at(
@@ -691,61 +1211,177 @@ qualifiers_at(
     has_generator: Bool,
 ): QualifierParse ->
     if {
-        values == [] ->
-            let ordered = reverse(output);
-            QualifierParse(valid = true, has_generator = has_generator, nodes = ordered, message = "");
-        true ->
-            let comma = split(values, ",");
-            let current = qualifier(comma.left);
-            let current_generator = split(comma.left, "<-").found;
-            case current.node {
-                None ->
-                    let ordered = reverse(output);
-                    QualifierParse(valid = false, has_generator = has_generator, nodes = ordered, message = current.message);
-                Some(value) where comma.found -> qualifiers_at(
-                    comma.right,
-                    [value | output],
-                    has_generator or current_generator,
-                );
-                Some(value) ->
-                    let ordered = reverse([value | output]);
-                    QualifierParse(valid = current.valid, has_generator = has_generator or current_generator, nodes = ordered, message = current.message)
-            }
+        values == [] -> finish_qualifiers(output, has_generator);
+        true -> parse_qualifier(values, output, has_generator)
     }.
+
+@pure
+finish_qualifiers(output: List[ProjectedExpressionNode], has_generator: Bool): QualifierParse ->
+    let ordered = reverse(output);
+    QualifierParse(valid = true, has_generator = has_generator, nodes = ordered, message = "").
+
+@pure
+parse_qualifier(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+    has_generator: Bool,
+): QualifierParse ->
+    let comma = split(values, ",");
+    let current = qualifier(comma.left);
+    let current_generator = split(comma.left, "<-").found;
+    case current.node {
+        None -> invalid_qualifier(output, has_generator, current.message);
+        Some(value) -> continue_qualifiers(comma, current, value, output, has_generator, current_generator)
+    }.
+
+@pure
+invalid_qualifier(
+    output: List[ProjectedExpressionNode],
+    has_generator: Bool,
+    message: String,
+): QualifierParse ->
+    let ordered = reverse(output);
+    QualifierParse(valid = false, has_generator = has_generator, nodes = ordered, message = message).
+
+@pure
+continue_qualifiers(
+    comma: TokenSplit,
+    current: ProjectedExpressionResult,
+    value: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+    has_generator: Bool,
+    current_generator: Bool,
+): QualifierParse ->
+    if {
+        comma.found -> qualifiers_at(comma.right, [value | output], has_generator or current_generator);
+        true -> finish_current_qualifier(current, value, output, has_generator or current_generator)
+    }.
+
+@pure
+finish_current_qualifier(
+    current: ProjectedExpressionResult,
+    value: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+    has_generator: Bool,
+): QualifierParse ->
+    let ordered = reverse([value | output]);
+    QualifierParse(valid = current.valid, has_generator = has_generator, nodes = ordered, message = current.message).
 
 @pure
 parse_list_form(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     let slice = group(opening, values);
-    let pipe = split(slice.inner, "|");
     if {
         not slice.valid -> invalid(values, "list expression is missing ]");
-        not pipe.found -> ProjectedExpressionParser.parse([opening | values]);
-        true ->
-            let result = parse(pipe.left);
-            let qualifiers = qualifiers_at(pipe.right, List.new[ProjectedExpressionNode](), false);
-            case {result.node, slice.close} {
-                {Some(result_node), Some(close)} where qualifiers.has_generator -> ProjectedExpressionResult(result.valid and qualifiers.valid, Some(node(
-                        "list-comprehension",
-                        "|",
-                        opening.start_byte,
-                        close.end_byte,
-                        [result_node | qualifiers.nodes],
-                    )), slice.rest, if { not result.valid -> result.message; true -> qualifiers.message });
-                {Some(head), Some(close)} ->
-                    let tail = parse(pipe.right);
-                    case tail.node {
-                        Some(tail_node) -> ProjectedExpressionResult(result.valid and tail.valid, Some(node(
-                                "list-cons",
-                                "|",
-                                opening.start_byte,
-                                close.end_byte,
-                                [head, tail_node],
-                            )), slice.rest, if { not result.valid -> result.message; true -> tail.message });
-                        None -> invalid(values, "list cons tail is invalid")
-                    };
-                _ -> invalid(values, "list expression is invalid")
-            }
+        true -> parse_valid_list_form(opening, values, slice)
     }.
+
+@pure
+parse_valid_list_form(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    slice: GroupSlice,
+): ProjectedExpressionResult ->
+    let pipe = split(slice.inner, "|");
+    if {
+        not pipe.found -> ProjectedExpressionParser.parse([opening | values]);
+        true -> parse_list_pipe(opening, values, slice, pipe)
+    }.
+
+@pure
+parse_list_pipe(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    slice: GroupSlice,
+    pipe: TokenSplit,
+): ProjectedExpressionResult ->
+    let result = parse(pipe.left);
+    let qualifiers = qualifiers_at(pipe.right, List.new[ProjectedExpressionNode](), false);
+    case result.node {
+        Some(result_node) -> finish_list_close(opening, values, slice, pipe, result, result_node, qualifiers);
+        None -> invalid(values, "list expression is invalid")
+    }.
+
+@pure
+finish_list_close(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    slice: GroupSlice,
+    pipe: TokenSplit,
+    result: ProjectedExpressionResult,
+    result_node: ProjectedExpressionNode,
+    qualifiers: QualifierParse,
+): ProjectedExpressionResult ->
+    case slice.close {
+        Some(close) -> finish_list_kind(opening, values, slice, pipe, result, result_node, qualifiers, close);
+        None -> invalid(values, "list expression is invalid")
+    }.
+
+@pure
+finish_list_kind(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    slice: GroupSlice,
+    pipe: TokenSplit,
+    result: ProjectedExpressionResult,
+    result_node: ProjectedExpressionNode,
+    qualifiers: QualifierParse,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    if {
+        qualifiers.has_generator -> build_list_comprehension(opening, slice, result, result_node, qualifiers, close);
+        true -> parse_list_tail(opening, values, slice, pipe, result, result_node, close)
+    }.
+
+@pure
+build_list_comprehension(
+    opening: ProjectedCanonicalToken,
+    slice: GroupSlice,
+    result: ProjectedExpressionResult,
+    result_node: ProjectedExpressionNode,
+    qualifiers: QualifierParse,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    ProjectedExpressionResult(result.valid and qualifiers.valid, Some(node(
+        "list-comprehension",
+        "|",
+        opening.start_byte,
+        close.end_byte,
+        [result_node | qualifiers.nodes],
+    )), slice.rest, select_message(result.valid, result.message, qualifiers.message)).
+
+@pure
+parse_list_tail(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+    slice: GroupSlice,
+    pipe: TokenSplit,
+    result: ProjectedExpressionResult,
+    head: ProjectedExpressionNode,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    let tail = parse(pipe.right);
+    case tail.node {
+        Some(tail_node) -> build_list_cons(opening, slice, result, head, tail, tail_node, close);
+        None -> invalid(values, "list cons tail is invalid")
+    }.
+
+@pure
+build_list_cons(
+    opening: ProjectedCanonicalToken,
+    slice: GroupSlice,
+    result: ProjectedExpressionResult,
+    head: ProjectedExpressionNode,
+    tail: ProjectedExpressionResult,
+    tail_node: ProjectedExpressionNode,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    ProjectedExpressionResult(result.valid and tail.valid, Some(node(
+        "list-cons",
+        "|",
+        opening.start_byte,
+        close.end_byte,
+        [head, tail_node],
+    )), slice.rest, select_message(result.valid, result.message, tail.message)).
 
 @pure
 parse_macro_call(
@@ -753,27 +1389,61 @@ parse_macro_call(
     values: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     case values {
-        [name | [opening | rest]] where opening.text == "(" ->
-            let arguments = group(opening, rest);
-            case arguments.close {
-                Some(close) -> let children = token_nodes(arguments.inner);
-                    ProjectedExpressionResult(arguments.valid, Some(node(
-                        "macro-call",
-                        name.text,
-                        marker.start_byte,
-                        close.end_byte,
-                        children,
-                    )), arguments.rest, if { arguments.valid -> ""; true -> "macro argument list is invalid" });
-                None -> invalid(values, "macro call is missing )")
-            };
-        [name | rest] -> ProjectedExpressionResult(true, Some(node(
+        [name | rest] -> parse_macro_name(marker, name, rest);
+        [] -> invalid(values, "macro marker is missing its name")
+    }.
+
+@pure
+parse_macro_name(
+    marker: ProjectedCanonicalToken,
+    name: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case values {
+        [opening | rest] where opening.text == "(" -> parse_macro_arguments(marker, name, opening, rest);
+        _ -> ProjectedExpressionResult(true, Some(node(
                 "macro-call",
                 name.text,
                 marker.start_byte,
                 name.end_byte,
                 List.new[ProjectedExpressionNode](),
-            )), rest, "");
-        [] -> invalid(values, "macro marker is missing its name")
+            )), values, "")
+    }.
+
+@pure
+parse_macro_arguments(
+    marker: ProjectedCanonicalToken,
+    name: ProjectedCanonicalToken,
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let arguments = group(opening, values);
+    case arguments.close {
+        Some(close) -> finish_macro_arguments(marker, name, arguments, close);
+        None -> invalid(values, "macro call is missing )")
+    }.
+
+@pure
+finish_macro_arguments(
+    marker: ProjectedCanonicalToken,
+    name: ProjectedCanonicalToken,
+    arguments: GroupSlice,
+    close: ProjectedCanonicalToken,
+): ProjectedExpressionResult ->
+    let children = token_nodes(arguments.inner);
+    ProjectedExpressionResult(arguments.valid, Some(node(
+        "macro-call",
+        name.text,
+        marker.start_byte,
+        close.end_byte,
+        children,
+    )), arguments.rest, macro_message(arguments.valid)).
+
+@pure
+macro_message(valid: Bool): String ->
+    if {
+        valid -> "";
+        true -> "macro argument list is invalid"
     }.
 
 @pure
@@ -787,14 +1457,88 @@ finish_structured(result: ProjectedExpressionResult): ProjectedExpressionResult 
 /** Parses one structured expression, delegating operator forms to the Pratt parser. */
 @pure
 pub parse(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
-    let initial = case values {
-        [keyword | rest] where keyword.text == "let" -> parse_let(keyword, rest);
-        [keyword | rest] where keyword.text == "if" -> parse_if(keyword, rest);
-        [keyword | rest] where keyword.text == "case" -> parse_case(keyword, rest);
-        [keyword | rest] where keyword.text == "try" -> parse_try(keyword, rest);
-        [opening | rest] where opening.terminal == "lambda-(" -> parse_lambda(opening, rest);
-        [opening | rest] where opening.text == "[" -> parse_list_form(opening, rest);
-        [marker | rest] where marker.text == "?" -> parse_macro_call(marker, rest);
-        _ -> parse_sequence(values)
-    };
-    finish_structured(initial).
+    finish_structured(parse_initial(values)).
+
+@pure
+parse_initial(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [first | rest] -> parse_let_initial(first, rest, values);
+        [] -> parse_sequence(values)
+    }.
+
+@pure
+parse_let_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "let" -> parse_let(first, rest);
+        true -> parse_if_initial(first, rest, original)
+    }.
+
+@pure
+parse_if_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "if" -> parse_if(first, rest);
+        true -> parse_case_initial(first, rest, original)
+    }.
+
+@pure
+parse_case_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "case" -> parse_case(first, rest);
+        true -> parse_try_initial(first, rest, original)
+    }.
+
+@pure
+parse_try_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "try" -> parse_try(first, rest);
+        true -> parse_lambda_initial(first, rest, original)
+    }.
+
+@pure
+parse_lambda_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.terminal == "lambda-(" -> parse_lambda(first, rest);
+        true -> parse_list_initial(first, rest, original)
+    }.
+
+@pure
+parse_list_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "[" -> parse_list_form(first, rest);
+        true -> parse_macro_initial(first, rest, original)
+    }.
+
+@pure
+parse_macro_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "?" -> parse_macro_call(first, rest);
+        true -> parse_sequence(original)
+    }.

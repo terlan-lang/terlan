@@ -115,6 +115,42 @@ prepend_fact(fact: InferredTypeFact, state: ConstraintState): ConstraintState ->
     let _stored = state.index.put(fact.node_id, type_code(fact.type_name));
     ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
 
+type_name_after_five(code: Int): Option[String] ->
+    if {
+        code == 6 -> Some("List");
+        true -> None
+    }.
+
+type_name_after_four(code: Int): Option[String] ->
+    if {
+        code == 5 -> Some("Unit");
+        true -> type_name_after_five(code)
+    }.
+
+type_name_after_three(code: Int): Option[String] ->
+    if {
+        code == 4 -> Some("Bool");
+        true -> type_name_after_four(code)
+    }.
+
+type_name_after_two(code: Int): Option[String] ->
+    if {
+        code == 3 -> Some("String");
+        true -> type_name_after_three(code)
+    }.
+
+type_name_after_one(code: Int): Option[String] ->
+    if {
+        code == 2 -> Some("Float");
+        true -> type_name_after_two(code)
+    }.
+
+type_name_for_code(code: Int): Option[String] ->
+    if {
+        code == 1 -> Some("Int");
+        true -> type_name_after_one(code)
+    }.
+
 prepend_code_fact(
     node_id: Int,
     code: Int,
@@ -122,33 +158,68 @@ prepend_code_fact(
     state: ConstraintState,
 ): ConstraintState ->
     let _stored = state.index.put(node_id, code);
-    let fact = if {
-        code == 1 -> InferredTypeFact(node_id = node_id, type_name = Some("Int"), byte_offset = byte_offset);
-        code == 2 -> InferredTypeFact(node_id = node_id, type_name = Some("Float"), byte_offset = byte_offset);
-        code == 3 -> InferredTypeFact(node_id = node_id, type_name = Some("String"), byte_offset = byte_offset);
-        code == 4 -> InferredTypeFact(node_id = node_id, type_name = Some("Bool"), byte_offset = byte_offset);
-        code == 5 -> InferredTypeFact(node_id = node_id, type_name = Some("Unit"), byte_offset = byte_offset);
-        code == 6 -> InferredTypeFact(node_id = node_id, type_name = Some("List"), byte_offset = byte_offset);
-        true -> InferredTypeFact(node_id = node_id, type_name = None, byte_offset = byte_offset)
-    };
+    let fact = InferredTypeFact(node_id = node_id, type_name = type_name_for_code(code), byte_offset = byte_offset);
     ConstraintState(facts = [fact | state.facts], diagnostics = state.diagnostics, index = state.index).
 
-step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+step_unknown_event(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    prepend_fact(InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset), ConstraintState(facts = state.facts, diagnostics = [TypeConstraintDiagnostic(
+            code = "unknown-type-constraint",
+            message = "expression adapter emitted an unsupported type constraint",
+            byte_offset = event.byte_offset,
+        ) | state.diagnostics], index = state.index)).
+
+step_logical(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    let left_checked = expect_code(
+        find_code(event.left_node, state.index),
+        4,
+        event,
+        state.diagnostics,
+    );
+    prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(facts = state.facts, diagnostics = expect_code(
+            find_code(event.right_node, state.index),
+            4,
+            event,
+            left_checked,
+        ), index = state.index)).
+
+step_compare_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    let left = find_code(event.left_node, state.index);
+    let right = find_code(event.right_node, state.index);
+    prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(
+        facts = state.facts,
+        diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
+        index = state.index,
+    )).
+
+step_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    let left = find_code(event.left_node, state.index);
+    let right = find_code(event.right_node, state.index);
+    prepend_code_fact(event.node_id, merged_code(left, right), event.byte_offset, ConstraintState(
+        facts = state.facts,
+        diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
+        index = state.index,
+    )).
+
+step_after_compare_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "known" -> prepend_fact(
-            InferredTypeFact(node_id = event.node_id, type_name = Some(event.type_name), byte_offset = event.byte_offset),
-            state,
-        );
-        event.kind == "unknown" -> prepend_fact(
-            InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset),
-            state,
-        );
-        event.kind == "propagate" -> prepend_code_fact(
-            event.node_id,
-            find_code(event.left_node, state.index),
-            event.byte_offset,
-            state,
-        );
+        event.kind == "logical" -> step_logical(event, state);
+        true -> step_unknown_event(event, state)
+    }.
+
+step_after_same(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "compare-same" -> step_compare_same(event, state);
+        true -> step_after_compare_same(event, state)
+    }.
+
+step_after_expect(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "same" -> step_same(event, state);
+        true -> step_after_same(event, state)
+    }.
+
+step_after_propagate(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
         event.kind == "expect" -> prepend_fact(InferredTypeFact(
                 node_id = event.node_id,
                 type_name = Some(event.type_name),
@@ -159,37 +230,36 @@ step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
                 event,
                 state.diagnostics,
             ), index = state.index));
-        event.kind == "same" -> let left = find_code(event.left_node, state.index);
-        let right = find_code(event.right_node, state.index);
-        prepend_code_fact(event.node_id, merged_code(left, right), event.byte_offset, ConstraintState(
-            facts = state.facts,
-            diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
-            index = state.index,
-        ));
-        event.kind == "compare-same" -> let left = find_code(event.left_node, state.index);
-        let right = find_code(event.right_node, state.index);
-        prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(
-            facts = state.facts,
-            diagnostics = merge_diagnostics(left, right, event, state.diagnostics),
-            index = state.index,
-        ));
-        event.kind == "logical" -> let left_checked = expect_code(
+        true -> step_after_expect(event, state)
+    }.
+
+step_after_unknown(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "propagate" -> prepend_code_fact(
+            event.node_id,
             find_code(event.left_node, state.index),
-            4,
-            event,
-            state.diagnostics,
+            event.byte_offset,
+            state,
         );
-        prepend_code_fact(event.node_id, 4, event.byte_offset, ConstraintState(facts = state.facts, diagnostics = expect_code(
-                find_code(event.right_node, state.index),
-                4,
-                event,
-                left_checked,
-            ), index = state.index));
-        true -> prepend_fact(InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset), ConstraintState(facts = state.facts, diagnostics = [TypeConstraintDiagnostic(
-                code = "unknown-type-constraint",
-                message = "expression adapter emitted an unsupported type constraint",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], index = state.index))
+        true -> step_after_propagate(event, state)
+    }.
+
+step_after_known(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "unknown" -> prepend_fact(
+            InferredTypeFact(node_id = event.node_id, type_name = None, byte_offset = event.byte_offset),
+            state,
+        );
+        true -> step_after_unknown(event, state)
+    }.
+
+step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    if {
+        event.kind == "known" -> prepend_fact(
+            InferredTypeFact(node_id = event.node_id, type_name = Some(event.type_name), byte_offset = event.byte_offset),
+            state,
+        );
+        true -> step_after_known(event, state)
     }.
 
 walk(events: List[TypeConstraintEvent], state: ConstraintState): ConstraintState ->

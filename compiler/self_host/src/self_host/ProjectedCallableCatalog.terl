@@ -19,7 +19,7 @@ import self_host.ProjectedCallableSyntax.
 import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
 import self_host.TypedModuleSyntax.
 
-import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, TypedDeclarationPayload}.
 
 some_return_type(value: String): Option[String] -> Some(value).
 
@@ -56,46 +56,83 @@ constructor_clauses(
 ): List[CallableDeclaration] ->
     case values {
         [] -> List.new[CallableDeclaration]();
-        [value | rest] -> [callable(
-            module_name,
-            name,
-            value.parameters.length(),
-            "constructor",
-            if {
-                value.return_type.valid -> some_return_type(value.return_type.syntax.text);
-                true -> none_return_type()
-            },
-            byte_offset,
-        ) | constructor_clauses(module_name, name, rest, byte_offset)]
+        [value | rest] -> [constructor_callable(module_name, name, value, byte_offset)
+            | constructor_clauses(module_name, name, rest, byte_offset)]
+    }.
+
+constructor_callable(
+    module_name: String,
+    name: String,
+    value: ConstructorClauseSyntax,
+    byte_offset: Int,
+): CallableDeclaration ->
+    callable(
+        module_name,
+        name,
+        value.parameters.length(),
+        "constructor",
+        selected_return_type(value.return_type.valid, value.return_type.syntax.text),
+        byte_offset,
+    ).
+
+selected_return_type(valid: Bool, text: String): Option[String] ->
+    if {
+        valid -> some_return_type(text);
+        true -> none_return_type()
+    }.
+
+function_kind(is_const: Bool): String ->
+    if {
+        is_const -> "const-function";
+        true -> "function"
     }.
 
 local_declaration(
     module_name: String,
     value: BackendDeclaration,
 ): List[CallableDeclaration] ->
-    case value.payload {
+    local_function_payload(module_name, value, value.payload).
+
+local_function_payload(
+    module_name: String,
+    value: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+): List[CallableDeclaration] ->
+    case payload {
         FunctionPayload(function) -> [callable(
             module_name,
             value.symbol_name,
             function.typed_parameters.length(),
-            if { function.is_const -> "const-function"; true -> "function" },
-            if {
-                function.return_type.valid -> some_return_type(function.return_type.syntax.text);
-                true -> none_return_type()
-            },
+            function_kind(function.is_const),
+            selected_return_type(function.return_type.valid, function.return_type.syntax.text),
             declaration_offset(value),
         )];
+        _ -> local_method_payload(module_name, value, payload)
+    }.
+
+local_method_payload(
+    module_name: String,
+    value: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+): List[CallableDeclaration] ->
+    case payload {
         MethodPayload(method) -> [callable(
             module_name,
             value.symbol_name,
             method.parameters.length(),
             "method",
-            if {
-                method.return_type.valid -> some_return_type(method.return_type.syntax.text);
-                true -> none_return_type()
-            },
+            selected_return_type(method.return_type.valid, method.return_type.syntax.text),
             declaration_offset(value),
         )];
+        _ -> local_constructor_payload(module_name, value, payload)
+    }.
+
+local_constructor_payload(
+    module_name: String,
+    value: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+): List[CallableDeclaration] ->
+    case payload {
         ConstructorPayload(constructor_payload) -> constructor_clauses(
             module_name,
             value.symbol_name,
@@ -146,8 +183,23 @@ local_at(
 is_callable_class(value: DeclarationClass): Bool ->
     case value {
         FunctionDeclaration -> true;
+        _ -> is_const_callable_class(value)
+    }.
+
+is_const_callable_class(value: DeclarationClass): Bool ->
+    case value {
         ConstFunctionDeclaration -> true;
+        _ -> is_method_callable_class(value)
+    }.
+
+is_method_callable_class(value: DeclarationClass): Bool ->
+    case value {
         MethodDeclaration -> true;
+        _ -> is_constructor_callable_class(value)
+    }.
+
+is_constructor_callable_class(value: DeclarationClass): Bool ->
+    case value {
         ConstructorDeclaration -> true;
         _ -> false
     }.
@@ -155,7 +207,17 @@ is_callable_class(value: DeclarationClass): Bool ->
 class_kind(value: DeclarationClass): String ->
     case value {
         ConstFunctionDeclaration -> "const-function";
+        _ -> method_class_kind(value)
+    }.
+
+method_class_kind(value: DeclarationClass): String ->
+    case value {
         MethodDeclaration -> "method";
+        _ -> constructor_class_kind(value)
+    }.
+
+constructor_class_kind(value: DeclarationClass): String ->
+    case value {
         ConstructorDeclaration -> "constructor";
         _ -> "function"
     }.
@@ -166,18 +228,29 @@ interface_symbols(
 ): List[CallableDeclaration] ->
     case values {
         [] -> List.new[CallableDeclaration]();
-        [value | rest] -> if {
-            is_callable_class(value.class) -> [callable(
-                module_name,
-                value.name,
-                value.arity,
-                class_kind(value.class),
-                none_return_type(),
-                value.span.start_byte,
-            ) | interface_symbols(module_name, rest)];
-            true -> interface_symbols(module_name, rest)
-        }
+        [value | rest] -> interface_symbol(module_name, value, rest)
     }.
+
+interface_symbol(
+    module_name: String,
+    value: ExportedSymbol,
+    rest: List[ExportedSymbol],
+): List[CallableDeclaration] ->
+    if {
+        is_callable_class(value.class) -> [interface_callable(module_name, value)
+            | interface_symbols(module_name, rest)];
+        true -> interface_symbols(module_name, rest)
+    }.
+
+interface_callable(module_name: String, value: ExportedSymbol): CallableDeclaration ->
+    callable(
+        module_name,
+        value.name,
+        value.arity,
+        class_kind(value.class),
+        none_return_type(),
+        value.span.start_byte,
+    ).
 
 interface_symbols_at(
     module_name: String,
@@ -189,18 +262,18 @@ interface_symbols_at(
         [value | rest] -> interface_symbols_at(
             module_name,
             rest,
-            if {
-                is_callable_class(value.class) -> [callable(
-                    module_name,
-                    value.name,
-                    value.arity,
-                    class_kind(value.class),
-                    none_return_type(),
-                    value.span.start_byte,
-                ) | output];
-                true -> output
-            },
+            interface_output(module_name, value, output),
         )
+    }.
+
+interface_output(
+    module_name: String,
+    value: ExportedSymbol,
+    output: List[CallableDeclaration],
+): List[CallableDeclaration] ->
+    if {
+        is_callable_class(value.class) -> [interface_callable(module_name, value) | output];
+        true -> output
     }.
 
 interfaces_at(

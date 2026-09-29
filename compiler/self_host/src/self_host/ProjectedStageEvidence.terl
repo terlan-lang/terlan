@@ -4,6 +4,7 @@ module self_host.ProjectedStageEvidence.
 
 import std.core.Result.{Err, Ok, Result}.
 import self_host.CanonicalLexer.
+import self_host.CanonicalToken.{CanonicalLexOutput}.
 import self_host.ProjectedFrontend.
 import self_host.ProjectedParserEvidence.
 import self_host.ProjectedParser.
@@ -36,33 +37,68 @@ constructor StageEvidence {
 frame(identity: String, artifact: String): String ->
     String.concat([identity, "\t", Int.to_string(String.byte_size(artifact)), "\n", artifact, "\n"]).
 
+build_source(normalized: String, source: String, rest: List[String], evidence: StageEvidence): StageEvidence ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    let common = ProjectedSemanticEvidence.common(frontend);
+    let supplemental = ProjectedSemanticEvidence.supplemental(frontend);
+    build(rest, StageEvidence(count = evidence.count + 1, tokens = String.append(
+        evidence.tokens,
+        frame(normalized, ProjectedTokenEvidence.document(frontend.tokens)),
+    ), syntax = String.append(
+        evidence.syntax,
+        frame(normalized, ProjectedParserEvidence.document(frontend.surface)),
+    ), semantics = String.concat([
+        evidence.semantics,
+        frame(String.append(normalized, ":common"), common),
+        frame(String.append(normalized, ":supplemental"), supplemental),
+    ]))).
+
+build_file(normalized: String, rest: List[String], evidence: StageEvidence): StageEvidence ->
+    case File.read_text(normalized) {
+        Err(_reason) -> StageEvidence(count = -1, tokens = "", syntax = "", semantics = "");
+        Ok(source) -> build_source(normalized, source, rest, evidence)
+    }.
+
+build_path(path: String, rest: List[String], evidence: StageEvidence): StageEvidence ->
+    let normalized = String.trim(path);
+    if { normalized == "" or String.starts_with(normalized, "#") -> build(rest, evidence); true -> build_file(normalized, rest, evidence) }.
+
 build(paths: List[String], evidence: StageEvidence): StageEvidence ->
     case paths {
         [] -> evidence;
-        [path | rest] -> let normalized = String.trim(path);
-            if {
-                normalized == "" or String.starts_with(normalized, "#") -> build(rest, evidence);
-                true -> case File.read_text(normalized) {
-                    Err(_reason) -> StageEvidence(count = -1, tokens = "", syntax = "", semantics = "");
-                    Ok(source) ->
-                        let lexed = CanonicalLexer.lex(source);
-                        let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-                        let common = ProjectedSemanticEvidence.common(frontend);
-                        let supplemental = ProjectedSemanticEvidence.supplemental(frontend);
-                        build(rest, StageEvidence(count = evidence.count + 1, tokens = String.append(
-                                evidence.tokens,
-                                frame(normalized, ProjectedTokenEvidence.document(frontend.tokens)),
-                            ), syntax = String.append(
-                                evidence.syntax,
-                                frame(normalized, ProjectedParserEvidence.document(frontend.surface)),
-                            ), semantics = String.concat([
-                                evidence.semantics,
-                                frame(String.append(normalized, ":common"), common),
-                                frame(String.append(normalized, ":supplemental"), supplemental),
-                            ])))
-                }
-            }
+        [path | rest] -> build_path(path, rest, evidence)
     }.
+
+write_unit_semantics(semantics_output: String, semantics: String): Bool ->
+    case File.write_text(semantics_output, semantics) {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+write_unit_syntax(syntax_output: String, semantics_output: String, syntax: String, semantics: String): Bool ->
+    case File.write_text(syntax_output, syntax) {
+        Err(_reason) -> false;
+        Ok(_unit) -> write_unit_semantics(semantics_output, semantics)
+    }.
+
+write_unit_tokens(tokens_output: String, syntax_output: String, semantics_output: String, tokens: String, syntax: String, semantics: String): Bool ->
+    case File.write_text(tokens_output, tokens) {
+        Err(_reason) -> false;
+        Ok(_unit) -> write_unit_syntax(syntax_output, semantics_output, syntax, semantics)
+    }.
+
+write_unit_source(source: String, tokens_output: String, syntax_output: String, semantics_output: String): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    write_unit_tokens(
+        tokens_output,
+        syntax_output,
+        semantics_output,
+        ProjectedTokenEvidence.document(frontend.tokens),
+        ProjectedParserEvidence.document(frontend.surface),
+        ProjectedSemanticEvidence.document(frontend),
+    ).
 
 /** Writes bounded evidence for one source module. */
 pub write_unit(
@@ -73,76 +109,78 @@ pub write_unit(
 ): Bool ->
     case File.read_text(input) {
         Err(_reason) -> false;
-        Ok(source) ->
-            let lexed = CanonicalLexer.lex(source);
-            let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-            let semantics = ProjectedSemanticEvidence.document(frontend);
-            case File.write_text(tokens_output, ProjectedTokenEvidence.document(frontend.tokens)) {
-                Err(_reason) -> false;
-                Ok(_unit) -> case File.write_text(
-                    syntax_output,
-                    ProjectedParserEvidence.document(frontend.surface),
-                ) {
-                    Err(_reason) -> false;
-                    Ok(_unit) -> case File.write_text(
-                        semantics_output,
-                        semantics,
-                    ) {
-                        Err(_reason) -> false;
-                        Ok(_unit) -> true
-                    }
-                }
-            }
+        Ok(source) -> write_unit_source(source, tokens_output, syntax_output, semantics_output)
     }.
+
+semantic_layer(source: String, layer: String, lexed: CanonicalLexOutput): String ->
+    if {
+        layer == "semantics" -> let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+            ProjectedSemanticEvidence.document(frontend);
+        true -> ""
+    }.
+
+syntax_layer(source: String, layer: String, lexed: CanonicalLexOutput): String ->
+    if {
+        layer == "syntax" -> let tokens = ProjectionAdapter.rewrite(source, lexed.tokens);
+            ProjectedParserEvidence.document(ProjectedParser.parse(source, tokens));
+        true -> semantic_layer(source, layer, lexed)
+    }.
+
+render_layer(source: String, layer: String, lexed: CanonicalLexOutput): String ->
+    if {
+        layer == "tokens" -> ProjectedTokenEvidence.document(ProjectionAdapter.rewrite(source, lexed.tokens));
+        true -> syntax_layer(source, layer, lexed)
+    }.
+
+write_rendered(output: String, rendered: String): Bool ->
+    case File.write_text(output, rendered) {
+        Err(_reason) -> false;
+        Ok(_unit) -> true
+    }.
+
+write_selected_layer(output: String, rendered: String): Bool ->
+    if { rendered == "" -> false; true -> write_rendered(output, rendered) }.
+
+write_layer_source(source: String, layer: String, output: String): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    write_selected_layer(output, render_layer(source, layer, lexed)).
 
 /** Writes exactly one evidence layer without retaining sibling artifacts. */
 pub write_layer(input: String, layer: String, output: String): Bool ->
     case File.read_text(input) {
         Err(_reason) -> false;
-        Ok(source) ->
-            let lexed = CanonicalLexer.lex(source);
-            let rendered = if {
-                layer == "tokens" -> ProjectedTokenEvidence.document(
-                    ProjectionAdapter.rewrite(source, lexed.tokens),
-                );
-                layer == "syntax" ->
-                    let tokens = ProjectionAdapter.rewrite(source, lexed.tokens);
-                    ProjectedParserEvidence.document(ProjectedParser.parse(source, tokens));
-                layer == "semantics" ->
-                    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-                    ProjectedSemanticEvidence.document(frontend);
-                true -> ""
-            };
-            if {
-                rendered == "" -> false;
-                true -> case File.write_text(output, rendered) {
-                    Err(_reason) -> false;
-                    Ok(_unit) -> true
-                }
-            }
+        Ok(source) -> write_layer_source(source, layer, output)
     }.
+
+write_semantics_bundle(output: String, evidence: StageEvidence): Bool ->
+    case File.write_text(String.append(output, "/semantics.bundle"), evidence.semantics) {
+        Ok(_unit) -> true;
+        Err(_reason) -> false
+    }.
+
+write_syntax_bundle(output: String, evidence: StageEvidence): Bool ->
+    case File.write_text(String.append(output, "/syntax.bundle"), evidence.syntax) {
+        Err(_reason) -> false;
+        Ok(_unit) -> write_semantics_bundle(output, evidence)
+    }.
+
+write_token_bundle(output: String, evidence: StageEvidence): Bool ->
+    case File.write_text(String.append(output, "/tokens.bundle"), evidence.tokens) {
+        Err(_reason) -> false;
+        Ok(_unit) -> write_syntax_bundle(output, evidence)
+    }.
+
+write_evidence(output: String, evidence: StageEvidence): Bool ->
+    if { evidence.count <= 0 -> false; true -> write_token_bundle(output, evidence) }.
+
+write_manifest_evidence(paths: String, output: String): Bool ->
+    let evidence = build(String.split(paths, "\n"), StageEvidence(count = 0, tokens = "", syntax = "", semantics = ""));
+    let _created = Directory.create_all(output);
+    write_evidence(output, evidence).
 
 /** Writes all deterministic stage evidence bundles without child processes. */
 pub write(manifest: String, output: String): Bool ->
     case File.read_text(manifest) {
         Err(_reason) -> false;
-        Ok(paths) ->
-            let evidence = build(String.split(paths, "\n"), StageEvidence(count = 0, tokens = "", syntax = "", semantics = ""));
-            let _created = Directory.create_all(output);
-            if {
-                evidence.count <= 0 -> false;
-                true -> case File.write_text(String.append(output, "/tokens.bundle"), evidence.tokens) {
-                    Err(_reason) -> false;
-                    Ok(_unit) -> case File.write_text(String.append(output, "/syntax.bundle"), evidence.syntax) {
-                        Err(_reason) -> false;
-                        Ok(_unit) -> case File.write_text(
-                            String.append(output, "/semantics.bundle"),
-                            evidence.semantics,
-                        ) {
-                            Ok(_unit) -> true;
-                            Err(_reason) -> false
-                        }
-                    }
-                }
-            }
+        Ok(paths) -> write_manifest_evidence(paths, output)
     }.

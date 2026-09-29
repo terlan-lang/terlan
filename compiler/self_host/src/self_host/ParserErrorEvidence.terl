@@ -21,7 +21,7 @@ import self_host.ProjectedSignatureSyntax.
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedTypeDeclarationTree}.
 import self_host.Syntax.
 
-import self_host.Syntax.{InvalidModuleDeclaration, LexicalParseError, MissingModuleDeclaration, ParseErrorClass, SourceBeforeModuleDeclaration, UnterminatedDeclaration}.
+import self_host.Syntax.{InvalidModuleDeclaration, LexicalParseError, MissingModuleDeclaration, ParseError, ParseErrorClass, SourceBeforeModuleDeclaration, UnterminatedDeclaration}.
 import type std.data.Json.{Json, JsonError}.
 
 struct NormalizedError {
@@ -39,14 +39,20 @@ constructor NormalizedError {
         }
 }.
 
+class_unterminated(value: ParseErrorClass): String ->
+    if { value == UnterminatedDeclaration -> "unterminated-declaration"; true -> "lexical" }.
+
+class_lexical(value: ParseErrorClass): String ->
+    if { value == LexicalParseError -> "lexical"; true -> class_unterminated(value) }.
+
+class_source_before(value: ParseErrorClass): String ->
+    if { value == SourceBeforeModuleDeclaration -> "source-before-module"; true -> class_lexical(value) }.
+
+class_invalid_module(value: ParseErrorClass): String ->
+    if { value == InvalidModuleDeclaration -> "invalid-module"; true -> class_source_before(value) }.
+
 class_name(value: ParseErrorClass): String ->
-    case value {
-        MissingModuleDeclaration -> "missing-module";
-        InvalidModuleDeclaration -> "invalid-module";
-        SourceBeforeModuleDeclaration -> "source-before-module";
-        LexicalParseError -> "lexical";
-        UnterminatedDeclaration -> "unterminated-declaration"
-    }.
+    if { value == MissingModuleDeclaration -> "missing-module"; true -> class_invalid_module(value) }.
 
 first_body_error(values: List[ProjectedBody]): Option[NormalizedError] ->
     case values {
@@ -60,10 +66,13 @@ first_body_error(values: List[ProjectedBody]): Option[NormalizedError] ->
 parameters_have_invalid_pattern(values: List[ProjectedParameterTree]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> case value.pattern {
-            None -> true;
-            Some(_pattern) -> parameters_have_invalid_pattern(rest)
-        }
+        [value | rest] -> parameter_has_invalid_pattern(value.pattern, rest)
+    }.
+
+parameter_has_invalid_pattern[T](value: Option[T], rest: List[ProjectedParameterTree]): Bool ->
+    case value {
+        None -> true;
+        Some(_pattern) -> parameters_have_invalid_pattern(rest)
     }.
 
 first_pattern_error(values: List[ProjectedCallableSignature]): Option[NormalizedError] ->
@@ -93,21 +102,24 @@ first_type_error(values: List[ProjectedTypeDeclarationTree]): Option[NormalizedE
         }
     }.
 
+prefer_error(value: Option[NormalizedError], fallback: Option[NormalizedError]): Option[NormalizedError] ->
+    case value {
+        Some(error) -> Some(error);
+        None -> fallback
+    }.
+
 projected_error(source: String, tokens: List[CanonicalToken]): Option[NormalizedError] ->
     let projected = ProjectionAdapter.rewrite(source, tokens);
     let surface = ProjectedParser.parse(source, projected);
     let signatures = ProjectedSignatureParser.parse(projected, surface.declarations);
     let bodies = ProjectedBodyParser.parse(projected, surface.declarations);
-    case first_type_error(signatures.types) {
-        Some(value) -> Some(value);
-        None -> case first_pattern_error(signatures.callables) {
-            Some(value) -> Some(value);
-            None -> case first_body_error(bodies.values) {
-                Some(value) -> Some(value);
-                None -> first_callable_error(signatures.callables)
-            }
-        }
-    }.
+    prefer_error(
+        first_type_error(signatures.types),
+        prefer_error(
+            first_pattern_error(signatures.callables),
+            prefer_error(first_body_error(bodies.values), first_callable_error(signatures.callables)),
+        ),
+    ).
 
 first_token_error(tokens: List[CanonicalToken], class_name: String): Option[NormalizedError] ->
     case tokens {
@@ -115,19 +127,29 @@ first_token_error(tokens: List[CanonicalToken], class_name: String): Option[Norm
         [value | _] -> Some(NormalizedError(class_name = class_name, start_byte = value.start_byte, end_byte = value.end_byte))
     }.
 
+surface_first_error(source: String, tokens: List[CanonicalToken], value: ParseError, surface_name: String): Option[NormalizedError] ->
+    if {
+        value.class == SourceBeforeModuleDeclaration and surface_name == "" -> first_token_error(tokens, "missing-module");
+        true -> Some(NormalizedError(class_name = class_name(value.class), start_byte = value.span.start_byte, end_byte = value.span.end_byte))
+    }.
+
+surface_fallback_error(source: String, tokens: List[CanonicalToken], has_unterminated: Bool): Option[NormalizedError] ->
+    if {
+        has_unterminated -> Some(NormalizedError(class_name = "unterminated-declaration", start_byte = source.byte_size(), end_byte = source.byte_size()));
+        true -> projected_error(source, tokens)
+    }.
+
+surface_error(source: String, tokens: List[CanonicalToken], values: List[ParseError], surface_name: String, has_unterminated: Bool): Option[NormalizedError] ->
+    case values {
+        [value | _] -> surface_first_error(source, tokens, value, surface_name);
+        [] -> surface_fallback_error(source, tokens, has_unterminated)
+    }.
+
 normalized_error(source: String, tokens: List[CanonicalToken]): Option[NormalizedError] ->
     let canonical = CanonicalParser.parse(source);
     case canonical.lexical_errors {
         [value | _] -> Some(NormalizedError(class_name = "lexical", start_byte = value.start_byte, end_byte = value.end_byte));
-        [] -> case canonical.surface.errors {
-            [value | _] where value.class == SourceBeforeModuleDeclaration and canonical.surface.name == "" ->
-                first_token_error(tokens, "missing-module");
-            [value | _] -> Some(NormalizedError(class_name = class_name(value.class), start_byte = value.span.start_byte, end_byte = value.span.end_byte));
-            [] -> if {
-                canonical.has_unterminated_segment -> Some(NormalizedError(class_name = "unterminated-declaration", start_byte = source.byte_size(), end_byte = source.byte_size()));
-                true -> projected_error(source, tokens)
-            }
-        }
+        [] -> surface_error(source, tokens, canonical.surface.errors, canonical.surface.name, canonical.has_unterminated_segment)
     }.
 
 document(source: String, tokens: List[CanonicalToken]): Json ->

@@ -34,38 +34,143 @@ mark(class: ProjectionClass, first: ProjectionToken, last: ProjectionToken): Pro
     ProjectionMark(class, first.start_byte, last.end_byte).
 
 @pure
+adjust_depth(
+    kind: ProjectionTokenKind,
+    opening: ProjectionTokenKind,
+    closing: ProjectionTokenKind,
+    depth: Int,
+): Int ->
+    if {
+        kind == opening -> depth + 1;
+        true -> reduce_depth(kind, closing, depth)
+    }.
+
+@pure
+reduce_depth(kind: ProjectionTokenKind, closing: ProjectionTokenKind, depth: Int): Int ->
+    if {
+        kind == closing -> depth - 1;
+        true -> depth
+    }.
+
+@pure
 balanced_brace_at(values: List[ProjectionToken], depth: Int): Option[ProjectionToken] ->
     case values {
         [] -> none_projection_token();
-        [value | _] where value.kind == EndProjection -> none_projection_token();
-        [value | rest] where value.kind == LBraceProjection -> balanced_brace_at(rest, depth + 1);
-        [value | _] where value.kind == RBraceProjection and depth == 1 -> optional_projection_token(value);
-        [value | rest] where value.kind == RBraceProjection -> balanced_brace_at(rest, depth - 1);
-        [_ | rest] -> balanced_brace_at(rest, depth)
+        [value | rest] -> balanced_brace_token(value, rest, depth)
+    }.
+
+@pure
+balanced_brace_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ProjectionToken] ->
+    if {
+        value.kind == EndProjection -> none_projection_token();
+        true -> balanced_brace_open(value, rest, depth)
+    }.
+
+@pure
+balanced_brace_open(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ProjectionToken] ->
+    if {
+        value.kind == LBraceProjection -> balanced_brace_at(rest, depth + 1);
+        true -> balanced_brace_close(value, rest, depth)
+    }.
+
+@pure
+balanced_brace_close(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ProjectionToken] ->
+    if {
+        value.kind == RBraceProjection -> finish_balanced_brace(value, rest, depth);
+        true -> balanced_brace_at(rest, depth)
+    }.
+
+@pure
+finish_balanced_brace(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ProjectionToken] ->
+    if {
+        depth == 1 -> optional_projection_token(value);
+        true -> balanced_brace_at(rest, depth - 1)
     }.
 
 @pure
 balanced_brace(values: List[ProjectionToken]): Option[ProjectionToken] ->
     case values {
-        [opening | rest] where opening.kind == LBraceProjection -> balanced_brace_at(rest, 1);
-        _ -> none_projection_token()
+        [opening | rest] -> balanced_brace_opening(opening, rest);
+        [] -> none_projection_token()
+    }.
+
+@pure
+balanced_brace_opening(
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionToken] ->
+    if {
+        opening.kind == LBraceProjection -> balanced_brace_at(rest, 1);
+        true -> none_projection_token()
     }.
 
 @pure
 after_bracket_at(values: List[ProjectionToken], depth: Int): List[ProjectionToken] ->
     case values {
         [] -> List.new[ProjectionToken]();
-        [value | rest] where value.kind == LBracketProjection -> after_bracket_at(rest, depth + 1);
-        [value | rest] where value.kind == RBracketProjection and depth == 1 -> rest;
-        [value | rest] where value.kind == RBracketProjection -> after_bracket_at(rest, depth - 1);
-        [_ | rest] -> after_bracket_at(rest, depth)
+        [value | rest] -> after_bracket_token(value, rest, depth)
+    }.
+
+@pure
+after_bracket_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): List[ProjectionToken] ->
+    if {
+        value.kind == LBracketProjection -> after_bracket_at(rest, depth + 1);
+        true -> after_bracket_close(value, rest, depth)
+    }.
+
+@pure
+after_bracket_close(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): List[ProjectionToken] ->
+    if {
+        value.kind == RBracketProjection -> finish_after_bracket(rest, depth);
+        true -> after_bracket_at(rest, depth)
+    }.
+
+@pure
+finish_after_bracket(rest: List[ProjectionToken], depth: Int): List[ProjectionToken] ->
+    if {
+        depth == 1 -> rest;
+        true -> after_bracket_at(rest, depth - 1)
     }.
 
 @pure
 after_balanced_bracket(values: List[ProjectionToken]): List[ProjectionToken] ->
     case values {
-        [opening | rest] where opening.kind == LBracketProjection -> after_bracket_at(rest, 1);
-        _ -> List.new[ProjectionToken]()
+        [opening | rest] -> after_bracket_opening(opening, rest);
+        [] -> List.new[ProjectionToken]()
+    }.
+
+@pure
+after_bracket_opening(
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): List[ProjectionToken] ->
+    if {
+        opening.kind == LBracketProjection -> after_bracket_at(rest, 1);
+        true -> List.new[ProjectionToken]()
     }.
 
 /** Returns one complete expression-level raw macro starting at its name. */
@@ -73,59 +178,202 @@ after_balanced_bracket(values: List[ProjectionToken]): List[ProjectionToken] ->
 pub expression_raw_macro(values: List[ProjectionToken]): Option[ProjectionMark] ->
     let tokens = significant(values);
     case tokens {
-        [name | [opening | remaining]]
-            where (name.kind == AtomProjection or name.text == "html")
-                and opening.kind == LBraceProjection
-                and (name.end_byte == opening.start_byte or name.text == "html") ->
-            case balanced_brace([opening | remaining]) {
-                Some(close) -> Some(mark(ExpressionRawMacroProjection, name, close));
-                None -> None
-            };
-        [name | [opening | rest]]
-            where name.kind == AtomProjection
-                and name.text == "sql"
-                and opening.kind == LBracketProjection ->
-            case after_balanced_bracket([opening | rest]) {
-                [brace | body] where brace.kind == LBraceProjection ->
-                    case balanced_brace([brace | body]) {
-                        Some(close) -> Some(mark(ExpressionRawMacroProjection, name, close));
-                        None -> None
-                    };
-                _ -> None
-            };
-        _ -> None
+        [name | rest] -> expression_raw_name(name, rest);
+        [] -> None
+    }.
+
+@pure
+expression_raw_name(name: ProjectionToken, values: List[ProjectionToken]): Option[ProjectionMark] ->
+    case values {
+        [opening | rest] -> expression_raw_opening(name, opening, rest);
+        [] -> None
+    }.
+
+@pure
+expression_raw_opening(
+    name: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    if {
+        (name.kind == AtomProjection or name.text == "html")
+            and opening.kind == LBraceProjection
+            and (name.end_byte == opening.start_byte or name.text == "html") ->
+            expression_raw_brace(name, opening, rest);
+        true -> expression_sql_opening(name, opening, rest)
+    }.
+
+@pure
+expression_raw_brace(
+    name: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case balanced_brace([opening | rest]) {
+        Some(close) -> Some(mark(ExpressionRawMacroProjection, name, close));
+        None -> None
+    }.
+
+@pure
+expression_sql_opening(
+    name: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    if {
+        name.kind == AtomProjection and name.text == "sql" and opening.kind == LBracketProjection ->
+            expression_sql_brace(name, after_balanced_bracket([opening | rest]));
+        true -> None
+    }.
+
+@pure
+expression_sql_brace(name: ProjectionToken, values: List[ProjectionToken]): Option[ProjectionMark] ->
+    case values {
+        [brace | body] -> expression_sql_body(name, brace, body);
+        [] -> None
+    }.
+
+@pure
+expression_sql_body(
+    name: ProjectionToken,
+    brace: ProjectionToken,
+    body: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    if {
+        brace.kind == LBraceProjection -> expression_raw_brace(name, brace, body);
+        true -> None
     }.
 
 /** Returns one retired `native core module Name { ... }` declaration. */
 @pure
 pub native_raw_declaration(values: List[ProjectionToken]): Option[ProjectionMark] ->
     case significant(values) {
-        [native | [core | [module_token | [name | [opening | rest]]]]]
-            where native.text == "native"
-                and core.text == "core"
-                and module_token.kind == ModuleProjection
-                and name.kind == VarProjection
-                and opening.kind == LBraceProjection ->
-            case balanced_brace([opening | rest]) {
-                Some(close) -> Some(mark(NativeRawDeclarationProjection, native, close));
-                None -> None
-            };
-        _ -> None
+        [native | rest] -> native_raw_core(native, rest);
+        [] -> None
+    }.
+
+@pure
+native_raw_core(native: ProjectionToken, values: List[ProjectionToken]): Option[ProjectionMark] ->
+    case values {
+        [core | rest] -> native_raw_module(native, core, rest);
+        [] -> None
+    }.
+
+@pure
+native_raw_module(
+    native: ProjectionToken,
+    core: ProjectionToken,
+    values: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case values {
+        [module_token | rest] -> native_raw_name(native, core, module_token, rest);
+        [] -> None
+    }.
+
+@pure
+native_raw_name(
+    native: ProjectionToken,
+    core: ProjectionToken,
+    module_token: ProjectionToken,
+    values: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case values {
+        [name | rest] -> native_raw_opening(native, core, module_token, name, rest);
+        [] -> None
+    }.
+
+@pure
+native_raw_opening(
+    native: ProjectionToken,
+    core: ProjectionToken,
+    module_token: ProjectionToken,
+    name: ProjectionToken,
+    values: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case values {
+        [opening | rest] -> validate_native_raw(native, core, module_token, name, opening, rest);
+        [] -> None
+    }.
+
+@pure
+validate_native_raw(
+    native: ProjectionToken,
+    core: ProjectionToken,
+    module_token: ProjectionToken,
+    name: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    if {
+        native.text == "native"
+            and core.text == "core"
+            and module_token.kind == ModuleProjection
+            and name.kind == VarProjection
+            and opening.kind == LBraceProjection ->
+            native_raw_close(native, opening, rest);
+        true -> None
+    }.
+
+@pure
+native_raw_close(
+    native: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case balanced_brace([opening | rest]) {
+        Some(close) -> Some(mark(NativeRawDeclarationProjection, native, close));
+        None -> None
     }.
 
 /** Returns one balanced `target name { ... }` configuration declaration. */
 @pure
 pub config_raw_declaration(values: List[ProjectionToken]): Option[ProjectionMark] ->
     case significant(values) {
-        [target | [name | [opening | rest]]]
-            where target.text == "target"
-                and (name.kind == AtomProjection or name.kind == VarProjection)
-                and opening.kind == LBraceProjection ->
-            case balanced_brace([opening | rest]) {
-                Some(close) -> Some(mark(ConfigRawDeclarationProjection, target, close));
-                None -> None
-            };
-        _ -> None
+        [target | rest] -> config_raw_name(target, rest);
+        [] -> None
+    }.
+
+@pure
+config_raw_name(target: ProjectionToken, values: List[ProjectionToken]): Option[ProjectionMark] ->
+    case values {
+        [name | rest] -> config_raw_opening(target, name, rest);
+        [] -> None
+    }.
+
+@pure
+config_raw_opening(
+    target: ProjectionToken,
+    name: ProjectionToken,
+    values: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case values {
+        [opening | rest] -> validate_config_raw(target, name, opening, rest);
+        [] -> None
+    }.
+
+@pure
+validate_config_raw(
+    target: ProjectionToken,
+    name: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    if {
+        target.text == "target"
+            and (name.kind == AtomProjection or name.kind == VarProjection)
+            and opening.kind == LBraceProjection -> config_raw_close(target, opening, rest);
+        true -> None
+    }.
+
+@pure
+config_raw_close(
+    target: ProjectionToken,
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case balanced_brace([opening | rest]) {
+        Some(close) -> Some(mark(ConfigRawDeclarationProjection, target, close));
+        None -> None
     }.
 
 @pure
@@ -189,35 +437,92 @@ next_significant(values: List[ProjectionToken]): Option[ProjectionToken] ->
 scan_arrows(values: List[ProjectionToken], state: ArrowState): ArrowState ->
     case values {
         [] -> state;
-        [value | rest] where is_trivia(value.kind) -> scan_arrows(rest, state);
-        [value | rest] ->
-            let next_parens = if {
-                value.kind == LParenProjection -> state.parens + 1;
-                value.kind == RParenProjection -> state.parens - 1;
-                true -> state.parens
-            };
-            let next_brackets = if {
-                value.kind == LBracketProjection -> state.brackets + 1;
-                value.kind == RBracketProjection -> state.brackets - 1;
-                true -> state.brackets
-            };
-            let next_braces = if {
-                value.kind == LBraceProjection -> state.braces + 1;
-                value.kind == RBraceProjection -> state.braces - 1;
-                true -> state.braces
-            };
-            let starts_signature = value.kind == ColonProjection
-                and case state.previous { Some(previous) -> previous.kind == RParenProjection; None -> false };
-            let body_arrow = value.kind == ArrowProjection
-                and state.signature
-                and state.signature_parens == state.parens
-                and state.signature_brackets == state.brackets
-                and state.signature_braces == state.braces
-                and case next_significant(rest) { Some(next) -> can_start_expression(next); None -> false };
-            scan_arrows(rest, ArrowState(parens = next_parens, brackets = next_brackets, braces = next_braces, signature = if { body_arrow -> false; starts_signature -> true; true -> state.signature }, signature_parens = if { starts_signature -> state.parens; true -> state.signature_parens }, signature_brackets = if { starts_signature -> state.brackets; true -> state.signature_brackets }, signature_braces = if { starts_signature -> state.braces; true -> state.signature_braces }, previous = optional_projection_token(value), marks = if {
-                    body_arrow -> [mark(FunctionBodyArrowProjection, value, value) | state.marks];
-                    true -> state.marks
-                }))
+        [value | rest] -> scan_arrow_token(value, rest, state)
+    }.
+
+@pure
+scan_arrow_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: ArrowState,
+): ArrowState ->
+    if {
+        is_trivia(value.kind) -> scan_arrows(rest, state);
+        true -> scan_arrow_value(value, rest, state)
+    }.
+
+@pure
+scan_arrow_value(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: ArrowState,
+): ArrowState ->
+    let next_parens = adjust_depth(value.kind, LParenProjection, RParenProjection, state.parens);
+    let next_brackets = adjust_depth(value.kind, LBracketProjection, RBracketProjection, state.brackets);
+    let next_braces = adjust_depth(value.kind, LBraceProjection, RBraceProjection, state.braces);
+    let starts_signature = value.kind == ColonProjection and previous_is_rparen(state.previous);
+    let body_arrow = value.kind == ArrowProjection
+        and state.signature
+        and state.signature_parens == state.parens
+        and state.signature_brackets == state.brackets
+        and state.signature_braces == state.braces
+        and next_starts_expression(rest);
+    scan_arrows(rest, ArrowState(
+        parens = next_parens,
+        brackets = next_brackets,
+        braces = next_braces,
+        signature = next_signature(body_arrow, starts_signature, state.signature),
+        signature_parens = signature_depth(starts_signature, state.parens, state.signature_parens),
+        signature_brackets = signature_depth(starts_signature, state.brackets, state.signature_brackets),
+        signature_braces = signature_depth(starts_signature, state.braces, state.signature_braces),
+        previous = optional_projection_token(value),
+        marks = arrow_marks(body_arrow, value, state.marks),
+    )).
+
+@pure
+previous_is_rparen(previous: Option[ProjectionToken]): Bool ->
+    case previous {
+        Some(value) -> value.kind == RParenProjection;
+        None -> false
+    }.
+
+@pure
+next_starts_expression(values: List[ProjectionToken]): Bool ->
+    case next_significant(values) {
+        Some(value) -> can_start_expression(value);
+        None -> false
+    }.
+
+@pure
+next_signature(body_arrow: Bool, starts_signature: Bool, current: Bool): Bool ->
+    if {
+        body_arrow -> false;
+        true -> start_signature(starts_signature, current)
+    }.
+
+@pure
+start_signature(starts_signature: Bool, current: Bool): Bool ->
+    if {
+        starts_signature -> true;
+        true -> current
+    }.
+
+@pure
+signature_depth(starts_signature: Bool, depth: Int, current: Int): Int ->
+    if {
+        starts_signature -> depth;
+        true -> current
+    }.
+
+@pure
+arrow_marks(
+    body_arrow: Bool,
+    value: ProjectionToken,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        body_arrow -> [mark(FunctionBodyArrowProjection, value, value) | marks];
+        true -> marks
     }.
 
 /** Finds arrows separating callable return types from declaration bodies. */
@@ -234,28 +539,115 @@ constraint_close(
 ): Option[ProjectionMark] ->
     case values {
         [] -> None;
-        [value | _] where value.kind == EndProjection -> None;
-        [value | rest] where value.kind == LtProjection and delimiter_depth == 0 ->
+        [value | rest] -> constraint_token(first, value, rest, angle_depth, delimiter_depth)
+    }.
+
+@pure
+constraint_token(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        value.kind == EndProjection -> None;
+        true -> constraint_angle_open(first, value, rest, angle_depth, delimiter_depth)
+    }.
+
+@pure
+constraint_angle_open(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        value.kind == LtProjection and delimiter_depth == 0 ->
             constraint_close(first, rest, angle_depth + 1, delimiter_depth);
-        [value | rest] where value.kind == GtProjection and delimiter_depth == 0 and angle_depth == 1 ->
-            case next_significant(rest) {
-                Some(next) where next.kind == LParenProjection ->
-                    Some(mark(HeadConstraintListProjection, first, value));
-                _ -> None
-            };
-        [value | rest] where value.kind == GtProjection and delimiter_depth == 0 ->
-            constraint_close(first, rest, angle_depth - 1, delimiter_depth);
-        [value | rest]
-            where value.kind == LParenProjection
-                or value.kind == LBracketProjection
-                or value.kind == LBraceProjection ->
+        true -> constraint_angle_close(first, value, rest, angle_depth, delimiter_depth)
+    }.
+
+@pure
+constraint_angle_close(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        value.kind == GtProjection and delimiter_depth == 0 ->
+            finish_constraint_angle(first, value, rest, angle_depth, delimiter_depth);
+        true -> constraint_delimiter_open(first, value, rest, angle_depth, delimiter_depth)
+    }.
+
+@pure
+finish_constraint_angle(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        angle_depth == 1 -> finish_constraint(first, value, rest);
+        true -> constraint_close(first, rest, angle_depth - 1, delimiter_depth)
+    }.
+
+@pure
+finish_constraint(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+): Option[ProjectionMark] ->
+    case next_significant(rest) {
+        Some(next) -> validate_constraint_close(first, value, next);
+        None -> None
+    }.
+
+@pure
+validate_constraint_close(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    next: ProjectionToken,
+): Option[ProjectionMark] ->
+    if {
+        next.kind == LParenProjection -> Some(mark(HeadConstraintListProjection, first, value));
+        true -> None
+    }.
+
+@pure
+constraint_delimiter_open(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        value.kind == LParenProjection
+            or value.kind == LBracketProjection
+            or value.kind == LBraceProjection ->
             constraint_close(first, rest, angle_depth, delimiter_depth + 1);
-        [value | rest]
-            where value.kind == RParenProjection
-                or value.kind == RBracketProjection
-                or value.kind == RBraceProjection ->
+        true -> constraint_delimiter_close(first, value, rest, angle_depth, delimiter_depth)
+    }.
+
+@pure
+constraint_delimiter_close(
+    first: ProjectionToken,
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    angle_depth: Int,
+    delimiter_depth: Int,
+): Option[ProjectionMark] ->
+    if {
+        value.kind == RParenProjection
+            or value.kind == RBracketProjection
+            or value.kind == RBraceProjection ->
             constraint_close(first, rest, angle_depth, delimiter_depth - 1);
-        [_ | rest] -> constraint_close(first, rest, angle_depth, delimiter_depth)
+        true -> constraint_close(first, rest, angle_depth, delimiter_depth)
     }.
 
 /** Finds `<...>` constraints after generic parameters and before parameters. */
@@ -290,12 +682,51 @@ constructor ParenTail {
 paren_close_at(values: List[ProjectionToken], depth: Int): Option[ParenTail] ->
     case values {
         [] -> None;
-        [value | _] where value.kind == EndProjection -> None;
-        [value | rest] where value.kind == LParenProjection -> paren_close_at(rest, depth + 1);
-        [value | rest] where value.kind == RParenProjection and depth == 1 ->
-            Some(ParenTail(close = value, rest = rest));
-        [value | rest] where value.kind == RParenProjection -> paren_close_at(rest, depth - 1);
-        [_ | rest] -> paren_close_at(rest, depth)
+        [value | rest] -> paren_close_token(value, rest, depth)
+    }.
+
+@pure
+paren_close_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ParenTail] ->
+    if {
+        value.kind == EndProjection -> None;
+        true -> paren_open_token(value, rest, depth)
+    }.
+
+@pure
+paren_open_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ParenTail] ->
+    if {
+        value.kind == LParenProjection -> paren_close_at(rest, depth + 1);
+        true -> paren_closing_token(value, rest, depth)
+    }.
+
+@pure
+paren_closing_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ParenTail] ->
+    if {
+        value.kind == RParenProjection -> finish_paren_close(value, rest, depth);
+        true -> paren_close_at(rest, depth)
+    }.
+
+@pure
+finish_paren_close(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    depth: Int,
+): Option[ParenTail] ->
+    if {
+        depth == 1 -> Some(ParenTail(close = value, rest = rest));
+        true -> paren_close_at(rest, depth - 1)
     }.
 
 @pure
@@ -346,21 +777,61 @@ pub lambda_opening(
 ): Option[ProjectionMark] ->
     if {
         not lambda_context(previous) -> None;
-        true -> case leading_significant(values) {
-            [opening | rest] where opening.kind == LParenProjection ->
-                case paren_close_at(rest, 1) {
-                    Some(tail) -> case next_significant(tail.rest) {
-                        Some(arrow) -> if {
-                            available_lambda_arrow(arrow, function_arrows) ->
-                                Some(mark(LambdaOpeningProjection, opening, opening));
-                            true -> None
-                        };
-                        _ -> None
-                    };
-                    None -> None
-                };
-            _ -> None
-        }
+        true -> lambda_significant(leading_significant(values), function_arrows)
+    }.
+
+@pure
+lambda_significant(
+    values: List[ProjectionToken],
+    function_arrows: List[ProjectionMark],
+): Option[ProjectionMark] ->
+    case values {
+        [opening | rest] -> lambda_opening_token(opening, rest, function_arrows);
+        [] -> None
+    }.
+
+@pure
+lambda_opening_token(
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+    function_arrows: List[ProjectionMark],
+): Option[ProjectionMark] ->
+    if {
+        opening.kind == LParenProjection -> lambda_paren_tail(opening, paren_close_at(rest, 1), function_arrows);
+        true -> None
+    }.
+
+@pure
+lambda_paren_tail(
+    opening: ProjectionToken,
+    tail: Option[ParenTail],
+    function_arrows: List[ProjectionMark],
+): Option[ProjectionMark] ->
+    case tail {
+        Some(value) -> lambda_arrow(opening, next_significant(value.rest), function_arrows);
+        None -> None
+    }.
+
+@pure
+lambda_arrow(
+    opening: ProjectionToken,
+    arrow: Option[ProjectionToken],
+    function_arrows: List[ProjectionMark],
+): Option[ProjectionMark] ->
+    case arrow {
+        Some(value) -> validate_lambda_arrow(opening, value, function_arrows);
+        None -> None
+    }.
+
+@pure
+validate_lambda_arrow(
+    opening: ProjectionToken,
+    arrow: ProjectionToken,
+    function_arrows: List[ProjectionMark],
+): Option[ProjectionMark] ->
+    if {
+        available_lambda_arrow(arrow, function_arrows) -> Some(mark(LambdaOpeningProjection, opening, opening));
+        true -> None
     }.
 
 struct SequenceState {
@@ -393,76 +864,179 @@ dot_terminates(current: ProjectionToken, rest: List[ProjectionToken]): Bool ->
 scan_lambda_body(values: List[ProjectionToken], state: SequenceState): SequenceState ->
     case values {
         [] -> state;
-        [value | rest] where value.kind == EndProjection -> state;
-        [value | _]
-            where state.parens == 0
-                and state.brackets == 0
-                and state.braces == 0
-                and (value.kind == RParenProjection
-                    or value.kind == RBracketProjection
-                    or value.kind == RBraceProjection
-                    or value.kind == CommaProjection) -> state;
-        [value | rest]
-            where value.kind == DotProjection
-                and state.parens == 0
-                and state.brackets == 0
-                and state.braces == 0 ->
-            if {
-                dot_terminates(value, rest) -> state;
-                true -> scan_lambda_body(rest, SequenceState(
-                    parens = state.parens,
-                    brackets = state.brackets,
-                    braces = state.braces,
-                    leave_let_separator = state.leave_let_separator,
-                    marks = state.marks,
-                ))
-            };
-        [value | rest]
-            where value.kind == SemicolonProjection
-                and state.parens == 0
-                and state.brackets == 0
-                and state.braces == 0 ->
-            let following_let = case next_significant(rest) {
-                Some(next) -> next.kind == LetProjection;
-                None -> false
-            };
-            scan_lambda_body(rest, SequenceState(parens = state.parens, brackets = state.brackets, braces = state.braces, leave_let_separator = if { state.leave_let_separator -> following_let; true -> false }, marks = if {
-                    state.leave_let_separator -> state.marks;
-                    true -> [mark(LambdaSequenceSemicolonProjection, value, value) | state.marks]
-                }));
-        [value | rest] -> scan_lambda_body(rest, SequenceState(parens = if {
-                value.kind == LParenProjection -> state.parens + 1;
-                value.kind == RParenProjection -> state.parens - 1;
-                true -> state.parens
-            }, brackets = if {
-                value.kind == LBracketProjection -> state.brackets + 1;
-                value.kind == RBracketProjection -> state.brackets - 1;
-                true -> state.brackets
-            }, braces = if {
-                value.kind == LBraceProjection -> state.braces + 1;
-                value.kind == RBraceProjection -> state.braces - 1;
-                true -> state.braces
-            }, leave_let_separator = state.leave_let_separator, marks = state.marks))
+        [value | rest] -> scan_lambda_token(value, rest, state)
     }.
+
+@pure
+scan_lambda_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    if {
+        value.kind == EndProjection -> state;
+        true -> scan_lambda_terminator(value, rest, state)
+    }.
+
+@pure
+scan_lambda_terminator(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    if {
+        top_level_sequence(state) and closes_lambda_segment(value.kind) -> state;
+        true -> scan_lambda_dot(value, rest, state)
+    }.
+
+@pure
+top_level_sequence(state: SequenceState): Bool ->
+    state.parens == 0 and state.brackets == 0 and state.braces == 0.
+
+@pure
+closes_lambda_segment(kind: ProjectionTokenKind): Bool ->
+    kind == RParenProjection
+        or kind == RBracketProjection
+        or kind == RBraceProjection
+        or kind == CommaProjection.
+
+@pure
+scan_lambda_dot(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    if {
+        value.kind == DotProjection and top_level_sequence(state) -> finish_lambda_dot(value, rest, state);
+        true -> scan_lambda_semicolon(value, rest, state)
+    }.
+
+@pure
+finish_lambda_dot(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    if {
+        dot_terminates(value, rest) -> state;
+        true -> scan_lambda_body(rest, state)
+    }.
+
+@pure
+scan_lambda_semicolon(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    if {
+        value.kind == SemicolonProjection and top_level_sequence(state) ->
+            finish_lambda_semicolon(value, rest, state);
+        true -> scan_lambda_nested(value, rest, state)
+    }.
+
+@pure
+finish_lambda_semicolon(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    let following_let = next_is_let(rest);
+    scan_lambda_body(rest, SequenceState(
+        parens = state.parens,
+        brackets = state.brackets,
+        braces = state.braces,
+        leave_let_separator = next_leave_let(state.leave_let_separator, following_let),
+        marks = lambda_semicolon_marks(state.leave_let_separator, value, state.marks),
+    )).
+
+@pure
+next_is_let(values: List[ProjectionToken]): Bool ->
+    case next_significant(values) {
+        Some(next) -> next.kind == LetProjection;
+        None -> false
+    }.
+
+@pure
+next_leave_let(leave: Bool, following_let: Bool): Bool ->
+    if {
+        leave -> following_let;
+        true -> false
+    }.
+
+@pure
+lambda_semicolon_marks(
+    leave: Bool,
+    value: ProjectionToken,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        leave -> marks;
+        true -> [mark(LambdaSequenceSemicolonProjection, value, value) | marks]
+    }.
+
+@pure
+scan_lambda_nested(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: SequenceState,
+): SequenceState ->
+    scan_lambda_body(rest, SequenceState(
+        parens = adjust_depth(value.kind, LParenProjection, RParenProjection, state.parens),
+        brackets = adjust_depth(value.kind, LBracketProjection, RBracketProjection, state.brackets),
+        braces = adjust_depth(value.kind, LBraceProjection, RBraceProjection, state.braces),
+        leave_let_separator = state.leave_let_separator,
+        marks = state.marks,
+    )).
 
 /** Finds top-level sequence semicolons for one confirmed lambda opening. */
 @pure
 pub lambda_sequence_semicolons(values: List[ProjectionToken]): List[ProjectionMark] ->
     case significant(values) {
-        [opening | rest] where opening.kind == LParenProjection ->
-            case paren_close_at(rest, 1) {
-                Some(tail) -> case significant(tail.rest) {
-                    [arrow | body] where arrow.kind == ArrowProjection ->
-                        let starts_with_let = case next_significant(body) {
-                            Some(first) -> first.kind == LetProjection;
-                            None -> false
-                        };
-                        reverse(scan_lambda_body(body, SequenceState(parens = 0, brackets = 0, braces = 0, leave_let_separator = starts_with_let, marks = List.new[ProjectionMark]())).marks);
-                    _ -> List.new[ProjectionMark]()
-                };
-                None -> List.new[ProjectionMark]()
-            };
-        _ -> List.new[ProjectionMark]()
+        [opening | rest] -> lambda_sequence_opening(opening, rest);
+        [] -> List.new[ProjectionMark]()
+    }.
+
+@pure
+lambda_sequence_opening(
+    opening: ProjectionToken,
+    rest: List[ProjectionToken],
+): List[ProjectionMark] ->
+    if {
+        opening.kind == LParenProjection -> lambda_sequence_tail(paren_close_at(rest, 1));
+        true -> List.new[ProjectionMark]()
+    }.
+
+@pure
+lambda_sequence_tail(tail: Option[ParenTail]): List[ProjectionMark] ->
+    case tail {
+        Some(value) -> lambda_sequence_arrow(significant(value.rest));
+        None -> List.new[ProjectionMark]()
+    }.
+
+@pure
+lambda_sequence_arrow(values: List[ProjectionToken]): List[ProjectionMark] ->
+    case values {
+        [arrow | body] -> validate_lambda_sequence_arrow(arrow, body);
+        [] -> List.new[ProjectionMark]()
+    }.
+
+@pure
+validate_lambda_sequence_arrow(
+    arrow: ProjectionToken,
+    body: List[ProjectionToken],
+): List[ProjectionMark] ->
+    if {
+        arrow.kind == ArrowProjection -> reverse(scan_lambda_body(
+            body,
+            SequenceState(
+                parens = 0,
+                brackets = 0,
+                braces = 0,
+                leave_let_separator = next_is_let(body),
+                marks = List.new[ProjectionMark](),
+            ),
+        ).marks);
+        true -> List.new[ProjectionMark]()
     }.
 
 struct TypedPatternState {
@@ -498,10 +1072,28 @@ none_projection_token(): Option[ProjectionToken] -> None.
 finish_typed_pattern(state: TypedPatternState): List[ProjectionMark] ->
     if {
         not state.typed -> state.marks;
-        true -> case {state.first, state.last} {
-            {Some(first), Some(last)} -> [mark(TypedLambdaPatternProjection, first, last) | state.marks];
-            _ -> state.marks
-        }
+        true -> finish_typed_first(state, state.first)
+    }.
+
+@pure
+finish_typed_first(
+    state: TypedPatternState,
+    first: Option[ProjectionToken],
+): List[ProjectionMark] ->
+    case first {
+        Some(value) -> finish_typed_last(state, value, state.last);
+        None -> state.marks
+    }.
+
+@pure
+finish_typed_last(
+    state: TypedPatternState,
+    first: ProjectionToken,
+    last: Option[ProjectionToken],
+): List[ProjectionMark] ->
+    case last {
+        Some(value) -> [mark(TypedLambdaPatternProjection, first, value) | state.marks];
+        None -> state.marks
     }.
 
 @pure
@@ -512,43 +1104,72 @@ reset_typed_pattern(state: TypedPatternState, marks: List[ProjectionMark]): Type
 scan_typed_patterns(values: List[ProjectionToken], state: TypedPatternState): List[ProjectionMark] ->
     case values {
         [] -> finish_typed_pattern(state);
-        [value | rest] where is_trivia(value.kind) -> scan_typed_patterns(rest, state);
-        [value | _]
-            where value.kind == RParenProjection
-                and state.parens == 0
-                and state.brackets == 0
-                and state.braces == 0 -> finish_typed_pattern(state);
-        [value | rest]
-            where value.kind == CommaProjection
-                and state.parens == 0
-                and state.brackets == 0
-                and state.braces == 0 ->
-            let marks = finish_typed_pattern(state);
-            scan_typed_patterns(rest, reset_typed_pattern(state, marks));
-        [value | rest] ->
-            let first = case state.first {
-                Some(existing) -> optional_projection_token(existing);
-                None -> optional_projection_token(value)
-            };
-            let last = optional_projection_token(value);
-            scan_typed_patterns(rest, TypedPatternState(parens = if {
-                    value.kind == LParenProjection -> state.parens + 1;
-                    value.kind == RParenProjection -> state.parens - 1;
-                    true -> state.parens
-                }, brackets = if {
-                    value.kind == LBracketProjection -> state.brackets + 1;
-                    value.kind == RBracketProjection -> state.brackets - 1;
-                    true -> state.brackets
-                }, braces = if {
-                    value.kind == LBraceProjection -> state.braces + 1;
-                    value.kind == RBraceProjection -> state.braces - 1;
-                    true -> state.braces
-                }, first = first, last = last, typed = state.typed or (
-                    value.kind == ColonProjection
-                        and state.parens == 0
-                        and state.brackets == 0
-                        and state.braces == 0
-                ), marks = state.marks))
+        [value | rest] -> scan_typed_token(value, rest, state)
+    }.
+
+@pure
+scan_typed_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: TypedPatternState,
+): List[ProjectionMark] ->
+    if {
+        is_trivia(value.kind) -> scan_typed_patterns(rest, state);
+        true -> scan_typed_close(value, rest, state)
+    }.
+
+@pure
+typed_top_level(state: TypedPatternState): Bool ->
+    state.parens == 0 and state.brackets == 0 and state.braces == 0.
+
+@pure
+scan_typed_close(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: TypedPatternState,
+): List[ProjectionMark] ->
+    if {
+        value.kind == RParenProjection and typed_top_level(state) -> finish_typed_pattern(state);
+        true -> scan_typed_comma(value, rest, state)
+    }.
+
+@pure
+scan_typed_comma(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: TypedPatternState,
+): List[ProjectionMark] ->
+    if {
+        value.kind == CommaProjection and typed_top_level(state) -> finish_typed_segment(rest, state);
+        true -> scan_typed_value(value, rest, state)
+    }.
+
+@pure
+finish_typed_segment(rest: List[ProjectionToken], state: TypedPatternState): List[ProjectionMark] ->
+    let marks = finish_typed_pattern(state);
+    scan_typed_patterns(rest, reset_typed_pattern(state, marks)).
+
+@pure
+scan_typed_value(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: TypedPatternState,
+): List[ProjectionMark] ->
+    scan_typed_patterns(rest, TypedPatternState(
+        parens = adjust_depth(value.kind, LParenProjection, RParenProjection, state.parens),
+        brackets = adjust_depth(value.kind, LBracketProjection, RBracketProjection, state.brackets),
+        braces = adjust_depth(value.kind, LBraceProjection, RBraceProjection, state.braces),
+        first = typed_first(state.first, value),
+        last = optional_projection_token(value),
+        typed = state.typed or (value.kind == ColonProjection and typed_top_level(state)),
+        marks = state.marks,
+    )).
+
+@pure
+typed_first(first: Option[ProjectionToken], value: ProjectionToken): Option[ProjectionToken] ->
+    case first {
+        Some(existing) -> optional_projection_token(existing);
+        None -> optional_projection_token(value)
     }.
 
 /** Collapses top-level `pattern: Type` parameters for one confirmed lambda. */
@@ -581,26 +1202,66 @@ constructor CastState {
 scan_cast_brackets(values: List[ProjectionToken], state: CastState): CastState ->
     case values {
         [] -> state;
-        [value | rest] where is_trivia(value.kind) -> scan_cast_brackets(rest, state);
-        [value | rest] ->
-            let cast_open = value.kind == LBracketProjection
-                and state.pending
-                and case state.previous {
-                    Some(previous) -> previous.kind == VarProjection or previous.kind == AtomProjection;
-                    None -> false
-                };
-            let continues_type_head = value.kind == VarProjection
-                or value.kind == AtomProjection
-                or value.kind == DotProjection;
-            scan_cast_brackets(rest, CastState(pending = if {
-                    value.kind == AsProjection -> true;
-                    cast_open -> false;
-                    state.pending and continues_type_head -> true;
-                    true -> false
-                }, previous = optional_projection_token(value), marks = if {
-                    cast_open -> [mark(CastTypeLBracketProjection, value, value) | state.marks];
-                    true -> state.marks
-                }))
+        [value | rest] -> scan_cast_token(value, rest, state)
+    }.
+
+@pure
+scan_cast_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: CastState,
+): CastState ->
+    if {
+        is_trivia(value.kind) -> scan_cast_brackets(rest, state);
+        true -> scan_cast_value(value, rest, state)
+    }.
+
+@pure
+scan_cast_value(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    state: CastState,
+): CastState ->
+    let cast_open = value.kind == LBracketProjection and state.pending and cast_previous_type(state.previous);
+    let continues_type_head = value.kind == VarProjection
+        or value.kind == AtomProjection
+        or value.kind == DotProjection;
+    scan_cast_brackets(rest, CastState(
+        pending = next_cast_pending(value.kind, cast_open, state.pending and continues_type_head),
+        previous = optional_projection_token(value),
+        marks = cast_marks(cast_open, value, state.marks),
+    )).
+
+@pure
+cast_previous_type(previous: Option[ProjectionToken]): Bool ->
+    case previous {
+        Some(value) -> value.kind == VarProjection or value.kind == AtomProjection;
+        None -> false
+    }.
+
+@pure
+next_cast_pending(kind: ProjectionTokenKind, cast_open: Bool, continues: Bool): Bool ->
+    if {
+        kind == AsProjection -> true;
+        true -> opened_cast_pending(cast_open, continues)
+    }.
+
+@pure
+opened_cast_pending(cast_open: Bool, continues: Bool): Bool ->
+    if {
+        cast_open -> false;
+        true -> continues
+    }.
+
+@pure
+cast_marks(
+    cast_open: Bool,
+    value: ProjectionToken,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        cast_open -> [mark(CastTypeLBracketProjection, value, value) | marks];
+        true -> marks
     }.
 
 /** Finds the first generic type bracket in each `expression as Type[...]` cast. */
@@ -612,19 +1273,56 @@ pub cast_type_lbrackets(values: List[ProjectionToken]): List[ProjectionMark] ->
 segment_has_arrow(values: List[ProjectionToken], parens: Int, brackets: Int, braces: Int): Bool ->
     case values {
         [] -> false;
-        [value | _]
-            where (value.kind == RParenProjection and parens == 0)
-                or (value.kind == RBracketProjection and brackets == 0)
-                or (value.kind == RBraceProjection and braces == 0) -> false;
-        [value | _]
-            where value.kind == ArrowProjection and parens == 0 and brackets == 0 and braces == 0 -> true;
-        [value | _]
-            where value.kind == SemicolonProjection and parens == 0 and brackets == 0 and braces == 0 -> false;
-        [value | rest] -> segment_has_arrow(
+        [value | rest] -> segment_arrow_token(value, rest, parens, brackets, braces)
+    }.
+
+@pure
+segment_arrow_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+): Bool ->
+    if {
+        closes_segment(value.kind, parens, brackets, braces) -> false;
+        true -> segment_arrow_match(value, rest, parens, brackets, braces)
+    }.
+
+@pure
+closes_segment(kind: ProjectionTokenKind, parens: Int, brackets: Int, braces: Int): Bool ->
+    (kind == RParenProjection and parens == 0)
+        or (kind == RBracketProjection and brackets == 0)
+        or (kind == RBraceProjection and braces == 0).
+
+@pure
+segment_arrow_match(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+): Bool ->
+    if {
+        value.kind == ArrowProjection and parens == 0 and brackets == 0 and braces == 0 -> true;
+        true -> segment_semicolon_match(value, rest, parens, brackets, braces)
+    }.
+
+@pure
+segment_semicolon_match(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+): Bool ->
+    if {
+        value.kind == SemicolonProjection and parens == 0 and brackets == 0 and braces == 0 -> false;
+        true -> segment_has_arrow(
             rest,
-            if { value.kind == LParenProjection -> parens + 1; value.kind == RParenProjection -> parens - 1; true -> parens },
-            if { value.kind == LBracketProjection -> brackets + 1; value.kind == RBracketProjection -> brackets - 1; true -> brackets },
-            if { value.kind == LBraceProjection -> braces + 1; value.kind == RBraceProjection -> braces - 1; true -> braces },
+            adjust_depth(value.kind, LParenProjection, RParenProjection, parens),
+            adjust_depth(value.kind, LBracketProjection, RBracketProjection, brackets),
+            adjust_depth(value.kind, LBraceProjection, RBraceProjection, braces),
         )
     }.
 
@@ -638,30 +1336,74 @@ scan_if_body(
 ): List[ProjectionMark] ->
     case values {
         [] -> marks;
-        [value | _] where value.kind == RBraceProjection and braces == 1 -> marks;
-        [value | rest]
-            where value.kind == SemicolonProjection
-                and braces == 1
-                and parens == 0
-                and brackets == 0 ->
-            if {
-                segment_has_arrow(rest, 0, 0, 0) -> scan_if_body(
-                    rest,
-                    braces,
-                    parens,
-                    brackets,
-                    [mark(IfClauseSemicolonProjection, value, value) | marks],
-                );
-                true -> scan_if_body(rest, braces, parens, brackets, marks)
-            };
-        [value | rest] -> scan_if_body(
-            rest,
-            if { value.kind == LBraceProjection -> braces + 1; value.kind == RBraceProjection -> braces - 1; true -> braces },
-            if { value.kind == LParenProjection -> parens + 1; value.kind == RParenProjection -> parens - 1; true -> parens },
-            if { value.kind == LBracketProjection -> brackets + 1; value.kind == RBracketProjection -> brackets - 1; true -> brackets },
-            marks,
-        )
+        [value | rest] -> scan_if_token(value, rest, braces, parens, brackets, marks)
     }.
+
+@pure
+scan_if_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    braces: Int,
+    parens: Int,
+    brackets: Int,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        value.kind == RBraceProjection and braces == 1 -> marks;
+        true -> scan_if_semicolon(value, rest, braces, parens, brackets, marks)
+    }.
+
+@pure
+scan_if_semicolon(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    braces: Int,
+    parens: Int,
+    brackets: Int,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        value.kind == SemicolonProjection and braces == 1 and parens == 0 and brackets == 0 ->
+            scan_if_separator(value, rest, braces, parens, brackets, marks);
+        true -> scan_if_nested(value, rest, braces, parens, brackets, marks)
+    }.
+
+@pure
+scan_if_separator(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    braces: Int,
+    parens: Int,
+    brackets: Int,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    if {
+        segment_has_arrow(rest, 0, 0, 0) -> scan_if_body(
+            rest,
+            braces,
+            parens,
+            brackets,
+            [mark(IfClauseSemicolonProjection, value, value) | marks],
+        );
+        true -> scan_if_body(rest, braces, parens, brackets, marks)
+    }.
+
+@pure
+scan_if_nested(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    braces: Int,
+    parens: Int,
+    brackets: Int,
+    marks: List[ProjectionMark],
+): List[ProjectionMark] ->
+    scan_if_body(
+        rest,
+        adjust_depth(value.kind, LBraceProjection, RBraceProjection, braces),
+        adjust_depth(value.kind, LParenProjection, RParenProjection, parens),
+        adjust_depth(value.kind, LBracketProjection, RBracketProjection, brackets),
+        marks,
+    ).
 
 @pure
 scan_clause_opening(
@@ -673,18 +1415,29 @@ scan_clause_opening(
 ): List[ProjectionMark] ->
     case values {
         [] -> List.new[ProjectionMark]();
-        [value | rest]
-            where value.kind == LBraceProjection
-                and parens == 0
-                and brackets == 0
-                and braces == 0
-                and seen_subject ->
-            reverse(scan_if_body(rest, 1, 0, 0, List.new[ProjectionMark]()));
-        [value | rest] -> scan_clause_opening(
+        [value | rest] -> scan_clause_token(value, rest, parens, brackets, braces, seen_subject)
+    }.
+
+@pure
+scan_clause_token(
+    value: ProjectionToken,
+    rest: List[ProjectionToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+    seen_subject: Bool,
+): List[ProjectionMark] ->
+    if {
+        value.kind == LBraceProjection
+            and parens == 0
+            and brackets == 0
+            and braces == 0
+            and seen_subject -> reverse(scan_if_body(rest, 1, 0, 0, List.new[ProjectionMark]()));
+        true -> scan_clause_opening(
             rest,
-            if { value.kind == LParenProjection -> parens + 1; value.kind == RParenProjection -> parens - 1; true -> parens },
-            if { value.kind == LBracketProjection -> brackets + 1; value.kind == RBracketProjection -> brackets - 1; true -> brackets },
-            if { value.kind == LBraceProjection -> braces + 1; value.kind == RBraceProjection -> braces - 1; true -> braces },
+            adjust_depth(value.kind, LParenProjection, RParenProjection, parens),
+            adjust_depth(value.kind, LBracketProjection, RBracketProjection, brackets),
+            adjust_depth(value.kind, LBraceProjection, RBraceProjection, braces),
             true,
         )
     }.
@@ -693,13 +1446,43 @@ scan_clause_opening(
 @pure
 pub if_clause_semicolons(values: List[ProjectionToken]): List[ProjectionMark] ->
     case leading_significant(values) {
-        [keyword | rest] where keyword.kind == IfProjection ->
-            case leading_significant(rest) {
-                [opening | body] where opening.kind == LBraceProjection ->
-                    reverse(scan_if_body(body, 1, 0, 0, List.new[ProjectionMark]()));
-                _ -> List.new[ProjectionMark]()
-            };
-        [keyword | rest] where keyword.text == "case" ->
-            scan_clause_opening(rest, 0, 0, 0, false);
-        _ -> List.new[ProjectionMark]()
+        [keyword | rest] -> clause_semicolon_keyword(keyword, rest);
+        [] -> List.new[ProjectionMark]()
+    }.
+
+@pure
+clause_semicolon_keyword(
+    keyword: ProjectionToken,
+    rest: List[ProjectionToken],
+): List[ProjectionMark] ->
+    if {
+        keyword.kind == IfProjection -> if_semicolon_opening(leading_significant(rest));
+        true -> case_semicolon_keyword(keyword, rest)
+    }.
+
+@pure
+if_semicolon_opening(values: List[ProjectionToken]): List[ProjectionMark] ->
+    case values {
+        [opening | body] -> validate_if_semicolon_opening(opening, body);
+        [] -> List.new[ProjectionMark]()
+    }.
+
+@pure
+validate_if_semicolon_opening(
+    opening: ProjectionToken,
+    body: List[ProjectionToken],
+): List[ProjectionMark] ->
+    if {
+        opening.kind == LBraceProjection -> reverse(scan_if_body(body, 1, 0, 0, List.new[ProjectionMark]()));
+        true -> List.new[ProjectionMark]()
+    }.
+
+@pure
+case_semicolon_keyword(
+    keyword: ProjectionToken,
+    rest: List[ProjectionToken],
+): List[ProjectionMark] ->
+    if {
+        keyword.text == "case" -> scan_clause_opening(rest, 0, 0, 0, false);
+        true -> List.new[ProjectionMark]()
     }.

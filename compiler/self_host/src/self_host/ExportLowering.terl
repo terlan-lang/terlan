@@ -8,18 +8,31 @@ import self_host.ExportSyntax.{ExportItemSyntax, ExportSyntax}.
 import self_host.Syntax.{ExportDeclaration}.
 
 import std.collections.List.
-import std.core.Int.
-import std.core.String.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 
+
+@pure
+parse_arity(value: String, slash: Int): Option[Int] ->
+    if {
+        slash > 0 -> Int.from_string(String.trim(value.utf8_slice(slash + 1, value.byte_size() - slash - 1)));
+        true -> None
+    }.
+
+@pure
+item_with_arity(value: String, slash: Int, count: Int): ExportItemSyntax ->
+    if {
+        count >= 0 -> ExportItemSyntax(true, String.trim(value.utf8_slice(0, slash)), count, "");
+        true -> ExportItemSyntax(false, String.trim(value.utf8_slice(0, slash)), count, "export arity must be non-negative")
+    }.
 
 @pure
 item(source: String): ExportItemSyntax ->
     let value = String.trim(source);
     let slash = Delimited.top_level_byte(value, 47);
-    let arity = if { slash > 0 -> Int.from_string(String.trim(value.utf8_slice(slash + 1, value.byte_size() - slash - 1))); true -> None };
+    let arity = parse_arity(value, slash);
     case arity {
-        Some(count) -> ExportItemSyntax(count >= 0, String.trim(value.utf8_slice(0, slash)), count, if { count >= 0 -> ""; true -> "export arity must be non-negative" });
+        Some(count) -> item_with_arity(value, slash, count);
         None -> ExportItemSyntax(false, "", 0, "export item must use `name/arity`")
     }.
 
@@ -39,18 +52,48 @@ all_valid(values: List[ExportItemSyntax]): Bool ->
 first_error(values: List[ExportItemSyntax]): String ->
     case values { [] -> ""; [value | rest] -> if { value.valid -> first_error(rest); true -> value.message } }.
 
+@pure
+export_body(text: String, open: Int, body_valid: Bool): String ->
+    if {
+        body_valid -> text.utf8_slice(open + 1, text.byte_size() - open - 3);
+        true -> ""
+    }.
+
+@pure
+export_items(body: String, body_valid: Bool): List[ExportItemSyntax] ->
+    if {
+        body_valid -> items_at(drop_terminal_empty(Delimited.split_top_level(body, 44)));
+        true -> List.new[ExportItemSyntax]()
+    }.
+
+@pure
+export_message_after_body(items: List[ExportItemSyntax]): String ->
+    if {
+        not all_valid(items) -> first_error(items);
+        true -> ""
+    }.
+
+@pure
+export_message_after_supported(body_valid: Bool, items: List[ExportItemSyntax]): String ->
+    if {
+        not body_valid -> "export body is incomplete";
+        true -> export_message_after_body(items)
+    }.
+
+@pure
+export_message(supported: Bool, body_valid: Bool, items: List[ExportItemSyntax]): String ->
+    if {
+        not supported -> "declaration is not an export";
+        true -> export_message_after_supported(body_valid, items)
+    }.
+
 /** Lowers one canonical `export {name/arity, ...}.` declaration. */
 @pure
 pub lower(source: DeclarationSyntax): ExportSyntax ->
     let text = String.trim(source.body);
     let open = Delimited.top_level_byte(text, 123);
     let body_valid = open >= 0 and String.ends_with(text, "}.");
-    let body = if { body_valid -> text.utf8_slice(open + 1, text.byte_size() - open - 3); true -> "" };
-    let items = if { body_valid -> items_at(drop_terminal_empty(Delimited.split_top_level(body, 44))); true -> List.new[ExportItemSyntax]() };
+    let body = export_body(text, open, body_valid);
+    let items = export_items(body, body_valid);
     let supported = source.class == ExportDeclaration;
-    ExportSyntax(supported and body_valid and all_valid(items), items, source.span, if {
-            not supported -> "declaration is not an export";
-            not body_valid -> "export body is incomplete";
-            not all_valid(items) -> first_error(items);
-            true -> ""
-        }).
+    ExportSyntax(supported and body_valid and all_valid(items), items, source.span, export_message(supported, body_valid, items)).

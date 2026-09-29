@@ -25,22 +25,76 @@ without_eof(values: List[CanonicalToken]): List[CanonicalToken] ->
     }.
 
 @pure
+expression_constructor_chain(kind: String): String ->
+    if { kind == "constructor-chain" -> "constructor_chain"; true -> String.replace(kind, "-", "_") }.
+
+@pure
+expression_record_update(kind: String): String ->
+    if { kind == "record-update" -> "record_update"; true -> expression_constructor_chain(kind) }.
+
+@pure
+expression_record_access(kind: String): String ->
+    if { kind == "record-access" -> "record_access"; true -> expression_record_update(kind) }.
+
+@pure
+expression_atom_literal(kind: String): String ->
+    if { kind == "atom-literal" -> "atom_literal"; true -> expression_record_access(kind) }.
+
+@pure
+expression_fixed_array(kind: String): String ->
+    if { kind == "fixed-array" -> "fixed_array"; true -> expression_atom_literal(kind) }.
+
+@pure
+expression_dynamic_call(kind: String): String ->
+    if { kind == "dynamic-call" -> "call"; true -> expression_fixed_array(kind) }.
+
+@pure
+expression_field(kind: String): String ->
+    if { kind == "field" -> "field_access"; true -> expression_dynamic_call(kind) }.
+
+@pure
+expression_keyed_field(kind: String): String ->
+    if { kind == "keyed-field" -> "map_field"; true -> expression_field(kind) }.
+
+@pure
+expression_keyed(kind: String): String ->
+    if { kind == "keyed-container" or kind == "nominal-keyed" -> "map"; true -> expression_keyed_field(kind) }.
+
+@pure
+expression_group(kind: String): String ->
+    if { kind == "tuple-or-group" or kind == "tuple" -> "group"; true -> expression_keyed(kind) }.
+
+@pure
+expression_binding(kind: String): String ->
+    if { kind == "identifier" or kind == "constructor" or kind == "atom" -> "binding"; true -> expression_group(kind) }.
+
+@pure
 expression_kind(kind: String): String ->
-    if {
-        kind == "integer" -> "int";
-        kind == "identifier" or kind == "constructor" or kind == "atom" -> "binding";
-        kind == "tuple-or-group" or kind == "tuple" -> "group";
-        kind == "keyed-container" or kind == "nominal-keyed" -> "map";
-        kind == "keyed-field" -> "map_field";
-        kind == "field" -> "field_access";
-        kind == "dynamic-call" -> "call";
-        kind == "fixed-array" -> "fixed_array";
-        kind == "atom-literal" -> "atom_literal";
-        kind == "record-access" -> "record_access";
-        kind == "record-update" -> "record_update";
-        kind == "constructor-chain" -> "constructor_chain";
-        true -> String.replace(kind, "-", "_")
-    }.
+    if { kind == "integer" -> "int"; true -> expression_binding(kind) }.
+
+@pure
+pattern_keyed_field(kind: String): String ->
+    if { kind == "keyed-pattern-field" -> "pattern_field"; true -> expression_kind(kind) }.
+
+@pure
+pattern_map(kind: String): String ->
+    if { kind == "keyed-pattern" or kind == "struct-pattern" or kind == "keyed-container-pattern" -> "pattern_map"; true -> pattern_keyed_field(kind) }.
+
+@pure
+pattern_list_cons(kind: String): String ->
+    if { kind == "list-cons-pattern" -> "pattern_list_cons"; true -> pattern_map(kind) }.
+
+@pure
+pattern_list(kind: String): String ->
+    if { kind == "list-pattern" -> "pattern_list"; true -> pattern_list_cons(kind) }.
+
+@pure
+pattern_tuple(kind: String): String ->
+    if { kind == "tuple-pattern" -> "pattern_tuple"; true -> pattern_list(kind) }.
+
+@pure
+pattern_constructor(kind: String): String ->
+    if { kind == "constructor-pattern" -> "pattern_constructor"; true -> pattern_tuple(kind) }.
 
 @pure
 pattern_kind(kind: String): String ->
@@ -48,27 +102,32 @@ pattern_kind(kind: String): String ->
         kind == "binding-pattern" or kind == "wildcard-pattern"
             or kind == "literal-pattern" or kind == "typed-pattern"
             or kind == "string-capture-pattern" or kind == "pattern-token" -> "pattern";
-        kind == "constructor-pattern" -> "pattern_constructor";
-        kind == "tuple-pattern" -> "pattern_tuple";
-        kind == "list-pattern" -> "pattern_list";
-        kind == "list-cons-pattern" -> "pattern_list_cons";
-        kind == "keyed-pattern" or kind == "struct-pattern"
-            or kind == "keyed-container-pattern" -> "pattern_map";
-        kind == "keyed-pattern-field" -> "pattern_field";
-        true -> expression_kind(kind)
+        true -> pattern_constructor(kind)
     }.
 
 @pure
+type_field_kind(kind: String): String ->
+    if { kind == "field" or kind == "item" -> "type_field"; true -> String.replace(kind, "-", "_") }.
+
+@pure
+type_aggregate_kind(kind: String): String ->
+    if { kind == "tuple-type" or kind == "record-or-tuple-type" -> "type_aggregate"; true -> type_field_kind(kind) }.
+
+@pure
+type_existential_kind(kind: String): String ->
+    if { kind == "existential-type" -> "type_existential"; true -> type_aggregate_kind(kind) }.
+
+@pure
+type_arrow_kind(kind: String): String ->
+    if { kind == "function-type" -> "type_arrow"; true -> type_existential_kind(kind) }.
+
+@pure
+type_union_kind(kind: String): String ->
+    if { kind == "union-type" -> "type_union"; true -> type_arrow_kind(kind) }.
+
+@pure
 type_kind(kind: String): String ->
-    if {
-        kind == "named-type" or kind == "atom-type" or kind == "generic-type" -> "type";
-        kind == "union-type" -> "type_union";
-        kind == "function-type" -> "type_arrow";
-        kind == "existential-type" -> "type_existential";
-        kind == "tuple-type" or kind == "record-or-tuple-type" -> "type_aggregate";
-        kind == "field" or kind == "item" -> "type_field";
-        true -> String.replace(kind, "-", "_")
-    }.
+    if { kind == "named-type" or kind == "atom-type" or kind == "generic-type" -> "type"; true -> type_union_kind(kind) }.
 
 @pure
 row(depth: Int, kind: String, start_byte: Int, end_byte: Int): String ->
@@ -97,31 +156,48 @@ expression_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
     }.
 
 @pure
-pattern_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
-    case values {
-        [] -> "";
-        [value | rest] where value.kind == "patterns" or value.kind == "keyed-pattern-fields" -> String.concat([
-            pattern_rows(value.children, depth), pattern_rows(rest, depth),
-        ]);
-        [value | rest] where value.kind == "pattern-field" or value.kind == "keyed-pattern-field" -> String.concat([
+pattern_regular_row(value: ProjectedExpressionNode, rest: List[ProjectedExpressionNode], depth: Int): String ->
+    String.concat([
+        row(depth, pattern_kind(value.kind), value.start_byte, value.end_byte),
+        pattern_rows(value.children, depth + 1), pattern_rows(rest, depth),
+    ]).
+
+@pure
+pattern_field_row(value: ProjectedExpressionNode, rest: List[ProjectedExpressionNode], depth: Int): String ->
+    if {
+        value.kind == "pattern-field" or value.kind == "keyed-pattern-field" -> String.concat([
             row(depth, "map_field", value.start_byte, value.end_byte),
             pattern_field_rows(value.children, depth + 1), pattern_rows(rest, depth),
         ]);
-        [value | rest] -> String.concat([
-            row(depth, pattern_kind(value.kind), value.start_byte, value.end_byte),
-            pattern_rows(value.children, depth + 1), pattern_rows(rest, depth),
-        ])
+        true -> pattern_regular_row(value, rest, depth)
     }.
+
+@pure
+pattern_value_row(value: ProjectedExpressionNode, rest: List[ProjectedExpressionNode], depth: Int): String ->
+    if {
+        value.kind == "patterns" or value.kind == "keyed-pattern-fields" -> String.concat([
+            pattern_rows(value.children, depth), pattern_rows(rest, depth),
+        ]);
+        true -> pattern_field_row(value, rest, depth)
+    }.
+
+@pure
+pattern_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
+    case values {
+        [] -> "";
+        [value | rest] -> pattern_value_row(value, rest, depth)
+    }.
+
+@pure
+pattern_field_kind(kind: String): String ->
+    if { kind == "binding-pattern" or kind == "pattern-token" -> "binding"; true -> pattern_kind(kind) }.
 
 @pure
 pattern_field_rows(values: List[ProjectedExpressionNode], depth: Int): String ->
     case values {
         [] -> "";
         [value | rest] -> String.concat([
-            row(depth, if {
-                value.kind == "binding-pattern" or value.kind == "pattern-token" -> "binding";
-                true -> pattern_kind(value.kind)
-            }, value.start_byte, value.end_byte),
+            row(depth, pattern_field_kind(value.kind), value.start_byte, value.end_byte),
             pattern_rows(value.children, depth + 1), pattern_field_rows(rest, depth),
         ])
     }.

@@ -16,17 +16,59 @@ all_nonempty(values: List[String]): Bool ->
     }.
 
 @pure
+classify_after_grouped(source: String): TypeClass ->
+    if {
+        String.contains(source, "[") or String.contains(source, "<") or String.contains(source, "(") -> AppliedType;
+        true -> NamedType
+    }.
+
+@pure
+classify_after_list(source: String): TypeClass ->
+    if {
+        String.starts_with(source, "(") -> GroupedType;
+        true -> classify_after_grouped(source)
+    }.
+
+@pure
+classify_after_braced(source: String): TypeClass ->
+    if {
+        String.starts_with(source, "[") -> ListType;
+        true -> classify_after_list(source)
+    }.
+
+@pure
+classify_after_union(source: String): TypeClass ->
+    if {
+        String.starts_with(source, "{") -> classify_braced(source);
+        true -> classify_after_braced(source)
+    }.
+
+@pure
+classify_after_implication(source: String, parts: List[String]): TypeClass ->
+    if {
+        List.length(parts) > 1 -> UnionType;
+        true -> classify_after_union(source)
+    }.
+
+@pure
+classify_after_function(source: String, parts: List[String]): TypeClass ->
+    if {
+        Delimited.top_level_pair(source, 61, 62) >= 0 -> ImplicationType;
+        true -> classify_after_implication(source, parts)
+    }.
+
+@pure
+classify_after_existential(source: String, parts: List[String]): TypeClass ->
+    if {
+        Delimited.top_level_pair(source, 45, 62) >= 0 -> FunctionType;
+        true -> classify_after_function(source, parts)
+    }.
+
+@pure
 classify(source: String, parts: List[String]): TypeClass ->
     if {
         String.starts_with(source, "exists ") -> ExistentialType;
-        Delimited.top_level_pair(source, 45, 62) >= 0 -> FunctionType;
-        Delimited.top_level_pair(source, 61, 62) >= 0 -> ImplicationType;
-        List.length(parts) > 1 -> UnionType;
-        String.starts_with(source, "{") -> classify_braced(source);
-        String.starts_with(source, "[") -> ListType;
-        String.starts_with(source, "(") -> GroupedType;
-        String.contains(source, "[") or String.contains(source, "<") or String.contains(source, "(") -> AppliedType;
-        true -> NamedType
+        true -> classify_after_existential(source, parts)
     }.
 
 @pure

@@ -1,0 +1,12 @@
+#!/usr/bin/env -S terlc run
+/** Proves an unprefixed grouped pattern crosses native continuations safely. */
+import self_host.ProjectedPatternParser.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
+
+let parsed = ProjectedPatternParser.parse([
+    ProjectedCanonicalToken("[", "[", 0, 1),
+    ProjectedCanonicalToken("var", "_", 1, 2),
+    ProjectedCanonicalToken("]", "]", 2, 3),
+]);
+assert(parsed.valid and parsed.rest == []);
+Unit.
