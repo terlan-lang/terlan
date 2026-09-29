@@ -152,7 +152,6 @@ std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.connect	con
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.query	query	3
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.query_one	query_one	3
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.execute	execute	3
-std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.transaction	transaction	2
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.string	string	2
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.int	int	2
 std.db.Postgres	std/db/Postgres.terl	postgres-native	std.db.postgres.bool	bool	2
