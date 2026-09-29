@@ -474,7 +474,7 @@ fn formal_static_emit_renders_markdown_html_from_syntax_output() {
     assert_eq!(exit, ExitCode::SUCCESS);
     let html = fs::read_to_string(out_dir.join("post.html")).expect("read markdown html");
     assert!(html.contains(
-        "<h1><a href=\"#welcome\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"welcome\"></a>Welcome</h1>"
+        "<h1 id=\"welcome\">Welcome<a href=\"#welcome\" aria-label=\"Link to heading 'Welcome'\" data-heading-content=\"Welcome\" class=\"anchor\"></a></h1>"
     ));
     assert!(html.contains("<strong>Markdown</strong>"));
 }
@@ -522,7 +522,7 @@ fn formal_static_emit_writes_markdown_content_routes() {
     let html =
         fs::read_to_string(out_dir.join("install/index.html")).expect("read Markdown route html");
     assert!(html.contains(
-        "<h1><a href=\"#install\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"install\"></a>Install</h1>"
+        "<h1 id=\"install\">Install<a href=\"#install\" aria-label=\"Link to heading 'Install'\" data-heading-content=\"Install\" class=\"anchor\"></a></h1>"
     ));
     assert!(html.contains("<code>terlc</code>"));
 }
@@ -706,7 +706,7 @@ fn formal_static_emit_renders_markdown_content_layout() {
         fs::read_to_string(out_dir.join("install/index.html")).expect("read layout route html");
     assert_eq!(
         html,
-        "<main><h1>Install</h1><section><h2><a href=\"#steps\" aria-hidden=\"true\" tabindex=\"-1\" class=\"anchor\" id=\"steps\"></a>Steps</h2>\n<p>Run <code>terlc</code>.</p>\n</section></main>"
+        "<main><h1>Install</h1><section><h2 id=\"steps\">Steps<a href=\"#steps\" aria-label=\"Link to heading 'Steps'\" data-heading-content=\"Steps\" class=\"anchor\"></a></h2>\n<p>Run <code>terlc</code>.</p>\n</section></main>"
     );
 }
 
