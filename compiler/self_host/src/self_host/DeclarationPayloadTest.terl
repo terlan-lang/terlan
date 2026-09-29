@@ -2,6 +2,7 @@
 module self_host.DeclarationPayloadTest.
 
 import self_host.ExpressionSyntax.{IntegerExpression}.
+import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.TypeSyntax.{NamedType, UnionType}.
 
 import std.collections.List.
@@ -12,12 +13,9 @@ import self_host.StructLowering.
 import self_host.TypeDeclarationLowering.
 
 @pure
-positive_payloads(): Bool ->
-    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
-        "module demo.Payload.\npub const LIMIT: Int = 32.\npub type State = Ready | Failed(String).\npub struct User { name: String, #age: Int = 0, }.\n",
-    ));
-    case lowered_module.declarations {
-        [constant_decl, type_decl, struct_decl] ->
+positive_payload_end(constant_decl: DeclarationSyntax, type_decl: DeclarationSyntax, struct_decl: DeclarationSyntax, values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] ->
             let constant = ConstantLowering.lower(constant_decl);
             let declared_type = TypeDeclarationLowering.lower(type_decl);
             let structure = StructLowering.lower(struct_decl);
@@ -28,8 +26,36 @@ positive_payloads(): Bool ->
                 and declared_type.representation.syntax.class == UnionType
                 and structure.valid
                 and List.length(structure.fields) == 2;
-        _ -> false
+        [_ | _] -> false
     }.
+
+@pure
+positive_payload_struct(constant_decl: DeclarationSyntax, type_decl: DeclarationSyntax, values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [struct_decl | rest] -> positive_payload_end(constant_decl, type_decl, struct_decl, rest)
+    }.
+
+@pure
+positive_payload_type(constant_decl: DeclarationSyntax, values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [type_decl | rest] -> positive_payload_struct(constant_decl, type_decl, rest)
+    }.
+
+@pure
+positive_payload_declarations(values: List[DeclarationSyntax]): Bool ->
+    case values {
+        [] -> false;
+        [constant_decl | rest] -> positive_payload_type(constant_decl, rest)
+    }.
+
+@pure
+positive_payloads(): Bool ->
+    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
+        "module demo.Payload.\npub const LIMIT: Int = 32.\npub type State = Ready | Failed(String).\npub struct User { name: String, #age: Int = 0, }.\n",
+    ));
+    positive_payload_declarations(lowered_module.declarations).
 
 @pure
 negative_payloads(): Bool ->
@@ -42,4 +68,3 @@ negative_payloads(): Bool ->
     }.
 
 pub self_test(): Bool -> positive_payloads() and negative_payloads().
-

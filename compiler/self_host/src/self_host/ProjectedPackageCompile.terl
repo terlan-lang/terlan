@@ -13,10 +13,24 @@ import self_host.ProjectedFrontend.
 import self_host.ProjectedPackageSyntax.
 import self_host.ProjectedPackageSyntax.{ProjectedPackageArtifact, ProjectedPackageCompilation}.
 import std.collections.List.
-import std.core.{String}.
+import std.core.{Bool, String}.
 @pure
 append[T](left: List[T], right: List[T]): List[T] ->
     case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+@pure
+artifact_json(frontend_valid: Bool, json: Option[String]): Option[String] ->
+    if {
+        frontend_valid -> json;
+        true -> None
+    }.
+
+@pure
+compile_diagnostics(frontend_valid: Bool, diagnostics: List[String]): List[String] ->
+    if {
+        frontend_valid -> diagnostics;
+        true -> ["projected-frontend-invalid" | diagnostics]
+    }.
 
 compile_modules(
     sources: List[String],
@@ -29,20 +43,26 @@ compile_modules(
             let lexed = CanonicalLexer.lex(source);
             let frontend = ProjectedFrontend.compile(source, lexed.tokens);
             let backend = ProjectedBackendCompile.compile(frontend, interfaces, target);
-            [ProjectedPackageArtifact(frontend.backend.module_name, if { lexed.valid and frontend.valid -> backend.json; true -> None }, if {
-                    lexed.valid and frontend.valid -> backend.diagnostics;
-                    true -> ["projected-frontend-invalid" | backend.diagnostics]
-                }) | compile_modules(rest, interfaces, target)]
+            let frontend_valid = lexed.valid and frontend.valid;
+            [ProjectedPackageArtifact(
+                frontend.backend.module_name,
+                artifact_json(frontend_valid, backend.json),
+                compile_diagnostics(frontend_valid, backend.diagnostics),
+            ) | compile_modules(rest, interfaces, target)]
+    }.
+
+@pure
+artifact_and_rest_valid(value: ProjectedPackageArtifact, rest: List[ProjectedPackageArtifact]): Bool ->
+    case value.json {
+        Some(_json) -> List.is_empty(value.diagnostics) and artifacts_valid(rest);
+        None -> false
     }.
 
 @pure
 artifacts_valid(values: List[ProjectedPackageArtifact]): Bool ->
     case values {
         [] -> true;
-        [value | rest] -> case value.json {
-            Some(_json) -> List.is_empty(value.diagnostics) and artifacts_valid(rest);
-            None -> false
-        }
+        [value | rest] -> artifact_and_rest_valid(value, rest)
     }.
 
 @pure
@@ -52,12 +72,19 @@ artifact_diagnostics(values: List[ProjectedPackageArtifact]): List[String] ->
         [value | rest] -> append(value.diagnostics, artifact_diagnostics(rest))
     }.
 
+@pure
+program_diagnostics(valid: Bool): List[String] ->
+    if {
+        valid -> List.new[String]();
+        true -> ["package-import-resolution-failed"]
+    }.
+
 /** Compiles all sources against interfaces derived from the complete closure. */
 pub compile(sources: List[String], external: List[ModuleInterface], target: String): ProjectedPackageCompilation ->
     let program = ProgramCompiler.compile(sources, external);
     let artifacts = compile_modules(sources, program.interfaces, target);
     let valid = program.valid and artifacts_valid(artifacts);
     ProjectedPackageCompilation(valid, artifacts, append(
-            if { program.valid -> List.new[String](); true -> ["package-import-resolution-failed"] },
+            program_diagnostics(program.valid),
             artifact_diagnostics(artifacts),
         )).

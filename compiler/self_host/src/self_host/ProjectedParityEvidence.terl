@@ -15,27 +15,59 @@ import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
 import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
 
+surface_class_native(value: DeclarationClass): String ->
+    if { value == NativeDeclaration -> "NativeDecl"; true -> "UnknownDecl" }.
+
+surface_class_config(value: DeclarationClass): String ->
+    if { value == ConfigDeclaration -> "ConfigDecl"; true -> surface_class_native(value) }.
+
+surface_class_shape(value: DeclarationClass): String ->
+    if { value == ShapeDeclaration -> "ShapeDecl"; true -> surface_class_config(value) }.
+
+surface_class_template(value: DeclarationClass): String ->
+    if { value == TemplateDeclaration -> "TemplateDecl"; true -> surface_class_shape(value) }.
+
+surface_class_annotation(value: DeclarationClass): String ->
+    if { value == AnnotationSchemaDeclaration -> "AnnotationSchemaDecl"; true -> surface_class_template(value) }.
+
+surface_class_impl(value: DeclarationClass): String ->
+    if { value == TraitImplDeclaration -> "TraitImplDecl"; true -> surface_class_annotation(value) }.
+
+surface_class_trait(value: DeclarationClass): String ->
+    if { value == TraitDeclaration -> "TraitDecl"; true -> surface_class_impl(value) }.
+
+surface_class_method(value: DeclarationClass): String ->
+    if { value == MethodDeclaration -> "MethodDecl"; true -> surface_class_trait(value) }.
+
+surface_class_function(value: DeclarationClass): String ->
+    if { value == FunctionDeclaration -> "FunctionDecl"; true -> surface_class_method(value) }.
+
+surface_class_constructor(value: DeclarationClass): String ->
+    if { value == ConstructorDeclaration -> "ConstructorDecl"; true -> surface_class_function(value) }.
+
+surface_class_struct(value: DeclarationClass): String ->
+    if { value == StructDeclaration -> "StructDecl"; true -> surface_class_constructor(value) }.
+
+surface_class_type(value: DeclarationClass): String ->
+    if { value == TypeDeclaration -> "TypeDecl"; true -> surface_class_struct(value) }.
+
+surface_class_opaque(value: DeclarationClass): String ->
+    if { value == OpaqueTypeDeclaration -> "OpaqueTypeDecl"; true -> surface_class_type(value) }.
+
+surface_class_const_function(value: DeclarationClass): String ->
+    if { value == ConstFunctionDeclaration -> "ConstFunctionDecl"; true -> surface_class_opaque(value) }.
+
+surface_class_constant(value: DeclarationClass): String ->
+    if { value == ConstantDeclaration -> "ConstantDecl"; true -> surface_class_const_function(value) }.
+
+surface_class_export(value: DeclarationClass): String ->
+    if { value == ExportDeclaration -> "ExportDecl"; true -> surface_class_constant(value) }.
+
+surface_class_import(value: DeclarationClass): String ->
+    if { value == ImportDeclaration -> "ImportDecl"; true -> surface_class_export(value) }.
+
 surface_class_name(value: DeclarationClass): String ->
-    case value {
-        ImportDeclaration -> "ImportDecl";
-        ExportDeclaration -> "ExportDecl";
-        ConstantDeclaration -> "ConstantDecl";
-        ConstFunctionDeclaration -> "ConstFunctionDecl";
-        OpaqueTypeDeclaration -> "OpaqueTypeDecl";
-        TypeDeclaration -> "TypeDecl";
-        StructDeclaration -> "StructDecl";
-        ConstructorDeclaration -> "ConstructorDecl";
-        FunctionDeclaration -> "FunctionDecl";
-        MethodDeclaration -> "MethodDecl";
-        TraitDeclaration -> "TraitDecl";
-        TraitImplDeclaration -> "TraitImplDecl";
-        AnnotationSchemaDeclaration -> "AnnotationSchemaDecl";
-        TemplateDeclaration -> "TemplateDecl";
-        ShapeDeclaration -> "ShapeDecl";
-        ConfigDeclaration -> "ConfigDecl";
-        NativeDeclaration -> "NativeDecl";
-        _ -> "UnknownDecl"
-    }.
+    surface_class_import(value).
 
 declaration(value: BackendDeclaration): Json ->
     Json.object()

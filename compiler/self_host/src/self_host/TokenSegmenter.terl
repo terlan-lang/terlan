@@ -65,8 +65,15 @@ initial(): SegmentState ->
     SegmentState(depth = 0, start_byte = 0, has_tokens = false, has_significant = false, current = List.new[CanonicalToken](), output = List.new[TokenSegment]()).
 
 @pure
+start_byte_after_append(state: SegmentState, token: CanonicalToken): Int ->
+    if {
+        state.has_tokens -> state.start_byte;
+        true -> token.start_byte
+    }.
+
+@pure
 append_token(state: SegmentState, token: CanonicalToken): SegmentState ->
-    SegmentState(depth = depth_after(state.depth, token), start_byte = if { state.has_tokens -> state.start_byte; true -> token.start_byte }, has_tokens = true, has_significant = state.has_significant or not is_trivia(token.category), current = [token | state.current], output = state.output).
+    SegmentState(depth = depth_after(state.depth, token), start_byte = start_byte_after_append(state, token), has_tokens = true, has_significant = state.has_significant or not is_trivia(token.category), current = [token | state.current], output = state.output).
 
 @pure
 finish(state: SegmentState, end_byte: Int): SegmentState ->
@@ -74,17 +81,28 @@ finish(state: SegmentState, end_byte: Int): SegmentState ->
     SegmentState(depth = 0, start_byte = end_byte, has_tokens = false, has_significant = false, current = List.new[CanonicalToken](), output = [segment | state.output]).
 
 @pure
+unfinished_start_byte(state: SegmentState): Int ->
+    if {
+        state.has_significant -> state.start_byte;
+        true -> 0
+    }.
+
+@pure
+state_after_token(state: SegmentState, token: CanonicalToken, appended: SegmentState): SegmentState ->
+    if {
+        token.terminal == "." and state.depth == 0 -> finish(appended, token.end_byte);
+        true -> appended
+    }.
+
+@pure
 split_at(tokens: List[CanonicalToken], state: SegmentState): TokenSegments ->
     case tokens {
-        [] -> TokenSegments(not state.has_significant, reverse_at(state.output, List.new[TokenSegment]()), if { state.has_significant -> state.start_byte; true -> 0 });
+        [] -> TokenSegments(not state.has_significant, reverse_at(state.output, List.new[TokenSegment]()), unfinished_start_byte(state));
         [token | rest] -> if {
             token.category == EndToken -> split_at(rest, state);
             true ->
                 let appended = append_token(state, token);
-                let next = if {
-                    token.terminal == "." and state.depth == 0 -> finish(appended, token.end_byte);
-                    true -> appended
-                };
+                let next = state_after_token(state, token, appended);
                 split_at(rest, next)
         }
     }.

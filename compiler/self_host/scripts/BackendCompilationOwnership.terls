@@ -1,0 +1,28 @@
+#!/usr/bin/env -S terlc run
+/** Proves recursive diagnostics can cross into BackendCompilation safely. */
+import std.collections.List.
+import std.core.Option.{None, Option}.
+import std.core.String.
+import self_host.SelfHostIrSyntax.{BackendEnvelope}.
+import self_host.SelfHostSemanticIrSyntax.{BackendCompilation}.
+
+none_envelope(): Option[BackendEnvelope] -> None.
+
+none_string(): Option[String] -> None.
+
+messages(values: List[String], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] -> messages(rest, [String.concat(["diagnostic: ", value]) | output])
+    }.
+
+failed(diagnostics: List[String]): BackendCompilation ->
+    BackendCompilation(
+        envelope = none_envelope(),
+        json = none_string(),
+        diagnostics = diagnostics,
+    ).
+
+let result = failed(messages(["one", "two"], List.new[String]()));
+assert(result.diagnostics != []);
+Unit.

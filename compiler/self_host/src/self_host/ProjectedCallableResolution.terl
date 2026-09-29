@@ -48,6 +48,58 @@ reverse_diagnostics(values: List[CallableDiagnostic], result: List[CallableDiagn
     }.
 
 @pure
+walk_after_match_head(
+    declaration: CallableDeclaration,
+    remaining: List[CallableDeclaration],
+    use_site: CallableUse,
+    rest: List[CallableUse],
+    declarations: List[CallableDeclaration],
+    resolved: List[ResolvedCallableUse],
+    diagnostics: List[CallableDiagnostic],
+): CallableResolution ->
+    case remaining {
+        [] -> walk(
+            rest,
+            declarations,
+            [ResolvedCallableUse(source = use_site, declaration = Some(declaration)) | resolved],
+            diagnostics,
+        );
+        [_ | _] -> walk(
+            rest,
+            declarations,
+            [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
+            [CallableDiagnostic(
+                code = "ambiguous-callable",
+                message = "more than one callable matches this name and arity",
+                byte_offset = use_site.byte_offset,
+            ) | diagnostics],
+        )
+    }.
+
+@pure
+walk_matches(
+    matches: List[CallableDeclaration],
+    use_site: CallableUse,
+    rest: List[CallableUse],
+    declarations: List[CallableDeclaration],
+    resolved: List[ResolvedCallableUse],
+    diagnostics: List[CallableDiagnostic],
+): CallableResolution ->
+    case matches {
+        [] -> walk(
+            rest,
+            declarations,
+            [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
+            [CallableDiagnostic(
+                code = "unresolved-callable",
+                message = "no callable matches this name and arity",
+                byte_offset = use_site.byte_offset,
+            ) | diagnostics],
+        );
+        [declaration | remaining] -> walk_after_match_head(declaration, remaining, use_site, rest, declarations, resolved, diagnostics)
+    }.
+
+@pure
 walk(
     uses: List[CallableUse],
     declarations: List[CallableDeclaration],
@@ -59,34 +111,7 @@ walk(
             uses = reverse_uses(resolved, List.new[ResolvedCallableUse]()),
             diagnostics = reverse_diagnostics(diagnostics, List.new[CallableDiagnostic]()),
         );
-        [use_site | rest] -> case matching(use_site, declarations) {
-            [declaration] -> walk(
-                rest,
-                declarations,
-                [ResolvedCallableUse(source = use_site, declaration = Some(declaration)) | resolved],
-                diagnostics,
-            );
-            [] -> walk(
-                rest,
-                declarations,
-                [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
-                [CallableDiagnostic(
-                    code = "unresolved-callable",
-                    message = "no callable matches this name and arity",
-                    byte_offset = use_site.byte_offset,
-                ) | diagnostics],
-            );
-            [_ | _] -> walk(
-                rest,
-                declarations,
-                [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
-                [CallableDiagnostic(
-                    code = "ambiguous-callable",
-                    message = "more than one callable matches this name and arity",
-                    byte_offset = use_site.byte_offset,
-                ) | diagnostics],
-            )
-        }
+        [use_site | rest] -> walk_matches(matching(use_site, declarations), use_site, rest, declarations, resolved, diagnostics)
     }.
 
 @pure

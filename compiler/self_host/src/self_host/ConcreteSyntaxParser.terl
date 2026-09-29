@@ -53,30 +53,98 @@ leaf(value: ProjectedCanonicalToken): ConcreteSyntaxNode ->
     ConcreteSyntaxNode(value.terminal, value.text, value.start_byte, value.end_byte, List.new[ConcreteSyntaxNode]()).
 
 @pure
+missing_close_message(expected_close: String): String ->
+    if {
+        expected_close == "" -> "";
+        true -> String.append("missing closing delimiter: ", expected_close)
+    }.
+
+@pure
+nested_failure(nested: NodeParse, output: List[ConcreteSyntaxNode]): NodeParse ->
+    NodeParse(valid = false, nodes = reverse(output), rest = nested.rest, close = None, message = nested.message).
+
+@pure
+nested_with_close(
+    opening: ProjectedCanonicalToken,
+    close: ProjectedCanonicalToken,
+    nested: NodeParse,
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    if {
+        nested.valid -> parse_at(
+            nested.rest,
+            expected_close,
+            [ConcreteSyntaxNode(group_terminal(opening.text), "", opening.start_byte, close.end_byte, nested.nodes) | output],
+        );
+        true -> nested_failure(nested, output)
+    }.
+
+@pure
+nested_result(
+    opening: ProjectedCanonicalToken,
+    nested: NodeParse,
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    case nested.close {
+        Some(close) -> nested_with_close(opening, close, nested, expected_close, output);
+        None -> nested_failure(nested, output)
+    }.
+
+@pure
+parse_opening(
+    value: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    let close_text = opening_close(value.text);
+    if {
+        close_text == "" -> parse_at(rest, expected_close, [leaf(value) | output]);
+        true -> nested_result(
+            value,
+            parse_at(rest, close_text, List.new[ConcreteSyntaxNode]()),
+            expected_close,
+            output,
+        )
+    }.
+
+@pure
+parse_after_expected_close(
+    value: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    values: List[ProjectedCanonicalToken],
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    if {
+        is_closing(value.text) -> NodeParse(valid = false, nodes = reverse(output), rest = values, close = None, message = String.append("unexpected closing delimiter: ", value.text));
+        true -> parse_opening(value, rest, expected_close, output)
+    }.
+
+@pure
+parse_token(
+    value: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    values: List[ProjectedCanonicalToken],
+    expected_close: String,
+    output: List[ConcreteSyntaxNode],
+): NodeParse ->
+    if {
+        expected_close != "" and value.text == expected_close -> NodeParse(valid = true, nodes = reverse(output), rest = rest, close = Some(value), message = "");
+        true -> parse_after_expected_close(value, rest, values, expected_close, output)
+    }.
+
+@pure
 parse_at(
     values: List[ProjectedCanonicalToken],
     expected_close: String,
     output: List[ConcreteSyntaxNode],
 ): NodeParse ->
     case values {
-        [] -> NodeParse(expected_close == "", reverse(output), List.new[ProjectedCanonicalToken](), None, if { expected_close == "" -> ""; true -> String.append("missing closing delimiter: ", expected_close) });
-        [value | rest] where expected_close != "" and value.text == expected_close -> NodeParse(valid = true, nodes = reverse(output), rest = rest, close = Some(value), message = "");
-        [value | _] where is_closing(value.text) -> NodeParse(valid = false, nodes = reverse(output), rest = values, close = None, message = String.append("unexpected closing delimiter: ", value.text));
-        [value | rest] ->
-            let close_text = opening_close(value.text);
-            if {
-                close_text == "" -> parse_at(rest, expected_close, [leaf(value) | output]);
-                true ->
-                    let nested = parse_at(rest, close_text, List.new[ConcreteSyntaxNode]());
-                    case nested.close {
-                        Some(close) where nested.valid -> parse_at(
-                            nested.rest,
-                            expected_close,
-                            [ConcreteSyntaxNode(group_terminal(value.text), "", value.start_byte, close.end_byte, nested.nodes) | output],
-                        );
-                        _ -> NodeParse(valid = false, nodes = reverse(output), rest = nested.rest, close = None, message = nested.message)
-                    }
-            }
+        [] -> NodeParse(expected_close == "", reverse(output), List.new[ProjectedCanonicalToken](), None, missing_close_message(expected_close));
+        [value | rest] -> parse_token(value, rest, values, expected_close, output)
     }.
 
 /** Parses every projected token into a delimiter-balanced concrete tree. */

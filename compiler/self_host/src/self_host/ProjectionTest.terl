@@ -3,7 +3,7 @@ module self_host.ProjectionTest.
 
 
 import std.core.Option.{None, Option, Some}.
-import self_host.ProjectionSyntax.{ArrowProjection, AtomProjection, IfProjection, LBraceProjection, ProjectionToken, RBraceProjection, SemicolonProjection}.
+import self_host.ProjectionSyntax.{ArrowProjection, AtomProjection, IfProjection, LBraceProjection, ProjectionMark, ProjectionToken, RBraceProjection, SemicolonProjection}.
 
 
 import std.collections.List.
@@ -14,6 +14,27 @@ import self_host.Projection.
 @pure
 token(kind: self_host.ProjectionSyntax.ProjectionTokenKind, text: String, start: Int, end: Int): ProjectionToken ->
     ProjectionToken(kind, text, start, end).
+
+@pure
+empty_marks(values: List[ProjectionMark]): Bool ->
+    case values {
+        [] -> true;
+        [_ | _] -> false
+    }.
+
+@pure
+single_mark_end(mark: ProjectionMark, values: List[ProjectionMark], start: Int, end: Int): Bool ->
+    case values {
+        [] -> mark.start_byte == start and mark.end_byte == end;
+        [_ | _] -> false
+    }.
+
+@pure
+single_mark_at(values: List[ProjectionMark], start: Int, end: Int): Bool ->
+    case values {
+        [] -> false;
+        [mark | rest] -> single_mark_end(mark, rest, start, end)
+    }.
 
 @pure
 html_raw_block(): Bool ->
@@ -85,11 +106,8 @@ if_clause_boundaries(): Bool ->
         token(AtomProjection, "item", 69, 73),
         token(RBraceProjection, "}", 74, 75),
     ]);
-    case {sequence_body, clauses, case_clauses} {
-        {[], [if_mark], [case_mark]} ->
-            if_mark.start_byte == 16 and if_mark.end_byte == 17
-                and case_mark.start_byte == 59 and case_mark.end_byte == 60;
-        _ -> false
-    }.
+    empty_marks(sequence_body)
+        and single_mark_at(clauses, 16, 17)
+        and single_mark_at(case_clauses, 59, 60).
 
 pub self_test(): Bool -> html_raw_block() and if_clause_boundaries().

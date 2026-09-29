@@ -4,35 +4,66 @@ module self_host.BackendAbi.
 import self_host.BackendAbiSyntax.{BackendAbiDeclaration, BackendAbiModule}.
 import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
 import self_host.DeclarationMetadataSyntax.{AnnotationUse}.
-import self_host.SemanticSyntax.{InterfaceSource, ModuleSource}.
+import self_host.SemanticSyntax.{InterfaceSource, ModuleSource, SemanticSourceKind}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
 
 import std.collections.List.
 import std.core.String.
 
 
+class_native(class: DeclarationClass): String ->
+    if { class == NativeDeclaration -> "native"; true -> "unsupported" }.
+
+class_shape(class: DeclarationClass): String ->
+    if { class == ShapeDeclaration -> "shape"; true -> class_native(class) }.
+
+class_template(class: DeclarationClass): String ->
+    if { class == TemplateDeclaration -> "template"; true -> class_shape(class) }.
+
+class_trait_impl(class: DeclarationClass): String ->
+    if { class == TraitImplDeclaration -> "trait-impl"; true -> class_template(class) }.
+
+class_trait(class: DeclarationClass): String ->
+    if { class == TraitDeclaration -> "trait"; true -> class_trait_impl(class) }.
+
+class_method(class: DeclarationClass): String ->
+    if { class == MethodDeclaration -> "method"; true -> class_trait(class) }.
+
+class_constructor(class: DeclarationClass): String ->
+    if { class == ConstructorDeclaration -> "constructor"; true -> class_method(class) }.
+
+class_struct(class: DeclarationClass): String ->
+    if { class == StructDeclaration -> "struct"; true -> class_constructor(class) }.
+
+class_opaque_type(class: DeclarationClass): String ->
+    if { class == OpaqueTypeDeclaration -> "opaque-type"; true -> class_struct(class) }.
+
+class_type(class: DeclarationClass): String ->
+    if { class == TypeDeclaration -> "type"; true -> class_opaque_type(class) }.
+
+class_function(class: DeclarationClass): String ->
+    if { class == FunctionDeclaration -> "function"; true -> class_type(class) }.
+
+class_const_function(class: DeclarationClass): String ->
+    if { class == ConstFunctionDeclaration -> "const-function"; true -> class_function(class) }.
+
+class_constant(class: DeclarationClass): String ->
+    if { class == ConstantDeclaration -> "constant"; true -> class_const_function(class) }.
+
+class_annotation(class: DeclarationClass): String ->
+    if { class == AnnotationSchemaDeclaration -> "annotation-schema"; true -> class_constant(class) }.
+
+class_config(class: DeclarationClass): String ->
+    if { class == ConfigDeclaration -> "config"; true -> class_annotation(class) }.
+
+class_export(class: DeclarationClass): String ->
+    if { class == ExportDeclaration -> "export"; true -> class_config(class) }.
+
+class_import(class: DeclarationClass): String ->
+    if { class == ImportDeclaration -> "import"; true -> class_export(class) }.
+
 @pure
-pub class_name(class: DeclarationClass): String ->
-    case class {
-        ImportDeclaration -> "import";
-        ExportDeclaration -> "export";
-        ConfigDeclaration -> "config";
-        AnnotationSchemaDeclaration -> "annotation-schema";
-        ConstantDeclaration -> "constant";
-        ConstFunctionDeclaration -> "const-function";
-        FunctionDeclaration -> "function";
-        TypeDeclaration -> "type";
-        OpaqueTypeDeclaration -> "opaque-type";
-        StructDeclaration -> "struct";
-        ConstructorDeclaration -> "constructor";
-        MethodDeclaration -> "method";
-        TraitDeclaration -> "trait";
-        TraitImplDeclaration -> "trait-impl";
-        TemplateDeclaration -> "template";
-        ShapeDeclaration -> "shape";
-        NativeDeclaration -> "native";
-        _ -> "unsupported"
-    }.
+pub class_name(class: DeclarationClass): String -> class_import(class).
 
 @pure
 annotation_paths(values: List[AnnotationUse]): List[String] ->
@@ -48,10 +79,11 @@ declarations(values: List[BackendDeclaration]): List[BackendAbiDeclaration] ->
         [value | rest] -> [BackendAbiDeclaration(class_name(value.class), value.symbol_name, value.semantic_identity, value.is_public, value.source_text, value.span.start_byte, value.span.end_byte, annotation_paths(value.annotations), value.docs) | declarations(rest)]
     }.
 
+@pure
+source_kind_name(value: SemanticSourceKind): String ->
+    if { value == ModuleSource -> "module"; true -> "interface" }.
+
 /** Produces a sum-free structural value suitable for ABI 1 binding. */
 @pure
 pub lower(source: BackendModule): BackendAbiModule ->
-    BackendAbiModule("terlan.self-host.backend-abi/v1", source.valid, source.module_name, case source.source_kind {
-            ModuleSource -> "module";
-            InterfaceSource -> "interface"
-        }, declarations(source.declarations), source.interface_text, source.message).
+    BackendAbiModule("terlan.self-host.backend-abi/v1", source.valid, source.module_name, source_kind_name(source.source_kind), declarations(source.declarations), source.interface_text, source.message).

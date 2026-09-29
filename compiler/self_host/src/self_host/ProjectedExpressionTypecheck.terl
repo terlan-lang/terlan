@@ -41,67 +41,160 @@ clause_result(value: ProjectedExpressionNode): InferredProjectedType ->
     }.
 
 @pure
+merge_known(current: InferredProjectedType, branch: InferredProjectedType): InferredProjectedType ->
+    if { current.name == branch.name -> current; true -> unknown() }.
+
+@pure
+merge_branch_known(current: InferredProjectedType, branch: InferredProjectedType): InferredProjectedType ->
+    if { not branch.known -> current; true -> merge_known(current, branch) }.
+
+@pure
+merge_branch(current: InferredProjectedType, branch: InferredProjectedType): InferredProjectedType ->
+    if { not current.known -> branch; true -> merge_branch_known(current, branch) }.
+
+@pure
 merge_branches(values: List[ProjectedExpressionNode], current: InferredProjectedType): InferredProjectedType ->
     case values {
         [] -> current;
         [value | rest] ->
             let branch = clause_result(value);
-            let next = if {
-                not current.known -> branch;
-                not branch.known -> current;
-                current.name == branch.name -> current;
-                true -> unknown()
-            };
+            let next = merge_branch(current, branch);
             merge_branches(rest, next)
     }.
 
 @pure
+is_integer(text: String): Bool ->
+    case Int.from_string(text) { Some(_value) -> true; None -> false }.
+
+@pure
+is_float(text: String): Bool ->
+    case Float.from_string(text) { Some(_value) -> true; None -> false }.
+
+@pure
+primitive_float(floating: Bool): InferredProjectedType ->
+    if { floating -> known("Float"); true -> unknown() }.
+
+@pure
+primitive_integer(integer: Bool, floating: Bool): InferredProjectedType ->
+    if { integer -> known("Int"); true -> primitive_float(floating) }.
+
+@pure
+primitive_string(text: String, integer: Bool, floating: Bool): InferredProjectedType ->
+    if { String.starts_with(text, "\"") -> known("String"); true -> primitive_integer(integer, floating) }.
+
+@pure
 primitive(text: String): InferredProjectedType ->
-    let integer = case Int.from_string(text) { Some(_value) -> true; None -> false };
-    let floating = case Float.from_string(text) { Some(_value) -> true; None -> false };
+    let integer = is_integer(text);
+    let floating = is_float(text);
+    if { text == "true" or text == "false" -> known("Bool"); true -> primitive_string(text, integer, floating) }.
+
+@pure
+binary_same(left: InferredProjectedType, right: InferredProjectedType): InferredProjectedType ->
+    if { left.known and right.known and left.name == right.name -> left; true -> unknown() }.
+
+@pure
+binary_pipe(text: String, left: InferredProjectedType, right: InferredProjectedType): InferredProjectedType ->
+    if { text == "|>" -> right; true -> binary_same(left, right) }.
+
+@pure
+binary_boolean(text: String, left: InferredProjectedType, right: InferredProjectedType): InferredProjectedType ->
+    if { text == "and" or text == "or" -> known("Bool"); true -> binary_pipe(text, left, right) }.
+
+@pure
+binary_pair(value: ProjectedExpressionNode, left_node: ProjectedExpressionNode, right_node: ProjectedExpressionNode): InferredProjectedType ->
+    let left = infer(left_node);
+    let right = infer(right_node);
     if {
-        text == "true" or text == "false" -> known("Bool");
-        String.starts_with(text, "\"") -> known("String");
-        integer -> known("Int");
-        floating -> known("Float");
-        true -> unknown()
+        value.text == "==" or value.text == "!=" or value.text == "<" or value.text == ">" or value.text == "<=" or value.text == ">=" or value.text == "in" -> known("Bool");
+        true -> binary_boolean(value.text, left, right)
+    }.
+
+@pure
+binary_rest(value: ProjectedExpressionNode, left_node: ProjectedExpressionNode, rest: List[ProjectedExpressionNode]): InferredProjectedType ->
+    case rest {
+        [right_node] -> binary_pair(value, left_node, right_node);
+        _ -> unknown()
     }.
 
 @pure
 binary(value: ProjectedExpressionNode): InferredProjectedType ->
     case value.children {
-        [left_node, right_node] ->
-            let left = infer(left_node);
-            let right = infer(right_node);
-            if {
-                value.text == "==" or value.text == "!=" or value.text == "<" or value.text == ">" or value.text == "<=" or value.text == ">=" or value.text == "in" -> known("Bool");
-                value.text == "and" or value.text == "or" -> known("Bool");
-                value.text == "|>" -> right;
-                left.known and right.known and left.name == right.name -> left;
-                true -> unknown()
-            };
-        _ -> unknown()
+        [] -> unknown();
+        [left_node | rest] -> binary_rest(value, left_node, rest)
     }.
+
+@pure
+case_children(values: List[ProjectedExpressionNode]): InferredProjectedType ->
+    case values {
+        [] -> unknown();
+        [_subject | clauses] -> merge_branches(clauses, unknown())
+    }.
+
+@pure
+infer_list(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "list" or value.kind == "list-cons" or value.kind == "list-comprehension" -> known("List"); true -> unknown() }.
+
+@pure
+infer_try(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "try" -> unknown(); true -> infer_list(value) }.
+
+@pure
+infer_case(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "case" -> case_children(value.children); true -> infer_try(value) }.
+
+@pure
+infer_if(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "if" -> merge_branches(value.children, unknown()); true -> infer_case(value) }.
+
+@pure
+infer_sequence(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "sequence" or value.kind == "let" or value.kind == "let-refutable" -> last_inferred(value.children); true -> infer_if(value) }.
+
+@pure
+infer_unary(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "unary" -> last_inferred(value.children); true -> infer_sequence(value) }.
+
+@pure
+infer_boolean_unary(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "unary" and (value.text == "not" or value.text == "!") -> known("Bool"); true -> infer_unary(value) }.
+
+@pure
+infer_cast(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "cast" -> known(value.text); true -> infer_boolean_unary(value) }.
+
+@pure
+infer_binary(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "binary" -> binary(value); true -> infer_cast(value) }.
+
+@pure
+infer_html(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "html-raw-block" -> known("Html"); true -> infer_binary(value) }.
 
 /** Infers a result only when the projected tree provides sufficient local evidence. */
 @pure
 pub infer(value: ProjectedExpressionNode): InferredProjectedType ->
+    if { value.kind == "primary" -> primitive(value.text); true -> infer_html(value) }.
+
+@pure
+inferred_node(value: Option[ProjectedExpressionNode]): InferredProjectedType ->
+    case value { Some(node) -> infer(node); None -> unknown() }.
+
+@pure
+next_diagnostics(expected: String, actual: InferredProjectedType, body: ProjectedBody, output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
     if {
-        value.kind == "primary" -> primitive(value.text);
-        value.kind == "html-raw-block" -> known("Html");
-        value.kind == "binary" -> binary(value);
-        value.kind == "cast" -> known(value.text);
-        value.kind == "unary" and (value.text == "not" or value.text == "!") -> known("Bool");
-        value.kind == "unary" -> last_inferred(value.children);
-        value.kind == "sequence" or value.kind == "let" or value.kind == "let-refutable" -> last_inferred(value.children);
-        value.kind == "if" -> merge_branches(value.children, unknown());
-        value.kind == "case" -> case value.children {
-            [_subject | clauses] -> merge_branches(clauses, unknown());
-            _ -> unknown()
-        };
-        value.kind == "try" -> unknown();
-        value.kind == "list" or value.kind == "list-cons" or value.kind == "list-comprehension" -> known("List");
-        true -> unknown()
+        expected != "" and actual.known and expected != actual.name -> [ProjectedExpressionTypeDiagnostic(body.declaration_head, expected, actual.name, String.concat([
+            "callable result type mismatch: expected ", expected, ", found ", actual.name,
+        ])) | output];
+        true -> output
+    }.
+
+@pure
+check_bodies(signature: ProjectedCallableSignature, signature_rest: List[ProjectedCallableSignature], bodies: List[ProjectedBody], output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->
+    case bodies {
+        [] -> output;
+        [body | body_rest] -> let expected = type_name(signature.return_type);
+            let actual = inferred_node(body.expression.node);
+            check_at(signature_rest, body_rest, next_diagnostics(expected, actual, body, output))
     }.
 
 @pure
@@ -110,25 +203,9 @@ check_at(
     bodies: List[ProjectedBody],
     output: List[ProjectedExpressionTypeDiagnostic],
 ): List[ProjectedExpressionTypeDiagnostic] ->
-    case {signatures, bodies} {
-        {[], _} -> output;
-        {_, []} -> output;
-        {[signature | signature_rest], [body | body_rest]} ->
-            let expected = type_name(signature.return_type);
-            let actual = case body.expression.node {
-                Some(value) -> infer(value);
-                None -> unknown()
-            };
-            let next = if {
-                expected != "" and actual.known and expected != actual.name -> [ProjectedExpressionTypeDiagnostic(body.declaration_head, expected, actual.name, String.concat([
-                        "callable result type mismatch: expected ",
-                        expected,
-                        ", found ",
-                        actual.name,
-                    ])) | output];
-                true -> output
-            };
-            check_at(signature_rest, body_rest, next)
+    case signatures {
+        [] -> output;
+        [signature | signature_rest] -> check_bodies(signature, signature_rest, bodies, output)
     }.
 
 @pure

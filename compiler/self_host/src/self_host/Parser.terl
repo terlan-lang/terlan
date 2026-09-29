@@ -103,32 +103,85 @@ without_public(head: String): String ->
     }.
 
 @pure
-pub declaration_class(text: String): DeclarationClass ->
-    let original_head = declaration_head(text);
-    let head = without_public(original_head);
+declaration_after_method(head: String, text: String): DeclarationClass ->
     if {
-        String.starts_with(head, "import ") -> ImportDeclaration;
-        String.starts_with(head, "export ") -> ExportDeclaration;
-        String.starts_with(head, "const ") and String.contains(head, "(") -> ConstFunctionDeclaration;
-        String.starts_with(head, "const ") -> ConstantDeclaration;
-        String.starts_with(head, "opaque type ") -> OpaqueTypeDeclaration;
-        String.starts_with(head, "type ") -> TypeDeclaration;
-        String.starts_with(head, "struct ") -> StructDeclaration;
-        String.starts_with(head, "constructor ") -> ConstructorDeclaration;
-        String.starts_with(head, "trait ") -> TraitDeclaration;
-        String.starts_with(head, "impl ") or String.starts_with(head, "!impl ") -> TraitImplDeclaration;
-        String.starts_with(head, "annotation ") -> AnnotationSchemaDeclaration;
-        String.starts_with(head, "template ") -> TemplateDeclaration;
-        String.starts_with(head, "shape ") -> ShapeDeclaration;
-        String.starts_with(head, "config ") -> ConfigDeclaration;
-        String.starts_with(head, "target ") -> ConfigDeclaration;
-        String.starts_with(head, "machine ") -> ConfigDeclaration;
-        String.starts_with(head, "static ") -> ConfigDeclaration;
-        String.starts_with(head, "native ") -> NativeDeclaration;
-        String.starts_with(head, "(") -> MethodDeclaration;
         String.contains(head, "(") and String.contains(text, ")") and String.contains(text, "->") -> FunctionDeclaration;
         true -> UnknownDeclaration
     }.
+
+@pure
+declaration_after_native(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "(") -> MethodDeclaration; true -> declaration_after_method(head, text) }.
+
+@pure
+declaration_after_config(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "native ") -> NativeDeclaration; true -> declaration_after_native(head, text) }.
+
+@pure
+declaration_after_shape(head: String, text: String): DeclarationClass ->
+    if {
+        String.starts_with(head, "config ")
+            or String.starts_with(head, "target ")
+            or String.starts_with(head, "machine ")
+            or String.starts_with(head, "static ") -> ConfigDeclaration;
+        true -> declaration_after_config(head, text)
+    }.
+
+@pure
+declaration_after_template(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "shape ") -> ShapeDeclaration; true -> declaration_after_shape(head, text) }.
+
+@pure
+declaration_after_annotation(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "template ") -> TemplateDeclaration; true -> declaration_after_template(head, text) }.
+
+@pure
+declaration_after_impl(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "annotation ") -> AnnotationSchemaDeclaration; true -> declaration_after_annotation(head, text) }.
+
+@pure
+declaration_after_trait(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "impl ") or String.starts_with(head, "!impl ") -> TraitImplDeclaration; true -> declaration_after_impl(head, text) }.
+
+@pure
+declaration_after_constructor(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "trait ") -> TraitDeclaration; true -> declaration_after_trait(head, text) }.
+
+@pure
+declaration_after_struct(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "constructor ") -> ConstructorDeclaration; true -> declaration_after_constructor(head, text) }.
+
+@pure
+declaration_after_type(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "struct ") -> StructDeclaration; true -> declaration_after_struct(head, text) }.
+
+@pure
+declaration_after_opaque(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "type ") -> TypeDeclaration; true -> declaration_after_type(head, text) }.
+
+@pure
+declaration_after_const(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "opaque type ") -> OpaqueTypeDeclaration; true -> declaration_after_opaque(head, text) }.
+
+@pure
+declaration_after_const_function(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "const ") -> ConstantDeclaration; true -> declaration_after_const(head, text) }.
+
+@pure
+declaration_after_export(head: String, text: String): DeclarationClass ->
+    if {
+        String.starts_with(head, "const ") and String.contains(head, "(") -> ConstFunctionDeclaration;
+        true -> declaration_after_const_function(head, text)
+    }.
+
+@pure
+declaration_after_import(head: String, text: String): DeclarationClass ->
+    if { String.starts_with(head, "export ") -> ExportDeclaration; true -> declaration_after_export(head, text) }.
+
+@pure
+pub declaration_class(text: String): DeclarationClass ->
+    let head = without_public(declaration_head(text));
+    if { String.starts_with(head, "import ") -> ImportDeclaration; true -> declaration_after_import(head, text) }.
 
 @pure
 finish_declaration(state: ParseState, end_byte: Int): ParseState ->
@@ -161,17 +214,35 @@ before_module(state: ParseState, line: String, normalized: String, next_offset: 
     }.
 
 @pure
+declaration_start(state: ParseState): Int ->
+    if {
+        state.current_text == "" -> state.offset;
+        true -> state.current_start
+    }.
+
+@pure
+finish_pending(state: ParseState, line: String, normalized: String, pending: ParseState): ParseState ->
+    if {
+        String.ends_with(normalized, ".") -> finish_declaration(pending, state.offset + String.byte_size(line));
+        true -> pending
+    }.
+
+@pure
 after_module(state: ParseState, line: String, normalized: String, next_offset: Int): ParseState ->
     if {
         state.current_text == "" and is_trivia(normalized) -> with_offset(state, next_offset);
         true ->
-            let start = if { state.current_text == "" -> state.offset; true -> state.current_start };
+            let start = declaration_start(state);
             let accumulated = append_line(state.current_text, line);
             let pending = ParseState(saw_module = state.saw_module, module_name = state.module_name, current_text = accumulated, current_start = start, offset = next_offset, declarations = state.declarations, errors = state.errors);
-            if {
-                String.ends_with(normalized, ".") -> finish_declaration(pending, state.offset + String.byte_size(line));
-                true -> pending
-            }
+            finish_pending(state, line, normalized, pending)
+    }.
+
+@pure
+parse_line(state: ParseState, line: String, normalized: String, next_offset: Int): ParseState ->
+    if {
+        state.saw_module -> after_module(state, line, normalized, next_offset);
+        true -> before_module(state, line, normalized, next_offset)
     }.
 
 @pure
@@ -181,31 +252,35 @@ parse_lines(lines: List[String], state: ParseState): ParseState ->
         [line | rest] ->
             let normalized = String.trim(line);
             let next_offset = state.offset + String.byte_size(line) + 1;
-            let next = if {
-                state.saw_module -> after_module(state, line, normalized, next_offset);
-                true -> before_module(state, line, normalized, next_offset)
-            };
-            parse_lines(rest, next)
+            parse_lines(rest, parse_line(state, line, normalized, next_offset))
     }.
 
 @pure
-finalize(source: String, state: ParseState): SurfaceModule ->
-    let missing_module_errors = if {
+missing_module_errors(state: ParseState): List[ParseError] ->
+    if {
         state.saw_module -> state.errors;
         true -> [error(
             MissingModuleDeclaration,
             "source is missing a module declaration",
             span(0, 0),
         ) | state.errors]
-    };
-    let final_errors = if {
-        state.current_text == "" -> missing_module_errors;
+    }.
+
+@pure
+unterminated_errors(source: String, state: ParseState, missing: List[ParseError]): List[ParseError] ->
+    if {
+        state.current_text == "" -> missing;
         true -> [error(
             UnterminatedDeclaration,
             "top-level declaration must end with a dot",
             span(state.current_start, String.byte_size(source)),
-        ) | missing_module_errors]
-    };
+        ) | missing]
+    }.
+
+@pure
+finalize(source: String, state: ParseState): SurfaceModule ->
+    let missing = missing_module_errors(state);
+    let final_errors = unterminated_errors(source, state, missing);
     SurfaceModule(List.is_empty(final_errors), state.module_name, reverse(state.declarations), reverse(final_errors), span(0, String.byte_size(source))).
 
 /** Parses module and top-level declaration boundaries with error recovery. */

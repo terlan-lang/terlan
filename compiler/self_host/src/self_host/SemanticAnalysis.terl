@@ -42,40 +42,73 @@ reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
 
 @pure
 is_type_class(class: self_host.Syntax.DeclarationClass): Bool ->
-    case class {
-        TypeDeclaration -> true;
-        OpaqueTypeDeclaration -> true;
-        StructDeclaration -> true;
-        _ -> false
+    class == TypeDeclaration or class == OpaqueTypeDeclaration or class == StructDeclaration.
+
+@pure
+duplicate_type_after_value(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        not is_type_class(declaration.class) -> contains_duplicate_type(rest, declaration);
+        true -> duplicate_type_after_declaration(value, rest, declaration)
+    }.
+
+@pure
+duplicate_type_after_declaration(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        value.name == declaration.symbol_name -> true;
+        true -> contains_duplicate_type(rest, declaration)
+    }.
+
+@pure
+duplicate_type_head(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        not is_type_class(value.class) -> contains_duplicate_type(rest, declaration);
+        true -> duplicate_type_after_value(value, rest, declaration)
     }.
 
 @pure
 contains_duplicate_type(values: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            not is_type_class(value.class) -> contains_duplicate_type(rest, declaration);
-            not is_type_class(declaration.class) -> contains_duplicate_type(rest, declaration);
-            value.name == declaration.symbol_name -> true;
-            true -> contains_duplicate_type(rest, declaration)
-        }
+        [value | rest] -> duplicate_type_head(value, rest, declaration)
     }.
 
 @pure
 is_callable_class(class: self_host.Syntax.DeclarationClass): Bool ->
-    case class { FunctionDeclaration -> true; MethodDeclaration -> true; _ -> false }.
+    class == FunctionDeclaration or class == MethodDeclaration.
+
+@pure
+identical_after_name(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        value.identity == declaration.semantic_identity -> true;
+        true -> contains_identical_callable(rest, declaration)
+    }.
+
+@pure
+identical_after_declaration(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        value.name != declaration.symbol_name -> contains_identical_callable(rest, declaration);
+        true -> identical_after_name(value, rest, declaration)
+    }.
+
+@pure
+identical_after_value(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        not is_callable_class(declaration.class) -> contains_identical_callable(rest, declaration);
+        true -> identical_after_declaration(value, rest, declaration)
+    }.
+
+@pure
+identical_head(value: SemanticSymbol, rest: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
+    if {
+        not is_callable_class(value.class) -> contains_identical_callable(rest, declaration);
+        true -> identical_after_value(value, rest, declaration)
+    }.
 
 @pure
 contains_identical_callable(values: List[SemanticSymbol], declaration: TypedDeclaration): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            not is_callable_class(value.class) -> contains_identical_callable(rest, declaration);
-            not is_callable_class(declaration.class) -> contains_identical_callable(rest, declaration);
-            value.name != declaration.symbol_name -> contains_identical_callable(rest, declaration);
-            value.identity == declaration.semantic_identity -> true;
-            true -> contains_identical_callable(rest, declaration)
-        }
+        [value | rest] -> identical_head(value, rest, declaration)
     }.
 
 @pure
@@ -111,6 +144,33 @@ missing_export(state: AnalysisState, declaration: TypedDeclaration, name: String
     AnalysisState(valid = false, symbols = state.symbols, diagnostics = [SemanticDiagnostic(MissingExportDefinition, String.append("exported function is not defined: ", name), name, declaration.span) | state.diagnostics]).
 
 @pure
+export_defined(reference: self_host.ExportReferenceSyntax.ExportReference, all_declarations: List[TypedDeclaration]): Bool ->
+    if {
+        not reference.valid -> false;
+        true -> contains_callable_definition(all_declarations, reference.name, reference.arity)
+    }.
+
+@pure
+export_state(defined: Bool, state: AnalysisState, declaration: TypedDeclaration, name: String): AnalysisState ->
+    if {
+        defined -> state;
+        true -> missing_export(state, declaration, name)
+    }.
+
+@pure
+validate_export(value: TypedDeclaration, rest: List[TypedDeclaration], all_declarations: List[TypedDeclaration], state: AnalysisState): AnalysisState ->
+    let reference = ExportReferenceLowering.lower(value);
+    let next = export_state(export_defined(reference, all_declarations), state, value, reference.name);
+    validate_interface_exports(rest, all_declarations, next).
+
+@pure
+validate_interface_head(value: TypedDeclaration, rest: List[TypedDeclaration], all_declarations: List[TypedDeclaration], state: AnalysisState): AnalysisState ->
+    if {
+        value.class == ExportDeclaration -> validate_export(value, rest, all_declarations, state);
+        true -> validate_interface_exports(rest, all_declarations, state)
+    }.
+
+@pure
 validate_interface_exports(
     declarations: List[TypedDeclaration],
     all_declarations: List[TypedDeclaration],
@@ -118,22 +178,7 @@ validate_interface_exports(
 ): AnalysisState ->
     case declarations {
         [] -> state;
-        [value | rest] where value.class == ExportDeclaration ->
-            let reference = ExportReferenceLowering.lower(value);
-            let defined = if {
-                not reference.valid -> false;
-                true -> contains_callable_definition(
-                    all_declarations,
-                    reference.name,
-                    reference.arity,
-                )
-            };
-            let next = if {
-                defined -> state;
-                true -> missing_export(state, value, reference.name)
-            };
-            validate_interface_exports(rest, all_declarations, next);
-        [_value | rest] -> validate_interface_exports(rest, all_declarations, state)
+        [value | rest] -> validate_interface_head(value, rest, all_declarations, state)
     }.
 
 @pure
@@ -144,6 +189,58 @@ accept(state: AnalysisState, declaration: TypedDeclaration): AnalysisState ->
     }.
 
 @pure
+named_duplicate_type(value: TypedDeclaration, state: AnalysisState): Bool ->
+    if {
+        value.symbol_name == "" -> false;
+        true -> contains_duplicate_type(state.symbols, value)
+    }.
+
+@pure
+named_duplicate_callable(value: TypedDeclaration, state: AnalysisState): Bool ->
+    if {
+        value.symbol_name == "" -> false;
+        true -> contains_identical_callable(state.symbols, value)
+    }.
+
+@pure
+analysis_after_duplicate_type(state: AnalysisState, value: TypedDeclaration, duplicate_callable_found: Bool): AnalysisState ->
+    if {
+        duplicate_callable_found -> duplicate_callable(state, value);
+        true -> accept(state, value)
+    }.
+
+@pure
+analysis_after_source_export(state: AnalysisState, value: TypedDeclaration, duplicate_type_found: Bool, duplicate_callable_found: Bool): AnalysisState ->
+    if {
+        duplicate_type_found -> duplicate(state, value);
+        true -> analysis_after_duplicate_type(state, value, duplicate_callable_found)
+    }.
+
+@pure
+analysis_after_valid(state: AnalysisState, value: TypedDeclaration, source_kind: SemanticSourceKind, duplicate_type_found: Bool, duplicate_callable_found: Bool): AnalysisState ->
+    if {
+        source_kind == ModuleSource and value.class == ExportDeclaration -> invalid_source_export(state, value);
+        true -> analysis_after_source_export(state, value, duplicate_type_found, duplicate_callable_found)
+    }.
+
+@pure
+analysis_next(state: AnalysisState, value: TypedDeclaration, source_kind: SemanticSourceKind, duplicate_type_found: Bool, duplicate_callable_found: Bool): AnalysisState ->
+    if {
+        not value.valid -> invalid(state, value);
+        true -> analysis_after_valid(state, value, source_kind, duplicate_type_found, duplicate_callable_found)
+    }.
+
+@pure
+analyze_declaration(value: TypedDeclaration, source_kind: SemanticSourceKind, state: AnalysisState): AnalysisState ->
+    analysis_next(
+        state,
+        value,
+        source_kind,
+        named_duplicate_type(value, state),
+        named_duplicate_callable(value, state),
+    ).
+
+@pure
 analyze_at(
     values: List[TypedDeclaration],
     source_kind: SemanticSourceKind,
@@ -151,23 +248,7 @@ analyze_at(
 ): AnalysisState ->
     case values {
         [] -> state;
-        [value | rest] ->
-            let duplicate_type_found = if {
-                value.symbol_name == "" -> false;
-                true -> contains_duplicate_type(state.symbols, value)
-            };
-            let duplicate_callable_found = if {
-                value.symbol_name == "" -> false;
-                true -> contains_identical_callable(state.symbols, value)
-            };
-            let next = if {
-                not value.valid -> invalid(state, value);
-                source_kind == ModuleSource and value.class == ExportDeclaration -> invalid_source_export(state, value);
-                duplicate_type_found -> duplicate(state, value);
-                duplicate_callable_found -> duplicate_callable(state, value);
-                true -> accept(state, value)
-            };
-            analyze_at(rest, source_kind, next)
+        [value | rest] -> analyze_at(rest, source_kind, analyze_declaration(value, source_kind, state))
     }.
 
 /** Checks declaration validity and module-scope symbols for one source kind. */

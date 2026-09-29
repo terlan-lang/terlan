@@ -87,29 +87,61 @@ find_selector_at(source: String, index: Int): Int ->
         true -> find_selector_at(source, index + 1)
     }.
 
+declaration_name_native(class: DeclarationClass, head: String): String ->
+    if { class == NativeDeclaration -> word_after(head, 7); true -> "" }.
+
+declaration_name_config(class: DeclarationClass, head: String): String ->
+    if { class == ConfigDeclaration -> word_after(head, 7); true -> declaration_name_native(class, head) }.
+
+declaration_name_shape(class: DeclarationClass, head: String): String ->
+    if { class == ShapeDeclaration -> word_after(head, 6); true -> declaration_name_config(class, head) }.
+
+declaration_name_template(class: DeclarationClass, head: String): String ->
+    if { class == TemplateDeclaration -> word_after(head, 9); true -> declaration_name_shape(class, head) }.
+
+declaration_name_annotation(class: DeclarationClass, head: String): String ->
+    if { class == AnnotationSchemaDeclaration -> word_after(head, 11); true -> declaration_name_template(class, head) }.
+
+declaration_name_impl(class: DeclarationClass, head: String): String ->
+    if { class == TraitImplDeclaration -> "impl"; true -> declaration_name_annotation(class, head) }.
+
+declaration_name_trait(class: DeclarationClass, head: String): String ->
+    if { class == TraitDeclaration -> word_after(head, 6); true -> declaration_name_impl(class, head) }.
+
+declaration_name_method(class: DeclarationClass, head: String): String ->
+    if { class == MethodDeclaration -> word_after(head, 7); true -> declaration_name_trait(class, head) }.
+
+declaration_name_function(class: DeclarationClass, head: String): String ->
+    if { class == FunctionDeclaration -> word_after(head, 0); true -> declaration_name_method(class, head) }.
+
+declaration_name_constructor(class: DeclarationClass, head: String): String ->
+    if { class == ConstructorDeclaration -> word_after(head, 12); true -> declaration_name_function(class, head) }.
+
+declaration_name_struct(class: DeclarationClass, head: String): String ->
+    if { class == StructDeclaration -> word_after(head, 7); true -> declaration_name_constructor(class, head) }.
+
+declaration_name_opaque(class: DeclarationClass, head: String): String ->
+    if { class == OpaqueTypeDeclaration -> word_after(head, 12); true -> declaration_name_struct(class, head) }.
+
+declaration_name_type(class: DeclarationClass, head: String): String ->
+    if { class == TypeDeclaration -> word_after(head, 5); true -> declaration_name_opaque(class, head) }.
+
+declaration_name_const_function(class: DeclarationClass, head: String): String ->
+    if { class == ConstFunctionDeclaration -> word_after(head, 6); true -> declaration_name_type(class, head) }.
+
+declaration_name_constant(class: DeclarationClass, head: String): String ->
+    if { class == ConstantDeclaration -> word_after(head, 6); true -> declaration_name_const_function(class, head) }.
+
+declaration_name_export(class: DeclarationClass, head: String): String ->
+    if { class == ExportDeclaration -> "export"; true -> declaration_name_constant(class, head) }.
+
+declaration_name_import(class: DeclarationClass, head: String): String ->
+    if { class == ImportDeclaration -> import_name(head); true -> declaration_name_export(class, head) }.
+
 @pure
 declaration_name(class: DeclarationClass, source: String): String ->
     let head = without_public(declaration_head(source));
-    case class {
-        ImportDeclaration -> import_name(head);
-        ExportDeclaration -> "export";
-        ConstantDeclaration -> word_after(head, 6);
-        ConstFunctionDeclaration -> word_after(head, 6);
-        TypeDeclaration -> word_after(head, 5);
-        OpaqueTypeDeclaration -> word_after(head, 12);
-        StructDeclaration -> word_after(head, 7);
-        ConstructorDeclaration -> word_after(head, 12);
-        FunctionDeclaration -> word_after(head, 0);
-        MethodDeclaration -> word_after(head, 7);
-        TraitDeclaration -> word_after(head, 6);
-        TraitImplDeclaration -> "impl";
-        AnnotationSchemaDeclaration -> word_after(head, 11);
-        TemplateDeclaration -> word_after(head, 9);
-        ShapeDeclaration -> word_after(head, 6);
-        ConfigDeclaration -> word_after(head, 7);
-        NativeDeclaration -> word_after(head, 7);
-        _ -> ""
-    }.
+    declaration_name_import(class, head).
 
 @pure
 header(source: String): String ->

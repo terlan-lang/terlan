@@ -108,6 +108,18 @@ terminator_supported(opcode: String): Bool ->
         or opcode == "unreachable".
 
 @pure
+unsupported_terminator(block: IrBlock, function_name: String): List[IrDiagnostic] ->
+    if {
+        terminator_supported(block.terminator.opcode) -> List.new[IrDiagnostic]();
+        true -> [IrDiagnostic(
+            code = "unsupported-terminator",
+            message = "block terminator is not part of self-host IR ABI 1",
+            function_name = function_name,
+            block_label = block.label,
+        )]
+    }.
+
+@pure
 validate_blocks(
     pending: List[IrBlock],
     all: List[IrBlock],
@@ -124,15 +136,7 @@ validate_blocks_at(
 ): List[IrDiagnostic] ->
     case pending {
         [] -> reverse_diagnostics(output);
-        [block | rest] -> let unsupported = if {
-            terminator_supported(block.terminator.opcode) -> List.new[IrDiagnostic]();
-            true -> [IrDiagnostic(
-                code = "unsupported-terminator",
-                message = "block terminator is not part of self-host IR ABI 1",
-                function_name = function_name,
-                block_label = block.label,
-            )]
-        };
+        [block | rest] -> let unsupported = unsupported_terminator(block, function_name);
         let targets = missing_targets(
             block.terminator.targets,
             all,
@@ -144,8 +148,8 @@ validate_blocks_at(
     }.
 
 @pure
-validate_function(function: IrFunction): List[IrDiagnostic] ->
-    let arity = if {
+arity_diagnostics(function: IrFunction): List[IrDiagnostic] ->
+    if {
         count_parameters(function.parameters) == function.arity -> List.new[IrDiagnostic]();
         true -> [IrDiagnostic(
             code = "arity-parameter-mismatch",
@@ -153,24 +157,36 @@ validate_function(function: IrFunction): List[IrDiagnostic] ->
             function_name = function.name,
             block_label = "",
         )]
-    };
-    let entry = case function.blocks {
+    }.
+
+@pure
+entry_label_diagnostics(first: IrBlock, function_name: String): List[IrDiagnostic] ->
+    if {
+        first.label == "entry" -> List.new[IrDiagnostic]();
+        true -> [IrDiagnostic(
+            code = "invalid-entry-block",
+            message = "the first function block must be named entry",
+            function_name = function_name,
+            block_label = first.label,
+        )]
+    }.
+
+@pure
+entry_diagnostics(function: IrFunction): List[IrDiagnostic] ->
+    case function.blocks {
         [] -> [IrDiagnostic(
             code = "missing-entry-block",
             message = "function must contain an entry block",
             function_name = function.name,
             block_label = "",
         )];
-        [first | _] -> if {
-            first.label == "entry" -> List.new[IrDiagnostic]();
-            true -> [IrDiagnostic(
-                code = "invalid-entry-block",
-                message = "the first function block must be named entry",
-                function_name = function.name,
-                block_label = first.label,
-            )]
-        }
-    };
+        [first | _] -> entry_label_diagnostics(first, function.name)
+    }.
+
+@pure
+validate_function(function: IrFunction): List[IrDiagnostic] ->
+    let arity = arity_diagnostics(function);
+    let entry = entry_diagnostics(function);
     concat_diagnostics(
         arity,
         concat_diagnostics(
@@ -199,6 +215,18 @@ contains_function(value: IrFunction, values: List[IrFunction]): Bool ->
     }.
 
 @pure
+duplicate_function_diagnostics(function: IrFunction, rest: List[IrFunction]): List[IrDiagnostic] ->
+    if {
+        contains_function(function, rest) -> [IrDiagnostic(
+            code = "duplicate-function",
+            message = "module contains more than one function with this name and arity",
+            function_name = function.name,
+            block_label = "",
+        )];
+        true -> List.new[IrDiagnostic]()
+    }.
+
+@pure
 validate_functions(values: List[IrFunction]): List[IrDiagnostic] ->
     validate_functions_at(values, List.new[IrDiagnostic]()).
 
@@ -206,15 +234,7 @@ validate_functions(values: List[IrFunction]): List[IrDiagnostic] ->
 validate_functions_at(values: List[IrFunction], output: List[IrDiagnostic]): List[IrDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [function | rest] -> let duplicate = if {
-            contains_function(function, rest) -> [IrDiagnostic(
-                code = "duplicate-function",
-                message = "module contains more than one function with this name and arity",
-                function_name = function.name,
-                block_label = "",
-            )];
-            true -> List.new[IrDiagnostic]()
-        };
+        [function | rest] -> let duplicate = duplicate_function_diagnostics(function, rest);
         let current = concat_diagnostics(duplicate, validate_function(function));
         validate_functions_at(rest, prepend_reversed_diagnostics(current, output))
     }.

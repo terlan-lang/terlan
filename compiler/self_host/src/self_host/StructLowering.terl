@@ -3,10 +3,12 @@ module self_host.StructLowering.
 
 import self_host.DeclarationPayloadSyntax.{StructFieldSyntax, StructSyntax}.
 import self_host.DeclarationSyntax.{DeclarationSyntax}.
+import self_host.ExpressionSyntax.{ExpressionParse}.
 import self_host.Syntax.{StructDeclaration}.
+import self_host.TypeSyntax.{TypeParse}.
 
 import std.collections.List.
-import std.core.{Int, String}.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 import self_host.ExpressionParser.
 import self_host.TypeParser.
@@ -29,26 +31,72 @@ field_name(source: String, colon: Int): String ->
     }.
 
 @pure
+field_type_end(normalized: String, assignment: Int): Int ->
+    if {
+        assignment < 0 -> normalized.byte_size();
+        true -> assignment
+    }.
+
+@pure
+field_annotation(normalized: String, colon: Int, type_end: Int): TypeParse ->
+    if {
+        colon < 0 -> TypeParser.parse("");
+        true -> TypeParser.parse(String.trim(normalized.utf8_slice(colon + 1, type_end - colon - 1)))
+    }.
+
+@pure
+field_default(normalized: String, assignment: Int): ExpressionParse ->
+    if {
+        assignment < 0 -> ExpressionParser.parse("");
+        true -> ExpressionParser.parse(String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1)))
+    }.
+
+@pure
+field_name_or_empty(normalized: String, colon: Int): String ->
+    if {
+        colon < 0 -> "";
+        true -> field_name(normalized, colon)
+    }.
+
+@pure
+field_message_after_annotation(assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        assignment >= 0 and not default_valid -> default_message;
+        true -> ""
+    }.
+
+@pure
+field_message_after_colon(annotation_valid: Bool, annotation_message: String, assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        not annotation_valid -> annotation_message;
+        true -> field_message_after_annotation(assignment, default_valid, default_message)
+    }.
+
+@pure
+field_message(colon: Int, annotation_valid: Bool, annotation_message: String, assignment: Int, default_valid: Bool, default_message: String): String ->
+    if {
+        colon < 0 -> "struct field is missing its type annotation";
+        true -> field_message_after_colon(annotation_valid, annotation_message, assignment, default_valid, default_message)
+    }.
+
+@pure
 lower_field(source: String): StructFieldSyntax ->
     let normalized = String.trim(source);
     let colon = Delimited.top_level_byte(normalized, 58);
     let assignment = Delimited.top_level_assignment(normalized);
-    let type_end = if { assignment < 0 -> normalized.byte_size(); true -> assignment };
-    let annotation = if {
-        colon < 0 -> TypeParser.parse("");
-        true -> TypeParser.parse(String.trim(normalized.utf8_slice(colon + 1, type_end - colon - 1)))
-    };
-    let default_value = if {
-        assignment < 0 -> ExpressionParser.parse("");
-        true -> ExpressionParser.parse(String.trim(normalized.utf8_slice(assignment + 1, normalized.byte_size() - assignment - 1)))
-    };
+    let type_end = field_type_end(normalized, assignment);
+    let annotation = field_annotation(normalized, colon, type_end);
+    let default_value = field_default(normalized, assignment);
     let valid = colon >= 0 and annotation.valid and (assignment < 0 or default_value.valid);
-    StructFieldSyntax(valid, if { colon < 0 -> ""; true -> field_name(normalized, colon) }, annotation, assignment >= 0, default_value, String.starts_with(normalized, "#"), if {
-            colon < 0 -> "struct field is missing its type annotation";
-            not annotation.valid -> annotation.message;
-            assignment >= 0 and not default_value.valid -> default_value.message;
-            true -> ""
-        }).
+    StructFieldSyntax(
+        valid,
+        field_name_or_empty(normalized, colon),
+        annotation,
+        assignment >= 0,
+        default_value,
+        String.starts_with(normalized, "#"),
+        field_message(colon, annotation.valid, annotation.message, assignment, default_value.valid, default_value.message),
+    ).
 
 @pure
 pub lower_fields(values: List[String]): List[StructFieldSyntax] ->
@@ -72,20 +120,45 @@ pub first_error(values: List[StructFieldSyntax]): String ->
     }.
 
 @pure
+struct_field_text(source: DeclarationSyntax, open: Int, body_valid: Bool): String ->
+    if {
+        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
+        true -> ""
+    }.
+
+@pure
+struct_fields(field_text: String, body_valid: Bool): List[StructFieldSyntax] ->
+    if {
+        body_valid -> lower_fields(drop_terminal_empty(Delimited.split_top_level(field_text, 44)));
+        true -> List.new[StructFieldSyntax]()
+    }.
+
+@pure
+struct_message_after_supported(body_valid: Bool, fields: List[StructFieldSyntax]): String ->
+    if {
+        not body_valid -> "struct body is incomplete";
+        true -> first_error(fields)
+    }.
+
+@pure
+struct_message(supported: Bool, body_valid: Bool, fields: List[StructFieldSyntax]): String ->
+    if {
+        not supported -> "declaration is not a struct";
+        true -> struct_message_after_supported(body_valid, fields)
+    }.
+
+@pure
 pub lower(source: DeclarationSyntax): StructSyntax ->
     let open = Delimited.top_level_byte(source.body, 123);
     let supported = source.class == StructDeclaration;
     let body_valid = open >= 0 and String.ends_with(String.trim(source.body), "}.");
-    let field_text = if {
-        body_valid -> source.body.utf8_slice(open + 1, source.body.byte_size() - open - 3);
-        true -> ""
-    };
-    let fields = if {
-        body_valid -> lower_fields(drop_terminal_empty(Delimited.split_top_level(field_text, 44)));
-        true -> List.new[StructFieldSyntax]()
-    };
-    StructSyntax(supported and body_valid and fields_valid(fields), source.name, fields, source.is_public, source.span, if {
-            not supported -> "declaration is not a struct";
-            not body_valid -> "struct body is incomplete";
-            true -> first_error(fields)
-        }).
+    let field_text = struct_field_text(source, open, body_valid);
+    let fields = struct_fields(field_text, body_valid);
+    StructSyntax(
+        supported and body_valid and fields_valid(fields),
+        source.name,
+        fields,
+        source.is_public,
+        source.span,
+        struct_message(supported, body_valid, fields),
+    ).

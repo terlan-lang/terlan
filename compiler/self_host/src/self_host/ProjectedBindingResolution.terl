@@ -118,22 +118,46 @@ reference(event: BindingEvent, state: BindingState): BindingState ->
     }.
 
 @pure
-step(event: BindingEvent, state: BindingState): BindingState ->
+step_after_use(event: BindingEvent, state: BindingState): BindingState ->
     if {
-        event.kind == "enter-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth + 1);
-        event.kind == "leave-scope" and state.depth > 0 -> BindingState(active = drop_scope(state.depth, state.active), declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth - 1);
-        event.kind == "leave-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
-                code = "unbalanced-scope",
-                message = "scope exit has no matching scope entry",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], depth = state.depth);
-        event.kind == "declare" -> declare(event, state);
         event.kind == "use" -> reference(event, state);
         true -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
                 code = "unknown-binding-event",
                 message = "binding adapter emitted an unsupported event",
                 byte_offset = event.byte_offset,
             ) | state.diagnostics], depth = state.depth)
+    }.
+
+@pure
+step_after_declare(event: BindingEvent, state: BindingState): BindingState ->
+    if {
+        event.kind == "declare" -> declare(event, state);
+        true -> step_after_use(event, state)
+    }.
+
+@pure
+step_after_leave(event: BindingEvent, state: BindingState): BindingState ->
+    if {
+        event.kind == "leave-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
+                code = "unbalanced-scope",
+                message = "scope exit has no matching scope entry",
+                byte_offset = event.byte_offset,
+            ) | state.diagnostics], depth = state.depth);
+        true -> step_after_declare(event, state)
+    }.
+
+@pure
+step_after_scoped_leave(event: BindingEvent, state: BindingState): BindingState ->
+    if {
+        event.kind == "leave-scope" and state.depth > 0 -> BindingState(active = drop_scope(state.depth, state.active), declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth - 1);
+        true -> step_after_leave(event, state)
+    }.
+
+@pure
+step(event: BindingEvent, state: BindingState): BindingState ->
+    if {
+        event.kind == "enter-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth + 1);
+        true -> step_after_scoped_leave(event, state)
     }.
 
 @pure

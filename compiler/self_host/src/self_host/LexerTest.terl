@@ -11,6 +11,12 @@ lexemes(tokens: List[self_host.Token.Token], output: List[String]): List[String]
         [token | rest] -> [token.lexeme | lexemes(rest, output)]
     }.
 
+kinds(tokens: List[self_host.Token.Token]): List[self_host.Token.TokenKind] ->
+    case tokens {
+        [] -> List.new[self_host.Token.TokenKind]();
+        [token | rest] -> [token.kind | kinds(rest)]
+    }.
+
 @test
 pub lexer_accepts_module_function_and_unicode_string(): Bool ->
     let result = Lexer.lex("module sample.Main.\npub answer(): String -> \"café\".\n");
@@ -34,15 +40,7 @@ pub lexer_records_complete_string_columns(): Bool ->
 @test
 pub lexer_classifies_representative_tokens(): Bool ->
     let result = Lexer.lex("module name 42 \"text\" ->");
-    case result.tokens {
-        [keyword, identifier, integer, string, symbol] ->
-            keyword.kind == Keyword
-                and identifier.kind == Identifier
-                and integer.kind == IntegerLiteral
-                and string.kind == StringLiteral
-                and symbol.kind == Symbol;
-        _ -> false
-    }.
+    kinds(result.tokens) == [Keyword, Identifier, IntegerLiteral, StringLiteral, Symbol].
 
 @test
 pub lexer_reports_unterminated_string(): Bool ->

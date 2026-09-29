@@ -46,16 +46,52 @@ quoted_step(state: ScanState, byte: Int): ScanState ->
     }.
 
 @pure
+unquoted_after_open_brace(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 125 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces - 1, quote_byte = 0, escaped = false, valid = state.valid and state.braces > 0);
+        true -> state
+    }.
+
+@pure
+unquoted_after_close_bracket(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 123 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces + 1, quote_byte = 0, escaped = false, valid = state.valid);
+        true -> unquoted_after_open_brace(state, byte)
+    }.
+
+@pure
+unquoted_after_open_bracket(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 93 -> ScanState(parentheses = state.parentheses, brackets = state.brackets - 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.brackets > 0);
+        true -> unquoted_after_close_bracket(state, byte)
+    }.
+
+@pure
+unquoted_after_close_parenthesis(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 91 -> ScanState(parentheses = state.parentheses, brackets = state.brackets + 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        true -> unquoted_after_open_bracket(state, byte)
+    }.
+
+@pure
+unquoted_after_open_parenthesis(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 41 -> ScanState(parentheses = state.parentheses - 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.parentheses > 0);
+        true -> unquoted_after_close_parenthesis(state, byte)
+    }.
+
+@pure
+unquoted_after_quote(state: ScanState, byte: Int): ScanState ->
+    if {
+        byte == 40 -> ScanState(parentheses = state.parentheses + 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        true -> unquoted_after_open_parenthesis(state, byte)
+    }.
+
+@pure
 unquoted_step(state: ScanState, byte: Int): ScanState ->
     if {
         byte == 34 or byte == 39 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = byte, escaped = false, valid = state.valid);
-        byte == 40 -> ScanState(parentheses = state.parentheses + 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
-        byte == 41 -> ScanState(parentheses = state.parentheses - 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.parentheses > 0);
-        byte == 91 -> ScanState(parentheses = state.parentheses, brackets = state.brackets + 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
-        byte == 93 -> ScanState(parentheses = state.parentheses, brackets = state.brackets - 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.brackets > 0);
-        byte == 123 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces + 1, quote_byte = 0, escaped = false, valid = state.valid);
-        byte == 125 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces - 1, quote_byte = 0, escaped = false, valid = state.valid and state.braces > 0);
-        true -> state
+        true -> unquoted_after_quote(state, byte)
     }.
 
 @pure
@@ -73,6 +109,90 @@ scan_at(source: String, index: Int, state: ScanState): ScanState ->
     }.
 
 @pure
+expected_close_head(
+    source: String,
+    index: Int,
+    closer: Int,
+    rest: List[Int],
+    byte: Int,
+): Bool ->
+    if {
+        closer == byte -> properly_nested_at(source, index + 1, rest, 0, false);
+        true -> false
+    }.
+
+@pure
+expected_close(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    case expected {
+        [] -> false;
+        [closer | rest] -> expected_close_head(source, index, closer, rest, byte)
+    }.
+
+@pure
+proper_after_open_brace(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    if {
+        byte == 41 or byte == 93 or byte == 125 -> expected_close(source, index, expected, byte);
+        true -> properly_nested_at(source, index + 1, expected, 0, false)
+    }.
+
+@pure
+proper_after_open_bracket(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    if {
+        byte == 123 -> properly_nested_at(source, index + 1, [125 | expected], 0, false);
+        true -> proper_after_open_brace(source, index, expected, byte)
+    }.
+
+@pure
+proper_after_open_parenthesis(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    if {
+        byte == 91 -> properly_nested_at(source, index + 1, [93 | expected], 0, false);
+        true -> proper_after_open_bracket(source, index, expected, byte)
+    }.
+
+@pure
+proper_after_quote(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    if {
+        byte == 40 -> properly_nested_at(source, index + 1, [41 | expected], 0, false);
+        true -> proper_after_open_parenthesis(source, index, expected, byte)
+    }.
+
+@pure
+proper_unquoted(source: String, index: Int, expected: List[Int], byte: Int): Bool ->
+    if {
+        byte == 34 or byte == 39 -> properly_nested_at(source, index + 1, expected, byte, false);
+        true -> proper_after_quote(source, index, expected, byte)
+    }.
+
+@pure
+proper_quoted_after_escape(source: String, index: Int, expected: List[Int], quote_byte: Int, byte: Int): Bool ->
+    if {
+        byte == 92 -> properly_nested_at(source, index + 1, expected, quote_byte, true);
+        true -> proper_quoted_after_backslash(source, index, expected, quote_byte, byte)
+    }.
+
+@pure
+proper_quoted_after_backslash(source: String, index: Int, expected: List[Int], quote_byte: Int, byte: Int): Bool ->
+    if {
+        byte == quote_byte -> properly_nested_at(source, index + 1, expected, 0, false);
+        true -> properly_nested_at(source, index + 1, expected, quote_byte, false)
+    }.
+
+@pure
+proper_quoted(source: String, index: Int, expected: List[Int], quote_byte: Int, escaped: Bool, byte: Int): Bool ->
+    if {
+        escaped -> properly_nested_at(source, index + 1, expected, quote_byte, false);
+        true -> proper_quoted_after_escape(source, index, expected, quote_byte, byte)
+    }.
+
+@pure
+proper_byte(source: String, index: Int, expected: List[Int], quote_byte: Int, escaped: Bool): Bool ->
+    let byte = source.utf8_byte_at(index);
+    if {
+        quote_byte != 0 -> proper_quoted(source, index, expected, quote_byte, escaped, byte);
+        true -> proper_unquoted(source, index, expected, byte)
+    }.
+
+@pure
 properly_nested_at(
     source: String,
     index: Int,
@@ -82,23 +202,7 @@ properly_nested_at(
 ): Bool ->
     if {
         index == source.byte_size() -> List.is_empty(expected) and quote_byte == 0 and not escaped;
-        quote_byte != 0 and escaped -> properly_nested_at(source, index + 1, expected, quote_byte, false);
-        quote_byte != 0 and source.utf8_byte_at(index) == 92 -> properly_nested_at(source, index + 1, expected, quote_byte, true);
-        quote_byte != 0 and source.utf8_byte_at(index) == quote_byte -> properly_nested_at(source, index + 1, expected, 0, false);
-        quote_byte != 0 -> properly_nested_at(source, index + 1, expected, quote_byte, false);
-        source.utf8_byte_at(index) == 34 or source.utf8_byte_at(index) == 39 ->
-            properly_nested_at(source, index + 1, expected, source.utf8_byte_at(index), false);
-        source.utf8_byte_at(index) == 40 -> properly_nested_at(source, index + 1, [41 | expected], 0, false);
-        source.utf8_byte_at(index) == 91 -> properly_nested_at(source, index + 1, [93 | expected], 0, false);
-        source.utf8_byte_at(index) == 123 -> properly_nested_at(source, index + 1, [125 | expected], 0, false);
-        source.utf8_byte_at(index) == 41
-            or source.utf8_byte_at(index) == 93
-            or source.utf8_byte_at(index) == 125 -> case expected {
-                [closer | rest] where closer == source.utf8_byte_at(index) ->
-                    properly_nested_at(source, index + 1, rest, 0, false);
-                _ -> false
-            };
-        true -> properly_nested_at(source, index + 1, expected, 0, false)
+        true -> proper_byte(source, index, expected, quote_byte, escaped)
     }.
 
 /** True when delimiters and quoted strings are closed and correctly nested. */

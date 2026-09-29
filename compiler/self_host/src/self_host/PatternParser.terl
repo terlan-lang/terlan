@@ -39,13 +39,18 @@ starts_digit(source: String): Bool ->
     source != "" and source.utf8_byte_at(0) >= 48 and source.utf8_byte_at(0) <= 57.
 
 @pure
+parts_after_collection(source: String, class: PatternClass): List[String] ->
+    if {
+        class == ListConsPattern -> Delimited.split_top_level(inner(source), 124);
+        true -> List.new[String]()
+    }.
+
+@pure
 parts_for(source: String, class: PatternClass): List[String] ->
-    case class {
-        TuplePattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
-        MapPattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
-        ListPattern -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
-        ListConsPattern -> Delimited.split_top_level(inner(source), 124);
-        _ -> List.new[String]()
+    if {
+        class == TuplePattern or class == MapPattern or class == ListPattern ->
+            drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        true -> parts_after_collection(source, class)
     }.
 
 @pure
@@ -67,21 +72,87 @@ classify_list(source: String): PatternClass ->
     }.
 
 @pure
+classify_after_constructor(source: String): PatternClass ->
+    if {
+        String.contains(source, ".") -> QualifiedNamePattern;
+        true -> NamePattern
+    }.
+
+@pure
+classify_after_integer(source: String): PatternClass ->
+    if {
+        String.contains(source, "(") -> ConstructorPattern;
+        true -> classify_after_constructor(source)
+    }.
+
+@pure
+classify_after_float(source: String): PatternClass ->
+    if {
+        starts_digit(source) -> IntegerPattern;
+        true -> classify_after_integer(source)
+    }.
+
+@pure
+classify_after_typed_string(source: String): PatternClass ->
+    if {
+        starts_digit(source) and String.contains(source, ".") -> FloatPattern;
+        true -> classify_after_float(source)
+    }.
+
+@pure
+classify_after_string(source: String): PatternClass ->
+    if {
+        String.contains(source, "[\"") -> TypedStringPattern;
+        true -> classify_after_typed_string(source)
+    }.
+
+@pure
+classify_after_grouped(source: String): PatternClass ->
+    if {
+        String.starts_with(source, "\"") or String.starts_with(source, "'") -> StringPattern;
+        true -> classify_after_string(source)
+    }.
+
+@pure
+classify_after_braced(source: String): PatternClass ->
+    if {
+        String.starts_with(source, "(") -> GroupedPattern;
+        true -> classify_after_grouped(source)
+    }.
+
+@pure
+classify_after_list(source: String): PatternClass ->
+    if {
+        String.starts_with(source, "{") -> classify_braced(source);
+        true -> classify_after_braced(source)
+    }.
+
+@pure
+classify_after_nominal(source: String): PatternClass ->
+    if {
+        String.starts_with(source, "[") -> classify_list(source);
+        true -> classify_after_list(source)
+    }.
+
+@pure
+classify_after_binary(source: String): PatternClass ->
+    if {
+        not String.starts_with(source, "{") and String.contains(source, "{") -> NominalKeyedPattern;
+        true -> classify_after_nominal(source)
+    }.
+
+@pure
+classify_after_wildcard(source: String): PatternClass ->
+    if {
+        String.contains(source, "]{") or String.contains(source, "] {") -> BinaryLayoutPattern;
+        true -> classify_after_binary(source)
+    }.
+
+@pure
 classify(source: String): PatternClass ->
     if {
         source == "_" -> WildcardPattern;
-        String.contains(source, "]{") or String.contains(source, "] {") -> BinaryLayoutPattern;
-        not String.starts_with(source, "{") and String.contains(source, "{") -> NominalKeyedPattern;
-        String.starts_with(source, "[") -> classify_list(source);
-        String.starts_with(source, "{") -> classify_braced(source);
-        String.starts_with(source, "(") -> GroupedPattern;
-        String.starts_with(source, "\"") or String.starts_with(source, "'") -> StringPattern;
-        String.contains(source, "[\"") -> TypedStringPattern;
-        starts_digit(source) and String.contains(source, ".") -> FloatPattern;
-        starts_digit(source) -> IntegerPattern;
-        String.contains(source, "(") -> ConstructorPattern;
-        String.contains(source, ".") -> QualifiedNamePattern;
-        true -> NamePattern
+        true -> classify_after_wildcard(source)
     }.
 
 @pure
@@ -95,6 +166,48 @@ has_invalid_map_fields(class: PatternClass, parts: List[String]): Bool ->
         true -> not all_map_fields(parts)
     }.
 
+@pure
+parse_after_map_fields(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        class == ListConsPattern and List.length(parts) != 2 -> invalid(source, "list-cons pattern requires one head and one tail");
+        true -> PatternParse(true, PatternSyntax(class, normalized, parts), "")
+    }.
+
+@pure
+parse_after_tuple(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        has_invalid_map_fields(class, parts) -> invalid(source, "map pattern requires keyed fields");
+        true -> parse_after_map_fields(source, normalized, class, parts)
+    }.
+
+@pure
+parse_after_parts(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        class == TuplePattern and List.length(parts) < 2 -> invalid(source, "tuple pattern requires at least two items");
+        true -> parse_after_tuple(source, normalized, class, parts)
+    }.
+
+@pure
+parse_after_class(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        not all_nonempty(parts) -> invalid(source, "pattern contains an empty component");
+        true -> parse_after_parts(source, normalized, class, parts)
+    }.
+
+@pure
+parse_after_balance(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        class == InvalidPattern -> invalid(source, "braced pattern must be a tuple or keyed map");
+        true -> parse_after_class(source, normalized, class, parts)
+    }.
+
+@pure
+parse_after_empty(source: String, normalized: String, class: PatternClass, parts: List[String]): PatternParse ->
+    if {
+        not Delimited.balanced(normalized) -> invalid(source, "pattern has unbalanced delimiters");
+        true -> parse_after_balance(source, normalized, class, parts)
+    }.
+
 /** Parses one complete pattern according to canonical surface categories. */
 @pure
 pub parse(source: String): PatternParse ->
@@ -103,11 +216,5 @@ pub parse(source: String): PatternParse ->
     let parts = parts_for(normalized, class);
     if {
         normalized == "" -> invalid(source, "pattern is empty");
-        not Delimited.balanced(normalized) -> invalid(source, "pattern has unbalanced delimiters");
-        class == InvalidPattern -> invalid(source, "braced pattern must be a tuple or keyed map");
-        not all_nonempty(parts) -> invalid(source, "pattern contains an empty component");
-        class == TuplePattern and List.length(parts) < 2 -> invalid(source, "tuple pattern requires at least two items");
-        has_invalid_map_fields(class, parts) -> invalid(source, "map pattern requires keyed fields");
-        class == ListConsPattern and List.length(parts) != 2 -> invalid(source, "list-cons pattern requires one head and one tail");
-        true -> PatternParse(true, PatternSyntax(class, normalized, parts), "")
+        true -> parse_after_empty(source, normalized, class, parts)
     }.

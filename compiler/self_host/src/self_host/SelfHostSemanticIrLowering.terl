@@ -42,6 +42,27 @@ reverse_functions_at(values: List[IrFunction], output: List[IrFunction]): List[I
     case values { [] -> output; [value | rest] -> reverse_functions_at(rest, [value | output]) }.
 
 @pure
+instruction_diagnostics_next(
+    value: SemanticInstructionPlan,
+    rest: List[SemanticInstructionPlan],
+    function_name: String,
+    block_label: String,
+    output: List[IrLoweringDiagnostic],
+): List[IrLoweringDiagnostic] ->
+    case value.resolved_type {
+        Some(_) -> instruction_diagnostics_at(rest, function_name, block_label, output);
+        None -> instruction_diagnostics_at(rest, function_name, block_label, [IrLoweringDiagnostic(
+            code = "unresolved-instruction-type",
+            message = String.concat([
+                "semantic instruction has no resolved result type: opcode=",
+                value.opcode,
+            ]),
+            function_name = function_name,
+            block_label = block_label,
+        ) | output])
+    }.
+
+@pure
 instruction_diagnostics_at(
     values: List[SemanticInstructionPlan],
     function_name: String,
@@ -50,18 +71,7 @@ instruction_diagnostics_at(
 ): List[IrLoweringDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [value | rest] -> case value.resolved_type {
-            Some(_) -> instruction_diagnostics_at(rest, function_name, block_label, output);
-            None -> instruction_diagnostics_at(rest, function_name, block_label, [IrLoweringDiagnostic(
-                code = "unresolved-instruction-type",
-                message = String.concat([
-                    "semantic instruction has no resolved result type: opcode=",
-                    value.opcode,
-                ]),
-                function_name = function_name,
-                block_label = block_label,
-            ) | output])
-        }
+        [value | rest] -> instruction_diagnostics_next(value, rest, function_name, block_label, output)
     }.
 
 @pure

@@ -42,9 +42,20 @@ without_prefix(value: String, prefix: String): String ->
 
 @pure
 method_name(head: String): String ->
-    case String.split(head, ") ") {
-        [_ | [callable | _]] -> before(callable, "(");
-        _ -> ""
+    method_name_parts(String.split(head, ") ")).
+
+@pure
+method_name_parts(parts: List[String]): String ->
+    case parts {
+        [] -> "";
+        [_first | rest] -> method_name_tail(rest)
+    }.
+
+@pure
+method_name_tail(parts: List[String]): String ->
+    case parts {
+        [] -> "";
+        [callable | _rest] -> before(callable, "(")
     }.
 
 /** Returns the source-level symbol introduced by a declaration, if any. */
@@ -52,20 +63,90 @@ method_name(head: String): String ->
 pub symbol_name(source: DeclarationSyntax): String ->
     let public_head = Parser.declaration_head(source.body);
     let head = without_prefix(public_head, "pub ");
-    case source.class {
-        ConstantDeclaration -> before(without_prefix(head, "const "), ":");
-        ConstFunctionDeclaration -> before(without_prefix(head, "const "), "(");
-        FunctionDeclaration -> before(head, "(");
-        TypeDeclaration -> before(before(before(without_prefix(head, "type "), "["), ":"), "=");
-        OpaqueTypeDeclaration -> before(before(without_prefix(head, "opaque type "), "["), "=");
-        StructDeclaration -> before(before(without_prefix(head, "struct "), "["), " ");
-        ConstructorDeclaration -> before(before(without_prefix(head, "constructor "), "["), "(");
-        MethodDeclaration -> method_name(head);
-        TraitDeclaration -> before(before(without_prefix(head, "trait "), "["), " ");
-        AnnotationSchemaDeclaration -> before(before(without_prefix(head, "annotation "), "["), "(");
-        TemplateDeclaration -> before(before(without_prefix(head, "template "), "["), "{");
-        ShapeDeclaration -> before(before(without_prefix(head, "shape "), "["), "(");
-        _ -> ""
+    symbol_constant(source, head).
+
+@pure
+symbol_constant(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == ConstantDeclaration -> before(without_prefix(head, "const "), ":");
+        true -> symbol_const_function(source, head)
+    }.
+
+@pure
+symbol_const_function(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == ConstFunctionDeclaration -> before(without_prefix(head, "const "), "(");
+        true -> symbol_function(source, head)
+    }.
+
+@pure
+symbol_function(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == FunctionDeclaration -> before(head, "(");
+        true -> symbol_type(source, head)
+    }.
+
+@pure
+symbol_type(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == TypeDeclaration -> before(before(before(without_prefix(head, "type "), "["), ":"), "=");
+        true -> symbol_opaque_type(source, head)
+    }.
+
+@pure
+symbol_opaque_type(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == OpaqueTypeDeclaration -> before(before(without_prefix(head, "opaque type "), "["), "=");
+        true -> symbol_struct(source, head)
+    }.
+
+@pure
+symbol_struct(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == StructDeclaration -> before(before(without_prefix(head, "struct "), "["), " ");
+        true -> symbol_constructor(source, head)
+    }.
+
+@pure
+symbol_constructor(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == ConstructorDeclaration -> before(before(without_prefix(head, "constructor "), "["), "(");
+        true -> symbol_method(source, head)
+    }.
+
+@pure
+symbol_method(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == MethodDeclaration -> method_name(head);
+        true -> symbol_trait(source, head)
+    }.
+
+@pure
+symbol_trait(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == TraitDeclaration -> before(before(without_prefix(head, "trait "), "["), " ");
+        true -> symbol_annotation(source, head)
+    }.
+
+@pure
+symbol_annotation(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == AnnotationSchemaDeclaration -> before(before(without_prefix(head, "annotation "), "["), "(");
+        true -> symbol_template(source, head)
+    }.
+
+@pure
+symbol_template(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == TemplateDeclaration -> before(before(without_prefix(head, "template "), "["), "{");
+        true -> symbol_shape(source, head)
+    }.
+
+@pure
+symbol_shape(source: DeclarationSyntax, head: String): String ->
+    if {
+        source.class == ShapeDeclaration -> before(before(without_prefix(head, "shape "), "["), "(");
+        true -> ""
     }.
 
 @pure
@@ -83,70 +164,264 @@ is_valued_union(source: DeclarationSyntax): Bool ->
 
 @pure
 payload(source: DeclarationSyntax): TypedDeclarationPayload ->
-    case source.class {
-        ImportDeclaration -> ImportPayload(ImportLowering.lower(source));
-        ConfigDeclaration -> ConfigPayload(ConfigLowering.lower(source));
-        AnnotationSchemaDeclaration -> AnnotationSchemaPayload(AnnotationSchemaLowering.lower(source));
-        ExportDeclaration -> ExportPayload(ExportLowering.lower(source));
-        ConstantDeclaration -> ConstantPayload(ConstantLowering.lower(source));
-        ConstFunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
-        FunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
-        TypeDeclaration where is_valued_union(source) -> ValuedUnionPayload(ValuedUnionLowering.lower(source));
-        TypeDeclaration -> TypePayload(TypeDeclarationLowering.lower(source));
-        OpaqueTypeDeclaration -> TypePayload(TypeDeclarationLowering.lower(source));
-        StructDeclaration -> StructPayload(StructLowering.lower(source));
-        ConstructorDeclaration -> ConstructorPayload(ConstructorLowering.lower(source));
-        MethodDeclaration -> MethodPayload(MethodLowering.lower(source));
-        NativeDeclaration -> NativePayload(NativeLowering.lower(source));
-        TraitDeclaration -> TraitPayload(TraitLowering.lower(source));
-        TraitImplDeclaration -> TraitImplPayload(TraitImplLowering.lower(source));
-        TemplateDeclaration -> TemplatePayload(TemplateLowering.lower(source));
-        ShapeDeclaration -> ShapePayload(ShapeLowering.lower(source));
-        _ -> UnsupportedPayload(source)
+    payload_import(source).
+
+@pure
+payload_import(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ImportDeclaration -> ImportPayload(ImportLowering.lower(source));
+        true -> payload_config(source)
     }.
+
+@pure
+payload_config(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ConfigDeclaration -> ConfigPayload(ConfigLowering.lower(source));
+        true -> payload_annotation(source)
+    }.
+
+@pure
+payload_annotation(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == AnnotationSchemaDeclaration -> AnnotationSchemaPayload(AnnotationSchemaLowering.lower(source));
+        true -> payload_export(source)
+    }.
+
+@pure
+payload_export(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ExportDeclaration -> ExportPayload(ExportLowering.lower(source));
+        true -> payload_constant(source)
+    }.
+
+@pure
+payload_constant(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ConstantDeclaration -> ConstantPayload(ConstantLowering.lower(source));
+        true -> payload_const_function(source)
+    }.
+
+@pure
+payload_const_function(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ConstFunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
+        true -> payload_function(source)
+    }.
+
+@pure
+payload_function(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == FunctionDeclaration -> FunctionPayload(FunctionLowering.lower(source));
+        true -> payload_type(source)
+    }.
+
+@pure
+payload_type(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == TypeDeclaration -> payload_type_kind(source);
+        true -> payload_opaque_type(source)
+    }.
+
+@pure
+payload_type_kind(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        is_valued_union(source) -> ValuedUnionPayload(ValuedUnionLowering.lower(source));
+        true -> TypePayload(TypeDeclarationLowering.lower(source))
+    }.
+
+@pure
+payload_opaque_type(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == OpaqueTypeDeclaration -> TypePayload(TypeDeclarationLowering.lower(source));
+        true -> payload_struct(source)
+    }.
+
+@pure
+payload_struct(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == StructDeclaration -> StructPayload(StructLowering.lower(source));
+        true -> payload_constructor(source)
+    }.
+
+@pure
+payload_constructor(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ConstructorDeclaration -> ConstructorPayload(ConstructorLowering.lower(source));
+        true -> payload_method(source)
+    }.
+
+@pure
+payload_method(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == MethodDeclaration -> MethodPayload(MethodLowering.lower(source));
+        true -> payload_native(source)
+    }.
+
+@pure
+payload_native(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == NativeDeclaration -> NativePayload(NativeLowering.lower(source));
+        true -> payload_trait(source)
+    }.
+
+@pure
+payload_trait(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == TraitDeclaration -> TraitPayload(TraitLowering.lower(source));
+        true -> payload_trait_impl(source)
+    }.
+
+@pure
+payload_trait_impl(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == TraitImplDeclaration -> TraitImplPayload(TraitImplLowering.lower(source));
+        true -> payload_template(source)
+    }.
+
+@pure
+payload_template(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == TemplateDeclaration -> TemplatePayload(TemplateLowering.lower(source));
+        true -> payload_shape(source)
+    }.
+
+@pure
+payload_shape(source: DeclarationSyntax): TypedDeclarationPayload ->
+    if {
+        source.class == ShapeDeclaration -> ShapePayload(ShapeLowering.lower(source));
+        true -> UnsupportedPayload(source)
+    }.
+
+struct PayloadStatus {
+    valid: Bool,
+    message: String,
+}.
 
 @pure
 payload_valid(value: TypedDeclarationPayload): Bool ->
-    case value {
-        ImportPayload(item) -> item.valid;
-        ConfigPayload(item) -> item.valid;
-        AnnotationSchemaPayload(item) -> item.valid;
-        ExportPayload(item) -> item.valid;
-        ConstantPayload(item) -> item.valid;
-        FunctionPayload(item) -> item.valid;
-        TypePayload(item) -> item.valid;
-        ValuedUnionPayload(item) -> item.valid;
-        StructPayload(item) -> item.valid;
-        ConstructorPayload(item) -> item.valid;
-        MethodPayload(item) -> item.valid;
-        NativePayload(item) -> item.valid;
-        TraitPayload(item) -> item.valid;
-        TraitImplPayload(item) -> item.valid;
-        TemplatePayload(item) -> item.valid;
-        ShapePayload(item) -> item.valid;
-        UnsupportedPayload(_item) -> false
-    }.
+    payload_status(value).valid.
 
 @pure
 payload_message(value: TypedDeclarationPayload): String ->
+    payload_status(value).message.
+
+@pure
+payload_status(value: TypedDeclarationPayload): PayloadStatus ->
     case value {
-        ImportPayload(item) -> item.message;
-        ConfigPayload(item) -> item.message;
-        AnnotationSchemaPayload(item) -> item.message;
-        ExportPayload(item) -> item.message;
-        ConstantPayload(item) -> item.message;
-        FunctionPayload(item) -> item.message;
-        TypePayload(item) -> item.message;
-        ValuedUnionPayload(item) -> item.message;
-        StructPayload(item) -> item.message;
-        ConstructorPayload(item) -> item.message;
-        MethodPayload(item) -> item.message;
-        NativePayload(item) -> item.message;
-        TraitPayload(item) -> item.message;
-        TraitImplPayload(item) -> item.message;
-        TemplatePayload(item) -> item.message;
-        ShapePayload(item) -> item.message;
-        UnsupportedPayload(_item) -> "declaration class is not yet lowered"
+        ImportPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_config(value)
+    }.
+
+@pure
+payload_status_config(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ConfigPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_annotation(value)
+    }.
+
+@pure
+payload_status_annotation(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        AnnotationSchemaPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_export(value)
+    }.
+
+@pure
+payload_status_export(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ExportPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_constant(value)
+    }.
+
+@pure
+payload_status_constant(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ConstantPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_function(value)
+    }.
+
+@pure
+payload_status_function(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        FunctionPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_type(value)
+    }.
+
+@pure
+payload_status_type(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        TypePayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_valued_union(value)
+    }.
+
+@pure
+payload_status_valued_union(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ValuedUnionPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_struct(value)
+    }.
+
+@pure
+payload_status_struct(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        StructPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_constructor(value)
+    }.
+
+@pure
+payload_status_constructor(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ConstructorPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_method(value)
+    }.
+
+@pure
+payload_status_method(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        MethodPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_native(value)
+    }.
+
+@pure
+payload_status_native(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        NativePayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_trait(value)
+    }.
+
+@pure
+payload_status_trait(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        TraitPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_trait_impl(value)
+    }.
+
+@pure
+payload_status_trait_impl(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        TraitImplPayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_template(value)
+    }.
+
+@pure
+payload_status_template(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        TemplatePayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_shape(value)
+    }.
+
+@pure
+payload_status_shape(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        ShapePayload(item) -> PayloadStatus(valid = item.valid, message = item.message);
+        _ -> payload_status_unsupported(value)
+    }.
+
+@pure
+payload_status_unsupported(value: TypedDeclarationPayload): PayloadStatus ->
+    case value {
+        UnsupportedPayload(_item) -> PayloadStatus(valid = false, message = "declaration class is not yet lowered");
+        _ -> PayloadStatus(valid = false, message = "declaration class is not yet lowered")
     }.
 
 @pure

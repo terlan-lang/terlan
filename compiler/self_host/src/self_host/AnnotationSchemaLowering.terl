@@ -6,7 +6,7 @@ import self_host.DeclarationSyntax.{DeclarationSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration}.
 
 import std.collections.List.
-import std.core.String.
+import std.core.{Bool, Int, String}.
 import self_host.Delimited.
 
 
@@ -15,30 +15,78 @@ drop_terminal_empty(values: List[String]): List[String] ->
     case values { [] -> List.new[String](); [""] -> List.new[String](); [value | rest] -> [value | drop_terminal_empty(rest)] }.
 
 @pure
+entry_right(text: String, colon: Int): String ->
+    if {
+        colon >= 0 -> String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1));
+        true -> ""
+    }.
+
+@pure
+entry_value_type(right: String, options_open: Int): String ->
+    if {
+        options_open < 0 -> right;
+        true -> String.trim(right.utf8_slice(0, options_open))
+    }.
+
+@pure
+entry_options_text(right: String, options_open: Int, options_valid: Bool): String ->
+    if {
+        options_open >= 0 and options_valid -> right.utf8_slice(options_open + 1, right.byte_size() - options_open - 2);
+        true -> ""
+    }.
+
+@pure
+entry_options(options_text: String, options_open: Int, options_valid: Bool): List[String] ->
+    if {
+        options_open >= 0 and options_valid -> drop_terminal_empty(Delimited.split_top_level(options_text, 59));
+        true -> List.new[String]()
+    }.
+
+@pure
+entry_key(text: String, colon: Int): String ->
+    if {
+        colon > 0 -> String.trim(text.utf8_slice(0, colon));
+        true -> ""
+    }.
+
+@pure
+entry_message_after_value(options_valid: Bool): String ->
+    if {
+        not options_valid -> "annotation schema option block is incomplete";
+        true -> ""
+    }.
+
+@pure
+entry_message_after_colon(value_type: String, options_valid: Bool): String ->
+    if {
+        value_type == "" -> "annotation schema value type is empty";
+        true -> entry_message_after_value(options_valid)
+    }.
+
+@pure
+entry_message(colon: Int, value_type: String, options_valid: Bool): String ->
+    if {
+        colon <= 0 -> "annotation schema entry requires `key: ValueType`";
+        true -> entry_message_after_colon(value_type, options_valid)
+    }.
+
+@pure
 entry(source: String): AnnotationSchemaEntrySyntax ->
     let text = String.trim(source);
     let colon = Delimited.top_level_byte(text, 58);
-    let right = if { colon >= 0 -> String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)); true -> "" };
+    let right = entry_right(text, colon);
     let options_open = Delimited.top_level_byte(right, 123);
     let options_valid = options_open < 0 or String.ends_with(right, "}");
-    let value_type = if {
-        options_open < 0 -> right;
-        true -> String.trim(right.utf8_slice(0, options_open))
-    };
-    let options_text = if {
-        options_open >= 0 and options_valid -> right.utf8_slice(options_open + 1, right.byte_size() - options_open - 2);
-        true -> ""
-    };
-    let options = if {
-        options_open >= 0 and options_valid -> drop_terminal_empty(Delimited.split_top_level(options_text, 59));
-        true -> List.new[String]()
-    };
-    AnnotationSchemaEntrySyntax(colon > 0 and value_type != "" and options_valid, if { colon > 0 -> String.trim(text.utf8_slice(0, colon)); true -> "" }, value_type, options, if {
-            colon <= 0 -> "annotation schema entry requires `key: ValueType`";
-            value_type == "" -> "annotation schema value type is empty";
-            not options_valid -> "annotation schema option block is incomplete";
-            true -> ""
-        }).
+    let value_type = entry_value_type(right, options_open);
+    let options_text = entry_options_text(right, options_open, options_valid);
+    let options = entry_options(options_text, options_open, options_valid);
+    AnnotationSchemaEntrySyntax(
+        colon > 0 and value_type != "" and options_valid,
+        entry_key(text, colon),
+        value_type,
+        options,
+        entry_message(colon, value_type, options_valid),
+    ).
 
 @pure
 entries_at(values: List[String]): List[AnnotationSchemaEntrySyntax] ->
@@ -52,25 +100,86 @@ all_valid(values: List[AnnotationSchemaEntrySyntax]): Bool ->
 first_error(values: List[AnnotationSchemaEntrySyntax]): String ->
     case values { [] -> ""; [value | rest] -> if { value.valid -> first_error(rest); true -> value.message } }.
 
+@pure
+schema_public_text(text: String): String ->
+    if {
+        String.starts_with(text, "pub ") -> String.trim(text.utf8_slice(4, text.byte_size() - 4));
+        true -> text
+    }.
+
+@pure
+schema_annotation_text(public_text: String): String ->
+    if {
+        String.starts_with(public_text, "annotation ") -> String.trim(public_text.utf8_slice(11, public_text.byte_size() - 11));
+        true -> ""
+    }.
+
+@pure
+schema_path(annotation_text: String, open: Int): String ->
+    if {
+        open > 0 -> String.trim(annotation_text.utf8_slice(0, open));
+        true -> ""
+    }.
+
+@pure
+schema_body(annotation_text: String, open: Int, body_valid: Bool): String ->
+    if {
+        body_valid -> annotation_text.utf8_slice(open + 1, annotation_text.byte_size() - open - 3);
+        true -> ""
+    }.
+
+@pure
+schema_entries(body: String, body_valid: Bool): List[AnnotationSchemaEntrySyntax] ->
+    if {
+        body_valid -> entries_at(drop_terminal_empty(Delimited.split_top_level(body, 59)));
+        true -> List.new[AnnotationSchemaEntrySyntax]()
+    }.
+
+@pure
+schema_message_after_body(entries: List[AnnotationSchemaEntrySyntax]): String ->
+    if {
+        not all_valid(entries) -> first_error(entries);
+        true -> ""
+    }.
+
+@pure
+schema_message_after_path(body_valid: Bool, entries: List[AnnotationSchemaEntrySyntax]): String ->
+    if {
+        not body_valid -> "annotation schema body is incomplete";
+        true -> schema_message_after_body(entries)
+    }.
+
+@pure
+schema_message_after_supported(path: String, body_valid: Bool, entries: List[AnnotationSchemaEntrySyntax]): String ->
+    if {
+        path == "" -> "annotation schema path is empty";
+        true -> schema_message_after_path(body_valid, entries)
+    }.
+
+@pure
+schema_message(supported: Bool, path: String, body_valid: Bool, entries: List[AnnotationSchemaEntrySyntax]): String ->
+    if {
+        not supported -> "declaration is not an annotation schema";
+        true -> schema_message_after_supported(path, body_valid, entries)
+    }.
+
 /** Lowers one canonical `annotation path { ... }.` schema declaration. */
 @pure
 pub lower(source: DeclarationSyntax): AnnotationSchemaSyntax ->
     let text = String.trim(source.body);
-    let public_text = if { String.starts_with(text, "pub ") -> String.trim(text.utf8_slice(4, text.byte_size() - 4)); true -> text };
-    let annotation_text = if {
-        String.starts_with(public_text, "annotation ") -> String.trim(public_text.utf8_slice(11, public_text.byte_size() - 11));
-        true -> ""
-    };
+    let public_text = schema_public_text(text);
+    let annotation_text = schema_annotation_text(public_text);
     let open = Delimited.top_level_byte(annotation_text, 123);
     let body_valid = open > 0 and String.ends_with(annotation_text, "}.");
-    let path = if { open > 0 -> String.trim(annotation_text.utf8_slice(0, open)); true -> "" };
-    let body = if { body_valid -> annotation_text.utf8_slice(open + 1, annotation_text.byte_size() - open - 3); true -> "" };
-    let entries = if { body_valid -> entries_at(drop_terminal_empty(Delimited.split_top_level(body, 59))); true -> List.new[AnnotationSchemaEntrySyntax]() };
+    let path = schema_path(annotation_text, open);
+    let body = schema_body(annotation_text, open, body_valid);
+    let entries = schema_entries(body, body_valid);
     let supported = source.class == AnnotationSchemaDeclaration;
-    AnnotationSchemaSyntax(supported and body_valid and path != "" and all_valid(entries), path, entries, source.is_public, source.span, if {
-            not supported -> "declaration is not an annotation schema";
-            path == "" -> "annotation schema path is empty";
-            not body_valid -> "annotation schema body is incomplete";
-            not all_valid(entries) -> first_error(entries);
-            true -> ""
-        }).
+    AnnotationSchemaSyntax(
+        supported and body_valid and path != "" and all_valid(entries),
+        path,
+        entries,
+        source.is_public,
+        source.span,
+        schema_message(supported, path, body_valid, entries),
+    ).

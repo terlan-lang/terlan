@@ -15,29 +15,52 @@ import std.io.File.
 
 import type std.data.Json.Json.
 
+string_value(value: Json): Option[String] ->
+    case value.as_string() {
+        Ok(text) -> Some(text);
+        Err(_reason) -> None
+    }.
+
 string_field(document: Json, name: String): Option[String] ->
     case document.get(name) {
         Err(_reason) -> None;
-        Ok(value) -> case value.as_string() {
-            Ok(text) -> Some(text);
-            Err(_reason) -> None
-        }
+        Ok(value) -> string_value(value)
+    }.
+
+decode_backend(document: Json, module_name: String, token_digest: String, syntax_digest: String, semantic_digest: String): Option[BootstrapArtifact] ->
+    case string_field(document, "backend_digest") {
+        Some(backend_digest) -> Some(BootstrapArtifact(module_name, token_digest, syntax_digest, semantic_digest, backend_digest));
+        None -> None
+    }.
+
+decode_semantic(document: Json, module_name: String, token_digest: String, syntax_digest: String): Option[BootstrapArtifact] ->
+    case string_field(document, "semantic_digest") {
+        Some(semantic_digest) -> decode_backend(document, module_name, token_digest, syntax_digest, semantic_digest);
+        None -> None
+    }.
+
+decode_syntax(document: Json, module_name: String, token_digest: String): Option[BootstrapArtifact] ->
+    case string_field(document, "syntax_digest") {
+        Some(syntax_digest) -> decode_semantic(document, module_name, token_digest, syntax_digest);
+        None -> None
+    }.
+
+decode_token(document: Json, module_name: String): Option[BootstrapArtifact] ->
+    case string_field(document, "token_digest") {
+        Some(token_digest) -> decode_syntax(document, module_name, token_digest);
+        None -> None
+    }.
+
+decode_document(document: Json): Option[BootstrapArtifact] ->
+    case string_field(document, "module_name") {
+        Some(module_name) -> decode_token(document, module_name);
+        None -> None
     }.
 
 decode(text: String): Option[BootstrapArtifact] ->
     case Json.parse(text) {
         Err(_reason) -> None;
-        Ok(document) -> case {
-            string_field(document, "module_name"),
-            string_field(document, "token_digest"),
-            string_field(document, "syntax_digest"),
-            string_field(document, "semantic_digest"),
-            string_field(document, "backend_digest"),
-        } {
-            {Some(module_name), Some(token_digest), Some(syntax_digest), Some(semantic_digest), Some(backend_digest)} ->
-                Some(BootstrapArtifact(module_name, token_digest, syntax_digest, semantic_digest, backend_digest));
-            _ -> None
-        }
+        Ok(document) -> decode_document(document)
     }.
 
 read(path: String): Option[BootstrapArtifact] ->
@@ -46,17 +69,28 @@ read(path: String): Option[BootstrapArtifact] ->
         Ok(text) -> decode(text)
     }.
 
+marker_text(fixed_point: Bool): String ->
+    if { fixed_point -> "fixed-point\n"; true -> "not-fixed-point\n" }.
+
+write_marker(marker: String, fixed_point: Bool): Bool ->
+    case File.write_text(marker, marker_text(fixed_point)) {
+        Ok(_unit) -> fixed_point;
+        Err(_reason) -> false
+    }.
+
+compare_candidate(left: BootstrapArtifact, candidate: Option[BootstrapArtifact], marker: String): Bool ->
+    case candidate {
+        Some(right) -> let parity = SelfHostBootstrapParity.compare(left, right);
+            write_marker(marker, parity.fixed_point);
+        None -> false
+    }.
+
+compare_reference(left: Option[BootstrapArtifact], candidate: String, marker: String): Bool ->
+    case left {
+        Some(value) -> compare_candidate(value, read(candidate), marker);
+        None -> false
+    }.
+
 /** Writes an exact marker only when every bootstrap stage digest is equal. */
 pub compare_files(reference: String, candidate: String, marker: String): Bool ->
-    case {read(reference), read(candidate)} {
-        {Some(left), Some(right)} ->
-            let parity = SelfHostBootstrapParity.compare(left, right);
-            case File.write_text(
-                marker,
-                if { parity.fixed_point -> "fixed-point\n"; true -> "not-fixed-point\n" },
-            ) {
-                Ok(_unit) -> parity.fixed_point;
-                Err(_reason) -> false
-            };
-        _ -> false
-    }.
+    compare_reference(read(reference), candidate, marker).

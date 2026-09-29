@@ -55,34 +55,43 @@ lowering_messages(values: List[IrLoweringDiagnostic]): List[String] ->
 validation_messages(values: List[IrDiagnostic]): List[String] ->
     validation_messages_at(values, List.new[String]()).
 
+@pure
+none_envelope(): Option[BackendEnvelope] -> None.
+
+@pure
+none_string(): Option[String] -> None.
+
+@pure
+failed_compilation(diagnostics: List[String]): BackendCompilation ->
+    BackendCompilation(
+        envelope = none_envelope(),
+        json = none_string(),
+        diagnostics = diagnostics,
+    ).
+
+encoded_compilation(envelope: BackendEnvelope): BackendCompilation ->
+    case SelfHostIrJson.encode(envelope) {
+        Ok(json) -> BackendCompilation(
+            envelope = Some(envelope),
+            json = Some(json),
+            diagnostics = List.new[String](),
+        );
+        Err(_) -> BackendCompilation(
+            envelope = Some(envelope),
+            json = None,
+            diagnostics = ["backend-json-encoding-failed"],
+        )
+    }.
+
 pub compile(plan: SemanticModulePlan, target: String): BackendCompilation ->
     let lowered = SelfHostSemanticIrLowering.lower(plan);
     case lowered.ir_module {
-        None -> BackendCompilation(
-            envelope = None,
-            json = None,
-            diagnostics = lowering_messages(lowered.diagnostics),
-        );
+        None -> failed_compilation(lowering_messages(lowered.diagnostics));
         Some(ir_module) ->
             let validation = SelfHostIrValidation.validate(ir_module);
             if {
-                not validation.valid -> BackendCompilation(
-                    envelope = None,
-                    json = None,
-                    diagnostics = validation_messages(validation.diagnostics),
-                );
+                not validation.valid -> failed_compilation(validation_messages(validation.diagnostics));
                 true -> let envelope = SelfHostBackendEnvelope.current(ir_module, target);
-                case SelfHostIrJson.encode(envelope) {
-                    Ok(json) -> BackendCompilation(
-                        envelope = Some(envelope),
-                        json = Some(json),
-                        diagnostics = List.new[String](),
-                    );
-                    Err(_) -> BackendCompilation(
-                        envelope = Some(envelope),
-                        json = None,
-                        diagnostics = ["backend-json-encoding-failed"],
-                    )
-                }
+                encoded_compilation(envelope)
             }
     }.

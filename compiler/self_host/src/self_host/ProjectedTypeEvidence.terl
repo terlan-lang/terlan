@@ -23,10 +23,17 @@ rows(values: List[ProjectedTypeNode], depth: Int): String ->
     }.
 
 @pure
+node_rows(value: Option[ProjectedTypeNode]): String ->
+    case value {
+        Some(node) -> rows([node], 0);
+        None -> ""
+    }.
+
+@pure
 pub document(value: ProjectedTypeResult): String ->
     String.concat([
         "schema terlan.self-host.type-tree/v1\nvalid\t",
         if { value.valid -> "true"; true -> "false" },
         "\ndepth\tkind\ttext\tstart\tend\n",
-        case value.node { Some(node) -> rows([node], 0); None -> "" },
+        node_rows(value.node),
     ]).

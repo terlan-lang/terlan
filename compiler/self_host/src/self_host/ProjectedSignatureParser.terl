@@ -81,6 +81,34 @@ declaration_tokens(
     }.
 
 @pure
+close_parens(text: String, current: Int): Int ->
+    if { text == ")" -> current - 1; true -> current }.
+
+@pure
+next_parens(text: String, current: Int): Int ->
+    if { text == "(" -> current + 1; true -> close_parens(text, current) }.
+
+@pure
+close_brackets(text: String, current: Int): Int ->
+    if { text == "]" -> current - 1; true -> current }.
+
+@pure
+next_brackets(text: String, current: Int): Int ->
+    if { text == "[" -> current + 1; true -> close_brackets(text, current) }.
+
+@pure
+close_braces(text: String, current: Int): Int ->
+    if { text == "}" -> current - 1; true -> current }.
+
+@pure
+next_braces(text: String, current: Int): Int ->
+    if { text == "{" -> current + 1; true -> close_braces(text, current) }.
+
+@pure
+split_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], delimiter: String, parens: Int, brackets: Int, braces: Int, output: List[ProjectedCanonicalToken]): TokenSplit ->
+    split_at(rest, delimiter, next_parens(value.text, parens), next_brackets(value.text, brackets), next_braces(value.text, braces), [value | output]).
+
+@pure
 split_at(
     values: List[ProjectedCanonicalToken],
     delimiter: String,
@@ -94,19 +122,24 @@ split_at(
         [value | rest]
             where value.text == delimiter and parens == 0 and brackets == 0 and braces == 0 ->
             TokenSplit(found = true, left = reverse(output), separator = Some(value), right = rest);
-        [value | rest] -> split_at(
-            rest,
-            delimiter,
-            if { value.text == "(" -> parens + 1; value.text == ")" -> parens - 1; true -> parens },
-            if { value.text == "[" -> brackets + 1; value.text == "]" -> brackets - 1; true -> brackets },
-            if { value.text == "{" -> braces + 1; value.text == "}" -> braces - 1; true -> braces },
-            [value | output],
-        )
+        [value | rest] -> split_continue(value, rest, delimiter, parens, brackets, braces, output)
     }.
 
 @pure
 split(values: List[ProjectedCanonicalToken], delimiter: String): TokenSplit ->
     split_at(values, delimiter, 0, 0, 0, List.new[ProjectedCanonicalToken]()).
+
+@pure
+close_group_depth(text: String, depth: Int): Int ->
+    if { text == ")" or text == "]" or text == "}" -> depth - 1; true -> depth }.
+
+@pure
+next_group_depth(text: String, depth: Int): Int ->
+    if { text == "(" or text == "[" or text == "{" -> depth + 1; true -> close_group_depth(text, depth) }.
+
+@pure
+group_continue(value: ProjectedCanonicalToken, rest: List[ProjectedCanonicalToken], close_text: String, depth: Int, output: List[ProjectedCanonicalToken]): GroupSlice ->
+    group_at(rest, close_text, next_group_depth(value.text, depth), [value | output]).
 
 @pure
 group_at(
@@ -119,23 +152,22 @@ group_at(
         [] -> GroupSlice(valid = false, inner = reverse(output), close = None, rest = List.new[ProjectedCanonicalToken]());
         [value | rest] where value.text == close_text and depth == 1 ->
             GroupSlice(valid = true, inner = reverse(output), close = Some(value), rest = rest);
-        [value | rest] -> group_at(
-            rest,
-            close_text,
-            if {
-                value.text == "(" or value.text == "[" or value.text == "{" -> depth + 1;
-                value.text == ")" or value.text == "]" or value.text == "}" -> depth - 1;
-                true -> depth
-            },
-            [value | output],
-        )
+        [value | rest] -> group_continue(value, rest, close_text, depth, output)
     }.
+
+@pure
+non_paren_close(text: String): String ->
+    if { text == "[" -> "]"; true -> "}" }.
+
+@pure
+group_close(text: String): String ->
+    if { text == "(" -> ")"; true -> non_paren_close(text) }.
 
 @pure
 group(opening: ProjectedCanonicalToken, values: List[ProjectedCanonicalToken]): GroupSlice ->
     group_at(
         values,
-        if { opening.text == "(" -> ")"; opening.text == "[" -> "]"; true -> "}" },
+        group_close(opening.text),
         1,
         List.new[ProjectedCanonicalToken](),
     ).
@@ -173,17 +205,33 @@ without_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanon
     }.
 
 @pure
+parameter_tokens(default_value: TokenSplit, values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
+    if { default_value.found -> default_value.left; true -> values }.
+
+@pure
+parameter_default(default_value: TokenSplit): String ->
+    if { default_value.found -> token_text(default_value.right); true -> "" }.
+
+@pure
+parameter_type_message(annotation_found: Bool, type_valid: Bool, type_message: String): String ->
+    if { annotation_found and not type_valid -> type_message; true -> "" }.
+
+@pure
+parameter_message(pattern_valid: Bool, pattern_message: String, annotation_found: Bool, type_valid: Bool, type_message: String): String ->
+    if { not pattern_valid -> pattern_message; true -> parameter_type_message(annotation_found, type_valid, type_message) }.
+
+@pure
 parameter(values: List[ProjectedCanonicalToken]): ProjectedParameterTree ->
     let default_value = split(values, "=");
-    let parameter_tokens = if { default_value.found -> default_value.left; true -> values };
-    let annotation = split(parameter_tokens, ":");
+    let parameter_source = parameter_tokens(default_value, values);
+    let annotation = split(parameter_source, ":");
     let pattern = ProjectedPatternParser.parse(annotation.left);
     let parsed_type = ProjectedTypeParser.parse(annotation.right);
-    ProjectedParameterTree(pattern.valid and (not annotation.found or parsed_type.valid), pattern.node, parsed_type.node, if { default_value.found -> token_text(default_value.right); true -> "" }, if {
-            not pattern.valid -> pattern.message;
-            annotation.found and not parsed_type.valid -> parsed_type.message;
-            true -> ""
-        }).
+    ProjectedParameterTree(pattern.valid and (not annotation.found or parsed_type.valid), pattern.node, parsed_type.node, parameter_default(default_value), parameter_message(pattern.valid, pattern.message, annotation.found, parsed_type.valid, parsed_type.message)).
+
+@pure
+parameters_continue(comma: TokenSplit, output: List[ProjectedParameterTree]): List[ProjectedParameterTree] ->
+    if { comma.found -> parameters_at(comma.right, [parameter(comma.left) | output]); true -> reverse([parameter(comma.left) | output]) }.
 
 @pure
 parameters_at(
@@ -194,15 +242,20 @@ parameters_at(
         values == [] -> reverse(output);
         true ->
             let comma = split(values, ",");
-            if {
-                comma.found -> parameters_at(comma.right, [parameter(comma.left) | output]);
-                true -> reverse([parameter(comma.left) | output])
-            }
+            parameters_continue(comma, output)
     }.
 
 @pure
 parameters_valid(values: List[ProjectedParameterTree]): Bool ->
     case values { [] -> true; [value | rest] -> value.valid and parameters_valid(rest) }.
+
+@pure
+callable_type_message(colon_found: Bool, return_valid: Bool, return_message: String): String ->
+    if { colon_found and not return_valid -> return_message; true -> "" }.
+
+@pure
+callable_message(parameters_are_valid: Bool, colon_found: Bool, return_valid: Bool, return_message: String): String ->
+    if { not parameters_are_valid -> "one or more callable parameters are invalid"; true -> callable_type_message(colon_found, return_valid, return_message) }.
 
 @pure
 callable_after_params(
@@ -212,11 +265,8 @@ callable_after_params(
 ): ProjectedCallableSignature ->
     let colon = split(values, ":");
     let return_type = ProjectedTypeParser.parse(colon.right);
-    ProjectedCallableSignature(parameters_valid(parameters) and (not colon.found or return_type.valid), Parser.declaration_head(declaration.text), parameters, return_type.node, declaration.span, if {
-            not parameters_valid(parameters) -> "one or more callable parameters are invalid";
-            colon.found and not return_type.valid -> return_type.message;
-            true -> ""
-        }).
+    let valid_parameters = parameters_valid(parameters);
+    ProjectedCallableSignature(valid_parameters and (not colon.found or return_type.valid), Parser.declaration_head(declaration.text), parameters, return_type.node, declaration.span, callable_message(valid_parameters, colon.found, return_type.valid, return_type.message)).
 
 @pure
 function_signature(
@@ -265,6 +315,34 @@ append_parameters(
     case left { [] -> right; [value | rest] -> [value | append_parameters(rest, right)] }.
 
 @pure
+representation_tokens(valued_union: Bool, assignment: TokenSplit, representation_separator: TokenSplit): List[ProjectedCanonicalToken] ->
+    if { valued_union -> representation_separator.right; true -> assignment_tokens(assignment) }.
+
+@pure
+assignment_tokens(assignment: TokenSplit): List[ProjectedCanonicalToken] ->
+    if { assignment.found -> assignment.right; true -> List.new[ProjectedCanonicalToken]() }.
+
+@pure
+optional_if[T](condition: Bool, value: Option[T]): Option[T] ->
+    if { condition -> value; true -> None }.
+
+@pure
+type_declaration_valid(assignment_found: Bool, representation_valid: Bool, is_opaque: Bool, atom_shorthand: Bool): Bool ->
+    if { assignment_found -> representation_valid; true -> type_without_assignment_valid(is_opaque, atom_shorthand) }.
+
+@pure
+type_without_assignment_valid(is_opaque: Bool, atom_shorthand: Bool): Bool ->
+    if { is_opaque -> true; true -> atom_shorthand }.
+
+@pure
+type_declaration_message(assignment_found: Bool, representation_valid: Bool, representation_message: String, is_opaque: Bool, atom_shorthand: Bool): String ->
+    if { assignment_found and not representation_valid -> representation_message; true -> missing_representation_message(assignment_found, is_opaque, atom_shorthand) }.
+
+@pure
+missing_representation_message(assignment_found: Bool, is_opaque: Bool, atom_shorthand: Bool): String ->
+    if { not assignment_found and not is_opaque and not atom_shorthand -> "generic type declaration is missing = representation"; true -> "" }.
+
+@pure
 type_declaration(
     tokens: List[ProjectedCanonicalToken],
     declaration: ProjectedSurfaceDeclaration,
@@ -275,27 +353,29 @@ type_declaration(
     let valued_union = assignment.found and representation_separator.found;
     let generic_head = split(values, "[");
     let atom_shorthand = not assignment.found and not generic_head.found;
-    let representation_tokens = if {
-        valued_union -> representation_separator.right;
-        assignment.found -> assignment.right;
-        true -> List.new[ProjectedCanonicalToken]()
-    };
-    let representation = if {
-        assignment.found -> ProjectedTypeParser.parse(representation_tokens);
-        true -> ProjectedTypeParser.parse(List.new[ProjectedCanonicalToken]())
-    };
+    let representation_source = representation_tokens(valued_union, assignment, representation_separator);
+    let representation = ProjectedTypeParser.parse(representation_source);
     let is_opaque = declaration.class == OpaqueTypeDeclaration;
-    let representation_node = if { assignment.found -> representation.node; true -> None };
-    ProjectedTypeDeclarationTree(if {
-            assignment.found -> representation.valid;
-            is_opaque -> true;
-            atom_shorthand -> true;
-            true -> false
-        }, Parser.declaration_head(declaration.text), representation_node, is_opaque, declaration.span, if {
-            assignment.found and not representation.valid -> representation.message;
-            not assignment.found and not is_opaque and not atom_shorthand -> "generic type declaration is missing = representation";
-            true -> ""
-        }).
+    let representation_node = optional_if(assignment.found, representation.node);
+    ProjectedTypeDeclarationTree(
+        type_declaration_valid(assignment.found, representation.valid, is_opaque, atom_shorthand),
+        Parser.declaration_head(declaration.text),
+        representation_node,
+        is_opaque,
+        declaration.span,
+        type_declaration_message(assignment.found, representation.valid, representation.message, is_opaque, atom_shorthand),
+    ).
+
+@pure
+non_method_callable(tokens: List[ProjectedCanonicalToken], value: ProjectedSurfaceDeclaration, rest: List[ProjectedSurfaceDeclaration]): List[ProjectedCallableSignature] ->
+    if {
+        value.class == FunctionDeclaration or value.class == ConstFunctionDeclaration -> [function_signature(tokens, value) | callables_at(tokens, rest)];
+        true -> callables_at(tokens, rest)
+    }.
+
+@pure
+callable_declaration(tokens: List[ProjectedCanonicalToken], value: ProjectedSurfaceDeclaration, rest: List[ProjectedSurfaceDeclaration]): List[ProjectedCallableSignature] ->
+    if { value.class == MethodDeclaration -> [method_signature(tokens, value) | callables_at(tokens, rest)]; true -> non_method_callable(tokens, value, rest) }.
 
 @pure
 callables_at(
@@ -304,12 +384,7 @@ callables_at(
 ): List[ProjectedCallableSignature] ->
     case declarations {
         [] -> List.new[ProjectedCallableSignature]();
-        [value | rest] where value.class == MethodDeclaration ->
-            [method_signature(tokens, value) | callables_at(tokens, rest)];
-        [value | rest]
-            where value.class == FunctionDeclaration or value.class == ConstFunctionDeclaration ->
-            [function_signature(tokens, value) | callables_at(tokens, rest)];
-        [_value | rest] -> callables_at(tokens, rest)
+        [value | rest] -> callable_declaration(tokens, value, rest)
     }.
 
 @pure

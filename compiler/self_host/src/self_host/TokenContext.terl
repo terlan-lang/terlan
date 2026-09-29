@@ -62,6 +62,62 @@ nominal_keyed_open(token: CanonicalToken, previous: Option[CanonicalToken]): Boo
     }.
 
 @pure
+balanced_after_close_target(
+    token: CanonicalToken,
+    rest: List[CanonicalToken],
+    opening: String,
+    closing: String,
+    depth: Int,
+    expected: String,
+): Bool ->
+    if {
+        token.terminal == closing -> balanced_followed_by(rest, opening, closing, depth - 1, expected);
+        true -> balanced_followed_by(rest, opening, closing, depth, expected)
+    }.
+
+@pure
+balanced_after_open(
+    token: CanonicalToken,
+    rest: List[CanonicalToken],
+    opening: String,
+    closing: String,
+    depth: Int,
+    expected: String,
+): Bool ->
+    if {
+        token.terminal == closing and depth == 1 -> next_is(next_significant(rest), expected);
+        true -> balanced_after_close_target(token, rest, opening, closing, depth, expected)
+    }.
+
+@pure
+balanced_after_trivia(
+    token: CanonicalToken,
+    rest: List[CanonicalToken],
+    opening: String,
+    closing: String,
+    depth: Int,
+    expected: String,
+): Bool ->
+    if {
+        token.terminal == opening -> balanced_followed_by(rest, opening, closing, depth + 1, expected);
+        true -> balanced_after_open(token, rest, opening, closing, depth, expected)
+    }.
+
+@pure
+balanced_token(
+    token: CanonicalToken,
+    rest: List[CanonicalToken],
+    opening: String,
+    closing: String,
+    depth: Int,
+    expected: String,
+): Bool ->
+    if {
+        is_trivia(token.category) -> balanced_followed_by(rest, opening, closing, depth, expected);
+        true -> balanced_after_trivia(token, rest, opening, closing, depth, expected)
+    }.
+
+@pure
 balanced_followed_by(
     tokens: List[CanonicalToken],
     opening: String,
@@ -71,13 +127,7 @@ balanced_followed_by(
 ): Bool ->
     case tokens {
         [] -> false;
-        [token | rest] -> if {
-            is_trivia(token.category) -> balanced_followed_by(rest, opening, closing, depth, expected);
-            token.terminal == opening -> balanced_followed_by(rest, opening, closing, depth + 1, expected);
-            token.terminal == closing and depth == 1 -> next_is(next_significant(rest), expected);
-            token.terminal == closing -> balanced_followed_by(rest, opening, closing, depth - 1, expected);
-            true -> balanced_followed_by(rest, opening, closing, depth, expected)
-        }
+        [token | rest] -> balanced_token(token, rest, opening, closing, depth, expected)
     }.
 
 @pure
@@ -136,6 +186,166 @@ tight_bracket_followed_by(token: CanonicalToken, previous: Option[CanonicalToken
     token.terminal == "[" and previous_is_tight_name(previous, token) and balanced_followed_by(rest, "[", "]", 1, expected).
 
 @pure
+contextualize_after_generic(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+): CanonicalToken ->
+    if {
+        nominal_keyed_open(token, previous) -> with_terminal(token, "nominal-keyed-{");
+        true -> token
+    }.
+
+@pure
+contextualize_after_binary(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        tight_bracket_followed_by(token, previous, rest, "(") -> with_terminal(token, "generic-call-[");
+        true -> contextualize_after_generic(token, previous)
+    }.
+
+@pure
+contextualize_after_lambda(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        tight_bracket_followed_by(token, previous, rest, "{") -> with_terminal(token, "binary-layout-[");
+        true -> contextualize_after_binary(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_function_clause(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        lambda_open(token, rest) -> with_terminal(token, "lambda-(");
+        true -> contextualize_after_lambda(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_remote_call(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        function_clause_open(token, previous, rest) -> with_terminal(token, "function-clause-(");
+        true -> contextualize_after_function_clause(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_negative_impl(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        remote_call_colon(token, previous, rest) -> with_terminal(token, "remote-call-colon");
+        true -> contextualize_after_remote_call(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_markdown(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        negative_impl(token, previous) -> with_terminal(token, "negative-impl-not");
+        true -> contextualize_after_negative_impl(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_css(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        asset_keyword(token, next, "markdown") -> with_terminal(token, "asset-markdown");
+        true -> contextualize_after_markdown(token, previous, rest)
+    }.
+
+@pure
+contextualize_after_file(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        asset_keyword(token, next, "css") -> with_terminal(token, "asset-css");
+        true -> contextualize_after_css(token, previous, next, rest)
+    }.
+
+@pure
+contextualize_after_closing_semicolon(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        asset_keyword(token, next, "file") -> with_terminal(token, "asset-file");
+        true -> contextualize_after_file(token, previous, next, rest)
+    }.
+
+@pure
+contextualize_after_tight_dot(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        closing_semicolon(token, next) -> with_terminal(token, "closing-semicolon");
+        true -> contextualize_after_closing_semicolon(token, previous, next, rest)
+    }.
+
+@pure
+contextualize_after_selector_dot(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        tight_dot(token, next) -> with_terminal(token, "tight-dot");
+        true -> contextualize_after_tight_dot(token, previous, next, rest)
+    }.
+
+@pure
+contextualize_after_placeholder(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        token_before(token, next, "{") -> with_terminal(token, "selector-dot");
+        true -> contextualize_after_selector_dot(token, previous, next, rest)
+    }.
+
+@pure
+contextualize_after_raw(
+    token: CanonicalToken,
+    previous: Option[CanonicalToken],
+    next: Option[CanonicalToken],
+    rest: List[CanonicalToken],
+): CanonicalToken ->
+    if {
+        token.text == "_" -> with_terminal(token, "placeholder");
+        true -> contextualize_after_placeholder(token, previous, next, rest)
+    }.
+
+@pure
 contextualize_one(
     token: CanonicalToken,
     previous: Option[CanonicalToken],
@@ -145,26 +355,19 @@ contextualize_one(
     if {
         token.category == StringToken and token.text.utf8_byte_at(0) == 39 ->
             with_terminal(token, "raw-quoted-text");
-        token.text == "_" -> with_terminal(token, "placeholder");
-        token_before(token, next, "{") -> with_terminal(token, "selector-dot");
-        tight_dot(token, next) -> with_terminal(token, "tight-dot");
-        closing_semicolon(token, next) -> with_terminal(token, "closing-semicolon");
-        asset_keyword(token, next, "file") -> with_terminal(token, "asset-file");
-        asset_keyword(token, next, "css") -> with_terminal(token, "asset-css");
-        asset_keyword(token, next, "markdown") -> with_terminal(token, "asset-markdown");
-        negative_impl(token, previous) -> with_terminal(token, "negative-impl-not");
-        remote_call_colon(token, previous, rest) -> with_terminal(token, "remote-call-colon");
-        function_clause_open(token, previous, rest) -> with_terminal(token, "function-clause-(");
-        lambda_open(token, rest) -> with_terminal(token, "lambda-(");
-        tight_bracket_followed_by(token, previous, rest, "{") -> with_terminal(token, "binary-layout-[");
-        tight_bracket_followed_by(token, previous, rest, "(") -> with_terminal(token, "generic-call-[");
-        nominal_keyed_open(token, previous) -> with_terminal(token, "nominal-keyed-{");
-        true -> token
+        true -> contextualize_after_raw(token, previous, next, rest)
     }.
 
 @pure
 reverse_at[T](values: List[T], output: List[T]): List[T] ->
     case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+next_previous(previous: Option[CanonicalToken], token: CanonicalToken): Option[CanonicalToken] ->
+    if {
+        is_trivia(token.category) -> previous;
+        true -> some_token(token)
+    }.
 
 @pure
 project_at(
@@ -176,8 +379,7 @@ project_at(
         [] -> reverse_at(output, List.new[CanonicalToken]());
         [token | rest] ->
             let rewritten = contextualize_one(token, previous, next_significant(rest), rest);
-            let next_previous = if { is_trivia(token.category) -> previous; true -> some_token(token) };
-            project_at(rest, next_previous, [rewritten | output])
+            project_at(rest, next_previous(previous, token), [rewritten | output])
     }.
 
 /** Projects context-sensitive grammar terminals without changing token spans. */

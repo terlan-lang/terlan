@@ -12,6 +12,14 @@ import self_host.ProjectedCallableSyntax.{CallableResolution, ResolvedCallableUs
 import self_host.ProjectedTypeConstraintSyntax.
 
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+
+@pure
+declaration_return_type(value: ResolvedCallableUse): Option[String] ->
+    case value.declaration {
+        Some(declaration) -> declaration.return_type;
+        None -> None
+    }.
+
 @pure
 return_type_at(
     byte_offset: Int,
@@ -20,10 +28,7 @@ return_type_at(
     case values {
         [] -> None;
         [value | rest] -> if {
-            value.source.byte_offset == byte_offset -> case value.declaration {
-                Some(declaration) -> declaration.return_type;
-                None -> None
-            };
+            value.source.byte_offset == byte_offset -> declaration_return_type(value);
             true -> return_type_at(byte_offset, rest)
         }
     }.
