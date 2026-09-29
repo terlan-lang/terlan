@@ -27,6 +27,7 @@ mod values;
 use values::*;
 
 #[cfg(test)]
+#[path = "scheduling/scheduling_test.rs"]
 mod tests;
 
 /// A single registry prevents cross-kind aliases, including Fault/Scheduler Policy.
