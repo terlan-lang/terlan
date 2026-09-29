@@ -109,9 +109,7 @@ pub set_map_transforms_values(): Bool ->
         1
         |> Set(2)
         |> Enumerable[Set].map(square_int);
-    assert_equal(2, mapped.size())
-        and assert_equal(true, mapped.contains(4))
-        and assert_equal(false, mapped.contains(2)).
+    assert_equal({2, true, false}, {mapped.size(), mapped.contains(4), mapped.contains(2)}).
 
 @test
 pub set_filter_keeps_matching_values(): Bool ->
