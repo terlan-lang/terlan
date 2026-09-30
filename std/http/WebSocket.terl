@@ -7,36 +7,144 @@
  */
 module std.http.WebSocket.
 
+import std.collections.List.
+
+import type std.collections.List.
+
 /**
- * Frame represents one outbound WebSocket data or control frame.
+ * TextFrame carries one outbound WebSocket text payload.
  *
  * Input: typed text or control-frame metadata.
- * Output: an opaque frame descriptor owned by the HTTP runtime.
+ * Output: a source-owned tagged text-frame value.
  * Transformation: hides raw WebSocket frame bytes while preserving typed
- * handler code that can later be lowered into VM channel sends.
+ * handler code without allocating a connection or native resource.
  */
-pub opaque type Frame.
+pub type TextFrame = {Atom["text"], value: String}.
+
+/**
+ * PingFrame carries an outbound heartbeat payload.
+ *
+ * Input: one UTF-8 payload.
+ * Output: a source-owned tagged control-frame value.
+ * Transformation: records intent; transport admission validates byte limits.
+ */
+pub type PingFrame = {Atom["ping"], value: String}.
+
+/**
+ * PongFrame carries an outbound heartbeat response.
+ *
+ * Input: one UTF-8 payload.
+ * Output: a source-owned tagged control-frame value.
+ * Transformation: preserves payload bytes without performing socket I/O.
+ */
+pub type PongFrame = {Atom["pong"], value: String}.
+
+/**
+ * CloseFrame represents a request to close the channel.
+ *
+ * Input: none.
+ * Output: a singleton close intent.
+ * Transformation: separates close intent from transport lifecycle execution.
+ */
+pub type CloseFrame = Atom["close"].
+
+/**
+ * Frame is an outbound text or control-frame intent.
+ *
+ * Input: a text, ping, pong, or close value.
+ * Output: a source-owned discriminated union.
+ * Transformation: permits ordinary pattern matching without native handles.
+ */
+pub type Frame = TextFrame | PingFrame | PongFrame | CloseFrame.
 
 /**
  * Endpoint represents one WebSocket route policy.
  *
  * Input: inbound queue and frame-size settings.
- * Output: an opaque endpoint plan consumed by router/runtime lowering.
+ * Output: a source-owned endpoint policy validated when a route is admitted.
  * Transformation: keeps live connection state out of source values while
  * allowing route declarations to install explicit WebSocket limits.
  */
-pub opaque type Endpoint.
+pub struct Endpoint {
+    max_pending_frames: Int,
+    max_frame_bytes: Int,
+    #policies: List[Policy],
+}.
+
+type Callbacks =
+      {
+          Atom["callbacks"],
+          open: () -> Unit,
+          inbound: (String) -> Unit,
+          writable: () -> Unit,
+          close: () -> Unit,
+          cancellation: (String) -> Unit
+      }.
+
+type Pairing =
+      {
+          Atom["pairing"],
+          waiting: String,
+          first_matched: String,
+          second_matched: String,
+          peer_left: String,
+          inbound: (String) -> String,
+          cancellation: (String) -> Unit
+      }.
+
+type StatefulInbound = (String, Int, String, String, String) -> {String, String, String}.
+
+type Matched = (String, Int, String, String) -> String.
+
+type Restored = (String, String, Int, String, String) -> String.
+
+type StatefulPairing =
+      {
+          Atom["stateful_pairing"],
+          waiting: String,
+          first_matched: String,
+          second_matched: String,
+          peer_left: String,
+          inbound: StatefulInbound,
+          cancellation: (String) -> Unit
+      }.
+
+type RestorablePairing =
+      {
+          Atom["restorable_pairing"],
+          waiting: () -> String,
+          peer_left: () -> String,
+          room_query: String,
+          player_query: String,
+          room_prefix: String,
+          first_player: String,
+          second_player: String,
+          retention_ms: Int,
+          retained_room_capacity: Int,
+          matched: Matched,
+          restored: Restored,
+          inbound: StatefulInbound,
+          cancellation: (String) -> Unit
+      }.
+
+type Policy = Callbacks | Pairing | StatefulPairing | RestorablePairing.
+
+append_policy(endpoint: Endpoint, policy: Policy): Endpoint ->
+    Endpoint {
+        max_pending_frames: endpoint.max_pending_frames,
+        max_frame_bytes: endpoint.max_frame_bytes,
+        #policies: List.concat(endpoint.#policies, [policy]),
+    }.
 
 /**
  * Installs the complete generated callback set for an endpoint.
  *
- * Input: one endpoint and static callbacks for open, inbound frame, writable,
+ * Input: one endpoint and source callbacks for open, inbound frame, writable,
  * graceful close, and cancellation lifecycle events.
  * Output: the endpoint with one callback set attached.
- * Transformation: keeps callback identities in compiler-owned route metadata
- * while the VM owns invocation, suspension, resumption, and cleanup.
+ * Transformation: retains callbacks as ordinary source values without invoking
+ * them. Duplicate/conflicting declarations remain visible to route admission.
  */
-@compiler.intrinsic
 pub (endpoint: Endpoint) callbacks(
     open: () -> Unit,
     inbound: (String) -> Unit,
@@ -44,7 +152,7 @@ pub (endpoint: Endpoint) callbacks(
     close: () -> Unit,
     cancellation: (String) -> Unit,
 ): Endpoint ->
-    endpoint.
+    append_policy(endpoint, Callbacks(open, inbound, writable, close, cancellation)).
 
 /**
  * Installs a two-peer session policy with source-owned protocol payloads.
@@ -54,7 +162,6 @@ pub (endpoint: Endpoint) callbacks(
  * inbound callback result to the pair, and notifies the remaining peer when a
  * connection closes.
  */
-@compiler.intrinsic
 pub (endpoint: Endpoint) paired_callbacks(
     waiting: String,
     first_matched: String,
@@ -63,7 +170,10 @@ pub (endpoint: Endpoint) paired_callbacks(
     inbound: (String) -> String,
     cancellation: (String) -> Unit,
 ): Endpoint ->
-    endpoint.
+    append_policy(
+        endpoint,
+        Pairing(waiting, first_matched, second_matched, peer_left, inbound, cancellation),
+    ).
 
 /**
  * Installs a stateful two-peer session policy.
@@ -74,7 +184,6 @@ pub (endpoint: Endpoint) paired_callbacks(
  * two original HTTP request targets. It returns the next state followed by
  * independently addressed payloads for the first and second peer.
  */
-@compiler.intrinsic
 pub (endpoint: Endpoint) stateful_paired_callbacks(
     waiting: String,
     first_matched: String,
@@ -83,7 +192,10 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(
     inbound: (String, Int, String, String, String) -> {String, String, String},
     cancellation: (String) -> Unit,
 ): Endpoint ->
-    endpoint.
+    append_policy(
+        endpoint,
+        StatefulPairing(waiting, first_matched, second_matched, peer_left, inbound, cancellation),
+    ).
 
 /**
  * Installs a restorable stateful two-peer session policy.
@@ -96,7 +208,6 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(
  * Fully disconnected rooms remain reclaimable for `retention_ms`, with the
  * oldest disconnected room evicted when `retained_room_capacity` is exceeded.
  */
-@compiler.intrinsic
 pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(
     waiting: () -> String,
     peer_left: () -> String,
@@ -112,19 +223,34 @@ pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(
     inbound: (String, Int, String, String, String) -> {String, String, String},
     cancellation: (String) -> Unit,
 ): Endpoint ->
-    endpoint.
+    append_policy(
+        endpoint,
+        RestorablePairing(
+            waiting,
+            peer_left,
+            room_query,
+            player_query,
+            room_prefix,
+            first_player,
+            second_player,
+            retention_ms,
+            retained_room_capacity,
+            matched,
+            restored,
+            inbound,
+            cancellation,
+        ),
+    ).
 
 /**
  * Creates an outbound text frame.
  *
  * Input: one UTF-8 text payload.
  * Output: a `Frame` with text payload semantics.
- * Transformation: delegates target frame construction to the VM WebSocket
- * runtime without exposing raw opcode or masking details.
+ * Transformation: constructs the ordinary TextFrame variant without encoding wire bytes.
  */
-@compiler.native {std.http.websocket.text}
 pub text(value: String): Frame ->
-    native.
+    TextFrame(value).
 
 /**
  * Creates an outbound ping control frame.
@@ -134,9 +260,8 @@ pub text(value: String): Frame ->
  * Transformation: records typed ping intent while the VM runtime owns wire
  * encoding and payload-size validation.
  */
-@compiler.native {std.http.websocket.ping}
 pub ping(value: String): Frame ->
-    native.
+    PingFrame(value).
 
 /**
  * Creates an outbound pong control frame.
@@ -146,9 +271,8 @@ pub ping(value: String): Frame ->
  * Transformation: records typed pong intent for heartbeat handlers without
  * exposing protocol bytes.
  */
-@compiler.native {std.http.websocket.pong}
 pub pong(value: String): Frame ->
-    native.
+    PongFrame(value).
 
 /**
  * Creates an outbound close control frame.
@@ -158,9 +282,8 @@ pub pong(value: String): Frame ->
  * Transformation: records deterministic close intent while stream shutdown and
  * cleanup remain VM-owned runtime behavior.
  */
-@compiler.native {std.http.websocket.close}
 pub close(): Frame ->
-    native.
+    CloseFrame.
 
 /**
  * Creates a WebSocket endpoint plan.
@@ -170,6 +293,9 @@ pub close(): Frame ->
  * Transformation: records explicit channel bounds for the VM HTTP runtime
  * without allocating a live socket at source evaluation time.
  */
-@compiler.native {std.http.websocket.endpoint}
 pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65536): Endpoint ->
-    native.
+    Endpoint {
+        max_pending_frames: max_pending_frames,
+        max_frame_bytes: max_frame_bytes,
+        #policies: [],
+    }.

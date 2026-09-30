@@ -4,7 +4,13 @@ use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 mod constructor_functions;
 #[path = "core_lowering/default_arguments.rs"]
 mod default_arguments;
+#[path = "core_lowering/implementation_dependencies.rs"]
+mod implementation_dependencies;
 mod imported_atoms;
+mod imported_nominals;
+mod opaque_values;
+#[path = "core_lowering/receiver_defaults.rs"]
+mod receiver_defaults;
 
 /// Lowers resolved formal compiler state to the current core boundary.
 ///
@@ -118,6 +124,7 @@ pub fn lower_syntax_module_output_to_core(
         resolved,
         &core.constructors,
     );
+    receiver_defaults::materialize(&mut prepared_module);
     let (mut prepared_module, _) =
         super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
@@ -199,6 +206,7 @@ pub fn lower_syntax_module_output_to_core(
         );
     }
     let native_operations = core_syntax_native_operations(module);
+    opaque_values::lower(module, &mut function_clauses);
     let constructor_identities = core_constructor_identities(module, resolved, &core.constructors);
     resolve_constructor_identities_in_function_clauses(
         &mut function_clauses,
@@ -215,6 +223,8 @@ pub fn lower_syntax_module_output_to_core(
     }
     rewrite_structural_impl_calls(&mut core.functions, &structural_impl_dispatch);
     rewrite_concrete_trait_calls(&mut core.functions, resolved);
+    imported_nominals::qualify(&mut core, resolved);
+    implementation_dependencies::retain(&mut core, resolved);
     core.functions.sort_by(|left, right| {
         left.name
             .cmp(&right.name)
@@ -715,6 +725,8 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 ..
             } => Some(CoreFunction {
                 receiver_method: false,
+                receiver_mutable: false,
+                receiver_command: false,
                 trait_method: None,
                 source: None,
                 name: name.clone(),
@@ -745,6 +757,9 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 core_params.extend(params.iter().map(core_syntax_param));
                 Some(CoreFunction {
                     receiver_method: true,
+                    receiver_mutable: receiver.is_mutable,
+                    receiver_command: receiver.is_mutable
+                        && super::declarations::is_unit_type_text(&return_type.text),
                     trait_method: None,
                     source: None,
                     name: name.clone(),

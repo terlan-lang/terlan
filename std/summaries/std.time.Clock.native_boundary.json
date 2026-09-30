@@ -1,0 +1,18 @@
+{
+  "functions": [
+    {
+      "arity": 0,
+      "name": "unix_time_ns",
+      "operation": "std.time.clock.unix_time_ns"
+    },
+    {
+      "arity": 0,
+      "name": "monotonic_time_ns",
+      "operation": "std.time.clock.monotonic_time_ns"
+    }
+  ],
+  "module": "std_time_clock_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.time.Clock"
+}

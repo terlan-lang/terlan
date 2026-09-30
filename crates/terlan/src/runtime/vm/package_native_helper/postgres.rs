@@ -64,6 +64,11 @@ impl Adapter {
             .package_arguments
             .as_deref()
             .ok_or("error[postgres.arguments]: database operation requires source arguments")?;
+        if crate::std_native_packages::postgres::operation_arity(&request.operation)
+            != Some(args.len())
+        {
+            return Err("error[postgres.arguments]: unsupported database call shape".into());
+        }
         let (arguments, projection) = match (operation, args) {
             ("connect", [ReplValue::Record { fields, .. }]) => {
                 let url = fields

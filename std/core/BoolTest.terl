@@ -77,3 +77,11 @@ pub from_string_parses_false(): Bool ->
 @test
 pub from_string_rejects_unknown_text(): Bool ->
     assert_equal(None, from_string("yes")).
+
+render_with[T](value: T, render: (T) -> String): String ->
+    render(value).
+
+@test
+pub generic_receiver_loads_show_implementation_without_explicit_import(): Bool ->
+    assert_equal("true", render_with(true, (value) -> value.to_string()))
+        and assert_equal("false", render_with(false, (value) -> value.to_string())).

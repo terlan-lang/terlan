@@ -2,25 +2,41 @@
  * Portable HTTP request contract.
  *
  * `std.http.Request` exposes request helpers used by Terlan HTTP handlers.
- * Runtime servers own the concrete request representation; source code works
- * with typed receivers and portable `Result` values.
+ * The package owns the request value and its accessors. Servers populate its
+ * fields after parsing HTTP; no native handle is needed to read a request.
  */
 module std.http.Request.
 
-import type std.core.{Error, Option, Result}.
-import type std.data.Json.
+import type std.core.{Option, Result}.
+import std.core.Error.
+import std.core.Result.{Ok, Err}.
+import std.core.Option.{None}.
+import std.data.Json.
+import std.collections.Map.
+import std.core.String.
 import type std.http.Cookies.Jar.
+
+type InvalidBody = Atom["http.body_json"].
 
 /**
  * Request represents one HTTP request received by a Terlan server.
  *
  * Input: no type parameter.
- * Output: an opaque request handle whose runtime representation is target
- * owned.
- * Transformation: hides server-specific request storage while preserving a
- * stable typed receiver for handler functions.
+ * Output: an immutable managed value with private request fields.
+ * Transformation: separates parsed HTTP data from transport storage.
  */
-pub opaque type Request.
+pub struct Request {
+    #method: String,
+    #path: String,
+    #params: Map[String, String],
+    #body: String,
+    #query_string: String,
+    #query: Map[String, String],
+    #headers: Map[String, String],
+    #cookies: Map[String, String],
+    #cookie_jar: Jar,
+    #body_file_path: String,
+}.
 
 /**
  * Returns the HTTP method.
@@ -30,9 +46,8 @@ pub opaque type Request.
  * Transformation: reads server-owned request metadata without exposing the
  * concrete request implementation.
  */
-@compiler.native {std.http.request.method}
 pub (request: Request) method(): String ->
-    native.
+    request.#method.
 
 /**
  * Returns the request path.
@@ -42,9 +57,8 @@ pub (request: Request) method(): String ->
  * Transformation: reads server-owned request metadata without exposing the
  * concrete request implementation.
  */
-@compiler.native {std.http.request.path}
 pub (request: Request) path(): String ->
-    native.
+    request.#path.
 
 /**
  * Returns a route parameter value.
@@ -55,9 +69,8 @@ pub (request: Request) path(): String ->
  * Transformation: reads decoded route parameters captured by the generated
  * router manifest.
  */
-@compiler.native {std.http.request.param}
 pub (request: Request) param(name: String): Option[String] ->
-    native.
+    request.#params.get(name).
 
 /**
  * Returns a query parameter value.
@@ -67,9 +80,8 @@ pub (request: Request) param(name: String): Option[String] ->
  * `None`.
  * Transformation: reads decoded query parameters supplied by the server bridge.
  */
-@compiler.native {std.http.request.query}
 pub (request: Request) query(name: String): Option[String] ->
-    native.
+    request.#query.get(name).
 
 /**
  * Returns the raw query string.
@@ -81,9 +93,8 @@ pub (request: Request) query(name: String): Option[String] ->
  * splitting it, so handlers can preserve the exact incoming query text when
  * needed.
  */
-@compiler.native {std.http.request.query_string}
 pub (request: Request) query_string(): String ->
-    native.
+    request.#query_string.
 
 /**
  * Returns a request header value.
@@ -94,9 +105,11 @@ pub (request: Request) query_string(): String ->
  * Transformation: reads normalized request-header metadata supplied by the
  * server bridge without exposing backend header storage.
  */
-@compiler.native {std.http.request.header}
 pub (request: Request) header(name: String): Option[String] ->
-    native.
+    if {
+        name.byte_size() == name.length() -> request.#headers.get(name.lowercase());
+        true -> None
+    }.
 
 /**
  * Returns a request cookie value.
@@ -107,9 +120,8 @@ pub (request: Request) header(name: String): Option[String] ->
  * Transformation: reads parsed request-cookie metadata supplied by the server
  * bridge.
  */
-@compiler.native {std.http.request.cookie}
 pub (request: Request) cookie(name: String): Option[String] ->
-    native.
+    request.#cookies.get(name).
 
 /**
  * Returns the request-scoped cookie jar.
@@ -120,9 +132,8 @@ pub (request: Request) cookie(name: String): Option[String] ->
  * Transformation: asks the HTTP runtime for the request-owned cookie view
  * without exposing raw headers or response-header threading to handlers.
  */
-@compiler.native {std.http.request.cookies}
 pub (request: Request) cookies(): Jar ->
-    native.
+    request.#cookie_jar.
 
 /**
  * Returns the request body as text.
@@ -132,9 +143,8 @@ pub (request: Request) cookies(): Jar ->
  * Transformation: reads target-owned request body storage without parsing it
  * as JSON or form data.
  */
-@compiler.native {std.http.request.body_text}
 pub (request: Request) body_text(): String ->
-    native.
+    request.#body.
 
 /**
  * Returns the server-owned temporary file path for a binary request body.
@@ -145,9 +155,8 @@ pub (request: Request) body_text(): String ->
  * Transformation: exposes only the path allocated by the server for this
  * request; the server removes the file after the handler completes.
  */
-@compiler.native {std.http.request.body_file_path}
 pub (request: Request) body_file_path(): String ->
-    native.
+    request.#body_file_path.
 
 /**
  * Parses the request body as JSON.
@@ -159,6 +168,8 @@ pub (request: Request) body_file_path(): String ->
  * to the native JSON capability, and normalizes body/parse failures into a
  * portable core error.
  */
-@compiler.native {std.http.request.body_json}
 pub (request: Request) body_json(): Result[Json, Error] ->
-    native.
+    case Json.parse(request.body_text()) {
+        Ok(value) -> Ok(value);
+        Err(reason) -> Err(Error.new(InvalidBody, Json.error_message(reason)))
+    }.

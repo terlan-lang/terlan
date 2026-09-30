@@ -221,6 +221,12 @@ fn encode_value(
         ));
     }
     match value {
+        ReplValue::Closure(_) => {
+            return Err(
+                "error[tetf_function]: executable closures are local to their admitted image"
+                    .to_string(),
+            );
+        }
         ReplValue::Unit => bytes.push(TAG_UNIT)?,
         ReplValue::Bool(false) => bytes.push(TAG_FALSE)?,
         ReplValue::Bool(true) => bytes.push(TAG_TRUE)?,

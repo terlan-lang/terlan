@@ -1,5 +1,19 @@
 use super::*;
 
+pub(crate) use terlan_http_native::http1::request_wants_http1_close;
+#[cfg(test)]
+pub(crate) use terlan_http_native::http1::{
+    find_header_end, incomplete_http1_request_error, parse_http1_request_headers, HTTP_BODY_LIMIT,
+    HTTP_HEADER_LIMIT,
+};
+
+pub(crate) fn try_parse_http1_request_buffer(
+    buffer: &[u8],
+) -> Result<Option<(http::Request<String>, usize)>, String> {
+    terlan_http_native::http1::try_parse_http1_request_buffer(buffer)
+        .map_err(|failure| failure.message)
+}
+
 /// Actor ownership and retained state for one pollable HTTP exchange.
 pub(crate) struct VmHttpActorExchange<'a> {
     pub(super) processes: &'a mut VmProcessTable,
@@ -707,20 +721,6 @@ fn complete_polled_tls_http_exchange(
     }))
 }
 
-/// Returns whether an HTTP/1 request asks the server to close the connection.
-pub(crate) fn request_wants_http1_close(request: &::http::Request<String>) -> bool {
-    request
-        .headers()
-        .get(::http::header::CONNECTION)
-        .and_then(|value| value.to_str().ok())
-        .map(|value| {
-            value
-                .split(',')
-                .any(|part| part.trim().eq_ignore_ascii_case("close"))
-        })
-        .unwrap_or(false)
-}
-
 /// Blocking reader facade over one VM TCP stream.
 pub(in crate::runtime::vm::http) struct VmTcpReadStream<'a> {
     tcp: &'a mut VmTcpRuntime,
@@ -768,98 +768,6 @@ impl Read for VmTcpReadStream<'_> {
         }
         Ok(read)
     }
-}
-
-/// Attempts to parse a complete HTTP/1 request from buffered bytes.
-pub(crate) fn try_parse_http1_request_buffer(
-    buffer: &[u8],
-) -> Result<Option<(::http::Request<String>, usize)>, String> {
-    let Some(header_end) = find_header_end(buffer) else {
-        if buffer.len() > HTTP_HEADER_LIMIT {
-            return Err("VM HTTP request exceeded 64 KiB header limit".to_string());
-        }
-        return Ok(None);
-    };
-    let body_start = header_end + 4;
-    let (method, uri, headers, content_length) =
-        parse_http1_request_headers(&buffer[..body_start])?;
-    if content_length > HTTP_BODY_LIMIT {
-        return Err("VM HTTP request exceeded 1 MiB body limit".to_string());
-    }
-    let complete_len = body_start + content_length;
-    if buffer.len() < complete_len {
-        return Ok(None);
-    }
-    let body = String::from_utf8(buffer[body_start..complete_len].to_vec())
-        .map_err(|error| format!("VM HTTP request body must be UTF-8: {error}"))?;
-    let mut builder = ::http::Request::builder()
-        .method(method.as_str())
-        .uri(uri.as_str());
-    for (name, value) in headers {
-        builder = builder.header(name.as_str(), value.as_str());
-    }
-    let request = builder
-        .body(body)
-        .map_err(|error| format!("failed to build parsed VM HTTP request: {error}"))?;
-    Ok(Some((request, complete_len)))
-}
-
-/// Classifies incomplete HTTP/1 request bytes after stream write EOF.
-#[cfg(test)]
-pub(crate) fn incomplete_http1_request_error(buffer: &[u8]) -> String {
-    if let Some(header_end) = find_header_end(buffer) {
-        let body_start = header_end + 4;
-        if let Ok((_, _, _, content_length)) = parse_http1_request_headers(&buffer[..body_start]) {
-            if buffer.len() < body_start.saturating_add(content_length) {
-                return "VM HTTP request body ended early".to_string();
-            }
-        }
-    }
-    "VM HTTP request closed before headers completed".to_string()
-}
-
-/// Finds the HTTP header terminator in a request or response buffer.
-pub(crate) fn find_header_end(buffer: &[u8]) -> Option<usize> {
-    buffer.windows(4).position(|window| window == b"\r\n\r\n")
-}
-
-type ParsedHttpHeaders = (String, String, Vec<(String, String)>, usize);
-
-/// Parses HTTP/1 request headers with `httparse`.
-pub(crate) fn parse_http1_request_headers(bytes: &[u8]) -> Result<ParsedHttpHeaders, String> {
-    let mut headers = [httparse::EMPTY_HEADER; 32];
-    let mut request = httparse::Request::new(&mut headers);
-    match request
-        .parse(bytes)
-        .map_err(|error| format!("failed to parse VM HTTP request: {error}"))?
-    {
-        httparse::Status::Complete(_) => {}
-        httparse::Status::Partial => {
-            return Err("VM HTTP parser reported partial headers".to_string());
-        }
-    }
-    let method = request
-        .method
-        .ok_or_else(|| "VM HTTP request missing method".to_string())?
-        .to_string();
-    let uri = request
-        .path
-        .ok_or_else(|| "VM HTTP request missing path".to_string())?
-        .to_string();
-    let mut content_length = 0usize;
-    let mut parsed_headers = Vec::with_capacity(request.headers.len());
-    for header in request.headers.iter() {
-        let value = std::str::from_utf8(header.value)
-            .map_err(|error| format!("VM HTTP header `{}` is not UTF-8: {error}", header.name))?
-            .to_string();
-        if header.name.eq_ignore_ascii_case("content-length") {
-            content_length = value
-                .parse::<usize>()
-                .map_err(|error| format!("VM HTTP Content-Length `{value}` is invalid: {error}"))?;
-        }
-        parsed_headers.push((header.name.to_string(), value));
-    }
-    Ok((method, uri, parsed_headers, content_length))
 }
 
 /// Parses HTTP/1 response headers with `httparse`.

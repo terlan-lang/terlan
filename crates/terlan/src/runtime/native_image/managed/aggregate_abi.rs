@@ -133,7 +133,7 @@ impl ActorHeap {
 }
 
 /// Decodes one pointer-width field word according to its closed descriptor kind.
-fn decode_field_word(
+pub(crate) fn decode_field_word(
     field_type: ManagedFieldType,
     word: i64,
 ) -> Result<ManagedFieldValue, ManagedMemoryError> {

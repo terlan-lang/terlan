@@ -520,17 +520,28 @@ fn collect_syntax_markdown_imports(module: &SyntaxModuleOutput) -> HashMap<Strin
         .collect()
 }
 
-/// Collects local type aliases declared by the current syntax module.
+/// Qualifies imported identities inside local alias bodies before checking uses.
 ///
 /// Inputs:
 /// - `module`: syntax-output module containing type declarations.
+/// - `imported_names`: selected imported type identities.
 ///
 /// Output:
 /// - Map from local type name to typechecker alias metadata.
 ///
 /// Transformation:
-/// - Builds the local alias-name scope, parses each type declaration variant,
-///   normalizes unions, and records parameter ids plus opacity.
+/// - Collects aliases and qualifies their bodies without erasing alias names.
+pub(super) fn collect_qualified_syntax_type_aliases(
+    module: &SyntaxModuleOutput,
+    imported_names: &HashMap<String, QualifiedTypeName>,
+) -> HashMap<String, TypeAlias> {
+    let mut aliases = collect_syntax_type_aliases(module);
+    for alias in aliases.values_mut() {
+        alias.body = qualify_type_names(&alias.body, imported_names);
+    }
+    aliases
+}
+
 pub(super) fn collect_syntax_type_aliases(
     module: &SyntaxModuleOutput,
 ) -> HashMap<String, TypeAlias> {

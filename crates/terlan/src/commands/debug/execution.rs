@@ -433,28 +433,6 @@ impl<'a> NativeDebuggerRuntime<'a> {
                 }
                 Ok(None)
             }
-            PureNativeExecution::HttpResponse(_) => {
-                if super::tracing::event_enabled(
-                    &self.trace_filters,
-                    "http",
-                    active.owner.as_u64(),
-                    &active.source.module,
-                    &active.source.function,
-                ) {
-                    self.report
-                        .events
-                        .push(format!("trace:http:{}:response", active.owner.as_u64()));
-                }
-                self.shard.cancel_call(
-                    active.owner,
-                    "HTTP response cannot be rendered as a debugger expression result",
-                )?;
-                Err(
-                    "error[vm.debugger.result]: HTTP response returned through debugger value entry"
-                        .to_string()
-                        .into(),
-                )
-            }
             PureNativeExecution::Suspended(suspension) => {
                 let operation = suspension.operation();
                 let continuation_id = suspension.continuation_id();

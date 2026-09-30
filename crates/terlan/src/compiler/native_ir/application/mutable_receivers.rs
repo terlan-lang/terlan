@@ -5,13 +5,15 @@ use std::collections::HashMap;
 use crate::terlan_typeck::{core_type_from_text, CoreExpr, CoreModule, CorePattern, CoreType};
 
 #[derive(Clone)]
-struct ReceiverTarget {
+pub(in crate::compiler::native_ir) struct ReceiverTarget {
     module: String,
     function: String,
     receiver: CoreType,
     public: bool,
     generic_params: Vec<String>,
     trait_fallback: bool,
+    mutable: bool,
+    command: bool,
 }
 
 /// Resolves mutable receiver syntax to one exact application callable.
@@ -65,7 +67,12 @@ pub(crate) fn resolve_typed_mutable_receiver_calls(
     Ok(())
 }
 
-fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<ReceiverTarget>> {
+/// Checked receiver and trait methods grouped by source method name and arity.
+pub(in crate::compiler::native_ir) type ReceiverTargets =
+    HashMap<(String, usize), Vec<ReceiverTarget>>;
+
+/// Collects declared methods without interpreting standard-library module names.
+pub(in crate::compiler::native_ir) fn receiver_targets(cores: &[CoreModule]) -> ReceiverTargets {
     let mut targets = HashMap::<(String, usize), Vec<ReceiverTarget>>::new();
     for core in cores {
         for function in &core.functions {
@@ -93,6 +100,8 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
                     receiver,
                     public: function.public,
                     trait_fallback: !function.receiver_method,
+                    mutable: function.receiver_mutable,
+                    command: function.receiver_command,
                     generic_params: super::super::generic_specialization::generic_parameters(
                         function,
                     ),
@@ -100,6 +109,48 @@ fn receiver_targets(cores: &[CoreModule]) -> HashMap<(String, usize), Vec<Receiv
         }
     }
     targets
+}
+
+fn binding_receiver(
+    binding: &crate::terlan_typeck::CoreLetBinding,
+    locals: &HashMap<String, CoreType>,
+    module: &str,
+    targets: &ReceiverTargets,
+) -> Option<(String, bool)> {
+    // Sequence temporaries cannot collide with source identifiers.
+    let (owner, function, receiver, arity) = match &binding.value {
+        CoreExpr::RemoteCall {
+            module: owner,
+            function,
+            args,
+            ..
+        } => (owner.as_str(), function.as_str(), args.first()?, args.len()),
+        CoreExpr::Call { function, args, .. } => {
+            let (owner, function) = function.rsplit_once('.').unwrap_or((module, function));
+            (owner, function, args.first()?, args.len())
+        }
+        CoreExpr::MutableReceiverCall {
+            receiver,
+            method,
+            args,
+            ..
+        } => (
+            "__receiver__",
+            method.as_str(),
+            receiver.as_ref(),
+            args.len() + 1,
+        ),
+        _ => return None,
+    };
+    let CoreExpr::Var(name) = receiver else {
+        return None;
+    };
+    let target = receiver_target(function, arity, locals.get(name)?, module, targets)?;
+    if owner != "__receiver__" && owner != target.module {
+        return None;
+    }
+    let statement = matches!(&binding.pattern, CorePattern::Var(name) if name.starts_with("$seq"));
+    (target.mutable && (statement || target.command)).then(|| (name.clone(), target.command))
 }
 
 fn function_results(cores: &[CoreModule]) -> HashMap<(String, usize), CoreType> {
@@ -186,14 +237,36 @@ fn resolve_expr(
         }
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
-            for binding in bindings {
+            let mut rewritten = Vec::with_capacity(bindings.len());
+            for mut binding in std::mem::take(bindings) {
+                let receiver = binding_receiver(&binding, &locals, module, targets);
                 resolve_expr(&mut binding.value, module, &locals, functions, targets)?;
+                if let Some((name, command)) = receiver {
+                    // The internal receiver result is not another public command
+                    // invocation when this pass runs again after source linking.
+                    let value = CoreExpr::Cast {
+                        expr: Box::new(std::mem::replace(
+                            &mut binding.value,
+                            CoreExpr::Atom("Unit".into()),
+                        )),
+                        target_type: locals.get(&name).expect("checked receiver type").clone(),
+                    };
+                    rewritten.push(crate::terlan_typeck::CoreLetBinding {
+                        pattern: CorePattern::Var(name),
+                        value,
+                    });
+                    if !command {
+                        continue;
+                    }
+                }
                 if let CorePattern::Var(name) = &binding.pattern {
                     if let Some(ty) = infer_core_type(&binding.value, &locals, functions) {
                         locals.insert(name.clone(), ty);
                     }
                 }
+                rewritten.push(binding);
             }
+            *bindings = rewritten;
             resolve_expr(body, module, &locals, functions, targets)?;
         }
         CoreExpr::Call { function, args, .. } => {
@@ -354,6 +427,19 @@ fn resolve_expr(
     Ok(())
 }
 
+/// Uses the same visibility, generic matching and ambiguity rules during
+/// contextual callback inference as during application receiver resolution.
+pub(in crate::compiler::native_ir) fn receiver_callable(
+    targets: &ReceiverTargets,
+    method: &str,
+    arity: usize,
+    receiver: &CoreType,
+    caller: &str,
+) -> Option<String> {
+    let target = receiver_target(method, arity, receiver, caller, targets)?;
+    Some(format!("{}.{}", target.module, target.function))
+}
+
 fn receiver_target<'a>(
     method: &str,
     arity: usize,
@@ -464,6 +550,8 @@ fn infer_core_type(
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
+        CoreExpr::RecordConstruct { name, .. } => Some(CoreType::Named(name.clone())),
+        CoreExpr::RecordUpdate { base, .. } => infer_core_type(base, variables, functions),
         CoreExpr::Call { function, args, .. } => {
             functions.get(&(function.clone(), args.len())).cloned()
         }

@@ -1,6 +1,6 @@
 //! Scheduler-local capability worker lifecycle for generated handlers.
 
-use crate::runtime::vm::package_native_helper::{VmPackageNativeHelpers, VmPostgresDispatcher};
+use crate::runtime::vm::package_native_helper::{VmOwnedNativeDispatcher, VmPackageNativeHelpers};
 use crate::runtime::vm::pure_native::repl_value_to_boundary_term;
 use std::collections::{BTreeMap, VecDeque};
 use std::path::PathBuf;
@@ -62,8 +62,8 @@ pub(super) struct GeneratedCapabilityDispatcher {
     pump: Option<VmCapabilityWorkerEventPump<PendingGeneratedCapability>>,
     assignments: BTreeMap<std::num::NonZeroU64, VmCapabilityWorkerParkedRequest>,
     helpers: VmPackageNativeHelpers,
-    postgres: VmPostgresDispatcher,
-    postgres_pending: BTreeMap<std::num::NonZeroU64, PendingGeneratedCapability>,
+    native: VmOwnedNativeDispatcher,
+    native_pending: BTreeMap<std::num::NonZeroU64, PendingGeneratedCapability>,
     resource_owners: BTreeMap<std::num::NonZeroU64, VmProcessId>,
     ready: VecDeque<(PendingGeneratedCapability, NativeBoundaryReplyTerm)>,
 }
@@ -77,8 +77,8 @@ impl GeneratedCapabilityDispatcher {
             pump: None,
             assignments: BTreeMap::new(),
             helpers: VmPackageNativeHelpers::default(),
-            postgres: VmPostgresDispatcher::default(),
-            postgres_pending: BTreeMap::new(),
+            native: VmOwnedNativeDispatcher::default(),
+            native_pending: BTreeMap::new(),
             resource_owners: BTreeMap::new(),
             ready: VecDeque::new(),
         }
@@ -91,7 +91,7 @@ impl GeneratedCapabilityDispatcher {
 
     /// Returns whether polling is required to settle retained actors.
     pub(super) fn has_pending(&self) -> bool {
-        !self.assignments.is_empty() || !self.postgres_pending.is_empty() || !self.ready.is_empty()
+        !self.assignments.is_empty() || !self.native_pending.is_empty() || !self.ready.is_empty()
     }
 
     /// Submits one generated capability wait and retains its complete caller envelope.
@@ -100,31 +100,34 @@ impl GeneratedCapabilityDispatcher {
         pending: PendingGeneratedCapability,
     ) -> Result<(), GeneratedCapabilityFailure> {
         let trusted = super::super::protocol_capability::trusted_host_capability(&pending.wait);
-        if pending
+        let database = pending
             .wait
             .request()
             .operation
-            .starts_with("std.db.postgres.")
-        {
-            if !trusted {
+            .starts_with("std.db.postgres.");
+        let resource =
+            crate::std_native_packages::resource_operation(&pending.wait.request().operation)
+                .is_some();
+        if database || (resource && !trusted) {
+            if database && !trusted {
                 return Err(("error[serve.aot.capability_denied]: database access requires trusted host capabilities".into(), Box::new(pending)));
             }
             let worker = match capability_worker_path() {
                 Ok(worker) => worker,
-                Err(error) => return Err((error, Box::new(pending))),
+                Err(error) => return Err((error.to_string(), Box::new(pending))),
             };
             match self
-                .postgres
+                .native
                 .submit(&mut self.helpers, pending.owner, &pending.wait, worker)
             {
                 Ok(true) => {
                     self.resource_owners
                         .insert(pending.route.actor_id(), pending.owner);
-                    self.postgres_pending
+                    self.native_pending
                         .insert(pending.route.actor_id(), pending);
                     return Ok(());
                 }
-                Ok(false) => unreachable!("database namespace was checked"),
+                Ok(false) => unreachable!("owned operation was checked"),
                 Err(error) => return Err((error.into(), Box::new(pending))),
             }
         }
@@ -218,20 +221,16 @@ impl GeneratedCapabilityDispatcher {
         control: &VmFixedSchedulerControl<AotSchedulerPublication>,
         telemetry: &VmFixedSchedulerTelemetry,
     ) -> Result<(), String> {
-        if let Some((owner, outcome)) = self
-            .postgres
-            .poll(&mut self.helpers)
-            .map_err(String::from)?
-        {
+        if let Some((owner, outcome)) = self.native.poll(&mut self.helpers).map_err(String::from)? {
             if let Some(actor) = self
-                .postgres_pending
+                .native_pending
                 .iter()
                 .find_map(|(actor, pending)| (pending.owner == owner).then_some(*actor))
             {
                 let pending = self
-                    .postgres_pending
+                    .native_pending
                     .remove(&actor)
-                    .expect("located database owner");
+                    .expect("located native resource owner");
                 self.ready.push_back((pending, outcome));
             }
         }
@@ -326,7 +325,7 @@ impl GeneratedCapabilityDispatcher {
         route: VmFixedActorRoute,
     ) -> Result<Option<PendingGeneratedCapability>, GeneratedCapabilityFailure> {
         self.close_route(route);
-        if let Some(pending) = self.postgres_pending.remove(&route.actor_id()) {
+        if let Some(pending) = self.native_pending.remove(&route.actor_id()) {
             return Ok(Some(pending));
         }
         if let Some(index) = self
@@ -353,9 +352,9 @@ impl GeneratedCapabilityDispatcher {
     pub(super) fn shutdown(&mut self) -> (Vec<PendingGeneratedCapability>, Vec<String>) {
         self.assignments.clear();
         for (_, owner) in std::mem::take(&mut self.resource_owners) {
-            self.postgres.close_owner(&mut self.helpers, owner);
+            self.native.close_owner(&mut self.helpers, owner);
         }
-        let mut pending = std::mem::take(&mut self.postgres_pending)
+        let mut pending = std::mem::take(&mut self.native_pending)
             .into_values()
             .collect::<Vec<_>>();
         pending.extend(self.ready.drain(..).map(|(pending, _)| pending));
@@ -380,7 +379,7 @@ impl GeneratedCapabilityDispatcher {
     /// Releases database and package resources at the terminal actor boundary.
     pub(super) fn close_route(&mut self, route: VmFixedActorRoute) {
         if let Some(owner) = self.resource_owners.remove(&route.actor_id()) {
-            self.postgres.close_owner(&mut self.helpers, owner);
+            self.native.close_owner(&mut self.helpers, owner);
         }
     }
 
@@ -456,15 +455,7 @@ impl GeneratedCapabilityDispatcher {
         &mut self,
     ) -> Result<&mut VmCapabilityWorkerEventPump<PendingGeneratedCapability>, String> {
         if self.pump.is_none() {
-            let executable = capability_worker_path()?;
-            let mut policy = VmCapabilityWorkerPolicy::new(
-                executable,
-                NativeBoundaryExecutionProfile::CrashIsolated,
-            )?
-            .allow("filesystem")
-            .allow("clock")
-            .allow("stdio")
-            .with_credit_limit(GENERATED_CAPABILITY_CREDITS)?;
+            let mut policy = capability_worker_policy()?;
             if cfg!(test) && std::env::var_os("TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX").is_some() {
                 // Some test hosts prohibit creating a network namespace. The
                 // production binary cannot enter this test-only branch.
@@ -486,23 +477,41 @@ impl GeneratedCapabilityDispatcher {
     }
 }
 
+/// Shares bounded value-binding authority across HTTP scheduler implementations.
+pub(in crate::commands::serve::handler_cache) fn capability_worker_policy(
+) -> Result<VmCapabilityWorkerPolicy, String> {
+    VmCapabilityWorkerPolicy::new(
+        capability_worker_path().map_err(|error| error.to_string())?,
+        NativeBoundaryExecutionProfile::CrashIsolated,
+    )?
+    .allow("filesystem")
+    .allow("clock")
+    .allow("stdio")
+    .allow("package-native")
+    .admit_worker_class("fast")
+    .with_credit_limit(GENERATED_CAPABILITY_CREDITS)
+}
+
 /// Resolves the native worker packaged next to the current Terlan executable.
-pub(in crate::commands::serve::handler_cache) fn capability_worker_path() -> Result<PathBuf, String>
+pub(in crate::commands::serve::handler_cache) fn capability_worker_path() -> std::io::Result<PathBuf>
 {
     if let Some(path) = std::env::var_os("TERLAN_NATIVE_WORKER") {
         let path = PathBuf::from(path);
         if path.is_file() {
-            return path
-                .canonicalize()
-                .map_err(|error| format!("failed to canonicalize capability worker: {error}"));
+            return path.canonicalize();
         }
-        return Err(format!(
-            "TERLAN_NATIVE_WORKER points to missing runtime `{}`",
-            path.display()
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!(
+                "TERLAN_NATIVE_WORKER points to missing runtime `{}`",
+                path.display()
+            ),
         ));
     }
-    let current = std::env::current_exe()
-        .map_err(|error| format!("failed to resolve current Terlan executable: {error}"))?;
+    find_worker(&std::env::current_exe()?)
+}
+
+fn find_worker(current: &std::path::Path) -> std::io::Result<PathBuf> {
     let name = if cfg!(windows) {
         "terlan-native-worker.exe"
     } else {
@@ -515,13 +524,15 @@ pub(in crate::commands::serve::handler_cache) fn capability_worker_path() -> Res
         };
         let candidate = parent.join(name);
         if candidate.is_file() {
-            return candidate
-                .canonicalize()
-                .map_err(|error| format!("failed to canonicalize capability worker: {error}"));
+            return candidate.canonicalize();
         }
         directory = parent.parent();
     }
-    Err(format!(
+    Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!(
         "error[serve.aot.capability_worker_missing]: `{name}` is not packaged with the current Terlan executable"
-    ))
+    )))
 }
+
+#[cfg(test)]
+#[path = "capability_worker_path_test.rs"]
+mod worker_path_tests;

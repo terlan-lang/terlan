@@ -32,9 +32,6 @@ pub(super) fn infer_syntax_imported_function_call(
         let mut matches = Vec::new();
         let mut first_error = None;
         for target in targets {
-            if !selected_import_target_matches_arg_types(target, arg_types) {
-                continue;
-            }
             let mut trial_subst = subst.clone();
             match infer_one_selected_imported_function_call(
                 function_name,
@@ -176,54 +173,6 @@ fn infer_one_selected_imported_function_call(
     }
 
     Ok(Type::Dynamic)
-}
-
-fn selected_import_target_matches_arg_types(
-    target: &ImportedFunctionTarget,
-    arg_types: &[Type],
-) -> bool {
-    let Some(first) = arg_types.first() else {
-        return true;
-    };
-    match (target.module.as_str(), target.function.as_str(), first) {
-        ("std.core.Bool", "equal" | "compare" | "to_string", Type::Bool) => true,
-        (
-            "std.core.Int",
-            "equal" | "compare" | "min" | "max" | "abs" | "to_string" | "to_string_base",
-            Type::Int | Type::LiteralInt(_),
-        ) => true,
-        (
-            "std.core.Float",
-            "equal" | "compare" | "min" | "max" | "abs" | "to_string",
-            Type::Float,
-        ) => true,
-        ("std.core.String", "equal" | "compare" | "to_string", Type::Binary) => true,
-        ("std.core.Unit", "equal" | "compare" | "to_string", Type::Named { name, .. })
-            if name == "Unit" =>
-        {
-            true
-        }
-        (
-            "std.core.Ordering",
-            "equal" | "compare" | "to_string",
-            Type::Named { module, name, .. },
-        ) if module.as_deref() == Some("std.core.Ordering") && name == "Comparison" => true,
-        (
-            "std.core.Bool" | "std.core.Int" | "std.core.Float" | "std.core.String"
-            | "std.core.Unit" | "std.core.Ordering",
-            "from_string",
-            Type::Binary,
-        ) => true,
-        ("std.core.Int", "from_string_base", Type::Binary) => true,
-        ("std.core.Atom", "equal" | "to_string", Type::Atom | Type::LiteralAtom(_)) => true,
-        (
-            "std.core.Bool" | "std.core.Int" | "std.core.Float" | "std.core.String"
-            | "std.core.Unit" | "std.core.Ordering" | "std.core.Atom",
-            _,
-            _,
-        ) => false,
-        _ => true,
-    }
 }
 
 /// Infers an imported module-member function call.

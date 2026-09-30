@@ -96,6 +96,7 @@ pub(crate) use continuation_sharing::is_materialized_continuation_module;
 #[cfg(test)]
 #[path = "native_ir/bool_intrinsic_native_test.rs"]
 mod bool_intrinsic_native_test;
+
 #[cfg(test)]
 #[path = "native_ir/continuation_sharing_test.rs"]
 #[cfg(test)]
@@ -142,6 +143,54 @@ mod generic_specialization;
 #[path = "native_ir/generic_specialization_test.rs"]
 #[cfg(test)]
 mod generic_specialization_test;
+#[cfg(test)]
+#[path = "native_ir/log_library_test.rs"]
+mod log_library_test;
+#[cfg(test)]
+#[path = "native_ir/scalar_library_test.rs"]
+mod scalar_library_test;
+
+#[cfg(test)]
+#[path = "native_ir/http_error_library_test.rs"]
+mod http_error_library_test;
+
+#[cfg(test)]
+#[path = "native_ir/http_channel_library_test.rs"]
+mod http_channel_library_test;
+
+#[cfg(test)]
+#[path = "native_ir/http_endpoint_library_test.rs"]
+mod http_endpoint_library_test;
+
+#[cfg(test)]
+mod imported_receiver_identity_test;
+
+#[cfg(test)]
+#[path = "native_ir/http_cookie_library_test.rs"]
+mod http_cookie_library_test;
+#[cfg(test)]
+#[path = "native_ir/http_request_library_test.rs"]
+mod http_request_library_test;
+#[cfg(test)]
+#[path = "native_ir/http_response_library_test.rs"]
+mod http_response_library_test;
+#[cfg(test)]
+#[path = "native_ir/http_router_library_test.rs"]
+mod http_router_library_test;
+#[cfg(test)]
+#[path = "native_ir/uri_library_test.rs"]
+mod uri_library_test;
+
+#[cfg(test)]
+#[path = "native_ir/clock_library_test.rs"]
+mod clock_library_test;
+
+#[cfg(test)]
+#[path = "native_ir/encoding_library_test.rs"]
+mod encoding_library_test;
+#[cfg(test)]
+#[path = "native_ir/json_library_test.rs"]
+mod json_library_test;
 
 #[cfg(test)]
 #[path = "native_ir/explicit_generic_test.rs"]
@@ -219,6 +268,11 @@ mod suspending_case_source_test;
 mod value_intrinsic_native_test;
 #[cfg(test)]
 use lowering_test_support::lower_native_function;
+mod aggregate_projection;
+#[cfg(test)]
+#[path = "native_ir/aggregate_projection_test.rs"]
+#[cfg(test)]
+mod aggregate_projection_test;
 #[cfg(test)]
 #[path = "native_ir/capability_transition_test.rs"]
 #[cfg(test)]
@@ -234,11 +288,6 @@ mod model_test;
 #[path = "native_ir/native_object_test_support.rs"]
 #[cfg(test)]
 mod native_object_test_support;
-mod request_projection;
-#[cfg(test)]
-#[path = "native_ir/request_projection_test.rs"]
-#[cfg(test)]
-mod request_projection_test;
 mod scalar_replacement;
 #[cfg(test)]
 #[path = "native_ir/scalar_replacement_index_test.rs"]
@@ -310,7 +359,13 @@ pub(crate) use crate::runtime::native_image::{
     TVM_DISPATCH_SYMBOL_V4 as DISPATCH_SYMBOL, TVM_IMAGE_ENTRY_SYMBOL_V1 as IMAGE_ENTRY_SYMBOL,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use application::resolve_typed_mutable_receiver_calls;
+pub(crate) use aggregate_projection::install_native_aggregate_projection_exports;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) use aggregate_projection::{
+    native_aggregate_projections, AggregateFieldProjection, NativeAggregateProjection,
+};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use application::{resolve_selected_imports, resolve_typed_mutable_receiver_calls};
 use application_calls::expr_calls_suspending;
 #[cfg(test)]
 use call_composition::rebase_callee_locals;
@@ -356,10 +411,6 @@ pub(crate) use model::{
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use open_std_pruning::prune_application_to_function_roots;
-#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use request_projection::install_native_request_projection_exports;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-pub(crate) use request_projection::native_request_projections;
 use transitions::is_process_transition;
 
 /// Typed internal failure for NativeIR analysis and lowering passes.

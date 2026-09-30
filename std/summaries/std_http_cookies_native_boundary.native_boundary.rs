@@ -11,18 +11,12 @@ pub const NATIVE_MODULE: &str = "std_http_cookies_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("get", 2),
-    ("set", 6),
-    ("delete", 3),
     ("set_header", 5),
     ("set_header_with_options", 10),
     ("delete_header", 2),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("get", "std.http.cookies.get", 2),
-    ("set", "std.http.cookies.set", 6),
-    ("delete", "std.http.cookies.delete", 3),
     ("set_header", "std.http.cookies.set_header", 5),
     ("set_header_with_options", "std.http.cookies.set_header_with_options", 10),
     ("delete_header", "std.http.cookies.delete_header", 2),
@@ -153,9 +147,6 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
-                        "std.http.cookies.get" => native_unimplemented_operation(operation),
-                        "std.http.cookies.set" => native_unimplemented_operation(operation),
-                        "std.http.cookies.delete" => native_unimplemented_operation(operation),
                         "std.http.cookies.set_header" => native_unimplemented_operation(operation),
                         "std.http.cookies.set_header_with_options" => native_unimplemented_operation(operation),
                         "std.http.cookies.delete_header" => native_unimplemented_operation(operation),

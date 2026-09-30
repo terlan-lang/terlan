@@ -3,6 +3,24 @@ use std::collections::HashMap;
 use super::{receiver_types_match, resolve_expr, ReceiverTarget};
 use crate::terlan_typeck::{CoreExpr, CoreType};
 
+#[path = "receiver_defaults_test.rs"]
+mod receiver_defaults_test;
+
+#[test]
+fn local_record_command_results_are_unit_and_preserve_snapshots() {
+    crate::compiler::native_ir::source_constructor_test::check_sources(&[r#"
+module local_record_command.
+import std.core.Unit.
+pub struct Counter { count: Int }.
+pub (mut counter: Counter) add(value: Int): Unit -> Counter { count: counter.count + value }.
+pub check(): Bool ->
+    let counter = Counter { count: 3 };
+    let snapshot = counter;
+    let done = counter.add(4);
+    done == Unit and counter.count == 7 and snapshot.count == 3.
+"#]);
+}
+
 #[test]
 fn trait_receivers_survive_pruning_and_execute_the_typed_implementation() {
     use crate::compiler::native_ir::{self, native_object_test_support::*};
@@ -80,6 +98,8 @@ fn declared_receiver_precedes_trait_fallback_without_ignoring_ambiguity() {
         public: true,
         generic_params: vec![],
         trait_fallback: false,
+        mutable: false,
+        command: false,
     };
     let mut fallback = declared.clone();
     fallback.function = "trait_score".into();
@@ -134,6 +154,8 @@ fn generic_receiver_dispatch_preserves_types_visibility_and_ambiguity() {
         receiver: CoreType::List(Box::new(CoreType::Named("T".into()))),
         public: true,
         trait_fallback: false,
+        mutable: false,
+        command: false,
         generic_params: vec!["T".into()],
     };
     let actual = CoreType::List(Box::new(CoreType::Int));
@@ -145,11 +167,17 @@ fn generic_receiver_dispatch_preserves_types_visibility_and_ambiguity() {
     let identity = ("each".into(), 2);
     let mut targets = HashMap::from([(identity.clone(), vec![target.clone()])]);
     assert!(super::receiver_target("each", 2, &actual, "app.Caller", &targets).is_some());
+    assert_eq!(
+        super::receiver_callable(&targets, "each", 2, &actual, "app.Caller"),
+        Some("app.ListMethods.each".into()),
+    );
     targets.get_mut(&identity).unwrap()[0].public = false;
     assert!(super::receiver_target("each", 2, &actual, "app.Caller", &targets).is_none());
+    assert!(super::receiver_callable(&targets, "each", 2, &actual, "app.Caller").is_none());
     assert!(super::receiver_target("each", 2, &actual, "app.ListMethods", &targets).is_some());
     targets.insert(identity, vec![target.clone(), target]);
     assert!(super::receiver_target("each", 2, &actual, "app.Caller", &targets).is_none());
+    assert!(super::receiver_callable(&targets, "each", 2, &actual, "app.Caller").is_none());
 }
 
 #[test]
@@ -163,6 +191,8 @@ fn generic_receivers_do_not_merge_distinct_qualified_constructors() {
         },
         public: true,
         trait_fallback: false,
+        mutable: false,
+        command: false,
         generic_params: vec!["T".into()],
     };
     assert!(!super::receiver_matches(
@@ -223,6 +253,8 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 receiver: CoreType::List(Box::new(CoreType::String)),
                 public: true,
                 trait_fallback: false,
+                mutable: false,
+                command: false,
                 generic_params: Vec::new(),
             },
             ReceiverTarget {
@@ -231,6 +263,8 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 receiver: CoreType::Named("std.io.Path.Path".to_string()),
                 public: true,
                 trait_fallback: false,
+                mutable: false,
+                command: false,
                 generic_params: Vec::new(),
             },
         ],

@@ -8,8 +8,41 @@ use crate::terlan_typeck::{
 
 const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
 
+mod record_forwarding;
+use record_forwarding::inline_record_forwarder;
+
 /// Every callable candidate grouped by its qualified name and arity.
-type CallableTemplates = BTreeMap<(String, usize), Vec<CoreFunction>>;
+#[derive(Default)]
+pub(super) struct CallableTemplates {
+    pub(super) functions: BTreeMap<(String, usize), Vec<CoreFunction>>,
+    receivers: super::application::mutable_receivers::ReceiverTargets,
+}
+
+impl CallableTemplates {
+    /// Starts a callable catalog with the application's shared receiver index.
+    pub(super) fn new(cores: &[CoreModule]) -> Self {
+        Self {
+            functions: BTreeMap::new(),
+            receivers: super::application::mutable_receivers::receiver_targets(cores),
+        }
+    }
+
+    fn receiver_callable(
+        &self,
+        method: &str,
+        arity: usize,
+        receiver: &CoreType,
+        caller: &str,
+    ) -> Option<String> {
+        super::application::mutable_receivers::receiver_callable(
+            &self.receivers,
+            method,
+            arity,
+            receiver,
+            caller,
+        )
+    }
+}
 
 #[path = "generic_specialization/constructor_signatures.rs"]
 mod constructor_signatures;
@@ -47,7 +80,7 @@ pub(super) fn specialize_application_generics_with_budget(
             function.generic_params = generic_parameters(function);
         }
     }
-    let mut templates = BTreeMap::new();
+    let mut templates = CallableTemplates::new(cores);
     constructor_signatures::collect(cores, &mut templates);
     for core in cores.iter() {
         let local = core
@@ -60,12 +93,13 @@ pub(super) fn specialize_application_generics_with_budget(
             qualify_local_calls(&mut template, &core.module, &local);
             template.name = format!("{}.{}", core.module, function.name);
             templates
+                .functions
                 .entry((format!("{}.{}", core.module, function.name), function.arity))
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(template);
         }
     }
-    if templates.is_empty() {
+    if templates.functions.is_empty() {
         return Ok(());
     }
     for core in cores.iter_mut() {
@@ -91,12 +125,14 @@ fn rewrite_expr(
     } = expr
     {
         if receiver_module == "__receiver__" {
-            let intrinsic = args
+            let receiver_type = args
                 .first()
-                .and_then(|receiver| infer_type(receiver, variables, templates, module))
+                .and_then(|receiver| infer_type(receiver, variables, templates, module));
+            let intrinsic = receiver_type
+                .as_ref()
                 .and_then(|receiver| {
                     super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
-                        &receiver,
+                        receiver,
                         function,
                         args.len(),
                     )
@@ -113,7 +149,12 @@ fn rewrite_expr(
                 }
                 return Ok(());
             }
-            let function = function.clone();
+            let function = receiver_type
+                .as_ref()
+                .and_then(|receiver| {
+                    templates.receiver_callable(function, args.len(), receiver, module)
+                })
+                .unwrap_or_else(|| function.clone());
             let args = std::mem::take(args);
             *expr = CoreExpr::Call {
                 type_args: std::mem::take(type_args),
@@ -490,6 +531,11 @@ fn rewrite_expr(
                 let binding_type = binding_type_before
                     .or_else(|| infer_type(&binding.value, &locals, templates, module));
                 if let Some(ty) = binding_type {
+                    if matches!(binding.value, CoreExpr::RecordConstruct { .. })
+                        && matches!(ty, CoreType::Apply { .. })
+                    {
+                        apply_contextual_argument_type(&mut binding.value, &ty);
+                    }
                     bind_pattern_types(&binding.pattern, &ty, &mut locals);
                 }
             }
@@ -672,7 +718,11 @@ fn apply_contextual_argument_type(argument: &mut CoreExpr, expected: &CoreType) 
         }
         return;
     }
-    if needs_contextual_type(argument) || contextual_literal_type(argument, expected).is_some() {
+    if needs_contextual_type(argument)
+        || contextual_literal_type(argument, expected).is_some()
+        || (matches!(argument, CoreExpr::RecordConstruct { .. })
+            && matches!(expected, CoreType::Apply { .. }))
+    {
         let expression = std::mem::replace(argument, CoreExpr::Atom("Unit".to_string()));
         *argument = CoreExpr::Cast {
             expr: Box::new(expression),
@@ -703,8 +753,13 @@ fn callable_templates<'a>(
     arity: usize,
 ) -> Option<&'a [CoreFunction]> {
     if let Some(candidates) = templates
+        .functions
         .get(&(function.to_string(), arity))
-        .or_else(|| templates.get(&(format!("{module}.{function}"), arity)))
+        .or_else(|| {
+            templates
+                .functions
+                .get(&(format!("{module}.{function}"), arity))
+        })
     {
         return Some(candidates.as_slice());
     }
@@ -714,6 +769,7 @@ fn callable_templates<'a>(
     // Accept that spelling only when it identifies one callable unambiguously.
     let suffix = format!(".{function}");
     let mut matches = templates
+        .functions
         .iter()
         .filter(|((candidate, candidate_arity), _)| {
             *candidate_arity == arity && candidate.ends_with(&suffix)
@@ -794,58 +850,6 @@ fn collect_implicit_generic_params(ty: &CoreType, names: &mut HashSet<String>) {
         }
         _ => {}
     }
-}
-
-fn inline_record_forwarder(template: &CoreFunction, arguments: &[CoreExpr]) -> Option<CoreExpr> {
-    let [clause] = template.clauses.as_slice() else {
-        return None;
-    };
-    if clause.guard.is_some()
-        || arguments.len() != template.params.len()
-        || !clause
-            .core_patterns
-            .iter()
-            .zip(&template.params)
-            .all(|(pattern, parameter)| {
-                matches!(pattern, Some(CorePattern::Var(name)) if name == &parameter.name)
-            })
-    {
-        return None;
-    }
-    let CoreExpr::RecordConstruct { name, fields } = clause.body.core_expr.as_ref()? else {
-        return None;
-    };
-    if fields.len() != template.params.len() {
-        return None;
-    }
-    let parameter_indices = template
-        .params
-        .iter()
-        .enumerate()
-        .map(|(index, parameter)| (parameter.name.as_str(), index))
-        .collect::<HashMap<_, _>>();
-    let mut used = HashSet::new();
-    let fields = fields
-        .iter()
-        .map(|field| {
-            let CoreExpr::Var(parameter) = &field.value else {
-                return None;
-            };
-            let index = *parameter_indices.get(parameter.as_str())?;
-            if index != used.len() || !used.insert(index) {
-                return None;
-            }
-            Some(crate::terlan_typeck::CoreRecordExprField {
-                key: field.key.clone(),
-                required: field.required,
-                value: arguments[index].clone(),
-            })
-        })
-        .collect::<Option<Vec<_>>>()?;
-    (used.len() == arguments.len()).then(|| CoreExpr::RecordConstruct {
-        name: name.clone(),
-        fields,
-    })
 }
 
 pub(super) fn contains_generic_parameter(ty: &CoreType, parameters: &[String]) -> bool {

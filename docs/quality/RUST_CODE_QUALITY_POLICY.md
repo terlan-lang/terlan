@@ -70,6 +70,41 @@ making it invisible in individual modules. Later CQ slices are responsible for
 reducing those centralized thresholds as responsibilities and large functions
 are split.
 
+## Standard Library Ownership
+
+Standard-library behavior belongs in its Terlan module, not in compiler or VM
+branches keyed by module and function names. This applies to every library
+domain, including networking, databases, encoding, and core convenience APIs.
+The compiler owns language semantics and generic binding/lowering mechanisms;
+the VM owns execution, scheduling, cancellation, and generic resource and I/O
+lifecycle. Neither should implement library policy.
+
+Reuse maintained native libraries behind narrow typed bindings when necessary.
+Keep data models, accessors, validation policy, and composition in Terlan where
+possible. Moving a handwritten dispatch table to another directory does not
+establish library ownership. Native providers must use general binding contracts,
+not require a new compiler exception for each operation.
+
+Each migration must delete the replaced special lowering and test ordinary
+application imports. Where applicable, execute a renamed provider and a provider
+with deliberately different bodies to prove that source declarations, not known
+names, determine behavior. Preserve language-level primitive operations until
+their callers have an explicit replacement; do not claim a whole subsystem has
+been migrated merely because one module has.
+
+The active ownership migration covers every `std` submodule, not only `net`
+and `http`. A module is complete only when its source, native provider,
+compiler lowering, runtime dispatch, and ordinary application execution agree
+on that ownership. An unresolved default-path capability or integration failure
+prevents completion even when isolated accessor tests pass.
+
+Bindings to maintained upstream APIs preserve the selected public member names,
+types, and optionality one-to-one. Generate accessor invocation and value
+conversion from declared bindings rather than maintaining handwritten field
+copying or renaming adapters. Terlan-facing convenience names and policy belong
+in ordinary Terlan wrappers. Shared generation and conversion machinery must
+also work for application packages without standard-library name exceptions.
+
 ## Continuous Improvement After CQ-6
 
 Rust quality orchestration lives in `mk/code-quality.mk`; the root Makefile

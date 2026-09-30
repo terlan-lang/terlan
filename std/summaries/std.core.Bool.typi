@@ -14,8 +14,8 @@ module std.core.Bool.
 /// Transformation: maps the closed boolean domain onto
 /// `std.core.Ordering.Comparison` with `false < true`.
 ///
-/// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[Bool]` conformance in 0.0.1.
+/// This is an ordinary Terlan implementation. Calls use this body rather than
+/// a compiler-owned comparison implementation.
 ///
 /// ```terlan
 /// module bool_compare_example.

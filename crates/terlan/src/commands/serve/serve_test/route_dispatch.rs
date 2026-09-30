@@ -97,7 +97,7 @@ pub(super) fn vm_stream_request_reports_pattern_head_route_handler_miss_without_
     .expect("write js asset");
     fs::write(
         source_dir.join("Api.terl"),
-        "module app.Api.\n\nimport std.collections.Map.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"not_request\"], _method, _path, _params, _body, _query, _query_pairs, _headers, _cookies, _body_file_path}: {Atom[\"not_request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String], String},\n    _id: String,\n    _name: String\n): Response ->\n    Response.text(\"unreachable\").with_status(299).\n",
+        "module app.Api.\n\nimport std.collections.Map.\nimport std.http.Response.\nimport type std.http.Response.{Response}.\n\npub show(\n    {Atom[\"not_request\"], _method, _path, _params, _body, _query, _query_pairs, _headers, _cookies, _body_file_path}: {Atom[\"request\"] | Atom[\"not_request\"], String, String, Map[String, String], String, String, Map[String, String], Map[String, String], Map[String, String], String},\n    _id: String,\n    _name: String\n): Response ->\n    Response.text(\"unreachable\").with_status(299).\n",
     )
     .expect("write handler source");
     fs::write(
@@ -230,7 +230,7 @@ pub(super) fn vm_stream_head_request_falls_back_to_get_dynamic_handler_without_b
 }
 
 #[test]
-pub(super) fn vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper() {
+pub(super) fn vm_stream_source_reload_resumes_package_cookie_codec() {
     clear_vm_handler_module_cache_for_test();
     let dir = temp_dir("vm_stream_managed_source_handler");
     let project_root = &dir;
@@ -313,38 +313,41 @@ pub(super) fn vm_stream_request_uses_source_bridge_for_managed_only_module_witho
     .expect("write managed source handler manifest");
     prewarm_dynamic_handler_sources(&web_root).expect("prewarm managed source handler cache");
 
-    let response = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /api/source?page=2 HTTP/1.1\r\nHost: localhost\r\n\r\n",
-    )
-    .expect("VM stream managed source handler request");
-    let response = String::from_utf8(response).expect("response should be UTF-8");
-    assert!(response.starts_with("HTTP/1.1 210 "), "{response}");
-    assert!(response.contains("content-type: text/plain; charset=utf-8\r\n"));
-    assert!(response.contains("set-cookie: first=one\r\n"), "{response}");
-    assert!(
-        response.contains("set-cookie: second=two\r\n"),
-        "{response}"
+    super::super::hyper_server::hyper_server_test::with_source_protocol_server(
+        web_root.clone(),
+        |send| {
+            let response = send(
+                "GET /api/source?page=2 HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+            );
+            assert!(response.starts_with("HTTP/1.1 210 "), "{response}");
+            assert!(response.contains("content-type: text/plain; charset=utf-8\r\n"));
+            assert!(response.contains("set-cookie: first=one\r\n"), "{response}");
+            assert!(
+                response.contains("set-cookie: second=two\r\n"),
+                "{response}"
+            );
+            assert!(
+                response.contains("set-cookie: session=abc123; HttpOnly; Secure; Path=/\r\n"),
+                "{response}"
+            );
+            assert_eq!(response.matches("set-cookie:").count(), 3, "{response}");
+            assert!(response.contains("x-frame-options: DENY\r\n"), "{response}");
+            assert!(
+                response.contains("referrer-policy: strict-origin-when-cross-origin\r\n"),
+                "{response}"
+            );
+            assert!(
+                response.contains("x-content-type-options: nosniff\r\n"),
+                "{response}"
+            );
+            assert!(
+                response
+                    .contains("strict-transport-security: max-age=31536000; includeSubDomains\r\n"),
+                "{response}"
+            );
+            assert!(response.ends_with("\r\n\r\npage=2"));
+        },
     );
-    assert!(
-        response.contains("set-cookie: session=abc123; HttpOnly; Secure; Path=/\r\n"),
-        "{response}"
-    );
-    assert_eq!(response.matches("set-cookie:").count(), 3, "{response}");
-    assert!(response.contains("x-frame-options: DENY\r\n"), "{response}");
-    assert!(
-        response.contains("referrer-policy: strict-origin-when-cross-origin\r\n"),
-        "{response}"
-    );
-    assert!(
-        response.contains("x-content-type-options: nosniff\r\n"),
-        "{response}"
-    );
-    assert!(
-        response.contains("strict-transport-security: max-age=31536000; includeSubDomains\r\n"),
-        "{response}"
-    );
-    assert!(response.ends_with("\r\n\r\npage=2"));
 
     fs::remove_dir_all(dir).expect("cleanup");
     clear_vm_handler_module_cache_for_test();

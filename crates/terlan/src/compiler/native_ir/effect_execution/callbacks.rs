@@ -4,15 +4,16 @@ use crate::terlan_typeck::{visit_core_expr_children_mut, CoreCaseClause};
 
 use super::*;
 
-type Templates = BTreeMap<(String, usize), Vec<CoreFunction>>;
+use super::super::generic_specialization::CallableTemplates as Templates;
 type Callbacks = BTreeMap<(String, String, bool), Callback>;
 
 /// Retains each actually constructed callback's signature before field erasure.
 pub(super) fn collect(cores: &mut [CoreModule], schema: &Schema) -> NativeIrResult<Vec<Callback>> {
-    let mut templates = Templates::new();
+    let mut templates = Templates::new(cores);
     for core in cores.iter() {
         for function in &core.functions {
             templates
+                .functions
                 .entry((format!("{}.{}", core.module, function.name), function.arity))
                 .or_default()
                 .push(function.clone());

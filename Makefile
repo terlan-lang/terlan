@@ -2634,24 +2634,26 @@ tvm-aot-http-managed-cycle-check: tvm-aot-consumer-check
 	$(RUST_TEST) -p terlan --lib literal_abi_test
 	$(RUST_TEST) -p terlan --lib http_values_test
 	$(RUST_TEST) -p terlan --lib response_bridge_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_source_reload_resumes_package_cookie_codec -- --exact
 
 tvm-aot-http-request-accessor-check: tvm-aot-http-managed-cycle-check
 	$(RUST_TEST) -p terlan --lib operation_abi_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::request_accessors_lower_to_checked_managed_operations -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::request_accessors_are_not_replaced_by_http_lowering -- --exact
 
 tvm-aot-http-response-mutation-check: tvm-aot-http-request-accessor-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::response_updates_are_persistent_and_preserve_repeated_headers -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::response_status_headers_and_raw_cookies_lower_to_persistent_operations -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::response_mutation_primitives_lower_to_persistent_operations -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::response_bridge::response_bridge_test::native_repeated_headers_are_validated_and_preserved -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_source_reload_resumes_package_cookie_codec -- --exact
 
 tvm-aot-http-typed-metadata-check: tvm-aot-http-response-mutation-check
 	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::http::http_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_cookie_jar_and_security_calls_rewrite_to_managed_operations -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_security_policy_rejects_unknown_marker -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_cookie_jar_calls_rewrite_to_managed_operations -- --exact
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_response_library_test
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_cookie_library_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::response_policy_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::response_bridge::response_bridge_test::native_security_headers_are_not_claimed_by_transport_framing -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_uses_source_bridge_for_managed_only_module_without_hyper -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_source_reload_resumes_package_cookie_codec -- --exact
 
 tvm-aot-http-router-callable-check: tvm-aot-http-typed-metadata-check
 	$(RUST_TEST) -p terlan --lib compiler::router::router_test
@@ -2662,8 +2664,8 @@ tvm-aot-http-router-callable-check: tvm-aot-http-typed-metadata-check
 
 tvm-aot-http-managed-error-check: tvm-aot-http-router-callable-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::aggregate_scalar_projection_returns_an_unboxed_native_word -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_http_error_constructor_and_accessors_lower_to_managed_values -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_http_error_operations_reject_invalid_arities -- --exact
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_error_library_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::http_error_calls_remain_source_owned -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::dynamic_dispatch::vm_stream_request_activates_materialized_router_middleware_without_hyper -- --exact
 
 tvm-aot-http-template-check: tvm-aot-http-managed-error-check
@@ -2687,8 +2689,10 @@ tvm-aot-http-body-json-check: tvm-aot-http-template-expression-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_decodes_managed_json_body_result -- --exact
 
 tvm-aot-http-session-check: tvm-aot-http-body-json-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::session_calls_lower_to_vm_owned_managed_operations -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::session_import_installs_complete_managed_boundary_metadata -- --exact
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_values_test::session_authority_test
+	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::session::session_cookie_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::session_primitive_installs_complete_managed_boundary_metadata -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler_cache::response_policy_test::session_provider_test::canonical_session_provider_preserves_commands_rotation_and_expiration -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::http_session::http_session_test::session_actor_fixtures::http_session_adapter_functions_delegate_to_actor_runtime -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_session_state_and_lifecycle_are_vm_owned -- --exact
 
@@ -4153,7 +4157,7 @@ vm-runtime-semantics-check: \
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::checksum::checksum_test -- --nocapture
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::bitstring::bitstring_test -- --nocapture
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::packet::packet_test -- --nocapture
-	$(EXACT_CARGO_TEST) -p terlan --lib runtime::native::base64::base64_test -- --nocapture
+	$(EXACT_CARGO_TEST) -p terlan-encoding-native --lib base64::base64_test -- --nocapture
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::process::process_location_test::nested_call_frames_restore_continuations_in_lifo_order -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_test::actor_runtime_selective_receive_retries_after_matching_message_wakes_actor -- --exact
 
@@ -4254,8 +4258,7 @@ std-test-honesty-check:
 
 std-test-table-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib formal_pipeline::formal_pipeline_test::interface_foundations::embedded_std_interfaces_include_float_math_contract -- --exact
-	$(RUST_TEST) -p terlan --lib runtime::native::base64::base64_test
-	$(RUST_TEST) -p terlan --lib runtime::native::md5::md5_test
+	$(RUST_TEST) -p terlan-encoding-native --lib
 	target/debug/terlc check std/test/Test.terl
 	target/debug/terlc test \
 		std/test/AssertionsTest.terl \

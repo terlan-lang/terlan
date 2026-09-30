@@ -103,6 +103,15 @@ pub(super) fn specialize_expected_collection_new(
             annotate_expected_structural_constructors(head, element);
             specialize_expected_collection_new(tail, expected, functions, module);
         }
+        CoreExpr::ListComprehension {
+            expr: yielded,
+            lift: None,
+            ..
+        } if list_element(expected).is_some() => {
+            let element = list_element(expected).expect("guard requires list element");
+            specialize_expected_collection_new(yielded, element, functions, module);
+            annotate_expected_structural_constructors(yielded, element);
+        }
         CoreExpr::ConstructorCall {
             type_args: _,
             constructor,
@@ -134,6 +143,21 @@ pub(super) fn specialize_expected_collection_new(
                 for (argument, field) in args.iter_mut().zip(fields) {
                     specialize_expected_collection_new(argument, &field.ty, functions, module);
                     annotate_expected_structural_constructors(argument, &field.ty);
+                }
+            }
+        }
+        CoreExpr::ConstructorCall {
+            constructor, args, ..
+        } => {
+            let name = constructor.rsplit('.').next().unwrap_or(constructor);
+            if let Some((_, _, fields)) =
+                super::super::constructors::structural_constructor_fields(name, expected)
+            {
+                if fields.len() == args.len() {
+                    for (argument, (_, field)) in args.iter_mut().zip(fields) {
+                        specialize_expected_collection_new(argument, &field, functions, module);
+                        annotate_expected_structural_constructors(argument, &field);
+                    }
                 }
             }
         }

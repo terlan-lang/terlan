@@ -2,12 +2,16 @@
  * Portable HTTP router contract.
  *
  * `std.http.Router` defines the source-level route builder used by Terlan web
- * applications. The compiler and local server own route-manifest generation,
- * validation, precedence, and runtime dispatch; source code sees a typed
- * builder whose handlers accept `Request` and return `Response`.
+ * applications. Ordinary source functions build an immutable declaration
+ * sequence without opening transports. Handlers accept `Request` and return
+ * `Response`. Serving still extracts static metadata while descriptor-based
+ * admission is being migrated.
  */
 module std.http.Router.
 
+import std.collections.List.
+
+import type std.collections.List.
 import type std.http.Error.HttpError.
 import type std.http.{Request, Response}.
 
@@ -15,11 +19,51 @@ import type std.http.{Request, Response}.
  * Router represents an HTTP route table.
  *
  * Input: no type parameter.
- * Output: an opaque route builder value.
- * Transformation: hides generated route-manifest storage while preserving a
- * stable source-visible builder type.
+ * Output: an immutable route builder with private declaration storage.
+ * Transformation: retains callbacks and nested scopes without opening sockets
+ * or depending on compiler interpretation of builder names.
  */
-pub opaque type Router.
+pub struct Router {
+    #entries: List[Entry],
+}.
+
+type RouteEntry = {Atom["route"], method: String, path: String, handler: Handler}.
+
+type SseEntry = {Atom["sse"], path: String, endpoint: SseEndpoint}.
+
+type WebSocketEntry = {Atom["websocket"], path: String, endpoint: WebSocketEndpoint}.
+
+type MiddlewareEntry = {Atom["middleware"], callback: Middleware}.
+
+type ResponseMiddlewareEntry = {Atom["response_middleware"], callback: ResponseMiddleware}.
+
+type FallbackEntry = {Atom["fallback"], callback: Handler}.
+
+type ErrorEntry = {Atom["error"], callback: ErrorHandler}.
+
+type OverloadEntry = {Atom["overload"], policy: OverloadPolicy, max_pending: Int}.
+
+type LifecycleEntry = {Atom["lifecycle"], callback: LifecycleMiddleware}.
+
+type GroupStartEntry = {Atom["group_start"], prefix: String}.
+
+type GroupEndEntry.
+
+type Entry =
+      RouteEntry
+    | SseEntry
+    | WebSocketEntry
+    | MiddlewareEntry
+    | ResponseMiddlewareEntry
+    | FallbackEntry
+    | ErrorEntry
+    | OverloadEntry
+    | LifecycleEntry
+    | GroupStartEntry
+    | GroupEndEntry.
+
+append_entry(router: Router, entry: Entry): Router ->
+    Router {#entries: List.concat(router.#entries, [entry])}.
 
 /**
  * OverloadPolicy selects the VM action when a router's pending-work bound is
@@ -228,96 +272,88 @@ pub type ChannelEndpoint = WebSocketEndpoint | SseEndpoint.
  *
  * Input: no value input.
  * Output: an empty `Router`.
- * Transformation: reserves a compiler-owned route builder value that later
- * lowering can convert into the generated web route manifest.
+ * Transformation: creates an ordinary source value without allocating any live
+ * transport or scheduler state.
  */
-@compiler.intrinsic
 pub new(): Router ->
-    native.
+    Router {#entries: []}.
 
 /**
  * Adds a `GET` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) get(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("GET", pattern, handler)).
 
 /**
  * Adds a `POST` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) post(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("POST", pattern, handler)).
 
 /**
  * Adds a `PUT` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) put(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("PUT", pattern, handler)).
 
 /**
  * Adds a `PATCH` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) patch(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("PATCH", pattern, handler)).
 
 /**
  * Adds a `DELETE` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) delete(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("DELETE", pattern, handler)).
 
 /**
  * Adds a `HEAD` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) head(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("HEAD", pattern, handler)).
 
 /**
  * Adds an `OPTIONS` route.
  *
  * Input: one `Router`, one route pattern, and one handler.
  * Output: the updated `Router`.
- * Transformation: records a route-builder step for compiler manifest
- * generation while preserving source-level chaining.
+ * Transformation: appends a typed route declaration without mutating the earlier
+ * router value.
  */
-@compiler.intrinsic
 pub (router: Router) options(pattern: String, handler: Handler): Router ->
-    router.
+    append_entry(router, RouteEntry("OPTIONS", pattern, handler)).
 
 /**
  * Adds a WebSocket channel route.
@@ -325,36 +361,33 @@ pub (router: Router) options(pattern: String, handler: Handler): Router ->
  * Input: one `Router`, one route pattern, and one bounded channel endpoint
  * plan.
  * Output: the updated `Router`.
- * Transformation: records a channel route-builder step for compiler manifest
- * generation while the VM runtime owns upgrade, frame, and session state.
+ * Transformation: appends a typed channel declaration while the serving runtime
+ * owns upgrade, frame, and session state.
  */
-@compiler.intrinsic
 pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router ->
-    router.
+    append_entry(router, WebSocketEntry(pattern, endpoint)).
 
 /**
  * Adds a server-sent event channel route.
  *
  * Input: one `Router`, one route pattern, and one bounded SSE endpoint plan.
  * Output: the updated `Router`.
- * Transformation: records a channel route-builder step for compiler manifest
- * generation while the VM runtime owns event-stream state and scheduling.
+ * Transformation: appends a typed channel declaration while the serving runtime
+ * owns event-stream state and scheduling.
  */
-@compiler.intrinsic
 pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router ->
-    router.
+    append_entry(router, SseEntry(pattern, endpoint)).
 
 /**
  * Adds middleware to a router scope.
  *
  * Input: one `Router` and one middleware callback.
  * Output: the updated `Router`.
- * Transformation: records a middleware builder step for future route-manifest
- * generation while preserving source-level chaining today.
+ * Transformation: retains a callback in declaration order for serving-boundary
+ * admission.
  */
-@compiler.intrinsic
 pub (router: Router) use(middleware: Middleware): Router ->
-    router.
+    append_entry(router, MiddlewareEntry(middleware)).
 
 /**
  * Adds response middleware to a router scope.
@@ -364,9 +397,8 @@ pub (router: Router) use(middleware: Middleware): Router ->
  * Transformation: records post-processing that unwinds in reverse declaration
  * order after a handler or short-circuit response is produced.
  */
-@compiler.intrinsic
 pub (router: Router) map_response(middleware: ResponseMiddleware): Router ->
-    router.
+    append_entry(router, ResponseMiddlewareEntry(middleware)).
 
 /**
  * Adds a fallback route.
@@ -376,9 +408,8 @@ pub (router: Router) map_response(middleware: ResponseMiddleware): Router ->
  * Transformation: records the catch-all handler used when no method-specific
  * route matches the request.
  */
-@compiler.intrinsic
 pub (router: Router) fallback(handler: Handler): Router ->
-    router.
+    append_entry(router, FallbackEntry(handler)).
 
 /**
  * Adds a router-level error handler.
@@ -388,9 +419,8 @@ pub (router: Router) fallback(handler: Handler): Router ->
  * Transformation: records the error callback used when handler execution or
  * bridge conversion fails and the server needs a source-visible response.
  */
-@compiler.intrinsic
 pub (router: Router) error(handler: ErrorHandler): Router ->
-    router.
+    append_entry(router, ErrorEntry(handler)).
 
 /**
  * Configures bounded pending HTTP work for this router.
@@ -401,9 +431,8 @@ pub (router: Router) error(handler: ErrorHandler): Router ->
  * Transformation: records VM-owned admission metadata without exposing
  * scheduler internals or host-server implementation details.
  */
-@compiler.intrinsic
 pub (router: Router) overload(policy: OverloadPolicy, max_pending: Int): Router ->
-    router.
+    append_entry(router, OverloadEntry(policy, max_pending)).
 
 /**
  * Installs source lifecycle middleware for a root router.
@@ -413,18 +442,19 @@ pub (router: Router) overload(policy: OverloadPolicy, max_pending: Int): Router 
  * Transformation: records a single callback that the VM invokes before
  * policy-sensitive transitions and after non-vetoable cleanup transitions.
  */
-@compiler.intrinsic
 pub (router: Router) lifecycle(middleware: LifecycleMiddleware): Router ->
-    router.
+    append_entry(router, LifecycleEntry(middleware)).
 
 /**
  * Adds a nested route group.
  *
  * Input: one `Router`, one path prefix, and one group builder function.
  * Output: the updated `Router`.
- * Transformation: records a scoped route-builder step so compiler manifest
- * generation can prefix nested routes without adding route-specific grammar.
+ * Transformation: invokes the ordinary group-builder function once on an empty
+ * router and retains its declarations under the supplied path prefix.
  */
-@compiler.intrinsic
 pub (router: Router) group(prefix: String, configure: GroupBuilder): Router ->
-    router.
+    let opened = append_entry(router, GroupStartEntry(prefix));
+    let child = configure(new());
+    let grouped = Router {#entries: List.concat(opened.#entries, child.#entries)};
+    append_entry(grouped, GroupEndEntry).

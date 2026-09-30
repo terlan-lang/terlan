@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::websocket::VmWebSocketFrame;
 use crate::runtime::vm::websocket::{
@@ -349,7 +348,7 @@ impl AotWebSocketCallbackSession {
     }
 
     /// Selects the static callback assigned to one lifecycle event.
-    fn callback(&self, event: AotWebSocketCallbackEvent) -> Option<&VmNativeCallableRef> {
+    fn callback(&self, event: AotWebSocketCallbackEvent) -> Option<&ReplValue> {
         if let Some(callbacks) = self.callbacks.as_ref() {
             return Some(match event {
                 AotWebSocketCallbackEvent::Open => &callbacks.open,

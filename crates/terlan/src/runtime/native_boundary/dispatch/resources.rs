@@ -1,5 +1,12 @@
 mod bridge_values;
 use bridge_values::{decode_bridge_args, encode_bridge_result};
+#[cfg(test)]
+#[path = "resources/json_test.rs"]
+mod json_test;
+#[cfg(test)]
+#[path = "resources/map_test.rs"]
+mod map_test;
+mod package_adapter;
 mod random;
 
 use crate::terlan_native::vector;
@@ -10,9 +17,8 @@ use crate::terlan_native_boundary::resource::{
 };
 
 use super::args::{
-    dispatch_http_error, dispatch_resource_error, dispatch_vector_error, expect_bridge_bool,
-    expect_bridge_handle, expect_bridge_int, expect_bridge_list, expect_bridge_text, type_error,
-    unknown_operation,
+    dispatch_resource_error, dispatch_vector_error, expect_bridge_handle, expect_bridge_int,
+    expect_bridge_list, type_error, unknown_operation,
 };
 use super::manifest::validate_native_boundary_dispatch;
 use super::panic_boundary::catch_native_boundary_panic;
@@ -176,26 +182,14 @@ fn execute_resource_dispatch(
     args: &[NativeBoundaryBridgeValue],
     cancellation: Option<&NativeBoundaryCancellationToken>,
 ) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    if operation == "std.data.json.array_extend" {
-        return dispatch_json_array_extend_with_resources(store, operation, args);
-    }
-    if operation == "std.data.json.array_push" {
-        return dispatch_json_array_push_with_resources(store, operation, args);
-    }
-    if operation == "std.data.json.array_set" {
-        return dispatch_json_array_set_with_resources(store, operation, args);
-    }
-    if operation == "std.data.json.object_put" {
-        return dispatch_json_object_put_with_resources(store, operation, args);
-    }
-    if operation == "std.data.json.object_remove" {
-        return dispatch_json_object_remove_with_resources(store, operation, args);
-    }
-    if operation == "std.http.cookies.set" {
-        return dispatch_cookie_set_with_resources(store, operation, args);
-    }
-    if operation == "std.http.cookies.delete" {
-        return dispatch_cookie_delete_with_resources(store, operation, args);
+    if crate::terlan_native::json::operation(operation).is_some() {
+        return package_adapter::dispatch(
+            &crate::terlan_native::json::RESOURCE_ADAPTER,
+            store,
+            caller_process_id,
+            operation,
+            args,
+        );
     }
     if operation.starts_with("std.native.collections.vector.") {
         return dispatch_native_vector_with_resources(store, caller_process_id, operation, args);
@@ -211,7 +205,7 @@ fn execute_resource_dispatch(
     ) {
         let decoded = args
             .iter()
-            .map(|argument| decode_process_bridge_value(operation, argument))
+            .map(|argument| decode_owned_bridge_value(operation, argument))
             .collect::<Result<Vec<_>, _>>()?;
         let result = match operation {
             "std.system.process.run" => super::process::run_process(&decoded, cancellation)?,
@@ -227,14 +221,23 @@ fn execute_resource_dispatch(
     encode_bridge_result(store, caller_process_id, result)
 }
 
-/// Decodes the recursively owned records used by the bounded process API.
-/// Process requests contain string lists, optional working directories, and
-/// nested environment records; none of those values are opaque resources.
-fn decode_process_bridge_value(
+/// Decodes recursively owned boundary values for process and package adapters.
+/// Nested resources are rejected rather than flattened into ordinary data.
+fn decode_owned_bridge_value(
     operation: &str,
     value: &NativeBoundaryBridgeValue,
 ) -> Result<NativeBoundaryValue, DispatchError> {
     match value {
+        NativeBoundaryBridgeValue::Map(entries) => entries
+            .iter()
+            .map(|(key, value)| {
+                Ok((
+                    decode_owned_bridge_value(operation, key)?,
+                    decode_owned_bridge_value(operation, value)?,
+                ))
+            })
+            .collect::<Result<_, _>>()
+            .map(NativeBoundaryValue::Map),
         NativeBoundaryBridgeValue::Unit => Ok(NativeBoundaryValue::Unit),
         NativeBoundaryBridgeValue::Text(value) => Ok(NativeBoundaryValue::Text(value.clone())),
         NativeBoundaryBridgeValue::Bytes(value) => Ok(NativeBoundaryValue::Bytes(value.clone())),
@@ -250,128 +253,28 @@ fn decode_process_bridge_value(
             fields: fields
                 .iter()
                 .map(|(name, value)| {
-                    decode_process_bridge_value(operation, value).map(|value| (name.clone(), value))
+                    decode_owned_bridge_value(operation, value).map(|value| (name.clone(), value))
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         }),
         NativeBoundaryBridgeValue::Tuple(values) => Ok(NativeBoundaryValue::Tuple(
             values
                 .iter()
-                .map(|value| decode_process_bridge_value(operation, value))
+                .map(|value| decode_owned_bridge_value(operation, value))
                 .collect::<Result<Vec<_>, _>>()?,
         )),
         NativeBoundaryBridgeValue::List(values) => Ok(NativeBoundaryValue::List(
             values
                 .iter()
-                .map(|value| decode_process_bridge_value(operation, value))
+                .map(|value| decode_owned_bridge_value(operation, value))
                 .collect::<Result<Vec<_>, _>>()?,
         )),
         NativeBoundaryBridgeValue::Handle(_)
         | NativeBoundaryBridgeValue::OptionalHandle(_)
         | NativeBoundaryBridgeValue::PostgresConfig(_) => {
-            Err(type_error(operation, 0, "owned process request value"))
+            Err(type_error(operation, 0, "owned boundary value"))
         }
     }
-}
-
-/// Extends one JSON array while both resources remain VM-owned.
-fn dispatch_json_array_extend_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let receiver = expect_bridge_handle(operation, args, 0)?;
-    let value = expect_bridge_handle(operation, args, 1)?;
-    let value = store
-        .json(value)
-        .cloned()
-        .map_err(dispatch_resource_error)?;
-    crate::terlan_native::json::extend(
-        store.json_mut(receiver).map_err(dispatch_resource_error)?,
-        value,
-    )
-    .map_err(super::args::dispatch_json_error)?;
-    Ok(NativeBoundaryBridgeValue::Handle(receiver))
-}
-
-/// Appends one JSON value while both resources remain VM-owned.
-fn dispatch_json_array_push_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let receiver = expect_bridge_handle(operation, args, 0)?;
-    let value = expect_bridge_handle(operation, args, 1)?;
-    let value = store
-        .json(value)
-        .cloned()
-        .map_err(dispatch_resource_error)?;
-    crate::terlan_native::json::push(
-        store.json_mut(receiver).map_err(dispatch_resource_error)?,
-        value,
-    )
-    .map_err(super::args::dispatch_json_error)?;
-    Ok(NativeBoundaryBridgeValue::Handle(receiver))
-}
-
-/// Replaces one JSON array element while both resources remain VM-owned.
-fn dispatch_json_array_set_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let receiver = expect_bridge_handle(operation, args, 0)?;
-    let index = expect_bridge_int(operation, args, 1)?;
-    let value = expect_bridge_handle(operation, args, 2)?;
-    let value = store
-        .json(value)
-        .cloned()
-        .map_err(dispatch_resource_error)?;
-    crate::terlan_native::json::set(
-        store.json_mut(receiver).map_err(dispatch_resource_error)?,
-        index,
-        value,
-    )
-    .map_err(super::args::dispatch_json_error)?;
-    Ok(NativeBoundaryBridgeValue::Handle(receiver))
-}
-
-/// Inserts one JSON object member while both resources remain VM-owned.
-fn dispatch_json_object_put_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let receiver = expect_bridge_handle(operation, args, 0)?;
-    let key = expect_bridge_text(operation, args, 1)?;
-    let value = expect_bridge_handle(operation, args, 2)?;
-    let value = store
-        .json(value)
-        .cloned()
-        .map_err(dispatch_resource_error)?;
-    crate::terlan_native::json::put(
-        store.json_mut(receiver).map_err(dispatch_resource_error)?,
-        key,
-        value,
-    )
-    .map_err(super::args::dispatch_json_error)?;
-    Ok(NativeBoundaryBridgeValue::Handle(receiver))
-}
-
-/// Removes one JSON object member while the resource remains VM-owned.
-fn dispatch_json_object_remove_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let receiver = expect_bridge_handle(operation, args, 0)?;
-    let key = expect_bridge_text(operation, args, 1)?;
-    crate::terlan_native::json::remove(
-        store.json_mut(receiver).map_err(dispatch_resource_error)?,
-        key,
-    )
-    .map_err(super::args::dispatch_json_error)?;
-    Ok(NativeBoundaryBridgeValue::Handle(receiver))
 }
 
 fn validate_bridge_resource_owners(
@@ -399,6 +302,13 @@ fn validate_bridge_resource_owner(
             .map_err(dispatch_resource_error),
         NativeBoundaryBridgeValue::List(values) | NativeBoundaryBridgeValue::Tuple(values) => {
             validate_bridge_resource_owners(store, caller_process_id, values)
+        }
+        NativeBoundaryBridgeValue::Map(entries) => {
+            for (key, value) in entries {
+                validate_bridge_resource_owner(store, caller_process_id, key)?;
+                validate_bridge_resource_owner(store, caller_process_id, value)?;
+            }
+            Ok(())
         }
         NativeBoundaryBridgeValue::Record { fields, .. } => {
             for (_, value) in fields {
@@ -536,69 +446,6 @@ fn dispatch_native_vector_with_resources(
         }
         _ => Err(unknown_operation(operation)),
     }
-}
-
-/// Mutates a cookie jar resource through `std.http.cookies.set`.
-///
-/// Inputs:
-/// - `store`: resource registry owning the cookie jar.
-/// - `operation`: compiler-native operation id used in diagnostics.
-/// - `args`: bridge arguments containing jar handle and cookie values.
-///
-/// Output:
-/// - `Unit` when the cookie mutation is recorded.
-/// - `DispatchError` for bad handle, argument, or cookie validation failures.
-///
-/// Transformation:
-/// - Borrows the jar mutably from the resource store and appends one
-///   `Set-Cookie` mutation without cloning the jar.
-fn dispatch_cookie_set_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let handle = expect_bridge_handle(operation, args, 0)?;
-    let name = expect_bridge_text(operation, args, 1)?;
-    let value = expect_bridge_text(operation, args, 2)?;
-    let path = expect_bridge_text(operation, args, 3)?;
-    let http_only = expect_bridge_bool(operation, args, 4)?;
-    let secure = expect_bridge_bool(operation, args, 5)?;
-    store
-        .http_cookie_jar_mut(handle)
-        .map_err(dispatch_resource_error)?
-        .set(name, value, path, http_only, secure)
-        .map_err(dispatch_http_error)?;
-    Ok(NativeBoundaryBridgeValue::Unit)
-}
-
-/// Mutates a cookie jar resource through `std.http.cookies.delete`.
-///
-/// Inputs:
-/// - `store`: resource registry owning the cookie jar.
-/// - `operation`: compiler-native operation id used in diagnostics.
-/// - `args`: bridge arguments containing jar handle, cookie name, and path.
-///
-/// Output:
-/// - `Unit` when the deletion mutation is recorded.
-/// - `DispatchError` for bad handle, argument, or cookie validation failures.
-///
-/// Transformation:
-/// - Borrows the jar mutably from the resource store and appends one expiring
-///   `Set-Cookie` mutation without cloning the jar.
-fn dispatch_cookie_delete_with_resources(
-    store: &mut ResourceStore,
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-) -> Result<NativeBoundaryBridgeValue, DispatchError> {
-    let handle = expect_bridge_handle(operation, args, 0)?;
-    let name = expect_bridge_text(operation, args, 1)?;
-    let path = expect_bridge_text(operation, args, 2)?;
-    store
-        .http_cookie_jar_mut(handle)
-        .map_err(dispatch_resource_error)?
-        .delete(name, path)
-        .map_err(dispatch_http_error)?;
-    Ok(NativeBoundaryBridgeValue::Unit)
 }
 
 /// Validates bridge argument count for one operation.

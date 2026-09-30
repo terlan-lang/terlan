@@ -40,6 +40,7 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
                 vec![middleware_request.clone()],
                 output,
             )
+            .map_err(String::from)
         },
     )?;
     match outcome {

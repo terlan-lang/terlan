@@ -1,0 +1,23 @@
+[package]
+name = "terlan-std-native"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+terlan-runtime-abi.workspace = true
+terlan-net-native = { path = "net/native" }
+terlan-http-native = { path = "http/native" }
+terlan-encoding-native = { path = "encoding/native" }
+terlan-crypto-native = { path = "crypto/native" }
+terlan-time-native = { path = "time/native" }
+terlan-data-native = { path = "data/native" }

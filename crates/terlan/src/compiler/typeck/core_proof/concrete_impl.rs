@@ -71,6 +71,8 @@ pub(crate) fn core_syntax_concrete_impl_functions(
                     declaration_span: Some(method.span.into()),
                 }),
                 receiver_method: false,
+                receiver_mutable: false,
+                receiver_command: false,
                 trait_method: Some(identity),
                 arity: method.params.len(),
                 public: *is_public,

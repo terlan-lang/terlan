@@ -271,13 +271,6 @@ pub(super) fn serve_vm_stream_handler_response(
             let (parts, body) = response.into_parts();
             Ok(::http::Response::from_parts(parts, Bytes::from(body)))
         }
-        handler::HandlerBody::Transferred(body) => build_http_shared_response_owned_for_stream(
-            response.status,
-            &response.content_type,
-            &response.headers,
-            body,
-            head_only,
-        ),
     }
 }
 

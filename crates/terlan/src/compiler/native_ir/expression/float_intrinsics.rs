@@ -21,12 +21,6 @@ pub(super) fn lower_float_intrinsic(
     constructors: &NativeConstructorLayouts,
 ) -> Result<NativeExpr, String> {
     match &call.id {
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatPi) if call.args.is_empty() => {
-            Ok(NativeExpr::Float(std::f64::consts::PI.to_bits()))
-        }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatTau) if call.args.is_empty() => {
-            Ok(NativeExpr::Float(std::f64::consts::TAU.to_bits()))
-        }
         CoreIntrinsicId::Primitive(
             intrinsic @ (CorePrimitiveIntrinsic::FloatFloor | CorePrimitiveIntrinsic::FloatCeil),
         ) if call.args.len() == 1 => {
@@ -95,9 +89,7 @@ pub(super) fn infer_float_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Nat
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::FloatFloor
             | CorePrimitiveIntrinsic::FloatCeil
-            | CorePrimitiveIntrinsic::FloatLog
-            | CorePrimitiveIntrinsic::FloatPi
-            | CorePrimitiveIntrinsic::FloatTau,
+            | CorePrimitiveIntrinsic::FloatLog,
         ) => Some(NativeType::Float),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatToString) => {
             Some(NativeType::StringRef)

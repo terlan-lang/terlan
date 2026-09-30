@@ -63,12 +63,14 @@ fn http_fixture_is_unavailable_to_application_helpers() {
         .contains("fixture_disabled"));
     let mut runner = super::super::VmPackageNativeHelpers::from_helper_environment(&[]).unwrap();
     let value = runner.call(7, &request, &[]).unwrap();
-    let ReplValue::Tuple(fields) = value else {
-        panic!("production request tuple");
+    let ReplValue::Record { name, fields } = value else {
+        panic!("source-owned request record");
     };
-    assert_eq!(fields.len(), 11);
+    assert_eq!(name, "Request");
+    assert_eq!(fields.len(), 10);
+    assert_eq!(fields[7].0, "cookies");
     assert_eq!(
-        fields[8],
+        fields[7].1,
         ReplValue::Map(vec![(
             ReplValue::String("session".into()),
             ReplValue::String("abc123".into())

@@ -28,7 +28,10 @@ fn compile_and_emit_direct_js(source: &str) -> String {
     )
     .expect("compile source to CoreIR");
 
-    oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
+    let linked =
+        source_linking::link_libraries(&artifacts.core, std::path::Path::new("fixture.terl"))
+            .expect("link source library implementations");
+    oxc_backend::emit_core_module_with_direct_oxc_ast(&linked)
         .expect("direct Oxc AST emits selected std.core.String intrinsics")
 }
 
@@ -91,7 +94,11 @@ pub concat_pair(): String ->
         js.contains(r#"return Array.from("åb").reverse().join("");"#),
         "{js}"
     );
-    assert!(js.contains(r#"return "a" + "b";"#), "{js}");
+    assert!(
+        js.contains(r#"$library$std$core$String$append$2("a", "b")"#),
+        "{js}"
+    );
+    assert!(js.contains("return left + right;"), "{js}");
     assert!(js.contains(r#"return ["a", "b"].join("");"#), "{js}");
 }
 
@@ -105,8 +112,7 @@ pub concat_pair(): String ->
 /// - Assertions over Oxc-printed JavaScript source.
 ///
 /// Transformation:
-/// - Proves `core.string.is_empty` lowers to a strict empty-string comparison
-///   rather than a backend helper call.
+/// - Proves the library body supplies the strict empty-string comparison.
 #[test]
 fn emits_std_core_string_is_empty_as_strict_empty_string_check() {
     let source = "\
@@ -118,7 +124,11 @@ pub empty(): Bool ->
 
     let js = compile_and_emit_direct_js(source);
 
-    assert!(js.contains(r#"return "" === "";"#), "{js}");
+    assert!(
+        js.contains(r#"$library$std$core$String$is_empty$1("")"#),
+        "{js}"
+    );
+    assert!(js.contains(r#"return value === "";"#), "{js}");
 }
 
 /// Verifies indexed UTF-8 candidate search remains portable on JavaScript.

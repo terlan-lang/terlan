@@ -297,7 +297,7 @@ fn read_signing_seed(path: &Path) -> RegistryResult<String> {
         )
     })?;
     let seed = seed.trim().to_string();
-    if crate::runtime::native::ed25519::sign(&seed, "terlan-registry-key-probe").is_none() {
+    if terlan_std_native::crypto::ed25519::sign(&seed, "terlan-registry-key-probe").is_none() {
         return Err(
             "error[registry_publish_key]: signing seed must be base64-encoded Ed25519 seed bytes"
                 .into(),
@@ -307,7 +307,7 @@ fn read_signing_seed(path: &Path) -> RegistryResult<String> {
 }
 
 fn sign(seed: &str, payload: &str) -> RegistryResult<String> {
-    crate::runtime::native::ed25519::sign(seed, payload)
+    terlan_std_native::crypto::ed25519::sign(seed, payload)
         .map(|signed| signed.signature_base64)
         .ok_or_else(|| "error[registry_publish_key]: publisher signing failed".into())
 }

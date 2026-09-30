@@ -4,12 +4,12 @@ use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
-use crate::runtime::vm::http_response_chunks::VmHttpResponseChunks;
-use crate::runtime::vm::{ReplValue, VmAotHttpResponse};
+use crate::runtime::vm::ReplValue;
 use crate::terlan_native::http as native_http;
+use terlan_http_native::HttpResponseChunks;
 
 use super::super::package_relative_path;
-use super::types::WebPackageResponseHeader;
+use super::types::{WebPackageResponseHeader, WebPackageStaticResponse};
 
 /// HTTP response returned by a VM/native-backed handler.
 ///
@@ -35,8 +35,7 @@ pub(crate) struct HandlerResponse {
 pub(crate) enum HandlerBody {
     Text(String),
     Bytes(Vec<u8>),
-    Transferred(Bytes),
-    Stream(VmHttpResponseChunks),
+    Stream(HttpResponseChunks),
 }
 
 impl HandlerBody {
@@ -45,7 +44,6 @@ impl HandlerBody {
         match self {
             Self::Text(body) => body.as_bytes(),
             Self::Bytes(body) => body,
-            Self::Transferred(body) => body,
             Self::Stream(_) => panic!("stream bodies must be polled through the transport"),
         }
     }
@@ -55,63 +53,15 @@ impl HandlerBody {
     }
 }
 impl HandlerResponse {
-    /// Converts the direct managed response envelope copied before heap release.
-    pub(crate) fn from_aot_http_response(response: VmAotHttpResponse) -> Result<Self, String> {
-        let status = vm_status_to_u16(response.status)?;
-        validate_handler_status(status)?;
-        let mut headers = response
-            .headers
-            .into_iter()
-            .map(|(name, value)| validate_response_header_owned(name, value))
-            .collect::<Result<Vec<_>, _>>()?;
-        let (content_type, body) = match response.kind {
-            0 => (
-                Cow::Borrowed("text/plain; charset=utf-8"),
-                HandlerBody::Transferred(response.payload),
-            ),
-            1 => (
-                Cow::Borrowed("text/html; charset=utf-8"),
-                HandlerBody::Transferred(response.payload),
-            ),
-            2 => (
-                Cow::Borrowed("application/json; charset=utf-8"),
-                HandlerBody::Transferred(response.payload),
-            ),
-            3 => {
-                let location = std::str::from_utf8(&response.payload)
-                    .map_err(|error| {
-                        format!("error[serve_handler]: redirect location is not UTF-8: {error}")
-                    })?
-                    .to_owned();
-                headers.push(validate_response_header_owned(
-                    "Location".to_string(),
-                    location,
-                )?);
-                (
-                    Cow::Borrowed("text/plain; charset=utf-8"),
-                    HandlerBody::Text(String::new()),
-                )
-            }
-            other => {
-                return Err(format!(
-                    "error[serve_handler]: unsupported native Response kind `{other}`"
-                ))
-            }
-        };
-        Ok(Self {
-            status,
-            content_type,
-            headers,
-            body,
-        })
-    }
-
     /// Consumes an immediate AOT response without copying its managed body.
     pub(crate) fn from_owned_vm_response_with_package_root(
         response: ReplValue,
         package_root: &Path,
     ) -> Result<Self, String> {
         match response {
+            ReplValue::Record { name, fields } => {
+                source_response::decode(&name, fields, Some(package_root))
+            }
             ReplValue::Tuple(fields)
                 if matches!(fields.first(), Some(ReplValue::Int(0)))
                     && matches!(fields.get(1), Some(ReplValue::Int(_))) =>
@@ -247,6 +197,9 @@ impl HandlerResponse {
         response: &ReplValue,
         package_root: Option<&Path>,
     ) -> Result<Self, String> {
+        if let ReplValue::Record { name, fields } = response {
+            return source_response::decode(name, fields.clone(), package_root);
+        }
         let ReplValue::Tuple(fields) = response else {
             return Err("error[serve_handler]: VM handler did not return Response".to_string());
         };
@@ -325,7 +278,8 @@ fn owned_native_response_headers(metadata: ReplValue) -> Result<Vec<(String, Str
 
 /// Validates an already-owned response header without cloning it again.
 fn validate_response_header_owned(name: String, value: String) -> Result<(String, String), String> {
-    validate_response_header(&name, &value)?;
+    terlan_http_native::validate_response_header(&name, &value)
+        .map_err(|error| format!("error[serve_handler]: {}", error.message()))?;
     Ok((name, value))
 }
 
@@ -374,6 +328,7 @@ fn native_response_kind(kind: i64) -> Result<&'static str, String> {
 #[cfg(test)]
 mod response_bridge_test;
 
+mod source_response;
 mod stream_response;
 
 type VmResponseBase = (u16, String, Vec<u8>, Vec<(String, String)>);
@@ -752,69 +707,51 @@ pub(super) fn validate_response_header(
     name: &str,
     value: &str,
 ) -> Result<(String, String), String> {
-    if name.is_empty() || !name.bytes().all(is_http_token_byte) {
-        return Err(format!(
-            "error[serve_handler]: response header name `{name}` is not a valid HTTP token"
-        ));
-    }
-    if is_server_owned_response_header(name) {
-        return Err(format!(
-            "error[serve_handler]: response header `{name}` is owned by the server bridge"
-        ));
-    }
-    if value.bytes().any(|byte| byte == b'\r' || byte == b'\n') {
-        return Err(format!(
-            "error[serve_handler]: response header `{name}` contains a line break"
-        ));
-    }
+    terlan_http_native::validate_response_header(name, value)
+        .map_err(|error| format!("error[serve_handler]: {}", error.message()))?;
     Ok((name.to_string(), value.to_string()))
 }
-
-/// Returns whether a byte is allowed inside an HTTP token.
-///
-/// Inputs:
-/// - `byte`: candidate header-name byte.
-///
-/// Output:
-/// - `true` when the byte is accepted by the conservative HTTP token subset.
-///
-/// Transformation:
-/// - Implements the RFC token character set needed for response header names.
-fn is_http_token_byte(byte: u8) -> bool {
-    byte.is_ascii_alphanumeric()
-        || matches!(
-            byte,
-            b'!' | b'#'
-                | b'$'
-                | b'%'
-                | b'&'
-                | b'\''
-                | b'*'
-                | b'+'
-                | b'-'
-                | b'.'
-                | b'^'
-                | b'_'
-                | b'`'
-                | b'|'
-                | b'~'
-        )
-}
-
-/// Returns whether a response header is controlled by the server bridge.
-///
-/// Inputs:
-/// - `name`: handler-provided header name.
-///
-/// Output:
-/// - `true` when the bridge renders the header itself.
-///
-/// Transformation:
-/// - Keeps handler metadata from conflicting with the local server's required
-///   HTTP framing. Cache policy remains application-owned.
-fn is_server_owned_response_header(name: &str) -> bool {
-    matches!(
-        name.to_ascii_lowercase().as_str(),
-        "content-type" | "content-length" | "connection"
-    )
+/// Materializes cached response data in the source-owned record layout.
+pub(super) fn static_response_vm_value(response: &WebPackageStaticResponse) -> ReplValue {
+    let kind = if response.content_type == "text/html; charset=utf-8" {
+        1
+    } else {
+        0
+    };
+    ReplValue::Record {
+        name: "Response".to_string(),
+        fields: vec![
+            ("kind".to_string(), ReplValue::Int(kind)),
+            (
+                "payload".to_string(),
+                ReplValue::String(response.body.clone()),
+            ),
+            (
+                "status".to_string(),
+                ReplValue::Int(i64::from(response.status)),
+            ),
+            (
+                "content_type".to_string(),
+                ReplValue::String(response.content_type.clone()),
+            ),
+            (
+                "headers".to_string(),
+                ReplValue::List(
+                    response
+                        .headers
+                        .iter()
+                        .map(|header| {
+                            ReplValue::Tuple(vec![
+                                ReplValue::String(header.name.clone()),
+                                ReplValue::String(header.value.clone()),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
+            ("chunks".to_string(), ReplValue::List(Vec::new())),
+            ("chunk_size".to_string(), ReplValue::Int(0)),
+            ("max_pending_writes".to_string(), ReplValue::Int(0)),
+        ],
+    }
 }

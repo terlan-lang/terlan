@@ -1381,20 +1381,11 @@ fn remote_cancellation_is_traced_as_signal_not_actor_message() {
 
 /// Builds one managed request argument accepted by the generated handler.
 fn request() -> ReplValue {
-    let empty_map = || ReplValue::Map(Vec::new());
-    ReplValue::Tuple(vec![
-        ReplValue::Int(0),
-        ReplValue::String("GET".to_string()),
-        ReplValue::String("/delayed:".to_string()),
-        empty_map(),
-        ReplValue::String(String::new()),
-        ReplValue::String(String::new()),
-        empty_map(),
-        empty_map(),
-        empty_map(),
-        ReplValue::Tuple(vec![empty_map(), ReplValue::List(Vec::new())]),
-        ReplValue::String(String::new()),
-    ])
+    use crate::runtime::native::http::{Request, RequestFieldProjection};
+    crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned(
+        Request::from_parts("GET", "/delayed:", "").into_parts(),
+        RequestFieldProjection::Complete,
+    )
 }
 
 /// Starts one generated request and requires it to park on typed string I/O.

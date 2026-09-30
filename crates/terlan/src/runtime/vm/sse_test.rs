@@ -221,7 +221,7 @@ fn vm_sse_endpoint_plan_opens_bounded_stream_with_keep_alive_policy() {
         .expect("plan")
         .with_keep_alive_ms(10_000)
         .expect("keep alive");
-    let stream = plan.open_stream().expect("stream");
+    let stream = crate::runtime::vm::sse::VmSseLiveSession::open(plan.clone()).expect("stream");
     let info = stream.inspect();
 
     assert_eq!(plan.max_pending_events(), 3);

@@ -161,7 +161,7 @@ pub(super) fn lower_prepared_call(
                     .collect::<Vec<_>>();
                 (
                     None,
-                    Some((callee.clone(), parameter_types)),
+                    Some((callee.clone(), parameter_types, parameter_core_types)),
                     profiles,
                     result_type,
                     Some(return_type.as_ref().clone()),
@@ -428,7 +428,23 @@ pub(super) fn lower_prepared_call(
     let args = region
         .args
         .iter()
-        .map(|arg| {
+        .enumerate()
+        .map(|(index, arg)| {
+            if let Some((_, _, core_types)) = &dynamic_call {
+                if let Some(expected) = core_types.get(index) {
+                    if let Some(value) = super::super::collection_values::try_lower_typed_value(
+                        arg,
+                        expected,
+                        &entry_vars,
+                        &entry_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    )? {
+                        return Ok(value);
+                    }
+                }
+            }
             lower_expr_with_constructors(
                 arg,
                 &entry_vars,
@@ -449,7 +465,7 @@ pub(super) fn lower_prepared_call(
             values,
         }
     } else {
-        let (callee, parameter_types) =
+        let (callee, parameter_types, _) =
             dynamic_call.expect("dynamic metadata accompanies the dynamic target");
         let callee = super::super::structured_case::lower_lexical_expr(
             &callee,

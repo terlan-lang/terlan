@@ -555,6 +555,8 @@ fn lower_escaping_lambda_at(
     }
     let closure_contract = CoreFunction {
         receiver_method: false,
+        receiver_mutable: false,
+        receiver_command: false,
         trait_method: None,
         source: None,
         name: format!("$closure_contract_{owner_name}_{owner_arity}"),

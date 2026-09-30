@@ -128,7 +128,7 @@ fn synchronous_native_tail_helper_completes_call_then() {
          pub gather(remaining: Int, text: String): String ->\n\
              if {\n\
                  remaining == 0 -> text;\n\
-                 true -> gather(remaining - 1, std.core.String.append(text, \"x\"))\n\
+                 true -> gather(remaining - 1, text + \"x\")\n\
              }.\n\n\
          pub matches(): Bool -> gather(2, \"\") == \"xx\".\n",
     );

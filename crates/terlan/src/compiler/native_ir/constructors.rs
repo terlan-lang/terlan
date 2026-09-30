@@ -283,11 +283,37 @@ pub(super) fn lower_zero_field_managed_variant(
     expected: NativeType,
     layouts: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    Ok(
+        zero_field_managed_variant_layout(argument, expected, layouts)?.map(|layout| {
+            NativeExpr::Construct {
+                descriptor: layout.descriptor.clone(),
+                encoded_layout: layout.encoded_layout.clone(),
+                fields: Vec::new(),
+            }
+        }),
+    )
+}
+
+/// Shares checked nullary variant selection between type inference and lowering.
+pub(super) fn zero_field_managed_variant_layout<'a>(
+    argument: &CoreExpr,
+    expected: NativeType,
+    layouts: &'a NativeConstructorLayouts,
+) -> super::NativeIrResult<Option<&'a NativeConstructorLayout>> {
     let NativeType::ManagedRef(_) = expected else {
         return Ok(None);
     };
     let identity = match argument {
-        CoreExpr::Atom(identity) | CoreExpr::Var(identity) => identity,
+        CoreExpr::Atom(identity) => identity,
+        CoreExpr::Var(identity)
+            if identity
+                .rsplit('.')
+                .next()
+                .and_then(|name| name.chars().next())
+                .is_some_and(|first| first.is_ascii_uppercase()) =>
+        {
+            identity
+        }
         CoreExpr::ConstructorCall {
             constructor, args, ..
         } if args.is_empty() => constructor,
@@ -308,13 +334,10 @@ pub(super) fn lower_zero_field_managed_variant(
     if candidates.any(|other| other.encoded_layout != candidate.encoded_layout) {
         return Err(format!(
             "error[native_ir.constructor_variant]: atom `{identity}` has ambiguous managed layouts"
-        ));
+        )
+        .into());
     }
-    Ok(Some(NativeExpr::Construct {
-        descriptor: candidate.descriptor.clone(),
-        encoded_layout: candidate.encoded_layout.clone(),
-        fields: Vec::new(),
-    }))
+    Ok(Some(candidate))
 }
 
 /// Lowers a structural Option/Result constructor using its checked target type.

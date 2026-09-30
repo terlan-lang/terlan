@@ -3,37 +3,32 @@
 use std::collections::HashMap;
 
 use crate::runtime::native_image::managed::{
-    encode_string_append_operation, encode_string_byte_size_operation,
-    encode_string_characters_operation, encode_string_codepoints_operation,
-    encode_string_compare_operation, encode_string_contains_operation,
-    encode_string_ends_with_operation, encode_string_equal_operation,
+    encode_string_byte_size_operation, encode_string_characters_operation,
+    encode_string_codepoints_operation, encode_string_compare_operation,
+    encode_string_contains_operation, encode_string_ends_with_operation,
     encode_string_length_operation, encode_string_list_join_operation,
     encode_string_lowercase_operation, encode_string_replace_operation,
-    encode_string_reverse_operation, encode_string_sha256_operation,
-    encode_string_split_once_operation, encode_string_split_operation,
-    encode_string_starts_with_operation, encode_string_trim_end_operation,
-    encode_string_trim_operation, encode_string_trim_start_operation,
-    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
-    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation, SemanticTypeId,
+    encode_string_reverse_operation, encode_string_split_once_operation,
+    encode_string_split_operation, encode_string_starts_with_operation,
+    encode_string_trim_end_operation, encode_string_trim_operation,
+    encode_string_trim_start_operation, encode_string_uppercase_operation,
+    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
+    encode_string_utf8_slice_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::{
-    CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem,
-    CoreType,
+    CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreTupleTypeElem, CoreType,
 };
 
 use super::{
-    lower_expr_with_constructors, native_type, NativeBinaryOperator, NativeConstructorLayouts,
-    NativeExpr, NativeType,
+    lower_expr_with_constructors, native_type, NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
 pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
     match call.id {
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringEqual
-            | CorePrimitiveIntrinsic::StringContains
+            CorePrimitiveIntrinsic::StringContains
             | CorePrimitiveIntrinsic::StringStartsWith
-            | CorePrimitiveIntrinsic::StringEndsWith
-            | CorePrimitiveIntrinsic::StringIsEmpty,
+            | CorePrimitiveIntrinsic::StringEndsWith,
         ) => Some(NativeType::Bool),
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::StringLength
@@ -43,15 +38,11 @@ pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Na
         ) => Some(NativeType::Int),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringCompare) => Some(NativeType::Atom),
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringFromString
-            | CorePrimitiveIntrinsic::StringSplit
+            CorePrimitiveIntrinsic::StringSplit
             | CorePrimitiveIntrinsic::StringSplitOnce
             | CorePrimitiveIntrinsic::StringCharacters
             | CorePrimitiveIntrinsic::StringCodepoints,
         ) => native_type(Some(&call.return_type), &call.return_type.contract_text()),
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringAppend) => {
-            Some(NativeType::StringRef)
-        }
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringUtf8Slice) => {
             Some(NativeType::StringRef)
         }
@@ -61,8 +52,7 @@ pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Na
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::StringLowercase
             | CorePrimitiveIntrinsic::StringUppercase
-            | CorePrimitiveIntrinsic::StringReverse
-            | CorePrimitiveIntrinsic::StringToString,
+            | CorePrimitiveIntrinsic::StringReverse,
         ) => Some(NativeType::StringRef),
         CoreIntrinsicId::Primitive(
             CorePrimitiveIntrinsic::StringTrim
@@ -70,9 +60,6 @@ pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Na
             | CorePrimitiveIntrinsic::StringTrimEnd,
         ) => Some(NativeType::StringRef),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringReplace) => {
-            Some(NativeType::StringRef)
-        }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::CryptoSha256) => {
             Some(NativeType::StringRef)
         }
         _ => None,
@@ -94,8 +81,6 @@ pub(super) fn lower_string_intrinsic(
         CorePrimitiveIntrinsic::StringLowercase
         | CorePrimitiveIntrinsic::StringUppercase
         | CorePrimitiveIntrinsic::StringReverse
-        | CorePrimitiveIntrinsic::StringToString
-        | CorePrimitiveIntrinsic::StringFromString
         | CorePrimitiveIntrinsic::StringTrim
         | CorePrimitiveIntrinsic::StringTrimStart
         | CorePrimitiveIntrinsic::StringTrimEnd
@@ -103,9 +88,7 @@ pub(super) fn lower_string_intrinsic(
         | CorePrimitiveIntrinsic::StringByteSize
         | CorePrimitiveIntrinsic::StringCharacters
         | CorePrimitiveIntrinsic::StringCodepoints
-        | CorePrimitiveIntrinsic::StringConcat
-        | CorePrimitiveIntrinsic::StringIsEmpty => 1,
-        CorePrimitiveIntrinsic::CryptoSha256 => 1,
+        | CorePrimitiveIntrinsic::StringConcat => 1,
         CorePrimitiveIntrinsic::StringReplace
         | CorePrimitiveIntrinsic::StringUtf8FindAnyByte
         | CorePrimitiveIntrinsic::StringUtf8Slice => 3,
@@ -113,22 +96,6 @@ pub(super) fn lower_string_intrinsic(
     };
     if call.args.len() != expected_arity {
         return Err("error[native_ir.string_intrinsic]: invalid intrinsic arity".into());
-    }
-    if *intrinsic == CorePrimitiveIntrinsic::StringFromString {
-        return Ok(super::super::collection_values::lower_typed_value(
-            &CoreExpr::ConstructorCall {
-                type_args: Vec::new(),
-                constructor: "Some".into(),
-                constructor_identity: Some("std.core.Option.Some".into()),
-                args: call.args.clone(),
-            },
-            &call.return_type,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-        )?);
     }
     let args = call
         .args
@@ -144,30 +111,11 @@ pub(super) fn lower_string_intrinsic(
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if *intrinsic == CorePrimitiveIntrinsic::StringToString {
-        return Ok(args.into_iter().next().expect("validated unary intrinsic"));
-    }
-    if *intrinsic == CorePrimitiveIntrinsic::StringIsEmpty {
-        let [value] = args.as_slice() else {
-            unreachable!("String.is_empty arity was validated above");
-        };
-        return Ok(NativeExpr::Binary {
-            operator: NativeBinaryOperator::Equal,
-            operand_type: NativeType::Int,
-            left: Box::new(NativeExpr::ManagedOperation {
-                encoded: encode_string_byte_size_operation().into(),
-                args: vec![value.clone()],
-            }),
-            right: Box::new(NativeExpr::Int(0)),
-        });
-    }
     let encoded = match intrinsic {
-        CorePrimitiveIntrinsic::StringEqual => encode_string_equal_operation(),
         CorePrimitiveIntrinsic::StringContains => encode_string_contains_operation(),
         CorePrimitiveIntrinsic::StringCompare => encode_string_compare_operation(),
         CorePrimitiveIntrinsic::StringStartsWith => encode_string_starts_with_operation(),
         CorePrimitiveIntrinsic::StringEndsWith => encode_string_ends_with_operation(),
-        CorePrimitiveIntrinsic::StringAppend => encode_string_append_operation(),
         CorePrimitiveIntrinsic::StringConcat => encode_string_list_join_operation(),
         CorePrimitiveIntrinsic::StringLowercase => encode_string_lowercase_operation(),
         CorePrimitiveIntrinsic::StringUppercase => encode_string_uppercase_operation(),
@@ -183,7 +131,6 @@ pub(super) fn lower_string_intrinsic(
         }
         CorePrimitiveIntrinsic::StringUtf8Slice => encode_string_utf8_slice_operation(),
         CorePrimitiveIntrinsic::StringReplace => encode_string_replace_operation(),
-        CorePrimitiveIntrinsic::CryptoSha256 => encode_string_sha256_operation(),
         CorePrimitiveIntrinsic::StringSplit => {
             encode_string_split_operation(managed_semantic(&call.return_type)?)
         }

@@ -2,8 +2,6 @@ use super::*;
 #[cfg(test)]
 use crate::runtime::vm::table::VmTableEntry;
 
-const SESSION_COOKIE_NAME: &str = "terlan_session";
-
 /// HTTP session actor handle exposed to the HTTP runtime boundary.
 /// Inputs:
 /// - Stable session id allocated by the VM session runtime.
@@ -86,13 +84,13 @@ pub enum VmHttpSessionAffinityError {
 pub struct VmHttpSessionLookup {
     pub(crate) session: VmHttpSession,
     pub(crate) route: VmHttpSessionRoute,
-    pub(crate) set_cookie_header: Option<String>,
+    pub(crate) pending_identity: Option<String>,
 }
 
 impl VmHttpSessionLookup {
-    /// Splits a lookup into its opaque handle and pending response cookie.
+    /// Splits a lookup into its opaque handle and pending public identity.
     pub(crate) fn into_managed_parts(self) -> (VmHttpSession, Option<String>) {
-        (self.session, self.set_cookie_header)
+        (self.session, self.pending_identity)
     }
 }
 
@@ -134,7 +132,7 @@ pub struct VmHttpSessionWorkerMigration {
     pub(crate) session_id: String,
     pub(crate) source_route: VmHttpSessionRoute,
     pub(crate) destination_route: VmHttpSessionRoute,
-    pub(crate) set_cookie_header: Option<String>,
+    pub(crate) pending_identity: Option<String>,
     pub(crate) diagnostic: String,
 }
 

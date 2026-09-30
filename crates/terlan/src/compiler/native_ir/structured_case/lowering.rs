@@ -45,6 +45,16 @@ pub(crate) fn lower_structured_case(
                 .map(|ty| (parameter.name.clone(), ty.clone()))
         })
         .collect::<HashMap<_, _>>();
+    if let Some(body) = super::boundary::lower_managed_result(
+        body,
+        function,
+        params,
+        param_types,
+        &core_types,
+        environment,
+    )? {
+        return Ok(Some(body));
+    }
     Ok(Some(lower_containing_case(
         body,
         params,
@@ -349,20 +359,12 @@ fn lower_case(
     let scrutinee_value = NativeExpr::Param(scrutinee_slot);
 
     let mut native_clauses = Vec::with_capacity(clauses.len());
-    let mut covered_empty_list = false;
-    let mut covered_nonempty_list = false;
+    let mut list_coverage = super::list_coverage::ListCoverage::default();
     for clause in clauses {
         if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
             continue;
         }
-        let residual_core = if covered_empty_list
-            && covered_nonempty_list
-            && matches!(clause.pattern, CorePattern::Var(_) | CorePattern::Wildcard)
-        {
-            scrutinee_core.as_ref().and_then(non_list_union_residual)
-        } else {
-            None
-        };
+        let residual_core = list_coverage.residual(&clause.pattern, scrutinee_core.as_ref());
         let clause_core = residual_core.as_ref().or(scrutinee_core.as_ref());
         let clause_type = residual_core
             .as_ref()
@@ -415,11 +417,7 @@ fn lower_case(
             environment,
         )?;
         native_clauses.push((condition, bind_values(&plan.bindings, selected)));
-        if clause.guard.is_none() {
-            covered_empty_list |=
-                matches!(&clause.pattern, CorePattern::List(items) if items.is_empty());
-            covered_nonempty_list |= matches!(clause.pattern, CorePattern::ListCons { .. });
-        }
+        list_coverage.record(&clause.pattern, clause.guard.is_some());
     }
     Ok(NativeExpr::Let {
         bindings: vec![scrutinee],
@@ -427,30 +425,6 @@ fn lower_case(
             clauses: native_clauses,
         }),
     })
-}
-
-/// Returns the non-list members left after exhaustive list clauses.
-fn non_list_union_residual(core_type: &CoreType) -> Option<CoreType> {
-    let CoreType::Union(variants) = core_type else {
-        return None;
-    };
-    let remaining = variants
-        .iter()
-        .filter(|variant| {
-            !matches!(variant, CoreType::List(_))
-                && !matches!(
-                    variant,
-                    CoreType::Apply { constructor, args }
-                        if constructor.rsplit('.').next() == Some("List") && args.len() == 1
-                )
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-    match remaining.as_slice() {
-        [only] => Some(only.clone()),
-        [] => None,
-        _ => Some(CoreType::Union(remaining)),
-    }
 }
 
 fn tuple_scrutinee<'a>(

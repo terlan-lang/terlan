@@ -466,10 +466,7 @@ pub(super) fn http_session_persistence_snapshot_replays_after_restart() {
     assert_eq!(restored.session.id, "s1");
     assert_eq!(restored.route.node_id, "node-b");
     assert_eq!(restored.route.actor_pid, 1);
-    assert_eq!(
-        restored.set_cookie_header,
-        Some("terlan_session=s1; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(restored.pending_identity, Some("s1".to_string()));
     assert_eq!(
         restarted
             .read(&restored.session, "cart")
@@ -697,9 +694,7 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
                     sticky_key: snapshot.sticky_key,
                 },
             ),
-            set_cookie_header: Some(
-                "terlan_session=s1; Path=/; HttpOnly; SameSite=Lax".to_string(),
-            ),
+            pending_identity: Some("s1".to_string(),),
             diagnostic:
                 "HTTP session `s1` migrated from worker `node-a` to worker `node-b` as actor 1"
                     .to_string(),
@@ -830,10 +825,7 @@ pub(super) fn http_session_rotate_changes_cookie_without_losing_actor_state() {
 
     assert_eq!(rotated.session.id, "s2");
     assert_eq!(rotated.route.actor_pid, created.route.actor_pid);
-    assert_eq!(
-        rotated.set_cookie_header,
-        Some("terlan_session=s2; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(rotated.pending_identity, Some("s2".to_string()));
     assert_eq!(
         sessions
             .read(&rotated.session, "role")
@@ -880,10 +872,7 @@ pub(super) fn http_session_expiration_cleans_actor_table_and_reports_stale() {
         .expect("expired cookie should create replacement");
     assert_eq!(replacement.session.id, "s2");
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.set_cookie_header,
-        Some("terlan_session=s2; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
 }
 
 #[test]

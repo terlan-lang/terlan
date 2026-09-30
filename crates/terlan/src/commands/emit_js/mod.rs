@@ -9,6 +9,7 @@ mod direct_ast;
 mod direct_helpers;
 mod direct_reachability;
 mod oxc_backend;
+mod source_linking;
 mod std_core_string_intrinsics;
 mod tail_recursion;
 pub(crate) mod target_contract;
@@ -32,6 +33,9 @@ pub(crate) fn emit_core_module_with_template_runtime(
     syntax: &crate::terlan_syntax::SyntaxModuleOutput,
     source_path: &Path,
 ) -> Result<Option<String>, String> {
+    let linked =
+        source_linking::link_libraries(core, source_path).map_err(|error| error.to_string())?;
+    let core = &linked;
     let module_source = if let Some(source) = tail_recursion::emit_stack_safe_tail_module(core) {
         oxc_backend::emit_js_with_oxc_codegen(&source)?
     } else {

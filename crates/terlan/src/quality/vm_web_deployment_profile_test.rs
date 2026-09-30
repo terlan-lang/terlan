@@ -103,9 +103,10 @@ validate_response_header Location Set-Cookie unsupported cookie SameSite value
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http_session.rs",
+            "std/http/Session.terl",
             r#"
-Path=/; HttpOnly; SameSite=Lax
+set_header_with_options(
+"terlan_session", identity, "/", "", 0, false, "", true, false, "Lax"
 "#,
         )?;
         self.write(

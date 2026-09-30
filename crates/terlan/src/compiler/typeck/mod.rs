@@ -493,9 +493,9 @@ fn type_check_prepared_syntax_module_output(
     database_schema: Option<&crate::database_schema::DatabaseSchemaSnapshot>,
 ) -> Vec<Diagnostic> {
     let mut timings = phase_timings::TypeCheckTimings::new();
-    let local_aliases = collect_syntax_type_aliases(module);
     let imported_aliases = imported_type_aliases(resolved);
     let imported_names = imported_type_names(resolved);
+    let local_aliases = collect_qualified_syntax_type_aliases(module, &imported_names);
     let mut aliases = imported_aliases.clone();
     aliases.extend(local_aliases.clone());
     let local_type_names = collect_syntax_type_names(module);
@@ -748,9 +748,9 @@ pub fn infer_syntax_expression_type(
 ) -> (Type, Vec<Diagnostic>) {
     let mut diagnostics = type_check_syntax_module_output(module, resolved);
 
-    let local_aliases = collect_syntax_type_aliases(module);
     let imported_aliases = imported_type_aliases(resolved);
     let imported_names = imported_type_names(resolved);
+    let local_aliases = collect_qualified_syntax_type_aliases(module, &imported_names);
     let mut aliases = imported_aliases.clone();
     aliases.extend(local_aliases.clone());
     let mut alias_names = collect_syntax_type_names(module);

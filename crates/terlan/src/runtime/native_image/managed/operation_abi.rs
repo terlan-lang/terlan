@@ -30,14 +30,13 @@ pub use erased::{
 mod field;
 #[path = "operation_abi/float.rs"]
 mod float;
-#[path = "operation_abi/http.rs"]
-mod http;
 mod immediate_union;
+#[cfg(test)]
+#[path = "operation_abi/http_test.rs"]
+mod retired_http_test;
 pub(crate) use immediate_union::immediate_variant;
 #[path = "operation_abi/integer.rs"]
 mod integer;
-#[path = "operation_abi/json.rs"]
-mod json;
 #[path = "operation_abi/memory.rs"]
 mod memory;
 #[path = "operation_abi/pattern.rs"]
@@ -81,30 +80,23 @@ pub use collections::{
     encode_set_remove_operation,
 };
 pub use equality::encode_managed_value_equal_operation;
-pub(super) use field::field_word;
+pub(crate) use field::field_word;
 pub use float::{
     encode_float_from_string_operation, encode_float_log_operation,
     encode_float_to_string_operation,
-};
-pub use http::{
-    encode_cookie_header_operation, encode_response_build_operation,
-    encode_response_cookie_jar_operation, encode_response_security_headers_operation,
-    ManagedCookieHeaderOperation,
 };
 pub use integer::{
     encode_int_from_string_base_operation, encode_int_from_string_operation,
     encode_int_to_string_base_operation, encode_int_to_string_operation,
 };
-pub use json::{encode_json_parse_result_operation, encode_result_is_ok_operation};
 pub use memory::{encode_memory_retained_size_operation, encode_memory_shallow_size_operation};
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use projection::{decode_aggregate_field_projection, scalar_string_projection_rewrite};
 pub use session::{
     encode_session_current_operation, encode_session_expire_operation,
-    encode_session_get_operation, encode_session_mutation_operation,
-    encode_session_option_is_none_operation, encode_session_rotate_operation,
-    encode_session_with_response_operation, ManagedSessionMutation,
+    encode_session_get_operation, encode_session_is_live_operation,
+    encode_session_mutation_operation, encode_session_rotate_operation, ManagedSessionMutation,
 };
 use string::{
     append_strings, concatenate_strings, join_string_list, prepend_string_literal, strings_equal,
@@ -116,12 +108,12 @@ pub use string::{
     encode_string_compare_operation, encode_string_contains_operation,
     encode_string_ends_with_operation, encode_string_length_operation,
     encode_string_lowercase_operation, encode_string_replace_operation,
-    encode_string_reverse_operation, encode_string_sha256_operation,
-    encode_string_split_once_operation, encode_string_split_operation,
-    encode_string_starts_with_operation, encode_string_trim_end_operation,
-    encode_string_trim_operation, encode_string_trim_start_operation,
-    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
-    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation,
+    encode_string_reverse_operation, encode_string_split_once_operation,
+    encode_string_split_operation, encode_string_starts_with_operation,
+    encode_string_trim_end_operation, encode_string_trim_operation,
+    encode_string_trim_start_operation, encode_string_uppercase_operation,
+    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
+    encode_string_utf8_slice_operation,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use string_pattern::{
@@ -169,9 +161,7 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
         || equality::is_equality_operation(encoded)
         || erased::is_erased_operation(encoded)
         || float::is_float_operation(encoded)
-        || http::is_http_operation(encoded)
         || integer::is_integer_operation(encoded)
-        || json::is_json_operation(encoded)
         || pattern::is_pattern_operation(encoded)
         || session::is_session_operation(encoded)
         || string::is_string_operation(encoded)
@@ -187,11 +177,8 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     if super::is_closure_allocation(encoded) {
         return true;
     }
-    if !is_managed_operation(encoded) || http::is_http_operation(encoded) {
+    if !is_managed_operation(encoded) {
         return true;
-    }
-    if json::is_json_operation(encoded) {
-        return json::json_operation_result_is_reference(encoded);
     }
     if binary_pattern::is_binary_pattern_operation(encoded) {
         return binary_pattern::binary_pattern_result_is_reference(encoded);
@@ -393,9 +380,6 @@ pub(crate) fn execute_managed_operation_with_context(
         if erased::is_erased_operation(encoded) {
             return erased::execute(heap, layouts, encoded, words);
         }
-        if http::is_http_operation(encoded) {
-            return http::execute_http_operation(heap, layouts, encoded, words);
-        }
         if binary_pattern::is_binary_pattern_operation(encoded) {
             return binary_pattern::execute_binary_pattern_operation(heap, encoded, words);
         }
@@ -419,9 +403,6 @@ pub(crate) fn execute_managed_operation_with_context(
         }
         if integer::is_integer_operation(encoded) {
             return integer::execute_integer_operation(heap, layouts, encoded, words);
-        }
-        if json::is_json_operation(encoded) {
-            return json::execute_json_operation(heap, layouts, encoded, words);
         }
         if pattern::is_pattern_operation(encoded) {
             return pattern::execute_pattern_operation(heap, layouts, encoded, words);
@@ -892,5 +873,9 @@ fn reference_word(word: i64) -> Result<TvmRef<()>, ManagedMemoryError> {
 #[path = "operation_abi_test.rs"]
 #[cfg(test)]
 mod operation_abi_test;
+
+#[cfg(test)]
+#[path = "operation_abi/retired_json_test.rs"]
+mod retired_json_test;
 #[cfg(test)]
 pub(crate) use operation_abi_test::execute_managed_operation;

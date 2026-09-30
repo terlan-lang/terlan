@@ -8,6 +8,7 @@ use crate::runtime::vm::protocol_task_executor::{
     current_protocol_task_route, protocol_sleep_until, with_current_protocol_resource,
     with_existing_current_protocol_resource, VmProtocolTaskRoute,
 };
+use crate::runtime::vm::pure_native::NativeCallTarget;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::pure_native::{
     PureNativeCapabilityRequest, PureNativeCapabilityWait, PureNativeIoWait, PureNativeSuspension,
@@ -325,6 +326,37 @@ impl AotHandlerRuntime {
                 self.module,
             ));
         }
+        self.begin_target_invocation(
+            module,
+            function,
+            NativeCallTarget::Export(export.into()),
+            args,
+        )
+        .map_err(Into::into)
+    }
+
+    /// Uses the same owner, cancellation, and wake machinery for captured callbacks.
+    pub(in crate::commands::serve) fn begin_closure_invocation(
+        &self,
+        closure: ReplValue,
+        args: Vec<ReplValue>,
+    ) -> crate::runtime::vm::VmRuntimeResult<AotHandlerInvocationStep> {
+        self.begin_target_invocation(
+            &self.module,
+            "closure",
+            NativeCallTarget::Closure(std::borrow::Cow::Owned(closure)),
+            args,
+        )
+    }
+
+    fn begin_target_invocation(
+        &self,
+        module: &str,
+        function: &str,
+        target: NativeCallTarget<'static>,
+        args: Vec<ReplValue>,
+    ) -> crate::runtime::vm::VmRuntimeResult<AotHandlerInvocationStep> {
+        let arity = args.len();
         let generation = Arc::clone(&self.generation);
         let protocol_origin = current_protocol_task_route();
         let route = protocol_origin.map_or_else(
@@ -346,7 +378,7 @@ impl AotHandlerRuntime {
                         arity,
                     )
                 },
-                |shard: &mut LocalImmediateShard| shard.begin(route, export, args),
+                |shard: &mut LocalImmediateShard| shard.begin(route, target, args),
             )
             .and_then(|step| {
                 step.ok_or_else(|| {
@@ -354,7 +386,7 @@ impl AotHandlerRuntime {
                 })
             }),
             InvocationOwner::Dedicated => generation.shard(shard_index).and_then(|shard| {
-                shard.begin(route, export, args, || {
+                shard.begin(route, target, args, || {
                     generation.rebalance_generated_queues();
                 })
             }),
@@ -363,10 +395,10 @@ impl AotHandlerRuntime {
             Ok(step) => step,
             Err(error) => {
                 generation.release_actor_route(shard_index);
-                return Err(error);
+                return Err(error.into());
             }
         };
-        materialize_step(generation, step, execution_owner)
+        materialize_step(generation, step, execution_owner).map_err(Into::into)
     }
 }
 

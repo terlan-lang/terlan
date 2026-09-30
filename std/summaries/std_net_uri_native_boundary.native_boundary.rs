@@ -11,23 +11,11 @@ pub const NATIVE_MODULE: &str = "std_net_uri_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("parse", 1),
-    ("to_string", 1),
-    ("scheme", 1),
-    ("host", 1),
-    ("path", 1),
-    ("query", 1),
-    ("fragment", 1),
+    ("parse_parts", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("parse", "std.net.uri.parse", 1),
-    ("to_string", "std.net.uri.to_string", 1),
-    ("scheme", "std.net.uri.scheme", 1),
-    ("host", "std.net.uri.host", 1),
-    ("path", "std.net.uri.path", 1),
-    ("query", "std.net.uri.query", 1),
-    ("fragment", "std.net.uri.fragment", 1),
+    ("parse_parts", "std.net.uri.parse_parts", 1),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -155,13 +143,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
-                        "std.net.uri.parse" => native_unimplemented_operation(operation),
-                        "std.net.uri.to_string" => native_unimplemented_operation(operation),
-                        "std.net.uri.scheme" => native_unimplemented_operation(operation),
-                        "std.net.uri.host" => native_unimplemented_operation(operation),
-                        "std.net.uri.path" => native_unimplemented_operation(operation),
-                        "std.net.uri.query" => native_unimplemented_operation(operation),
-                        "std.net.uri.fragment" => native_unimplemented_operation(operation),
+                        "std.net.uri.parse_parts" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

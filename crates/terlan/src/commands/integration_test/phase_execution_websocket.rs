@@ -1,10 +1,8 @@
 //! Blocking WebSocket scenarios used by integration-test flows.
 
-use std::net::TcpStream as StdTcpStream;
 use std::time::Duration;
 
-use tungstenite::stream::MaybeTlsStream;
-use tungstenite::{connect, Message, WebSocket};
+use terlan_http_native::websocket::{client, Message};
 
 use super::super::manifest_and_arguments::WebSocketCheck;
 
@@ -15,9 +13,8 @@ pub(in crate::commands::integration_test) fn run_websocket_check(
 ) -> Result<(), String> {
     let first_url = websocket_url(host, port, &check.first_path);
     let second_url = websocket_url(host, port, &check.second_path);
-    let (mut first_socket, _) = connect(first_url.as_str())
-        .map_err(|error| format!("cannot connect WebSocket {first_url}: {error}"))?;
-    set_websocket_timeouts(&mut first_socket)?;
+    let mut first_socket = client::connect(&first_url, Duration::from_secs(5))
+        .map_err(|error| format!("cannot connect WebSocket {first_url}: {}", error.message()))?;
     let first_initial = next_websocket_text(&mut first_socket)?;
     require_websocket_contains(
         "first initial",
@@ -26,9 +23,8 @@ pub(in crate::commands::integration_test) fn run_websocket_check(
         &check.first_initial_contains,
     )?;
 
-    let (mut second_socket, _) = connect(second_url.as_str())
-        .map_err(|error| format!("cannot connect WebSocket {second_url}: {error}"))?;
-    set_websocket_timeouts(&mut second_socket)?;
+    let mut second_socket = client::connect(&second_url, Duration::from_secs(5))
+        .map_err(|error| format!("cannot connect WebSocket {second_url}: {}", error.message()))?;
     let second_match = next_websocket_text(&mut second_socket)?;
     let first_match = next_websocket_text(&mut first_socket)?;
     require_websocket_contains(
@@ -73,9 +69,13 @@ pub(in crate::commands::integration_test) fn run_websocket_check(
             .map_err(|error| format!("cannot close WebSocket {second_url}: {error}"))?;
         let _ = next_websocket_text(&mut first_socket)?;
         let restore_url = websocket_url(host, port, &restore_check.path);
-        let (mut socket, _) = connect(restore_url.as_str())
-            .map_err(|error| format!("cannot restore WebSocket {restore_url}: {error}"))?;
-        set_websocket_timeouts(&mut socket)?;
+        let mut socket =
+            client::connect(&restore_url, Duration::from_secs(5)).map_err(|error| {
+                format!(
+                    "cannot restore WebSocket {restore_url}: {}",
+                    error.message()
+                )
+            })?;
         let restored = next_websocket_text(&mut socket)?;
         require_websocket_contains(
             "restore entry",
@@ -120,21 +120,7 @@ fn websocket_url(host: &str, port: u16, path: &str) -> String {
     format!("ws://{host}:{port}{path}")
 }
 
-type BlockingWebSocket = WebSocket<MaybeTlsStream<StdTcpStream>>;
-
-fn set_websocket_timeouts(socket: &mut BlockingWebSocket) -> Result<(), String> {
-    if let MaybeTlsStream::Plain(stream) = socket.get_mut() {
-        stream
-            .set_read_timeout(Some(Duration::from_secs(5)))
-            .map_err(|error| format!("cannot set WebSocket read timeout: {error}"))?;
-        stream
-            .set_write_timeout(Some(Duration::from_secs(5)))
-            .map_err(|error| format!("cannot set WebSocket write timeout: {error}"))?;
-    }
-    Ok(())
-}
-
-fn next_websocket_text(socket: &mut BlockingWebSocket) -> Result<String, String> {
+fn next_websocket_text(socket: &mut client::Client) -> Result<String, String> {
     match socket.read() {
         Ok(Message::Text(text)) => Ok(text.to_string()),
         Ok(Message::Binary(bytes)) => String::from_utf8(bytes.to_vec())

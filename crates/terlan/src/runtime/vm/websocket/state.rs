@@ -1,21 +1,7 @@
+#[cfg(test)]
 use super::*;
 
-/// VM-owned WebSocket upgrade response metadata.
-///
-/// Inputs:
-/// - Created from a validated `Sec-WebSocket-Key` opening-handshake header.
-///
-/// Output:
-/// - HTTP status and response headers needed to switch protocols.
-///
-/// Transformation:
-/// - Keeps WebSocket handshake planning inside the VM runtime while leaving
-///   frame scheduling as a later transport slice.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VmWebSocketUpgradeResponse {
-    pub(crate) status: u16,
-    pub(crate) headers: Vec<(String, String)>,
-}
+pub(crate) use terlan_http_native::websocket::UpgradeResponse as VmWebSocketUpgradeResponse;
 
 /// VM-owned accepted WebSocket upgrade handoff.
 ///
@@ -29,7 +15,7 @@ pub(crate) struct VmWebSocketUpgradeResponse {
 /// Transformation:
 /// - Gives HTTP upgrade handling one atomic VM-owned handoff that validates
 ///   transport state before any actor sees a live WebSocket session.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg(test)]
 pub(crate) struct VmWebSocketAcceptedUpgrade {
     pub(crate) session: VmWebSocketSessionId,
@@ -74,21 +60,8 @@ pub enum VmWebSocketFrame {
     Control(VmWebSocketControlFrame),
 }
 
-/// VM-owned WebSocket binary payload policy.
-///
-/// Inputs:
-/// - Endpoint-level declaration for non-text data frames.
-///
-/// Output:
-/// - Explicit binary-frame handling policy.
-///
-/// Transformation:
-/// - Prevents binary payload behavior from being an accidental decoder detail
-///   while keeping the first channel surface text/control focused.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) enum VmWebSocketBinaryPayloadPolicy {
-    Reject,
-}
+#[cfg(test)]
+pub(crate) use terlan_http_native::channel_plan::BinaryPayloadPolicy as VmWebSocketBinaryPayloadPolicy;
 
 impl VmWebSocketFrame {
     pub(crate) fn payload_len(&self) -> usize {
@@ -103,151 +76,13 @@ impl VmWebSocketFrame {
     }
 }
 
-/// VM-owned WebSocket endpoint plan.
-///
-/// Inputs:
-/// - Bounded inbound queue size and maximum frame byte size.
-///
-/// Output:
-/// - Route-level WebSocket policy consumed by VM HTTP lowering.
-///
-/// Transformation:
-/// - Keeps source-visible endpoint declarations immutable and explicit while
-///   live socket state remains owned by the WebSocket session runtime.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct VmWebSocketEndpointPlan {
-    pub(crate) max_pending_frames: usize,
-    pub(crate) max_frame_bytes: usize,
-    pub(crate) binary_payload_policy: VmWebSocketBinaryPayloadPolicy,
-    pub(crate) callbacks: Option<VmWebSocketCallbackPlan>,
-    #[serde(default)]
-    pub(crate) pairing: Option<Box<VmWebSocketPairingPlan>>,
-}
-
-/// Complete static callback set for one generated WebSocket endpoint.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct VmWebSocketCallbackPlan {
-    /// Called after upgrade admission.
-    pub(crate) open: VmNativeCallableRef,
-    /// Called for each admitted inbound frame.
-    pub(crate) inbound: VmNativeCallableRef,
-    /// Called when outbound transport capacity becomes available.
-    pub(crate) writable: VmNativeCallableRef,
-    /// Called during graceful transport close.
-    pub(crate) close: VmNativeCallableRef,
-    /// Called during abrupt scheduler or transport cancellation.
-    pub(crate) cancellation: VmNativeCallableRef,
-}
-
-/// Source-owned payload and callback policy for a two-peer WebSocket session.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct VmWebSocketPairingPlan {
-    pub(crate) waiting: String,
-    pub(crate) first_matched: String,
-    pub(crate) second_matched: String,
-    pub(crate) peer_left: String,
-    #[serde(default)]
-    pub(crate) stateful: bool,
-    #[serde(default)]
-    pub(crate) restoration: Option<VmWebSocketPairRestorationPlan>,
-    pub(crate) inbound: VmNativeCallableRef,
-    pub(crate) cancellation: VmNativeCallableRef,
-}
-
-/// Source-declared identity and callback policy for reclaiming a paired seat.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct VmWebSocketPairRestorationPlan {
-    pub(crate) waiting: VmNativeCallableRef,
-    pub(crate) peer_left: VmNativeCallableRef,
-    pub(crate) room_query: String,
-    pub(crate) player_query: String,
-    pub(crate) room_prefix: String,
-    pub(crate) first_player: String,
-    pub(crate) second_player: String,
-    pub(crate) retention_ms: u64,
-    pub(crate) retained_room_capacity: usize,
-    pub(crate) matched: VmNativeCallableRef,
-    pub(crate) restored: VmNativeCallableRef,
-}
-
-impl VmWebSocketEndpointPlan {
-    /// Creates a bounded WebSocket endpoint plan.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn new(max_pending_frames: usize, max_frame_bytes: usize) -> Result<Self, String> {
-        if max_pending_frames == 0 {
-            return Err(
-                "error[vm_websocket_endpoint]: max_pending_frames must be greater than 0"
-                    .to_string(),
-            );
-        }
-        if max_frame_bytes == 0 {
-            return Err(
-                "error[vm_websocket_endpoint]: max_frame_bytes must be greater than 0".to_string(),
-            );
-        }
-        Ok(Self {
-            max_pending_frames,
-            max_frame_bytes,
-            binary_payload_policy: VmWebSocketBinaryPayloadPolicy::Reject,
-            callbacks: None,
-            pairing: None,
-        })
-    }
-
-    /// Attaches one complete closure-free callback set to this endpoint.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn with_callbacks(
-        mut self,
-        callbacks: VmWebSocketCallbackPlan,
-    ) -> Result<Self, String> {
-        if self.pairing.is_some() {
-            return Err(
-                "error[vm_websocket_endpoint]: callbacks conflict with pairing".to_string(),
-            );
-        }
-        if self.callbacks.is_some() {
-            return Err("error[vm_websocket_endpoint]: callbacks already configured".to_string());
-        }
-        self.callbacks = Some(callbacks);
-        Ok(self)
-    }
-
-    /// Returns the generated callback set retained by this endpoint.
-    pub(crate) fn callbacks(&self) -> Option<&VmWebSocketCallbackPlan> {
-        self.callbacks.as_ref()
-    }
-
-    /// Attaches one source-declared two-peer delivery policy.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn with_pairing(mut self, pairing: VmWebSocketPairingPlan) -> Result<Self, String> {
-        if self.callbacks.is_some() {
-            return Err(
-                "error[vm_websocket_endpoint]: pairing conflicts with callbacks".to_string(),
-            );
-        }
-        if self.pairing.is_some() {
-            return Err("error[vm_websocket_endpoint]: pairing already configured".to_string());
-        }
-        self.pairing = Some(Box::new(pairing));
-        Ok(self)
-    }
-
-    /// Returns the optional source-declared two-peer delivery policy.
-    pub(crate) fn pairing(&self) -> Option<&VmWebSocketPairingPlan> {
-        self.pairing.as_deref()
-    }
-
-    /// Returns the binary payload policy for this endpoint plan.
-    #[cfg(test)]
-    pub(crate) fn binary_payload_policy(&self) -> VmWebSocketBinaryPayloadPolicy {
-        self.binary_payload_policy
-    }
-
-    /// Opens a bounded VM-owned inbound frame queue for one endpoint session.
-    pub(crate) fn open_inbound_queue(&self) -> VmWebSocketInboundQueue {
-        VmWebSocketInboundQueue::new(self.max_pending_frames, self.max_frame_bytes)
-    }
-}
+// Live descriptors retain admitted source callbacks; they are not persisted metadata.
+pub(crate) type VmWebSocketEndpointPlan =
+    terlan_http_native::channel_plan::WebSocketEndpointPlan<crate::runtime::vm::ReplValue>;
+pub(crate) type VmWebSocketCallbackPlan =
+    terlan_http_native::channel_plan::WebSocketCallbacks<crate::runtime::vm::ReplValue>;
+pub(crate) type VmWebSocketPairingPlan =
+    terlan_http_native::channel_plan::WebSocketPairing<crate::runtime::vm::ReplValue>;
 
 /// Inspectable VM WebSocket session state.
 ///

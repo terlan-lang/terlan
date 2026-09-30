@@ -31,6 +31,7 @@ module std.core.String.
 
 import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.{Bool, Float, Int, Unit}.
 
 import type std.core.Option.
 
@@ -249,7 +250,6 @@ pub impl Parse[Unit] for Unit {
  *    "hello".equal("hello").
  * ```
  */
-@compiler.intrinsic
 pub (left: String) equal(right: String): Bool ->
     left == right.
 
@@ -262,10 +262,9 @@ pub (left: String) equal(right: String): Bool ->
  * Transformation: maps Terlan's selected string ordering relation onto
  * `std.core.Ordering.Comparison` without changing either input.
  *
- * This function is the named implementation hook for compiler-known
- * `std.core.Ordering.Ordering[String]` conformance in 0.0.1. Rich Unicode
- * collation is not part of this hook; targets must preserve the stable source
- * ordering selected by the compiler contract.
+ * This ordinary Terlan implementation supplies
+ * `std.core.Ordering.Ordering[String]` conformance. Rich Unicode collation is
+ * not part of this operation; it uses the language's string ordering.
  *
  * ```terlan
  * module string_compare_example.
@@ -274,7 +273,6 @@ pub (left: String) equal(right: String): Bool ->
  *    "a".compare("b").
  * ```
  */
-@compiler.intrinsic
 pub (left: String) compare(right: String): std.core.Ordering.Comparison ->
     case left == right {
         true -> Eq;
@@ -300,7 +298,6 @@ pub (left: String) compare(right: String): std.core.Ordering.Comparison ->
  *    "hello".to_string().
  * ```
  */
-@compiler.intrinsic
 pub (value: String) to_string(): String ->
     value.
 
@@ -319,7 +316,6 @@ pub (value: String) to_string(): String ->
  *    "hello".from_string().
  * ```
  */
-@compiler.intrinsic
 pub (value: String) from_string(): Option[String] ->
     Some(value).
 
@@ -337,7 +333,6 @@ pub (value: String) from_string(): Option[String] ->
  *    "".is_empty().
  * ```
  */
-@compiler.intrinsic
 pub (value: String) is_empty(): Bool ->
     value == "".
 
@@ -346,8 +341,7 @@ pub (value: String) is_empty(): Bool ->
  *
  * Input: two UTF-8 `String` values.
  * Output: one `String` containing `left` followed by `right`.
- * Transformation: lowers through the compiler-owned `core.string.append`
- * intrinsic for each target backend.
+ * Transformation: uses Terlan's string concatenation operator.
  *
  * ```terlan
  * module string_append_example.
@@ -356,9 +350,8 @@ pub (value: String) is_empty(): Bool ->
  *    "hello".append("world").
  * ```
  */
-@compiler.intrinsic
 pub (left: String) append(right: String): String ->
-    left.
+    left + right.
 
 /**
  * Concatenates a list of `String` values.
@@ -732,6 +725,5 @@ pub join(values: List[String], separator: String): String ->
 join_after(output: String, values: List[String], separator: String): String ->
     case values {
         [] -> output;
-        [value | rest] ->
-            join_after(std.core.String.concat([output, separator, value]), rest, separator)
+        [value | rest] -> join_after(concat([output, separator, value]), rest, separator)
     }.

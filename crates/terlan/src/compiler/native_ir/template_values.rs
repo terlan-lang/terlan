@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
     encode_string_append_operation, encode_string_escape_html_attribute_operation,
-    encode_string_escape_html_text_operation, encode_string_list_join_operation,
-    encode_template_render_operation, ManagedTemplateValueKind,
+    encode_string_escape_html_text_operation, encode_template_render_operation,
+    ManagedTemplateValueKind,
 };
 use crate::terlan_typeck::{
     CoreCaseClause, CoreExpr, CoreModule, CoreRecordExprField, CoreTemplateRenderPlan,
@@ -66,7 +66,7 @@ pub(super) fn managed_template_operation_type(expr: &CoreExpr) -> Option<NativeT
     };
     let supported = matches!(
         (function.as_str(), args.len()),
-        ("append", 2) | ("join" | "escape_text" | "escape_attribute", 1)
+        ("append", 2) | ("escape_text" | "escape_attribute", 1)
     ) || (args.len() == 1 && function.starts_with("render_text_"))
         || (args.len() == 2 && function.starts_with("render_attribute_"));
     (module == MANAGED_TEMPLATE_MODULE && supported).then_some(NativeType::StringRef)
@@ -91,7 +91,6 @@ pub(super) fn lower_managed_template_operation(
     }
     let encoded = match (function.as_str(), args.len()) {
         ("append", 2) => encode_string_append_operation(),
-        ("join", 1) => encode_string_list_join_operation(),
         ("escape_text", 1) => encode_string_escape_html_text_operation(),
         ("escape_attribute", 1) => encode_string_escape_html_attribute_operation(),
         (function, 1) if function.starts_with("render_text_") => {
@@ -164,57 +163,7 @@ fn rewrite(
     if let CoreExpr::TemplateInstantiate { name, fields } = &rewritten {
         return render::render_template_instantiation(name, fields, templates, types);
     }
-    let (function, args) = match rewritten {
-        CoreExpr::Call {
-            type_args,
-            function,
-            args,
-        } => {
-            let Some(function) = function
-                .strip_prefix(TEMPLATE_MODULE)
-                .and_then(|function| function.strip_prefix('.'))
-                .map(str::to_owned)
-            else {
-                return Ok(CoreExpr::Call {
-                    type_args,
-                    function,
-                    args,
-                });
-            };
-            (function, args)
-        }
-        CoreExpr::RemoteCall {
-            module,
-            function,
-            args,
-            ..
-        } if matches!(module.as_str(), TEMPLATE_MODULE | "Template") => (function, args),
-        rewritten => return Ok(rewritten),
-    };
-    match (function.as_str(), args.as_slice()) {
-        ("trusted", [value]) => Ok(value.clone()),
-        ("empty", []) => Ok(CoreExpr::Binary("\"\"".to_string())),
-        ("join", [CoreExpr::List(fragments)]) => Ok(join_literal_fragments(fragments)),
-        (
-            "join",
-            [CoreExpr::ConstructorCall {
-                constructor,
-                args: fragments,
-                ..
-            }],
-        ) if constructor.rsplit('.').next() == Some("List") => {
-            Ok(join_literal_fragments(fragments))
-        }
-        ("join", [fragments]) => Ok(managed_call("join", vec![fragments.clone()])),
-        ("trusted" | "empty" | "join", _) => Err(format!(
-            "error[native_ir.template_arity]: Template.{function} does not accept {} argument(s)",
-            args.len()
-        )),
-        _ => Err(format!(
-            "error[native_ir.template_function]: Template.{function}/{} is not in the managed template profile",
-            args.len()
-        )),
-    }
+    Ok(rewritten)
 }
 
 /// Lowers one literal fragment sequence without requiring general list allocation.

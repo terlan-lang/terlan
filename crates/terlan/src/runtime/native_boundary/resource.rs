@@ -4,11 +4,12 @@
 //! owns those values behind generation-tagged handles so the runtime bridge can
 //! pass only stable opaque identifiers across process or language boundaries.
 
-use crate::terlan_native::{http, json, path, postgres, random, regex, uri, vector};
+use crate::terlan_native::{http, json, path, postgres, random, regex, vector};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
-/// Reserved owner id used by trusted runtime calls without actor context.
-pub const SYSTEM_RESOURCE_OWNER: u64 = 0;
+mod json_store;
+
+pub use terlan_runtime_abi::{ResourceError, ResourceRegistry, SYSTEM_RESOURCE_OWNER};
 
 /// Resource kind stored in the NativeBoundary registry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -17,18 +18,12 @@ pub enum ResourceKind {
     RandomGenerator,
     /// `std.data.Json.Json`.
     Json,
-    /// `std.http.Request.Request`.
-    HttpRequest,
     /// `std.regex.Regex.Regex`.
     Regex,
     /// `std.http.Response.Response`.
     HttpResponse,
-    /// `std.http.Cookies.Jar`.
-    HttpCookieJar,
     /// `std.io.Path.Path`.
     Path,
-    /// `std.net.Uri.Uri`.
-    Uri,
     /// `std.db.Postgres.Pool`.
     PostgresPool,
     /// `std.db.Postgres.Row`.
@@ -41,21 +36,15 @@ pub enum ResourceKind {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResourceValue {
     /// Immutable random generator state owned by the Rust random adapter.
-    RandomGenerator(random::Generator),
+    RandomGenerator(Box<random::Generator>),
     /// JSON resource owned by the Rust JSON adapter.
     Json(json::Json),
-    /// HTTP request resource owned by the Rust HTTP adapter.
-    HttpRequest(http::Request),
     /// Compiled regex resource owned by the Rust regex adapter.
     Regex(regex::Regex),
     /// HTTP response resource owned by the Rust HTTP adapter.
     HttpResponse(http::Response),
-    /// HTTP cookie jar resource owned by the Rust HTTP adapter.
-    HttpCookieJar(http::CookieJar),
     /// Path resource owned by the Rust path adapter.
     Path(path::Path),
-    /// URI resource owned by the Rust URI adapter.
-    Uri(uri::Uri),
     /// Postgres pool resource owned by the Rust Postgres adapter.
     PostgresPool(postgres::Pool),
     /// Postgres row resource owned by the Rust Postgres adapter.
@@ -79,12 +68,9 @@ impl ResourceValue {
         match self {
             Self::RandomGenerator(_) => ResourceKind::RandomGenerator,
             Self::Json(_) => ResourceKind::Json,
-            Self::HttpRequest(_) => ResourceKind::HttpRequest,
             Self::Regex(_) => ResourceKind::Regex,
             Self::HttpResponse(_) => ResourceKind::HttpResponse,
-            Self::HttpCookieJar(_) => ResourceKind::HttpCookieJar,
             Self::Path(_) => ResourceKind::Path,
-            Self::Uri(_) => ResourceKind::Uri,
             Self::PostgresPool(_) => ResourceKind::PostgresPool,
             Self::PostgresRow(_) => ResourceKind::PostgresRow,
             Self::NativeVector(_) => ResourceKind::NativeVector,
@@ -92,68 +78,30 @@ impl ResourceValue {
     }
 }
 
-/// Stable resource-registry error returned by handle operations.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ResourceError {
-    code: &'static str,
-    message: String,
-}
-
-impl ResourceError {
-    /// Builds a resource-registry error.
-    ///
-    /// Inputs:
-    /// - `code`: stable machine-readable error code.
-    /// - `message`: human-readable diagnostic text.
-    ///
-    /// Output:
-    /// - A `ResourceError` suitable for native bridge diagnostics.
-    ///
-    /// Transformation:
-    /// - Stores stable error fields without exposing backend resource details.
-    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-        }
-    }
-
-    /// Returns the stable machine-readable error code.
-    ///
-    /// Inputs:
-    /// - `self`: resource error.
-    ///
-    /// Output:
-    /// - Static error code string.
-    ///
-    /// Transformation:
-    /// - Reads the code field without allocation or mutation.
-    pub fn code(&self) -> &'static str {
-        self.code
-    }
-
-    /// Returns the human-readable error message.
-    ///
-    /// Inputs:
-    /// - `self`: resource error.
-    ///
-    /// Output:
-    /// - Borrowed message text.
-    ///
-    /// Transformation:
-    /// - Reads the message field without allocation or mutation.
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}
-
 /// Adapter registry using the shared owner-checked storage implementation.
-pub type ResourceStore = ResourceRegistry<ResourceValue>;
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResourceStore(ResourceRegistry<ResourceValue>);
 
-mod registry;
-pub use registry::ResourceRegistry;
+impl std::ops::Deref for ResourceStore {
+    type Target = ResourceRegistry<ResourceValue>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for ResourceStore {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl ResourceStore {
+    /// Builds the legacy adapter facade over the shared resource registry.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Returns the kind for a live handle.
     ///
     /// Inputs:
@@ -166,7 +114,7 @@ impl ResourceStore {
     /// Transformation:
     /// - Validates id/generation before exposing the stored resource kind.
     pub fn kind(&self, handle: NativeBoundaryHandle) -> Result<ResourceKind, ResourceError> {
-        self.slot(handle).map(|slot| slot.value.kind())
+        self.get(handle).map(ResourceValue::kind)
     }
 
     /// Borrows immutable RNG state after validating handle liveness and kind.
@@ -174,7 +122,7 @@ impl ResourceStore {
         &self,
         handle: NativeBoundaryHandle,
     ) -> Result<&random::Generator, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::RandomGenerator(value) => Ok(value),
             other => Err(kind_error(
                 handle,
@@ -196,7 +144,7 @@ impl ResourceStore {
     /// Transformation:
     /// - Validates liveness and resource kind before borrowing the value.
     pub fn json(&self, handle: NativeBoundaryHandle) -> Result<&json::Json, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::Json(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Json, other.kind())),
         }
@@ -207,7 +155,7 @@ impl ResourceStore {
         &mut self,
         handle: NativeBoundaryHandle,
     ) -> Result<&mut json::Json, ResourceError> {
-        match &mut self.slot_mut(handle)?.value {
+        match self.get_mut(handle)? {
             ResourceValue::Json(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Json, other.kind())),
         }
@@ -215,31 +163,9 @@ impl ResourceStore {
 
     /// Returns a compiled regex resource for a live handle.
     pub fn regex(&self, handle: NativeBoundaryHandle) -> Result<&regex::Regex, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::Regex(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Regex, other.kind())),
-        }
-    }
-
-    /// Returns an HTTP request resource for a live handle.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle expected to identify an HTTP request
-    ///   resource.
-    ///
-    /// Output:
-    /// - `Ok(&Request)` for a live HTTP request resource.
-    /// - `Err(ResourceError)` for stale handles or kind mismatches.
-    ///
-    /// Transformation:
-    /// - Validates liveness and resource kind before borrowing the value.
-    pub fn http_request(
-        &self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<&http::Request, ResourceError> {
-        match &self.slot(handle)?.value {
-            ResourceValue::HttpRequest(value) => Ok(value),
-            other => Err(kind_error(handle, ResourceKind::HttpRequest, other.kind())),
         }
     }
 
@@ -259,62 +185,9 @@ impl ResourceStore {
         &self,
         handle: NativeBoundaryHandle,
     ) -> Result<&http::Response, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::HttpResponse(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::HttpResponse, other.kind())),
-        }
-    }
-
-    /// Returns an HTTP cookie jar resource for a live handle.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle expected to identify an HTTP cookie jar
-    ///   resource.
-    ///
-    /// Output:
-    /// - `Ok(&CookieJar)` for a live cookie jar resource.
-    /// - `Err(ResourceError)` for stale handles or kind mismatches.
-    ///
-    /// Transformation:
-    /// - Validates liveness and resource kind before borrowing the value.
-    pub fn http_cookie_jar(
-        &self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<&http::CookieJar, ResourceError> {
-        match &self.slot(handle)?.value {
-            ResourceValue::HttpCookieJar(value) => Ok(value),
-            other => Err(kind_error(
-                handle,
-                ResourceKind::HttpCookieJar,
-                other.kind(),
-            )),
-        }
-    }
-
-    /// Returns a mutable HTTP cookie jar resource for a live handle.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle expected to identify an HTTP cookie jar
-    ///   resource.
-    ///
-    /// Output:
-    /// - `Ok(&mut CookieJar)` for a live cookie jar resource.
-    /// - `Err(ResourceError)` for stale handles or kind mismatches.
-    ///
-    /// Transformation:
-    /// - Validates liveness and resource kind before mutably borrowing the
-    ///   value for receiver-method updates.
-    pub fn http_cookie_jar_mut(
-        &mut self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<&mut http::CookieJar, ResourceError> {
-        match &mut self.slot_mut(handle)?.value {
-            ResourceValue::HttpCookieJar(value) => Ok(value),
-            other => Err(kind_error(
-                handle,
-                ResourceKind::HttpCookieJar,
-                other.kind(),
-            )),
         }
     }
 
@@ -330,27 +203,9 @@ impl ResourceStore {
     /// Transformation:
     /// - Validates liveness and resource kind before borrowing the value.
     pub fn path(&self, handle: NativeBoundaryHandle) -> Result<&path::Path, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::Path(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Path, other.kind())),
-        }
-    }
-
-    /// Returns a URI resource for a live handle.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle expected to identify a URI resource.
-    ///
-    /// Output:
-    /// - `Ok(&Uri)` for a live URI resource.
-    /// - `Err(ResourceError)` for stale handles or kind mismatches.
-    ///
-    /// Transformation:
-    /// - Validates liveness and resource kind before borrowing the value.
-    pub fn uri(&self, handle: NativeBoundaryHandle) -> Result<&uri::Uri, ResourceError> {
-        match &self.slot(handle)?.value {
-            ResourceValue::Uri(value) => Ok(value),
-            other => Err(kind_error(handle, ResourceKind::Uri, other.kind())),
         }
     }
 
@@ -369,7 +224,7 @@ impl ResourceStore {
         &self,
         handle: NativeBoundaryHandle,
     ) -> Result<&postgres::Pool, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::PostgresPool(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::PostgresPool, other.kind())),
         }
@@ -390,7 +245,7 @@ impl ResourceStore {
         &self,
         handle: NativeBoundaryHandle,
     ) -> Result<&postgres::Row, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::PostgresRow(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::PostgresRow, other.kind())),
         }
@@ -411,7 +266,7 @@ impl ResourceStore {
         &self,
         handle: NativeBoundaryHandle,
     ) -> Result<&vector::NativeVector, ResourceError> {
-        match &self.slot(handle)?.value {
+        match self.get(handle)? {
             ResourceValue::NativeVector(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::NativeVector, other.kind())),
         }
@@ -433,45 +288,11 @@ impl ResourceStore {
         &mut self,
         handle: NativeBoundaryHandle,
     ) -> Result<&mut vector::NativeVector, ResourceError> {
-        match &mut self.slot_mut(handle)?.value {
+        match self.get_mut(handle)? {
             ResourceValue::NativeVector(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::NativeVector, other.kind())),
         }
     }
-}
-
-/// Builds a stale-handle resource error.
-///
-/// Inputs:
-/// - `handle`: rejected opaque handle.
-///
-/// Output:
-/// - `ResourceError` with stable code `resource.stale_handle`.
-///
-/// Transformation:
-/// - Converts a failed liveness lookup into stable diagnostic fields.
-fn stale_error(handle: NativeBoundaryHandle) -> ResourceError {
-    ResourceError::new(
-        "resource.stale_handle",
-        format!(
-            "NativeBoundary resource handle {} generation {} is not live.",
-            handle.id, handle.generation
-        ),
-    )
-}
-
-fn owner_error(
-    handle: NativeBoundaryHandle,
-    owner_process_id: u64,
-    caller_process_id: u64,
-) -> ResourceError {
-    ResourceError::new(
-        "resource.owner",
-        format!(
-            "NativeBoundary resource handle {} belongs to process {}, not process {}.",
-            handle.id, owner_process_id, caller_process_id
-        ),
-    )
 }
 
 /// Builds a resource-kind mismatch error.
@@ -502,5 +323,4 @@ fn kind_error(
 
 #[cfg(test)]
 #[path = "resource_test.rs"]
-#[cfg(test)]
 mod resource_test;

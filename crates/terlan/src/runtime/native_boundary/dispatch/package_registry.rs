@@ -111,7 +111,7 @@ fn dependency_candidates_valid(
 }
 
 fn sign_resource(seed_base64: &str, payload: &str) -> Result<NativeBoundaryValue, DispatchError> {
-    let signed = crate::runtime::native::ed25519::sign(seed_base64, payload);
+    let signed = terlan_std_native::crypto::ed25519::sign(seed_base64, payload);
     let (public_key_base64, signature_base64) = signed
         .map(|value| (value.public_key_base64, value.signature_base64))
         .unwrap_or_default();
@@ -202,10 +202,11 @@ fn build_signed_resource(
     let signature_input = format!(
         "terlan-registry-signed-resource-v1\n{effective_origin}\n{effective_route}\n{payload_sha256}\n{payload_base64}"
     );
-    let requested_signature = crate::runtime::native::ed25519::sign(seed_base64, &signature_input);
+    let requested_signature =
+        terlan_std_native::crypto::ed25519::sign(seed_base64, &signature_input);
     let signing_valid = requested_signature.is_some();
     let Some(signature) = requested_signature
-        .or_else(|| crate::runtime::native::ed25519::sign(FALLBACK_SEED, &signature_input))
+        .or_else(|| terlan_std_native::crypto::ed25519::sign(FALLBACK_SEED, &signature_input))
     else {
         return Err(DispatchError::new(
             "dispatch.registry_fallback_signing",

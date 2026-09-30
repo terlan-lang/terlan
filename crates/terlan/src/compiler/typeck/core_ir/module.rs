@@ -229,6 +229,12 @@ impl CoreModule {
             if function.receiver_method {
                 line.push_str(" receiver_method=true");
             }
+            if function.receiver_mutable {
+                line.push_str(" receiver_mutable=true");
+            }
+            if function.receiver_command {
+                line.push_str(" receiver_command=true");
+            }
             if !function.generic_params.is_empty() {
                 line.push_str(" generics=");
                 line.push_str(&function.generic_params.join(","));

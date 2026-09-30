@@ -5,8 +5,6 @@ use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use url::form_urlencoded;
-
 use crate::runtime::vm::websocket::VmWebSocketPairingPlan;
 use crate::runtime::vm::ReplValue;
 
@@ -561,7 +559,9 @@ fn restore_identity(
     let Some((_, query)) = request_target.split_once('?') else {
         return Ok(None);
     };
-    let parameters = form_urlencoded::parse(query.as_bytes()).collect::<HashMap<_, _>>();
+    let parameters = terlan_net_native::query_pairs(query)
+        .into_iter()
+        .collect::<HashMap<_, _>>();
     let room = parameters.get(room_query);
     let player = parameters.get(player_query);
     match (room, player) {

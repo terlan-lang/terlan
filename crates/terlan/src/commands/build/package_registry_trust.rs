@@ -282,7 +282,7 @@ fn verify_signatures(
         }) else {
             continue;
         };
-        if crate::runtime::native::ed25519::verify(
+        if terlan_std_native::crypto::ed25519::verify(
             &key.public_key_base64,
             &decoded.signature_input,
             &signature.signature_base64,

@@ -96,16 +96,15 @@ pub(super) fn vm_websocket_adapter_frame_constructors_build_typed_frames() {
 ///   socket state is allocated.
 #[test]
 pub(super) fn vm_websocket_adapter_endpoint_validates_channel_limits() {
+    let plan = endpoint(16, 4096).expect("endpoint plan");
+    assert_eq!(plan.max_pending_frames(), 16);
+    assert_eq!(plan.max_frame_bytes(), 4096);
     assert_eq!(
-        endpoint(16, 4096).expect("endpoint plan"),
-        VmWebSocketEndpointPlan {
-            max_pending_frames: 16,
-            max_frame_bytes: 4096,
-            binary_payload_policy: VmWebSocketBinaryPayloadPolicy::Reject,
-            callbacks: None,
-            pairing: None,
-        }
+        plan.binary_payload_policy(),
+        VmWebSocketBinaryPayloadPolicy::Reject
     );
+    assert!(plan.callbacks().is_none());
+    assert!(plan.pairing().is_none());
     let pending = endpoint(0, 4096).expect_err("zero pending frames");
     assert_eq!(pending.domain(), terlan_runtime_abi::ErrorDomain::VmRuntime);
     assert_eq!(pending.code(), "vm_websocket_endpoint");
@@ -136,7 +135,7 @@ pub(super) fn vm_websocket_adapter_endpoint_validates_channel_limits() {
 #[test]
 pub(super) fn vm_websocket_endpoint_opens_bounded_inbound_queue() {
     let endpoint = VmWebSocketEndpointPlan::new(3, 8).expect("endpoint plan");
-    let queue = endpoint.open_inbound_queue();
+    let queue = crate::runtime::vm::websocket::VmWebSocketLiveSession::open(endpoint);
 
     assert_eq!(
         queue.inspect(),
@@ -163,9 +162,7 @@ pub(super) fn vm_websocket_endpoint_opens_bounded_inbound_queue() {
 ///   contract.
 #[test]
 pub(super) fn vm_websocket_inbound_queue_preserves_order_and_pressure() {
-    let mut queue = VmWebSocketEndpointPlan::new(4, 16)
-        .expect("endpoint plan")
-        .open_inbound_queue();
+    let mut queue = VmWebSocketInboundQueue::new(4, 16);
 
     queue
         .push(VmWebSocketFrame::Text("one".to_string()))
@@ -225,9 +222,7 @@ pub(super) fn vm_websocket_inbound_queue_preserves_order_and_pressure() {
 ///   per-connection VM queue bounds.
 #[test]
 pub(super) fn vm_websocket_inbound_queue_rejects_full_and_oversized_frames() {
-    let mut full_queue = VmWebSocketEndpointPlan::new(1, 8)
-        .expect("endpoint plan")
-        .open_inbound_queue();
+    let mut full_queue = VmWebSocketInboundQueue::new(1, 8);
     full_queue
         .push(VmWebSocketFrame::Text("ok".to_string()))
         .expect("first frame");
@@ -239,9 +234,7 @@ pub(super) fn vm_websocket_inbound_queue_rejects_full_and_oversized_frames() {
         "error[vm_websocket_queue]: pending frame queue is full"
     );
 
-    let mut size_queue = VmWebSocketEndpointPlan::new(4, 3)
-        .expect("endpoint plan")
-        .open_inbound_queue();
+    let mut size_queue = VmWebSocketInboundQueue::new(4, 3);
     assert_eq!(
         size_queue
             .push(VmWebSocketFrame::Text("toolong".to_string()))

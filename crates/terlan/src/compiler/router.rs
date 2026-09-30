@@ -1,28 +1,25 @@
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 use crate::runtime::vm::aot_metadata::{
     AotRouterCallable, AotRouterPlan, AotRouterRoute, AotRouterRouteTarget,
 };
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::runtime::vm::sse::VmSseCallbackPlan;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::runtime::vm::sse::VmSseEndpointPlan;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::runtime::vm::websocket::VmWebSocketCallbackPlan;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::runtime::vm::websocket::VmWebSocketEndpointPlan;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::runtime::vm::websocket::{VmWebSocketPairRestorationPlan, VmWebSocketPairingPlan};
+#[cfg(test)]
+use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreModule, CorePattern};
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 use std::collections::HashMap;
+#[cfg(test)]
+use terlan_http_native::channel_plan::{
+    SseCallbacks, SseEndpointPlan, WebSocketCallbacks, WebSocketEndpointPlan, WebSocketPairing,
+    WebSocketRestoration,
+};
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 const ROUTER_MODULE: &str = "std.http.Router";
 
 /// Extracts static router metadata and removes `router/0` from native execution.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 pub(crate) fn prepare_aot_router_module(
     core: &CoreModule,
 ) -> Result<(CoreModule, Option<AotRouterPlan>), String> {
@@ -52,7 +49,7 @@ pub(crate) fn prepare_aot_router_module(
 }
 
 /// Evaluates only the closed router-builder expression domain.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn evaluate_router(
     core: &CoreModule,
     expr: &CoreExpr,
@@ -98,7 +95,7 @@ fn evaluate_router(
 }
 
 /// Applies one statically known builder operation to an immutable plan.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn apply_router_call(
     core: &CoreModule,
     function: &str,
@@ -185,7 +182,7 @@ fn apply_router_call(
 }
 
 /// Applies one statically bounded route group and its scoped middleware.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn apply_group(
     core: &CoreModule,
     plan: &mut AotRouterPlan,
@@ -235,8 +232,11 @@ fn apply_group(
 }
 
 /// Decodes one checked SSE endpoint expression into the canonical VM plan.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan, String> {
+#[cfg(test)]
+fn sse_endpoint(
+    core: &CoreModule,
+    expr: &CoreExpr,
+) -> Result<SseEndpointPlan<VmNativeCallableRef>, String> {
     if let CoreExpr::RemoteCall {
         module,
         function,
@@ -254,7 +254,7 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
                     args.len()
                 ));
             };
-            let callbacks = VmSseCallbackPlan {
+            let callbacks = SseCallbacks {
                 open: channel_callback(core, open, "SSE", "open", 0)?,
                 event_ready: channel_callback(core, event_ready, "SSE", "event-ready", 1)?,
                 keep_alive: channel_callback(core, keep_alive, "SSE", "keep-alive", 0)?,
@@ -285,13 +285,13 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
         ));
     }
     let plan = match (function.as_str(), args.as_slice()) {
-        ("endpoint", [pending, bytes]) => VmSseEndpointPlan::new(
+        ("endpoint", [pending, bytes]) => SseEndpointPlan::new(
             positive_usize(pending, "SSE pending event limit")?,
             positive_usize(bytes, "SSE event byte limit")?,
         ),
         ("endpoint_with_keep_alive", [pending, bytes, keep_alive]) => {
             let keep_alive = positive_u64(keep_alive, "SSE keep-alive interval")?;
-            VmSseEndpointPlan::new(
+            SseEndpointPlan::new(
                 positive_usize(pending, "SSE pending event limit")?,
                 positive_usize(bytes, "SSE event byte limit")?,
             )
@@ -308,11 +308,11 @@ fn sse_endpoint(core: &CoreModule, expr: &CoreExpr) -> Result<VmSseEndpointPlan,
 }
 
 /// Decodes one checked WebSocket endpoint expression into the canonical VM plan.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn websocket_endpoint(
     core: &CoreModule,
     expr: &CoreExpr,
-) -> Result<VmWebSocketEndpointPlan, String> {
+) -> Result<WebSocketEndpointPlan<VmNativeCallableRef>, String> {
     if let CoreExpr::RemoteCall {
         module,
         function,
@@ -338,13 +338,13 @@ fn websocket_endpoint(
                         args.len()
                     ));
                 };
-                let pairing = VmWebSocketPairingPlan {
+                let pairing = WebSocketPairing {
                     waiting: String::new(),
                     first_matched: String::new(),
                     second_matched: String::new(),
                     peer_left: String::new(),
                     stateful: true,
-                    restoration: Some(VmWebSocketPairRestorationPlan {
+                    restoration: Some(WebSocketRestoration {
                         waiting: channel_callback(
                             core,
                             waiting,
@@ -402,7 +402,7 @@ fn websocket_endpoint(
                 ));
             };
             let stateful = function == "stateful_paired_callbacks";
-            let pairing = VmWebSocketPairingPlan {
+            let pairing = WebSocketPairing {
                 waiting: string_literal(waiting)?,
                 first_matched: string_literal(first_matched)?,
                 second_matched: string_literal(second_matched)?,
@@ -441,7 +441,7 @@ fn websocket_endpoint(
                     args.len()
                 ));
             };
-            let callbacks = VmWebSocketCallbackPlan {
+            let callbacks = WebSocketCallbacks {
                 open: channel_callback(core, open, "WebSocket", "open", 0)?,
                 inbound: channel_callback(core, inbound, "WebSocket", "inbound", 1)?,
                 writable: channel_callback(core, writable, "WebSocket", "writable", 0)?,
@@ -490,14 +490,15 @@ fn websocket_endpoint(
             args.len()
         ));
     };
-    VmWebSocketEndpointPlan::new(
+    WebSocketEndpointPlan::new(
         positive_usize(pending, "WebSocket pending frame limit")?,
         positive_usize(bytes, "WebSocket frame byte limit")?,
     )
+    .map_err(|error| error.to_string())
 }
 
 /// Resolves and validates one statically known WebSocket lifecycle callback.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn channel_callback(
     core: &CoreModule,
     expr: &CoreExpr,
@@ -520,7 +521,7 @@ fn channel_callback(
 }
 
 /// Decodes one positive target-sized integer from checked router metadata.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn positive_usize(expr: &CoreExpr, label: &str) -> Result<usize, String> {
     let value = positive_u64(expr, label)?;
     usize::try_from(value).map_err(|_| {
@@ -529,7 +530,7 @@ fn positive_usize(expr: &CoreExpr, label: &str) -> Result<usize, String> {
 }
 
 /// Decodes one positive integer from checked router metadata.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn positive_u64(expr: &CoreExpr, label: &str) -> Result<u64, String> {
     let CoreExpr::Int(value) = expr else {
         return Err(format!(
@@ -543,7 +544,7 @@ fn positive_u64(expr: &CoreExpr, label: &str) -> Result<u64, String> {
 }
 
 /// Resolves one local function value to its exact native entry identity.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn callable(core: &CoreModule, expr: &CoreExpr) -> Result<AotRouterCallable, String> {
     let (module, function, declared_arity) =
         match expr {
@@ -601,7 +602,7 @@ fn callable(core: &CoreModule, expr: &CoreExpr) -> Result<AotRouterCallable, Str
 }
 
 /// Decodes one canonical CoreIR UTF-8 route literal.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn string_literal(expr: &CoreExpr) -> Result<String, String> {
     let CoreExpr::Binary(value) = expr else {
         return Err(
@@ -614,7 +615,7 @@ fn string_literal(expr: &CoreExpr) -> Result<String, String> {
 }
 
 /// Prefixes one group-local path using the public router path convention.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn prefixed_path(prefix: &str, path: &str) -> String {
     let prefix = prefix.trim_end_matches('/');
     if path == "/" {
@@ -627,7 +628,7 @@ fn prefixed_path(prefix: &str, path: &str) -> String {
 }
 
 /// Builds one stable builder arity diagnostic.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(test)]
 fn router_arity(function: &str, expected: usize, actual: usize) -> String {
     format!(
         "error[native_ir.http_router]: Router.{function} expects {expected} arguments, found {actual}"

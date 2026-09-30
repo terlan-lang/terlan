@@ -67,9 +67,10 @@ pub labeled_file_pattern(id: String, pattern: String): LabeledFilePattern ->
  * Transformation: applies SHA-256 to the complete byte sequence and renders
  * every digest byte as two hexadecimal characters.
  */
-@compiler.intrinsic
+@pure
+@compiler.native {std.crypto.hash.sha256}
 pub sha256(text: String): String ->
-    text.
+    native.
 
 /**
  * Returns the lowercase SHA-256 digest of immutable binary data.

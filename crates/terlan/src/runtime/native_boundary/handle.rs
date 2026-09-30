@@ -5,14 +5,7 @@
 //! contract: a handle is usable only while its slot is live and its generation
 //! matches, and disposal turns a live slot into a non-live slot.
 
-/// Opaque resource handle handed to Terlan-side code.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NativeBoundaryHandle {
-    /// Stable slot identifier inside the adapter-owned registry.
-    pub id: u64,
-    /// Generation tag used to reject stale handles after slot reuse.
-    pub generation: u64,
-}
+pub use terlan_runtime_abi::NativeResourceHandle as NativeBoundaryHandle;
 
 /// Adapter-owned registry slot state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

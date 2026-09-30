@@ -340,37 +340,6 @@ fn count_calls(expr: &CoreExpr, expected: &str) -> usize {
     }
 }
 
-/// Reports whether one expression contains a compiler-private managed call.
-fn contains_managed_call(expr: &CoreExpr, expected: &str) -> bool {
-    match expr {
-        CoreExpr::RemoteCall {
-            module,
-            function,
-            args,
-            ..
-        } => {
-            (module == "$terlan.managed.http" && function == expected)
-                || args
-                    .iter()
-                    .any(|argument| contains_managed_call(argument, expected))
-        }
-        CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter()
-                .any(|binding| contains_managed_call(&binding.value, expected))
-                || contains_managed_call(body, expected)
-        }
-        CoreExpr::If { clauses } => clauses.iter().any(|clause| {
-            contains_managed_call(&clause.condition, expected)
-                || contains_managed_call(&clause.body, expected)
-        }),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            contains_managed_call(left, expected) || contains_managed_call(right, expected)
-        }
-        _ => false,
-    }
-}
-
 /// Verifies string patterns lower to value equality instead of reference equality.
 #[test]
 fn string_case_patterns_lower_to_managed_value_equality() {
@@ -385,10 +354,17 @@ fn string_case_patterns_lower_to_managed_value_equality() {
 
     lower_scalar_cases(&mut core).expect("lower string case");
 
-    assert!(contains_managed_call(
+    let mut found = false;
+    super::application::dynamic_targets::walk_expressions(
         function_body_mut(&mut core, "matches"),
-        "string_equal"
-    ));
+        &mut |expression| {
+            assert!(!matches!(expression, CoreExpr::RemoteCall { module, .. }
+                if module == "$terlan.managed.http"));
+            found |= matches!(expression, CoreExpr::BinaryOp { operator, right, .. }
+                if operator == "==" && matches!(right.as_ref(), CoreExpr::Binary(_)));
+        },
+    );
+    assert!(found, "string case must use ordinary equality");
 }
 
 /// Verifies canonical source preserves one-time scrutinee evaluation, clause

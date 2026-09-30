@@ -1,6 +1,6 @@
 //! Admitted image-local dispatch for pointer-free managed closures.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::runtime::native_image::{TvmBoundaryType, TvmCallableDescriptor};
 
@@ -9,7 +9,7 @@ use super::closures::{
 };
 use super::{
     ActorHeap, ManagedClosure, ManagedClosureDescriptor, ManagedClosureImageGeneration,
-    ManagedClosureView, ManagedMemoryError, TvmRef,
+    ManagedClosureView, ManagedMemoryError, SemanticTypeId, TvmRef,
 };
 
 /// Closed callable membership admitted with one sealed executable generation.
@@ -17,6 +17,7 @@ use super::{
 pub struct ManagedClosureDispatchTable {
     generation: ManagedClosureImageGeneration,
     callables: BTreeMap<u64, TvmCallableDescriptor>,
+    signatures: BTreeSet<SemanticTypeId>,
 }
 
 impl ManagedClosureDispatchTable {
@@ -26,6 +27,7 @@ impl ManagedClosureDispatchTable {
         callables: &[TvmCallableDescriptor],
     ) -> Result<Self, ManagedMemoryError> {
         let mut admitted = BTreeMap::new();
+        let mut signatures = BTreeSet::new();
         let mut previous = None;
         for callable in callables {
             if callable.id == 0
@@ -43,17 +45,55 @@ impl ManagedClosureDispatchTable {
                 return Err(ManagedMemoryError::InvalidClosure);
             }
             previous = Some(callable.id);
+            signatures.insert(ManagedClosureDescriptor::semantic_id_for_signature(
+                &callable.parameters,
+                &callable.results,
+            )?);
             admitted.insert(callable.id, callable.clone());
         }
         Ok(Self {
             generation,
             callables: admitted,
+            signatures,
         })
     }
 
     /// Returns the generation whose sealed descriptor owns this table.
     pub fn generation(&self) -> ManagedClosureImageGeneration {
         self.generation
+    }
+
+    /// Identifies closure-valued fields without probing unrelated managed objects.
+    pub(crate) fn contains_signature(&self, semantic: SemanticTypeId) -> bool {
+        self.signatures.contains(&semantic)
+    }
+
+    /// Authenticates an owned closure descriptor before allocating or invoking it.
+    pub(crate) fn validate_descriptor(
+        &self,
+        descriptor: &ManagedClosureDescriptor,
+        capture_count: usize,
+    ) -> Result<&TvmCallableDescriptor, ManagedMemoryError> {
+        if descriptor.generation() != self.generation {
+            return Err(ManagedMemoryError::StaleClosureGeneration);
+        }
+        let callable = self
+            .callables
+            .get(&descriptor.callable_id())
+            .ok_or(ManagedMemoryError::UnknownClosureCallable)?;
+        if descriptor.parameters() != callable.parameters
+            || descriptor.results() != callable.results
+        {
+            return Err(ManagedMemoryError::ClosureSignatureMismatch);
+        }
+        if descriptor.captures() != callable.captures || capture_count != callable.captures.len() {
+            return Err(ManagedMemoryError::ClosureCaptureMismatch);
+        }
+        Ok(callable)
+    }
+
+    pub(crate) fn callable(&self, id: u64) -> Option<&TvmCallableDescriptor> {
+        self.callables.get(&id)
     }
 
     /// Builds an allocation descriptor only for a callable admitted by this image.

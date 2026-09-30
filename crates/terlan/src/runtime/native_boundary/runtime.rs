@@ -16,7 +16,7 @@ use crate::terlan_native_boundary::dispatch::{
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 use crate::terlan_native_boundary::metadata::NativeBoundaryWorkerClass;
 use crate::terlan_native_boundary::resource::{
-    ResourceError, ResourceStore, ResourceValue, SYSTEM_RESOURCE_OWNER,
+    ResourceError, ResourceStore, SYSTEM_RESOURCE_OWNER,
 };
 use crate::terlan_native_boundary::runtime_events::{
     NativeBoundaryDispatchEvent, NativeBoundaryResourceEvent, NativeBoundaryResourceEventLog,
@@ -48,70 +48,6 @@ impl NativeBoundaryRuntime {
             resources: ResourceStore::new(),
             resource_events: NativeBoundaryResourceEventLog::default(),
         }
-    }
-
-    /// Registers a server-owned HTTP request resource.
-    ///
-    /// Inputs:
-    /// - `request`: request snapshot produced by a Rust HTTP server adapter.
-    ///
-    /// Output:
-    /// - `Ok(handle)` for the stored request.
-    /// - `Err(ResourceError)` if resource id allocation fails.
-    ///
-    /// Transformation:
-    /// - Moves the request into the runtime resource store so handler bridge
-    ///   code can pass only an opaque handle through the NativeBoundary term
-    ///   boundary.
-    pub fn register_http_request(
-        &mut self,
-        request: http::Request,
-    ) -> Result<NativeBoundaryHandle, ResourceError> {
-        self.register_http_request_for_process(SYSTEM_RESOURCE_OWNER, request)
-    }
-
-    /// Registers an HTTP request resource owned by one VM process.
-    pub fn register_http_request_for_process(
-        &mut self,
-        owner_process_id: u64,
-        request: http::Request,
-    ) -> Result<NativeBoundaryHandle, ResourceError> {
-        let handle = self
-            .resources
-            .insert_for_owner(owner_process_id, ResourceValue::HttpRequest(request))?;
-        let reply = NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Handle {
-            id: handle.id,
-            generation: handle.generation,
-        });
-        self.resource_events.observe_call(
-            owner_process_id,
-            "runtime.http.register_request",
-            &[],
-            &reply,
-        );
-        Ok(handle)
-    }
-
-    /// Returns recorded response-cookie mutations for a cookie jar resource.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle returned by `std.http.request.cookies`.
-    ///
-    /// Output:
-    /// - `Ok(headers)` with serialized `Set-Cookie` values in mutation order.
-    /// - `Err(ResourceError)` when the handle is stale or not a cookie jar.
-    ///
-    /// Transformation:
-    /// - Validates the runtime resource handle, reads the adapter-owned jar,
-    ///   and clones response metadata so the HTTP writer can apply it after a
-    ///   Terlan handler returns its response.
-    pub fn http_cookie_mutations(
-        &self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<Vec<String>, ResourceError> {
-        self.resources
-            .http_cookie_jar(handle)
-            .map(|jar| jar.mutations().to_vec())
     }
 
     /// Returns a server-owned HTTP response resource snapshot.

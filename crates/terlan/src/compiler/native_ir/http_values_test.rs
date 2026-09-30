@@ -1,13 +1,6 @@
 //! Tests for compiler-owned managed HTTP value lowering.
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use crate::runtime::native_image::managed::{
-    decode_aggregate_layout, decode_collection_layout,
-    encode_string_prepend_projected_literal_operation, managed_abi_result_is_reference,
-    ManagedCollectionKind, SemanticTypeId,
-};
+use crate::runtime::native_image::managed::{decode_aggregate_layout, SemanticTypeId};
 use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
@@ -16,10 +9,27 @@ use crate::terlan_typeck::{
 };
 
 use super::http_values::{
-    http_managed_collections, http_managed_layouts, install_http_constructors, lower_http_values,
-    lower_managed_http_operation, managed_http_operation_type,
+    http_managed_layouts, lower_http_values, lower_managed_http_operation,
+    managed_http_operation_type,
 };
-use super::{NativeExpr, NativeType};
+use super::NativeExpr;
+
+#[path = "http_request_boundary_test.rs"]
+mod request_boundary_test;
+use request_boundary_test::map_lookup;
+
+#[path = "http_session_library_test.rs"]
+mod session_authority_test;
+
+#[path = "http_option_library_test.rs"]
+mod option_authority_test;
+
+#[path = "http_response_builder_test.rs"]
+mod builder_authority_test;
+use builder_authority_test::primitive as response_primitive;
+
+#[path = "http_middleware_library_test.rs"]
+mod middleware_authority_test;
 
 /// Creates one checked module with the standard HTTP value imports.
 fn http_core() -> CoreModule {
@@ -66,6 +76,10 @@ fn http_session_core() -> CoreModule {
 /// Creates one checked module importing every managed HTTP value surface.
 fn complete_http_core() -> CoreModule {
     let mut core = http_session_core();
+    *body(&mut core) = CoreExpr::Tuple(vec![
+        session_authority_test::primitive("current", 1),
+        response_primitive("text", vec![string("body"), CoreExpr::Int(200)]),
+    ]);
     core.imports.push(CoreImport {
         module: "std.http.Error".to_string(),
         kind: CoreImportKind::Module,
@@ -82,61 +96,52 @@ fn body(core: &mut CoreModule) -> &mut CoreExpr {
         .expect("typed body")
 }
 
-/// Verifies ordinary response builders become one managed construction operation.
 #[test]
-fn response_builders_lower_to_fused_managed_operations() {
+fn retired_response_primitives_are_not_compiler_substitutes() {
     let mut core = http_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Response".to_string(),
-        function: "text".to_string(),
-        args: vec![CoreExpr::Binary("\"hello\"".to_string())],
-    };
-    lower_http_values(&mut core).expect("lower response");
-
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.http"
-                && function == "response_build_0"
-                && args == &vec![
-                    CoreExpr::Binary("\"hello\"".to_string()),
-                    CoreExpr::Int(200),
-                ]
-    ));
+    for name in [
+        "text",
+        "html",
+        "json_text",
+        "file",
+        "stream",
+        "redirect",
+        "status",
+        "header",
+    ] {
+        let expression = response_primitive(name, vec![string("hello"), CoreExpr::Int(200)]);
+        *body(&mut core) = expression.clone();
+        lower_http_values(&mut core).unwrap();
+        assert_eq!(body(&mut core), &expression);
+        assert!(http_managed_layouts(&core).unwrap().is_empty());
+    }
 }
 
 #[test]
-fn middleware_continue_atom_lowers_to_the_compiler_owned_constructor() {
+fn router_import_does_not_replace_atoms_or_bindings_or_install_layouts() {
     let mut core = http_core();
-    core.imports.push(CoreImport {
+    core.imports = vec![CoreImport {
         module: "std.http.Router".to_string(),
         kind: CoreImportKind::Module,
-    });
-    *body(&mut core) = CoreExpr::Atom("continue".to_string());
-    lower_http_values(&mut core).expect("lower middleware continuation");
-
-    assert_eq!(
-        body(&mut core),
-        &CoreExpr::ConstructorCall {
-            type_args: Vec::new(),
-            constructor: "std.http.Router.Continue".to_string(),
-            constructor_identity: Some("std.http.Router.Continue".to_string()),
-            args: Vec::new(),
-        }
-    );
+    }];
+    for expression in [
+        CoreExpr::Atom("continue".into()),
+        CoreExpr::Var("Continue".into()),
+    ] {
+        *body(&mut core) = expression.clone();
+        lower_http_values(&mut core).unwrap();
+        assert_eq!(body(&mut core), &expression);
+        assert!(http_managed_layouts(&core).unwrap().is_empty());
+    }
 }
 
 /// Verifies every admitted HTTP aggregate and collection has closed metadata.
 #[test]
 fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
     let core = complete_http_core();
-    let mut constructors = HashMap::new();
-    install_http_constructors(&core, &mut constructors).expect("install constructors");
-    assert_eq!(constructors.len(), 8);
 
     let layouts = http_managed_layouts(&core).expect("HTTP layouts");
-    assert_eq!(layouts.len(), 12);
+    assert_eq!(layouts.len(), 3);
     let semantics = layouts
         .iter()
         .map(|layout| {
@@ -147,16 +152,16 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
         })
         .collect::<Vec<_>>();
     for (canonical, count) in [
-        ("Named(Request)", 1),
-        ("Named(Jar)", 1),
+        ("Named(Request)", 0),
+        ("Named(Jar)", 0),
         ("Apply(Option;String)", 2),
-        ("Named(Json)", 1),
-        ("Named(Error)", 1),
-        ("Apply(Result;Named(Json),Named(Error))", 2),
-        ("Named(Session)", 1),
-        ("Named(Response)", 1),
-        ("std.http.Response.Header", 1),
-        ("Named(HttpError)", 1),
+        ("Named(Json)", 0),
+        ("Named(Error)", 0),
+        ("Apply(Result;Named(Json),Named(Error))", 0),
+        ("Named(Session)", 0),
+        ("Tuple(String,Bool)", 1),
+        ("Named(Response)", 0),
+        ("std.http.Response.Header", 0),
     ] {
         let semantic = SemanticTypeId::from_canonical(canonical).expect("inventory semantic");
         assert_eq!(
@@ -168,199 +173,59 @@ fn complete_http_managed_boundary_inventory_is_closed_and_decodable() {
             "unexpected layout count for {canonical}"
         );
     }
-
-    let collections = http_managed_collections(&core).expect("HTTP collections");
-    assert_eq!(collections.len(), 4);
-    assert_eq!(
-        collections
-            .iter()
-            .map(|collection| decode_collection_layout(collection)
-                .expect("HTTP collection")
-                .kind())
-            .collect::<Vec<_>>(),
-        vec![
-            ManagedCollectionKind::Map,
-            ManagedCollectionKind::List,
-            ManagedCollectionKind::List,
-            ManagedCollectionKind::List,
-        ]
-    );
 }
 
-/// Verifies every portable request read becomes one typed managed operation.
+/// Request reads retain source ownership regardless of call spelling.
 #[test]
-fn request_accessors_lower_to_checked_managed_operations() {
-    for (method, arity, expected) in [
-        ("method", 1, NativeType::StringRef),
-        ("path", 1, NativeType::StringRef),
-        ("query_string", 1, NativeType::StringRef),
-        ("body_text", 1, NativeType::StringRef),
-        (
-            "body_json",
-            1,
-            NativeType::ManagedRef(
-                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Apply(Result;Named(Json),Named(Error))",
-                )
-                .expect("body JSON result semantic"),
-            ),
-        ),
-        (
-            "param",
-            2,
-            NativeType::ManagedRef(
-                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Apply(Option;String)",
-                )
-                .expect("option semantic"),
-            ),
-        ),
-        (
-            "query",
-            2,
-            NativeType::ManagedRef(
-                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Apply(Option;String)",
-                )
-                .expect("option semantic"),
-            ),
-        ),
-        (
-            "header",
-            2,
-            NativeType::ManagedRef(
-                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Apply(Option;String)",
-                )
-                .expect("option semantic"),
-            ),
-        ),
-        (
-            "cookie",
-            2,
-            NativeType::ManagedRef(
-                crate::runtime::native_image::managed::SemanticTypeId::from_canonical(
-                    "Apply(Option;String)",
-                )
-                .expect("option semantic"),
-            ),
-        ),
+fn request_accessors_are_not_replaced_by_http_lowering() {
+    for (method, arity) in [
+        ("method", 1),
+        ("path", 1),
+        ("query_string", 1),
+        ("body_text", 1),
+        ("body_file_path", 1),
+        ("cookies", 1),
+        ("param", 2),
+        ("query", 2),
+        ("header", 2),
+        ("cookie", 2),
+        ("body_json", 1),
     ] {
-        let mut core = http_core();
         let mut args = vec![CoreExpr::Var("request".to_string())];
         if arity == 2 {
-            args.push(CoreExpr::Binary("\"key\"".to_string()));
+            args.push(string("key"));
         }
-        *body(&mut core) = CoreExpr::RemoteCall {
+        for owner in ["__receiver__", "std.http.Request", "app.Request"] {
+            let original = CoreExpr::RemoteCall {
+                type_args: Vec::new(),
+                module: owner.to_string(),
+                function: method.to_string(),
+                args: args.clone(),
+            };
+            let mut core = http_core();
+            *body(&mut core) = original.clone();
+            lower_http_values(&mut core).expect("ordinary request method");
+            assert_eq!(*body(&mut core), original);
+            assert_eq!(managed_http_operation_type(body(&mut core)), None);
+        }
+        let original = CoreExpr::Call {
             type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: method.to_string(),
+            function: format!("std.http.Request.{method}"),
             args,
         };
-        lower_http_values(&mut core).expect("lower request accessor");
-        assert_eq!(managed_http_operation_type(body(&mut core)), Some(expected));
-        let lowered = lower_managed_http_operation(body(&mut core), |argument| match argument {
-            CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
-            CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
-                encoded: Arc::from(b"test".as_slice()),
-            }),
-            other => panic!("unexpected operation argument: {other:?}"),
-        })
-        .expect("lower managed operation")
-        .expect("managed operation");
-        assert!(matches!(lowered, NativeExpr::ManagedOperation { .. }));
+        let mut core = http_core();
+        *body(&mut core) = original.clone();
+        lower_http_values(&mut core).expect("linked source method");
+        assert_eq!(*body(&mut core), original);
     }
 }
 
+/// HTTP normalization must leave ordinary option patterns to generic lowering.
 #[test]
-fn module_owned_request_accessor_lowers_to_checked_managed_operation() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Request".to_string(),
-        function: "query_string".to_string(),
-        args: vec![CoreExpr::Var("request".to_string())],
-    };
-
-    lower_http_values(&mut core).expect("lower module-owned request accessor");
-
-    assert_eq!(
-        managed_http_operation_type(body(&mut core)),
-        Some(NativeType::StringRef)
-    );
-}
-
-#[test]
-fn linked_request_accessor_lowers_to_checked_managed_operation() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::Call {
-        type_args: Vec::new(),
-        function: "std.http.Request.query_string".to_string(),
-        args: vec![CoreExpr::Var("request".to_string())],
-    };
-
-    lower_http_values(&mut core).expect("lower linked request accessor");
-
-    assert_eq!(
-        managed_http_operation_type(body(&mut core)),
-        Some(NativeType::StringRef)
-    );
-}
-
-/// Literal-prefix concatenation is one managed operation with no literal heap allocation.
-#[test]
-fn literal_prefix_string_append_fuses_into_one_managed_operation() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::BinaryOp {
-        operator: "+".to_string(),
-        left: Box::new(CoreExpr::Binary("\"prefix:\\u03bb\"".to_string())),
-        right: Box::new(CoreExpr::RemoteCall {
-            type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: "body_text".to_string(),
-            args: vec![CoreExpr::Var("request".to_string())],
-        }),
-    };
-
-    lower_http_values(&mut core).expect("lower fused prefix");
-    assert_eq!(
-        managed_http_operation_type(body(&mut core)),
-        Some(NativeType::StringRef)
-    );
-    let lowered = lower_managed_http_operation(body(&mut core), |argument| match argument {
-        CoreExpr::Var(name) if name == "request" => Ok(NativeExpr::Param(0)),
-        other => panic!("unexpected fused operation argument: {other:?}"),
-    })
-    .expect("lower fused operation")
-    .expect("fused operation");
-
-    let NativeExpr::ManagedOperation { encoded, args } = lowered else {
-        panic!("literal prepend must lower to one managed operation");
-    };
-    assert_eq!(args, vec![NativeExpr::Param(0)]);
-    let request_semantic = SemanticTypeId::from_canonical(
-        &crate::terlan_typeck::CoreType::Named("Request".to_string()).contract_text(),
-    )
-    .expect("request semantic");
-    assert_eq!(
-        encoded.as_ref(),
-        encode_string_prepend_projected_literal_operation(request_semantic, 4, "prefix:λ")
-            .expect("expected fused operation")
-    );
-    assert!(managed_abi_result_is_reference(&encoded));
-}
-
-/// Verifies immediate request lookup matches use shared managed option operations.
-#[test]
-fn request_option_case_lowers_without_scalar_constructor_patterns() {
+fn request_option_case_retains_ordinary_constructor_patterns() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Case {
-        scrutinee: Box::new(CoreExpr::RemoteCall {
-            type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: "header".to_string(),
-            args: vec![CoreExpr::Var("request".to_string()), string("x-deny")],
-        }),
+        scrutinee: Box::new(map_lookup()),
         clauses: vec![
             CoreCaseClause {
                 pattern: CorePattern::Constructor {
@@ -379,88 +244,34 @@ fn request_option_case_lowers_without_scalar_constructor_patterns() {
         ],
     };
 
-    lower_http_values(&mut core).expect("lower request option case");
-    let rendered = format!("{:?}", body(&mut core));
-    assert!(rendered.contains("function: \"header\""), "{rendered}");
-    assert!(
-        rendered.contains("function: \"option_is_none\""),
-        "{rendered}"
-    );
-    assert!(rendered.contains("function: \"option_some\""), "{rendered}");
-    assert!(!rendered.contains("Case("), "{rendered}");
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("preserve request option case");
+    assert_eq!(body(&mut core), &original);
 }
 
-/// Managed option defaults retain their string type when nested in concatenation.
+/// Imported option functions execute their source even around HTTP map lookups.
 #[test]
-fn request_option_default_can_be_concatenated_after_managed_case_lowering() {
+fn request_option_default_retains_source_call() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::BinaryOp {
         operator: "+".to_string(),
-        left: Box::new(CoreExpr::RemoteCall {
-            type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: "method".to_string(),
-            args: vec![CoreExpr::Var("request".to_string())],
-        }),
+        left: Box::new(string("prefix:")),
         right: Box::new(CoreExpr::RemoteCall {
             type_args: Vec::new(),
             module: "std.core.Option".to_string(),
             function: "with_default".to_string(),
-            args: vec![
-                CoreExpr::RemoteCall {
-                    type_args: Vec::new(),
-                    module: "__receiver__".to_string(),
-                    function: "header".to_string(),
-                    args: vec![CoreExpr::Var("request".to_string()), string("accept")],
-                },
-                string("missing"),
-            ],
+            args: vec![map_lookup(), string("missing")],
         }),
     };
 
-    lower_http_values(&mut core).expect("lower managed option concatenation");
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.http"
-                && function == "string_append"
-                && args.len() == 2
-    ));
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("preserve source option call");
+    assert_eq!(body(&mut core), &original);
 }
 
-/// Associative managed string expressions lower to one variadic operation.
+/// Body decoding and Result matching belong to ordinary library code.
 #[test]
-fn managed_string_append_chain_flattens_into_one_operation() {
-    let request_field = |function: &str| CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "__receiver__".to_string(),
-        function: function.to_string(),
-        args: vec![CoreExpr::Var("request".to_string())],
-    };
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::BinaryOp {
-        operator: "+".to_string(),
-        left: Box::new(CoreExpr::BinaryOp {
-            operator: "+".to_string(),
-            left: Box::new(request_field("method")),
-            right: Box::new(request_field("path")),
-        }),
-        right: Box::new(request_field("query_string")),
-    };
-
-    lower_http_values(&mut core).expect("lower managed string concat");
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.http"
-                && function == "string_concat"
-                && args.len() == 3
-    ));
-}
-
-/// Verifies immediate body decode matches become managed result operations.
-#[test]
-fn body_json_result_case_lowers_to_typed_managed_branches() {
+fn body_json_result_case_is_not_replaced_by_http_lowering() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Case {
         scrutinee: Box::new(CoreExpr::RemoteCall {
@@ -496,265 +307,82 @@ fn body_json_result_case_lowers_to_typed_managed_branches() {
         ],
     };
 
-    lower_http_values(&mut core).expect("lower body JSON case");
-    let rendered = format!("{:?}", body(&mut core));
-    assert!(rendered.contains("\"$terlan.managed.http\""), "{rendered}");
-    assert!(rendered.contains("function: \"body_json\""), "{rendered}");
-    assert!(
-        rendered.contains("function: \"body_json_is_ok\""),
-        "{rendered}"
-    );
-    assert!(
-        rendered.contains("function: \"body_json_ok\""),
-        "{rendered}"
-    );
-    assert!(!rendered.contains("Case("), "{rendered}");
-}
-
-/// Verifies unsupported response builders fail with an explicit typed diagnostic.
-#[test]
-fn stream_response_builder_rejects_missing_chunks() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Response".to_string(),
-        function: "stream".to_string(),
-        args: Vec::new(),
-    };
-    assert_eq!(
-        lower_http_values(&mut core).unwrap_err(),
-        "error[native_ir.http_response_arity]: Response.stream received 0 arguments"
-    );
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("preserve body JSON case");
+    assert_eq!(body(&mut core), &original);
 }
 
 #[test]
-fn stream_response_keeps_typed_chunks_and_dynamic_transport_limits() {
+fn retired_json_payload_projection_has_no_managed_http_lowering() {
     let mut core = http_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Response".into(),
-        function: "stream".into(),
-        args: vec![
-            CoreExpr::Var("chunks".into()),
-            CoreExpr::Int(206),
-            string("text/plain"),
-            CoreExpr::Var("chunk_size".into()),
-            CoreExpr::Var("pending".into()),
-        ],
+    let expression = CoreExpr::RemoteCall {
+        module: "$terlan.managed.http".into(),
+        function: "json_payload".into(),
+        type_args: vec![],
+        args: vec![CoreExpr::Var("json".into())],
     };
+    *body(&mut core) = expression.clone();
     lower_http_values(&mut core).unwrap();
-    let CoreExpr::ConstructorCall {
-        constructor, args, ..
-    } = body(&mut core)
-    else {
-        panic!("stream must retain a typed response constructor");
-    };
-    assert_eq!(constructor, "$terlan.http.response.stream");
-    assert_eq!(args.len(), 9);
-    assert_eq!(args[1], CoreExpr::Int(5));
-    assert_eq!(args[3], CoreExpr::Int(206));
-    assert_eq!(args[6], CoreExpr::Var("chunks".into()));
-    assert_eq!(args[7], CoreExpr::Var("chunk_size".into()));
-    assert_eq!(args[8], CoreExpr::Var("pending".into()));
-    let mut constructors = HashMap::new();
-    install_http_constructors(&core, &mut constructors).unwrap();
-    assert_eq!(
-        constructors[&("$terlan.http.response.stream".into(), 9)].parameter_core_types[6],
-        Some(crate::terlan_typeck::CoreType::List(Box::new(
-            crate::terlan_typeck::CoreType::String
-        )))
+    assert_eq!(body(&mut core), &expression);
+    assert!(managed_http_operation_type(&expression).is_none());
+    assert!(
+        lower_managed_http_operation(&expression, |_| panic!("must not read JSON storage"))
+            .unwrap()
+            .is_none()
     );
 }
 
 #[test]
-fn response_json_projects_the_canonical_managed_payload() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Response".to_string(),
-        function: "json".to_string(),
-        args: vec![CoreExpr::Var("json".to_string())],
-    };
-    lower_http_values(&mut core).expect("lower JSON response");
-    let rendered = format!("{:?}", body(&mut core));
-    assert!(
-        rendered.contains("function: \"response_build_2\""),
-        "{rendered}"
-    );
-    assert!(
-        rendered.contains("function: \"json_payload\""),
-        "{rendered}"
-    );
-}
-
-#[test]
-fn response_status_headers_and_raw_cookies_lower_to_persistent_operations() {
-    for (method, args, expected_function) in [
-        ("with_status", vec![CoreExpr::Int(204)], "response_status"),
-        (
-            "with_header",
-            vec![
-                CoreExpr::Binary("\"X-Trace\"".to_string()),
-                CoreExpr::Binary("\"one\"".to_string()),
-            ],
-            "response_header",
-        ),
-        (
-            "set_cookie_header",
-            vec![CoreExpr::Binary("\"session=one\"".to_string())],
-            "response_header",
-        ),
+fn retired_response_managed_operations_have_no_lowering() {
+    for (name, arity) in [
+        ("response_build_0", 2),
+        ("response_build_1", 2),
+        ("response_build_2", 2),
+        ("response_build_3", 2),
+        ("response_status", 2),
+        ("response_header", 3),
+        ("empty_headers", 0),
+        ("empty_chunks", 0),
+        ("string_equal", 2),
+        ("string_append", 2),
+        ("string_concat", 3),
+        ("string_prepend_literal", 2),
     ] {
-        let mut core = http_core();
-        *body(&mut core) = CoreExpr::MutableReceiverCall {
-            receiver: Box::new(CoreExpr::Var("response".to_string())),
-            method: method.to_string(),
-            args,
-            effects: CoreEffectSet {
-                effects: vec!["state".to_string()],
-            },
+        let expression = CoreExpr::RemoteCall {
+            module: "$terlan.managed.http".into(),
+            function: name.into(),
+            type_args: vec![],
+            args: vec![CoreExpr::Int(0); arity],
         };
-        lower_http_values(&mut core).expect("lower response mutation");
-        assert!(matches!(
-            body(&mut core),
-            CoreExpr::RemoteCall { module, function, .. }
-                if module == "$terlan.managed.http" && function == expected_function
-        ));
-        assert!(matches!(
-            lower_managed_http_operation(body(&mut core), |argument| match argument {
-                CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
-                CoreExpr::Int(value) => Ok(NativeExpr::Int(*value)),
-                CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
-                    encoded: Arc::from(b"value".as_slice()),
-                }),
-                other => panic!("unexpected response operation argument: {other:?}"),
-            })
-            .expect("lower response operation"),
-            Some(NativeExpr::ManagedOperation { .. })
-        ));
+        assert!(managed_http_operation_type(&expression).is_none());
+        assert!(
+            lower_managed_http_operation(&expression, |_| panic!("retired operation"))
+                .unwrap()
+                .is_none()
+        );
     }
 }
 
-/// Canonical selected-import resolution may retain the response-qualified
-/// function identity while making the receiver the first argument. That typed
-/// spelling must use the same managed operation as a receiver expression.
+/// Qualified calls still resolve through the provider rather than a name rewrite.
 #[test]
-fn module_owned_response_method_lowers_to_persistent_operation() {
+fn module_owned_response_method_retains_source_call() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Call {
         type_args: Vec::new(),
-        function: "std.http.Response.with_status".to_string(),
+        function: "std.http.Response.status".to_string(),
         args: vec![CoreExpr::Var("response".to_string()), CoreExpr::Int(204)],
     };
 
-    lower_http_values(&mut core).expect("lower module-owned response method");
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, .. }
-            if module == "$terlan.managed.http" && function == "response_status"
-    ));
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("retain module-owned response method");
+    assert_eq!(body(&mut core), &original);
 }
 
-/// Verifies the complete session surface becomes managed operations.
+/// Verifies explicit session primitives install their remaining compatibility metadata.
 #[test]
-fn session_calls_lower_to_vm_owned_managed_operations() {
-    let cases = [
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "std.http.Session".to_string(),
-                function: "current".to_string(),
-                args: vec![CoreExpr::Var("request".to_string())],
-            },
-            "session_current",
-        ),
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "__receiver__".to_string(),
-                function: "get".to_string(),
-                args: vec![CoreExpr::Var("session".to_string()), string("key")],
-            },
-            "session_get",
-        ),
-        (
-            CoreExpr::MutableReceiverCall {
-                receiver: Box::new(CoreExpr::Var("session".to_string())),
-                method: "set".to_string(),
-                args: vec![string("key"), string("value")],
-                effects: CoreEffectSet {
-                    effects: vec!["receiver_mutation".to_string()],
-                },
-            },
-            "session_set",
-        ),
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "std.http.Session".to_string(),
-                function: "delete".to_string(),
-                args: vec![CoreExpr::Var("session".to_string()), string("key")],
-            },
-            "session_delete",
-        ),
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "std.http.Session".to_string(),
-                function: "rotate".to_string(),
-                args: vec![CoreExpr::Var("session".to_string())],
-            },
-            "session_rotate",
-        ),
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "std.http.Session".to_string(),
-                function: "expire".to_string(),
-                args: vec![CoreExpr::Var("session".to_string())],
-            },
-            "session_expire",
-        ),
-        (
-            CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "std.http.Session".to_string(),
-                function: "with_response".to_string(),
-                args: vec![
-                    CoreExpr::Var("response".to_string()),
-                    CoreExpr::Var("session".to_string()),
-                ],
-            },
-            "session_with_response",
-        ),
-    ];
-    for (expr, expected) in cases {
-        let mut core = http_session_core();
-        *body(&mut core) = expr;
-        lower_http_values(&mut core).expect("lower session call");
-        assert!(matches!(
-            body(&mut core),
-            CoreExpr::RemoteCall { module, function, .. }
-                if module == "$terlan.managed.http" && function == expected
-        ));
-        assert!(matches!(
-            lower_managed_http_operation(body(&mut core), |argument| match argument {
-                CoreExpr::Var(_) => Ok(NativeExpr::Param(0)),
-                CoreExpr::Binary(_) => Ok(NativeExpr::ManagedLiteral {
-                    encoded: Arc::from(b"value".as_slice()),
-                }),
-                other => panic!("unexpected session argument: {other:?}"),
-            })
-            .expect("lower managed session operation"),
-            Some(NativeExpr::ManagedOperation { .. })
-        ));
-    }
-}
-
-/// Verifies session imports install request, response, option, and handle layouts.
-#[test]
-fn session_import_installs_complete_managed_boundary_metadata() {
-    let core = http_session_core();
+fn session_primitive_installs_complete_managed_boundary_metadata() {
+    let mut core = http_session_core();
+    *body(&mut core) = session_authority_test::primitive("current", 1);
     let layouts = http_managed_layouts(&core).expect("session layouts");
     let semantics = layouts
         .iter()
@@ -765,62 +393,29 @@ fn session_import_installs_complete_managed_boundary_metadata() {
                 .semantic_id()
         })
         .collect::<Vec<_>>();
-    for canonical in [
-        "Named(Session)",
-        "Named(Request)",
-        "Named(Response)",
-        "Apply(Option;String)",
-    ] {
-        assert!(semantics
-            .contains(&SemanticTypeId::from_canonical(canonical).expect("expected semantic")));
-    }
-    assert_eq!(
-        http_managed_collections(&core)
-            .expect("session collections")
-            .len(),
-        4
-    );
+    assert!(semantics.contains(
+        &SemanticTypeId::from_canonical("Apply(Option;String)").expect("option semantic")
+    ));
+    assert!(!semantics.contains(
+        &SemanticTypeId::from_canonical("Named(Session)").expect("source session semantic")
+    ));
 }
 
 #[test]
-fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
-    let cases = [
-        (
-            "with_cookie",
-            vec![string("session"), string("abc123")],
-            "response_header",
-        ),
-        (
-            "with_deleted_cookie",
-            vec![string("session")],
-            "response_header",
-        ),
-        (
-            "with_cookies",
-            vec![CoreExpr::Var("jar".to_string())],
-            "response_cookie_jar",
-        ),
-        (
-            "with_security_headers",
-            vec![CoreExpr::Var("policy".to_string())],
-            "response_security_headers",
-        ),
-    ];
-    for (method, args, expected) in cases {
-        let mut core = http_core();
-        *body(&mut core) = CoreExpr::RemoteCall {
-            type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: method.to_string(),
-            args: [vec![CoreExpr::Var("response".to_string())], args].concat(),
-        };
-        lower_http_values(&mut core).expect("lower typed response update");
-        assert!(matches!(
-            body(&mut core),
-            CoreExpr::RemoteCall { module, function, .. }
-                if module == "$terlan.managed.http" && function == expected
-        ));
-    }
+fn cookie_jar_replay_and_security_policy_remain_source_calls() {
+    let mut core = http_core();
+    *body(&mut core) = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
+        module: "__receiver__".to_string(),
+        function: "with_cookies".to_string(),
+        args: vec![
+            CoreExpr::Var("response".into()),
+            CoreExpr::Var("jar".into()),
+        ],
+    };
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("source cookie jar application");
+    assert_eq!(body(&mut core), &original);
 
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
@@ -829,11 +424,11 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
         function: "production_security_headers".to_string(),
         args: Vec::new(),
     };
-    lower_http_values(&mut core).expect("lower security constructor");
+    lower_http_values(&mut core).expect("retain source security policy");
     assert!(matches!(
         body(&mut core),
-        CoreExpr::RecordConstruct { name, fields }
-            if name == "std.http.Response.SecurityHeaders" && fields.len() == 5
+        CoreExpr::RemoteCall { module, function, args, .. }
+            if module == "std.http.Response" && function == "production_security_headers" && args.is_empty()
     ));
 
     let mut core = http_core();
@@ -849,40 +444,20 @@ fn typed_cookie_jar_and_security_calls_rewrite_to_managed_operations() {
             CoreExpr::Atom("false".to_string()),
         ],
     };
-    lower_http_values(&mut core).expect("lower arbitrary typed security policy");
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("retain source security policy constructor");
+    assert_eq!(body(&mut core), &original);
     assert!(matches!(
         body(&mut core),
-        CoreExpr::ConstructorCall { constructor_identity: Some(identity), args, .. }
-            if identity == "$terlan.http.security_headers"
-                && args[1] == CoreExpr::Int(1)
-                && args[2] == CoreExpr::Int(0)
+        CoreExpr::ConstructorCall { constructor, args, .. }
+            if constructor == "std.http.Response.SecurityHeaders"
+                && args[1] == CoreExpr::Atom("SameOrigin".into())
+                && args[2] == CoreExpr::Atom("NoReferrer".into())
     ));
 }
 
-/// Verifies the private policy ABI refuses marker values outside public unions.
 #[test]
-fn typed_security_policy_rejects_unknown_marker() {
-    let mut core = http_core();
-    *body(&mut core) = CoreExpr::ConstructorCall {
-        type_args: Vec::new(),
-        constructor: "SecurityHeaders".to_string(),
-        constructor_identity: None,
-        args: vec![
-            CoreExpr::Atom("true".to_string()),
-            CoreExpr::Atom("AllowAll".to_string()),
-            CoreExpr::Atom("NoReferrer".to_string()),
-            CoreExpr::Int(0),
-            CoreExpr::Atom("false".to_string()),
-        ],
-    };
-    assert_eq!(
-        lower_http_values(&mut core).unwrap_err(),
-        "error[native_ir.http_security_policy]: unsupported policy marker AllowAll"
-    );
-}
-
-#[test]
-fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
+fn direct_cookie_jar_chain_is_not_replaced_by_http_lowering() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::RemoteCall {
         type_args: Vec::new(),
@@ -891,7 +466,7 @@ fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
         args: vec![
             CoreExpr::RemoteCall {
                 type_args: Vec::new(),
-                module: "__receiver__".to_string(),
+                module: "$terlan.managed.http".to_string(),
                 function: "cookies".to_string(),
                 args: vec![CoreExpr::Var("request".to_string())],
             },
@@ -899,23 +474,18 @@ fn direct_cookie_jar_chain_rewrites_without_a_host_handle() {
             string("abc123"),
         ],
     };
-    lower_http_values(&mut core).expect("lower jar chain");
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.http"
-                && function == "jar_append"
-                && args.len() == 2
-    ));
+    let original = body(&mut core).clone();
+    lower_http_values(&mut core).expect("retain jar chain");
+    assert_eq!(body(&mut core), &original);
 }
 
 #[test]
-fn resolved_cookie_calls_keep_managed_operations() {
+fn resolved_cookie_calls_follow_source_for_jars_and_codecs() {
     for (name, args, expected) in [
         (
             "get",
             vec![CoreExpr::Var("jar".into()), string("session")],
-            "jar_get",
+            "get",
         ),
         (
             "set",
@@ -924,28 +494,24 @@ fn resolved_cookie_calls_keep_managed_operations() {
                 string("session"),
                 string("abc123"),
             ],
-            "jar_append",
+            "set",
         ),
         (
             "delete",
             vec![CoreExpr::Var("jar".into()), string("session")],
-            "jar_append",
+            "delete",
         ),
         (
             "set_header",
             vec![string("session"), string("abc123")],
-            "cookie_set_header",
+            "set_header",
         ),
         (
             "set_header_with_options",
             vec![string("session"), string("abc123")],
-            "cookie_set_options_header",
+            "set_header_with_options",
         ),
-        (
-            "delete_header",
-            vec![string("session")],
-            "cookie_delete_header",
-        ),
+        ("delete_header", vec![string("session")], "delete_header"),
     ] {
         let mut core = http_core();
         *body(&mut core) = CoreExpr::Call {
@@ -955,15 +521,15 @@ fn resolved_cookie_calls_keep_managed_operations() {
         };
         lower_http_values(&mut core).expect("lower resolved cookie call");
         assert!(
-            matches!(body(&mut core), CoreExpr::RemoteCall { module, function, .. }
-            if module == "$terlan.managed.http" && function == expected),
+            matches!(body(&mut core), CoreExpr::Call { function, .. }
+            if function == &format!("std.http.Cookies.{expected}")),
             "{name}"
         );
     }
 }
 
 #[test]
-fn cookie_mutation_rebinds_once_and_preserves_unit_result() {
+fn http_lowering_does_not_supply_cookie_specific_mutation_semantics() {
     let mut core = http_core();
     *body(&mut core) = CoreExpr::Let {
         bindings: vec![crate::terlan_typeck::CoreLetBinding {
@@ -987,14 +553,14 @@ fn cookie_mutation_rebinds_once_and_preserves_unit_result() {
     let CoreExpr::Let { bindings, .. } = once else {
         panic!("lexical mutation")
     };
-    assert_eq!(bindings.len(), 2);
-    assert_eq!(bindings[0].pattern, CorePattern::Var("jar".into()));
-    assert_eq!(bindings[1].pattern, CorePattern::Var("done".into()));
-    assert_eq!(bindings[1].value, CoreExpr::Atom("Unit".into()));
+    assert_eq!(bindings.len(), 1);
+    assert_eq!(bindings[0].pattern, CorePattern::Var("done".into()));
+    assert!(matches!(&bindings[0].value, CoreExpr::Call { function, .. }
+        if function == "std.http.Cookies.set"));
 }
 
 #[test]
-fn cookie_native_serializer_body_uses_the_managed_string_abi() {
+fn cookie_native_serializer_body_keeps_its_package_contract() {
     let mut core = http_core();
     core.module = "std.http.Cookies".into();
     core.imports.clear();
@@ -1010,88 +576,26 @@ fn cookie_native_serializer_body_uses_the_managed_string_abi() {
         },
         span: crate::terlan_syntax::span::Span::new(0, 0),
     });
+    let original = body(&mut core).clone();
     lower_http_values(&mut core).unwrap();
-    assert!(
-        matches!(body(&mut core), CoreExpr::RemoteCall { module, function, .. }
-        if module == "$terlan.managed.http" && function == "cookie_set_options_header")
-    );
+    assert_eq!(body(&mut core), &original);
 }
 
 #[test]
-fn typed_http_error_constructor_and_accessors_lower_to_managed_values() {
-    let mut constructor_core = http_error_core();
-    *body(&mut constructor_core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Error".to_string(),
-        function: "new".to_string(),
-        args: vec![
-            CoreExpr::Var("code".to_string()),
-            CoreExpr::Var("message".to_string()),
-            CoreExpr::Var("status".to_string()),
-        ],
-    };
-    lower_http_values(&mut constructor_core).expect("lower HTTP error constructor");
-    assert!(matches!(
-        body(&mut constructor_core),
-        CoreExpr::ConstructorCall { constructor_identity: Some(identity), args, .. }
-            if identity == "$terlan.http.error" && args.len() == 3
-    ));
-
-    let mut constructors = HashMap::new();
-    install_http_constructors(&constructor_core, &mut constructors)
-        .expect("install HTTP error constructor");
-    assert_eq!(constructors.len(), 1);
-    assert_eq!(
-        http_managed_layouts(&constructor_core)
-            .expect("error layouts")
-            .len(),
-        1
-    );
-    assert!(http_managed_collections(&constructor_core)
-        .expect("error collections")
-        .is_empty());
-
-    for (method, expected_type, reference_result) in [
-        ("code", NativeType::Atom, false),
-        ("message", NativeType::StringRef, true),
-        ("status", NativeType::Int, false),
-    ] {
+fn http_error_calls_remain_source_owned() {
+    for function in ["new", "code", "message", "status"] {
         let mut core = http_error_core();
         *body(&mut core) = CoreExpr::RemoteCall {
             type_args: Vec::new(),
-            module: "__receiver__".to_string(),
-            function: method.to_string(),
-            args: vec![CoreExpr::Var("error".to_string())],
+            module: "std.http.Error".into(),
+            function: function.into(),
+            args: vec![CoreExpr::Var("value".into())],
         };
-        lower_http_values(&mut core).expect("lower HTTP error accessor");
-        assert_eq!(
-            managed_http_operation_type(body(&mut core)),
-            Some(expected_type)
-        );
-        let operation = lower_managed_http_operation(body(&mut core), |_| Ok(NativeExpr::Param(0)))
-            .expect("lower managed HTTP error accessor")
-            .expect("managed HTTP error operation");
-        let NativeExpr::ManagedOperation { encoded, args } = operation else {
-            panic!("HTTP error accessor must use a managed operation");
-        };
-        assert_eq!(args, vec![NativeExpr::Param(0)]);
-        assert_eq!(managed_abi_result_is_reference(&encoded), reference_result);
+        let original = body(&mut core).clone();
+        lower_http_values(&mut core).expect("ordinary source call");
+        assert_eq!(body(&mut core), &original);
+        assert!(http_managed_layouts(&core).unwrap().is_empty());
     }
-}
-
-#[test]
-fn typed_http_error_operations_reject_invalid_arities() {
-    let mut core = http_error_core();
-    *body(&mut core) = CoreExpr::RemoteCall {
-        type_args: Vec::new(),
-        module: "std.http.Error".to_string(),
-        function: "new".to_string(),
-        args: vec![CoreExpr::Var("code".to_string())],
-    };
-    assert_eq!(
-        lower_http_values(&mut core).expect_err("invalid error arity"),
-        "error[native_ir.http_error_arity]: HttpError.new received 1 arguments"
-    );
 }
 
 /// Builds one CoreIR string literal for HTTP operation tests.

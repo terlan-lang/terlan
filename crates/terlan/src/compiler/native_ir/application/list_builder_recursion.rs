@@ -268,6 +268,8 @@ fn apply_plan(
     let rest = "$aot_list_rest";
     let reverse = CoreFunction {
         receiver_method: false,
+        receiver_mutable: false,
+        receiver_command: false,
         trait_method: None,
         source: function.source.clone(),
         name: plan.reverse.clone(),

@@ -25,8 +25,12 @@ pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, St
             AotRouterRouteTarget::Handler(handler) => {
                 VmHttpRouteTarget::Handler(callable_value(handler))
             }
-            AotRouterRouteTarget::Sse(plan) => VmHttpRouteTarget::SseEndpoint(plan),
-            AotRouterRouteTarget::WebSocket(plan) => VmHttpRouteTarget::WebSocketEndpoint(plan),
+            AotRouterRouteTarget::Sse(plan) => VmHttpRouteTarget::SseEndpoint(
+                plan.map_callbacks(VmHttpCompiledCallableRef::into_value),
+            ),
+            AotRouterRouteTarget::WebSocket(plan) => VmHttpRouteTarget::WebSocketEndpoint(
+                plan.map_callbacks(VmHttpCompiledCallableRef::into_value),
+            ),
         };
         router = router.scoped_target(
             method,

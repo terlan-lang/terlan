@@ -130,15 +130,22 @@ pub(crate) fn lower_suspending_case(
 
     let mut continuations = Vec::new();
     let mut native_clauses = Vec::with_capacity(clauses.len());
+    let mut list_coverage = super::list_coverage::ListCoverage::default();
     for clause in clauses {
         if type_excludes_pattern(&clause.pattern, scrutinee_core.as_ref()) {
             continue;
         }
+        let residual_core = list_coverage.residual(&clause.pattern, scrutinee_core.as_ref());
+        let clause_core = residual_core.as_ref().or(scrutinee_core.as_ref());
+        let clause_type = residual_core
+            .as_ref()
+            .and_then(|ty| crate::compiler::native_ir::native_type(Some(ty), &ty.contract_text()))
+            .unwrap_or(scrutinee_type);
         let plan = pattern_plan(
             &clause.pattern,
             scrutinee_value.clone(),
-            scrutinee_type,
-            scrutinee_core.as_ref(),
+            clause_type,
+            clause_core,
             constructors,
             0,
         )?;
@@ -237,6 +244,7 @@ pub(crate) fn lower_suspending_case(
         }
         continuations.append(&mut selected_continuations);
         native_clauses.push((condition, bind_values(&plan.bindings, selected)));
+        list_coverage.record(&clause.pattern, clause.guard.is_some());
     }
     Ok((
         NativeExpr::Let {

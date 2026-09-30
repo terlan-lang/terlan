@@ -9,6 +9,7 @@
 module std.template.Template.
 
 import type std.collections.List.
+import std.core.String.{join as join_strings}.
 
 /**
  * Html represents a trusted HTML fragment.
@@ -18,7 +19,7 @@ import type std.collections.List.
  * Transformation: separates already-trusted HTML from ordinary `String`
  * values, which must be escaped as text by the template compiler.
  */
-pub opaque type Html.
+pub opaque type Html = String.
 
 /**
  * Creates a trusted HTML fragment from a string.
@@ -28,9 +29,7 @@ pub opaque type Html.
  * Transformation: marks the string as trusted HTML without escaping it. This is
  * an explicit escape hatch and should be rare in ordinary application code.
  */
-@compiler.intrinsic
-pub trusted(value: String): Html ->
-    native.
+pub trusted(value: String): Html -> Html(value).
 
 /**
  * Creates an empty trusted HTML fragment.
@@ -40,9 +39,7 @@ pub trusted(value: String): Html ->
  * Transformation: gives generated templates and helper code a typed empty
  * fragment without using an untyped empty string.
  */
-@compiler.intrinsic
-pub empty(): Html ->
-    native.
+pub empty(): Html -> Html("").
 
 /**
  * Joins trusted HTML fragments in source order.
@@ -52,6 +49,15 @@ pub empty(): Html ->
  * Transformation: composes already-trusted fragments without introducing
  * template-specific loop syntax or accepting untrusted strings.
  */
-@compiler.intrinsic
 pub join(fragments: List[Html]): Html ->
-    native.
+    Html(join_strings([to_string(fragment) | fragment <- fragments], "")).
+
+/**
+ * Returns the exact bytes of an already trusted fragment without escaping.
+ *
+ * Input: one trusted `Html` fragment.
+ * Output: its UTF-8 string representation.
+ * Transformation: exposes the package-owned representation without granting
+ * trust to any new content.
+ */
+pub to_string(fragment: Html): String -> fragment.

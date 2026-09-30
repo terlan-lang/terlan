@@ -178,3 +178,44 @@ fn ambiguous_imported_nominal_remains_unqualified() {
         ))))
     );
 }
+
+#[test]
+fn module_qualified_nominals_resolve_only_through_unambiguous_imports() {
+    for (imports, name, expected) in [
+        (
+            vec!["package.Types"],
+            "Types.Classification",
+            "package.Types.Classification",
+        ),
+        (
+            vec!["package.Types.Classification"],
+            "Types.Classification",
+            "package.Types.Classification",
+        ),
+        (
+            vec!["package.Types", "other.Types"],
+            "Types.Classification",
+            "Types.Classification",
+        ),
+        (
+            vec!["package.Types"],
+            "foreign.Types.Classification",
+            "foreign.Types.Classification",
+        ),
+        (vec![], "Types.Classification", "Types.Classification"),
+    ] {
+        let mut caller = consumer(&imports);
+        caller.functions[0].core_return_type =
+            Some(CoreType::List(Box::new(CoreType::Named(name.into()))));
+        let mut cores = vec![provider("package.Types"), provider("other.Types"), caller];
+        qualify_application_nominal_types(&mut cores);
+        assert_eq!(
+            cores[2].functions[0].core_return_type,
+            Some(CoreType::List(Box::new(CoreType::Named(expected.into())))),
+            "{imports:?}/{name}"
+        );
+        let once = cores[2].functions[0].core_return_type.clone();
+        qualify_application_nominal_types(&mut cores);
+        assert_eq!(cores[2].functions[0].core_return_type, once);
+    }
+}

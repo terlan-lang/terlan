@@ -151,7 +151,7 @@ impl OwnedMigrationImportFailure {
 enum ShardCommand {
     Begin {
         route: VmFixedActorRoute,
-        export: String,
+        target: crate::runtime::vm::pure_native::NativeCallTarget<'static>,
         args: Vec<ReplValue>,
         reply: SyncSender<Result<OwnedInvocationStep, String>>,
     },
@@ -362,7 +362,7 @@ impl AotHandlerShardOwner {
     pub(super) fn begin<F>(
         &self,
         route: VmFixedActorRoute,
-        export: String,
+        target: impl Into<crate::runtime::vm::pure_native::NativeCallTarget<'static>>,
         args: Vec<ReplValue>,
         mut coordinate: F,
     ) -> Result<OwnedInvocationStep, String>
@@ -373,7 +373,7 @@ impl AotHandlerShardOwner {
         let (reply, response) = mpsc::sync_channel(1);
         if let Err(error) = self.send(ShardCommand::Begin {
             route,
-            export,
+            target: target.into(),
             args,
             reply,
         }) {

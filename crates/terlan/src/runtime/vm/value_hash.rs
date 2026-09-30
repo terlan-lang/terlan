@@ -87,6 +87,9 @@ fn hash_value(value: &ReplValue) -> Result<u64, VmStableHashError> {
             Task::Value(value) => {
                 let mut hasher = StableHasher::new(value_tag(value));
                 match value {
+                    ReplValue::Closure(_) => {
+                        return Err(VmStableHashError::UnsupportedValue("Function"));
+                    }
                     ReplValue::Unit => results.push(hasher.finish()),
                     ReplValue::Int(value) => {
                         hasher.write_u64(*value as u64);
@@ -223,6 +226,7 @@ fn invalid_hash_state() -> VmStableHashError {
 
 fn value_tag(value: &ReplValue) -> u8 {
     match value {
+        ReplValue::Closure(_) => 21,
         ReplValue::Unit => 1,
         ReplValue::Int(_) => 2,
         ReplValue::Float(_) => 3,

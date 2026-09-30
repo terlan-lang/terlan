@@ -71,6 +71,7 @@ inspect(effect: Effect[String]): Bool ->
 pub check(): Bool -> inspect(plan(7, "retained ")).
 "#,
         include_str!("../../../../../std/core/Effect.terl"),
+        include_str!("../../../../../std/core/String.terl"),
     ]);
 }
 

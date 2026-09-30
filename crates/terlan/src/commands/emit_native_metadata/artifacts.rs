@@ -3,7 +3,10 @@ use std::fs;
 use std::path::Path;
 
 use crate::terlan_hir::module_path_to_native_boundary_module;
-use crate::terlan_syntax::{find_matching_paren, native_signature_arity};
+use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
+use crate::terlan_syntax::{
+    parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxModuleOutput,
+};
 use serde_json::json;
 
 use crate::validation::native_policy::NativePolicy;
@@ -172,10 +175,11 @@ pub(crate) fn extract_native_metadata(
     source: &str,
     requested_policy: NativePolicy,
 ) -> Result<NativeMetadata, String> {
-    let source_module = extract_declared_module_name(source)
-        .ok_or_else(|| "native metadata source is missing module declaration".to_string())?;
+    let syntax = parse_module_as_syntax_output(source)
+        .map_err(|error| format!("native metadata source could not be parsed: {error:?}"))?;
+    let source_module = syntax.module_name.clone();
     let compiler_native_functions =
-        dedupe_native_function_signatures(extract_compiler_native_functions(source));
+        dedupe_native_function_signatures(extract_compiler_native_functions(&syntax));
     if compiler_native_functions.is_empty() {
         return Err("native metadata source is missing @compiler.native declarations".to_string());
     }
@@ -196,95 +200,36 @@ pub(crate) fn extract_native_metadata(
     })
 }
 
-/// Extracts the declared Terlan module name.
-///
-/// Inputs:
-/// - `source`: Terlan source text.
-///
-/// Output:
-/// - `Some(name)` for a non-empty `module name.` declaration.
-/// - `None` when no valid module declaration is found.
-///
-/// Transformation:
-/// - Scans line by line and trims the `module` prefix plus trailing period.
-pub(crate) fn extract_declared_module_name(source: &str) -> Option<String> {
-    source.lines().find_map(|line| {
-        let trimmed = line.trim();
-        trimmed
-            .strip_prefix("module ")
-            .and_then(|rest| rest.strip_suffix('.'))
-            .map(|name| name.trim().to_string())
-            .filter(|name| !name.is_empty())
-    })
-}
-
-/// Extracts compiler-native function signatures from annotated declarations.
-///
-/// Inputs:
-/// - `source`: Terlan source text.
-///
-/// Output:
-/// - Function signature names, arities, and operation ids in source order.
-///
-/// Transformation:
-/// - Pairs each `@compiler.native {operation}` annotation with the following
-///   public declaration and counts receiver parameters as part of the backend
-///   operation arity.
-fn extract_compiler_native_functions(source: &str) -> Vec<NativeFunctionSignature> {
-    let mut pending_operation: Option<String> = None;
-    let mut out = Vec::new();
-    let lines = source.lines().collect::<Vec<_>>();
-    let mut index = 0usize;
-
-    while index < lines.len() {
-        let trimmed = lines[index].trim();
-        if let Some(operation) = parse_compiler_native_operation(trimmed) {
-            pending_operation = Some(operation);
-            index += 1;
-            continue;
-        }
-
-        let Some(operation) = pending_operation.as_ref() else {
-            index += 1;
-            continue;
-        };
-
-        if trimmed.is_empty() || trimmed.starts_with("/**") || trimmed.starts_with('*') {
-            index += 1;
-            continue;
-        }
-
-        if !trimmed.starts_with("pub ") {
-            pending_operation = None;
-            index += 1;
-            continue;
-        }
-
-        let mut declaration = trimmed.to_string();
-        while parse_compiler_native_function_signature(&declaration).is_none()
-            && index + 1 < lines.len()
-        {
-            index += 1;
-            let next = lines[index].trim();
-            if next.is_empty() {
-                continue;
-            }
-            declaration.push(' ');
-            declaration.push_str(next);
-            if next.contains("->") {
-                break;
-            }
-        }
-
-        if let Some(mut signature) = parse_compiler_native_function_signature(&declaration) {
-            signature.operation = Some(operation.clone());
-            out.push(signature);
-        }
-        pending_operation = None;
-        index += 1;
-    }
-
-    out
+/// Reads binding declarations from the canonical parser, including private
+/// functions used by source-owned public APIs.
+fn extract_compiler_native_functions(module: &SyntaxModuleOutput) -> Vec<NativeFunctionSignature> {
+    module
+        .declarations
+        .iter()
+        .filter_map(|declaration| {
+            let operation = declaration.annotations.iter().find_map(|annotation| {
+                if annotation.path != ["compiler", "native"] {
+                    return None;
+                }
+                match annotation.values.first()? {
+                    SyntaxAnnotationValueOutput::Name { segments } if !segments.is_empty() => {
+                        Some(segments.join("."))
+                    }
+                    _ => None,
+                }
+            })?;
+            let (name, arity) = match &declaration.payload {
+                SyntaxDeclarationPayload::Function { name, params, .. } => (name, params.len()),
+                SyntaxDeclarationPayload::Method { name, params, .. } => (name, params.len() + 1),
+                _ => return None,
+            };
+            Some(NativeFunctionSignature {
+                name: name.clone(),
+                arity,
+                operation: Some(operation),
+            })
+        })
+        .collect()
 }
 
 /// Removes duplicate native backend signatures while preserving source order.
@@ -318,121 +263,6 @@ fn dedupe_native_function_signatures(
     }
 
     out
-}
-
-/// Parses a compiler-native operation annotation.
-///
-/// Inputs:
-/// - `line`: one trimmed Terlan source line.
-///
-/// Output:
-/// - `Some(operation)` for `@compiler.native {operation}`.
-/// - `None` when the line is not a compiler-native annotation.
-///
-/// Transformation:
-/// - Strips the annotation delimiters and trims the operation id.
-fn parse_compiler_native_operation(line: &str) -> Option<String> {
-    let rest = line.strip_prefix("@compiler.native")?.trim();
-    let operation = rest.strip_prefix('{')?.strip_suffix('}')?.trim();
-    if operation.is_empty() {
-        None
-    } else {
-        Some(operation.to_string())
-    }
-}
-
-/// Parses a compiler-native public function or receiver signature.
-///
-/// Inputs:
-/// - `line`: declaration line immediately following a compiler-native
-///   annotation.
-///
-/// Output:
-/// - `Some(NativeFunctionSignature)` when the declaration head is recognized.
-/// - `None` for malformed or non-public declaration lines.
-///
-/// Transformation:
-/// - Removes the public prefix, detects receiver syntax, extracts the method
-///   name, and counts receiver plus top-level argument-list entries.
-fn parse_compiler_native_function_signature(line: &str) -> Option<NativeFunctionSignature> {
-    let signature = line.trim().strip_prefix("pub ")?.trim();
-    if signature.starts_with('(') {
-        return parse_compiler_native_receiver_signature(signature);
-    }
-    parse_compiler_native_plain_signature(signature)
-}
-
-/// Parses a compiler-native plain function signature.
-///
-/// Inputs:
-/// - `signature`: public declaration text after the `pub` prefix.
-///
-/// Output:
-/// - Parsed name and arity, or `None` when the text is not a function head.
-///
-/// Transformation:
-/// - Reads the name before the first argument list and counts top-level
-///   arguments inside that list.
-fn parse_compiler_native_plain_signature(signature: &str) -> Option<NativeFunctionSignature> {
-    let open = signature.find('(')?;
-    let close = find_matching_paren(signature, open)?;
-    let name = parse_native_function_name(&signature[..open])?;
-    let args = &signature[open + 1..close];
-    Some(NativeFunctionSignature {
-        name,
-        arity: native_signature_arity(args),
-        operation: None,
-    })
-}
-
-/// Parses a compiler-native receiver method signature.
-///
-/// Inputs:
-/// - `signature`: public declaration text beginning with receiver syntax.
-///
-/// Output:
-/// - Parsed method name and backend arity, or `None` when malformed.
-///
-/// Transformation:
-/// - Treats the receiver as the first backend argument, then parses the method
-///   argument list normally.
-fn parse_compiler_native_receiver_signature(signature: &str) -> Option<NativeFunctionSignature> {
-    let receiver_close = find_matching_paren(signature, 0)?;
-    let after_receiver = signature[receiver_close + 1..].trim();
-    let method_open = after_receiver.find('(')?;
-    let method_close = find_matching_paren(after_receiver, method_open)?;
-    let name = parse_native_function_name(&after_receiver[..method_open])?;
-    let args = &after_receiver[method_open + 1..method_close];
-    Some(NativeFunctionSignature {
-        name,
-        arity: native_signature_arity(args) + 1,
-        operation: None,
-    })
-}
-
-/// Parses the function name before a native argument list.
-///
-/// Inputs:
-/// - `prefix`: signature text before `(`.
-///
-/// Output:
-/// - `Some(name)` for a non-empty function name.
-/// - `None` when the prefix contains no name.
-///
-/// Transformation:
-/// - Trims whitespace and removes generic parameter text after `[`.
-fn parse_native_function_name(prefix: &str) -> Option<String> {
-    let name = prefix
-        .trim()
-        .split(|ch: char| ch.is_whitespace() || ch == '[')
-        .next()
-        .unwrap_or("")
-        .trim();
-    if name.is_empty() {
-        None
-    } else {
-        Some(name.to_string())
-    }
 }
 
 /// Renders a Rust NativeBoundary skeleton.

@@ -13,7 +13,7 @@
   ],
   "family": "database-sql",
   "manifest_fingerprints": {
-    "std/summaries/std.db.Postgres.native_boundary.json": "sha256:0684e2277c917c92903dfd4c5f47459a369d627f5ef5ca99fe04b39568aa9ac2"
+    "std/summaries/std.db.Postgres.native_boundary.json": "sha256:ad29089893aedfa3a23043565e1e1e400d45d51deb0b267a4c5ea81377e7d925"
   },
   "output_signature": {
     "exit_class": "success",

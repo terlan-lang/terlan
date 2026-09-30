@@ -1,22 +1,23 @@
 //! Admission and lookup of compiler-proven opaque Request projections.
 
+#[cfg(test)]
+#[path = "source_request_suspension_test.rs"]
+mod source_request_suspension_test;
+
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
 use crate::runtime::native::http::RequestFieldProjection;
-use crate::runtime::vm::aot_metadata::{AotRouterPlan, NativeRequestProjection};
+use crate::runtime::vm::aot_metadata::NativeRequestProjection;
 use crate::runtime::vm::http_session::VmHttpSessionService;
 
-use super::{
-    materialize_router, AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime,
-};
+use super::{AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime};
 
 impl AotHandlerRuntime {
     pub(super) fn load_with_request_projections(
         module: String,
         image: &Path,
-        router: Option<AotRouterPlan>,
         projections: Vec<NativeRequestProjection>,
         sessions: VmHttpSessionService,
     ) -> Result<Self, String> {
@@ -45,13 +46,14 @@ impl AotHandlerRuntime {
                     .insert(projection.arity, admitted);
             }
         }
-        Ok(Self {
+        Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load(image, sessions)?),
-            router: router.map(materialize_router).transpose()?,
+            router: None,
             primary_request_projection,
             request_projections,
-        })
+        }
+        .admit_source_router()
     }
 
     /// Returns a narrow projection only for a direct export in this exact
@@ -139,10 +141,10 @@ impl AotHandlerRuntime {
         function: &str,
         arity: usize,
     ) -> bool {
-        module == self.module
-            && self
+        module != self.module
+            || self
                 .admitted_request_projection(function, arity)
-                .is_some_and(|projection| projection.suspending)
+                .is_none_or(|projection| projection.suspending)
     }
 
     /// Proves a matched router route can invoke its handler directly without

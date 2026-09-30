@@ -222,6 +222,7 @@ parse_manifest_row(
 @pure
 allowed_crate(value: String): Bool ->
     value == "serde_json"
+        or value == "axum"
         or value == "basic-toml"
         or value == "base64"
         or value == "md-5"
@@ -229,6 +230,7 @@ allowed_crate(value: String): Bool ->
         or value == "rustls"
         or value == "terlan"
         or value == "std::path"
+        or value == "std::time"
         or value == "std::env::consts"
         or value == "url"
         or value == "rand_chacha"
@@ -715,6 +717,7 @@ manifest_has_operation(rows: List[ManifestRow], module_name: String, operation: 
 @pure
 expected_source(module_name: String): String ->
     case module_name {
+        "std.time.Clock" -> "std/time/Clock.terl";
         "std.data.Json" -> "std/data/Json.terl";
         "std.data.Toml" -> "std/data/Toml.terl";
         "std.crypto.Ed25519" -> "std/crypto/Ed25519.terl";
@@ -730,7 +733,6 @@ expected_source(module_name: String): String ->
         "std.http.Cookies" -> "std/http/Cookies.terl";
         "std.http.Session" -> "std/http/Session.terl";
         "std.http.Sse" -> "std/http/Sse.terl";
-        "std.http.WebSocket" -> "std/http/WebSocket.terl";
         "std.http.Response" -> "std/http/Response.terl";
         "std.db.Postgres" -> "std/db/Postgres.terl";
         "std.native.collections.Vector" -> "std/native/collections/Vector.terl";

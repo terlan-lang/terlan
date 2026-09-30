@@ -7,6 +7,8 @@
  */
 module std.data.Json.
 
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
 import std.core.String.
 
 import type std.core.{Error, Option, Result}.
@@ -343,6 +345,18 @@ pub stringify(json: Json): Result[String, JsonError] ->
     native.
 
 /**
+ * Renders a validated JSON value as compact text.
+ *
+ * Input: one live `Json` value.
+ * Output: its compact JSON representation, preserving escaping and key order.
+ * Transformation: uses the maintained value renderer; unlike parsing arbitrary
+ * text, rendering a validated JSON value requires no recoverable error branch.
+ */
+@compiler.native {std.data.json.to_string}
+pub to_string(json: Json): String ->
+    native.
+
+/**
  * Renders a JSON value with canonical two-space indentation.
  *
  * Input: one `Json` value.
@@ -394,12 +408,23 @@ pub (json: Json) object_length(): Result[Int, JsonError] ->
  * Input: a JSON object and ordered field names.
  * Output: one optional string per requested field. Missing and non-string
  * members become `None` without exposing backend JSON values.
- * Transformation: performs one typed native traversal and preserves requested
- * field order for efficient manifest metadata decoding.
+ * Transformation: validates the receiver and composes typed accessors in
+ * Terlan source, preserving requested field order and duplicate names.
  */
-@compiler.native {std.data.json.string_fields}
 pub (json: Json) string_fields(fields: List[String]): Result[List[Option[String]], JsonError] ->
-    native.
+    case json.object_length() {
+        Ok(_) -> Ok([optional_string_field(json, field) | field <- fields]);
+        Err(reason) -> Err(reason)
+    }.
+
+optional_string_field(json: Json, field: String): Option[String] ->
+    let {
+        Ok(value) <- json.get(field);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
 
 /**
  * Projects required string, integer, and array-length fields in one native

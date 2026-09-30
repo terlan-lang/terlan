@@ -1,4 +1,4 @@
-use crate::terlan_native::{base64, http, json, path, postgres, regex, uri, vector};
+use crate::terlan_native::{json, path, postgres, regex, vector};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 use crate::terlan_native_boundary::resource::ResourceError;
 
@@ -25,18 +25,6 @@ pub(super) fn expect_text<'a>(
     match args.get(index) {
         Some(NativeBoundaryValue::Text(value)) => Ok(value),
         _ => Err(type_error(operation, index, "String")),
-    }
-}
-
-/// Reads a VM-owned byte-buffer argument from a neutral value slice.
-pub(super) fn expect_bytes<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryValue],
-    index: usize,
-) -> Result<&'a [u8], DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::Bytes(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Bytes")),
     }
 }
 
@@ -88,54 +76,6 @@ pub(super) fn expect_int(
     }
 }
 
-/// Reads a floating-point argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected floating-point argument index.
-///
-/// Output:
-/// - Floating-point value when the neutral value is `Float`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-pub(super) fn expect_float(
-    operation: &str,
-    args: &[NativeBoundaryValue],
-    index: usize,
-) -> Result<f64, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::Float(value)) => Ok(*value),
-        _ => Err(type_error(operation, index, "Float")),
-    }
-}
-
-/// Reads a JSON argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected JSON argument index.
-///
-/// Output:
-/// - Borrowed JSON wrapper when the value is `Json`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-pub(super) fn expect_json<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryValue],
-    index: usize,
-) -> Result<&'a json::Json, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::Json(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Json")),
-    }
-}
-
 /// Reads a compiled regex argument from a neutral value slice.
 pub(super) fn expect_regex<'a>(
     operation: &str,
@@ -145,177 +85,6 @@ pub(super) fn expect_regex<'a>(
     match args.get(index) {
         Some(NativeBoundaryValue::Regex(value)) => Ok(value),
         _ => Err(type_error(operation, index, "Regex")),
-    }
-}
-
-/// Reads an HTTP request argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected HTTP request argument index.
-///
-/// Output:
-/// - Borrowed HTTP request wrapper when the value is `HttpRequest`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-pub(super) fn expect_http_request<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryValue],
-    index: usize,
-) -> Result<&'a http::Request, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::HttpRequest(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "HttpRequest")),
-    }
-}
-
-/// Reads an HTTP cookie jar argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected HTTP cookie jar argument index.
-///
-/// Output:
-/// - Borrowed HTTP cookie jar when the value is `HttpCookieJar`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-pub(super) fn expect_http_cookie_jar<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryValue],
-    index: usize,
-) -> Result<&'a http::CookieJar, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::HttpCookieJar(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "HttpCookieJar")),
-    }
-}
-
-/// Builds cookie options from explicit dispatch arguments.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: neutral dispatch arguments for `set_header_with_options`.
-///
-/// Output:
-/// - Rust `CookieOptions` ready for HTTP adapter serialization.
-/// - `Err(DispatchError)` when argument shapes or SameSite text are invalid.
-///
-/// Transformation:
-/// - Converts the source-visible full cookie helper into the typed Rust option
-///   struct while using empty strings for absent optional text attributes and
-///   an explicit `include_max_age` flag until Terlan records cross NativeBoundary.
-pub(super) fn cookie_options_from_args(
-    operation: &str,
-    args: &[NativeBoundaryValue],
-) -> Result<http::CookieOptions, DispatchError> {
-    let path = expect_text(operation, args, 2)?.to_string();
-    let domain = optional_text_arg(operation, args, 3)?;
-    let max_age = optional_included_int_arg(operation, args, 4, 5)?;
-    let expires = optional_text_arg(operation, args, 6)?;
-    let http_only = expect_bool(operation, args, 7)?;
-    let secure = expect_bool(operation, args, 8)?;
-    let same_site = optional_same_site_arg(operation, args, 9)?;
-
-    Ok(http::CookieOptions {
-        path,
-        domain,
-        max_age,
-        expires,
-        http_only,
-        secure,
-        same_site,
-    })
-}
-
-/// Converts an empty-stringable text argument into an optional string.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: neutral dispatch arguments.
-/// - `index`: argument index to read.
-///
-/// Output:
-/// - `None` for an empty string, otherwise `Some(value)`.
-/// - `Err(DispatchError)` when the argument is not text.
-///
-/// Transformation:
-/// - Preserves a compact primitive NativeBoundary ABI while representing absent
-///   optional cookie string attributes.
-fn optional_text_arg(
-    operation: &str,
-    args: &[NativeBoundaryValue],
-    index: usize,
-) -> Result<Option<String>, DispatchError> {
-    let value = expect_text(operation, args, index)?;
-    Ok((!value.is_empty()).then(|| value.to_string()))
-}
-
-/// Converts an explicit inclusion flag and integer into an optional integer.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: neutral dispatch arguments.
-/// - `value_index`: integer argument index to read.
-/// - `include_index`: boolean inclusion flag index to read.
-///
-/// Output:
-/// - `None` when the include flag is false, otherwise `Some(value)`.
-/// - `Err(DispatchError)` when either argument has the wrong shape.
-///
-/// Transformation:
-/// - Encodes optional `Max-Age` without requiring an `Option[Int]` bridge value
-///   or a non-constant sentinel default in source.
-fn optional_included_int_arg(
-    operation: &str,
-    args: &[NativeBoundaryValue],
-    value_index: usize,
-    include_index: usize,
-) -> Result<Option<i64>, DispatchError> {
-    let value = expect_int(operation, args, value_index)?;
-    let include = expect_bool(operation, args, include_index)?;
-    Ok(include.then_some(value))
-}
-
-/// Converts optional SameSite text into the typed cookie policy.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: neutral dispatch arguments.
-/// - `index`: argument index to read.
-///
-/// Output:
-/// - Parsed SameSite policy, or `None` for an empty string.
-/// - `Err(DispatchError)` for unsupported policy text.
-///
-/// Transformation:
-/// - Keeps policy validation in the dispatch layer so the HTTP serializer only
-///   receives typed cookie policy values.
-fn optional_same_site_arg(
-    operation: &str,
-    args: &[NativeBoundaryValue],
-    index: usize,
-) -> Result<Option<http::CookieSameSite>, DispatchError> {
-    match expect_text(operation, args, index)?
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "" => Ok(None),
-        "lax" => Ok(Some(http::CookieSameSite::Lax)),
-        "strict" => Ok(Some(http::CookieSameSite::Strict)),
-        "none" => Ok(Some(http::CookieSameSite::None)),
-        other => Err(DispatchError::new(
-            "dispatch.http.cookie.invalid_same_site",
-            format!(
-                "Operation `{operation}` expected SameSite value `lax`, `strict`, `none`, or empty string, got `{other}`."
-            ),
-            0,
-        )),
     }
 }
 
@@ -341,56 +110,6 @@ pub(super) fn expect_bridge_handle(
     match args.get(index) {
         Some(NativeBoundaryBridgeValue::Handle(value)) => Ok(*value),
         _ => Err(type_error(operation, index, "Handle")),
-    }
-}
-
-/// Reads a text argument from a bridge value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied bridge values.
-/// - `index`: expected text argument index.
-///
-/// Output:
-/// - Borrowed string slice when present.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs the bridge-side shape check required before mutable resource
-///   operations.
-pub(super) fn expect_bridge_text<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryBridgeValue],
-    index: usize,
-) -> Result<&'a str, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryBridgeValue::Text(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "String")),
-    }
-}
-
-/// Reads a boolean argument from a bridge value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied bridge values.
-/// - `index`: expected boolean argument index.
-///
-/// Output:
-/// - Boolean value when present.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs the bridge-side shape check required before mutable resource
-///   operations.
-pub(super) fn expect_bridge_bool(
-    operation: &str,
-    args: &[NativeBoundaryBridgeValue],
-    index: usize,
-) -> Result<bool, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryBridgeValue::Bool(value)) => Ok(*value),
-        _ => Err(type_error(operation, index, "Bool")),
     }
 }
 
@@ -465,30 +184,6 @@ pub(super) fn expect_path<'a>(
     match args.get(index) {
         Some(NativeBoundaryValue::Path(value)) => Ok(value),
         _ => Err(type_error(operation, index, "Path")),
-    }
-}
-
-/// Reads a URI argument from a neutral value slice.
-///
-/// Inputs:
-/// - `operation`: operation id used in diagnostics.
-/// - `args`: supplied neutral values.
-/// - `index`: expected URI argument index.
-///
-/// Output:
-/// - Borrowed URI wrapper when the value is `Uri`.
-/// - `Err(DispatchError)` when another value kind is present.
-///
-/// Transformation:
-/// - Performs a runtime shape check before adapter invocation.
-pub(super) fn expect_uri<'a>(
-    operation: &str,
-    args: &'a [NativeBoundaryValue],
-    index: usize,
-) -> Result<&'a uri::Uri, DispatchError> {
-    match args.get(index) {
-        Some(NativeBoundaryValue::Uri(value)) => Ok(value),
-        _ => Err(type_error(operation, index, "Uri")),
     }
 }
 
@@ -645,35 +340,6 @@ pub(super) fn dispatch_regex_error(error: regex::RegexError) -> DispatchError {
     DispatchError::new(error.code(), error.message(), error.offset())
 }
 
-/// Converts an HTTP adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: HTTP adapter error.
-///
-/// Output:
-/// - Dispatch error preserving HTTP code and message.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields
-///   relevant to the generic NativeBoundary dispatch layer.
-pub(super) fn dispatch_http_error(error: http::HttpError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), 0)
-}
-
-/// Converts a Base64 adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: Base64 adapter error.
-///
-/// Output:
-/// - Dispatch error preserving Base64 code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-pub(super) fn dispatch_base64_error(error: base64::Base64Error) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
 /// Converts a path adapter error into a dispatch error.
 ///
 /// Inputs:
@@ -685,20 +351,6 @@ pub(super) fn dispatch_base64_error(error: base64::Base64Error) -> DispatchError
 /// Transformation:
 /// - Erases the adapter-specific error type while preserving stable fields.
 pub(super) fn dispatch_path_error(error: path::PathError) -> DispatchError {
-    DispatchError::new(error.code(), error.message(), error.offset())
-}
-
-/// Converts a URI adapter error into a dispatch error.
-///
-/// Inputs:
-/// - `error`: URI adapter error.
-///
-/// Output:
-/// - Dispatch error preserving URI code, message, and offset.
-///
-/// Transformation:
-/// - Erases the adapter-specific error type while preserving stable fields.
-pub(super) fn dispatch_uri_error(error: uri::UriError) -> DispatchError {
     DispatchError::new(error.code(), error.message(), error.offset())
 }
 

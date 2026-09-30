@@ -46,6 +46,34 @@ fn transaction_handle_is_revoked_before_terminal_submission() {
         .prepare(7, &request("rollback", vec![connection]), &store)
         .is_err());
 }
+
+#[test]
+fn malformed_database_calls_cannot_revoke_a_valid_transaction() {
+    let mut adapter = Adapter::default();
+    let connection = adapter.insert(7, Kind::Connection, remote(2)).unwrap();
+    let store = ResourceStore::default();
+    for operation in ["commit", "rollback", "begin", "transaction", "unknown"] {
+        for args in [vec![], vec![connection.clone(), ReplValue::Unit]] {
+            assert!(adapter
+                .prepare(7, &request(operation, args), &store)
+                .err()
+                .expect("malformed call must fail before resource access")
+                .contains("postgres.arguments"));
+            assert_eq!(
+                adapter.remote(7, &connection, &[Kind::Connection]).unwrap(),
+                remote(2)
+            );
+        }
+    }
+    assert_eq!(
+        crate::std_native_packages::postgres::operation_arity("std.db.postgres.transaction"),
+        None
+    );
+    assert_eq!(
+        crate::std_native_packages::postgres::operation_arity("app.postgres.commit"),
+        None
+    );
+}
 #[test]
 fn json_crosses_process_boundary_as_text_and_retains_owner_on_return() {
     let mut adapter = Adapter::default();

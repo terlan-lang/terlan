@@ -187,7 +187,7 @@ fn random_dispatch_rejects_foreign_nested_stale_and_wrong_kind_handles() {
     let foreign = store
         .insert_for_owner(
             OWNER + 1,
-            ResourceValue::RandomGenerator(random::Generator::from_seed(3)),
+            ResourceValue::RandomGenerator(Box::new(random::Generator::from_seed(3))),
         )
         .unwrap();
     for nested in [

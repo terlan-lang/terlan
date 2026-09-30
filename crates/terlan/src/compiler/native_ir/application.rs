@@ -27,7 +27,7 @@ mod analysis;
 mod callable_metadata;
 pub(super) mod dynamic_targets;
 mod list_builder_recursion;
-mod mutable_receivers;
+pub(super) mod mutable_receivers;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use mutable_receivers::resolve_typed_mutable_receiver_calls;
 mod native_packages;
@@ -35,6 +35,8 @@ mod native_packages;
 mod native_packages_test;
 mod normalization;
 mod overloads;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use overloads::resolve_selected_imports;
 mod record_forwarders;
 mod remote_calls;
 mod source_constructors;
@@ -146,7 +148,6 @@ impl NativeModule {
                 function.source = Some(function.source_declaration(&core.module));
             }
         }
-        super::open_std_pruning::prune_compile_time_router_builders(&mut normalized_cores);
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
         // Resolve source receiver names before overloads rename their declarations.
@@ -278,7 +279,7 @@ impl NativeModule {
             .iter()
             .map(|core| (core.module.as_str(), core.types.as_slice()))
             .collect::<Vec<_>>();
-        let mut constructor_layouts = ordered_cores
+        let constructor_layouts = ordered_cores
             .iter()
             .map(|core| {
                 native_constructor_layouts(&constructor_modules, &core.module).and_then(
@@ -305,14 +306,6 @@ impl NativeModule {
                 )
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
-        for core in &ordered_cores {
-            super::http_values::install_http_constructors(
-                core,
-                constructor_layouts
-                    .get_mut(&core.module)
-                    .expect("constructor layouts built for every ordered module"),
-            )?;
-        }
         super::application_admission::validate_core_application(
             &normalized_cores,
             &constructor_layouts,

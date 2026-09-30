@@ -9,9 +9,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
+#[cfg(test)]
 use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
-use crate::runtime::vm::http_router::{VmHttpCompiledCallableRef, VmHttpRouter};
+use crate::runtime::vm::http_router::VmHttpRouter;
 use crate::runtime::vm::http_session::VmHttpSessionService;
 use crate::runtime::vm::protocol_task_executor::{
     retire_protocol_resource, with_current_protocol_resource,
@@ -33,24 +34,29 @@ use super::source_path_from_manifest;
 mod cache_epoch;
 #[path = "handler_cache/cache_storage.rs"]
 mod cache_storage;
+mod callables;
 mod http_response;
 mod immediate;
 pub(super) mod invocation;
 mod protocol_capability;
 mod replay_evidence;
 mod request_projection;
+#[cfg(test)]
 mod router_materialization;
 mod session_service;
 mod shard_owner;
 mod source_generation;
+mod source_router;
 pub(super) use cache_epoch::current as handler_cache_epoch;
 use cache_epoch::{advance as advance_cache_epoch, current as current_cache_epoch};
 use cache_storage::cache;
 #[cfg(test)]
 pub(super) use cache_storage::invalidate_vm_handler_cache;
 use immediate::{finish_immediate_step, LocalImmediateShard};
+#[cfg(test)]
 use router_materialization::materialize_router;
 use session_service::http_session_service_for;
+use source_generation::cached_source_entry;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(super) use source_generation::run_compiler_daemon;
 pub(super) use source_generation::stage_source_generation;
@@ -78,17 +84,19 @@ struct LocalHandlerRuntime {
 }
 
 #[cfg(test)]
-#[path = "handler_cache_generation_test.rs"]
+mod closure_invocation_test;
 #[cfg(test)]
+#[path = "handler_cache_generation_test.rs"]
 mod handler_cache_generation_test;
 #[cfg(test)]
 #[path = "handler_cache_test_support.rs"]
-#[cfg(test)]
 pub(super) mod handler_cache_test_support;
 #[cfg(test)]
 #[path = "handler_cache/multicore_performance_test.rs"]
-#[cfg(test)]
 mod multicore_performance_test;
+#[cfg(test)]
+#[path = "handler_cache/response_policy_test.rs"]
+mod response_policy_test;
 
 /// One admitted native handler image. It never owns or retains compiler IR.
 #[derive(Debug)]
@@ -605,13 +613,14 @@ impl AotHandlerRuntime {
         router: Option<AotRouterPlan>,
     ) -> Result<Self, String> {
         let sessions = session_service::test_session_service()?;
-        Ok(Self {
+        Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load(image, sessions)?),
             router: router.map(materialize_router).transpose()?,
             primary_request_projection: None,
             request_projections: HashMap::new(),
-        })
+        }
+        .admit_source_router()
     }
 
     #[cfg(test)]
@@ -622,7 +631,7 @@ impl AotHandlerRuntime {
         shard_count: usize,
     ) -> Result<Self, String> {
         let sessions = session_service::test_session_service()?;
-        Ok(Self {
+        Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load_with_shard_count(
                 image,
@@ -632,17 +641,16 @@ impl AotHandlerRuntime {
             router: router.map(materialize_router).transpose()?,
             primary_request_projection: None,
             request_projections: HashMap::new(),
-        })
+        }
+        .admit_source_router()
     }
 
     pub(super) fn has_function(&self, module: &str, function: &str, arity: usize) -> bool {
         if module != self.module {
             return false;
         }
-        // Router execution is descriptor-driven; a raw generated `router/0`
-        // export without its admitted static plan is not executable through
-        // `execute_http_router`. Answer from that plan directly and avoid a
-        // formatted export lookup on every ordinary handler request.
+        // Source router execution and descriptor validation happen once during
+        // generation admission, not on each request.
         if function == "router" && arity == 0 {
             return self.router.is_some();
         }
@@ -683,54 +691,6 @@ impl AotHandlerRuntime {
             return Ok(value);
         }
         finish_immediate_step(self.begin_request_invocation(module, function, args)?)
-    }
-
-    pub(super) fn execute_callable(
-        &self,
-        module: &str,
-        callable: &ReplValue,
-        args: Vec<ReplValue>,
-        output: &mut dyn FnMut(&str),
-    ) -> Result<ReplValue, String> {
-        let callable = VmHttpCompiledCallableRef::from_value(callable).ok_or_else(|| {
-            "error[serve.aot.callable]: router value is not a static native callback".to_string()
-        })?;
-        if callable.module != module || args.len() != callable.arity {
-            return Err(format!(
-                "error[serve.aot.callable]: callback `{}.{}/{}` cannot be invoked as `{module}` with {} arguments",
-                callable.module,
-                callable.function,
-                callable.arity,
-                args.len()
-            ));
-        }
-        self.execute_immediate_native(module, &callable.function, args, output)
-            .map_err(|error| {
-                format!(
-                    "error[serve.aot.callable]: callback `{}.{}/{}` failed: {error}",
-                    callable.module, callable.function, callable.arity
-                )
-            })
-    }
-
-    pub(super) fn callable_arity(&self, callable: &ReplValue) -> Option<usize> {
-        VmHttpCompiledCallableRef::from_value(callable).map(|callable| callable.arity)
-    }
-
-    pub(super) fn execute_http_router(
-        &self,
-        module: &str,
-        function: &str,
-        _output: &mut dyn FnMut(&str),
-    ) -> Result<VmHttpRouter, String> {
-        if module != self.module || function != "router" {
-            return Err(format!(
-                "error[serve.aot.router]: native router `{module}.{function}/0` is not loaded"
-            ));
-        }
-        self.router.clone().ok_or_else(|| {
-            format!("error[serve.aot.router]: module `{module}` has no static router plan")
-        })
     }
 
     #[cfg(test)]
@@ -938,16 +898,4 @@ fn remember_local_runtime(source_path: PathBuf, runtime: &Arc<AotHandlerRuntime>
         }
         cache.runtimes.insert(source_path, Arc::downgrade(runtime));
     });
-}
-
-fn cached_source_entry(
-    web_root: &Path,
-    source_path: &Path,
-    expected_module: &str,
-) -> Result<HandlerCacheEntry, String> {
-    Ok(source_generation::cached_source_entry(
-        web_root,
-        source_path,
-        expected_module,
-    )?)
 }

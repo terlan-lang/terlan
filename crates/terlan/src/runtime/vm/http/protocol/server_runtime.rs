@@ -679,9 +679,6 @@ impl VmHttpTcpServer {
     }
 }
 
-pub(crate) const HTTP_HEADER_LIMIT: usize = 64 * 1024;
-pub(crate) const HTTP_BODY_LIMIT: usize = 1024 * 1024;
-
 impl<T> VmHttpQueue<T> {
     /// Creates a bounded VM HTTP queue.
     ///

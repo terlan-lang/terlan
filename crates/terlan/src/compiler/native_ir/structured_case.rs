@@ -17,6 +17,10 @@ use super::{NativeBinaryOperator, NativeConstructorLayouts, NativeExpr, NativeTy
 mod atom;
 #[path = "structured_case/binary.rs"]
 mod binary;
+mod boundary;
+#[cfg(test)]
+mod boundary_test;
+mod list_coverage;
 #[path = "structured_case/lowering.rs"]
 mod lowering;
 mod plain;

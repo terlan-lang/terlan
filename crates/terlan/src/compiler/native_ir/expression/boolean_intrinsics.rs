@@ -1,4 +1,4 @@
-//! Direct-AOT lowering for scalar Boolean intrinsics.
+//! Direct-AOT lowering for the language-level Bool(text) and String(bool) conversions.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,17 +10,16 @@ use crate::terlan_typeck::{CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CorePri
 
 use super::super::{call_composition::rebase_callee_locals, collection_values::lower_typed_value};
 use super::{
-    lower_expr_with_constructors, native_type, NativeBinaryOperator, NativeConstructorLayouts,
-    NativeExpr, NativeType,
+    lower_expr_with_constructors, native_type, NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
 #[cfg(test)]
 #[path = "boolean_intrinsics_test.rs"]
 mod tests;
 
-/// Lowers the closed Boolean domain using scalar comparisons, UTF-8 equality,
-/// and the existing typed Option constructor machinery. Arguments execute once
-/// in source order, including when comparison/parsing needs to inspect them twice.
+/// Lowers language conversions using UTF-8 equality and typed Option values.
+/// Named std.core.Bool calls compile their Terlan bodies instead. The conversion
+/// operand executes once even when parsing inspects it twice.
 pub(super) fn lower_boolean_intrinsic(
     call: &CoreIntrinsicCall,
     params: &HashMap<String, usize>,
@@ -33,7 +32,6 @@ pub(super) fn lower_boolean_intrinsic(
         return Err("error[native_ir.bool_intrinsic]: expected Boolean intrinsic".into());
     };
     let arity = match intrinsic {
-        CorePrimitiveIntrinsic::BoolEqual | CorePrimitiveIntrinsic::BoolCompare => 2,
         CorePrimitiveIntrinsic::BoolToString | CorePrimitiveIntrinsic::BoolFromString => 1,
         _ => return Err("error[native_ir.bool_intrinsic]: unsupported Boolean intrinsic".into()),
     };
@@ -65,21 +63,7 @@ pub(super) fn lower_boolean_intrinsic(
             })
             .map_err(|error| format!("error[native_ir.bool_intrinsic]: {error}"))
     };
-    let equality = || NativeExpr::Binary {
-        operator: NativeBinaryOperator::Equal,
-        operand_type: NativeType::Bool,
-        left: Box::new(left.clone()),
-        right: Box::new(NativeExpr::Param(base + 1)),
-    };
     let body = match intrinsic {
-        CorePrimitiveIntrinsic::BoolEqual => equality(),
-        CorePrimitiveIntrinsic::BoolCompare => NativeExpr::If {
-            clauses: vec![
-                (equality(), NativeExpr::AtomLiteral("eq".into())),
-                (left, NativeExpr::AtomLiteral("gt".into())),
-                (NativeExpr::Bool(true), NativeExpr::AtomLiteral("lt".into())),
-            ],
-        },
         CorePrimitiveIntrinsic::BoolToString => NativeExpr::If {
             clauses: vec![
                 (left, text("true")?),
@@ -131,11 +115,9 @@ pub(super) fn lower_boolean_intrinsic(
     })
 }
 
-/// Preserves the distinct Bool, Comparison, String and Option[Bool] result ABIs.
+/// Preserves the String and Option[Bool] conversion result ABIs.
 pub(super) fn infer_boolean_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
     match call.id {
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::BoolEqual) => Some(NativeType::Bool),
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::BoolCompare) => Some(NativeType::Atom),
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::BoolToString) => {
             Some(NativeType::StringRef)
         }

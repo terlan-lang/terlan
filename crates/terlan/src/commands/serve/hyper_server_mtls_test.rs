@@ -107,7 +107,7 @@ fn vm_tls_authenticates_the_client_before_http_dispatch() {
         let config = Arc::clone(&server_config);
         let observed = Arc::clone(&observed);
         Box::pin(async move {
-            let io = tls_io::VmTlsHyperIo::handshake(stream, config)
+            let io = tls_io::handshake(stream, config)
                 .await
                 .map_err(|error| error.to_string())?;
             let protocol = io

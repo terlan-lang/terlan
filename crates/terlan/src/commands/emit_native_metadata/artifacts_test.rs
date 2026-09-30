@@ -228,7 +228,7 @@ module package.Options.
 @compiler.native {package.options.csv}
 pub csv(
     separator: String = ",",
-    quote: String = "\"",
+    quote_char: String = "\"",
     suffix: String = "a)b"
 ): String -> native.
 "#;
@@ -267,6 +267,20 @@ native core module NativeArray {
     assert!(err.contains("@compiler.native"));
 }
 
+#[test]
+fn compiler_native_metadata_includes_private_helpers_not_comment_lookalikes() {
+    let source = r#"module package.Parser.
+// @compiler.native {fake.comment}
+// pub fake(text: String): String -> native.
+@compiler.native {package.parser.parts}
+parts(text: String): Result[{String, Option[String]}, String] -> native.
+pub parse(text: String): String -> text.
+"#;
+    let metadata = extract_native_metadata(source, NativePolicy::Pure).unwrap();
+    assert_eq!(metadata.functions.len(), 1);
+    assert_operation(&metadata, "parts", 1, "package.parser.parts");
+}
+
 /// Verifies compiler-native annotations produce NativeBoundary metadata.
 ///
 /// Inputs:
@@ -289,6 +303,11 @@ fn compiler_native_metadata_extracts_std_json_operations() {
     assert_eq!(metadata.scheduler, "normal");
     assert_eq!(metadata.native_policy, NativePolicy::NativeBoundaryOptional);
     assert_eq!(metadata.functions.len(), 33);
+    assert!(metadata.functions.contains(&NativeFunctionSignature {
+        name: "to_string".to_string(),
+        arity: 1,
+        operation: Some("std.data.json.to_string".to_string()),
+    }));
     assert!(metadata.functions.contains(&NativeFunctionSignature {
         name: "parse".to_string(),
         arity: 1,
@@ -372,7 +391,7 @@ pub html(value: Html, status: Int = 200): Response ->\n\
 ///   operation inventory expected by `std/RUST_BACKED_MANIFEST.tsv`.
 #[test]
 fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
-    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 12] = [
+    let cases: [(&str, &str, &str, usize, &[(&str, usize, &str)]); 10] = [
         (
             "std.data.Json",
             json_std_source(),
@@ -393,11 +412,11 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
                 ("remove", 2, "std.data.json.object_remove"),
                 ("parse", 1, "std.data.json.parse"),
                 ("stringify", 1, "std.data.json.stringify"),
+                ("to_string", 1, "std.data.json.to_string"),
                 ("stringify_pretty", 1, "std.data.json.stringify_pretty"),
                 ("get", 2, "std.data.json.get"),
                 ("keys", 1, "std.data.json.keys"),
                 ("object_length", 1, "std.data.json.object_length"),
-                ("string_fields", 2, "std.data.json.string_fields"),
                 ("required_fields", 4, "std.data.json.required_fields"),
                 (
                     "required_field_rows",
@@ -434,8 +453,9 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.crypto.Hash",
             hash_std_source(),
             "std_crypto_hash_native_boundary",
-            4,
+            5,
             &[
+                ("sha256", 1, "std.crypto.hash.sha256"),
                 ("sha256_bytes", 1, "std.crypto.hash.sha256_bytes"),
                 ("sha256_framed", 1, "std.crypto.hash.sha256_framed"),
                 (
@@ -493,20 +513,20 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             8,
             &[
                 ("encode", 1, "std.encoding.base64.encode"),
-                ("decode", 1, "std.encoding.base64.decode"),
+                ("decode_text", 1, "std.encoding.base64.decode_text"),
                 ("encode_url", 1, "std.encoding.base64.encode_url"),
-                ("decode_url", 1, "std.encoding.base64.decode_url"),
+                ("decode_url_text", 1, "std.encoding.base64.decode_url_text"),
                 ("encode_bytes", 1, "std.encoding.base64.encode_bytes"),
-                ("decode_bytes", 1, "std.encoding.base64.decode_bytes"),
+                ("decode_octets", 1, "std.encoding.base64.decode_octets"),
                 (
                     "encode_url_bytes",
                     1,
                     "std.encoding.base64.encode_url_bytes",
                 ),
                 (
-                    "decode_url_bytes",
+                    "decode_url_octets",
                     1,
-                    "std.encoding.base64.decode_url_bytes",
+                    "std.encoding.base64.decode_url_octets",
                 ),
             ],
         ),
@@ -532,45 +552,15 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.net.Uri",
             uri_std_source(),
             "std_net_uri_native_boundary",
-            7,
-            &[
-                ("parse", 1, "std.net.uri.parse"),
-                ("to_string", 1, "std.net.uri.to_string"),
-                ("scheme", 1, "std.net.uri.scheme"),
-                ("host", 1, "std.net.uri.host"),
-                ("path", 1, "std.net.uri.path"),
-                ("query", 1, "std.net.uri.query"),
-                ("fragment", 1, "std.net.uri.fragment"),
-            ],
-        ),
-        (
-            "std.http.Request",
-            http_request_std_source(),
-            "std_http_request_native_boundary",
-            11,
-            &[
-                ("method", 1, "std.http.request.method"),
-                ("path", 1, "std.http.request.path"),
-                ("param", 2, "std.http.request.param"),
-                ("query", 2, "std.http.request.query"),
-                ("query_string", 1, "std.http.request.query_string"),
-                ("header", 2, "std.http.request.header"),
-                ("cookie", 2, "std.http.request.cookie"),
-                ("cookies", 1, "std.http.request.cookies"),
-                ("body_text", 1, "std.http.request.body_text"),
-                ("body_file_path", 1, "std.http.request.body_file_path"),
-                ("body_json", 1, "std.http.request.body_json"),
-            ],
+            1,
+            &[("parse_parts", 1, "std.net.uri.parse_parts")],
         ),
         (
             "std.http.Cookies",
             http_cookies_std_source(),
             "std_http_cookies_native_boundary",
-            6,
+            3,
             &[
-                ("get", 2, "std.http.cookies.get"),
-                ("set", 6, "std.http.cookies.set"),
-                ("delete", 3, "std.http.cookies.delete"),
                 ("set_header", 5, "std.http.cookies.set_header"),
                 (
                     "set_header_with_options",
@@ -581,38 +571,18 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             ],
         ),
         (
-            "std.http.Response",
-            http_response_std_source(),
-            "std_http_response_native_boundary",
-            11,
-            &[
-                ("json", 2, "std.http.response.json"),
-                ("json_text", 2, "std.http.response.json_text"),
-                ("text", 2, "std.http.response.text"),
-                ("html", 2, "std.http.response.html"),
-                ("file", 3, "std.http.response.file"),
-                ("stream", 5, "std.http.response.stream"),
-                ("redirect", 2, "std.http.response.redirect"),
-                ("status", 2, "std.http.response.status"),
-                ("header", 3, "std.http.response.header"),
-                (
-                    "set_cookie_header",
-                    2,
-                    "std.http.response.set_cookie_header",
-                ),
-                ("with_cookies", 2, "std.http.response.with_cookies"),
-            ],
-        ),
-        (
             "std.db.Postgres",
             postgres_std_source(),
             "std_db_postgres_native_boundary",
-            8,
+            11,
             &[
                 ("connect", 1, "std.db.postgres.connect"),
                 ("query", 3, "std.db.postgres.query"),
                 ("query_one", 3, "std.db.postgres.query_one"),
                 ("execute", 3, "std.db.postgres.execute"),
+                ("begin", 1, "std.db.postgres.begin"),
+                ("commit", 1, "std.db.postgres.commit"),
+                ("rollback", 1, "std.db.postgres.rollback"),
                 ("string", 2, "std.db.postgres.string"),
                 ("int", 2, "std.db.postgres.int"),
                 ("bool", 2, "std.db.postgres.bool"),
@@ -631,6 +601,18 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
         for (name, arity, operation) in operations {
             assert_operation(&metadata, name, *arity, operation);
         }
+    }
+}
+
+#[test]
+fn source_owned_http_request_and_response_have_no_native_exports() {
+    for source in [http_request_std_source(), http_response_std_source()] {
+        let error = extract_native_metadata(source, NativePolicy::Pure)
+            .expect_err("HTTP value operations must be source-owned");
+        assert!(
+            error.contains("missing @compiler.native declarations"),
+            "{error}"
+        );
     }
 }
 

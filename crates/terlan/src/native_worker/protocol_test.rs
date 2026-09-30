@@ -213,8 +213,8 @@ fn worker_rejects_undeclared_operations() {
         Vec::new(),
         concat!(
             "{\"type\":\"call\",\"version\":3,\"request_id\":1,\"owner_id\":7,",
-            "\"capability\":\"encoding\",",
-            "\"operation\":\"std.encoding.base64.encode\",\"arguments\":[]}\n",
+            "\"capability\":\"package-native\",",
+            "\"operation\":\"std.encoding.base64.unknown\",\"arguments\":[]}\n",
             "{\"type\":\"shutdown\",\"version\":3}\n"
         ),
     );

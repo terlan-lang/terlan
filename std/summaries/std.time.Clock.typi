@@ -1,4 +1,4 @@
-//! VM-owned portable clock sources for tooling, tests, and benchmarks.
+//! Package-owned portable clock sources for tooling, tests, and benchmarks.
 
 module std.time.Clock.
 

@@ -19,7 +19,7 @@ const SPLIT: u8 = 4;
 const SPLIT_ONCE: u8 = 5;
 const LOWERCASE: u8 = 6;
 const REPLACE: u8 = 7;
-const SHA256: u8 = 8;
+// Tag 8 was the retired package-specific SHA-256 operation. Never reuse it.
 const LENGTH: u8 = 9;
 const BYTE_SIZE: u8 = 10;
 const TRIM: u8 = 11;
@@ -88,11 +88,6 @@ pub fn encode_string_reverse_operation() -> Vec<u8> {
 /// Encodes replacement of every exact substring into a new managed string.
 pub fn encode_string_replace_operation() -> Vec<u8> {
     header(REPLACE)
-}
-
-/// Encodes a lowercase SHA-256 digest into a new managed string.
-pub fn encode_string_sha256_operation() -> Vec<u8> {
-    header(SHA256)
 }
 
 /// Encodes Unicode scalar-count measurement for one managed string.
@@ -166,7 +161,6 @@ pub(super) fn string_operation_result_is_reference(encoded: &[u8]) -> bool {
                 | UPPERCASE
                 | REVERSE
                 | REPLACE
-                | SHA256
                 | TRIM
                 | TRIM_START
                 | TRIM_END
@@ -264,18 +258,6 @@ pub(super) fn execute_string_operation(
                 .read_string(reference_word(*replacement)?.cast::<ManagedString>())?
                 .to_owned();
             heap.allocate_string(&value.replace(&pattern, &replacement))
-                .map(|value| value.erase().encoded_abi_word())
-        }
-        (SHA256, HEADER_BYTES, [value]) if encoded[7] == 0 => {
-            use sha2::Digest as _;
-            use std::fmt::Write as _;
-            let value = heap.read_string(reference_word(*value)?.cast::<ManagedString>())?;
-            let digest = sha2::Sha256::digest(value.as_bytes());
-            let mut hexadecimal = String::with_capacity(64);
-            for byte in digest {
-                let _ = write!(&mut hexadecimal, "{byte:02x}");
-            }
-            heap.allocate_string(&hexadecimal)
                 .map(|value| value.erase().encoded_abi_word())
         }
         (LENGTH, HEADER_BYTES, [value]) if encoded[7] == 0 => {

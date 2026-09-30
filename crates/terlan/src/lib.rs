@@ -44,6 +44,7 @@ pub mod quality;
 pub mod runtime;
 pub mod self_host_ir;
 pub(crate) mod service_foundation;
+pub(crate) use terlan_std_native as std_native_packages;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub mod support;
 #[cfg(all(

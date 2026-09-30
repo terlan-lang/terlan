@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::runtime::native_image::managed::{
-    encode_list_prepend_operation, encode_managed_value_equal_operation,
-    encode_string_append_operation, encode_string_literal,
+    encode_list_prepend_operation, encode_managed_value_equal_operation, encode_string_literal,
 };
 use crate::terlan_typeck::{CoreExpr, CorePattern};
 
@@ -60,6 +59,8 @@ mod memory_intrinsics_test;
 mod scalar_types;
 #[path = "expression/set_intrinsics.rs"]
 mod set_intrinsics;
+#[path = "expression/string_concat.rs"]
+mod string_concat;
 #[path = "expression/string_intrinsics.rs"]
 mod string_intrinsics;
 #[path = "expression/type_mapping.rs"]
@@ -560,26 +561,15 @@ pub(super) fn lower_expr_with_constructors(
                 ));
             };
             if operator == "+" && operand_type == NativeType::StringRef {
-                return Ok(NativeExpr::ManagedOperation {
-                    encoded: Arc::from(encode_string_append_operation()),
-                    args: vec![
-                        lower_expr_with_constructors(
-                            left,
-                            params,
-                            param_types,
-                            functions,
-                            function_types,
-                            constructors,
-                        )?,
-                        lower_expr_with_constructors(
-                            right,
-                            params,
-                            param_types,
-                            functions,
-                            function_types,
-                            constructors,
-                        )?,
-                    ],
+                return string_concat::lower(left, right, |expression| {
+                    lower_expr_with_constructors(
+                        expression,
+                        params,
+                        param_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    )
                 });
             }
             if let Some(semantic) = managed_equality_semantic(operand_type) {

@@ -5,9 +5,7 @@ use super::*;
 /// Qualifies selected imports before whole-module import admission, including
 /// a single explicit provider that shares a name with a whole-module import.
 /// Multiple selected providers are resolved by their checked argument types.
-pub(in crate::compiler::native_ir::application) fn resolve(
-    cores: &mut [CoreModule],
-) -> NativeIrResult<()> {
+pub(crate) fn resolve(cores: &mut [CoreModule]) -> NativeIrResult<()> {
     let mut groups = HashMap::<OverloadKey, Vec<OverloadCandidate>>::new();
     let mut intrinsic_signatures = HashMap::new();
     for caller in cores.iter() {

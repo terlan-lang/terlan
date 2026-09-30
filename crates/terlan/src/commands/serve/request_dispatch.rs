@@ -467,13 +467,12 @@ pub(super) fn handle_vm_stream_request(
                     method.to_owned(),
                     request_path.to_owned(),
                     body.clone(),
-                    crate::terlan_native::http::RequestMetadata {
-                        params: Vec::new(),
-                        query_string: request_query.to_owned(),
-                        query: query_pairs(request_query),
-                        headers: request_header_pairs(&request.headers),
-                        cookies: request_cookie_pairs(&request.headers),
-                    },
+                    crate::terlan_native::http::RequestMetadata::from_http(
+                        crate::terlan_native::http::RequestFieldProjection::Complete,
+                        &[],
+                        request_query,
+                        &request.headers,
+                    ),
                 );
             match execute_websocket_vm_router(web_root, &websocket, &native_request) {
                 Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
@@ -596,22 +595,6 @@ pub(super) fn handle_vm_stream_request(
                             &handler.handler.function,
                             handler.handler.arity,
                         );
-                        let projected_headers = if projection
-                            .requires(crate::runtime::native::http::RequestFieldProjection::HEADERS)
-                        {
-                            request_header_pairs(&request.headers)
-                        } else {
-                            Default::default()
-                        };
-                        let projected_cookies = if projection
-                            .requires(crate::runtime::native::http::RequestFieldProjection::COOKIES)
-                            || projection.requires(
-                                crate::runtime::native::http::RequestFieldProjection::COOKIE_JAR,
-                            ) {
-                            request_cookie_pairs(&request.headers)
-                        } else {
-                            Default::default()
-                        };
                         let native_request =
                             crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
                                 if projection
@@ -623,22 +606,12 @@ pub(super) fn handle_vm_stream_request(
                                         crate::runtime::native::http::RequestFieldProjection::PATH,
                                     ) { request_path.to_owned() } else { Default::default() },
                                 body,
-                                crate::terlan_native::http::RequestMetadata {
-                                    params: if projection
-                                        .requires(
-                                            crate::runtime::native::http::RequestFieldProjection::PARAMS,
-                                        ) { handler.params.clone() } else { Default::default() },
-                                    query_string: if projection
-                                        .requires(
-                                            crate::runtime::native::http::RequestFieldProjection::QUERY_STRING,
-                                        ) { request_query.to_owned() } else { Default::default() },
-                                    query: if projection
-                                        .requires(
-                                            crate::runtime::native::http::RequestFieldProjection::QUERY,
-                                        ) { query_pairs(request_query) } else { Default::default() },
-                                    headers: projected_headers,
-                                    cookies: projected_cookies,
-                                },
+                                crate::terlan_native::http::RequestMetadata::from_http(
+                                    projection,
+                                    &handler.params,
+                                    request_query,
+                                    &request.headers,
+                                ),
                             )
                             .with_body_file_path(
                                 if projection.requires(
@@ -691,20 +664,17 @@ pub(super) fn handle_vm_stream_request(
                     &response.function,
                     response.arity,
                 );
-                let header_pairs = request_header_pairs(&request.headers);
-                let cookie_pairs = request_cookie_pairs(&request.headers);
                 let native_request =
                     crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
                         method.to_owned(),
                         request_path.to_owned(),
                         body,
-                        crate::terlan_native::http::RequestMetadata {
-                            params: Vec::new(),
-                            query_string: request_query.to_owned(),
-                            query: query_pairs(request_query),
-                            headers: header_pairs,
-                            cookies: cookie_pairs,
-                        },
+                        crate::terlan_native::http::RequestMetadata::from_http(
+                            crate::terlan_native::http::RequestFieldProjection::Complete,
+                            &[],
+                            request_query,
+                            &request.headers,
+                        ),
                     );
                 if let Some(rendered) =
                     execute_static_vm_router(web_root, &response, &native_request)?
@@ -730,20 +700,17 @@ pub(super) fn handle_vm_stream_request(
                 return manifest_vm_stream_file_response(method, &response_path, &response);
             }
             MatchedWebPackageRoute::Sse(endpoint) => {
-                let header_pairs = request_header_pairs(&request.headers);
-                let cookie_pairs = request_cookie_pairs(&request.headers);
                 let native_request =
                     crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
                         method.to_owned(),
                         request_path.to_owned(),
                         body,
-                        crate::terlan_native::http::RequestMetadata {
-                            params: Vec::new(),
-                            query_string: request_query.to_owned(),
-                            query: query_pairs(request_query),
-                            headers: header_pairs,
-                            cookies: cookie_pairs,
-                        },
+                        crate::terlan_native::http::RequestMetadata::from_http(
+                            crate::terlan_native::http::RequestFieldProjection::Complete,
+                            &[],
+                            request_query,
+                            &request.headers,
+                        ),
                     );
                 return match execute_sse_vm_router(web_root, &endpoint, &native_request) {
                     Ok(VmSseRouterAdmission::Respond(response)) => {
@@ -857,6 +824,8 @@ pub(super) fn reload_vm_stream_response(
     )
 }
 
+#[cfg(test)]
 #[path = "request_dispatch/request_values.rs"]
 mod request_values;
+#[cfg(test)]
 pub(super) use request_values::*;

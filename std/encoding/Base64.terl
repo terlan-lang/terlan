@@ -10,6 +10,30 @@ module std.encoding.Base64.
 
 import type std.core.{Error, Result}.
 import type std.vm.Bytes.
+import std.core.Result.{Ok, Err}.
+
+type DecodeFailure = Atom["base64.decode"].
+type Utf8Failure = Atom["base64.utf8"].
+
+decode_result[T](result: Result[T, {Bool, String}]): Result[T, Base64Error] ->
+    case result {
+        Ok(value) -> Ok(value);
+        Err({utf8, message}) ->
+            let code = case utf8 { true -> Utf8Failure; false -> DecodeFailure };
+            Err(Base64Error(code = code, message = message, offset = 0))
+    }.
+
+@compiler.native {std.encoding.base64.decode_text}
+decode_text(text: String): Result[String, {Bool, String}] -> native.
+
+@compiler.native {std.encoding.base64.decode_url_text}
+decode_url_text(text: String): Result[String, {Bool, String}] -> native.
+
+@compiler.native {std.encoding.base64.decode_octets}
+decode_octets(text: String): Result[Bytes, {Bool, String}] -> native.
+
+@compiler.native {std.encoding.base64.decode_url_octets}
+decode_url_octets(text: String): Result[Bytes, {Bool, String}] -> native.
 
 /**
  * Base64Error is the portable error returned by Base64 decoding operations.
@@ -46,9 +70,8 @@ pub encode(text: String): String ->
  * Transformation: delegates decoding to the selected target Base64 capability
  * and maps invalid input into `Base64Error`.
  */
-@compiler.native {std.encoding.base64.decode}
 pub decode(text: String): Result[String, Base64Error] ->
-    native.
+    decode_result(decode_text(text)).
 
 /**
  * Encodes UTF-8 text with the URL-safe Base64 alphabet.
@@ -72,9 +95,8 @@ pub encode_url(text: String): String ->
  * Transformation: delegates URL-safe decoding to the selected target Base64
  * capability and maps invalid input into `Base64Error`.
  */
-@compiler.native {std.encoding.base64.decode_url}
 pub decode_url(text: String): Result[String, Base64Error] ->
-    native.
+    decode_result(decode_url_text(text)).
 
 /**
  * Encodes arbitrary VM-owned bytes with the standard Base64 alphabet.
@@ -96,9 +118,8 @@ pub encode_bytes(bytes: Bytes): String ->
  * Transformation: decodes directly into VM-owned bytes without a UTF-8
  * validation step.
  */
-@compiler.native {std.encoding.base64.decode_bytes}
 pub decode_bytes(text: String): Result[Bytes, Base64Error] ->
-    native.
+    decode_result(decode_octets(text)).
 
 /**
  * Encodes arbitrary VM-owned bytes with the URL-safe Base64 alphabet.
@@ -120,6 +141,5 @@ pub encode_url_bytes(bytes: Bytes): String ->
  * Transformation: decodes directly into VM-owned bytes without a UTF-8
  * validation step.
  */
-@compiler.native {std.encoding.base64.decode_url_bytes}
 pub decode_url_bytes(text: String): Result[Bytes, Base64Error] ->
-    native.
+    decode_result(decode_url_octets(text)).

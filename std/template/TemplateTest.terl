@@ -25,3 +25,8 @@ pub trusted_and_empty_fragments_are_stable(): Bool ->
 pub join_concatenates_trusted_fragments(): Bool ->
     let fragments = List(Template.trusted("<p>"), Template.trusted("Ada"), Template.trusted("</p>"));
     assert_equal(Template.trusted("<p>Ada</p>"), Template.join(fragments)).
+
+@test
+pub trusted_bytes_are_preserved(): Bool ->
+    assert_equal("<&\"'>", Template.to_string(Template.trusted("<&\"'>")))
+        and assert_equal("", Template.to_string(Template.join([]))).

@@ -1,21 +1,6 @@
 {
   "functions": [
     {
-      "arity": 2,
-      "name": "get",
-      "operation": "std.http.cookies.get"
-    },
-    {
-      "arity": 6,
-      "name": "set",
-      "operation": "std.http.cookies.set"
-    },
-    {
-      "arity": 3,
-      "name": "delete",
-      "operation": "std.http.cookies.delete"
-    },
-    {
       "arity": 5,
       "name": "set_header",
       "operation": "std.http.cookies.set_header"

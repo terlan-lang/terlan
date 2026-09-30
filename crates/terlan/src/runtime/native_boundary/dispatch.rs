@@ -5,14 +5,11 @@
 //! functions. The VM/native worker layer can call this module after it has
 //! decoded runtime terms into `NativeBoundaryValue`.
 
-#[cfg(test)]
-use crate::terlan_native::json;
-use crate::terlan_native::{base64, hash as native_hash, http, path, postgres, regex, toml, uri};
+use crate::terlan_native::{json, path, postgres, regex, toml};
 
 mod archive;
 mod args;
 mod arity;
-mod crypto;
 mod error;
 mod filesystem;
 mod git;
@@ -32,13 +29,12 @@ pub(crate) use process::{
 };
 mod resources;
 mod value;
+mod value_packages;
 pub use value::{NativeBoundaryBridgeValue, NativeBoundaryValue};
 
 use args::{
-    cookie_options_from_args, dispatch_base64_error, dispatch_http_error, dispatch_path_error,
-    dispatch_postgres_error, dispatch_uri_error, expect_bool, expect_bytes, expect_http_cookie_jar,
-    expect_http_request, expect_int, expect_json, expect_json_list, expect_path,
-    expect_postgres_config, expect_postgres_pool, expect_postgres_row, expect_text, expect_uri,
+    dispatch_path_error, dispatch_postgres_error, expect_int, expect_json_list, expect_path,
+    expect_postgres_config, expect_postgres_pool, expect_postgres_row, expect_text,
     unknown_operation,
 };
 pub use arity::{operation_arity, validate_operation_arity};
@@ -78,7 +74,10 @@ pub fn dispatch(
     args: &[NativeBoundaryValue],
 ) -> Result<NativeBoundaryValue, DispatchError> {
     validate_operation_arity(operation, args.len(), unknown_operation)?;
-    if operation.starts_with("std.data.json.") {
+    if let Some(binding) = crate::std_native_packages::value_binding(operation) {
+        return value_packages::dispatch(binding, args);
+    }
+    if json::operation(operation).is_some() {
         return json_dispatch::dispatch(operation, args);
     }
     if operation.starts_with("std.system.platform.") {
@@ -168,214 +167,6 @@ pub fn dispatch(
             let text = expect_text(operation, args, 0)?;
             Ok(NativeBoundaryValue::Text(regex::escape(text)))
         }
-        "std.http.request.body_json" => {
-            let request = expect_http_request(operation, args, 0)?;
-            http::body_json(request)
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_http_error)
-        }
-        "std.http.request.body_text" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(http::body_text(request)))
-        }
-        "std.http.request.body_file_path" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(http::body_file_path(request)))
-        }
-        "std.http.request.method" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(http::method(request)))
-        }
-        "std.http.request.path" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(http::path(request)))
-        }
-        "std.http.request.param" => {
-            let request = expect_http_request(operation, args, 0)?;
-            let name = expect_text(operation, args, 1)?;
-            Ok(NativeBoundaryValue::OptionalText(http::param(request, name)))
-        }
-        "std.http.request.query" => {
-            let request = expect_http_request(operation, args, 0)?;
-            let name = expect_text(operation, args, 1)?;
-            Ok(NativeBoundaryValue::OptionalText(http::query(request, name)))
-        }
-        "std.http.request.query_string" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(http::query_string(request)))
-        }
-        "std.http.request.header" => {
-            let request = expect_http_request(operation, args, 0)?;
-            let name = expect_text(operation, args, 1)?;
-            Ok(NativeBoundaryValue::OptionalText(http::request_header(
-                request, name,
-            )))
-        }
-        "std.http.request.cookie" => {
-            let request = expect_http_request(operation, args, 0)?;
-            let name = expect_text(operation, args, 1)?;
-            Ok(NativeBoundaryValue::OptionalText(http::cookie(request, name)))
-        }
-        "std.http.request.cookies" => {
-            let request = expect_http_request(operation, args, 0)?;
-            Ok(NativeBoundaryValue::HttpCookieJar(http::cookies(request)))
-        }
-        "std.http.cookies.get" => {
-            let jar = expect_http_cookie_jar(operation, args, 0)?;
-            let name = expect_text(operation, args, 1)?;
-            Ok(NativeBoundaryValue::OptionalText(jar.get(name)))
-        }
-        "std.http.cookies.set" | "std.http.cookies.delete" => Err(DispatchError::new(
-            "dispatch.mutable_receiver_requires_resource_bridge",
-            format!(
-                "operation `{operation}` mutates a cookie jar and must use resource-backed bridge dispatch"
-            ),
-            0,
-        )),
-        "std.http.cookies.set_header" => {
-            let name = expect_text(operation, args, 0)?;
-            let value = expect_text(operation, args, 1)?;
-            let path = expect_text(operation, args, 2)?;
-            let http_only = expect_bool(operation, args, 3)?;
-            let secure = expect_bool(operation, args, 4)?;
-            http::set_header(name, value, path, http_only, secure)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_http_error)
-        }
-        "std.http.cookies.set_header_with_options" => {
-            let name = expect_text(operation, args, 0)?;
-            let value = expect_text(operation, args, 1)?;
-            let options = cookie_options_from_args(operation, args)?;
-            http::set_header_with_options(name, value, &options)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_http_error)
-        }
-        "std.http.cookies.delete_header" => {
-            let name = expect_text(operation, args, 0)?;
-            let path = expect_text(operation, args, 1)?;
-            http::delete_header(name, path)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_http_error)
-        }
-        "std.http.response.json" => {
-            let value = expect_json(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::json(value, status)))
-        }
-        "std.http.response.json_text" => {
-            let value = expect_text(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::json_text(
-                value, status,
-            )))
-        }
-        "std.http.response.text" => {
-            let value = expect_text(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::text(value, status)))
-        }
-        "std.http.response.html" => {
-            let value = expect_text(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::html(value, status)))
-        }
-        "std.http.response.file" => {
-            let path = expect_text(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            let content_type = expect_text(operation, args, 2)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::file(
-                path,
-                status,
-                content_type,
-            )))
-        }
-        "std.http.response.redirect" => {
-            let location = expect_text(operation, args, 0)?;
-            let status = expect_int(operation, args, 1)?;
-            Ok(NativeBoundaryValue::HttpResponse(http::redirect(
-                location, status,
-            )))
-        }
-        "std.http.response.stream" => Err(DispatchError::new(
-            "dispatch.streaming_requires_vm",
-            "std.http.Response.stream requires the Terlan VM runtime",
-            0,
-        )),
-        "std.http.response.status"
-        | "std.http.response.header"
-        | "std.http.response.set_cookie_header"
-        | "std.http.response.with_cookies" => Err(DispatchError::new(
-            "dispatch.mutable_receiver_requires_direct_lowering",
-            format!(
-                "operation `{operation}` mutates a receiver and must use direct native lowering"
-            ),
-            0,
-        )),
-        "std.encoding.base64.encode" => {
-            let text = expect_text(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(base64::encode(text)))
-        }
-        "std.encoding.base64.decode" => {
-            let text = expect_text(operation, args, 0)?;
-            base64::decode(text)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_base64_error)
-        }
-        "std.encoding.base64.encode_url" => {
-            let text = expect_text(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(base64::encode_url(text)))
-        }
-        "std.encoding.base64.decode_url" => {
-            let text = expect_text(operation, args, 0)?;
-            base64::decode_url(text)
-                .map(NativeBoundaryValue::Text)
-                .map_err(dispatch_base64_error)
-        }
-        "std.encoding.base64.encode_bytes" => {
-            let bytes = expect_bytes(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(base64::encode_bytes(bytes)))
-        }
-        "std.encoding.base64.decode_bytes" => {
-            let text = expect_text(operation, args, 0)?;
-            base64::decode_bytes(text)
-                .map(NativeBoundaryValue::Bytes)
-                .map_err(dispatch_base64_error)
-        }
-        "std.encoding.base64.encode_url_bytes" => {
-            let bytes = expect_bytes(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(base64::encode_url_bytes(bytes)))
-        }
-        "std.encoding.base64.decode_url_bytes" => {
-            let text = expect_text(operation, args, 0)?;
-            base64::decode_url_bytes(text)
-                .map(NativeBoundaryValue::Bytes)
-                .map_err(dispatch_base64_error)
-        }
-        "std.encoding.md5.digest" => crypto::digest_md5(operation, args),
-        "std.crypto.ed25519.verify" => crypto::verify_ed25519(operation, args),
-        "std.crypto.hash.sha256_framed" => {
-            let fields = expect_text_list(operation, args, 0)?;
-            native_hash::sha256_framed(&fields)
-                .map(NativeBoundaryValue::Text)
-                .ok_or_else(|| hash::field_too_large(operation))
-        }
-        "std.crypto.hash.sha256_domain_framed" => {
-            let domain = expect_text(operation, args, 0)?;
-            let fields = expect_text_list(operation, args, 1)?;
-            native_hash::sha256_domain_framed(domain, &fields)
-                .map(NativeBoundaryValue::Text)
-                .ok_or_else(|| hash::field_too_large(operation))
-        }
-        "std.crypto.hash.sha256_nul_separated" => {
-            let fields = filesystem::expect_text_list(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(
-                native_hash::sha256_nul_separated(&fields),
-            ))
-        }
-        "std.crypto.hash.sha256_bytes" => {
-            let bytes = expect_bytes(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(native_hash::sha256_bytes(bytes)))
-        }
         "std.crypto.hash.sha256_file" => {
             let path = expect_text(operation, args, 0)?;
             hash::sha256_file(operation, path).map(NativeBoundaryValue::Text)
@@ -427,37 +218,6 @@ pub fn dispatch(
             eprintln!("{text}");
             Ok(NativeBoundaryValue::Unit)
         }
-        "std.time.clock.unix_time_ns" => {
-            let elapsed = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|error| {
-                    DispatchError::new(
-                        "dispatch.clock_before_unix_epoch",
-                        error.to_string(),
-                        0,
-                    )
-                })?;
-            let nanos = i64::try_from(elapsed.as_nanos()).map_err(|_| {
-                DispatchError::new(
-                    "dispatch.clock_overflow",
-                    "Unix timestamp does not fit Terlan Int",
-                    0,
-                )
-            })?;
-            Ok(NativeBoundaryValue::Int(nanos))
-        }
-        "std.time.clock.monotonic_time_ns" => {
-            static ORIGIN: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
-            let nanos = ORIGIN.get_or_init(std::time::Instant::now).elapsed().as_nanos();
-            let nanos = i64::try_from(nanos).map_err(|_| {
-                DispatchError::new(
-                    "dispatch.clock_overflow",
-                    "monotonic timestamp does not fit Terlan Int",
-                    0,
-                )
-            })?;
-            Ok(NativeBoundaryValue::Int(nanos))
-        }
         operation @ ("std.io.file.exists"
         | "std.io.file.read_text"
         | "std.io.file.read_bytes"
@@ -481,10 +241,7 @@ pub fn dispatch(
                                     "path".to_string(),
                                     NativeBoundaryValue::Text(path.to_string()),
                                 ),
-                                (
-                                    "contents".to_string(),
-                                    NativeBoundaryValue::Text(contents),
-                                ),
+                                ("contents".to_string(), NativeBoundaryValue::Text(contents)),
                             ],
                         })
                         .map_err(|error| dispatch_file_error(operation, path, error))
@@ -518,10 +275,7 @@ pub fn dispatch(
                     name: "TextFile".to_string(),
                     fields: vec![
                         ("path".to_string(), NativeBoundaryValue::Text(normalized)),
-                        (
-                            "contents".to_string(),
-                            NativeBoundaryValue::Text(contents),
-                        ),
+                        ("contents".to_string(), NativeBoundaryValue::Text(contents)),
                     ],
                 });
             }
@@ -606,9 +360,7 @@ pub fn dispatch(
         "std.system.process.limits" => Ok(process::process_limits()),
         "std.system.process.run" => process::run_process(args, None),
         "std.system.process.run_many" => process::run_process_many(args, None),
-        "std.system.process.run_length_framed" => {
-            process::run_process_length_framed(args, None)
-        }
+        "std.system.process.run_length_framed" => process::run_process_length_framed(args, None),
         "std.io.directory.entries" => {
             let path = expect_text(operation, args, 0)?;
             directory_entries(path).map(NativeBoundaryValue::List)
@@ -643,8 +395,7 @@ pub fn dispatch(
         "std.io.directory.create_symbolic_link" => {
             let target = expect_text(operation, args, 0)?;
             let link_path = expect_text(operation, args, 1)?;
-            create_directory_symbolic_link(target, link_path)
-                .map(|()| NativeBoundaryValue::Unit)
+            create_directory_symbolic_link(target, link_path).map(|()| NativeBoundaryValue::Unit)
         }
         "std.io.directory.create_all" => {
             let path = expect_text(operation, args, 0)?;
@@ -710,36 +461,6 @@ pub fn dispatch(
             Ok(NativeBoundaryValue::OptionalPath(path::strip_prefix(
                 value, base,
             )))
-        }
-        "std.net.uri.parse" => {
-            let text = expect_text(operation, args, 0)?;
-            uri::parse(text)
-                .map(NativeBoundaryValue::Uri)
-                .map_err(dispatch_uri_error)
-        }
-        "std.net.uri.to_string" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(uri::to_string(value)))
-        }
-        "std.net.uri.scheme" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(uri::scheme(value)))
-        }
-        "std.net.uri.host" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::OptionalText(uri::host(value)))
-        }
-        "std.net.uri.path" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::Text(uri::path(value)))
-        }
-        "std.net.uri.query" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::OptionalText(uri::query(value)))
-        }
-        "std.net.uri.fragment" => {
-            let value = expect_uri(operation, args, 0)?;
-            Ok(NativeBoundaryValue::OptionalText(uri::fragment(value)))
         }
         "std.db.postgres.connect" => {
             let config = expect_postgres_config(operation, args, 0)?;

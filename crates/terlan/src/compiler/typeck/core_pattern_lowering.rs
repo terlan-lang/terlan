@@ -349,7 +349,7 @@ fn core_record_pattern_fields_from_syntax(
         .iter()
         .map(|field| {
             core_pattern_from_syntax(&field.value).map(|value| CoreRecordPatternField {
-                key: field.key.clone(),
+                key: split_private_field_spelling(&field.key).0.to_string(),
                 required: field.required,
                 value,
             })

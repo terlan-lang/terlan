@@ -58,7 +58,7 @@ pub session_current_reads_request_cookie(): Bool ->
     let resumed = current(request_fixture(cookie));
     let valid =
         assert(String.starts_with(cookie, "terlan_session="))
-            and assert(String.contains(cookie, "; Path=/; HttpOnly; SameSite=Lax"))
+            and assert(String.contains(cookie, "; HttpOnly; SameSite=Lax; Path=/"))
             and assert(value_or_empty(resumed, "user_id") == "ada")
             and assert(session_cookie(resumed) == "");
     (resumed.expire(); valid).
@@ -74,7 +74,7 @@ pub session_get_and_response_threading_execute(): Bool ->
     let missing = value_or_empty(session, "user_id");
     session.expire();
     assert(initially_empty)
-        and assert(cookie != "terlan_session=untrusted; Path=/; HttpOnly; SameSite=Lax")
+        and assert(not String.starts_with(cookie, "terlan_session=untrusted;"))
         and assert(String.starts_with(cookie, "terlan_session="))
         and assert(written == Unit and deleted == Unit)
         and assert(found == "ada" and missing == "").

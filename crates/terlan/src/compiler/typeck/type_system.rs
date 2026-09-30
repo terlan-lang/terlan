@@ -186,6 +186,9 @@ fn is_subtype_with_aliases_inner(
     if is_subtype(lhs, rhs) {
         return true;
     }
+    if let (Some(lhs), Some(rhs)) = (portable_list_element(lhs), portable_list_element(rhs)) {
+        return is_subtype_with_aliases_inner(lhs, rhs, aliases, depth);
+    }
     if let Some(result) = option_representation_is_subtype(lhs, rhs, |lhs, rhs| {
         is_subtype_with_aliases_inner(lhs, rhs, aliases, depth)
     }) {
@@ -203,9 +206,6 @@ fn is_subtype_with_aliases_inner(
                 .iter()
                 .any(|item| is_subtype_with_aliases_inner(lhs, item, aliases, depth))
                 || expand_and_retry_subtype(lhs, rhs, aliases, depth)
-        }
-        (Type::List(lhs_item), Type::List(rhs_item)) => {
-            is_subtype_with_aliases_inner(lhs_item, rhs_item, aliases, depth)
         }
         (Type::Tuple(lhs_items), Type::Tuple(rhs_items)) if lhs_items.len() == rhs_items.len() => {
             lhs_items.iter().zip(rhs_items).all(|(lhs_item, rhs_item)| {

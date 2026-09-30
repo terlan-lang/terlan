@@ -51,16 +51,16 @@ skipped_blocked parked completed_total active_handlers inspect
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http/request_read.rs",
+            "std/http/native/src/http1/request_read.rs",
             r#"
-read_http1_request_typed VmHttpRequestReadFailure VmHttpRequestReadFailureKind
+read_http1_request RequestReadFailure RequestReadFailureKind
 ClientClosed Timeout Malformed
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http/response_wire.rs",
+            "std/http/native/src/http1/response_write.rs",
             r#"
-write_http1_response_typed VmHttpResponseWriteFailure VmHttpResponseWriteFailureKind
+write_http1_response ResponseWriteFailure ResponseWriteFailureKind
 ClientClosed Timeout Io InvalidMetadata
 "#,
         )?;

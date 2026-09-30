@@ -122,10 +122,11 @@ fn opaque_value_alias_keeps_storage_while_bodyless_opaque_uses_handle() {
 }
 
 #[test]
-fn template_html_uses_compiler_managed_string_representation() {
-    let syntax =
-        parse_module_as_syntax_output("module std.template.Template.\n\npub opaque type Html.\n")
-            .expect("parse template facade");
+fn template_html_uses_its_declared_opaque_alias_representation() {
+    let syntax = parse_module_as_syntax_output(
+        "module std.template.Template.\n\npub opaque type Html = String.\n",
+    )
+    .expect("parse template facade");
     let resolved = resolve_syntax_module_output(&syntax).module;
     let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
@@ -133,7 +134,10 @@ fn template_html_uses_compiler_managed_string_representation() {
     super::super::nominal_identity::qualify_local_nominal_types(&mut core);
 
     let aliases = native_package_aliases(std::slice::from_ref(&core));
-    assert!(!aliases.contains_key("std.template.Template.Html"));
+    assert_eq!(
+        aliases["std.template.Template.Html"].1,
+        crate::terlan_typeck::CoreType::String
+    );
     assert!(
         native_handle_layouts(&core)
             .expect("template layouts")
@@ -146,7 +150,7 @@ fn template_html_uses_compiler_managed_string_representation() {
 fn http_values_keep_managed_storage_without_exempting_package_namesakes() {
     for (module, name, managed) in [
         ("std.http.Request", "Request", true),
-        ("std.http.Response", "Response", true),
+        ("std.http.Response", "Response", false),
         ("std.http.Cookies", "Jar", true),
         ("std.http.Session", "Session", true),
         ("app.Cookies", "Jar", false),
@@ -195,6 +199,37 @@ fn collections_keep_managed_storage_without_exempting_package_namesakes() {
             let expected_handles = usize::from(owner == "package");
             assert_eq!(aliases.len(), expected_handles, "{module}");
             assert_eq!(layouts.len(), expected_handles, "{module}");
+        }
+    }
+}
+
+#[test]
+fn concrete_library_types_are_not_replaced_by_opaque_facade_exemptions() {
+    for (module, name) in [
+        ("std.http.Request", "Request"),
+        ("std.http.Response", "Response"),
+        ("std.http.Cookies", "Jar"),
+        ("std.http.Session", "Session"),
+    ] {
+        for definition in [
+            format!("pub struct {name} {{ #payload: String }}."),
+            format!("pub type {name} = String."),
+        ] {
+            let syntax = parse_module_as_syntax_output(&format!("module {module}. {definition}"))
+                .expect("parse concrete package type");
+            let resolved = resolve_syntax_module_output(&syntax).module;
+            let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+            super::super::nominal_identity::qualify_local_nominal_types(&mut core);
+            let aliases = native_package_aliases(std::slice::from_ref(&core));
+            let canonical = format!("{module}.{name}");
+            let (_, actual) = aliases
+                .get(&canonical)
+                .expect("source representation retained");
+            assert_eq!(
+                Some(actual),
+                core.types[0].core_body.as_ref(),
+                "{canonical}"
+            );
         }
     }
 }

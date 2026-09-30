@@ -739,18 +739,13 @@ fn scalar_pattern_plan(
             })
         }
         CorePattern::String(value) => Ok(ScalarPatternPlan {
-            predicate: Some(CoreExpr::RemoteCall {
-                type_args: Vec::new(),
-                module: "$terlan.managed.http".to_string(),
-                function: "string_equal".to_string(),
-                args: vec![
-                    CoreExpr::Var(temporary.to_string()),
-                    CoreExpr::Binary(
-                        serde_json::to_string(value)
-                            .map_err(|error| format!("error[native_ir.case_string]: {error}"))?,
-                    ),
-                ],
-            }),
+            predicate: Some(scalar_equality(
+                temporary,
+                CoreExpr::Binary(
+                    serde_json::to_string(value)
+                        .map_err(|error| format!("error[native_ir.case_string]: {error}"))?,
+                ),
+            )),
             bindings: Vec::new(),
         }),
         CorePattern::Atom(value)

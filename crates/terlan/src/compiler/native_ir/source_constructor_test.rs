@@ -649,12 +649,24 @@ pub check(): Bool -> length([10, 20, 30]) == 3.
     );
 }
 
+pub(super) fn checked_provider(source: &str) -> crate::terlan_typeck::CoreModule {
+    let syntax = parse_module_as_syntax_output(source).expect("parse library provider");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    lower_syntax_module_output_to_core(&syntax, &resolved)
+}
+
 pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     let syntaxes = sources
         .iter()
         .map(|source| parse_module_as_syntax_output(source).expect("parse source constructor"))
         .collect::<Vec<_>>();
-    let mut interfaces = checked_in_std_interfaces_for_module(&syntaxes[0]);
+    let mut interfaces = syntaxes
+        .iter()
+        .flat_map(checked_in_std_interfaces_for_module)
+        .collect::<std::collections::HashMap<_, _>>();
     for syntax in &syntaxes {
         let interface = syntax_module_output_to_interface(syntax);
         interfaces.insert(interface.module.clone(), interface);
@@ -663,9 +675,14 @@ pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
         .iter()
         .map(|syntax| {
             let resolved = resolve_syntax_module_output_with_interfaces(syntax, &interfaces).module;
-            let diagnostics = type_check_syntax_module_output(syntax, &resolved);
+            let (syntax, diagnostics) =
+                crate::terlan_typeck::expand_syntax_includes(syntax.clone(), &resolved);
             assert!(diagnostics.is_empty(), "{diagnostics:#?}");
-            lower_syntax_module_output_to_core(syntax, &resolved)
+            let resolved =
+                resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+            let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+            assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+            lower_syntax_module_output_to_core(&syntax, &resolved)
         })
         .collect::<Vec<_>>();
     let root = cores[0].module.clone();

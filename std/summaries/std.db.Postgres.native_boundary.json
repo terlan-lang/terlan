@@ -21,6 +21,21 @@
       "operation": "std.db.postgres.execute"
     },
     {
+      "arity": 1,
+      "name": "begin",
+      "operation": "std.db.postgres.begin"
+    },
+    {
+      "arity": 1,
+      "name": "commit",
+      "operation": "std.db.postgres.commit"
+    },
+    {
+      "arity": 1,
+      "name": "rollback",
+      "operation": "std.db.postgres.rollback"
+    },
+    {
       "arity": 2,
       "name": "string",
       "operation": "std.db.postgres.string"

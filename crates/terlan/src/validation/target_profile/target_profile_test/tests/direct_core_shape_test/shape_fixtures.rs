@@ -309,6 +309,8 @@ pub(super) fn module_with_core_body_and_evidence(
         types: Vec::new(),
         functions: vec![CoreFunction {
             receiver_method: false,
+            receiver_mutable: false,
+            receiver_command: false,
             trait_method: None,
             source: None,
             name: "value".to_string(),

@@ -23,8 +23,8 @@ must preserve.
 
 ## Core Model
 
-Core modules describe behavior that should be valid across BEAM, JavaScript,
-Rust/native, and future targets. Backends may use different runtime
+Core modules describe behavior that should be valid across JavaScript,
+direct-AOT VM execution, and future targets. Backends may use different runtime
 representations, but Terlan source sees stable module names, receiver methods,
 constructors, and traits.
 
@@ -34,6 +34,23 @@ The main flow is:
    modules.
 2. Type checking validates the core operation shape.
 3. The selected backend lowers to its own primitive representation.
+
+Library functions with Terlan bodies must execute those bodies through ordinary
+function resolution. In particular, `Bool.equal`, `Bool.compare`,
+`Bool.to_string`, and `Bool.from_string` are source-owned functions, not
+compiler substitutions. The language conversions `Bool(text)` and
+`String(value)` still have primitive lowering; this migration does not claim to
+have removed that separate conversion machinery.
+
+`String.equal`, `compare`, `to_string`, `from_string`, `is_empty`, and `append`
+also execute ordinary Terlan bodies, including receiver and generic callback
+calls. The compiler still owns the underlying string operators, representation,
+and remaining Unicode/conversion primitives; source ownership of these six
+methods does not imply that every String operation has been migrated.
+
+`Float.pi` and `Float.tau` return their source-defined constants through ordinary
+calls. JavaScript links reachable library bodies as private functions; it does
+not replace the migrated methods with backend implementations.
 
 Important invariants:
 

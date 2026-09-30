@@ -581,103 +581,6 @@ pub handle(_request: Request): Response ->
     clear_vm_handler_module_cache_for_test();
 }
 
-/// Verifies typed JSON body decoding through the complete native HTTP path.
-///
-/// Inputs:
-/// - One valid and one malformed JSON POST request sent to the same compiled
-///   Terlan handler.
-///
-/// Output:
-/// - Valid JSON selects `Ok(Json)` and returns 201; malformed JSON selects
-///   `Err(Error)` and returns 400.
-///
-/// Transformation:
-/// - Materializes the request body in the actor heap, parses it through the
-///   maintained JSON adapter, branches over managed result variants, and
-///   bridges the selected managed response back to HTTP/1.1 bytes.
-#[test]
-pub(super) fn vm_stream_request_decodes_managed_json_body_result() {
-    clear_vm_handler_module_cache_for_test();
-    let dir = temp_dir("vm_stream_managed_json_body");
-    let web_root = dir.join("_build/web");
-    let source_dir = dir.join("src/app");
-    fs::create_dir_all(&source_dir).expect("create source dir");
-    fs::create_dir_all(web_root.join("assets/js/modules")).expect("create package dirs");
-    fs::write(
-        dir.join("terlan.toml"),
-        "[package]\nname = \"serve_json_body_demo\"\nversion = \"0.0.7\"\nnamespace = \"app\"\n",
-    )
-    .expect("write project manifest");
-    fs::write(web_root.join("index.html"), "<!doctype html>\n").expect("write index");
-    fs::write(
-        web_root.join("assets/js/modules/app.js"),
-        "export const value = 1;\n",
-    )
-    .expect("write js asset");
-    fs::write(
-        source_dir.join("Api.terl"),
-        "module app.Api.\n\nimport std.core.Result.{Err, Ok}.\nimport std.http.Response.\nimport type std.http.Request.{Request}.\nimport type std.http.Response.{Response}.\n\npub handle(request: Request): Response ->\n    case request.body_json() {\n        Ok(_json) -> Response.text(\"valid\").with_status(201);\n        Err(_error) -> Response.text(\"invalid\").with_status(400)\n    }.\n",
-    )
-    .expect("write JSON handler source");
-
-    let status = crate::commands::build::run(
-        CliCommand {
-            verb: Some("build".to_string()),
-            args: vec![
-                source_dir.join("Api.terl").display().to_string(),
-                "--target".to_string(),
-                "terlan-vm".to_string(),
-            ],
-        },
-        CliState {
-            out_dir: web_root.clone(),
-            ..CliState::default()
-        },
-    );
-    assert_eq!(status, ExitCode::SUCCESS);
-    fs::write(
-        web_root.join("manifest.json"),
-        r#"{
-  "schema": "terlan-web-build-v1",
-  "target_profile": "js.browser",
-  "source_js_manifest": "../js/manifest.json",
-  "index": "index.html",
-  "handlers": [
-    { "method": "POST", "route": "/json", "module": "app.Api", "function": "handle", "arity": 1,
-      "source": { "path": "src/app/Api.terl", "line": 8, "column": 5 } }
-  ],
-  "assets": [
-    { "module": "app", "kind": "javascript-module", "source_relative_path": "modules/app.js",
-      "web_relative_path": "assets/js/modules/app.js", "fingerprint": 1 }
-  ]
-}
-"#,
-    )
-    .expect("write JSON handler manifest");
-    prewarm_dynamic_handler_sources(&web_root).expect("prewarm JSON handler");
-
-    let valid = handle_vm_stream_http1_request(
-        &web_root,
-        b"POST /json HTTP/1.1\r\nHost: localhost\r\nContent-Length: 11\r\n\r\n{\"ok\":true}",
-    )
-    .expect("valid JSON request");
-    let valid = String::from_utf8(valid).expect("valid response UTF-8");
-    assert!(valid.starts_with("HTTP/1.1 201 "), "{valid}");
-    assert!(valid.ends_with("\r\n\r\nvalid"), "{valid}");
-
-    let invalid = handle_vm_stream_http1_request(
-        &web_root,
-        b"POST /json HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1\r\n\r\n{",
-    )
-    .expect("invalid JSON request");
-    let invalid = String::from_utf8(invalid).expect("invalid response UTF-8");
-    assert!(invalid.starts_with("HTTP/1.1 400 "), "{invalid}");
-    assert!(invalid.ends_with("\r\n\r\ninvalid"), "{invalid}");
-
-    fs::remove_dir_all(dir).expect("cleanup");
-    clear_vm_handler_module_cache_for_test();
-}
-
 /// Verifies VM-owned sessions survive request shards and enforce lifecycle changes.
 ///
 /// Inputs:
@@ -784,74 +687,52 @@ pub expire_session(request: Request): Response ->
     .expect("write session handler manifest");
     prewarm_dynamic_handler_sources(&web_root).expect("prewarm session handler");
 
-    let created = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session HTTP/1.1\r\nHost: localhost\r\n\r\n",
-    )
-    .expect("create session request");
-    let created = String::from_utf8(created).expect("created response UTF-8");
-    assert!(created.ends_with("\r\n\r\ncreated"), "{created}");
-    assert!(
-        created.contains("set-cookie: terlan_session=s1; Path=/; HttpOnly; SameSite=Lax\r\n"),
-        "{created}"
+    super::super::hyper_server::hyper_server_test::with_source_protocol_server(
+        web_root.clone(),
+        |send| {
+            let created =
+                send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+            assert!(created.ends_with("\r\n\r\ncreated"), "{created}");
+            assert!(
+                created
+                    .contains("set-cookie: terlan_session=s1; HttpOnly; SameSite=Lax; Path=/\r\n"),
+                "{created}"
+            );
+
+            // Code generations are disposable. VM-owned session actors must survive
+            // watcher invalidation and reload of the handler image.
+            clear_vm_handler_module_cache_for_test();
+
+            let stored = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s1\r\n\r\n");
+            assert!(stored.ends_with("\r\n\r\nstored"), "{stored}");
+            assert!(!stored.contains("set-cookie:"), "{stored}");
+
+            let rotated = send("GET /session/rotate HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s1\r\n\r\n");
+            assert!(
+                rotated
+                    .contains("set-cookie: terlan_session=s2; HttpOnly; SameSite=Lax; Path=/\r\n"),
+                "{rotated}"
+            );
+
+            let rotated_state = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            assert!(rotated_state.ends_with("\r\n\r\nstored"), "{rotated_state}");
+
+            let expired = send("GET /session/expire HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            assert!(
+                expired.contains("set-cookie: terlan_session=;"),
+                "{expired}"
+            );
+            assert!(expired.contains("Max-Age=0"), "{expired}");
+
+            let replacement = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            assert!(replacement.ends_with("\r\n\r\ncreated"), "{replacement}");
+            assert!(
+                replacement
+                    .contains("set-cookie: terlan_session=s3; HttpOnly; SameSite=Lax; Path=/\r\n"),
+                "{replacement}"
+            );
+        },
     );
-
-    // Code generations are disposable. VM-owned session actors must survive
-    // watcher invalidation and reload of the handler image.
-    clear_vm_handler_module_cache_for_test();
-
-    let stored = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session HTTP/1.1\r\nHost: localhost\r\nCookie: terlan_session=s1\r\n\r\n",
-    )
-    .expect("reuse session request");
-    let stored = String::from_utf8(stored).expect("stored response UTF-8");
-    assert!(stored.ends_with("\r\n\r\nstored"), "{stored}");
-    assert!(!stored.contains("set-cookie:"), "{stored}");
-
-    let rotated = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session/rotate HTTP/1.1\r\nHost: localhost\r\nCookie: terlan_session=s1\r\n\r\n",
-    )
-    .expect("rotate session request");
-    let rotated = String::from_utf8(rotated).expect("rotated response UTF-8");
-    assert!(
-        rotated.contains("set-cookie: terlan_session=s2; Path=/; HttpOnly; SameSite=Lax\r\n"),
-        "{rotated}"
-    );
-
-    let rotated_state = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session HTTP/1.1\r\nHost: localhost\r\nCookie: terlan_session=s2\r\n\r\n",
-    )
-    .expect("read rotated session request");
-    let rotated_state = String::from_utf8(rotated_state).expect("rotated state UTF-8");
-    assert!(rotated_state.ends_with("\r\n\r\nstored"), "{rotated_state}");
-
-    let expired = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session/expire HTTP/1.1\r\nHost: localhost\r\nCookie: terlan_session=s2\r\n\r\n",
-    )
-    .expect("expire session request");
-    let expired = String::from_utf8(expired).expect("expired response UTF-8");
-    assert!(
-        expired.contains("set-cookie: terlan_session=;"),
-        "{expired}"
-    );
-    assert!(expired.contains("Max-Age=0"), "{expired}");
-
-    let replacement = handle_vm_stream_http1_request(
-        &web_root,
-        b"GET /session HTTP/1.1\r\nHost: localhost\r\nCookie: terlan_session=s2\r\n\r\n",
-    )
-    .expect("stale session replacement request");
-    let replacement = String::from_utf8(replacement).expect("replacement response UTF-8");
-    assert!(replacement.ends_with("\r\n\r\ncreated"), "{replacement}");
-    assert!(
-        replacement.contains("set-cookie: terlan_session=s3; Path=/; HttpOnly; SameSite=Lax\r\n"),
-        "{replacement}"
-    );
-
     fs::remove_dir_all(dir).expect("cleanup");
     clear_vm_handler_module_cache_for_test();
 }

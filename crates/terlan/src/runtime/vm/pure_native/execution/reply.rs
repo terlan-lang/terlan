@@ -17,25 +17,13 @@ pub(super) fn handle_reply(
         } => {
             validate_request_id(request_id, prepared.request_id)?;
             validate_owner_id(owner_id, prepared.owner_id)?;
-            match backend.decode_result(
-                context,
-                &prepared.result_type,
-                value,
-                prepared.result_projection,
-            ) {
-                Ok(NativeDecodedResult::Value(value)) => {
+            match backend.decode_result(context, &prepared.result_type, value) {
+                Ok(value) => {
                     actors.complete_native_trace_call(
                         VmProcessId::from_native_owner(owner_id)?,
                         trace_call,
                     )?;
                     Ok(PureNativeExecution::Complete(value))
-                }
-                Ok(NativeDecodedResult::HttpResponse(response)) => {
-                    actors.complete_native_trace_call(
-                        VmProcessId::from_native_owner(owner_id)?,
-                        trace_call,
-                    )?;
-                    Ok(PureNativeExecution::HttpResponse(response))
                 }
                 Err(error) => {
                     let _ = actors.fail_native_trace_call(
@@ -111,7 +99,6 @@ pub(super) fn handle_reply(
                     },
                     super::super::thread_neutral::OwnedNativeResumeProgram {
                         result_type: prepared.result_type,
-                        result_projection: prepared.result_projection,
                         continuations: continuations.clone(),
                         resume_count,
                     },

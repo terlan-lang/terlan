@@ -1,7 +1,12 @@
 //! Local VM calls do not inherit the external worker's narrower wire vocabulary.
 
 use super::*;
+use crate::runtime::native_image::managed::{
+    ManagedClosureDescriptor, ManagedClosureImageGeneration,
+};
 use crate::runtime::vm::bitstring::VmBitString;
+use crate::runtime::vm::NativeClosureValue;
+use std::sync::Arc;
 
 fn package(arguments: Vec<ReplValue>) -> PureNativeCapabilityRequest {
     PureNativeCapabilityRequest {
@@ -37,6 +42,10 @@ fn wire_conversion_uses_typed_package_values_not_stale_wire_fields() {
     let mut request = package(vec![ReplValue::Tuple(vec![
         ReplValue::Int(7),
         ReplValue::String("value".into()),
+        ReplValue::Map(vec![(
+            ReplValue::Int(1),
+            ReplValue::String("mapped".into()),
+        )]),
     ])]);
     request.arguments = vec![NativeBoundaryTerm::Int(0)];
     assert_eq!(
@@ -44,6 +53,10 @@ fn wire_conversion_uses_typed_package_values_not_stale_wire_fields() {
         &[NativeBoundaryTerm::Tuple(vec![
             NativeBoundaryTerm::Int(7),
             NativeBoundaryTerm::Text("value".into()),
+            NativeBoundaryTerm::Map(vec![(
+                NativeBoundaryTerm::Int(1),
+                NativeBoundaryTerm::Text("mapped".into())
+            )]),
         ])]
     );
     assert!(request.package_arguments.is_some());
@@ -51,15 +64,28 @@ fn wire_conversion_uses_typed_package_values_not_stale_wire_fields() {
 
 #[test]
 fn unsupported_external_values_remain_vm_owned_and_do_not_leak_in_errors() {
+    let closure = ReplValue::Closure(Arc::new(NativeClosureValue {
+        descriptor: Arc::new(
+            ManagedClosureDescriptor::new(
+                ManagedClosureImageGeneration::new([7; 32]).unwrap(),
+                1,
+                vec![],
+                vec![TvmBoundaryType::Unit],
+                vec![TvmBoundaryType::String],
+            )
+            .unwrap(),
+        ),
+        captures: vec![ReplValue::String("private-payload".into())].into_boxed_slice(),
+    }));
     for value in [
-        ReplValue::Map(vec![(
-            ReplValue::Int(1),
-            ReplValue::String("private-payload".into()),
-        )]),
+        closure,
         ReplValue::Set(vec![ReplValue::String("private-payload".into())]),
         ReplValue::BitString(VmBitString::from_bytes(&[0xa0], 3).unwrap()),
     ] {
-        let request = package(vec![ReplValue::Tuple(vec![value])]);
+        let request = package(vec![ReplValue::Tuple(vec![ReplValue::Map(vec![(
+            ReplValue::String("private-payload".into()),
+            value,
+        )])])]);
         let original = request.package_arguments.clone();
         let error = request.boundary_arguments().unwrap_err();
         assert!(error.starts_with("error[pure_native_capability_argument]"));

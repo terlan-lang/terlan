@@ -1,11 +1,10 @@
 use super::super::live_template_command::VmHttpSessionCommandPayload;
 use super::super::{
     created_session_table_id, current, delete, deleted_session_value, expire, get,
-    http_message_id_to_int, resolve_http_session_affinity_key, rotate, set, with_response,
-    VmHttpSession, VmHttpSessionAffinityError, VmHttpSessionAffinityKey,
-    VmHttpSessionCommandOutcome, VmHttpSessionLiveTemplateSourceSpan,
-    VmHttpSessionLiveTemplateSubscriber, VmHttpSessionLiveTemplateSubscriptionAuthorization,
-    VmHttpSessionRuntime,
+    http_message_id_to_int, resolve_http_session_affinity_key, rotate, set, VmHttpSession,
+    VmHttpSessionAffinityError, VmHttpSessionAffinityKey, VmHttpSessionCommandOutcome,
+    VmHttpSessionLiveTemplateSourceSpan, VmHttpSessionLiveTemplateSubscriber,
+    VmHttpSessionLiveTemplateSubscriptionAuthorization, VmHttpSessionRuntime,
 };
 use crate::runtime::vm::process::{VmExitReason, VmProcessId};
 use crate::runtime::vm::table::{VmTableEvent, VmTableId};
@@ -46,10 +45,7 @@ pub(super) fn http_session_lookup_creates_actor_and_sticky_metadata() {
     assert_eq!(lookup.route.session_id, "s1");
     assert_eq!(lookup.route.actor_pid, 1);
     assert_eq!(lookup.route.sticky_key, "node-a:s1");
-    assert_eq!(
-        lookup.set_cookie_header,
-        Some("terlan_session=s1; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(lookup.pending_identity, Some("s1".to_string()));
 
     let snapshots = sessions.snapshots();
     assert_eq!(snapshots.len(), 1);
@@ -83,9 +79,6 @@ pub(super) fn http_session_adapter_functions_delegate_to_actor_runtime() {
         get(&mut sessions, &rotated.session, "user_id").expect("deleted get should read"),
         None
     );
-    let response = with_response("response", &rotated.session);
-    assert_eq!(response, "response");
-
     expire(&mut sessions, &rotated.session).expect("expire should succeed");
     let error =
         get(&mut sessions, &rotated.session, "user_id").expect_err("expired get should fail");
@@ -117,10 +110,7 @@ pub(super) fn http_session_blank_cookie_creates_replacement_session() {
     let lookup = current(&mut sessions, Some("   ")).expect("blank cookie should create session");
 
     assert_eq!(lookup.session.id, "s1");
-    assert_eq!(
-        lookup.set_cookie_header,
-        Some("terlan_session=s1; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(lookup.pending_identity, Some("s1".to_string()));
 }
 
 #[test]
@@ -302,7 +292,7 @@ pub(super) fn http_session_reuses_actor_and_table_state_for_cookie_lookup() {
 
     assert_eq!(reused.session, created.session);
     assert_eq!(reused.route.actor_pid, created.route.actor_pid);
-    assert_eq!(reused.set_cookie_header, None);
+    assert_eq!(reused.pending_identity, None);
     assert_eq!(
         sessions
             .read(&reused.session, "user_id")
@@ -357,10 +347,7 @@ pub(super) fn http_session_actor_crash_during_request_cleans_state_and_replaces_
         .expect("stale crashed cookie should create replacement");
     assert_eq!(replacement.session.id, "s2");
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.set_cookie_header,
-        Some("terlan_session=s2; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
     assert_eq!(
         sessions
             .read(&replacement.session, "cart")
@@ -393,10 +380,7 @@ pub(super) fn http_session_reconnect_after_actor_crash_replaces_cookie_without_r
 
     assert_eq!(replacement.session.id, "s2");
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.set_cookie_header,
-        Some("terlan_session=s2; Path=/; HttpOnly; SameSite=Lax".to_string())
-    );
+    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
     assert_eq!(
         sessions
             .read(&replacement.session, "draft")

@@ -15,6 +15,7 @@ pub(crate) struct VmNativeCallableRef {
 
 impl VmNativeCallableRef {
     /// Encodes this identity into the closed runtime value protocol.
+    #[cfg(test)]
     pub(crate) fn into_value(self) -> ReplValue {
         ReplValue::Tuple(vec![
             ReplValue::Atom("$tvm_native_callable".to_string()),

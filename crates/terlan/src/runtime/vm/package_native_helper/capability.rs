@@ -417,6 +417,7 @@ fn boundary_term_to_value(
             .map(|value| boundary_term_to_value(operation, value))
             .collect::<Result<Vec<_>, _>>()
             .map(NativeBoundaryValue::Tuple),
+        NativeBoundaryTerm::Map(entries) => entries.iter().map(|(key, value)| Ok((boundary_term_to_value(operation, key)?, boundary_term_to_value(operation, value)?))).collect::<VmRuntimeResult<_>>().map(NativeBoundaryValue::Map),
         NativeBoundaryTerm::Unit => Ok(NativeBoundaryValue::Unit),
         NativeBoundaryTerm::Text(value) => Ok(NativeBoundaryValue::Text(value.clone())),
         NativeBoundaryTerm::Bytes(value) => Ok(NativeBoundaryValue::Bytes(value.clone())),
@@ -454,6 +455,7 @@ fn boundary_value_to_term(
             .map(|value| boundary_value_to_term(operation, value))
             .collect::<Result<Vec<_>, _>>()
             .map(NativeBoundaryTerm::Tuple),
+        NativeBoundaryValue::Map(entries) => entries.into_iter().map(|(key, value)| Ok((boundary_value_to_term(operation, key)?, boundary_value_to_term(operation, value)?))).collect::<VmRuntimeResult<_>>().map(NativeBoundaryTerm::Map),
         NativeBoundaryValue::Unit => Ok(NativeBoundaryTerm::Unit),
         NativeBoundaryValue::Text(value) => Ok(NativeBoundaryTerm::Text(value)),
         NativeBoundaryValue::Bytes(value) => Ok(NativeBoundaryTerm::Bytes(value)),

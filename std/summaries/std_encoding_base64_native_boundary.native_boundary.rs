@@ -11,25 +11,25 @@ pub const NATIVE_MODULE: &str = "std_encoding_base64_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
+    ("decode_text", 1),
+    ("decode_url_text", 1),
+    ("decode_octets", 1),
+    ("decode_url_octets", 1),
     ("encode", 1),
-    ("decode", 1),
     ("encode_url", 1),
-    ("decode_url", 1),
     ("encode_bytes", 1),
-    ("decode_bytes", 1),
     ("encode_url_bytes", 1),
-    ("decode_url_bytes", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
+    ("decode_text", "std.encoding.base64.decode_text", 1),
+    ("decode_url_text", "std.encoding.base64.decode_url_text", 1),
+    ("decode_octets", "std.encoding.base64.decode_octets", 1),
+    ("decode_url_octets", "std.encoding.base64.decode_url_octets", 1),
     ("encode", "std.encoding.base64.encode", 1),
-    ("decode", "std.encoding.base64.decode", 1),
     ("encode_url", "std.encoding.base64.encode_url", 1),
-    ("decode_url", "std.encoding.base64.decode_url", 1),
     ("encode_bytes", "std.encoding.base64.encode_bytes", 1),
-    ("decode_bytes", "std.encoding.base64.decode_bytes", 1),
     ("encode_url_bytes", "std.encoding.base64.encode_url_bytes", 1),
-    ("decode_url_bytes", "std.encoding.base64.decode_url_bytes", 1),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -157,14 +157,14 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
+                        "std.encoding.base64.decode_text" => native_unimplemented_operation(operation),
+                        "std.encoding.base64.decode_url_text" => native_unimplemented_operation(operation),
+                        "std.encoding.base64.decode_octets" => native_unimplemented_operation(operation),
+                        "std.encoding.base64.decode_url_octets" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode" => native_unimplemented_operation(operation),
-                        "std.encoding.base64.decode" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode_url" => native_unimplemented_operation(operation),
-                        "std.encoding.base64.decode_url" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode_bytes" => native_unimplemented_operation(operation),
-                        "std.encoding.base64.decode_bytes" => native_unimplemented_operation(operation),
                         "std.encoding.base64.encode_url_bytes" => native_unimplemented_operation(operation),
-                        "std.encoding.base64.decode_url_bytes" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

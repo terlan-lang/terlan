@@ -119,6 +119,11 @@ impl PendingManagedCaptures {
 }
 
 impl ManagedExecutionRuntime {
+    /// Shares immutable callable admission metadata with boundary conversion.
+    pub(crate) fn admitted_closures(&self) -> Option<Arc<ManagedClosureDispatchTable>> {
+        self.closure_dispatch.clone()
+    }
+
     /// Borrows the immutable image layouts for admission-time runtime projections.
     pub(crate) fn layout_registry(&self) -> &ManagedLayoutRegistry {
         &self.layouts

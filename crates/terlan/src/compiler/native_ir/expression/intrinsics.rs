@@ -84,10 +84,7 @@ pub(super) fn lower_intrinsic(
             constructors,
         ),
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::BoolEqual
-            | CorePrimitiveIntrinsic::BoolCompare
-            | CorePrimitiveIntrinsic::BoolToString
-            | CorePrimitiveIntrinsic::BoolFromString,
+            CorePrimitiveIntrinsic::BoolToString | CorePrimitiveIntrinsic::BoolFromString,
         ) => boolean_intrinsics::lower_boolean_intrinsic(
             call,
             params,
@@ -213,15 +210,10 @@ pub(super) fn lower_intrinsic(
             )
         }
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::StringEqual
-            | CorePrimitiveIntrinsic::StringToString
-            | CorePrimitiveIntrinsic::StringFromString
+            CorePrimitiveIntrinsic::StringContains
             | CorePrimitiveIntrinsic::StringUppercase
             | CorePrimitiveIntrinsic::StringReverse
-            | CorePrimitiveIntrinsic::StringContains
             | CorePrimitiveIntrinsic::StringCompare
-            | CorePrimitiveIntrinsic::StringIsEmpty
-            | CorePrimitiveIntrinsic::StringAppend
             | CorePrimitiveIntrinsic::StringConcat
             | CorePrimitiveIntrinsic::StringStartsWith
             | CorePrimitiveIntrinsic::StringEndsWith
@@ -232,7 +224,6 @@ pub(super) fn lower_intrinsic(
             | CorePrimitiveIntrinsic::StringTrimStart
             | CorePrimitiveIntrinsic::StringTrimEnd
             | CorePrimitiveIntrinsic::StringReplace
-            | CorePrimitiveIntrinsic::CryptoSha256
             | CorePrimitiveIntrinsic::StringSplit
             | CorePrimitiveIntrinsic::StringSplitOnce
             | CorePrimitiveIntrinsic::StringCharacters

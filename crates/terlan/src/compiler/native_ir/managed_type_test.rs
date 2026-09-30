@@ -159,24 +159,24 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
     );
 
     let response = CoreType::Named("std.http.Response.Response".to_string());
-    let response_expected =
-        SemanticTypeId::from_canonical("Named(Response)").expect("HTTP response semantic type");
+    let response_expected = SemanticTypeId::from_canonical("Named(std.http.Response.Response)")
+        .expect("HTTP response semantic type");
     assert_eq!(
         super::super::native_type(Some(&response), "std.http.Response.Response"),
         Some(NativeType::ManagedRef(response_expected))
     );
 
     let request = CoreType::Named("std.http.Request.Request".to_string());
-    let request_expected =
-        SemanticTypeId::from_canonical("Named(Request)").expect("HTTP request semantic type");
+    let request_expected = SemanticTypeId::from_canonical("Named(std.http.Request.Request)")
+        .expect("request semantic type");
     assert_eq!(
         super::super::native_type(Some(&request), "std.http.Request.Request"),
         Some(NativeType::ManagedRef(request_expected))
     );
 
     for (name, physical) in [
-        ("std.http.Cookies.Jar", "Jar"),
-        ("std.http.Session.Session", "Session"),
+        ("std.http.Cookies.Jar", "std.http.Cookies.Jar"),
+        ("std.http.Session.Session", "std.http.Session.Session"),
         ("app.Cookies.Jar", "app.Cookies.Jar"),
         ("app.Session.Session", "app.Session.Session"),
     ] {
@@ -215,8 +215,9 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
             },
         ]),
     ]);
-    let middleware_expected = SemanticTypeId::from_canonical("Named(MiddlewareResult)")
-        .expect("MiddlewareResult semantic type");
+    let middleware_expected =
+        SemanticTypeId::from_canonical(&structural_middleware_result.contract_text())
+            .expect("MiddlewareResult semantic type");
     assert_eq!(
         super::super::native_type(
             Some(&structural_middleware_result),

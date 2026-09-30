@@ -1,6 +1,6 @@
 //! Shared neutral and resource-handle values, independent of operation routing.
 
-use crate::terlan_native::{http, json, path, postgres, regex, uri};
+use crate::terlan_native::{http, json, path, postgres, regex};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
 /// Neutral value shape accepted and returned by NativeBoundary adapter dispatch.
@@ -8,6 +8,8 @@ use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 pub enum NativeBoundaryValue {
     /// Terlan `Unit`.
     Unit,
+    /// Owned key/value entries, distinct from a list of pairs.
+    Map(Vec<(Self, Self)>),
     /// Terlan `String`.
     Text(String),
     /// Terlan VM-owned `Bytes`.
@@ -35,16 +37,10 @@ pub enum NativeBoundaryValue {
     Json(json::Json),
     /// Opaque compiled `std.regex.Regex.Regex`.
     Regex(regex::Regex),
-    /// Opaque `std.http.Request.Request`.
-    HttpRequest(http::Request),
     /// Opaque `std.http.Response.Response`.
     HttpResponse(http::Response),
-    /// Opaque `std.http.Cookies.Jar`.
-    HttpCookieJar(http::CookieJar),
     /// Opaque `std.io.Path.Path`.
     Path(path::Path),
-    /// Opaque `std.net.Uri.Uri`.
-    Uri(uri::Uri),
     /// Opaque `std.db.Postgres.Config`.
     PostgresConfig(postgres::Config),
     /// Opaque `std.db.Postgres.Pool`.
@@ -68,6 +64,8 @@ pub enum NativeBoundaryValue {
 pub enum NativeBoundaryBridgeValue {
     /// Terlan `Unit`.
     Unit,
+    /// Owned key/value entries, distinct from a list of pairs.
+    Map(Vec<(Self, Self)>),
     /// Terlan `String`.
     Text(String),
     /// Terlan VM-owned `Bytes`.
@@ -87,7 +85,7 @@ pub enum NativeBoundaryBridgeValue {
         /// Ordered named fields.
         fields: Vec<(String, NativeBoundaryBridgeValue)>,
     },
-    /// Opaque resource handle for JSON, path, URI, or later native resources.
+    /// Opaque resource handle for JSON, path, or later native resources.
     Handle(NativeBoundaryHandle),
     /// Structured Postgres connection configuration for `connect`.
     PostgresConfig(postgres::Config),

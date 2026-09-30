@@ -72,6 +72,11 @@
     },
     {
       "arity": 1,
+      "name": "to_string",
+      "operation": "std.data.json.to_string"
+    },
+    {
+      "arity": 1,
       "name": "stringify_pretty",
       "operation": "std.data.json.stringify_pretty"
     },
@@ -89,11 +94,6 @@
       "arity": 1,
       "name": "object_length",
       "operation": "std.data.json.object_length"
-    },
-    {
-      "arity": 2,
-      "name": "string_fields",
-      "operation": "std.data.json.string_fields"
     },
     {
       "arity": 4,

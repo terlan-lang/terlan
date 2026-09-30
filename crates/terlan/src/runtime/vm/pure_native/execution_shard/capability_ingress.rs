@@ -278,6 +278,8 @@ fn capability_reply_value(
         }
         (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::OptionalText(_))
         | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::Record { .. })
+        | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::Map(_))
+        | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::Tuple(_))
         | (TvmBoundaryType::Managed(_), term @ NativeBoundaryTerm::List(_)) => {
             managed_capability_term(term)?
         }
@@ -290,8 +292,14 @@ fn capability_reply_value(
     Ok(value)
 }
 
-fn managed_capability_term(term: NativeBoundaryTerm) -> Result<ReplValue, String> {
+pub(crate) fn managed_capability_term(term: NativeBoundaryTerm) -> Result<ReplValue, String> {
     match term {
+        NativeBoundaryTerm::Tuple(values) => values
+            .into_iter()
+            .map(managed_capability_term)
+            .collect::<Result<_, _>>()
+            .map(ReplValue::Tuple),
+        NativeBoundaryTerm::Map(entries) => entries.into_iter().map(|(key, value)| Ok((managed_capability_term(key)?, managed_capability_term(value)?))).collect::<Result<_, String>>().map(ReplValue::Map),
         NativeBoundaryTerm::Unit => Ok(ReplValue::Unit),
         NativeBoundaryTerm::Text(value) => Ok(ReplValue::String(value)),
         NativeBoundaryTerm::Bytes(value) => Ok(ReplValue::Bytes(value.into())),
@@ -327,3 +335,7 @@ fn managed_capability_term(term: NativeBoundaryTerm) -> Result<ReplValue, String
         )),
     }
 }
+
+#[cfg(test)]
+#[path = "capability_ingress_value_test.rs"]
+mod value_test;

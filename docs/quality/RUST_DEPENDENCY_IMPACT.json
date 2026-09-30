@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "5b4a26fd68642d745f946dc819853512b6a4a8efef28cf3da8239acca7611a50",
+  "compilation_input_sha256": "256d2e1b4983d453fec2b17e0453d84a259b333edc6b24db319a1cb0ad114a49",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -39,14 +39,14 @@
     },
     {
       "domain": "compiler",
-      "reference_sites": 21,
+      "reference_sites": 19,
       "source_domains": [
         "commands"
       ]
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 48,
+      "reference_sites": 49,
       "source_domains": [
         "commands",
         "lsp",
@@ -83,6 +83,11 @@
     },
     {
       "domain": "quality",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:",
       "reference_sites": 0,
       "source_domains": []
     },
@@ -148,7 +153,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 96,
+      "reference_sites": 84,
       "source_domains": [
         "commands",
         "compiler"
@@ -170,7 +175,7 @@
     },
     {
       "domain": "validation",
-      "reference_sites": 12,
+      "reference_sites": 15,
       "source_domains": [
         "commands"
       ]
@@ -254,6 +259,11 @@
       "dependent_count": 0,
       "dependent_domains": [],
       "domain": "quality"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:"
     },
     {
       "dependent_count": 0,
@@ -692,12 +702,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 21,
+      "reference_sites": 19,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 46,
+      "reference_sites": 47,
       "to": "formal_pipeline"
     },
     {
@@ -707,7 +717,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 74,
+      "reference_sites": 63,
       "to": "runtime"
     },
     {
@@ -717,12 +727,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 12,
+      "reference_sites": 15,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 22,
+      "reference_sites": 21,
       "to": "runtime"
     },
     {
@@ -769,13 +779,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 142193,
-      "rust_files": 371
+      "physical_lines": 142012,
+      "rust_files": 379
     },
     {
       "name": "compiler",
-      "physical_lines": 175799,
-      "rust_files": 478
+      "physical_lines": 173721,
+      "rust_files": 480
     },
     {
       "name": "formal_pipeline",
@@ -784,7 +794,7 @@
     },
     {
       "name": "formal_pipeline_test",
-      "physical_lines": 2180,
+      "physical_lines": 2185,
       "rust_files": 5
     },
     {
@@ -799,8 +809,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1882,
-      "rust_files": 8
+      "physical_lines": 2083,
+      "rust_files": 9
     },
     {
       "name": "package_registry",
@@ -809,8 +819,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50490,
+      "physical_lines": 50494,
       "rust_files": 153
+    },
+    {
+      "name": "root:",
+      "physical_lines": 14304,
+      "rust_files": 85
     },
     {
       "name": "root:accelerator_contract",
@@ -839,7 +854,7 @@
     },
     {
       "name": "root:lib",
-      "physical_lines": 834,
+      "physical_lines": 835,
       "rust_files": 1
     },
     {
@@ -874,8 +889,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 148565,
-      "rust_files": 471
+      "physical_lines": 141569,
+      "rust_files": 467
     },
     {
       "name": "serve_runtime",
@@ -889,7 +904,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 9080,
+      "physical_lines": 9068,
       "rust_files": 24
     },
     {
@@ -1159,12 +1174,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 5,
+      "reference_sites": 3,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 7,
+      "reference_sites": 8,
       "to": "formal_pipeline"
     },
     {
@@ -1174,28 +1189,38 @@
     },
     {
       "from": "commands",
-      "reference_sites": 55,
+      "reference_sites": 52,
       "to": "runtime"
     },
     {
       "from": "commands",
-      "reference_sites": 7,
+      "reference_sites": 9,
       "to": "support"
     },
     {
       "from": "commands",
-      "reference_sites": 7,
+      "reference_sites": 9,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 14,
+      "reference_sites": 1,
+      "to": "formal_pipeline"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 10,
       "to": "runtime"
     },
     {
       "from": "compiler",
       "reference_sites": 2,
       "to": "support"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 2,
+      "to": "validation"
     },
     {
       "from": "quality",
@@ -1226,13 +1251,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 41789,
-      "rust_files": 181
+      "physical_lines": 44942,
+      "rust_files": 202
     },
     {
       "name": "compiler",
-      "physical_lines": 47229,
-      "rust_files": 193
+      "physical_lines": 49726,
+      "rust_files": 222
     },
     {
       "name": "formal_pipeline",
@@ -1251,8 +1276,8 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 1268,
-      "rust_files": 6
+      "physical_lines": 1665,
+      "rust_files": 7
     },
     {
       "name": "package_registry",
@@ -1261,7 +1286,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 28800,
+      "physical_lines": 28804,
       "rust_files": 129
     },
     {
@@ -1296,8 +1321,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 81079,
-      "rust_files": 345
+      "physical_lines": 80415,
+      "rust_files": 352
     },
     {
       "name": "support",
@@ -1311,7 +1336,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 6969,
+      "physical_lines": 6971,
       "rust_files": 18
     },
     {
@@ -1374,6 +1399,13 @@
           "optional": false
         },
         {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "httparse",
+          "optional": false
+        },
+        {
           "default_features": false,
           "features": [
             "std"
@@ -1414,6 +1446,13 @@
           ],
           "kind": "dev",
           "name": "tokio",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "tungstenite",
           "optional": false
         },
         {
@@ -1470,13 +1509,6 @@
           "features": [],
           "kind": "normal",
           "name": "concurrent-queue",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "cookie",
           "optional": false
         },
         {
@@ -1561,13 +1593,6 @@
         },
         {
           "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "httparse",
-          "optional": false
-        },
-        {
-          "default_features": true,
           "features": [
             "client",
             "http1",
@@ -1606,13 +1631,6 @@
           "features": [],
           "kind": "normal",
           "name": "libloading",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "md-5",
           "optional": false
         },
         {
@@ -1858,8 +1876,29 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "terlan-data-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-http-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "terlan-libpq",
           "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-net-native",
+          "optional": false
         },
         {
           "default_features": true,
@@ -1881,6 +1920,13 @@
           "kind": "normal",
           "name": "terlan-service-foundation",
           "optional": true
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-std-native",
+          "optional": false
         },
         {
           "default_features": true,
@@ -1914,13 +1960,6 @@
           "kind": "normal",
           "name": "tower-lsp-server",
           "optional": true
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "tungstenite",
-          "optional": false
         },
         {
           "default_features": false,
@@ -2045,6 +2084,87 @@
       "dependencies": [
         {
           "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "base64",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "ring",
+            "std"
+          ],
+          "kind": "normal",
+          "name": "rustls",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        }
+      ],
+      "package": "terlan-crypto-native"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        }
+      ],
+      "package": "terlan-data-native"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "base64",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "md-5",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        }
+      ],
+      "package": "terlan-encoding-native"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
           "features": [
             "derive"
           ],
@@ -2085,6 +2205,148 @@
         {
           "default_features": true,
           "features": [],
+          "kind": "dev",
+          "name": "rcgen",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "ring",
+            "std",
+            "tls12"
+          ],
+          "kind": "dev",
+          "name": "rustls",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [],
+          "kind": "normal",
+          "name": "axum",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "bytes",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "cookie",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "alloc"
+          ],
+          "kind": "normal",
+          "name": "futures-util",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "http",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "http-body-util",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "httparse",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [],
+          "kind": "normal",
+          "name": "hyper",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "mime_guess",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-data-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-net-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "formatting",
+            "parsing"
+          ],
+          "kind": "normal",
+          "name": "time",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "tungstenite",
+          "optional": false
+        }
+      ],
+      "package": "terlan-http-native"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
           "kind": "build",
           "name": "cc",
           "optional": false
@@ -2119,6 +2381,43 @@
         }
       ],
       "package": "terlan-libpq"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "rcgen",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "ring",
+            "std",
+            "tls12"
+          ],
+          "kind": "normal",
+          "name": "rustls",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "url",
+          "optional": false
+        }
+      ],
+      "package": "terlan-net-native"
     },
     {
       "dependencies": [
@@ -2226,6 +2525,60 @@
         }
       ],
       "package": "terlan-service-foundation"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-crypto-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-data-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-encoding-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-http-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-net-native",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-time-native",
+          "optional": false
+        }
+      ],
+      "package": "terlan-std-native"
     },
     {
       "dependencies": [
@@ -2344,6 +2697,18 @@
         }
       ],
       "package": "terlan-test-orchestrator"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-runtime-abi",
+          "optional": false
+        }
+      ],
+      "package": "terlan-time-native"
     }
   ],
   "workspace_packages": [
@@ -2358,10 +2723,14 @@
       "direct_dependencies": [
         "terl-docs",
         "terlan-archive",
+        "terlan-data-native",
+        "terlan-http-native",
         "terlan-libpq",
+        "terlan-net-native",
         "terlan-process-owner",
         "terlan-runtime-abi",
         "terlan-service-foundation",
+        "terlan-std-native",
         "terlan-storage"
       ],
       "name": "terlan",
@@ -2384,16 +2753,68 @@
     },
     {
       "direct_dependencies": [
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-crypto-native",
+      "reverse_dependents": [
+        "terlan-std-native"
+      ]
+    },
+    {
+      "direct_dependencies": [
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-data-native",
+      "reverse_dependents": [
+        "terlan",
+        "terlan-http-native",
+        "terlan-std-native"
+      ]
+    },
+    {
+      "direct_dependencies": [
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-encoding-native",
+      "reverse_dependents": [
+        "terlan-std-native"
+      ]
+    },
+    {
+      "direct_dependencies": [
         "terlan-service-foundation"
       ],
       "name": "terlan-foundations-adapter",
       "reverse_dependents": []
     },
     {
+      "direct_dependencies": [
+        "terlan-data-native",
+        "terlan-net-native",
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-http-native",
+      "reverse_dependents": [
+        "terlan",
+        "terlan-std-native"
+      ]
+    },
+    {
       "direct_dependencies": [],
       "name": "terlan-libpq",
       "reverse_dependents": [
         "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-net-native",
+      "reverse_dependents": [
+        "terlan",
+        "terlan-http-native",
+        "terlan-std-native"
       ]
     },
     {
@@ -2409,7 +2830,14 @@
       "direct_dependencies": [],
       "name": "terlan-runtime-abi",
       "reverse_dependents": [
-        "terlan"
+        "terlan",
+        "terlan-crypto-native",
+        "terlan-data-native",
+        "terlan-encoding-native",
+        "terlan-http-native",
+        "terlan-net-native",
+        "terlan-std-native",
+        "terlan-time-native"
       ]
     },
     {
@@ -2426,6 +2854,21 @@
       ]
     },
     {
+      "direct_dependencies": [
+        "terlan-crypto-native",
+        "terlan-data-native",
+        "terlan-encoding-native",
+        "terlan-http-native",
+        "terlan-net-native",
+        "terlan-runtime-abi",
+        "terlan-time-native"
+      ],
+      "name": "terlan-std-native",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
       "direct_dependencies": [],
       "name": "terlan-storage",
       "reverse_dependents": [
@@ -2439,6 +2882,15 @@
       "name": "terlan-test-orchestrator",
       "reverse_dependents": [
         "terlan-build-cache"
+      ]
+    },
+    {
+      "direct_dependencies": [
+        "terlan-runtime-abi"
+      ],
+      "name": "terlan-time-native",
+      "reverse_dependents": [
+        "terlan-std-native"
       ]
     }
   ]

@@ -9,7 +9,7 @@ import self_host.TypedModuleSyntax.{TypedDeclaration}.
 import std.collections.List.
 import std.core.{Int, String}.
 import std.core.Option.{Some}.
-import self_host.CallableArity.
+import self_host.CallableArity.{of}.
 import self_host.ExportReferenceLowering.
 
 
@@ -33,7 +33,7 @@ append[T](left: List[T], right: List[T]): List[T] ->
 
 @pure
 callable_arity(value: TypedDeclaration): Int ->
-    case CallableArity.of(value) {
+    case of(value) {
         Some(arity) -> arity;
         _ -> -1
     }.

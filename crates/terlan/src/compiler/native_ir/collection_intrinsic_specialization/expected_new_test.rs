@@ -4,6 +4,69 @@ use super::*;
 use crate::terlan_typeck::CoreStructTypeField;
 
 #[test]
+fn constructor_payloads_preserve_comprehension_element_context_idempotently() {
+    let option = CoreType::Apply {
+        constructor: "std.core.Option.Option".into(),
+        args: vec![CoreType::String],
+    };
+    let list = CoreType::List(Box::new(option.clone()));
+    let expected = CoreType::Apply {
+        constructor: "std.core.Result.Result".into(),
+        args: vec![list.clone(), list],
+    };
+    for name in ["Ok", "Err"] {
+        let mut expression = CoreExpr::ConstructorCall {
+            constructor: name.into(),
+            constructor_identity: Some(format!("std.core.Result.{name}")),
+            type_args: vec![],
+            args: vec![CoreExpr::ListComprehension {
+                expr: Box::new(CoreExpr::ConstructorCall {
+                    constructor: "Some".into(),
+                    constructor_identity: Some("std.core.Option.Some".into()),
+                    type_args: vec![],
+                    args: vec![CoreExpr::Var("value".into())],
+                }),
+                generators: vec![],
+                guards: vec![],
+                lift: None,
+            }],
+        };
+        specialize_expected_collection_new(&mut expression, &expected, &HashMap::new(), "app");
+        let CoreExpr::ConstructorCall { args, .. } = &expression else {
+            panic!("constructor changed shape");
+        };
+        let CoreExpr::ListComprehension { expr, .. } = &args[0] else {
+            panic!("comprehension changed shape");
+        };
+        assert!(
+            matches!(expr.as_ref(), CoreExpr::Cast { target_type, .. } if target_type == &option)
+        );
+        let once = expression.clone();
+        specialize_expected_collection_new(&mut expression, &expected, &HashMap::new(), "app");
+        assert_eq!(expression, once);
+    }
+}
+
+#[test]
+fn unrelated_or_wrong_arity_constructors_do_not_acquire_payload_context() {
+    let expected = CoreType::Apply {
+        constructor: "std.core.Result.Result".into(),
+        args: vec![CoreType::List(Box::new(CoreType::String)), CoreType::String],
+    };
+    for (name, arity) in [("Unrelated", 1), ("Ok", 0), ("Ok", 2)] {
+        let mut expression = CoreExpr::ConstructorCall {
+            constructor: name.into(),
+            constructor_identity: Some(name.into()),
+            type_args: vec![],
+            args: vec![CoreExpr::List(vec![]); arity],
+        };
+        let before = expression.clone();
+        specialize_expected_collection_new(&mut expression, &expected, &HashMap::new(), "app");
+        assert_eq!(expression, before);
+    }
+}
+
+#[test]
 fn empty_map_schema_closes_only_unconstrained_standard_slots() {
     for owner in ["Map", "std.collections.Map.Map", "package.Map"] {
         for value in [CoreType::Dynamic, CoreType::Int] {

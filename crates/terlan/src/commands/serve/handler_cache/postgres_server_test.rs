@@ -84,7 +84,7 @@ pub check(url: String): Bool ->
     let runtime = AotHandlerRuntime::load_with_shard_count(
         "app.Database".into(),
         &fixture.image.path,
-        fixture.router,
+        None,
         1,
     )
     .expect("load source database handler");
@@ -130,7 +130,7 @@ pub check(url: String): Bool ->
             _,
         >(runtime.generation.identity, |dispatcher| {
             assert!(dispatcher.resource_owners.is_empty());
-            assert!(dispatcher.postgres_pending.is_empty());
+            assert!(dispatcher.native_pending.is_empty());
             Ok(())
         })
         .unwrap();

@@ -253,7 +253,7 @@ fn handle_command(
     match command {
         ShardCommand::Begin {
             route,
-            export,
+            target,
             args,
             reply,
         } => {
@@ -270,7 +270,7 @@ fn handle_command(
                         });
                     let result = execute_interval(telemetry, &lease, || {
                         shard
-                            .begin_call(&export, &args)
+                            .begin_target_call(&target, &args)
                             .map_err(String::from)
                             .and_then(|(owner, execution)| {
                                 advance_slice(shard, owner, execution, timers.observed_tick())
@@ -893,10 +893,6 @@ fn advance_slice(
             PureNativeExecution::Complete(value) => {
                 shard.finish_completed_call(owner)?;
                 return Ok(ScheduledInvocationStep::Complete(value));
-            }
-            PureNativeExecution::HttpResponse(_) => {
-                shard.finish_completed_call(owner)?;
-                return Err("error[serve.aot.result_projection]: typed HTTP response entered the asynchronous invocation path".to_string());
             }
             PureNativeExecution::Suspended(suspension)
                 if suspension.operation() == TvmTransitionOperation::Receive =>

@@ -100,6 +100,8 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
             .collect();
         functions.push(CoreFunction {
             receiver_method: false,
+            receiver_mutable: false,
+            receiver_command: false,
             trait_method: None,
             source: Some(crate::terlan_typeck::CoreFunctionSource {
                 module: resolved.name.clone(),

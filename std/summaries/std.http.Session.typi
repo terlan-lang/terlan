@@ -2,19 +2,22 @@
 //!
 //! `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
 //! handlers. The HTTP server binds request cookies to VM session actor
-//! identity; source code works with an opaque session handle and explicit
-//! response threading.
+//! identity; source code owns the private session record and explicit response
+//! threading. Native operations receive only the selected identity.
 
 module std.http.Session.
 
-/// Session represents one VM-owned HTTP session actor.
+/// Session represents a source-owned reference to an HTTP session actor.
 ///
 /// Input: no type parameter.
-/// Output: an opaque session handle whose runtime representation is VM owned.
+/// Output: a managed record with private identity and pending-cookie fields.
 /// Transformation: hides actor ids, VM table ids, sticky routing metadata, and
 /// recovery policy while preserving a stable handler-facing session value.
 
-pub opaque type Session.
+pub struct Session {
+    #identity: String,
+    #pending_identity: String
+}.
 
 /// Returns the current request session.
 ///

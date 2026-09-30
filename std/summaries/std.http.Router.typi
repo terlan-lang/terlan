@@ -1,9 +1,10 @@
 //! Portable HTTP router contract.
 //!
 //! `std.http.Router` defines the source-level route builder used by Terlan web
-//! applications. The compiler and local server own route-manifest generation,
-//! validation, precedence, and runtime dispatch; source code sees a typed
-//! builder whose handlers accept `Request` and return `Response`.
+//! applications. Ordinary source functions build an immutable declaration
+//! sequence without opening transports. Handlers accept `Request` and return
+//! `Response`. Serving still extracts static metadata while descriptor-based
+//! admission is being migrated.
 
 module std.http.Router.
 
@@ -194,11 +195,13 @@ pub type ResponseMiddleware =
 /// Router represents an HTTP route table.
 ///
 /// Input: no type parameter.
-/// Output: an opaque route builder value.
-/// Transformation: hides generated route-manifest storage while preserving a
-/// stable source-visible builder type.
+/// Output: an immutable route builder with private declaration storage.
+/// Transformation: retains callbacks and nested scopes without opening sockets
+/// or depending on compiler interpretation of builder names.
 
-pub opaque type Router.
+pub struct Router {
+    #entries: List[Entry]
+}.
 
 /// SseEndpoint represents one VM-owned server-sent event endpoint plan.
 ///
@@ -224,8 +227,8 @@ pub type WebSocketEndpoint =
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) delete(pattern: String, handler: Handler): Router.
 
@@ -251,8 +254,8 @@ pub (router: Router) fallback(handler: Handler): Router.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) get(pattern: String, handler: Handler): Router.
 
@@ -260,8 +263,8 @@ pub (router: Router) get(pattern: String, handler: Handler): Router.
 ///
 /// Input: one `Router`, one path prefix, and one group builder function.
 /// Output: the updated `Router`.
-/// Transformation: records a scoped route-builder step so compiler manifest
-/// generation can prefix nested routes without adding route-specific grammar.
+/// Transformation: invokes the ordinary group-builder function once on an empty
+/// router and retains its declarations under the supplied path prefix.
 
 pub (router: Router) group(prefix: String, configure: GroupBuilder): Router.
 
@@ -269,8 +272,8 @@ pub (router: Router) group(prefix: String, configure: GroupBuilder): Router.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) head(pattern: String, handler: Handler): Router.
 
@@ -296,17 +299,18 @@ pub (router: Router) map_response(middleware: ResponseMiddleware): Router.
 ///
 /// Input: no value input.
 /// Output: an empty `Router`.
-/// Transformation: reserves a compiler-owned route builder value that later
-/// lowering can convert into the generated web route manifest.
+/// Transformation: creates an ordinary source value without allocating any live
+/// transport or scheduler state.
 
+@pure
 pub new(): Router.
 
 /// Adds an `OPTIONS` route.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) options(pattern: String, handler: Handler): Router.
 
@@ -324,8 +328,8 @@ pub (router: Router) overload(policy: OverloadPolicy, max_pending: Int): Router.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) patch(pattern: String, handler: Handler): Router.
 
@@ -333,8 +337,8 @@ pub (router: Router) patch(pattern: String, handler: Handler): Router.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) post(pattern: String, handler: Handler): Router.
 
@@ -342,8 +346,8 @@ pub (router: Router) post(pattern: String, handler: Handler): Router.
 ///
 /// Input: one `Router`, one route pattern, and one handler.
 /// Output: the updated `Router`.
-/// Transformation: records a route-builder step for compiler manifest
-/// generation while preserving source-level chaining.
+/// Transformation: appends a typed route declaration without mutating the earlier
+/// router value.
 
 pub (router: Router) put(pattern: String, handler: Handler): Router.
 
@@ -351,8 +355,8 @@ pub (router: Router) put(pattern: String, handler: Handler): Router.
 ///
 /// Input: one `Router`, one route pattern, and one bounded SSE endpoint plan.
 /// Output: the updated `Router`.
-/// Transformation: records a channel route-builder step for compiler manifest
-/// generation while the VM runtime owns event-stream state and scheduling.
+/// Transformation: appends a typed channel declaration while the serving runtime
+/// owns event-stream state and scheduling.
 
 pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router.
 
@@ -360,8 +364,8 @@ pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router.
 ///
 /// Input: one `Router` and one middleware callback.
 /// Output: the updated `Router`.
-/// Transformation: records a middleware builder step for future route-manifest
-/// generation while preserving source-level chaining today.
+/// Transformation: retains a callback in declaration order for serving-boundary
+/// admission.
 
 pub (router: Router) use(middleware: Middleware): Router.
 
@@ -370,7 +374,9 @@ pub (router: Router) use(middleware: Middleware): Router.
 /// Input: one `Router`, one route pattern, and one bounded channel endpoint
 /// plan.
 /// Output: the updated `Router`.
-/// Transformation: records a channel route-builder step for compiler manifest
-/// generation while the VM runtime owns upgrade, frame, and session state.
+/// Transformation: appends a typed channel declaration while the serving runtime
+/// owns upgrade, frame, and session state.
 
 pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router.
+
+export type Entry, ErrorEntry, FallbackEntry, GroupEndEntry, GroupStartEntry, LifecycleEntry, MiddlewareEntry, OverloadEntry, ResponseMiddlewareEntry, RouteEntry, SseEntry, WebSocketEntry.

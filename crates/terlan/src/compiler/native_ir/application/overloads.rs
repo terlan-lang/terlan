@@ -8,7 +8,7 @@ use crate::terlan_typeck::{core_type_contract_text, CoreTupleTypeElem};
 mod selected_imports;
 mod trait_methods;
 mod type_scoring;
-pub(super) use selected_imports::resolve as resolve_selected_imports;
+pub(crate) use selected_imports::resolve as resolve_selected_imports;
 use type_scoring::{argument_contract, type_match_score};
 
 #[derive(Clone)]
@@ -25,11 +25,6 @@ struct OverloadCandidate {
 }
 
 type AliasBodies = HashMap<String, CoreType>;
-
-/// Reports whether a public standard-library facade owns overload lowering.
-fn has_target_owned_overload_lowering(module: &str) -> bool {
-    matches!(module, "std.http.Response" | "std.template.Template")
-}
 
 /// Assigns unique internal identities to typed overloads and rewrites calls.
 ///
@@ -128,9 +123,6 @@ fn collect_overload_groups(
 ) -> Result<HashMap<OverloadKey, Vec<OverloadCandidate>>, String> {
     let mut declarations = HashMap::<OverloadKey, Vec<(Vec<CoreType>, CoreType)>>::new();
     for core in cores {
-        if has_target_owned_overload_lowering(&core.module) {
-            continue;
-        }
         for function in &core.functions {
             let Some(parameters) = function
                 .params
@@ -258,7 +250,7 @@ fn rewrite_expr(
     let inferred = match expr {
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
-        CoreExpr::Binary(_) => Some(CoreType::Binary),
+        CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),

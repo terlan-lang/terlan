@@ -10,12 +10,11 @@ use super::support_bundle::{
 };
 use super::tcp::{VmTcpListener, VmTcpListenerInfo, VmTcpRuntime, VmTcpStream};
 use super::tls::{VmTlsRuntime, VmTlsTcpPoll, VmTlsTcpServerStream, VmTlsTransportMode};
-pub(crate) use request_read::read_http1_request;
 pub(crate) use response_wire::write_http1_response;
-pub(crate) use response_wire::{
-    write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
-};
 pub(crate) use template_response::{render_http_template_response, VmHttpTemplateResponse};
+pub(crate) fn read_http1_request(reader: &mut dyn Read) -> Result<http::Request<String>, String> {
+    terlan_http_native::http1::read_http1_request(reader).map_err(|failure| failure.message)
+}
 
 #[cfg(test)]
 #[path = "http/deadline_test.rs"]
@@ -37,8 +36,6 @@ mod lifecycle_test;
 #[path = "http/overload_test.rs"]
 #[cfg(test)]
 mod overload_test;
-#[path = "http/request_read.rs"]
-pub(crate) mod request_read;
 #[cfg(test)]
 #[path = "http/request_resources_test.rs"]
 #[cfg(test)]

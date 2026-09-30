@@ -13,6 +13,7 @@ use crate::terlan_native_boundary::metadata::{
 mod execution;
 mod postgres;
 mod storage;
+mod value_packages;
 
 const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
 const HARD_MAX_PAYLOAD_BYTES: usize = 16 * 1024 * 1024;

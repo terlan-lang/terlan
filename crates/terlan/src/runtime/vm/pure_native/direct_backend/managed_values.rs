@@ -7,18 +7,24 @@ use smallvec::SmallVec;
 
 use crate::runtime::native_image::managed::{
     managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id, ActorHeap,
-    ManagedAggregate, ManagedCollectionDescriptor, ManagedCollectionKind, ManagedFieldType,
-    ManagedFieldValue, ManagedKeySemantics, ManagedLayoutRegistry, ManagedList, ManagedMap,
-    ManagedMemoryError, ManagedScalarKeySemantics, ManagedSet, SemanticTypeId, TvmRef,
+    ManagedCollectionDescriptor, ManagedCollectionKind, ManagedFieldType, ManagedFieldValue,
+    ManagedKeySemantics, ManagedMemoryError, ManagedScalarKeySemantics, SemanticTypeId, TvmRef,
 };
 use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
 #[path = "managed_values/public_shapes.rs"]
 mod public_shapes;
+use public_shapes::select_layout;
 #[cfg(test)]
 pub(super) use public_shapes::type_name_matches;
-use public_shapes::{public_aggregate, select_layout};
+
+#[path = "managed_values/closures.rs"]
+mod closures;
+pub(super) use closures::PublicManagedMetadata;
+
+#[path = "managed_values/materialization.rs"]
+mod materialization;
 
 const MAX_PUBLIC_MANAGED_DEPTH: usize = 256;
 const MAX_PUBLIC_MANAGED_VALUES: usize = 65_536;
@@ -75,7 +81,7 @@ type ActiveReferences = SmallVec<[ActiveReference; INLINE_ACTIVE_REFERENCES]>;
 /// Allocates one complete public managed graph through an admitted root identity.
 pub(super) fn allocate_public_managed(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     value: &ReplValue,
 ) -> Result<i64, String> {
@@ -90,7 +96,7 @@ pub(super) fn allocate_public_managed(
 /// Materializes one complete managed graph into public runtime values.
 pub(super) fn materialize_public_managed(
     heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     word: i64,
 ) -> Result<ReplValue, String> {
@@ -130,13 +136,17 @@ pub(super) fn materialize_public_managed(
 /// Recursively allocates a collection or fixed aggregate by semantic identity.
 fn allocate_managed(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     value: &ReplValue,
     depth: usize,
     budget: &mut usize,
     memo: &mut AllocationMemo,
 ) -> Result<TvmRef<()>, String> {
+    if layouts.is_closure(semantic) {
+        return closures::allocate(heap, layouts, semantic, value, depth, budget, memo)
+            .map_err(|error| error.to_string());
+    }
     if let Some(descriptor) = layouts.collection(semantic) {
         return allocate_collection(heap, layouts, descriptor, value, depth, budget, memo);
     }
@@ -146,7 +156,7 @@ fn allocate_managed(
 /// Allocates one collection through its existing actor-heap storage profile.
 fn allocate_collection(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     descriptor: &ManagedCollectionDescriptor,
     value: &ReplValue,
     depth: usize,
@@ -275,7 +285,7 @@ fn allocate_collection(
 /// Recursively allocates one fixed aggregate after selecting its exact active layout.
 fn allocate_aggregate(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     value: &ReplValue,
     depth: usize,
@@ -305,7 +315,7 @@ fn allocate_aggregate(
 /// Converts one public field according to its exact physical field category.
 fn allocate_field(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     field_type: ManagedFieldType,
     value: &ReplValue,
     depth: usize,
@@ -339,7 +349,7 @@ fn allocate_field(
 /// Allocates a sequence or nested fixed aggregate for one reference field.
 fn allocate_reference(
     heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     value: &ReplValue,
     depth: usize,
@@ -397,166 +407,24 @@ fn allocate_reference(
     allocate_managed(heap, layouts, semantic, value, depth, budget, memo)
 }
 
-/// Recursively materializes one validated managed reference.
+/// Materializes the graph using an explicit work stack, including closure captures.
 fn materialize_managed(
     heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     reference: TvmRef<()>,
     depth: usize,
     budget: &mut usize,
     active: &mut ActiveReferences,
 ) -> Result<ReplValue, String> {
-    consume_budget(depth, budget)?;
-    let identity = ActiveReference {
-        semantic,
-        identity: reference.encoded_abi_word(),
-    };
-    if active.contains(&identity) {
-        return Err(
-            "error[execution_shard.managed_cycle]: cyclic public managed value".to_string(),
-        );
-    }
-    active.push(identity);
-    let result = if let Some(descriptor) = layouts.collection(semantic) {
-        materialize_collection(heap, layouts, descriptor, reference, depth, budget, active)
-    } else {
-        materialize_aggregate(heap, layouts, semantic, reference, depth, budget, active)
-    };
-    debug_assert_eq!(active.pop(), Some(identity));
-    result
-}
-
-/// Materializes one fixed aggregate whose active-reference guard is already held.
-fn materialize_aggregate(
-    heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
-    semantic: SemanticTypeId,
-    reference: TvmRef<()>,
-    depth: usize,
-    budget: &mut usize,
-    active: &mut ActiveReferences,
-) -> Result<ReplValue, String> {
-    let descriptor = layouts.layout_for_reference(heap, semantic, reference)?;
-    let view = heap
-        .read_aggregate(reference.cast::<ManagedAggregate>(), descriptor)
-        .map_err(|error| format!("error[execution_shard.managed_read]: {error}"))?;
-    let values = descriptor
-        .fields()
-        .iter()
-        .enumerate()
-        .map(|(index, field)| {
-            let value = view
-                .field(index)
-                .map_err(|error| format!("error[execution_shard.managed_read]: {error}"))?;
-            materialize_field(
-                heap,
-                layouts,
-                field.field_type(),
-                value,
-                depth + 1,
-                budget,
-                active,
-            )
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    Ok(public_aggregate(descriptor, values))
-}
-
-/// Materializes one List, Map, or Set through its canonical heap reader.
-fn materialize_collection(
-    heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
-    descriptor: &ManagedCollectionDescriptor,
-    reference: TvmRef<()>,
-    depth: usize,
-    budget: &mut usize,
-    active: &mut ActiveReferences,
-) -> Result<ReplValue, String> {
-    match descriptor.kind() {
-        ManagedCollectionKind::List => {
-            let list = descriptor.list_descriptor().expect("checked list schema");
-            heap.list_elements(list, reference.cast::<ManagedList>())
-                .map_err(managed_read_error)?
-                .into_iter()
-                .map(|value| {
-                    // Each collection element is a sibling traversal. Keep
-                    // the parent path, but do not share mutable traversal
-                    // state between siblings; repeated opaque handles are
-                    // valid aliases, not cycles.
-                    let mut branch = active.clone();
-                    materialize_field(
-                        heap,
-                        layouts,
-                        list.element_type(),
-                        value,
-                        depth + 1,
-                        budget,
-                        &mut branch,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()
-                .map(ReplValue::List)
-        }
-        ManagedCollectionKind::Map => {
-            let map = descriptor.map_descriptor().expect("checked map schema");
-            heap.map_entries(map, reference.cast::<ManagedMap>())
-                .map_err(managed_read_error)?
-                .into_iter()
-                .map(|(key, value)| {
-                    let mut key_branch = active.clone();
-                    let mut value_branch = active.clone();
-                    Ok((
-                        materialize_field(
-                            heap,
-                            layouts,
-                            map.key_type(),
-                            key,
-                            depth + 1,
-                            budget,
-                            &mut key_branch,
-                        )?,
-                        materialize_field(
-                            heap,
-                            layouts,
-                            map.value_type(),
-                            value,
-                            depth + 1,
-                            budget,
-                            &mut value_branch,
-                        )?,
-                    ))
-                })
-                .collect::<Result<Vec<_>, String>>()
-                .map(ReplValue::Map)
-        }
-        ManagedCollectionKind::Set => {
-            let set = descriptor.set_descriptor().expect("checked set schema");
-            heap.set_elements(set, reference.cast::<ManagedSet>())
-                .map_err(managed_read_error)?
-                .into_iter()
-                .map(|value| {
-                    let mut branch = active.clone();
-                    materialize_field(
-                        heap,
-                        layouts,
-                        set.element_type(),
-                        value,
-                        depth + 1,
-                        budget,
-                        &mut branch,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()
-                .map(ReplValue::Set)
-        }
-    }
+    materialization::materialize(heap, layouts, semantic, reference, depth, budget, active)
+        .map_err(|error| error.to_string())
 }
 
 /// Converts one checked managed field into its public runtime representation.
 fn materialize_field(
     heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     field_type: ManagedFieldType,
     value: ManagedFieldValue,
     depth: usize,
@@ -587,7 +455,7 @@ fn materialize_field(
 /// Materializes a sequence or nested fixed aggregate reference.
 fn materialize_reference(
     heap: &ActorHeap,
-    layouts: &ManagedLayoutRegistry,
+    layouts: &PublicManagedMetadata<'_>,
     semantic: SemanticTypeId,
     reference: TvmRef<()>,
     depth: usize,
@@ -629,7 +497,7 @@ fn materialize_reference(
 /// Structural key operations for scalar and reference-valued public collections.
 struct PublicKeySemantics<'a> {
     /// Immutable schemas used to recursively materialize reference keys.
-    layouts: &'a ManagedLayoutRegistry,
+    layouts: &'a PublicManagedMetadata<'a>,
     /// Exact checked key slot category.
     field_type: ManagedFieldType,
     /// Remaining work shared across all key hash and equality operations.
@@ -639,7 +507,7 @@ struct PublicKeySemantics<'a> {
 impl<'a> PublicKeySemantics<'a> {
     /// Binds key semantics to one checked map or set schema.
     fn new(
-        layouts: &'a ManagedLayoutRegistry,
+        layouts: &'a PublicManagedMetadata<'a>,
         field_type: ManagedFieldType,
         budget: usize,
     ) -> Self {

@@ -552,40 +552,15 @@ pub demo(): Unit ->\n\
     assert_eq!(call.effects, core_io_effect_set());
 }
 
-/// Verifies all `std.log.Log` calls lower to CoreIR runtime capabilities.
-///
-/// Inputs:
-/// - Syntax-output modules that call each public `std.log.Log` level helper.
-///
-/// Output:
-/// - Test passes when every function body lowers to
-///   `CoreExpr::Intrinsic(runtime.console.println)` with one typed string
-///   argument, a `Unit` return type, and an `io` effect label.
-///
-/// Transformation:
-/// - Parses normal Terlan source for each log level, lowers it through the
-///   CoreIR path, and verifies the portable logging API calls do not remain
-///   normal remote module calls that would require a generated `std_log`
-///   runtime module.
+/// Logging policy remains an ordinary module call until its source is linked.
 #[test]
-pub(super) fn syntax_output_lowering_to_core_maps_all_std_log_levels_to_runtime_capability() {
+pub(super) fn syntax_output_lowering_to_core_preserves_std_log_source_calls() {
     for level in ["debug", "info", "warn", "error"] {
-        assert_std_log_level_lowers_to_runtime_capability(level);
+        assert_std_log_level_remains_source_call(level);
     }
 }
 
-/// Asserts one `std.log.Log` level lowers to the runtime console capability.
-///
-/// Inputs:
-/// - `level`: public `std.log.Log` function name to call.
-///
-/// Output:
-/// - Test assertion success or panic.
-///
-/// Transformation:
-/// - Builds a tiny source module for the selected level, lowers it to CoreIR,
-///   and checks the resulting intrinsic call shape.
-pub(super) fn assert_std_log_level_lowers_to_runtime_capability(level: &str) {
+fn assert_std_log_level_remains_source_call(level: &str) {
     let module = parse_module_as_syntax_output(&format!(
         "\
 module core_log_runtime_boundary.\n\
@@ -602,19 +577,15 @@ pub demo(): Unit ->\n\
         .iter()
         .find(|function| function.name == "demo")
         .expect("core demo function");
-    let Some(CoreExpr::Intrinsic(call)) = &function.clauses[0].body.core_expr else {
-        panic!(
-            "expected std.log.Log {level} runtime capability, got {:?}",
-            function.clauses[0].body.core_expr
-        );
-    };
     assert_eq!(
-        call.id,
-        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsolePrintln)
+        function.clauses[0].body.core_expr,
+        Some(CoreExpr::RemoteCall {
+            module: "std.log.Log".to_string(),
+            function: level.to_string(),
+            args: vec![CoreExpr::Binary("\"hello\"".to_string())],
+            type_args: Vec::new(),
+        })
     );
-    assert_eq!(call.args, vec![CoreExpr::Binary("\"hello\"".to_string())]);
-    assert_eq!(call.return_type, CoreType::Named("Unit".to_string()));
-    assert_eq!(call.effects, core_io_effect_set());
 }
 
 /// Verifies selected `std.core.String` receiver methods lower to CoreIR intrinsics.

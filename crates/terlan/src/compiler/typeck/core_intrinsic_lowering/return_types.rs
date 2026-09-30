@@ -17,9 +17,6 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
         CoreRuntimeCapability::ConsolePrintln | CoreRuntimeCapability::ConsoleEprintln => {
             CoreType::Named("Unit".to_string())
         }
-        CoreRuntimeCapability::ClockUnixTimeNs | CoreRuntimeCapability::ClockMonotonicTimeNs => {
-            CoreType::Int
-        }
         CoreRuntimeCapability::FileExists => CoreType::Bool,
         CoreRuntimeCapability::FileReadText => CoreType::Apply {
             constructor: "Result".to_string(),

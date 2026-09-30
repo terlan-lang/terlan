@@ -374,13 +374,6 @@ impl ActiveReplGeneration {
                     self.shard.finish_completed_call(owner)?;
                     return Ok(value.render());
                 }
-                PureNativeExecution::HttpResponse(_) => {
-                    return Err(cancel_repl_generation_call(
-                        &mut self.shard,
-                        owner,
-                        "REPL expression returned an HTTP response",
-                    ));
-                }
                 PureNativeExecution::Suspended(suspension)
                     if suspension.operation() == TvmTransitionOperation::Capability =>
                 {

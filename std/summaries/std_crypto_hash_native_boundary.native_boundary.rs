@@ -11,6 +11,7 @@ pub const NATIVE_MODULE: &str = "std_crypto_hash_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
+    ("sha256", 1),
     ("sha256_bytes", 1),
     ("sha256_framed", 1),
     ("sha256_domain_framed", 2),
@@ -18,6 +19,7 @@ pub const FUNCTIONS: &[(&str, usize)] = &[
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
+    ("sha256", "std.crypto.hash.sha256", 1),
     ("sha256_bytes", "std.crypto.hash.sha256_bytes", 1),
     ("sha256_framed", "std.crypto.hash.sha256_framed", 1),
     ("sha256_domain_framed", "std.crypto.hash.sha256_domain_framed", 2),
@@ -149,6 +151,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
+                        "std.crypto.hash.sha256" => native_unimplemented_operation(operation),
                         "std.crypto.hash.sha256_bytes" => native_unimplemented_operation(operation),
                         "std.crypto.hash.sha256_framed" => native_unimplemented_operation(operation),
                         "std.crypto.hash.sha256_domain_framed" => native_unimplemented_operation(operation),
