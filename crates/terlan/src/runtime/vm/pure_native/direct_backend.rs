@@ -1,9 +1,8 @@
 //! Direct execution-shard loader for admitted Terlan AOT images.
 
+mod closure_entry;
 #[path = "direct_backend/frames.rs"]
 mod frames;
-#[path = "direct_backend/managed_http_response.rs"]
-mod managed_http_response;
 #[path = "direct_backend/managed_values.rs"]
 mod managed_values;
 
@@ -16,7 +15,9 @@ use smallvec::SmallVec;
 
 use crate::runtime::native_image::control::{TvmControlFrame, TvmTransitionOperation};
 use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmDispatchLookup};
-use crate::runtime::native_image::managed::{ManagedExecutionRuntime, SemanticTypeId};
+use crate::runtime::native_image::managed::{
+    ManagedClosureDispatchTable, ManagedExecutionRuntime, SemanticTypeId,
+};
 use crate::runtime::native_image::{
     SealedTvmImage, TvmBoundaryType, TvmCallableDescriptor, TvmContinuationDescriptor,
     TvmExportDescriptor, TVM_DISPATCH_SYMBOL_V4,
@@ -25,11 +26,11 @@ use crate::runtime::vm::bitstring::VmBitString;
 use crate::runtime::vm::ReplValue;
 
 use super::{
-    decode_native_value, NativeContinuationTable, NativeDecodedResult, NativeImageBackend,
-    NativeResultProjection, PendingNativeCompletionFrame, PureNativeExecutionContext,
+    decode_native_value, NativeContinuationTable, NativeImageBackend, PendingNativeCompletionFrame,
+    PureNativeExecutionContext,
 };
 use frames::{capability_result_type, frame_from_status};
-use managed_values::{allocate_public_managed, materialize_public_managed};
+use managed_values::{allocate_public_managed, materialize_public_managed, PublicManagedMetadata};
 
 /// Runtime-ABI-4 native image dispatch ABI with VM-owned table lookup and coverage recording.
 type NativeDispatch = unsafe extern "C" fn(
@@ -58,14 +59,13 @@ struct LoadedDirectImage {
     transition_capacity: usize,
     /// Exact callable export signatures admitted with the image.
     exports: Vec<TvmExportDescriptor>,
+    closures: Arc<ManagedClosureDispatchTable>,
     /// Exact generated continuation signatures admitted with the image.
     continuations: NativeContinuationTable,
     /// Stable descriptor identity used by lifecycle and diagnostic records.
     image_identity: String,
     /// Descriptor digest validated against the sealed executable mapping.
     descriptor_digest: [u8; 32],
-    /// Standard HTTP layouts projected once when this image is admitted.
-    http_response_schema: managed_http_response::HttpResponseSchema,
 }
 
 /// Shard-owned direct native dispatch with no application-call IPC.
@@ -122,8 +122,9 @@ impl DirectNativeBackend {
             descriptor_digest,
             &descriptor.callables,
         )?;
-        let http_response_schema =
-            managed_http_response::HttpResponseSchema::admit(managed.layout_registry());
+        let closures = managed
+            .admitted_closures()
+            .ok_or("error[execution_shard.closure]: executable image has no callable table")?;
         Ok((
             Self {
                 image: Arc::new(LoadedDirectImage {
@@ -132,10 +133,10 @@ impl DirectNativeBackend {
                     dispatch,
                     transition_capacity,
                     exports: descriptor.exports,
+                    closures,
                     continuations: descriptor.continuations.into(),
                     image_identity,
                     descriptor_digest,
-                    http_response_schema,
                 }),
                 transition_scratch: vec![0_i64; transition_capacity],
             },
@@ -279,6 +280,12 @@ impl DirectNativeBackend {
                 self.image
                     .continuations
                     .get(entry_id)
+                    .map(|entry| entry.results.as_slice())
+            })
+            .or_else(|| {
+                self.image
+                    .closures
+                    .callable(entry_id)
                     .map(|entry| entry.results.as_slice())
             })
             .ok_or_else(|| {
@@ -480,6 +487,16 @@ fn transition_capacity(
 }
 
 impl NativeImageBackend for DirectNativeBackend {
+    fn closure_frame(
+        &mut self,
+        context: &mut PureNativeExecutionContext<'_>,
+        request_id: u64,
+        closure: &ReplValue,
+        args: &[ReplValue],
+    ) -> crate::runtime::vm::VmRuntimeResult<TvmControlFrame> {
+        self.dispatch_closure(context, request_id, closure, args)
+    }
+
     fn whole_image_digest(&self) -> Option<[u8; 32]> {
         Some(self.image.sealed.bytes_digest())
     }
@@ -526,26 +543,13 @@ impl NativeImageBackend for DirectNativeBackend {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-        projection: NativeResultProjection,
-    ) -> Result<NativeDecodedResult, String> {
-        if projection == NativeResultProjection::HttpResponse {
-            if let Some(response) = managed_http_response::materialize_http_response(
-                context.managed_ref(),
-                &self.image.http_response_schema,
-                context.owner_id(),
-                result_type,
-                value,
-            )? {
-                return Ok(NativeDecodedResult::HttpResponse(response));
-            }
-        }
+    ) -> Result<ReplValue, String> {
         decode_public_result(
             context.managed_ref(),
             context.owner_id(),
             result_type,
             value,
         )
-        .map(NativeDecodedResult::Value)
     }
 
     fn decode_transition_value(
@@ -699,8 +703,18 @@ fn encode_public_argument(
             managed.allocate_binary_value(owner_id, value.packed_bytes(), value.bit_len())
         }
         (TvmBoundaryType::Managed(identity), value) => {
+            let closures = managed.admitted_closures();
             managed.with_public_allocation(owner_id, |heap, layouts| {
-                allocate_public_managed(heap, layouts, SemanticTypeId::from_bytes(*identity), value)
+                let metadata = PublicManagedMetadata {
+                    layouts,
+                    closures: closures.as_deref(),
+                };
+                allocate_public_managed(
+                    heap,
+                    &metadata,
+                    SemanticTypeId::from_bytes(*identity),
+                    value,
+                )
             })
         }
         (expected, actual) => Err(format!(
@@ -731,10 +745,15 @@ fn decode_public_result(
                 .map_err(|error| format!("error[execution_shard.binary]: {error}"))
         }
         TvmBoundaryType::Managed(identity) => {
+            let closures = managed.admitted_closures();
             managed.with_public_materialization(owner_id, |heap, layouts| {
+                let metadata = PublicManagedMetadata {
+                    layouts,
+                    closures: closures.as_deref(),
+                };
                 materialize_public_managed(
                     heap,
-                    layouts,
+                    &metadata,
                     SemanticTypeId::from_bytes(*identity),
                     value,
                 )
@@ -790,6 +809,14 @@ fn transition_injected_type(
 #[path = "direct_backend_test.rs"]
 #[cfg(test)]
 mod direct_backend_test;
+
+#[cfg(test)]
+#[path = "direct_backend_closure_test.rs"]
+mod direct_backend_closure_test;
+
+#[cfg(test)]
+#[path = "direct_backend_closure_source_test.rs"]
+mod direct_backend_closure_source_test;
 
 #[cfg(test)]
 #[path = "direct_backend_compiled_test.rs"]

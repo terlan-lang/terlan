@@ -42,8 +42,8 @@ const REQUIRED_RESPONSE_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_SESSION_ANCHORS: &[&str] = &[
-    "{SESSION_COOKIE_NAME}={session_id}; Path=/; HttpOnly; SameSite=Lax",
-    "SESSION_COOKIE_NAME",
+    "set_header_with_options(",
+    "\"terlan_session\", identity, \"/\", \"\", 0, false, \"\", true, false, \"Lax\"",
     "runtime.expire(session)",
     "runtime.rotate(session)",
 ];
@@ -204,6 +204,7 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
     diagnostics.extend(validate_required_terms_across(
         root,
         &[
+            "std/http/Session.terl",
             "crates/terlan/src/runtime/vm/http_session/state.rs",
             "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
         ],

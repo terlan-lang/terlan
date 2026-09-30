@@ -9,6 +9,8 @@ mod checked_cache;
 #[cfg(test)]
 mod checked_cache_test;
 mod compile;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+mod http_projection;
 mod linker_identity;
 mod native_cache;
 #[cfg(test)]

@@ -83,8 +83,11 @@ const REQUIRED_RESPONSE_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/http_session.rs",
-        &["Path=/; HttpOnly; SameSite=Lax"],
+        "std/http/Session.terl",
+        &[
+            "set_header_with_options(",
+            "\"terlan_session\", identity, \"/\", \"\", 0, false, \"\", true, false, \"Lax\"",
+        ],
     ),
 ];
 

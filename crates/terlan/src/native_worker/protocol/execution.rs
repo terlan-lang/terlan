@@ -91,6 +91,9 @@ impl CapabilityExecutor for NativeCapabilityExecutor {
         call: CapabilityCall,
         cancellation: &NativeBoundaryCancellationToken,
     ) -> NativeBoundaryWorkerReply {
+        if let Some(binding) = crate::std_native_packages::value_binding(&call.operation) {
+            return super::value_packages::call(&mut self.worker, binding, call);
+        }
         if super::postgres::admits(&call.operation) {
             return self.postgres.call(&mut self.worker, call, cancellation);
         }
@@ -466,6 +469,19 @@ fn admit_call(
             "operation capability is not granted to this worker",
         );
     }
+    if (crate::std_native_packages::value_binding(&call.operation).is_some()
+        || crate::std_native_packages::resource_operation(&call.operation).is_some())
+        && !config.worker_classes.contains("fast")
+    {
+        return write_rejection(
+            config,
+            output,
+            active.len(),
+            call.request_id,
+            "native_boundary.scheduler_denied",
+            "package calls require fast worker admission",
+        );
+    }
     if super::storage::admits(&call.operation)
         && (!config.storage_database || !config.worker_classes.contains("blocking"))
     {
@@ -529,6 +545,14 @@ fn admit_call(
 fn operation_admission(
     operation: &str,
 ) -> Option<(&'static str, NativeBoundaryCancellationPolicy)> {
+    if crate::std_native_packages::value_binding(operation).is_some()
+        || crate::std_native_packages::resource_operation(operation).is_some()
+    {
+        return Some((
+            "package-native",
+            NativeBoundaryCancellationPolicy::NotCancellable,
+        ));
+    }
     if super::postgres::admits(operation) {
         return Some(("postgres", NativeBoundaryCancellationPolicy::Cooperative));
     }
@@ -547,9 +571,6 @@ fn operation_admission(
     }
     if operation.starts_with("std.io.console.") {
         return Some(("stdio", NativeBoundaryCancellationPolicy::NotCancellable));
-    }
-    if operation.starts_with("std.time.clock.") {
-        return Some(("clock", NativeBoundaryCancellationPolicy::NotCancellable));
     }
     None
 }

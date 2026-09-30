@@ -16,6 +16,7 @@ use super::super::validate_continuation_captures;
 /// accepted by the capability boundary.
 pub(crate) fn repl_value_to_boundary_term(value: ReplValue) -> VmRuntimeResult<NativeBoundaryTerm> {
     match value {
+        ReplValue::Map(entries) => entries.into_iter().map(|(key, value)| Ok((repl_value_to_boundary_term(key)?, repl_value_to_boundary_term(value)?))).collect::<VmRuntimeResult<_>>().map(NativeBoundaryTerm::Map),
         ReplValue::Unit => Ok(NativeBoundaryTerm::Unit),
         ReplValue::Int(value) => Ok(NativeBoundaryTerm::Int(value)),
         ReplValue::Float(value) => Ok(value
@@ -239,14 +240,6 @@ pub(super) fn capability_identity(tag: i64) -> VmRuntimeResult<(String, String)>
     match tag {
         1 => Ok(("stdio".to_string(), "std.io.console.println".to_string())),
         35 => Ok(("stdio".to_string(), "std.io.console.eprintln".to_string())),
-        36 => Ok((
-            "clock".to_string(),
-            "std.time.clock.unix_time_ns".to_string(),
-        )),
-        37 => Ok((
-            "clock".to_string(),
-            "std.time.clock.monotonic_time_ns".to_string(),
-        )),
         2 => Ok(("filesystem".to_string(), "std.io.file.exists".to_string())),
         3 => Ok((
             "filesystem".to_string(),

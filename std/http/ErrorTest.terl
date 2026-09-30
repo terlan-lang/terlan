@@ -21,3 +21,13 @@ pub new_populates_http_error_message(): Bool ->
 @test
 pub new_populates_http_error_status(): Bool ->
     assert_equal(400, status(sample_error())).
+
+@test
+pub source_accessors_preserve_independent_error_values(): Bool ->
+    let empty = new(InvalidBody, "", 0);
+    let text = new(InvalidBody, "\u0000invalid body", 599);
+    assert_equal("", empty.message())
+        and assert_equal(0, empty.status())
+        and assert_equal("\u0000invalid body", text.message())
+        and assert_equal(599, text.status())
+        and assert_equal(InvalidBody, text.code()).

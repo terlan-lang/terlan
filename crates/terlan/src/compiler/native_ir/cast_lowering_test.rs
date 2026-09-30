@@ -44,6 +44,129 @@ fn representation_changing_checked_cast_fails_before_linking() {
     assert!(error.starts_with("error[native_ir.cast_check]"), "{error}");
 }
 
+#[test]
+fn nullary_union_cast_inference_requires_one_matching_empty_variant() {
+    use super::constructors::{install_structural_type_layouts, zero_field_managed_variant_layout};
+    use super::expression::infer_native_type_with_constructors;
+    use crate::terlan_typeck::core_type_from_text;
+    use std::collections::HashMap;
+
+    let ty = core_type_from_text("Atom[\"done\"] | {Atom[\"value\"], Int}").unwrap();
+    let target = super::native_type(Some(&ty), "").unwrap();
+    let mut layouts = HashMap::new();
+    install_structural_type_layouts([&ty], &mut layouts).unwrap();
+    assert_eq!(
+        infer_native_type_with_constructors(
+            &CoreExpr::Cast {
+                expr: Box::new(CoreExpr::Var("done".into())),
+                target_type: ty.clone()
+            },
+            &HashMap::from([("done".into(), super::NativeType::Int)]),
+            &HashMap::new(),
+            &layouts,
+        ),
+        None,
+        "a bound value must not turn into a similarly named variant"
+    );
+    for (name, expected) in [("done", Some(target)), ("value", None), ("missing", None)] {
+        let expr = CoreExpr::Cast {
+            expr: Box::new(CoreExpr::Atom(name.into())),
+            target_type: ty.clone(),
+        };
+        assert_eq!(
+            infer_native_type_with_constructors(&expr, &HashMap::new(), &HashMap::new(), &layouts,),
+            expected,
+            "{name}"
+        );
+    }
+    let atom = CoreExpr::Atom("done".into());
+    let mut conflicting = zero_field_managed_variant_layout(&atom, target, &layouts)
+        .unwrap()
+        .unwrap()
+        .clone();
+    conflicting.encoded_layout = std::sync::Arc::from(b"conflicting layout".as_slice());
+    layouts.insert(("conflict".into(), 0), conflicting);
+    assert!(zero_field_managed_variant_layout(&atom, target, &layouts)
+        .unwrap_err()
+        .to_string()
+        .contains("native_ir.constructor_variant"));
+    assert_eq!(
+        infer_native_type_with_constructors(
+            &CoreExpr::Cast {
+                expr: Box::new(atom),
+                target_type: ty
+            },
+            &HashMap::new(),
+            &HashMap::new(),
+            &layouts,
+        ),
+        None
+    );
+}
+
+#[test]
+fn checked_conditional_cast_applies_the_result_type_to_every_branch() {
+    use crate::terlan_typeck::CoreIfClause;
+    for incompatible in [false, true] {
+        let mut core = cast_module(CoreType::Int);
+        let CoreExpr::Cast { expr, .. } = core.functions[0].clauses[0]
+            .body
+            .core_expr
+            .as_mut()
+            .unwrap()
+        else {
+            panic!("cast fixture");
+        };
+        **expr = CoreExpr::If {
+            clauses: vec![
+                CoreIfClause {
+                    condition: CoreExpr::Var("true".into()),
+                    body: CoreExpr::Var("value".into()),
+                },
+                CoreIfClause {
+                    condition: CoreExpr::Var("true".into()),
+                    body: if incompatible {
+                        CoreExpr::Var("false".into())
+                    } else {
+                        CoreExpr::Int(7)
+                    },
+                },
+            ],
+        };
+        let result = NativeModule::lower_application(&[&core]);
+        if incompatible {
+            assert!(result.unwrap_err().contains("native_ir.cast_check"));
+        } else {
+            let modules = result.unwrap();
+            assert!(
+                matches!(&modules[0].functions[0].body, NativeExpr::If { clauses } if clauses.len() == 2)
+            );
+        }
+    }
+}
+
+#[test]
+fn conditional_option_results_keep_context_after_source_helper_inlining() {
+    super::source_constructor_test::check_sources(&[
+        r#"
+module conditional_option_context.
+import std.core.Option.{Some, None, with_default}.
+import type std.core.Option.
+pub struct Value { #text: String, #present: Bool }.
+optional(value: Value): Option[String] ->
+    if { value.#present -> Some(value.#text); true -> None }.
+selected(value: Value): String ->
+    case optional(value) { Some(text) -> text; None -> "missing" }.
+pub check(): Bool ->
+    selected(Value { #text: "kept", #present: true }) == "kept"
+        and selected(Value { #text: "", #present: true }) == ""
+        and selected(Value { #text: "ignored", #present: false }) == "missing"
+        and with_default(optional(Value { #text: "retained", #present: true }), "fallback") == "retained".
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
 fn boxed(value: CoreExpr) -> CoreExpr {
     CoreExpr::Cast {
         expr: Box::new(value),

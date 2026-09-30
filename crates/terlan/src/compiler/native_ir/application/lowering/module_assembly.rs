@@ -130,9 +130,6 @@ pub(super) fn assemble_native_module(
     managed_collections.extend(managed_expression_collection_layouts(
         candidate_expressions(),
     )?);
-    managed_collections.extend(super::super::super::http_values::http_managed_collections(
-        core,
-    )?);
     managed_collections.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
     managed_collections.dedup_by(|left, right| left.as_ref() == right.as_ref());
 

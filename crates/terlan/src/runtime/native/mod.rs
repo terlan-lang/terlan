@@ -12,29 +12,21 @@
 //! are implemented as Rust resources. NativeBoundary remains the bridge and safety
 //! contract layer; this module owns concrete storage and target-native logic.
 
-pub mod base64;
-pub mod ed25519;
-pub mod hash;
 pub mod http;
-pub mod json;
-pub mod md5;
+/// Package-owned JSON adapter, re-exported for remaining legacy dispatch users.
+pub use terlan_data_native as json;
 pub mod path;
 pub mod platform;
 pub mod postgres;
 pub mod random;
 pub mod regex;
 pub mod toml;
-pub mod uri;
 pub mod vector;
 
 #[cfg(test)]
 #[path = "postgres_test.rs"]
 #[cfg(test)]
 mod postgres_test;
-
-#[cfg(test)]
-#[path = "hash_test.rs"]
-mod hash_test;
 
 #[cfg(test)]
 #[path = "platform_test.rs"]

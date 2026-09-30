@@ -5,9 +5,8 @@ use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
 
 use super::{
-    prune_application_to_function_roots, prune_compile_time_router_builders,
-    prune_module_to_function_roots, prune_unreachable_open_std_functions, resolve_scoped_call,
-    FunctionKey,
+    prune_application_to_function_roots, prune_module_to_function_roots,
+    prune_unreachable_open_std_functions, resolve_scoped_call, FunctionKey,
 };
 
 #[test]
@@ -22,6 +21,67 @@ fn unqualified_call_resolves_only_through_the_callers_imports() {
         resolve_scoped_call("app.Main", &imported, "encode_exact", 2, &providers),
         Some(function("std.binary.Binary", "encode_exact", 2))
     );
+}
+
+#[test]
+fn overload_dependencies_survive_every_pruning_path_in_either_declaration_order() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module std.sample.Overloads.
+
+integer_helper(): Int -> 1.
+string_helper(): Int -> 2.
+pub convert(value: Int): Int -> value + integer_helper().
+pub convert(value: String): Int -> string_helper().
+pub selected(): Int -> convert(1).
+pub unused(): Int -> 0.
+"#,
+    )
+    .expect("parse overloaded provider graph");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    assert_eq!(
+        core.functions
+            .iter()
+            .filter(|f| f.name == "convert")
+            .count(),
+        2
+    );
+    for reverse in [false, true] {
+        for mode in 0..3 {
+            let mut core = core.clone();
+            if reverse {
+                core.functions.reverse();
+            }
+            match mode {
+                0 => prune_module_to_function_roots(&mut core, &["selected"]),
+                1 => prune_application_to_function_roots(
+                    std::slice::from_mut(&mut core),
+                    &[function("std.sample.Overloads", "selected", 0)],
+                )
+                .expect("prune overloaded application"),
+                _ => {
+                    let syntax = parse_module_as_syntax_output(
+                        "module app.Main. import std.sample.Overloads. \
+                         pub main(): Int -> Overloads.selected().",
+                    )
+                    .expect("parse application root");
+                    let resolved = resolve_syntax_module_output(&syntax).module;
+                    let mut cores = [lower_syntax_module_output_to_core(&syntax, &resolved), core];
+                    prune_unreachable_open_std_functions(&mut cores);
+                    [_, core] = cores;
+                }
+            }
+            // Before overload specialization, both bodies contribute to the same graph key.
+            for name in ["integer_helper", "string_helper", "convert", "selected"] {
+                assert!(
+                    core.functions.iter().any(|function| function.name == name),
+                    "lost {name}: mode={mode}, reverse={reverse}"
+                );
+            }
+            assert!(!core.functions.iter().any(|f| f.name == "unused"));
+        }
+    }
 }
 
 /// Free-function receiver syntax retains only an explicitly visible provider.
@@ -232,7 +292,7 @@ pub version(): Int -> 4.
 }
 
 #[test]
-fn direct_aot_prunes_static_router_builders_but_retains_handlers() {
+fn source_router_builders_and_callbacks_follow_ordinary_reachability() {
     let syntax = parse_module_as_syntax_output(
         r#"
 module app.Web.
@@ -248,23 +308,20 @@ pub users(router: Router): Router -> Router.get(router, "/users", home).
 pub router(): Router -> users(Router.new()).
 "#,
     )
-    .expect("parse static-router pruning fixture");
+    .expect("parse source-router fixture");
     let resolved = resolve_syntax_module_output(&syntax).module;
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
     let mut cores = vec![core];
 
-    prune_compile_time_router_builders(&mut cores);
+    prune_application_to_function_roots(&mut cores, &[("app.Web".into(), "router".into(), 0)])
+        .expect("retain executable router closure");
 
     let retained = cores[0]
         .functions
         .iter()
         .map(|function| function.name.as_str())
         .collect::<HashSet<_>>();
-    assert_eq!(retained, HashSet::from(["home"]));
-    assert!(cores[0]
-        .exports
-        .iter()
-        .all(|export| !matches!(export.name.as_str(), "router" | "users")));
+    assert_eq!(retained, HashSet::from(["home", "users", "router"]));
 }
 
 fn function(module: &str, name: &str, arity: usize) -> FunctionKey {

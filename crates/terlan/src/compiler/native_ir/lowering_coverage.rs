@@ -145,12 +145,6 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsoleEprintln) => {
             LoweringCoverage::native("Intrinsic.runtime.console.eprintln")
         }
-        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ClockUnixTimeNs) => {
-            LoweringCoverage::native("Intrinsic.runtime.clock.unix_time_ns")
-        }
-        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ClockMonotonicTimeNs) => {
-            LoweringCoverage::native("Intrinsic.runtime.clock.monotonic_time_ns")
-        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileExists) => {
             LoweringCoverage::native("Intrinsic.runtime.file.exists")
         }
@@ -369,11 +363,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatToString => LoweringCoverage::native("Intrinsic.core.float.to_string"),
         P::FloatFromString => LoweringCoverage::native("Intrinsic.core.float.from_string"),
         P::FloatLog => LoweringCoverage::native("Intrinsic.core.float.log"),
-        P::FloatPi => LoweringCoverage::native("Intrinsic.core.float.pi"),
-        P::FloatTau => LoweringCoverage::native("Intrinsic.core.float.tau"),
         P::BoolToString => LoweringCoverage::native("Intrinsic.core.bool.to_string"),
-        P::BoolEqual => LoweringCoverage::native("Intrinsic.core.bool.equal"),
-        P::BoolCompare => LoweringCoverage::native("Intrinsic.core.bool.compare"),
         P::BoolFromString => LoweringCoverage::native("Intrinsic.core.bool.from_string"),
         P::ValueToString => LoweringCoverage::native("Intrinsic.core.value.to_string"),
         P::AtomToString => LoweringCoverage::native("Intrinsic.core.atom.to_string"),
@@ -439,12 +429,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         | P::VmBitStringToIntBe
         | P::VmBitStringToUintLe
         | P::VmBitStringToIntLe => LoweringCoverage::native("Intrinsic.vm.bitstring"),
-        P::StringEqual
-        | P::StringCompare
-        | P::StringToString
-        | P::StringFromString
-        | P::StringIsEmpty
-        | P::StringAppend
+        P::StringCompare
         | P::StringConcat
         | P::StringContains
         | P::StringStartsWith
@@ -468,7 +453,6 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::VmEffectRun => LoweringCoverage::rewritten("Intrinsic.vm.effect.run"),
         P::TypeOf
         | P::IsType
-        | P::CryptoSha256
         | P::ListConcat
         | P::ListSubtract
         | P::ListPush

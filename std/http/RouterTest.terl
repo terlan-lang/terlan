@@ -40,4 +40,5 @@ pub sample_router(): Router ->
     Router.error(router_9, render_error).
 
 @test
-pub router_builder_records_route_group_fallback_and_error_steps(): Bool -> true.
+pub router_builder_records_route_group_fallback_and_error_steps(): Bool ->
+    sample_router() != Router.new().

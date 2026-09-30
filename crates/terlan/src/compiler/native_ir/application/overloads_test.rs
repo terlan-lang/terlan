@@ -73,6 +73,21 @@ pub check(): Bool -> integer(41) == 42 and floating(40.0) == 42.0.
     ]);
 }
 
+/// Standard module spelling must not override the declared argument types.
+#[test]
+fn selected_imports_use_declared_types_not_standard_module_names() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module imports.SourceAuthority.
+import std.core.Int.{equal}.
+import imports.Numbers.{equal}.
+pub check(): Bool -> equal("same", "same") and equal(1, 2).
+"#,
+        "module std.core.Int. pub equal(left: String, right: String): Bool -> left == right.",
+        "module imports.Numbers. pub equal(left: Int, right: Int): Bool -> left != right.",
+    ]);
+}
+
 /// Explicit selection takes precedence over a same-name whole-module provider.
 #[test]
 fn selected_import_keeps_its_provider_beside_a_whole_module_import() {
@@ -153,12 +168,11 @@ fn selected_import_overloads_reject_indistinguishable_providers() {
     }
 }
 
-/// Intrinsic-only providers retain checked signatures after body pruning.
+/// Source-backed Boolean calls resolve alongside the remaining intrinsic providers.
 #[test]
 fn selected_imports_admit_primitive_and_source_backed_candidates_together() {
-    let mut boolean =
+    let boolean =
         core("module std.core.Bool. pub equal(left: Bool, right: Bool): Bool -> left == right.");
-    boolean.functions.clear();
     let integer =
         core("module std.core.Int. pub equal(left: Int, right: Int): Bool -> left == right.");
     let caller = core(
@@ -167,13 +181,10 @@ fn selected_imports_admit_primitive_and_source_backed_candidates_together() {
     );
     let mut modules = vec![caller, boolean, integer];
     resolve_selected_imports(&mut modules).expect("resolve selected intrinsic signature");
-    assert!(matches!(
-        modules[0].functions[0].clauses[0].body.core_expr.as_ref(),
-        Some(CoreExpr::Intrinsic(call))
-            if call.id == crate::terlan_typeck::CoreIntrinsicId::Primitive(
-                crate::terlan_typeck::CorePrimitiveIntrinsic::BoolEqual
-            )
-    ));
+    assert_eq!(
+        direct_call_target(&modules[0], "check"),
+        "std.core.Bool.equal"
+    );
 }
 
 /// Lowers one source fixture into CoreIR without entering NativeIR.

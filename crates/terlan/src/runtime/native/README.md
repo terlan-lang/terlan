@@ -1,7 +1,8 @@
 # Terlan Native Runtime Internals
 
-This directory owns concrete Rust-native adapter implementations used by
-standard-library modules.
+This directory contains legacy Rust-native adapters still awaiting migration to
+their owning standard-library packages. New library implementations belong in
+`std/<package>`, not in the compiler or VM.
 
 ## Responsibilities
 
@@ -13,16 +14,19 @@ standard-library modules.
 ## Public Surface
 
 - `mod.rs`: module exports and safety lints.
-- `base64.rs`: Rust-backed Base64 encoding and decoding adapter.
 - `http.rs`: Rust-backed HTTP request/response/cookie adapter.
-- `json.rs`: Rust-backed JSON value, parser, and encoder adapter.
+- `json` re-export: interim access to the package-owned adapter in
+  `std/data/native`; JSON implementation and tests no longer live here.
 - `path.rs`: Rust-backed lexical path adapter.
 - `postgres.rs`: Rust Postgres pool, query, transaction, and row adapter.
-- `uri.rs`: Rust-backed URI parser and renderer adapter.
 - `vector.rs`: Rust-owned indexed vector resource used through NativeBoundary
   handles.
 
 ## Integration Points
+
+- URI, encoding, and Ed25519 copied-value operations are composed in
+  `std/native/packages.rs` and dispatched through the generic native boundary.
+  Their implementations and tests live under their owning packages.
 
 - `runtime/native_boundary/dispatch.rs` calls native adapters after validating bridge
   operation ids and argument shapes.

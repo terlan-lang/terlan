@@ -155,7 +155,7 @@ fn resolve_args(root: &Path) -> ResolveArgs {
 fn prepare_remote(root: &Path, yanked: bool) {
     fs::create_dir_all(root).unwrap();
     let seed = STANDARD.encode([29_u8; 32]);
-    let public_key = crate::runtime::native::ed25519::sign(&seed, "probe")
+    let public_key = terlan_std_native::crypto::ed25519::sign(&seed, "probe")
         .unwrap()
         .public_key_base64;
     let pin = TrustPin {
@@ -282,7 +282,7 @@ fn envelope<T: Serialize>(route: &str, value: &T, seed: &str) -> Vec<u8> {
     let input = format!(
         "terlan-registry-signed-resource-v1\n{ORIGIN}\n{route}\n{payload_sha}\n{payload_base64}"
     );
-    let signature = crate::runtime::native::ed25519::sign(seed, &input).unwrap();
+    let signature = terlan_std_native::crypto::ed25519::sign(seed, &input).unwrap();
     serde_json::to_vec(&SignedResourceRecord {
         schema: "terlan-registry-signed-resource-v1".into(),
         origin: ORIGIN.into(),

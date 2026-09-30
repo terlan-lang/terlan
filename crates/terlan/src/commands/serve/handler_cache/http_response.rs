@@ -2,7 +2,7 @@
 
 use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::vm::protocol_task_executor::with_current_protocol_resource;
-use crate::runtime::vm::{ReplValue, VmHttpCallResult};
+use crate::runtime::vm::ReplValue;
 
 use super::invocation::AotHandlerInvocationStep;
 use super::{finish_immediate_step, AotHandlerRuntime, LocalImmediateShard};
@@ -15,13 +15,13 @@ impl AotHandlerRuntime {
         module: &str,
         function: &str,
         args: Vec<ReplValue>,
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.require_module(module)?;
         let mut step = self.begin_request_invocation(module, function, args)?;
         loop {
             step = match step {
                 AotHandlerInvocationStep::Complete(value) => {
-                    return Ok(VmHttpCallResult::Generic(value));
+                    return Ok(value);
                 }
                 AotHandlerInvocationStep::TimerWaiting(invocation) => {
                     invocation.resume_at_deadline().await?
@@ -48,7 +48,7 @@ impl AotHandlerRuntime {
         function: &str,
         request: RequestParts,
         projection: RequestFieldProjection,
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         if let Some((entry, field)) = self.scalar_request_ingress(module, function, 1) {
             let entry = entry.to_string();
             let argument = scalar_request_argument(request, field)?;
@@ -67,7 +67,7 @@ impl AotHandlerRuntime {
         function: &str,
         args: Vec<ReplValue>,
         _output: &mut dyn FnMut(&str),
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.require_module(module)?;
         if let Some(value) = with_current_protocol_resource(
             self.generation.identity,
@@ -84,7 +84,6 @@ impl AotHandlerRuntime {
             return Ok(value);
         }
         finish_immediate_step(self.begin_request_invocation(module, function, args)?)
-            .map(VmHttpCallResult::Generic)
     }
 
     pub(in crate::commands::serve) fn execute_projected_http_request(
@@ -94,7 +93,7 @@ impl AotHandlerRuntime {
         request: RequestParts,
         projection: RequestFieldProjection,
         _output: &mut dyn FnMut(&str),
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.require_module(module)?;
         if let Some((entry, field)) = self.scalar_request_ingress(module, function, 1) {
             let entry = entry.to_string();
@@ -126,8 +125,7 @@ impl AotHandlerRuntime {
                 module,
                 &entry,
                 vec![argument.expect("ambient scalar ingress retains its argument")],
-            )?)
-            .map(VmHttpCallResult::Generic);
+            )?);
         }
         let mut request = Some(request);
         if let Some(value) = with_current_protocol_resource(
@@ -158,7 +156,6 @@ impl AotHandlerRuntime {
             projection,
         );
         finish_immediate_step(self.begin_request_invocation(module, function, vec![request])?)
-            .map(VmHttpCallResult::Generic)
     }
 
     fn require_module(&self, module: &str) -> Result<(), String> {

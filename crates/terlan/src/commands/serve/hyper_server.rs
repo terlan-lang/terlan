@@ -20,8 +20,7 @@ use hyper::rt::{Read, ReadBufCursor, Write};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
-use tungstenite::protocol::{Message, Role, WebSocket};
-use tungstenite::Error as WebSocketError;
+use terlan_http_native::websocket::{ErrorKind, Message, Server as WebSocket};
 
 use crate::runtime::vm::protocol_task_executor::{
     protocol_sleep_until, serve_protocol_tasks, VmProtocolTaskFactory, VmReadyTcpStream,
@@ -126,7 +125,7 @@ fn tls_factory(
         let server_config = Arc::clone(&server_config);
         let websocket_hub = Arc::clone(&websocket_hub);
         Box::pin(async move {
-            let io = tls_io::VmTlsHyperIo::handshake(stream, server_config)
+            let io = tls_io::handshake(stream, server_config)
                 .await
                 .map_err(|error| {
                     format!(
@@ -662,7 +661,7 @@ async fn pump_hyper_websocket(
         format!("error[serve.websocket.upgrade]: Hyper upgrade failed: {error}")
     })?;
     let io = HyperWebSocketIo::from_upgraded(upgraded)?;
-    let mut socket = WebSocket::from_raw_socket(io, Role::Server, None);
+    let mut socket = WebSocket::new(io, pending.session.plan().max_frame_bytes());
     let mut pairing = pending.session.plan().pairing().cloned();
     if let Some(pairing) = &mut pairing {
         if pairing.restoration.is_some() {
@@ -739,14 +738,14 @@ async fn pump_hyper_websocket(
                 let _ = pending.session.cancel(error.clone());
                 return Err(error);
             }
-            Err(WebSocketError::Io(error)) if error.kind() == io::ErrorKind::WouldBlock => {
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {
                 protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
             }
-            Err(WebSocketError::Io(error)) if error.kind() == io::ErrorKind::Interrupted => {}
-            Err(WebSocketError::Io(error)) if is_websocket_disconnect(error.kind()) => {
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
+            Err(error) if error.kind() == ErrorKind::Disconnected => {
                 return pending.session.close().map(|_| ());
             }
-            Err(WebSocketError::ConnectionClosed | WebSocketError::AlreadyClosed) => {
+            Err(error) if error.kind() == ErrorKind::Closed => {
                 return pending.session.close().map(|_| ());
             }
             Err(error) => {
@@ -793,16 +792,13 @@ async fn flush_websocket_nonblocking(
 ) -> Result<(), String> {
     loop {
         match socket.flush() {
-            Ok(()) | Err(WebSocketError::ConnectionClosed | WebSocketError::AlreadyClosed) => {
-                return Ok(())
-            }
-            Err(WebSocketError::Io(error)) if error.kind() == io::ErrorKind::WouldBlock => {
+            Ok(()) => return Ok(()),
+            Err(error) if error.kind() == ErrorKind::Closed => return Ok(()),
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {
                 protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
             }
-            Err(WebSocketError::Io(error)) if error.kind() == io::ErrorKind::Interrupted => {}
-            Err(WebSocketError::Io(error)) if is_websocket_disconnect(error.kind()) => {
-                return Ok(())
-            }
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
+            Err(error) if error.kind() == ErrorKind::Disconnected => return Ok(()),
             Err(error) => {
                 return Err(format!("error[serve.websocket.transport]: {error}"));
             }
@@ -818,13 +814,10 @@ async fn drain_hub_outbound(
     loop {
         match outbound.try_recv() {
             Ok(payload) => {
-                match socket.write(Message::Text(payload.into())) {
+                match socket.write_text(payload) {
                     Ok(()) => {}
-                    Err(WebSocketError::Io(error)) if error.kind() == io::ErrorKind::WouldBlock => {
-                    }
-                    Err(WebSocketError::Io(error)) if is_websocket_disconnect(error.kind()) => {
-                        return Ok(false)
-                    }
+                    Err(error) if error.kind() == ErrorKind::WouldBlock => {}
+                    Err(error) if error.kind() == ErrorKind::Disconnected => return Ok(false),
                     Err(error) => {
                         return Err(format!("error[serve.websocket.transport]: {error}"));
                     }
@@ -845,17 +838,6 @@ async fn drain_hub_outbound(
     Ok(true)
 }
 
-fn is_websocket_disconnect(kind: io::ErrorKind) -> bool {
-    matches!(
-        kind,
-        io::ErrorKind::BrokenPipe
-            | io::ErrorKind::ConnectionAborted
-            | io::ErrorKind::ConnectionReset
-            | io::ErrorKind::NotConnected
-            | io::ErrorKind::UnexpectedEof
-    )
-}
-
 fn error_response(status: u16, message: String) -> Response<ResponseBody> {
     Response::builder()
         .status(status)
@@ -871,7 +853,7 @@ fn error_response(status: u16, message: String) -> Response<ResponseBody> {
 #[cfg(test)]
 #[path = "hyper_server_test.rs"]
 #[cfg(test)]
-mod hyper_server_test;
+pub(super) mod hyper_server_test;
 
 /// Serves one blocking stream through the VM HTTP/1 adapter.
 /// Inputs:
@@ -934,55 +916,11 @@ where
     }
 }
 
-#[cfg(test)]
-#[derive(Debug, Eq, PartialEq)]
-pub(in crate::commands::serve) enum PlainHttp1CompletenessError {
-    Parse(httparse::Error),
-    InvalidContentLengthEncoding,
-    InvalidContentLengthValue,
-}
-
-#[cfg(test)]
-impl std::fmt::Display for PlainHttp1CompletenessError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Parse(error) => write!(formatter, "invalid VM plain HTTP request: {error}"),
-            Self::InvalidContentLengthEncoding => {
-                formatter.write_str("invalid VM plain HTTP content-length header")
-            }
-            Self::InvalidContentLengthValue => {
-                formatter.write_str("invalid VM plain HTTP content-length value")
-            }
-        }
-    }
-}
-
-/// Returns whether buffered bytes contain one complete HTTP/1 request.
+/// Returns whether buffered bytes contain one validated HTTP/1 request.
 #[cfg(test)]
 pub(in crate::commands::serve) fn vm_plain_http1_request_complete(
     bytes: &[u8],
-) -> Result<bool, PlainHttp1CompletenessError> {
-    let mut headers = [httparse::EMPTY_HEADER; 64];
-    let mut request = httparse::Request::new(&mut headers);
-    let header_length = match request
-        .parse(bytes)
-        .map_err(PlainHttp1CompletenessError::Parse)?
-    {
-        httparse::Status::Complete(length) => length,
-        httparse::Status::Partial => return Ok(false),
-    };
-    let content_length = request
-        .headers
-        .iter()
-        .find(|header| header.name.eq_ignore_ascii_case("content-length"))
-        .map(|header| {
-            std::str::from_utf8(header.value)
-                .map_err(|_| PlainHttp1CompletenessError::InvalidContentLengthEncoding)?
-                .trim()
-                .parse::<usize>()
-                .map_err(|_| PlainHttp1CompletenessError::InvalidContentLengthValue)
-        })
-        .transpose()?
-        .unwrap_or(0);
-    Ok(bytes.len() >= header_length.saturating_add(content_length))
+) -> Result<bool, terlan_http_native::http1::RequestReadFailure> {
+    terlan_http_native::http1::try_parse_http1_request_buffer(bytes)
+        .map(|request| request.is_some())
 }

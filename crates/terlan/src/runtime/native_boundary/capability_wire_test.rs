@@ -191,3 +191,41 @@ fn capability_recursive_records_preserve_ownership_and_budget_limits() {
     };
     assert!(validate_capability_term_budget(&[rejected]).is_err());
 }
+#[test]
+fn maps_roundtrip_and_account_for_both_keys_and_values() {
+    use super::*;
+    let first = CapabilityHandle {
+        id: 1,
+        generation: 2,
+    };
+    let second = CapabilityHandle {
+        id: 3,
+        generation: 4,
+    };
+    let value = CapabilityValue::Map(vec![(
+        CapabilityValue::Handle(first),
+        CapabilityValue::Map(vec![(
+            CapabilityValue::Text("key".into()),
+            CapabilityValue::Handle(second),
+        )]),
+    )]);
+    assert_eq!(CapabilityValue::from_term(value.clone().into_term()), value);
+    let encoded = serde_json::to_vec(&value).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<CapabilityValue>(&encoded).unwrap(),
+        value
+    );
+    let mut handles = value.owned_handles();
+    handles.sort_by_key(|handle| handle.id);
+    assert_eq!(handles, vec![first, second]);
+    let valid = CapabilityValue::Map(vec![
+        (CapabilityValue::Unit, CapabilityValue::Unit);
+        (MAX_CAPABILITY_TERM_COUNT - 1) / 2
+    ]);
+    validate_capability_term_budget(&[valid]).unwrap();
+    let invalid = CapabilityValue::Map(vec![
+        (CapabilityValue::Unit, CapabilityValue::Unit);
+        MAX_CAPABILITY_TERM_COUNT / 2
+    ]);
+    assert!(validate_capability_term_budget(&[invalid]).is_err());
+}

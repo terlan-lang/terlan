@@ -5,6 +5,7 @@ mod module;
 mod patterns;
 mod proof_payloads;
 mod termination;
+mod type_names;
 mod types;
 mod visit;
 pub(crate) use visit::{visit_core_expr_children_mut, visit_core_expr_mut};
@@ -192,6 +193,11 @@ pub struct CoreFunction {
     pub name: String,
     /// Whether this callable was declared with a receiver, not an ordinary first argument.
     pub receiver_method: bool,
+    /// Whether the declared receiver must be written back after a statement call.
+    pub receiver_mutable: bool,
+    /// Command methods return Unit publicly and the updated receiver internally.
+    #[serde(default)]
+    pub receiver_command: bool,
     /// Source declaration retained independently of generated symbol spelling.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<CoreFunctionSource>,

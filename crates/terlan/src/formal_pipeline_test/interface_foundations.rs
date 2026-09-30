@@ -640,7 +640,8 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
     let uri = interfaces
         .get("std.net.Uri")
         .expect("embedded Uri interface");
-    assert!(uri.opaque_types.contains("Uri"));
+    assert!(!uri.opaque_types.contains("Uri"));
+    assert!(uri.struct_fields.contains_key("Uri"));
     assert!(uri.public_types.contains("UriError"));
     assert!(uri.functions.contains_key(&("parse".to_string(), 1)));
     let host = uri
@@ -652,7 +653,8 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
     let request = interfaces
         .get("std.http.Request")
         .expect("embedded Request interface");
-    assert!(request.opaque_types.contains("Request"));
+    assert!(!request.opaque_types.contains("Request"));
+    assert!(request.struct_fields.contains_key("Request"));
     assert!(request.functions.contains_key(&("method".to_string(), 1)));
     assert!(request.functions.contains_key(&("path".to_string(), 1)));
     assert!(request.functions.contains_key(&("param".to_string(), 2)));
@@ -666,7 +668,8 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
     let response = interfaces
         .get("std.http.Response")
         .expect("embedded Response interface");
-    assert!(response.opaque_types.contains("Response"));
+    assert!(!response.opaque_types.contains("Response"));
+    assert!(response.struct_fields.contains_key("Response"));
     assert!(response.functions.contains_key(&("text".to_string(), 2)));
     assert!(response.functions.contains_key(&("html".to_string(), 2)));
     assert!(response
@@ -679,7 +682,8 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
     let cookies = interfaces
         .get("std.http.Cookies")
         .expect("embedded Cookies interface");
-    assert!(cookies.opaque_types.contains("Jar"));
+    assert!(!cookies.opaque_types.contains("Jar"));
+    assert!(cookies.struct_fields.contains_key("Jar"));
     assert!(cookies.public_types.contains("Options"));
     assert!(cookies.public_types.contains("SameSite"));
     assert!(cookies.functions.contains_key(&("get".to_string(), 2)));
@@ -689,7 +693,8 @@ fn embedded_std_interfaces_include_web_data_utility_contracts() {
     let router = interfaces
         .get("std.http.Router")
         .expect("embedded Router interface");
-    assert!(router.opaque_types.contains("Router"));
+    assert!(!router.opaque_types.contains("Router"));
+    assert!(router.struct_fields.contains_key("Router"));
     assert!(router.public_types.contains("Handler"));
     assert!(router.functions.contains_key(&("new".to_string(), 0)));
     assert!(router.functions.contains_key(&("get".to_string(), 3)));

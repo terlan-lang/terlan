@@ -7,7 +7,7 @@ pub(super) enum StreamResponseError {
     Shape,
     Chunk,
     Metadata(String),
-    Limits(crate::runtime::vm::http_response_chunks::InvalidHttpStreamLimits),
+    Limits(terlan_http_native::InvalidHttpStreamLimits),
 }
 
 impl std::fmt::Display for StreamResponseError {
@@ -42,7 +42,7 @@ pub(super) fn decode(rest: &[ReplValue]) -> Result<HandlerResponse, StreamRespon
             _ => Err(StreamResponseError::Chunk),
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let stream = VmHttpResponseChunks::new(chunks, *chunk_size, *max_pending_writes)
+    let stream = HttpResponseChunks::new(chunks, *chunk_size, *max_pending_writes)
         .map_err(StreamResponseError::Limits)?;
     Ok(HandlerResponse {
         status,

@@ -47,6 +47,7 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
                 vec![middleware_request.clone()],
                 output,
             )
+            .map_err(String::from)
         },
     )?;
     match outcome {

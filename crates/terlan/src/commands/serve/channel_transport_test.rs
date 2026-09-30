@@ -249,6 +249,34 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
         "server close frame must follow the upgrade head"
     );
 
+    // Route limits must reach the maintained codec before callback admission.
+    for fragmented in [false, true] {
+        let exchange = handle_vm_stream_http1_exchange(
+            &web_root,
+            b"GET /socket HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+        )
+        .expect("admit bounded WebSocket exchange");
+        let mut client = WebSocket::from_raw_socket(MemoryDuplex::new(vec![]), Role::Client, None);
+        if fragmented {
+            use tungstenite::protocol::frame::{coding::Data, coding::OpCode, Frame};
+            for (kind, last) in [(Data::Text, false), (Data::Continue, true)] {
+                client
+                    .send(Message::Frame(Frame::message(
+                        vec![b'a'; 600],
+                        OpCode::Data(kind),
+                        last,
+                    )))
+                    .unwrap();
+            }
+        } else {
+            client.send(Message::text("a".repeat(1025))).unwrap();
+        }
+        let mut stream = MemoryDuplex::new(client.into_inner().written);
+        let error = serve_vm_stream_http1_exchange(&mut stream, exchange).unwrap_err();
+        assert!(error.contains("serve.websocket.transport"), "{error}");
+        assert!(error.contains("Space limit exceeded"), "{error}");
+    }
+
     let mut sse = handle_vm_stream_http1_exchange(
         &web_root,
         b"GET /events HTTP/1.1\r\nHost: localhost\r\n\r\n",

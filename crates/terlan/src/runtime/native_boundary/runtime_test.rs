@@ -3,6 +3,56 @@ use crate::terlan_native::{json, postgres};
 use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken;
 use crate::terlan_native_boundary::resource::{ResourceError, ResourceValue};
 
+#[test]
+fn retired_http_value_operations_reject_handles_without_changing_resources() {
+    let mut runtime = NativeBoundaryRuntime::new();
+    let handle = runtime
+        .resources
+        .insert(ResourceValue::Json(json::string("unchanged")))
+        .unwrap();
+    let before = runtime.resources.clone();
+    for (operation, arity) in [
+        ("std.http.cookies.get", 2),
+        ("std.http.cookies.set", 6),
+        ("std.http.cookies.delete", 3),
+        ("std.http.response.with_cookies", 2),
+        ("std.http.response.text", 2),
+        ("std.http.response.html", 2),
+        ("std.http.response.json_text", 2),
+        ("std.http.response.file", 3),
+        ("std.http.response.stream", 5),
+        ("std.http.response.redirect", 2),
+        ("std.http.response.status", 2),
+        ("std.http.response.header", 3),
+    ] {
+        for args in [
+            vec![],
+            vec![NativeBoundaryTerm::Text("not a handle".into()); arity],
+            vec![
+                NativeBoundaryTerm::Handle {
+                    id: handle.id,
+                    generation: handle.generation
+                };
+                arity
+            ],
+            vec![
+                NativeBoundaryTerm::Handle {
+                    id: u64::MAX,
+                    generation: u64::MAX
+                };
+                arity
+            ],
+        ] {
+            assert!(
+                matches!(runtime.call(operation, &args),
+                NativeBoundaryReplyTerm::Error { code, .. } if code == "dispatch.unknown_operation"),
+                "{operation}"
+            );
+            assert_eq!(runtime.resources, before);
+        }
+    }
+}
+
 /// Extracts a handle from a successful reply term.
 ///
 /// Inputs:
@@ -239,133 +289,10 @@ fn runtime_executes_path_optional_handle_operations_through_terms() {
     ));
 }
 
-/// Verifies HTTP cookie jars execute through the term runtime path.
-///
-/// Inputs:
-/// - A server-owned request resource with one parsed incoming cookie.
-///
-/// Output:
-/// - Test passes when the runtime creates a cookie jar handle, reads an
-///   incoming cookie, and records cookie set/delete mutations as `Unit`
-///   operations.
-///
-/// Transformation:
-/// - Exercises the bridge path a server adapter will use: register request
-///   state, call `Request.cookies`, then mutate the returned jar by handle.
-#[test]
-fn runtime_executes_http_cookie_jar_operations_through_terms() {
-    let mut runtime = NativeBoundaryRuntime::new();
-    let request = http::Request::from_parts_with_metadata(
-        "GET",
-        "/profile",
-        "",
-        Vec::new(),
-        Vec::new(),
-        vec![("theme".to_string(), "dark".to_string())],
-    );
-    let Some(request) = runtime.register_http_request(request).ok() else {
-        return;
-    };
-    let Some(jar) = handle_reply(runtime.call(
-        "std.http.request.cookies",
-        &[NativeBoundaryTerm::Handle {
-            id: request.id,
-            generation: request.generation,
-        }],
-    )) else {
-        return;
-    };
-
-    assert_eq!(
-        runtime.call(
-            "std.http.cookies.get",
-            &[
-                NativeBoundaryTerm::Handle {
-                    id: jar.id,
-                    generation: jar.generation,
-                },
-                NativeBoundaryTerm::Text(String::from("theme")),
-            ],
-        ),
-        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::OptionalText(Some(String::from("dark"))))
-    );
-    assert_eq!(
-        runtime.call(
-            "std.http.cookies.set",
-            &[
-                NativeBoundaryTerm::Handle {
-                    id: jar.id,
-                    generation: jar.generation,
-                },
-                NativeBoundaryTerm::Text(String::from("session")),
-                NativeBoundaryTerm::Text(String::from("abc123")),
-                NativeBoundaryTerm::Text(String::from("/")),
-                NativeBoundaryTerm::Bool(true),
-                NativeBoundaryTerm::Bool(false),
-            ],
-        ),
-        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit)
-    );
-    assert_eq!(
-        runtime.call(
-            "std.http.cookies.delete",
-            &[
-                NativeBoundaryTerm::Handle {
-                    id: jar.id,
-                    generation: jar.generation,
-                },
-                NativeBoundaryTerm::Text(String::from("theme")),
-                NativeBoundaryTerm::Text(String::from("/")),
-            ],
-        ),
-        NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Unit)
-    );
-    assert_eq!(
-        runtime.http_cookie_mutations(jar),
-        Ok(vec![
-            String::from("session=abc123; HttpOnly; Path=/"),
-            String::from("theme=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
-        ])
-    );
-}
-
-/// Verifies HTTP response resources can be returned to a server adapter.
-///
-/// Inputs:
-/// - Response text and status supplied through stable runtime terms.
-///
-/// Output:
-/// - Test passes when `std.http.response.text` returns a handle that can be
-///   read back as a portable HTTP response snapshot.
-///
-/// Transformation:
-/// - Exercises the last step of handler execution without requiring any live
-///   database state.
-#[test]
-fn runtime_returns_http_response_resources_through_terms() {
-    let mut runtime = NativeBoundaryRuntime::new();
-    let Some(response) = handle_reply(runtime.call(
-        "std.http.response.text",
-        &[
-            NativeBoundaryTerm::Text(String::from("ok")),
-            NativeBoundaryTerm::Int(202),
-        ],
-    )) else {
-        return;
-    };
-    let Some(response) = runtime.http_response(response).ok() else {
-        return;
-    };
-
-    assert_eq!(response.status_code(), 202);
-    assert_eq!(response.content_type(), "text/plain; charset=utf-8");
-    assert_eq!(response.body(), "ok");
-}
-
 /// Verifies response extraction rejects non-response resource handles.
 ///
 /// Inputs:
-/// - A request handle registered in the runtime.
+/// - A JSON handle registered in the runtime.
 ///
 /// Output:
 /// - Test passes when extracting it as a response returns `resource.kind`.
@@ -375,12 +302,12 @@ fn runtime_returns_http_response_resources_through_terms() {
 #[test]
 fn runtime_rejects_non_response_handles_as_handler_results() {
     let mut runtime = NativeBoundaryRuntime::new();
-    let request = http::Request::from_parts("GET", "/", "");
-    let Some(request) = runtime.register_http_request(request).ok() else {
-        return;
-    };
+    let json = runtime
+        .resources
+        .insert(ResourceValue::Json(json::null()))
+        .expect("non-response fixture");
     let error = runtime
-        .http_response(request)
+        .http_response(json)
         .err()
         .unwrap_or_else(|| ResourceError::new("missing", "missing"));
 
@@ -395,37 +322,19 @@ fn runtime_rejects_non_response_handles_as_handler_results() {
 ///
 /// Output:
 /// - Test is skipped when no URL is configured.
-/// - Test passes when one runtime owns request state, a live Postgres pool,
+/// - Test passes when one runtime owns a live Postgres pool,
 ///   the queried row, and the final HTTP response resource.
 ///
 /// Transformation:
-/// - Simulates the server bridge sequence for a Terlan HTTP handler: register
-///   the request, read request data through `std.http.request.*`, connect and
-///   query through `std.db.postgres.*`, then return `std.http.response.text`.
+/// - Exercises native query and response boundaries with a path already read
+///   by Terlan source. Request accessors are tested through source execution.
 #[test]
 fn runtime_executes_full_cycle_http_postgres_handler_when_configured() {
     let Some(url) = live_postgres_url("live HTTP handler Postgres runtime test") else {
         return;
     };
     let mut runtime = NativeBoundaryRuntime::new();
-    let request = http::Request::from_parts_with_metadata(
-        "GET",
-        "/db-health",
-        "",
-        Vec::new(),
-        vec![(String::from("check"), String::from("postgres"))],
-        Vec::new(),
-    );
-    let Some(request) = runtime.register_http_request(request).ok() else {
-        return;
-    };
-
-    let Some(path) = text_reply(runtime.call("std.http.request.path", &[handle_term(request)]))
-    else {
-        return;
-    };
-    assert_eq!(path, "/db-health");
-
+    let path = "/db-health";
     let Some(path_json) = handle_reply(runtime.call(
         "std.data.json.parse",
         &[NativeBoundaryTerm::Text(String::from("\"/db-health\""))],
@@ -473,22 +382,7 @@ fn runtime_executes_full_cycle_http_postgres_handler_when_configured() {
     )) else {
         return;
     };
-    let Some(response) = handle_reply(runtime.call(
-        "std.http.response.text",
-        &[
-            NativeBoundaryTerm::Text(format!("{path}:{status}")),
-            NativeBoundaryTerm::Int(200),
-        ],
-    )) else {
-        return;
-    };
-    let Some(response) = runtime.http_response(response).ok() else {
-        return;
-    };
-
-    assert_eq!(response.status_code(), 200);
-    assert_eq!(response.content_type(), "text/plain; charset=utf-8");
-    assert_eq!(response.body(), "/db-health:postgres-ok");
+    assert_eq!(format!("{path}:{status}"), "/db-health:postgres-ok");
 }
 
 /// Verifies disposed handles are rejected by later runtime calls.

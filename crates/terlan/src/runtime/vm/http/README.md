@@ -3,6 +3,9 @@
 This directory owns focused HTTP lifecycle, deadline, response-memory, and
 template-response helpers for the VM HTTP server. The parent `http.rs` module
 owns protocol dispatch; these modules own bounded subsystem state.
+Buffered HTTP/1 request decoding and response encoding are supplied by
+`terlan-http-native::http1`, not implemented in this VM directory. The remaining
+`response_wire` adapter only converts package errors into VM text diagnostics.
 
 ## Responsibilities
 
@@ -22,6 +25,9 @@ and exits the handler with a stable typed reason.
 - `runtime::vm::http`: owns server polling and protocol state.
 - `runtime::vm::timer`: supplies deterministic process-owned deadlines.
 - `runtime::vm::tcp`: owns stream lifecycle and queued bytes.
+- `std/http/native/src/http1`: owns maintained-parser integration, request
+  framing validation, independent header/body limits, response wire encoding,
+  and typed read/write failures.
 
 ## Testing Notes
 

@@ -13,10 +13,10 @@ use crate::runtime::native_boundary::dispatch::capture_tool_command;
 use crate::runtime::native_boundary::dispatch::capture_tool_command_with_launch;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-use crate::compiler::native_ir::native_request_projections;
+use crate::compiler::native_ir::native_aggregate_projections;
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
-    emit_native_application_object_with_policy, install_native_request_projection_exports,
+    emit_native_application_object_with_policy, install_native_aggregate_projection_exports,
     NativeCodegenPolicy, NativeModule, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
@@ -150,14 +150,15 @@ fn compile_native_application_image_with_identity(
     // modules here would invalidate every application-wide direct-call index.
     validate_export_id_uniqueness(&natives)?;
     #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    let request_projections = if policy == NativeCodegenPolicy::Serve {
-        install_native_request_projection_exports(&mut natives)
-    } else {
-        native_request_projections(&natives)
-    };
+    let request_projections =
+        super::http_projection::request_projections(if policy == NativeCodegenPolicy::Serve {
+            install_native_aggregate_projection_exports(&mut natives)
+        } else {
+            native_aggregate_projections(&natives)
+        });
     #[cfg(feature = "serve-runtime-bin")]
     if policy == NativeCodegenPolicy::Serve {
-        install_native_request_projection_exports(&mut natives);
+        install_native_aggregate_projection_exports(&mut natives);
     }
     validate_export_id_uniqueness(&natives)?;
     let debug_metadata = if debug_inputs.is_empty() {
@@ -395,14 +396,33 @@ pub(crate) fn compile_serve_native_image(
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create serve AOT output directory: {error}"))?;
     let native_cache_root = workspace.join("native-aot");
-    compile_native_application_image(
+    let state = crate::CliState {
+        native_policy: crate::validation::native_policy::NativePolicy::NativeBoundaryOptional,
+        ..crate::CliState::default()
+    };
+    let imported =
+        super::std_source::compile_imported_std_source_modules(&[core], web_root, &state)
+            .map_err(build_error_message)?;
+    let cores = std::iter::once(core)
+        .chain(imported.iter().map(|module| &module.compiled.core))
+        .collect::<Vec<_>>();
+    let roots = core
+        .functions
+        .iter()
+        .filter(|function| function.public)
+        .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+        .collect::<Vec<_>>();
+    compile_rooted_native_application_image(
         &vm_dir,
         &native_cache_root,
         module_stem,
-        &[core],
-        &[],
-        NativeCodegenPolicy::Serve,
-        true,
+        &cores,
+        RootedNativeApplicationInput {
+            roots: &roots,
+            debug_inputs: &[],
+            policy: NativeCodegenPolicy::Serve,
+            incremental: true,
+        },
     )
     .map(|image| image.map(|image| image.cached_image_path))
     .map_err(build_error_message)

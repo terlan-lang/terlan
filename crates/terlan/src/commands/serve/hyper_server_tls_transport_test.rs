@@ -13,7 +13,7 @@ fn tls_plaintext_is_drained_before_authenticated_close_or_truncation() {
         let config = Arc::clone(&config);
         let send = send.clone();
         Box::pin(async move {
-            let mut io = tls_io::VmTlsHyperIo::handshake(stream, config)
+            let mut io = tls_io::handshake(stream, config)
                 .await
                 .map_err(|error| error.to_string())?;
             let mut received = Vec::new();
@@ -77,12 +77,9 @@ fn silent_tls_peer_expires_on_the_vm_owner_timer() {
         let config = Arc::clone(&config);
         let send = send.clone();
         Box::pin(async move {
-            let outcome = tls_io::VmTlsHyperIo::handshake_until(
-                stream,
-                config,
-                Instant::now() + Duration::from_millis(50),
-            )
-            .await;
+            let outcome =
+                tls_io::handshake_until(stream, config, Instant::now() + Duration::from_millis(50))
+                    .await;
             send.send(outcome.err().map(|error| error.kind())).unwrap();
             Ok(())
         })

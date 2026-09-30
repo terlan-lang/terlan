@@ -5,3 +5,19 @@ import std.crypto.Ed25519.
 @test
 pub invalid_material_fails_closed(): Bool ->
     not Ed25519.verify("invalid", "payload", "invalid").
+
+@test
+pub rfc8032_empty_message_is_valid(): Bool ->
+    Ed25519.verify(
+        "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+        "",
+        "5VZDAMNgrHKQhuLMgG6CioSHfx645dl02HPgZSJJAVVfuIIVkKM7rMYeOXAc+bRr0lv18FlbviRlUUFDjnoQCw==",
+    ).
+
+@test
+pub changed_message_is_invalid(): Bool ->
+    not Ed25519.verify(
+    "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+    "changed",
+    "5VZDAMNgrHKQhuLMgG6CioSHfx645dl02HPgZSJJAVVfuIIVkKM7rMYeOXAc+bRr0lv18FlbviRlUUFDjnoQCw==",
+).

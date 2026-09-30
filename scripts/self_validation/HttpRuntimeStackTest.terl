@@ -102,10 +102,10 @@ marker_paths(root: String): List[String] ->
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
-        String.append(root, "/crates/terlan/src/commands/serve/server_lifecycle.rs"),
-        String.append(root, "/crates/terlan/src/runtime/native/http.rs"),
-        String.append(root, "/crates/terlan/src/runtime/native/http.rs"),
-        String.append(root, "/crates/terlan/src/runtime/native/http/cookies.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/server_lifecycle/vm_stream.rs"),
+        String.append(root, "/std/http/native/src/response.rs"),
+        String.append(root, "/std/http/native/src/response.rs"),
+        String.append(root, "/std/http/native/src/cookies.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
@@ -119,9 +119,9 @@ required_markers(): List[String] ->
         "hyper::server::conn::http1",
         "serve_protocol_tasks",
         "VmReadyTcpStream",
-        "http1::Builder::new().serve_connection",
+        ".serve_connection(HyperVmIo::new(stream), service)",
         "struct HyperVmIo",
-        "hyper_server::serve(listener, web_root)",
+        "hyper_server::serve(listener, web_root, max_body_bytes)",
         "pub fn content_type_for_path",
         "mime_guess::from_path(path)",
         "Cookie::split_parse(cookie_header.to_string())",
@@ -141,6 +141,7 @@ forbidden_patterns(): List[String] ->
         "\\btokio::time::interval\\s*\\(",
         "\\bDefaultHasher::new\\s*\\(",
         "\\bweb_package_snapshot\\s*\\(",
+        "\\btungstenite::",
     ].
 
 @test
@@ -166,6 +167,17 @@ pub maintained_hyper_connection_is_accepted(): Bool ->
         "http1::Builder::new().serve_connection(io, service)",
         forbidden_patterns(),
     ).
+
+@test
+pub websocket_protocol_stays_in_the_http_package(): Bool ->
+    not source_rejects_no_patterns(
+        "use tungstenite::protocol::WebSocket;",
+        forbidden_patterns(),
+    )
+        and source_rejects_no_patterns(
+            "use terlan_http_native::websocket::Server;",
+            forbidden_patterns(),
+        ).
 
 @test
 pub make_target_block_requires_owned_command(): Bool ->

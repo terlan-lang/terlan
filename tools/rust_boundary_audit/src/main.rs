@@ -18,6 +18,8 @@ use api_boundary_input::write_api_boundary_input;
 mod structural_input;
 use structural_input::write_structural_input;
 mod shared_helper_input;
+#[cfg(test)]
+mod source_inventory_test;
 use shared_helper_input::write_shared_helper_input;
 
 const THIN_BINARIES: [(&str, &str); 8] = [
@@ -469,7 +471,7 @@ fn collect_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), AuditError
         if child.is_dir() {
             if !matches!(
                 child.file_name().and_then(|name| name.to_str()),
-                Some("target" | ".git")
+                Some("target" | ".git" | "summaries" | "_build")
             ) {
                 collect_files(&child, files)?;
             }
@@ -500,7 +502,7 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
     let mut files = Vec::new();
     for member_source in [
         root.join("crates/terlan/src"),
-        root.join("std/native/libpq/generated/native/rust/src"),
+        root.join("std"),
         root.join("tools/rust_boundary_audit/src"),
     ] {
         collect_files(&member_source, &mut files)?;
@@ -524,7 +526,7 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
             })?
             .to_string_lossy()
             .into_owned();
-        if relative.starts_with("crates/terlan/src/") {
+        if relative.starts_with("crates/terlan/src/") || relative.starts_with("std/") {
             source_files.push(json!({
                 "path": relative,
                 "physical_lines": source.lines().count(),
@@ -557,6 +559,7 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
 
     let mut boundary_files = Vec::new();
     collect_files(&root.join("crates"), &mut boundary_files)?;
+    collect_files(&root.join("std"), &mut boundary_files)?;
     boundary_files.sort();
     let mut cross_tree_path_attributes = Vec::new();
     let mut source_boundary_parse_failures = Vec::new();

@@ -69,6 +69,18 @@ pub is_empty_rejects_non_empty_string(): Bool ->
 pub append_joins_two_strings(): Bool ->
     assert_equal("helloworld", "hello".append("world")).
 
+render_with[T, R](value: T, render: (T) -> R): R ->
+    render(value).
+
+@test
+pub generic_receivers_load_string_source_without_explicit_import(): Bool ->
+    assert_equal("ab", render_with("a", (text) -> text.append("b")))
+        and assert_equal("a", render_with("a", (text) -> text.to_string()))
+        and assert_equal(Some("a"), render_with("a", (text) -> text.from_string()))
+        and assert(render_with("", (text) -> text.is_empty()))
+        and assert(render_with("a", (text) -> text.equal("a")))
+        and assert_equal(Lt, render_with("a", (text) -> text.compare("b"))).
+
 @test
 pub concat_joins_string_list(): Bool ->
     assert_equal("helloworld", std.core.String.concat(["hello", "world"])).

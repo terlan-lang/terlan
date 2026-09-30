@@ -597,8 +597,6 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         | CorePrimitiveIntrinsic::ValueToString
         | CorePrimitiveIntrinsic::IntToString
         | CorePrimitiveIntrinsic::FloatToString
-        | CorePrimitiveIntrinsic::StringToString
-        | CorePrimitiveIntrinsic::StringAppend
         | CorePrimitiveIntrinsic::StringConcat
         | CorePrimitiveIntrinsic::StringLowercase
         | CorePrimitiveIntrinsic::StringUppercase
@@ -606,12 +604,7 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         | CorePrimitiveIntrinsic::StringTrim
         | CorePrimitiveIntrinsic::StringTrimStart
         | CorePrimitiveIntrinsic::StringTrimEnd
-        | CorePrimitiveIntrinsic::StringReplace
-        | CorePrimitiveIntrinsic::CryptoSha256 => CoreType::String,
-        CorePrimitiveIntrinsic::BoolEqual => CoreType::Bool,
-        CorePrimitiveIntrinsic::BoolCompare => {
-            CoreType::Named("std.core.Ordering.Comparison".to_string())
-        }
+        | CorePrimitiveIntrinsic::StringReplace => CoreType::String,
         CorePrimitiveIntrinsic::StringCompare => {
             CoreType::Named("std.core.Ordering.Comparison".to_string())
         }
@@ -620,10 +613,6 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             args: vec![CoreType::Bool],
         },
         CorePrimitiveIntrinsic::IntToStringBase => CoreType::Apply {
-            constructor: "Option".to_string(),
-            args: vec![CoreType::String],
-        },
-        CorePrimitiveIntrinsic::StringFromString => CoreType::Apply {
             constructor: "Option".to_string(),
             args: vec![CoreType::String],
         },
@@ -639,12 +628,8 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         },
         CorePrimitiveIntrinsic::FloatFloor
         | CorePrimitiveIntrinsic::FloatCeil
-        | CorePrimitiveIntrinsic::FloatLog
-        | CorePrimitiveIntrinsic::FloatPi
-        | CorePrimitiveIntrinsic::FloatTau => CoreType::Float,
-        CorePrimitiveIntrinsic::StringEqual
-        | CorePrimitiveIntrinsic::StringIsEmpty
-        | CorePrimitiveIntrinsic::StringContains
+        | CorePrimitiveIntrinsic::FloatLog => CoreType::Float,
+        CorePrimitiveIntrinsic::StringContains
         | CorePrimitiveIntrinsic::StringStartsWith
         | CorePrimitiveIntrinsic::StringEndsWith => CoreType::Bool,
         CorePrimitiveIntrinsic::StringLength

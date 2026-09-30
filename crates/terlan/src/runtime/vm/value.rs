@@ -4,11 +4,31 @@ use std::sync::Arc;
 use super::bitstring::VmBitString;
 #[cfg(test)]
 use super::map_value::VmMapValue;
+use crate::runtime::native_image::managed::ManagedClosureDescriptor;
 #[cfg(test)]
 use crate::terlan_native::random as native_random;
 
+#[path = "value_descriptor.rs"]
+mod descriptor;
 #[path = "value_hash.rs"]
 mod hash;
+
+/// An image-bound function and owned captures, never an actor-local reference.
+#[derive(Clone, PartialEq)]
+pub(crate) struct NativeClosureValue {
+    pub(crate) descriptor: Arc<ManagedClosureDescriptor>,
+    pub(crate) captures: Box<[ReplValue]>,
+}
+
+impl std::fmt::Debug for NativeClosureValue {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("NativeClosureValue")
+            .field("callable_id", &self.descriptor.callable_id())
+            .field("capture_count", &self.captures.len())
+            .finish_non_exhaustive()
+    }
+}
 #[cfg(test)]
 #[path = "value_hash_test.rs"]
 #[cfg(test)]
@@ -35,6 +55,7 @@ pub(crate) enum ReplValue {
     BitString(VmBitString),
     Atom(String),
     Bool(bool),
+    Closure(Arc<NativeClosureValue>),
     #[cfg(test)]
     RandomGenerator(native_random::Generator),
     #[cfg(test)]
@@ -65,6 +86,11 @@ impl Hash for ReplValue {
 
         std::mem::discriminant(self).hash(state);
         match self {
+            Self::Closure(value) => {
+                value.descriptor.generation().hash(state);
+                value.descriptor.callable_id().hash(state);
+                value.captures.hash(state);
+            }
             Self::Tuple(items) | Self::List(items) | Self::Set(items) => items.hash(state),
             Self::Record { name, fields } => {
                 name.hash(state);
@@ -127,6 +153,7 @@ impl ReplValue {
             }
             Self::Atom(value) => format!("Atom[\"{}\"]", escape_string(value)),
             Self::Bool(value) => value.to_string(),
+            Self::Closure(_) => "<function>".to_string(),
             #[cfg(test)]
             Self::RandomGenerator(_) => "<random-generator>".to_string(),
             #[cfg(test)]

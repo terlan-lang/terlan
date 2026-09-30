@@ -1,9 +1,9 @@
 //! Scheduler-visible execution state for direct native image calls.
 
 use super::{
-    native_status_error, validate_owner_id, validate_request_id, NativeDecodedResult,
-    NativeResultProjection, PreparedNativeCall, PureNativeBoundary, PureNativeExecutionContext,
-    PureNativeExportSpec, PureNativeIoWake, PureNativeSuspension,
+    native_status_error, validate_owner_id, validate_request_id, PreparedNativeCall,
+    PureNativeBoundary, PureNativeExecutionContext, PureNativeExportSpec, PureNativeIoWake,
+    PureNativeSuspension,
 };
 use crate::runtime::native_image::control::{
     TvmControlFrame, TvmTransitionOperation, TVM_SQL_CAPABILITY_PREFIX_WORDS,
@@ -81,7 +81,6 @@ mod capability_arguments_test;
 #[derive(Debug)]
 pub(crate) enum PureNativeExecution {
     Complete(ReplValue),
-    HttpResponse(crate::runtime::vm::VmAotHttpResponse),
     Suspended(Box<PureNativeSuspension>),
 }
 
@@ -595,7 +594,6 @@ impl PureNativeBoundary {
             result_type: resume_state.result_type,
             continuations: resume_state.continuations.into(),
             trace_source: None,
-            result_projection: resume_state.result_projection,
         };
         let backend = self
             .backend
@@ -625,9 +623,6 @@ impl PureNativeBoundary {
         loop {
             execution = match execution {
                 PureNativeExecution::Complete(value) => return Ok(value),
-                PureNativeExecution::HttpResponse(_) => {
-                    return Err("error[pure_native.result_projection]: typed HTTP response returned through a public-value call".to_string())
-                }
                 PureNativeExecution::Suspended(suspension) => {
                     self.resume_transition_for_actor(actors, context, *suspension)?
                 }
@@ -689,14 +684,9 @@ impl PureNativeBoundary {
             loop {
                 execution = match execution {
                     PureNativeExecution::Complete(_) => return Ok(true),
-                    PureNativeExecution::HttpResponse(_) => {
-                        return Err("error[pure_native.result_projection]: spawned child returned an HTTP-only result".to_string())
-                    }
                     PureNativeExecution::Suspended(suspension) => {
-                        let parked_identity = (
-                            suspension.request_id(),
-                            suspension.continuation_id(),
-                        );
+                        let parked_identity =
+                            (suspension.request_id(), suspension.continuation_id());
                         match boundary.resume_transition_for_actor(
                             actors,
                             &mut child_context,
@@ -768,13 +758,6 @@ impl PureNativeBoundary {
                     let mut resident_context = context.reborrow(owner);
                     self.release_owner(&mut resident_context)?;
                     actors.exit_actor(owner, VmExitReason::Normal)?;
-                    return Ok(true);
-                }
-                PureNativeExecution::HttpResponse(_) => {
-                    let error = "error[pure_native.resident_result_projection]: spawned actor returned an HTTP-only result".to_string();
-                    let mut resident_context = context.reborrow(owner);
-                    self.release_owner(&mut resident_context)?;
-                    actors.exit_actor(owner, VmExitReason::Error(error.clone()))?;
                     return Ok(true);
                 }
                 PureNativeExecution::Suspended(suspension) => {

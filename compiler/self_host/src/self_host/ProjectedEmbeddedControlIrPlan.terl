@@ -1,0 +1,1690 @@
+/**
+ * Lowers embedded if/case control flow into semantic block plans.
+ */
+module self_host.ProjectedEmbeddedControlIrPlan.
+
+import self_host.ProjectedExpressionIrPlan.{lower_expression, matching_plan_result_type}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_blocks, concat_instructions, expression_type, node_size, register, resolved_or_dynamic, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
+import self_host.ProjectedNestedControlIrPlan.{ExpressionNodePair, ExpressionNodeQuad, ExpressionNodeTriple, expression_node_pair, expression_node_quad, expression_node_triple, linear_binding}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticInstructionPlan, SemanticTerminatorPlan}.
+import self_host.{ProjectedExpressionSyntax, ProjectedNestedControlIrPlan, ProjectedTypeConstraintSyntax, SelfHostIrSyntax, SelfHostSemanticIrSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+pub struct EmbeddedBranchPlan {
+    blocks: List[SemanticBlockPlan],
+    result: String,
+    exit_label: String,
+}.
+
+pub constructor EmbeddedBranchPlan {
+    (blocks: List[SemanticBlockPlan], result: String, exit_label: String): EmbeddedBranchPlan ->
+        EmbeddedBranchPlan {blocks: blocks, result: result, exit_label: exit_label}
+}.
+
+embedded_label(prefix: String, suffix: String): String ->
+    String.append(prefix, suffix).
+
+embedded_if_two_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [first_clause, second_clause] ->
+            embedded_if_two_direct_clauses(
+                [first_clause.children, second_clause.children],
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+                first_clause,
+            );
+        _ -> None
+    }.
+
+embedded_if_two_direct_clauses(
+    values: List[List[ProjectedExpressionNode]],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    first_clause: ProjectedExpressionNode,
+): Option[EmbeddedBranchPlan] ->
+    case values {
+        [first_values, second_values] ->
+            embedded_if_two_direct_first(
+                expression_node_pair(first_values),
+                expression_node_pair(second_values),
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+                first_clause,
+            );
+        _ -> None
+    }.
+
+embedded_if_two_direct_first(
+    first: Option[ExpressionNodePair],
+    second: Option[ExpressionNodePair],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    first_clause: ProjectedExpressionNode,
+): Option[EmbeddedBranchPlan] ->
+    case first {
+        Some(parts) ->
+            embedded_if_two_direct_second(
+                parts,
+                second,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+                first_clause,
+            );
+        _ -> None
+    }.
+
+embedded_if_two_direct_second(
+    first: ExpressionNodePair,
+    second: Option[ExpressionNodePair],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    first_clause: ProjectedExpressionNode,
+): Option[EmbeddedBranchPlan] ->
+    case second {
+        Some(parts) ->
+            embedded_if_two_direct_value(
+                first,
+                parts,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+                first_clause,
+            );
+        _ -> None
+    }.
+
+embedded_if_two_direct_value(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    first_clause: ProjectedExpressionNode,
+): Option[EmbeddedBranchPlan] ->
+    Some(
+        embedded_if_two_blocks(
+            node,
+            node_id,
+            first_clause,
+            first.first,
+            first.second,
+            second.first,
+            second.second,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ),
+    ).
+
+embedded_if_two_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+    let first_body_id = node_id + 2 + node_size(first_condition);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = node_id + 1 + node_size(first);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_id = second_condition_id + node_size(second_condition);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let first_body_label = embedded_label(label_prefix, "body_0");
+    let second_condition_label = embedded_label(label_prefix, "condition_1");
+    let second_body_label = embedded_label(label_prefix, "body_1");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let join_label = embedded_label(label_prefix, "join");
+    let result = register(node_id);
+    let result_type =
+        matching_plan_result_type(
+            first_body_plan.result_type,
+            second_body_plan.result_type,
+            resolved_or_dynamic(expression_type(node, facts, parameters)),
+        );
+    EmbeddedBranchPlan(
+        [
+            SemanticBlockPlan(
+                entry_label,
+                concat_instructions(entry_instructions, first_condition_plan.instructions),
+                SemanticTerminatorPlan(
+                    "branch",
+                    [first_condition_plan.result],
+                    [first_body_label, second_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                first_body_label,
+                first_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                second_condition_label,
+                second_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [second_condition_plan.result],
+                    [second_body_label, unreachable_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                second_body_label,
+                second_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                unreachable_label,
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+            ),
+            SemanticBlockPlan(
+                join_label,
+                [
+                    SemanticInstructionPlan(
+                        "phi",
+                        some_string(result),
+                        [
+                            first_body_label,
+                            first_body_plan.result,
+                            second_body_label,
+                            second_body_plan.result,
+                        ],
+                        result_type,
+                    ),
+                ],
+                SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+            ),
+        ],
+        result,
+        join_label,
+    ).
+
+embedded_if_three_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case expression_node_triple(node.children) {
+        Some(clauses) ->
+            embedded_if_three_direct_clauses(
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_three_direct_clauses(
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    embedded_if_three_direct_first(
+        expression_node_pair(clauses.first.children),
+        expression_node_pair(clauses.second.children),
+        expression_node_pair(clauses.third.children),
+        clauses,
+        node,
+        node_id,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_if_three_direct_first(
+    first: Option[ExpressionNodePair],
+    second: Option[ExpressionNodePair],
+    third: Option[ExpressionNodePair],
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case first {
+        Some(parts) ->
+            embedded_if_three_direct_second(
+                parts,
+                second,
+                third,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_three_direct_second(
+    first: ExpressionNodePair,
+    second: Option[ExpressionNodePair],
+    third: Option[ExpressionNodePair],
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case second {
+        Some(parts) ->
+            embedded_if_three_direct_third(
+                first,
+                parts,
+                third,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_three_direct_third(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    third: Option[ExpressionNodePair],
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case third {
+        Some(parts) ->
+            embedded_if_three_direct_value(
+                first,
+                second,
+                parts,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_three_direct_value(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    third: ExpressionNodePair,
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    Some(
+        embedded_if_three_blocks(
+            node,
+            node_id,
+            clauses.first,
+            clauses.second,
+            first.first,
+            first.second,
+            second.first,
+            second.second,
+            third.first,
+            third.second,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ),
+    ).
+
+embedded_if_three_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    third_condition: ProjectedExpressionNode,
+    third_body: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+    let first_body_id = node_id + 2 + node_size(first_condition);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = node_id + 1 + node_size(first);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_id = second_condition_id + node_size(second_condition);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let third_id = second_id + node_size(second);
+    let third_condition_id = third_id + 1;
+    let third_condition_plan = lower_expression(third_condition, third_condition_id, facts, parameters);
+    let third_body_id = third_condition_id + node_size(third_condition);
+    let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+    let first_body_label = embedded_label(label_prefix, "body_0");
+    let second_condition_label = embedded_label(label_prefix, "condition_1");
+    let second_body_label = embedded_label(label_prefix, "body_1");
+    let third_condition_label = embedded_label(label_prefix, "condition_2");
+    let third_body_label = embedded_label(label_prefix, "body_2");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let join_label = embedded_label(label_prefix, "join");
+    let result = register(node_id);
+    let fallback_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+    let first_two_type =
+        matching_plan_result_type(
+            first_body_plan.result_type,
+            second_body_plan.result_type,
+            fallback_type,
+        );
+    let result_type = matching_plan_result_type(first_two_type, third_body_plan.result_type, fallback_type);
+    EmbeddedBranchPlan(
+        [
+            SemanticBlockPlan(
+                entry_label,
+                concat_instructions(entry_instructions, first_condition_plan.instructions),
+                SemanticTerminatorPlan(
+                    "branch",
+                    [first_condition_plan.result],
+                    [first_body_label, second_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                first_body_label,
+                first_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                second_condition_label,
+                second_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [second_condition_plan.result],
+                    [second_body_label, third_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                second_body_label,
+                second_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                third_condition_label,
+                third_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [third_condition_plan.result],
+                    [third_body_label, unreachable_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                third_body_label,
+                third_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                unreachable_label,
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+            ),
+            SemanticBlockPlan(
+                join_label,
+                [
+                    SemanticInstructionPlan(
+                        "phi",
+                        some_string(result),
+                        [
+                            first_body_label,
+                            first_body_plan.result,
+                            second_body_label,
+                            second_body_plan.result,
+                            third_body_label,
+                            third_body_plan.result,
+                        ],
+                        result_type,
+                    ),
+                ],
+                SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+            ),
+        ],
+        result,
+        join_label,
+    ).
+
+embedded_if_four_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case expression_node_quad(node.children) {
+        Some(clauses) ->
+            embedded_if_four_direct_clauses(
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_four_direct_clauses(
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    embedded_if_four_direct_first(
+        expression_node_pair(clauses.first.children),
+        expression_node_pair(clauses.second.children),
+        expression_node_pair(clauses.third.children),
+        expression_node_pair(clauses.fourth.children),
+        clauses,
+        node,
+        node_id,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_if_four_direct_first(
+    first: Option[ExpressionNodePair],
+    second: Option[ExpressionNodePair],
+    third: Option[ExpressionNodePair],
+    fourth: Option[ExpressionNodePair],
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case first {
+        Some(parts) ->
+            embedded_if_four_direct_second(
+                parts,
+                second,
+                third,
+                fourth,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_four_direct_second(
+    first: ExpressionNodePair,
+    second: Option[ExpressionNodePair],
+    third: Option[ExpressionNodePair],
+    fourth: Option[ExpressionNodePair],
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case second {
+        Some(parts) ->
+            embedded_if_four_direct_third(
+                first,
+                parts,
+                third,
+                fourth,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_four_direct_third(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    third: Option[ExpressionNodePair],
+    fourth: Option[ExpressionNodePair],
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case third {
+        Some(parts) ->
+            embedded_if_four_direct_fourth(
+                first,
+                second,
+                parts,
+                fourth,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_four_direct_fourth(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    third: ExpressionNodePair,
+    fourth: Option[ExpressionNodePair],
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case fourth {
+        Some(parts) ->
+            embedded_if_four_direct_value(
+                first,
+                second,
+                third,
+                parts,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_four_direct_value(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    third: ExpressionNodePair,
+    fourth: ExpressionNodePair,
+    clauses: ExpressionNodeQuad,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    Some(
+        embedded_if_four_blocks(
+            node,
+            node_id,
+            clauses.first,
+            clauses.second,
+            clauses.third,
+            first.first,
+            first.second,
+            second.first,
+            second.second,
+            third.first,
+            third.second,
+            fourth.first,
+            fourth.second,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ),
+    ).
+
+embedded_if_four_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    third: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    third_condition: ProjectedExpressionNode,
+    third_body: ProjectedExpressionNode,
+    fourth_condition: ProjectedExpressionNode,
+    fourth_body: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+    let first_body_id = node_id + 2 + node_size(first_condition);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = node_id + 1 + node_size(first);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_id = second_condition_id + node_size(second_condition);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let third_id = second_id + node_size(second);
+    let third_condition_id = third_id + 1;
+    let third_condition_plan = lower_expression(third_condition, third_condition_id, facts, parameters);
+    let third_body_id = third_condition_id + node_size(third_condition);
+    let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+    let fourth_id = third_id + node_size(third);
+    let fourth_condition_id = fourth_id + 1;
+    let fourth_condition_plan = lower_expression(fourth_condition, fourth_condition_id, facts, parameters);
+    let fourth_body_id = fourth_condition_id + node_size(fourth_condition);
+    let fourth_body_plan = lower_expression(fourth_body, fourth_body_id, facts, parameters);
+    let first_body_label = embedded_label(label_prefix, "body_0");
+    let second_condition_label = embedded_label(label_prefix, "condition_1");
+    let second_body_label = embedded_label(label_prefix, "body_1");
+    let third_condition_label = embedded_label(label_prefix, "condition_2");
+    let third_body_label = embedded_label(label_prefix, "body_2");
+    let fourth_condition_label = embedded_label(label_prefix, "condition_3");
+    let fourth_body_label = embedded_label(label_prefix, "body_3");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let join_label = embedded_label(label_prefix, "join");
+    let result = register(node_id);
+    let fallback_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+    let first_two_type =
+        matching_plan_result_type(
+            first_body_plan.result_type,
+            second_body_plan.result_type,
+            fallback_type,
+        );
+    let first_three_type = matching_plan_result_type(first_two_type, third_body_plan.result_type, fallback_type);
+    let result_type = matching_plan_result_type(first_three_type, fourth_body_plan.result_type, fallback_type);
+    EmbeddedBranchPlan(
+        [
+            SemanticBlockPlan(
+                entry_label,
+                concat_instructions(entry_instructions, first_condition_plan.instructions),
+                SemanticTerminatorPlan(
+                    "branch",
+                    [first_condition_plan.result],
+                    [first_body_label, second_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                first_body_label,
+                first_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                second_condition_label,
+                second_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [second_condition_plan.result],
+                    [second_body_label, third_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                second_body_label,
+                second_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                third_condition_label,
+                third_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [third_condition_plan.result],
+                    [third_body_label, fourth_condition_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                third_body_label,
+                third_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                fourth_condition_label,
+                fourth_condition_plan.instructions,
+                SemanticTerminatorPlan(
+                    "branch",
+                    [fourth_condition_plan.result],
+                    [fourth_body_label, unreachable_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                fourth_body_label,
+                fourth_body_plan.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                unreachable_label,
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+            ),
+            SemanticBlockPlan(
+                join_label,
+                [
+                    SemanticInstructionPlan(
+                        "phi",
+                        some_string(result),
+                        [
+                            first_body_label,
+                            first_body_plan.result,
+                            second_body_label,
+                            second_body_plan.result,
+                            third_body_label,
+                            third_body_plan.result,
+                            fourth_body_label,
+                            fourth_body_plan.result,
+                        ],
+                        result_type,
+                    ),
+                ],
+                SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+            ),
+        ],
+        result,
+        join_label,
+    ).
+
+pub embedded_if_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "let" -> embedded_if_let_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> embedded_if_nonlet_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+embedded_if_let_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case expression_node_triple(node.children) {
+        Some(parts) ->
+            embedded_if_let_parts(
+                parts.first.kind == "binding-pattern",
+                parts.first,
+                parts.second,
+                parts.third,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_if_let_parts(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true ->
+            embedded_if_let_bound(
+                pattern,
+                source,
+                continuation,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+embedded_if_let_bound(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    embedded_if_at(
+        continuation,
+        source_id + node_size(source),
+        entry_label,
+        label_prefix,
+        concat_instructions(
+            entry_instructions,
+            concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+        ),
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_if_nonlet_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "if" and node.children.length() == 2 -> embedded_if_two_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> embedded_if_after_two(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+embedded_if_after_two(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "if" and node.children.length() == 3 -> embedded_if_three_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> embedded_if_after_three(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+embedded_if_after_three(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "if" and node.children.length() == 4 -> embedded_if_four_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> None
+    }.
+
+pub root_embedded_if_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case embedded_if_at(
+        node,
+        0,
+        "entry",
+        "root_if_",
+        List.new[SemanticInstructionPlan](),
+        "root_return",
+        facts,
+        parameters,
+    ) {
+        Some(embedded) ->
+            Some(
+                concat_blocks(
+                    embedded.blocks,
+                    [
+                        SemanticBlockPlan(
+                            "root_return",
+                            List.new[SemanticInstructionPlan](),
+                            SemanticTerminatorPlan("return", [embedded.result], List.new[String]()),
+                        ),
+                    ],
+                ),
+            );
+        None -> None
+    }.
+
+embedded_case_two_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case expression_node_triple(node.children) {
+        Some(clauses) ->
+            embedded_case_two_direct_clauses(
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_case_two_direct_clauses(
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    embedded_case_two_direct_first(
+        expression_node_pair(clauses.second.children),
+        expression_node_pair(clauses.third.children),
+        clauses,
+        node,
+        node_id,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_case_two_direct_first(
+    first: Option[ExpressionNodePair],
+    second: Option[ExpressionNodePair],
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case first {
+        Some(parts) ->
+            embedded_case_two_direct_second(
+                parts,
+                second,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_case_two_direct_second(
+    first: ExpressionNodePair,
+    second: Option[ExpressionNodePair],
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case second {
+        Some(parts) ->
+            embedded_case_two_direct_value(
+                first,
+                parts,
+                clauses,
+                node,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_case_two_direct_value(
+    first: ExpressionNodePair,
+    second: ExpressionNodePair,
+    clauses: ExpressionNodeTriple,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    embedded_case_two_direct_supported(
+        shallow_pattern_supported(first.first) and shallow_pattern_supported(second.first),
+        node,
+        node_id,
+        clauses.first,
+        clauses.second,
+        first.first,
+        first.second,
+        second.first,
+        second.second,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_case_two_direct_supported(
+    valid: Bool,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    subject: ProjectedExpressionNode,
+    first_clause: ProjectedExpressionNode,
+    first_pattern: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_pattern: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true ->
+            embedded_case_two_direct_bound(
+                node,
+                node_id,
+                subject,
+                first_clause,
+                first_pattern,
+                first_body,
+                second_pattern,
+                second_body,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+embedded_case_two_direct_bound(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    subject: ProjectedExpressionNode,
+    first_clause: ProjectedExpressionNode,
+    first_pattern: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_pattern: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let subject_plan = lower_expression(subject, node_id + 1, facts, parameters);
+    let first_id = node_id + 1 + node_size(subject);
+    let first_body_id = first_id + 1 + node_size(first_pattern);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = first_id + node_size(first_clause);
+    let second_body_id = second_id + 1 + node_size(second_pattern);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    Some(
+        embedded_case_two_blocks(
+            node,
+            node_id,
+            subject_plan,
+            first_pattern,
+            first_body_plan,
+            second_pattern,
+            second_body_plan,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ),
+    ).
+
+embedded_case_two_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    subject_plan: ExpressionPlan,
+    first_pattern: ProjectedExpressionNode,
+    first_body_plan: ExpressionPlan,
+    second_pattern: ProjectedExpressionNode,
+    second_body_plan: ExpressionPlan,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let first_environment = embedded_label("%", embedded_label(label_prefix, "environment_0"));
+    let second_environment = embedded_label("%", embedded_label(label_prefix, "environment_1"));
+    let first_match = embedded_label("%", embedded_label(label_prefix, "match_0"));
+    let second_match = embedded_label("%", embedded_label(label_prefix, "match_1"));
+    let first_pattern_label = embedded_label(label_prefix, "pattern_0");
+    let first_body_label = embedded_label(label_prefix, "body_0");
+    let second_pattern_label = embedded_label(label_prefix, "pattern_1");
+    let second_body_label = embedded_label(label_prefix, "body_1");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let join_label = embedded_label(label_prefix, "join");
+    let first_prepare =
+        SemanticInstructionPlan(
+            "prepare-pattern",
+            some_string(first_environment),
+            shallow_pattern_operands(subject_plan.result, first_pattern),
+            some_string("PatternMatch"),
+        );
+    let second_prepare =
+        SemanticInstructionPlan(
+            "prepare-pattern",
+            some_string(second_environment),
+            shallow_pattern_operands(subject_plan.result, second_pattern),
+            some_string("PatternMatch"),
+        );
+    let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
+    let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
+    let result = register(node_id);
+    let result_type =
+        matching_plan_result_type(
+            first_body_plan.result_type,
+            second_body_plan.result_type,
+            resolved_or_dynamic(expression_type(node, facts, parameters)),
+        );
+    EmbeddedBranchPlan(
+        [
+            SemanticBlockPlan(
+                entry_label,
+                concat_instructions(entry_instructions, subject_plan.instructions),
+                SemanticTerminatorPlan("jump", List.new[String](), [first_pattern_label]),
+            ),
+            SemanticBlockPlan(
+                first_pattern_label,
+                [
+                    first_prepare,
+                    SemanticInstructionPlan(
+                        "pattern-matched",
+                        some_string(first_match),
+                        [first_environment],
+                        some_string("Bool"),
+                    ),
+                ],
+                SemanticTerminatorPlan(
+                    "branch",
+                    [first_match],
+                    [first_body_label, second_pattern_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                first_body_label,
+                concat_instructions(first_bindings, first_body_plan.instructions),
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                second_pattern_label,
+                [
+                    second_prepare,
+                    SemanticInstructionPlan(
+                        "pattern-matched",
+                        some_string(second_match),
+                        [second_environment],
+                        some_string("Bool"),
+                    ),
+                ],
+                SemanticTerminatorPlan(
+                    "branch",
+                    [second_match],
+                    [second_body_label, unreachable_label],
+                ),
+            ),
+            SemanticBlockPlan(
+                second_body_label,
+                concat_instructions(second_bindings, second_body_plan.instructions),
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+            SemanticBlockPlan(
+                unreachable_label,
+                List.new[SemanticInstructionPlan](),
+                SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+            ),
+            SemanticBlockPlan(
+                join_label,
+                [
+                    SemanticInstructionPlan(
+                        "phi",
+                        some_string(result),
+                        [
+                            first_body_label,
+                            first_body_plan.result,
+                            second_body_label,
+                            second_body_plan.result,
+                        ],
+                        result_type,
+                    ),
+                ],
+                SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+            ),
+        ],
+        result,
+        join_label,
+    ).
+
+pub embedded_case_two_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "let" -> embedded_case_two_let_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> embedded_case_two_nonlet_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+embedded_case_two_let_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case expression_node_triple(node.children) {
+        Some(parts) ->
+            embedded_case_two_let_parts(
+                parts.first.kind == "binding-pattern",
+                parts.first,
+                parts.second,
+                parts.third,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+embedded_case_two_let_parts(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true ->
+            embedded_case_two_let_bound(
+                pattern,
+                source,
+                continuation,
+                node_id,
+                entry_label,
+                label_prefix,
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+embedded_case_two_let_bound(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    embedded_case_two_at(
+        continuation,
+        source_id + node_size(source),
+        entry_label,
+        label_prefix,
+        concat_instructions(
+            entry_instructions,
+            concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+        ),
+        join_target,
+        facts,
+        parameters,
+    ).
+
+embedded_case_two_nonlet_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "case" -> embedded_case_two_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> None
+    }.

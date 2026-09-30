@@ -71,6 +71,8 @@ fn field(local: &str, name: &str) -> CoreExpr {
 fn function(body: CoreExpr) -> CoreFunction {
     CoreFunction {
         receiver_method: false,
+        receiver_mutable: false,
+        receiver_command: false,
         trait_method: None,
         source: None,
         name: "projected".to_owned(),

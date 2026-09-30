@@ -8,7 +8,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::QualifiedFunctionIdentity as FunctionKey;
-use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule, CoreType};
+use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule};
 
 mod trait_methods;
 
@@ -16,52 +16,6 @@ mod trait_methods;
 #[path = "open_std_pruning_test.rs"]
 #[cfg(test)]
 mod open_std_pruning_test;
-
-/// Removes source router builders after the frontend has extracted their static plan.
-///
-/// Router values are compiler-owned metadata, not runtime values. Keeping a
-/// `router/0` declaration or a grouped `Router -> Router` helper in the direct
-/// AOT application closure incorrectly requires executable implementations of
-/// `std.http.Router.new/get/post/...`. Route handlers, middleware, and error
-/// callbacks have non-Router result types and remain ordinary native exports.
-pub(super) fn prune_compile_time_router_builders(cores: &mut [CoreModule]) {
-    for core in cores {
-        let imports_router = core.imports.iter().any(|import| {
-            import.module == "std.http.Router" || import.module.starts_with("std.http.Router.")
-        });
-        if !imports_router {
-            continue;
-        }
-        let builders = core
-            .functions
-            .iter()
-            .filter(|function| {
-                router_result(function.core_return_type.as_ref(), &function.return_type)
-            })
-            .map(|function| (function.name.clone(), function.arity))
-            .collect::<HashSet<_>>();
-        core.functions
-            .retain(|function| !builders.contains(&(function.name.clone(), function.arity)));
-        core.exports.retain(|export| {
-            let CoreExportKind::Function { arity } = export.kind else {
-                return true;
-            };
-            !builders.contains(&(export.name.clone(), arity))
-        });
-    }
-}
-
-fn router_result(core: Option<&CoreType>, source: &str) -> bool {
-    matches!(core, Some(CoreType::Named(name)) if name.rsplit('.').next() == Some("Router"))
-        || source
-            .split(['[', '<'])
-            .next()
-            .unwrap_or(source)
-            .trim()
-            .rsplit('.')
-            .next()
-            == Some("Router")
-}
 
 /// Retains the same-module function closure reachable from selected entrypoints.
 ///
@@ -77,7 +31,7 @@ pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&st
     for function in &core.functions {
         let caller = (core.module.clone(), function.name.clone(), function.arity);
         let calls = collect_function_calls(function, core, &providers);
-        edges.insert(caller, calls);
+        edges.entry(caller).or_default().extend(calls);
     }
     let root_names = roots.iter().copied().collect::<HashSet<_>>();
     let mut reachable = edges
@@ -130,7 +84,7 @@ pub(crate) fn prune_application_to_function_roots(
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
             let calls = collect_function_calls(function, core, &providers);
-            edges.insert(caller, calls);
+            edges.entry(caller).or_default().extend(calls);
         }
     }
     let mut reachable = roots.iter().cloned().collect::<HashSet<_>>();
@@ -176,7 +130,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
             let calls = collect_function_calls(function, core, &providers);
-            edges.insert(caller, calls);
+            edges.entry(caller).or_default().extend(calls);
         }
     }
 

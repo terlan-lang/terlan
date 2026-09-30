@@ -34,18 +34,18 @@ const REQUIRED_HTTP_RUNTIME_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_HTTP_REQUEST_READ_ANCHORS: &[&str] = &[
-    "read_http1_request_typed",
-    "VmHttpRequestReadFailure",
-    "VmHttpRequestReadFailureKind",
+    "read_http1_request",
+    "RequestReadFailure",
+    "RequestReadFailureKind",
     "ClientClosed",
     "Timeout",
     "Malformed",
 ];
 
 const REQUIRED_HTTP_RESPONSE_WRITE_ANCHORS: &[&str] = &[
-    "write_http1_response_typed",
-    "VmHttpResponseWriteFailure",
-    "VmHttpResponseWriteFailureKind",
+    "write_http1_response",
+    "ResponseWriteFailure",
+    "ResponseWriteFailureKind",
     "ClientClosed",
     "Timeout",
     "Io",
@@ -206,13 +206,13 @@ pub fn run_vm_http_handler_scheduler_fairness(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http/request_read.rs",
+        "std/http/native/src/http1/request_read.rs",
         REQUIRED_HTTP_REQUEST_READ_ANCHORS,
         "VM HTTP typed request reads",
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http/response_wire.rs",
+        "std/http/native/src/http1/response_write.rs",
         REQUIRED_HTTP_RESPONSE_WRITE_ANCHORS,
         "VM HTTP typed response writes",
     )?);

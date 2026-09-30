@@ -104,7 +104,9 @@ pub(in crate::compiler::native_ir) fn infer_type(
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Map),
-        CoreExpr::RecordConstruct { name, .. } => Some(CoreType::Named(name.clone())),
+        CoreExpr::RecordConstruct { name, fields } => {
+            super::constructor_signatures::infer_record(name, fields, variables, templates, module)
+        }
         CoreExpr::ConstructorCall {
             constructor,
             constructor_identity,
@@ -190,10 +192,10 @@ pub(in crate::compiler::native_ir) fn infer_type(
         }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::RemoteCall {
+            type_args,
             module: owner,
             function,
             args,
-            ..
         } if owner == "__receiver__" => {
             let receiver = infer_type(args.first()?, variables, templates, module)?;
             super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
@@ -202,6 +204,10 @@ pub(in crate::compiler::native_ir) fn infer_type(
                 args.len(),
             )
             .map(|(_, result)| result)
+            .or_else(|| {
+                let callable = templates.receiver_callable(function, args.len(), &receiver, module)?;
+                infer_call_type(&callable, args, type_args, variables, templates, module)
+            })
         }
         CoreExpr::UnaryOp { operator, .. } if matches!(operator.as_str(), "not" | "!") => {
             Some(CoreType::Bool)
@@ -366,6 +372,7 @@ fn unambiguous_callable_type(
         format!("{module}.{function}")
     };
     let mut candidates = templates
+        .functions
         .range((name.clone(), 0)..=(name, usize::MAX))
         .flat_map(|(_, candidates)| candidates);
     let signature = concrete_callable_signature(candidates.next()?)?;

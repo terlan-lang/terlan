@@ -15,7 +15,7 @@ pub(crate) struct ToolCommandError {
 
 impl ToolCommandError {
     /// Stable process/pipe classification without parsing rendered diagnostics.
-    pub(crate) fn code(&self) -> &'static str {
+    pub(crate) fn code(&self) -> &str {
         match &self.failure {
             CaptureFailure::Process(code, _) => code,
             CaptureFailure::MissingProgram(_) => "spawn_failed",

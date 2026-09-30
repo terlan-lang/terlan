@@ -96,7 +96,7 @@ fn insert(
     value: random::Generator,
 ) -> Result<Value, DispatchError> {
     store
-        .insert_for_owner(owner, ResourceValue::RandomGenerator(value))
+        .insert_for_owner(owner, ResourceValue::RandomGenerator(Box::new(value)))
         .map(Value::Handle)
         .map_err(dispatch_resource_error)
 }

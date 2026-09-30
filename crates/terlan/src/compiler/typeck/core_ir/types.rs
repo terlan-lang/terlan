@@ -609,6 +609,8 @@ fn parse_atom_string_literal(text: &str) -> Option<String> {
                     other => output.push(other),
                 }
             }
+        } else if ch == '"' {
+            return None;
         } else {
             output.push(ch);
         }

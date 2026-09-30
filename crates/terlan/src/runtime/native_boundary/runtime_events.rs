@@ -97,6 +97,9 @@ impl NativeBoundaryResourceEventLog {
                         NativeBoundaryTerm::List(values) | NativeBoundaryTerm::Tuple(values) => {
                             pending.extend(values.iter())
                         }
+                        NativeBoundaryTerm::Map(entries) => {
+                            pending.extend(entries.iter().flat_map(|(key, value)| [key, value]))
+                        }
                         NativeBoundaryTerm::Record { fields, .. } => {
                             pending.extend(fields.iter().map(|(_, value)| value))
                         }
@@ -214,6 +217,9 @@ fn first_handle(terms: &[NativeBoundaryTerm]) -> Option<NativeBoundaryHandle> {
             NativeBoundaryTerm::OptionalHandle(Some(handle)) => return Some(*handle),
             NativeBoundaryTerm::List(values) | NativeBoundaryTerm::Tuple(values) => {
                 pending.extend(values.iter())
+            }
+            NativeBoundaryTerm::Map(entries) => {
+                pending.extend(entries.iter().flat_map(|(key, value)| [key, value]))
             }
             NativeBoundaryTerm::Record { fields, .. } => {
                 pending.extend(fields.iter().map(|(_, value)| value))

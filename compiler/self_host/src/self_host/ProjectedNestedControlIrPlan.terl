@@ -1,0 +1,457 @@
+/**
+ * Lowers nested let/if control flow and provides small projected-node carriers.
+ */
+module self_host.ProjectedNestedControlIrPlan.
+
+import self_host.ProjectedExpressionIrPlan.{lower_expression}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, nested_if_result_type, node_size, register, resolved_or_dynamic, some_string}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticBlockPlan, SemanticInstructionPlan, SemanticTerminatorPlan}.
+import self_host.{ProjectedExpressionSupportIrPlan, ProjectedExpressionSyntax, ProjectedTypeConstraintSyntax, SelfHostIrSyntax, SelfHostSemanticIrSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+nested_if_cfg(
+    pattern: ProjectedExpressionNode,
+    result: String,
+    result_type: Option[String],
+    entry_instructions: List[SemanticInstructionPlan],
+    first_condition: ExpressionPlan,
+    first_body: ExpressionPlan,
+    second_condition: ExpressionPlan,
+    second_body: ExpressionPlan,
+    continuation: ExpressionPlan,
+): List[SemanticBlockPlan] ->
+    [
+        SemanticBlockPlan(
+            "entry",
+            concat_instructions(entry_instructions, first_condition.instructions),
+            SemanticTerminatorPlan(
+                "branch",
+                [first_condition.result],
+                ["nested_if_body_0", "nested_if_condition_1"],
+            ),
+        ),
+        SemanticBlockPlan(
+            "nested_if_body_0",
+            first_body.instructions,
+            SemanticTerminatorPlan("jump", List.new[String](), ["nested_if_join"]),
+        ),
+        SemanticBlockPlan(
+            "nested_if_condition_1",
+            second_condition.instructions,
+            SemanticTerminatorPlan(
+                "branch",
+                [second_condition.result],
+                ["nested_if_body_1", "nested_if_unreachable"],
+            ),
+        ),
+        SemanticBlockPlan(
+            "nested_if_body_1",
+            second_body.instructions,
+            SemanticTerminatorPlan("jump", List.new[String](), ["nested_if_join"]),
+        ),
+        SemanticBlockPlan(
+            "nested_if_unreachable",
+            List.new[SemanticInstructionPlan](),
+            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+        ),
+        SemanticBlockPlan(
+            "nested_if_join",
+            concat_instructions(
+                [
+                    SemanticInstructionPlan(
+                        "phi",
+                        some_string(result),
+                        [
+                            "nested_if_body_0",
+                            first_body.result,
+                            "nested_if_body_1",
+                            second_body.result,
+                        ],
+                        result_type,
+                    ),
+                    SemanticInstructionPlan(
+                        "move",
+                        some_string(pattern.text),
+                        [result],
+                        result_type,
+                    ),
+                ],
+                continuation.instructions,
+            ),
+            SemanticTerminatorPlan("return", [continuation.result], List.new[String]()),
+        ),
+    ].
+
+nested_let_if_two(
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let first_condition_plan = lower_expression(first_condition, source_id + 2, facts, parameters);
+    let first_body_plan = lower_expression(first_body, source_id + 2 + node_size(first_condition), facts, parameters);
+    let second_id = source_id + 1 + node_size(first);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_plan =
+        lower_expression(
+            second_body,
+            second_condition_id + node_size(second_condition),
+            facts,
+            parameters,
+        );
+    let continuation_plan = lower_expression(continuation, source_id + node_size(source), facts, parameters);
+    let result_type = nested_if_result_type(source, first_body_plan, second_body_plan, facts, parameters);
+    nested_if_cfg(
+        pattern,
+        register(source_id),
+        result_type,
+        entry_instructions,
+        first_condition_plan,
+        first_body_plan,
+        second_condition_plan,
+        second_body_plan,
+        continuation_plan,
+    ).
+
+pub linear_binding(
+    pattern: ProjectedExpressionNode,
+    source: ExpressionPlan,
+): List[SemanticInstructionPlan] ->
+    if {
+        pattern.kind == "binding-pattern" -> [
+            SemanticInstructionPlan(
+                "move",
+                some_string(pattern.text),
+                [source.result],
+                resolved_or_dynamic(source.result_type),
+            ),
+        ];
+        true -> List.new[SemanticInstructionPlan]()
+    }.
+
+nested_let_if_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    if {
+        node.kind == "let" -> nested_let_if_parts(node.children, node_id, entry_instructions, facts, parameters);
+        true -> None
+    }.
+
+pub struct ExpressionNodePair {
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+}.
+
+pub constructor ExpressionNodePair {
+    (first: ProjectedExpressionNode, second: ProjectedExpressionNode): ExpressionNodePair ->
+        ExpressionNodePair {first: first, second: second}
+}.
+
+pub struct ExpressionNodeTriple {
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    third: ProjectedExpressionNode,
+}.
+
+pub constructor ExpressionNodeTriple {
+    (
+        first: ProjectedExpressionNode,
+        second: ProjectedExpressionNode,
+        third: ProjectedExpressionNode,
+    ): ExpressionNodeTriple ->
+        ExpressionNodeTriple {first: first, second: second, third: third}
+}.
+
+pub struct ExpressionNodeQuad {
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    third: ProjectedExpressionNode,
+    fourth: ProjectedExpressionNode,
+}.
+
+pub constructor ExpressionNodeQuad {
+    (
+        first: ProjectedExpressionNode,
+        second: ProjectedExpressionNode,
+        third: ProjectedExpressionNode,
+        fourth: ProjectedExpressionNode,
+    ): ExpressionNodeQuad ->
+        ExpressionNodeQuad {first: first, second: second, third: third, fourth: fourth}
+}.
+
+pub expression_node_pair(values: List[ProjectedExpressionNode]): Option[ExpressionNodePair] ->
+    case values {
+        [first, second] -> expression_node_pair_value(first, second);
+        _ -> None
+    }.
+
+expression_node_pair_value(
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+): Option[ExpressionNodePair] ->
+    Some(ExpressionNodePair(first = first, second = second)).
+
+pub expression_node_triple(values: List[ProjectedExpressionNode]): Option[ExpressionNodeTriple] ->
+    case values {
+        [first | rest] -> expression_node_triple_after_first(first, expression_node_pair(rest));
+        _ -> None
+    }.
+
+expression_node_triple_after_first(
+    first: ProjectedExpressionNode,
+    value: Option[ExpressionNodePair],
+): Option[ExpressionNodeTriple] ->
+    case value {
+        Some(rest) -> expression_node_triple_value(first, rest);
+        _ -> None
+    }.
+
+expression_node_triple_value(
+    first: ProjectedExpressionNode,
+    rest: ExpressionNodePair,
+): Option[ExpressionNodeTriple] ->
+    Some(ExpressionNodeTriple(first = first, second = rest.first, third = rest.second)).
+
+pub expression_node_quad(values: List[ProjectedExpressionNode]): Option[ExpressionNodeQuad] ->
+    case values {
+        [first | rest] -> expression_node_quad_after_first(first, expression_node_triple(rest));
+        _ -> None
+    }.
+
+expression_node_quad_after_first(
+    first: ProjectedExpressionNode,
+    value: Option[ExpressionNodeTriple],
+): Option[ExpressionNodeQuad] ->
+    case value {
+        Some(rest) -> expression_node_quad_value(first, rest);
+        _ -> None
+    }.
+
+expression_node_quad_value(
+    first: ProjectedExpressionNode,
+    rest: ExpressionNodeTriple,
+): Option[ExpressionNodeQuad] ->
+    Some(
+        ExpressionNodeQuad(
+            first = first,
+            second = rest.first,
+            third = rest.second,
+            fourth = rest.third,
+        ),
+    ).
+
+nested_let_if_parts(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case expression_node_triple(values) {
+        Some(parts) ->
+            nested_let_if_binding(
+                parts.first.kind == "binding-pattern",
+                parts.first,
+                parts.second,
+                parts.third,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+nested_let_if_binding(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case valid {
+        true ->
+            nested_let_if_source_at(
+                pattern,
+                source,
+                continuation,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+nested_let_if_source_at(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    if {
+        source.kind == "if" -> nested_let_if_source_children_at(
+            pattern,
+            source,
+            continuation,
+            node_id,
+            entry_instructions,
+            facts,
+            parameters,
+        );
+        true -> nested_let_if_continuation_at(
+            pattern,
+            source,
+            continuation,
+            node_id,
+            entry_instructions,
+            facts,
+            parameters,
+        )
+    }.
+
+nested_let_if_source_children_at(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case source.children {
+        [first, second] ->
+            nested_let_if_first_at(
+                pattern,
+                source,
+                continuation,
+                first,
+                second,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+nested_let_if_first_at(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case first.children {
+        [first_condition, first_body] ->
+            nested_let_if_second_at(
+                pattern,
+                source,
+                continuation,
+                first,
+                second,
+                first_condition,
+                first_body,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+nested_let_if_second_at(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case second.children {
+        [second_condition, second_body] ->
+            Some(
+                nested_let_if_two(
+                    node_id,
+                    entry_instructions,
+                    pattern,
+                    source,
+                    continuation,
+                    first,
+                    second,
+                    first_condition,
+                    first_body,
+                    second_condition,
+                    second_body,
+                    facts,
+                    parameters,
+                ),
+            );
+        _ -> None
+    }.
+
+nested_let_if_continuation_at(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    let next_instructions =
+        concat_instructions(
+            entry_instructions,
+            concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+        );
+    nested_let_if_at(
+        continuation,
+        source_id + node_size(source),
+        next_instructions,
+        facts,
+        parameters,
+    ).
+
+pub nested_let_if_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    nested_let_if_at(node, 0, List.new[SemanticInstructionPlan](), facts, parameters).

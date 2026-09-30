@@ -2,23 +2,34 @@
  * Portable URI parsing contract.
  *
  * `std.net.Uri` exposes URI parsing, rendering, and common component accessors
- * through a target-neutral Terlan API. Its first backend is Rust/NativeBoundary
- * with the `url` crate; source code sees only `Uri`, `UriError`, `Option`,
- * and `Result`.
+ * through a target-neutral Terlan API. Parsing uses the package-owned `url`
+ * adapter once; values, accessors, and portable errors are Terlan-owned.
  */
 module std.net.Uri.
 
 import type std.core.{Error, Option, Result}.
+import std.core.Result.{Ok, Err}.
 
 /**
  * Uri represents a parsed URI value.
  *
  * Input: no type parameter.
- * Output: an opaque URI handle whose runtime representation is target-owned.
- * Transformation: hides the selected target URI parser representation behind a
- * stable portable API.
+ * Output: an immutable managed value with private parsed components.
+ * Transformation: stores normalized components without retaining native handles.
  */
-pub opaque type Uri.
+pub struct Uri {
+    #as_str: String,
+    #scheme: String,
+    #host_str: Option[String],
+    #path: String,
+    #query: Option[String],
+    #fragment: Option[String],
+}.
+
+type ParseFailure = Atom["uri.parse"].
+
+@compiler.native {std.net.uri.parse_parts}
+parse_parts(text: String): Result[Uri, String] -> native.
 
 /**
  * UriError is the portable error returned by URI parsing and accessors.
@@ -43,20 +54,21 @@ pub struct UriError includes Error {
  * Transformation: delegates parsing to the selected target URI capability and
  * maps parser failures into `UriError`.
  */
-@compiler.native {std.net.uri.parse}
 pub parse(text: String): Result[Uri, UriError] ->
-    native.
+    case parse_parts(text) {
+        Ok(uri) -> Ok(uri);
+        Err(message) -> Err(UriError(code = ParseFailure, message = message, offset = 0))
+    }.
 
 /**
  * Renders a URI value as text.
  *
  * Input: one parsed `Uri`.
  * Output: the normalized URI text chosen by the selected target parser.
- * Transformation: delegates rendering to the selected target URI capability.
+ * Transformation: returns the normalized text stored at parse time.
  */
-@compiler.native {std.net.uri.to_string}
 pub (uri: Uri) to_string(): String ->
-    native.
+    uri.#as_str.
 
 /**
  * Returns the URI scheme.
@@ -65,9 +77,8 @@ pub (uri: Uri) to_string(): String ->
  * Output: the URI scheme such as `https`.
  * Transformation: reads the parsed scheme without reparsing source text.
  */
-@compiler.native {std.net.uri.scheme}
 pub (uri: Uri) scheme(): String ->
-    native.
+    uri.#scheme.
 
 /**
  * Returns the URI host when present.
@@ -77,9 +88,8 @@ pub (uri: Uri) scheme(): String ->
  * Transformation: reads the parsed host component without exposing backend
  * component storage.
  */
-@compiler.native {std.net.uri.host}
 pub (uri: Uri) host(): Option[String] ->
-    native.
+    uri.#host_str.
 
 /**
  * Returns the URI path.
@@ -89,9 +99,8 @@ pub (uri: Uri) host(): Option[String] ->
  * Transformation: reads the parsed path component without reparsing source
  * text.
  */
-@compiler.native {std.net.uri.path}
 pub (uri: Uri) path(): String ->
-    native.
+    uri.#path.
 
 /**
  * Returns the URI query when present.
@@ -101,9 +110,8 @@ pub (uri: Uri) path(): String ->
  * Transformation: reads the parsed query component without exposing backend
  * component storage.
  */
-@compiler.native {std.net.uri.query}
 pub (uri: Uri) query(): Option[String] ->
-    native.
+    uri.#query.
 
 /**
  * Returns the URI fragment when present.
@@ -114,6 +122,5 @@ pub (uri: Uri) query(): Option[String] ->
  * Transformation: reads the parsed fragment component without exposing backend
  * component storage.
  */
-@compiler.native {std.net.uri.fragment}
 pub (uri: Uri) fragment(): Option[String] ->
-    native.
+    uri.#fragment.

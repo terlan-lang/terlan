@@ -200,11 +200,9 @@ pub log(value: Float): Float -> 0.0.
 /**
  * Returns the nearest binary64 representation of pi.
  */
-@compiler.intrinsic
 pub pi(): Float -> 3.141592653589793.
 
 /**
  * Returns the nearest binary64 representation of tau.
  */
-@compiler.intrinsic
 pub tau(): Float -> 6.283185307179586.

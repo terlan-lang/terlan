@@ -228,7 +228,7 @@ impl VmHttpSessionRuntime {
             live_template_subscribers: BTreeMap::new(),
         };
         self.sessions.insert(record.id.clone(), record.clone());
-        Ok(self.lookup_for_record(record.clone(), Some(cookie_header_for(&record.id))))
+        Ok(self.lookup_for_record(record.clone(), Some(record.id.clone())))
     }
 
     /// Enqueues one VM message on the stateful session actor mailbox.
@@ -300,7 +300,7 @@ impl VmHttpSessionRuntime {
             session_id: session.id.clone(),
             source_route: source.route,
             destination_route: migrated.route.clone(),
-            set_cookie_header: migrated.set_cookie_header,
+            pending_identity: migrated.pending_identity,
             diagnostic: worker_migration_diagnostic(
                 &session.id,
                 &self.node_id,
@@ -670,7 +670,7 @@ impl VmHttpSessionRuntime {
         record.id = self.allocate_session_id();
         record.expires_at_tick = self.now_tick.saturating_add(self.ttl_ticks);
         self.sessions.insert(record.id.clone(), record.clone());
-        Ok(self.lookup_for_record(record.clone(), Some(cookie_header_for(&record.id))))
+        Ok(self.lookup_for_record(record.clone(), Some(record.id.clone())))
     }
 
     /// Advances the deterministic VM session clock.
@@ -760,7 +760,7 @@ impl VmHttpSessionRuntime {
             live_template_subscribers: BTreeMap::new(),
         };
         self.sessions.insert(session_id.clone(), record.clone());
-        Ok(self.lookup_for_record(record, Some(cookie_header_for(&session_id))))
+        Ok(self.lookup_for_record(record, Some(session_id)))
     }
 
     pub(in crate::runtime::vm::http_session) fn lookup_existing(
@@ -778,7 +778,7 @@ impl VmHttpSessionRuntime {
     fn lookup_for_record(
         &self,
         record: VmHttpSessionRecord,
-        set_cookie_header: Option<String>,
+        pending_identity: Option<String>,
     ) -> VmHttpSessionLookup {
         VmHttpSessionLookup {
             session: VmHttpSession {
@@ -790,7 +790,7 @@ impl VmHttpSessionRuntime {
                 actor_pid: record.actor.as_u64(),
                 sticky_key: self.sticky_key(&record.id),
             },
-            set_cookie_header,
+            pending_identity,
         }
     }
 

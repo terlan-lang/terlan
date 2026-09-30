@@ -71,6 +71,7 @@ pub callback(): Int -> apply("éx", (value) -> value.byte_size()).
 pub shadowed(value: Int): Int -> apply("éx", (value) -> value.byte_size()).
 pub ordinary(value: Int): Int -> byte_size(value).
 pub bool_callback(): String -> apply(true, (value) -> value.to_string()).
+pub bool_callback_check(): Bool -> bool_callback() == "true".
 pub float_callback(): String -> apply(1.5, (value) -> value.to_string()).
 pub int_callback(): String -> apply(42, (value) -> value.to_string()).
 pub bytes_callback(): Int -> apply(Bytes.from_list([1, 2]), (value) -> value.length()).
@@ -83,8 +84,29 @@ pub bits_callback(): Int -> apply(BitString.from_int_be(3, 5), (value) -> value.
     let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
-    let modules =
-        NativeModule::lower_application(&[&core]).expect("lower contextual primitive receivers");
+    let providers = [
+        include_str!("../../../../../std/core/Bool.terl"),
+        include_str!("../../../../../std/core/Ordering.terl"),
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/core/String.terl"),
+    ]
+    .map(|source| {
+        let syntax = parse_module_as_syntax_output(source).expect("parse receiver provider");
+        let interfaces = checked_in_std_interfaces_for_module(&syntax);
+        let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+        lower_syntax_module_output_to_core(&syntax, &resolved)
+    });
+    let roots = core
+        .functions
+        .iter()
+        .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+        .collect::<Vec<_>>();
+    let mut cores = vec![core];
+    cores.extend(providers);
+    super::prune_application_to_function_roots(&mut cores, &roots)
+        .expect("retain source receiver implementations");
+    let modules = NativeModule::lower_application(&cores.iter().collect::<Vec<_>>())
+        .expect("lower contextual primitive receivers");
     let object = super::emit_native_application_object("callback-primitive-receivers", &modules)
         .expect("emit contextual receivers");
     use super::native_object_test_support::{
@@ -94,6 +116,7 @@ pub bits_callback(): Int -> apply(BitString.from_int_be(3, 5), (value) -> value.
         ("callback", vec![], 3),
         ("shadowed", vec![17], 3),
         ("ordinary", vec![17], 117),
+        ("bool_callback_check", vec![], 1),
         ("bytes_callback", vec![], 2),
         ("bits_callback", vec![], 5),
     ]

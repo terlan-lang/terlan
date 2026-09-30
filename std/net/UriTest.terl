@@ -1,12 +1,12 @@
 /**
  * Executable release checks for `std.net.Uri`.
  *
- * These tests exercise the VM-owned URI std bridge over the Rust `url` adapter
- * and keep the public Result/Error/opaque-value shapes visible to release
- * coverage.
+ * These tests exercise the Terlan URI value and its package-owned `url` parser.
+ * Public Result/Error shapes and component accessors remain release-tested.
  */
 module std.net.UriTest.
 
+import std.core.Atom.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok, is_err}.
 import std.net.Uri.
@@ -18,7 +18,7 @@ import type std.net.Uri.{Uri, UriError}.
 /**
  * Accepts one URI value and returns it unchanged.
  *
- * Input: one opaque `Uri`.
+ * Input: one `Uri` with private component fields.
  * Output: the same URI value.
  * Transformation: proves the public URI type is importable and usable in
  * signatures without exposing native adapter internals.
@@ -90,3 +90,30 @@ pub optional_components_return_none_when_absent(): Bool ->
 @test
 pub parse_reports_invalid_uri_text(): Bool ->
     assert(is_err(Uri.parse("not a uri"))).
+
+@test
+pub parse_builds_portable_error_in_terlan(): Bool ->
+    case Uri.parse("https://[::1") {
+        Err(reason) ->
+            Atom.to_string(reason.code) == "uri.parse"
+                and reason.offset == 0
+                and reason.message != "";
+        Ok(_uri) -> false
+    }.
+
+@test
+pub empty_components_differ_from_absent_components(): Bool ->
+    case Uri.parse("https://example.com/?#") {
+        Ok(uri) -> option_equals(uri.query(), "") and option_equals(uri.fragment(), "");
+        Err(_reason) -> false
+    }.
+
+@test
+pub hostless_uri_is_an_ordinary_managed_value(): Bool ->
+    case Uri.parse("mailto:user@example.com") {
+        Ok(uri) ->
+            uri.scheme() == "mailto"
+                and option_is_none(uri.host())
+                and uri.path() == "user@example.com";
+        Err(_reason) -> false
+    }.

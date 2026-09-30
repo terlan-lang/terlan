@@ -18,6 +18,8 @@ module std.encoding.Base64.
 /// without exposing target-specific exception values.
 
 pub struct Base64Error {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 
@@ -94,3 +96,5 @@ pub encode_url(text: String): String.
 /// native capability without interpreting them as UTF-8.
 
 pub encode_url_bytes(bytes: Bytes): String.
+
+export type DecodeFailure, Utf8Failure.

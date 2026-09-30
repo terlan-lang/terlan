@@ -1,5 +1,5 @@
 /**
- * VM-owned portable clock sources for tooling, tests, and benchmarks.
+ * Package-owned portable clock sources for tooling, tests, and benchmarks.
  */
 module std.time.Clock.
 
@@ -9,8 +9,8 @@ module std.time.Clock.
  * The value is suitable for evidence timestamps, not elapsed-time measurement;
  * wall-clock adjustments may move it forwards or backwards.
  */
-@compiler.intrinsic
-pub unix_time_ns(): Int -> 0.
+@compiler.native {std.time.clock.unix_time_ns}
+pub unix_time_ns(): Int -> native.
 
 /**
  * Returns nanoseconds from a process-local monotonic origin.
@@ -19,5 +19,5 @@ pub unix_time_ns(): Int -> 0.
  * meaningful. The clock never moves backwards and is suitable for benchmark
  * and timeout accounting.
  */
-@compiler.intrinsic
-pub monotonic_time_ns(): Int -> 0.
+@compiler.native {std.time.clock.monotonic_time_ns}
+pub monotonic_time_ns(): Int -> native.

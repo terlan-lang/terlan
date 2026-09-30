@@ -102,6 +102,8 @@ fn lower(expr: &CoreExpr) -> Result<NativeExpr, String> {
 fn function(body: CoreExpr, return_type: &str, core_return_type: CoreType) -> CoreFunction {
     CoreFunction {
         receiver_method: false,
+        receiver_mutable: false,
+        receiver_command: false,
         trait_method: None,
         source: None,
         name: "optimized".to_owned(),

@@ -46,6 +46,8 @@ pub(crate) fn core_const_function_termination_evidence(
             };
             Some(CoreFunction {
                 receiver_method: false,
+                receiver_mutable: false,
+                receiver_command: false,
                 trait_method: None,
                 source: None,
                 name: name.clone(),

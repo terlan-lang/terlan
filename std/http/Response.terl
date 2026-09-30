@@ -2,14 +2,17 @@
  * Portable HTTP response contract.
  *
  * `std.http.Response` exposes response builders used by Terlan HTTP handlers.
- * Runtime servers own the concrete response representation; source code works
- * with typed constructors and receiver methods.
+ * Terlan owns response storage, builders, and receiver methods. Transport
+ * adapters validate protocol metadata and perform file and stream I/O.
  */
 module std.http.Response.
 
+import std.collections.List.
 import std.core.Int.{to_string}.
 import std.core.Unit.
-import std.http.Cookies.{delete_header, set_header, set_header_with_options}.
+import std.data.Json.{to_string as json_to_string}.
+import std.http.Cookies.{delete_header, headers, set_header, set_header_with_options}.
+import std.template.Template.{to_string as html_to_string}.
 
 import type std.collections.List.
 import type std.data.Json.
@@ -149,12 +152,44 @@ pub production_security_headers(): SecurityHeaders ->
  * Response represents one HTTP response returned by a Terlan handler.
  *
  * Input: no type parameter.
- * Output: an opaque response handle whose runtime representation is target
- * owned.
- * Transformation: hides server-specific response storage while preserving a
- * stable typed return value for handler functions.
+ * Output: a source-owned record with private fields.
+ * Transformation: stores body and metadata without native resource handles;
+ * handlers construct and update it through this module's functions.
  */
-pub opaque type Response.
+pub struct Response {
+    #kind: Int,
+    #payload: String,
+    #status: Int,
+    #content_type: String,
+    #headers: List[{String, String}],
+    #chunks: List[String],
+    #chunk_size: Int,
+    #max_pending_writes: Int,
+}.
+
+new(kind: Int, payload: String, status: Int, content_type: String): Response ->
+    Response {
+        #kind: kind,
+        #payload: payload,
+        #status: status,
+        #content_type: content_type,
+        #headers: [],
+        #chunks: [],
+        #chunk_size: 0,
+        #max_pending_writes: 0,
+    }.
+
+update(response: Response, status: Int, headers: List[{String, String}]): Response ->
+    Response {
+        #kind: response.#kind,
+        #payload: response.#payload,
+        #status: status,
+        #content_type: response.#content_type,
+        #headers: headers,
+        #chunks: response.#chunks,
+        #chunk_size: response.#chunk_size,
+        #max_pending_writes: response.#max_pending_writes,
+    }.
 
 /**
  * Creates a JSON response.
@@ -162,12 +197,11 @@ pub opaque type Response.
  * Input: one `Json` value and an optional HTTP status code.
  * Output: a `Response` containing the serialized JSON body and the platform
  * default JSON content type.
- * Transformation: delegates response allocation and serialization to the
- * selected HTTP server capability without exposing backend response buffers.
+ * Transformation: serializes through the JSON package and composes the text
+ * response builder without inspecting the JSON resource representation.
  */
-@compiler.native {std.http.response.json}
 pub json(value: Json, status: Int = 200): Response ->
-    native.
+    json_text(json_to_string(value), status).
 
 /**
  * Creates a JSON response from already serialized JSON text.
@@ -175,13 +209,11 @@ pub json(value: Json, status: Int = 200): Response ->
  * Input: one UTF-8 JSON string and an optional HTTP status code.
  * Output: a `Response` containing the supplied JSON body and the platform
  * default JSON content type.
- * Transformation: delegates response allocation to the selected HTTP server
- * capability without allowing handler code to override server-owned
- * `Content-Type` metadata through generic headers.
+ * Transformation: stores serialized bytes and the JSON content type in a
+ * private source record, without parsing or re-encoding the supplied text.
  */
-@compiler.native {std.http.response.json_text}
 pub json_text(value: String, status: Int = 200): Response ->
-    native.
+    new(2, value, status, "application/json; charset=utf-8").
 
 /**
  * Creates a text response.
@@ -189,12 +221,10 @@ pub json_text(value: String, status: Int = 200): Response ->
  * Input: one UTF-8 `String` value and an optional HTTP status code.
  * Output: a `Response` containing the text body and the platform default text
  * content type.
- * Transformation: delegates response allocation to the selected HTTP server
- * capability without exposing backend response buffers.
+ * Transformation: stores text and its content type in a private source record.
  */
-@compiler.native {std.http.response.text}
 pub text(value: String, status: Int = 200): Response ->
-    native.
+    new(0, value, status, "text/plain; charset=utf-8").
 
 /**
  * Creates an HTML response.
@@ -202,12 +232,10 @@ pub text(value: String, status: Int = 200): Response ->
  * Input: one UTF-8 HTML string and an optional HTTP status code.
  * Output: a `Response` containing the HTML body and the platform default HTML
  * content type.
- * Transformation: delegates response allocation to the selected HTTP server
- * capability without exposing backend response buffers.
+ * Transformation: stores HTML and its content type in a private source record.
  */
-@compiler.native {std.http.response.html}
 pub html(value: String, status: Int = 200): Response ->
-    native.
+    new(1, value, status, "text/html; charset=utf-8").
 
 /**
  * Creates an HTML response from a trusted template fragment.
@@ -216,13 +244,11 @@ pub html(value: String, status: Int = 200): Response ->
  * status code.
  * Output: a `Response` containing the rendered HTML body and the platform
  * default HTML content type.
- * Transformation: preserves the trusted-template type boundary at source level
- * while delegating final response allocation to the selected HTTP server
- * capability.
+ * Transformation: extracts the trusted bytes through the template package and
+ * composes the ordinary string response builder.
  */
-@compiler.native {std.http.response.html}
 pub html(value: std.template.Template.Html, status: Int = 200): Response ->
-    native.
+    html(html_to_string(value), status).
 
 /**
  * Creates a file response.
@@ -235,9 +261,8 @@ pub html(value: std.template.Template.Html, status: Int = 200): Response ->
  * server capability while the compiler may lower constant file responses into
  * generated route manifests.
  */
-@compiler.native {std.http.response.file}
 pub file(path: String, status: Int = 200, content_type: String = ""): Response ->
-    native.
+    new(4, path, status, content_type).
 
 /**
  * Creates a bounded streaming response from available text chunks.
@@ -250,7 +275,6 @@ pub file(path: String, status: Int = 200, content_type: String = ""): Response -
  * descriptor; the VM validates the limits, preserves chunk order, applies
  * backpressure, and owns response completion.
  */
-@compiler.native {std.http.response.stream}
 pub stream(
     chunks: List[String],
     status: Int,
@@ -258,7 +282,16 @@ pub stream(
     chunk_size: Int,
     max_pending_writes: Int,
 ): Response ->
-    native.
+    Response {
+        #kind: 5,
+        #payload: "",
+        #status: status,
+        #content_type: content_type,
+        #headers: [],
+        #chunks: chunks,
+        #chunk_size: chunk_size,
+        #max_pending_writes: max_pending_writes,
+    }.
 
 /**
  * Creates a bounded streaming response with conservative defaults.
@@ -280,9 +313,8 @@ pub stream(chunks: List[String]): Response ->
  * Transformation: delegates redirect response allocation to the selected HTTP
  * server capability without exposing backend response buffers.
  */
-@compiler.native {std.http.response.redirect}
 pub redirect(location: String, status: Int = 302): Response ->
-    native.
+    text("", status).with_header("Location", location).
 
 /**
  * Sets the response status.
@@ -292,9 +324,8 @@ pub redirect(location: String, status: Int = 302): Response ->
  * Transformation: updates the target-owned response metadata through the
  * mutable receiver ABI.
  */
-@compiler.native {std.http.response.status}
 pub (mut response: Response) status(code: Int): Unit ->
-    native.
+    update(response, code, response.#headers).
 
 /**
  * Sets a response header.
@@ -305,9 +336,8 @@ pub (mut response: Response) status(code: Int): Unit ->
  * Transformation: updates the target-owned response metadata through the
  * mutable receiver ABI.
  */
-@compiler.native {std.http.response.header}
 pub (mut response: Response) header(name: String, value: String): Unit ->
-    native.
+    update(response, response.#status, response.#headers.concat([{name, value}])).
 
 /**
  * Returns a response after setting its status.
@@ -405,9 +435,9 @@ hsts_header(max_age: Int, include_subdomains: Bool): String ->
  * source-level helper. Full typed construction and option validation belong to
  * `std.http.Cookies`.
  */
-@compiler.native {std.http.response.set_cookie_header}
 pub (mut response: Response) set_cookie_header(value: String): Unit ->
-    native.
+    response
+    |> header("Set-Cookie", value).
 
 /**
  * Adds a validated `Set-Cookie` header.
@@ -558,6 +588,11 @@ pub (mut response: Response) with_deleted_cookie(name: String, path: String = "/
  * Transformation: lets handlers mutate a `Request.cookies()` jar and then
  * explicitly thread those validated mutations into the returned response.
  */
-@compiler.native {std.http.response.with_cookies}
 pub (mut response: Response) with_cookies(jar: Jar): Response ->
-    native.
+    apply_cookie_headers(response, headers(jar)).
+
+apply_cookie_headers(response: Response, pending: List[String]): Response ->
+    case pending {
+        [] -> response;
+        [header | rest] -> apply_cookie_headers(response |> set_cookie_header(header), rest)
+    }.

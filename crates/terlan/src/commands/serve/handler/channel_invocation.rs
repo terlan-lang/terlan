@@ -7,7 +7,6 @@ use crate::commands::serve::handler_cache::invocation::{
     AotHandlerInvocation, AotHandlerInvocationStep,
 };
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::runtime::vm::pure_native::PureNativeIoWait;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::ReplValue;
@@ -19,6 +18,10 @@ pub(in crate::commands::serve) enum AotChannelCallbackState {
     /// Callback parked on one exact typed VM I/O wait.
     Waiting(PureNativeIoWait),
 }
+
+#[cfg(test)]
+#[path = "channel_closure_test.rs"]
+mod closure_test;
 
 impl Debug for AotChannelCallbackState {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -34,6 +37,7 @@ impl Debug for AotChannelCallbackState {
 pub(in crate::commands::serve) struct AotChannelInvocation<Event> {
     channel: &'static str,
     runtime: Arc<AotHandlerRuntime>,
+    router_module: String,
     pending: Option<AotHandlerInvocation>,
     pending_event: Option<Event>,
     completed_events: Vec<Event>,
@@ -47,11 +51,12 @@ where
     pub(in crate::commands::serve) fn new(
         channel: &'static str,
         runtime: Arc<AotHandlerRuntime>,
-        _router_module: String,
+        router_module: String,
     ) -> Self {
         Self {
             channel,
             runtime,
+            router_module,
             pending: None,
             pending_event: None,
             completed_events: Vec::new(),
@@ -83,7 +88,7 @@ where
     pub(in crate::commands::serve) fn invoke(
         &mut self,
         event: Event,
-        callback: Option<&VmNativeCallableRef>,
+        callback: Option<&ReplValue>,
         args: Vec<ReplValue>,
     ) -> Result<AotChannelCallbackState, String> {
         if self.pending.is_some() {
@@ -98,11 +103,11 @@ where
         };
         let step = self
             .runtime
-            .begin_request_invocation(&callback.module, &callback.function, args)
+            .begin_callable_invocation(&self.router_module, callback, args)
             .map_err(|error| {
                 format!(
-                    "error[serve.{}.callback]: {event:?} callback `{}.{}/{}` failed: {error}",
-                    self.channel, callback.module, callback.function, callback.arity
+                    "error[serve.{}.callback]: {event:?} callback failed: {error}",
+                    self.channel
                 )
             })?;
         self.finish_step(event, step)

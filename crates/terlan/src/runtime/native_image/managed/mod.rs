@@ -1,6 +1,8 @@
 //! Actor-local managed memory used by direct-AOT native images.
 
 mod aggregate_abi;
+pub(crate) use aggregate_abi::decode_field_word;
+pub(crate) use operation_abi::field_word;
 mod aggregates;
 mod atoms;
 pub(crate) use operation_abi::immediate_variant;
@@ -76,13 +78,12 @@ pub use operation_abi::{
     encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
     encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
     encode_bytes_starts_with_operation, encode_bytes_to_list_operation,
-    encode_cookie_header_operation, encode_erased_value_box_operation,
-    encode_erased_value_is_type_operation, encode_erased_value_unbox_operation,
-    encode_float_from_string_operation, encode_float_log_operation,
-    encode_float_to_string_operation, encode_int_from_string_base_operation,
-    encode_int_from_string_operation, encode_int_to_string_base_operation,
-    encode_int_to_string_operation, encode_iterator_next_operation,
-    encode_json_parse_result_operation, encode_list_append_operation, encode_list_clear_operation,
+    encode_erased_value_box_operation, encode_erased_value_is_type_operation,
+    encode_erased_value_unbox_operation, encode_float_from_string_operation,
+    encode_float_log_operation, encode_float_to_string_operation,
+    encode_int_from_string_base_operation, encode_int_from_string_operation,
+    encode_int_to_string_base_operation, encode_int_to_string_operation,
+    encode_iterator_next_operation, encode_list_append_operation, encode_list_clear_operation,
     encode_list_concat_operation, encode_list_empty_operation, encode_list_first_operation,
     encode_list_first_option_operation, encode_list_from_elements_operation,
     encode_list_get_operation, encode_list_is_empty_operation, encode_list_length_operation,
@@ -94,16 +95,13 @@ pub use operation_abi::{
     encode_map_get_operation, encode_map_get_option_operation, encode_map_is_empty_operation,
     encode_map_iterator_operation, encode_map_length_operation, encode_map_put_operation,
     encode_map_remove_operation, encode_map_take_operation, encode_memory_retained_size_operation,
-    encode_memory_shallow_size_operation, encode_response_build_operation,
-    encode_response_cookie_jar_operation, encode_response_security_headers_operation,
-    encode_result_is_ok_operation, encode_session_current_operation,
+    encode_memory_shallow_size_operation, encode_session_current_operation,
     encode_session_expire_operation, encode_session_get_operation,
-    encode_session_mutation_operation, encode_session_option_is_none_operation,
-    encode_session_rotate_operation, encode_session_with_response_operation,
-    encode_set_add_operation, encode_set_clear_operation, encode_set_contains_operation,
-    encode_set_empty_operation, encode_set_from_list_operation, encode_set_is_empty_operation,
-    encode_set_iterator_operation, encode_set_length_operation, encode_set_remove_operation,
-    encode_string_append_operation, encode_string_byte_size_operation,
+    encode_session_is_live_operation, encode_session_mutation_operation,
+    encode_session_rotate_operation, encode_set_add_operation, encode_set_clear_operation,
+    encode_set_contains_operation, encode_set_empty_operation, encode_set_from_list_operation,
+    encode_set_is_empty_operation, encode_set_iterator_operation, encode_set_length_operation,
+    encode_set_remove_operation, encode_string_append_operation, encode_string_byte_size_operation,
     encode_string_characters_operation, encode_string_codepoints_operation,
     encode_string_compare_operation, encode_string_concat_operation,
     encode_string_contains_operation, encode_string_ends_with_operation,
@@ -112,14 +110,13 @@ pub use operation_abi::{
     encode_string_list_join_operation, encode_string_lowercase_operation,
     encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
     encode_string_prepend_projected_literal_operation, encode_string_replace_operation,
-    encode_string_reverse_operation, encode_string_sha256_operation,
-    encode_string_split_once_operation, encode_string_split_operation,
-    encode_string_starts_with_operation, encode_string_trim_end_operation,
-    encode_string_trim_operation, encode_string_trim_start_operation,
-    encode_string_uppercase_operation, encode_string_utf8_byte_at_operation,
-    encode_string_utf8_find_any_byte_operation, encode_string_utf8_slice_operation,
-    encode_template_render_operation, is_managed_operation, ManagedBinaryPatternEndian,
-    ManagedBinaryPatternField, ManagedBitStringOperation, ManagedCookieHeaderOperation,
+    encode_string_reverse_operation, encode_string_split_once_operation,
+    encode_string_split_operation, encode_string_starts_with_operation,
+    encode_string_trim_end_operation, encode_string_trim_operation,
+    encode_string_trim_start_operation, encode_string_uppercase_operation,
+    encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
+    encode_string_utf8_slice_operation, encode_template_render_operation, is_managed_operation,
+    ManagedBinaryPatternEndian, ManagedBinaryPatternField, ManagedBitStringOperation,
     ManagedSessionMutation, ManagedTemplateValueKind,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

@@ -2,7 +2,6 @@
 
 use std::path::Path;
 
-use crate::runtime::vm::VmHttpCallResult;
 use crate::terlan_native::http as native_http;
 
 use super::super::handler_cache::AotHandlerRuntime;
@@ -51,10 +50,5 @@ pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_pack
         )
         .await?
     };
-    match result {
-        VmHttpCallResult::Response(response) => HandlerResponse::from_aot_http_response(response),
-        VmHttpCallResult::Generic(value) => {
-            HandlerResponse::from_owned_vm_response_with_package_root(value, package_root)
-        }
-    }
+    HandlerResponse::from_owned_vm_response_with_package_root(result, package_root)
 }

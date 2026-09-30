@@ -30,31 +30,11 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
             Some(NativeType::Atom)
         }
         Some(CoreType::String) => Some(NativeType::StringRef),
-        Some(CoreType::Named(name))
-            if super::super::template_values::is_template_html_type(name) =>
-        {
-            Some(NativeType::StringRef)
-        }
-        Some(CoreType::Named(name)) if is_http_request_type(name) => {
-            managed_reference_type(&CoreType::Named("Request".to_string()))
-        }
-        Some(CoreType::Named(name)) if is_http_response_type(name) => {
-            managed_reference_type(&CoreType::Named("Response".to_string()))
-        }
-        Some(CoreType::Named(name)) if name == "std.http.Cookies.Jar" => {
-            managed_reference_type(&CoreType::Named("Jar".to_string()))
-        }
-        Some(CoreType::Named(name)) if name == "std.http.Session.Session" => {
-            managed_reference_type(&CoreType::Named("Session".to_string()))
-        }
         Some(core @ CoreType::Union(_)) if is_structural_string_option(core) => {
             managed_reference_type(&CoreType::Apply {
                 constructor: "Option".to_string(),
                 args: vec![CoreType::String],
             })
-        }
-        Some(core @ CoreType::Union(_)) if is_structural_http_middleware_result(core) => {
-            managed_reference_type(&CoreType::Named("MiddlewareResult".to_string()))
         }
         Some(CoreType::Binary) => Some(NativeType::BinaryRef),
         // Never has no value constructor or aggregate layout. Its reference
@@ -149,18 +129,6 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
     }
 }
 
-/// Reports whether a checked nominal type is the HTTP request facade whose
-/// physical managed tuple is owned by direct AOT HTTP lowering.
-fn is_http_request_type(name: &str) -> bool {
-    matches!(name, "Request" | "std.http.Request.Request")
-}
-
-/// Reports whether a checked nominal type is the HTTP response facade whose
-/// physical managed tuple is owned by direct AOT HTTP lowering.
-fn is_http_response_type(name: &str) -> bool {
-    matches!(name, "Response" | "std.http.Response.Response")
-}
-
 /// Recognizes the exact transparent representation of `Option[String]` so
 /// imported aliases and compiler-owned HTTP projections share one ABI identity.
 fn is_structural_string_option(ty: &CoreType) -> bool {
@@ -180,28 +148,6 @@ fn is_structural_string_option(ty: &CoreType) -> bool {
             };
             matches!(tuple_element_type(tag), CoreType::AtomLiteral(tag) if tag == "some")
                 && matches!(tuple_element_type(value), CoreType::String)
-        })
-}
-
-/// Recognizes the exact transparent `MiddlewareResult` representation so its
-/// nullary and response-carrying variants use the compiler-owned HTTP ABI.
-fn is_structural_http_middleware_result(ty: &CoreType) -> bool {
-    let CoreType::Union(variants) = ty else {
-        return false;
-    };
-    variants.len() == 2
-        && variants
-            .iter()
-            .any(|variant| matches!(variant, CoreType::AtomLiteral(tag) if tag == "continue"))
-        && variants.iter().any(|variant| {
-            let CoreType::Tuple(elements) = variant else {
-                return false;
-            };
-            let [tag, response] = elements.as_slice() else {
-                return false;
-            };
-            matches!(tuple_element_type(tag), CoreType::AtomLiteral(tag) if tag == "respond")
-                && matches!(tuple_element_type(response), CoreType::Named(name) if is_http_response_type(name))
         })
 }
 
@@ -239,13 +185,8 @@ pub(in crate::compiler::native_ir) fn managed_semantic_contract(core: &CoreType)
         // carry their complete application contract as the internal name.
         CoreType::Struct { name, .. } if name.starts_with("Apply(") => name.clone(),
         CoreType::Struct { name, .. } => CoreType::Named(name.clone()).contract_text(),
-        CoreType::Named(name) if is_http_request_type(name) => "Named(Request)".to_string(),
-        CoreType::Named(name) if is_http_response_type(name) => "Named(Response)".to_string(),
         core @ CoreType::Union(_) if is_structural_string_option(core) => {
             "Apply(Option;String)".to_string()
-        }
-        core @ CoreType::Union(_) if is_structural_http_middleware_result(core) => {
-            "Named(MiddlewareResult)".to_string()
         }
         _ => normalize_recursive_managed_type(core).contract_text(),
     }

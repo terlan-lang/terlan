@@ -10,11 +10,14 @@ module std.http.Cookies.
 /// Jar represents request-scoped cookie state.
 ///
 /// Input: no type parameter.
-/// Output: an opaque cookie jar handle owned by the HTTP runtime.
+/// Output: a source-owned snapshot of incoming cookies and pending headers.
 /// Transformation: lets handlers read incoming cookies and record outgoing
 /// cookie mutations without manually threading response headers.
 
-pub opaque type Jar.
+pub struct Jar {
+    #incoming: Map[String, String],
+    #pending: List[String]
+}.
 
 /// Lax represents the default practical SameSite cookie policy.
 ///
@@ -98,10 +101,19 @@ pub delete_header(name: String, path: String = "/"): String.
 /// Input: one cookie jar receiver and one cookie name.
 /// Output: `Some(value)` when the request included a cookie named `name`,
 /// otherwise `None`.
-/// Transformation: reads parsed request-cookie metadata from the runtime-owned
+/// Transformation: reads parsed request-cookie metadata from the source-owned
 /// jar without exposing the raw `Cookie` header.
 
 pub (jar: Jar) get(name: String): Option[String].
+
+/// Returns pending response headers.
+///
+/// Input: one cookie jar receiver.
+/// Output: serialized cookie mutations in insertion order.
+/// Transformation: exposes an immutable snapshot for response composition.
+
+@pure
+pub (jar: Jar) headers(): List[String].
 
 /// Records a response cookie mutation.
 ///

@@ -1,7 +1,7 @@
 use std::fmt::Write as _;
 use std::fs;
 use std::io::{BufWriter, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use quote::ToTokens;
 use sha2::{Digest, Sha256};
@@ -87,27 +87,11 @@ fn implementation_path(path: &Path) -> bool {
         && !text.ends_with("_test.rs")
 }
 
-fn collect_files(path: &Path, output: &mut Vec<PathBuf>) -> Result<(), AuditError> {
-    for entry in fs::read_dir(path).map_err(|error| {
-        AuditError::Message(format!("cannot read `{}`: {error}", path.display()))
-    })? {
-        let child = entry
-            .map_err(|error| {
-                AuditError::Message(format!("cannot inspect `{}`: {error}", path.display()))
-            })?
-            .path();
-        if child.is_dir() {
-            collect_files(&child, output)?;
-        } else if implementation_path(&child) {
-            output.push(child);
-        }
-    }
-    Ok(())
-}
-
 pub(super) fn write_shared_helper_input(root: &Path, path: &Path) -> Result<(), AuditError> {
     let mut files = Vec::new();
-    collect_files(&root.join("crates"), &mut files)?;
+    super::collect_files(&root.join("crates"), &mut files)?;
+    super::collect_files(&root.join("std"), &mut files)?;
+    files.retain(|path| implementation_path(path));
     files.sort();
     let mut rows = Vec::new();
     for file_path in files {

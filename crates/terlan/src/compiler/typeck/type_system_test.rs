@@ -73,3 +73,25 @@ fn standard_list_boundary_rejects_wrong_elements_namespaces_and_arity() {
         assert!(unify(&native, &literal, &mut HashMap::new()).is_err());
     }
 }
+
+/// Literal and interface list representations share the same subtype relation.
+#[test]
+fn standard_list_subtyping_preserves_bottom_and_element_constraints() {
+    let aliases = HashMap::new();
+    let empty = Type::List(Box::new(Type::Never));
+    let integers = portable(Some("std.collections.List"), vec![Type::Int]);
+    assert!(is_subtype_with_aliases(&empty, &integers, &aliases));
+    assert!(!is_subtype_with_aliases(&integers, &empty, &aliases));
+    let literal = Type::List(Box::new(Type::Int));
+    assert!(is_subtype_with_aliases(&literal, &integers, &aliases));
+    assert!(is_subtype_with_aliases(&integers, &literal, &aliases));
+    for invalid in [
+        portable(Some("std.collections.List"), vec![Type::Bool]),
+        portable(Some("user.collections.List"), vec![Type::Int]),
+        portable(None, vec![Type::Int]),
+        portable(Some("std.collections.List"), vec![]),
+    ] {
+        assert!(!is_subtype_with_aliases(&literal, &invalid, &aliases));
+        assert!(!is_subtype_with_aliases(&invalid, &literal, &aliases));
+    }
+}

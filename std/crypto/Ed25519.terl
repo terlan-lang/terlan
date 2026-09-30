@@ -1,5 +1,7 @@
 /**
- * Strict Ed25519 signature verification.
+ * Strict Ed25519 signature verification through the package-owned maintained
+ * cryptographic provider. The compiler and VM use the generic native boundary;
+ * neither interprets signature material nor selects cryptographic algorithms.
  */
 module std.crypto.Ed25519.
 

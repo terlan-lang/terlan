@@ -32,8 +32,7 @@ module std.core.String.
 ///
 /// Input: two UTF-8 `String` values.
 /// Output: one `String` containing `left` followed by `right`.
-/// Transformation: lowers through the compiler-owned `core.string.append`
-/// intrinsic for each target backend.
+/// Transformation: uses Terlan's string concatenation operator.
 ///
 /// ```terlan
 /// module string_append_example.
@@ -102,10 +101,9 @@ pub (value: String) codepoints(): List[Int].
 /// Transformation: maps Terlan's selected string ordering relation onto
 /// `std.core.Ordering.Comparison` without changing either input.
 ///
-/// This function is the named implementation hook for compiler-known
-/// `std.core.Ordering.Ordering[String]` conformance in 0.0.1. Rich Unicode
-/// collation is not part of this hook; targets must preserve the stable source
-/// ordering selected by the compiler contract.
+/// This ordinary Terlan implementation supplies
+/// `std.core.Ordering.Ordering[String]` conformance. Rich Unicode collation is
+/// not part of this operation; it uses the language's string ordering.
 ///
 /// ```terlan
 /// module string_compare_example.
@@ -229,6 +227,7 @@ pub (value: String) is_empty(): Bool.
 /// Transformation: preserves list order and never inserts leading or trailing
 /// separators.
 
+@pure
 pub join(values: List[String], separator: String): String.
 
 /// Counts user-visible text units in a `String`.

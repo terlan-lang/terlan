@@ -104,21 +104,61 @@ single_native(source: String, crate_name: String, stem: String): Adapter ->
 @pure
 pub adapter(module_name: String): Adapter ->
     case module_name {
+        "std.time.Clock" ->
+            Adapter(
+                known = true,
+                source = "std/time/Clock.terl",
+                expected_crate = "std::time",
+                implementation_paths = ["std/time/native/src/lib.rs"],
+                test_paths = ["std/time/native/src/clock_test.rs"],
+            );
         "std.crypto.Ed25519" ->
             Adapter(
                 known = true,
                 source = "std/crypto/Ed25519.terl",
                 expected_crate = "rustls",
-                implementation_paths = [native_path("ed25519.rs")],
-                test_paths = [native_path("ed25519_test.rs")],
+                implementation_paths = ["std/crypto/native/src/ed25519.rs"],
+                test_paths = ["std/crypto/native/src/ed25519_test.rs", "std/crypto/native/src/bindings_test.rs"],
             );
         "std.crypto.Hash" -> single_native("std/crypto/Hash.terl", "sha2", "hash");
-        "std.data.Json" -> single_native("std/data/Json.terl", "serde_json", "json");
+        "std.data.Json" ->
+            Adapter(
+                known = true,
+                source = "std/data/Json.terl",
+                expected_crate = "serde_json",
+                implementation_paths = [
+                    "std/data/native/src/value.rs",
+                    "std/data/native/src/projection.rs",
+                    "std/data/native/src/scalar.rs",
+                ],
+                test_paths = ["std/data/native/src/json_test.rs"],
+            );
         "std.data.Toml" -> single_native("std/data/Toml.terl", "basic-toml", "toml");
-        "std.encoding.Base64" -> single_native("std/encoding/Base64.terl", "base64", "base64");
-        "std.encoding.Md5" -> single_native("std/encoding/Md5.terl", "md-5", "md5");
+        "std.encoding.Base64" ->
+            Adapter(
+                known = true,
+                source = "std/encoding/Base64.terl",
+                expected_crate = "base64",
+                implementation_paths = ["std/encoding/native/src/base64.rs", "std/encoding/native/src/bindings.rs"],
+                test_paths = ["std/encoding/native/src/base64_test.rs", "std/encoding/native/src/bindings_test.rs"],
+            );
+        "std.encoding.Md5" ->
+            Adapter(
+                known = true,
+                source = "std/encoding/Md5.terl",
+                expected_crate = "md-5",
+                implementation_paths = ["std/encoding/native/src/md5.rs"],
+                test_paths = ["std/encoding/native/src/md5_test.rs"],
+            );
         "std.io.Path" -> single_native("std/io/Path.terl", "std::path", "path");
-        "std.net.Uri" -> single_native("std/net/Uri.terl", "url", "uri");
+        "std.net.Uri" ->
+            Adapter(
+                known = true,
+                source = "std/net/Uri.terl",
+                expected_crate = "url",
+                implementation_paths = ["std/net/native/src/lib.rs"],
+                test_paths = ["std/net/native/src/lib_test.rs"],
+            );
         "std.random.Random" -> single_native("std/random/Random.terl", "rand_chacha", "random");
         "std.regex.Regex" -> single_native("std/regex/Regex.terl", "regex", "regex");
         "std.package.Registry" ->
@@ -132,7 +172,14 @@ pub adapter(module_name: String): Adapter ->
         "std.system.Platform" ->
             single_native("std/system/Platform.terl", "std::env::consts", "platform");
         "std.http.Request" -> single_native("std/http/Request.terl", "std::http", "http");
-        "std.http.Cookies" -> single_native("std/http/Cookies.terl", "std::http", "http");
+        "std.http.Cookies" ->
+            Adapter(
+                known = true,
+                source = "std/http/Cookies.terl",
+                expected_crate = "std::http",
+                implementation_paths = ["std/http/native/src/lib.rs", "std/http/native/src/cookies.rs"],
+                test_paths = ["std/http/native/src/bindings_test.rs", "std/http/native/src/cookies_test.rs"],
+            );
         "std.http.Response" -> single_native("std/http/Response.terl", "std::http", "http");
         "std.http.Session" ->
             Adapter(
@@ -143,25 +190,27 @@ pub adapter(module_name: String): Adapter ->
                     vm_path("http_session/state/runtime.rs"),
                     vm_path("http_session/state/commands.rs"),
                 ],
-                test_paths = [vm_path("http_session_test/session_actor_fixtures.rs")],
+                test_paths = [
+                    vm_path("http_session_test/session_actor_fixtures.rs"),
+                    "crates/terlan/src/runtime/native_image/managed/operation_abi/session_cookie_test.rs",
+                ],
             );
         "std.http.Sse" ->
             Adapter(
                 known = true,
                 source = "std/http/Sse.terl",
-                expected_crate = "terlan-vm",
-                implementation_paths = [vm_path("sse.rs")],
-                test_paths = [vm_path("sse_test.rs")],
+                expected_crate = "axum",
+                implementation_paths = ["std/http/native/src/sse.rs"],
+                test_paths = ["std/http/native/src/sse_test.rs"],
             );
-        "std.http.WebSocket" ->
+        "std.db.Postgres" ->
             Adapter(
                 known = true,
-                source = "std/http/WebSocket.terl",
-                expected_crate = "terlan-vm",
-                implementation_paths = [vm_path("websocket/state/runtime.rs")],
-                test_paths = [vm_path("websocket_test/upgrade_and_endpoints.rs")],
+                source = "std/db/Postgres.terl",
+                expected_crate = "postgres-native",
+                implementation_paths = [native_path("postgres.rs"), vm_path("postgres_command.rs")],
+                test_paths = [native_path("postgres_test.rs"), vm_path("postgres_test.rs")],
             );
-        "std.db.Postgres" -> single_native("std/db/Postgres.terl", "postgres-native", "postgres");
         "std.native.collections.Vector" ->
             single_native("std/native/collections/Vector.terl", "std::vec", "vector");
         _ ->
@@ -249,6 +298,7 @@ public_function_lines(lines: List[String], function_name: String): Bool ->
 @pure
 public_function_line(line: String, function_name: String): Bool ->
     if {
+        String.starts_with(line, "pub(crate) fn ") -> public_function_line(String.replace(line, "pub(crate) fn ", "pub fn "), function_name);
         String.starts_with(line, "pub fn ") -> let normal = String.append("pub fn ", function_name);
         let raw = String.append("pub fn r#", function_name);
         String.starts_with(line, String.append(normal, "("))
@@ -364,13 +414,33 @@ adapter_rows_hold(root: String, rows: List[AdapterRow], files: List[TextFile]): 
     }.
 
 @pure
+implementation_function(operation: String, function_name: String): String ->
+    case operation {
+        "std.http.sse.encode_event" -> "encode_event";
+        "std.db.postgres.commit" -> "finish_transaction";
+        "std.db.postgres.rollback" -> "finish_transaction";
+        "std.http.session.current" -> "current";
+        "std.http.session.get" -> "get";
+        "std.http.session.set" -> "set";
+        "std.http.session.delete" -> "delete";
+        "std.http.session.rotate" -> "rotate";
+        "std.http.session.expire" -> "expire";
+        "std.encoding.base64.decode_text" -> "decode";
+        "std.encoding.base64.decode_url_text" -> "decode_url";
+        "std.encoding.base64.decode_octets" -> "decode_bytes";
+        "std.encoding.base64.decode_url_octets" -> "decode_url_bytes";
+        _ -> function_name
+    }.
+
+@pure
 adapter_row_holds(root: String, row: AdapterRow, selected: Adapter, files: List[TextFile]): Bool ->
+    let symbol = implementation_function(row.operation, row.function_name);
     if {
         not selected.known -> false;
         row.source != selected.source -> false;
         row.crate_name != selected.expected_crate -> false;
-        not adapter_function_present(root, selected.implementation_paths, files, row.function_name) -> false;
-        true -> adapter_test_present(root, selected.test_paths, files, row.function_name)
+        not adapter_function_present(root, selected.implementation_paths, files, symbol) -> false;
+        true -> adapter_test_present(root, selected.test_paths, files, symbol)
     }.
 
 @test
@@ -381,6 +451,17 @@ pub rust_function_parser_accepts_direct_raw_and_reexported_functions(): Bool ->
         and public_function_declared(source, "int")
         and public_function_declared(source, "json_value")
         and not public_function_declared(source, "missing").
+
+@test
+pub crate_visible_transaction_symbols_are_resolved_without_accepting_lookalikes(): Bool ->
+    let source = "pub(crate) fn begin(&mut self) {}\npub(crate) fn finish_transaction(&mut self) {}\nfn hidden() {}\n// pub(crate) fn fake() {}";
+    public_function_declared(source, "begin")
+        and public_function_declared(source, implementation_function("std.db.postgres.commit", "commit"))
+        and public_function_declared(source, implementation_function("std.db.postgres.rollback", "rollback"))
+        and not public_function_declared(source, "hidden")
+        and not public_function_declared(source, "fake")
+        and not public_function_declared(source, "beg")
+        and implementation_function("app.commit", "commit") == "commit".
 
 @test
 pub repository_adapters_and_tests_cover_manifest(): Bool ->

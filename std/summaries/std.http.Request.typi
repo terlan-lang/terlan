@@ -1,20 +1,29 @@
 //! Portable HTTP request contract.
 //!
 //! `std.http.Request` exposes request helpers used by Terlan HTTP handlers.
-//! Runtime servers own the concrete request representation; source code works
-//! with typed receivers and portable `Result` values.
+//! The package owns the request value and its accessors. Servers populate its
+//! fields after parsing HTTP; no native handle is needed to read a request.
 
 module std.http.Request.
 
 /// Request represents one HTTP request received by a Terlan server.
 ///
 /// Input: no type parameter.
-/// Output: an opaque request handle whose runtime representation is target
-/// owned.
-/// Transformation: hides server-specific request storage while preserving a
-/// stable typed receiver for handler functions.
+/// Output: an immutable managed value with private request fields.
+/// Transformation: separates parsed HTTP data from transport storage.
 
-pub opaque type Request.
+pub struct Request {
+    #method: String,
+    #path: String,
+    #params: Map[String, String],
+    #body: String,
+    #query_string: String,
+    #query: Map[String, String],
+    #headers: Map[String, String],
+    #cookies: Map[String, String],
+    #cookie_jar: Jar,
+    #body_file_path: String
+}.
 
 /// Returns the server-owned temporary file path for a binary request body.
 ///
@@ -24,6 +33,7 @@ pub opaque type Request.
 /// Transformation: exposes only the path allocated by the server for this
 /// request; the server removes the file after the handler completes.
 
+@pure
 pub (request: Request) body_file_path(): String.
 
 /// Parses the request body as JSON.
@@ -44,6 +54,7 @@ pub (request: Request) body_json(): Result[Json, Error].
 /// Transformation: reads target-owned request body storage without parsing it
 /// as JSON or form data.
 
+@pure
 pub (request: Request) body_text(): String.
 
 /// Returns a request cookie value.
@@ -64,6 +75,7 @@ pub (request: Request) cookie(name: String): Option[String].
 /// Transformation: asks the HTTP runtime for the request-owned cookie view
 /// without exposing raw headers or response-header threading to handlers.
 
+@pure
 pub (request: Request) cookies(): Jar.
 
 /// Returns a request header value.
@@ -83,6 +95,7 @@ pub (request: Request) header(name: String): Option[String].
 /// Transformation: reads server-owned request metadata without exposing the
 /// concrete request implementation.
 
+@pure
 pub (request: Request) method(): String.
 
 /// Returns a route parameter value.
@@ -102,6 +115,7 @@ pub (request: Request) param(name: String): Option[String].
 /// Transformation: reads server-owned request metadata without exposing the
 /// concrete request implementation.
 
+@pure
 pub (request: Request) path(): String.
 
 /// Returns a query parameter value.
@@ -122,4 +136,7 @@ pub (request: Request) query(name: String): Option[String].
 /// splitting it, so handlers can preserve the exact incoming query text when
 /// needed.
 
+@pure
 pub (request: Request) query_string(): String.
+
+export type InvalidBody.

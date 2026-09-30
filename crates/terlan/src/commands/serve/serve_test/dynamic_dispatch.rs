@@ -617,7 +617,7 @@ pub(super) fn vm_plain_http1_request_complete_rejects_invalid_content_length() {
 
     assert_eq!(
         message.to_string(),
-        "invalid VM plain HTTP content-length value"
+        "VM HTTP Content-Length `nope` is invalid"
     );
 }
 

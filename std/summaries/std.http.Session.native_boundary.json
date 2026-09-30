@@ -2,38 +2,38 @@
   "functions": [
     {
       "arity": 1,
-      "name": "current",
+      "name": "lookup",
       "operation": "std.http.session.current"
     },
     {
       "arity": 2,
-      "name": "get",
+      "name": "read",
       "operation": "std.http.session.get"
     },
     {
       "arity": 3,
-      "name": "set",
+      "name": "write",
       "operation": "std.http.session.set"
     },
     {
       "arity": 2,
-      "name": "delete",
+      "name": "remove",
       "operation": "std.http.session.delete"
     },
     {
       "arity": 1,
-      "name": "rotate",
+      "name": "renew",
       "operation": "std.http.session.rotate"
     },
     {
       "arity": 1,
-      "name": "expire",
+      "name": "invalidate",
       "operation": "std.http.session.expire"
     },
     {
-      "arity": 2,
-      "name": "with_response",
-      "operation": "std.http.session.with_response"
+      "arity": 1,
+      "name": "is_live",
+      "operation": "std.http.session.is_live"
     }
   ],
   "module": "std_http_session_native_boundary",

@@ -102,8 +102,7 @@ fn core_string_runtime_value(value: &str) -> String {
 ///   otherwise.
 ///
 /// Transformation:
-/// - Preserves Terlan unary minus as JavaScript unary negation and rejects all
-///   other unary spellings until their semantics are selected explicitly.
+/// - Preserves Terlan numeric negation and checked boolean negation.
 pub(super) fn core_unary_operator_to_oxc(
     operator: &str,
 ) -> Option<oxc_syntax::operator::UnaryOperator> {
@@ -111,6 +110,7 @@ pub(super) fn core_unary_operator_to_oxc(
 
     match operator {
         "-" => Some(UnaryOperator::UnaryNegation),
+        "not" => Some(UnaryOperator::LogicalNot),
         _ => None,
     }
 }

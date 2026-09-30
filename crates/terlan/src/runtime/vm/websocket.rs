@@ -1,8 +1,6 @@
-use tungstenite::handshake::derive_accept_key;
 #[cfg(test)]
 use tungstenite::protocol::{Message, Role, WebSocket};
 
-use super::native_callable::VmNativeCallableRef;
 #[cfg(test)]
 use super::tcp::{VmTcpRuntime, VmTcpStream};
 #[cfg(test)]

@@ -25,7 +25,7 @@ use crate::runtime::vm::support_bundle::VmNativeSupportBundle;
 use crate::runtime::vm::ReplValue;
 
 use super::{
-    NativeResultProjection, PureNativeBoundary, PureNativeExecution, PureNativeExecutionContext,
+    PureNativeBoundary, PureNativeExecution, PureNativeExecutionContext,
     PureNativeExecutionRuntime, PureNativeIoWait, PureNativeIoWake, PureNativeSuspension,
     VmNativeGenerationReferenceClass,
 };
@@ -55,8 +55,8 @@ mod service_actor;
 #[path = "execution_shard/admission.rs"]
 mod admission;
 
-#[path = "execution_shard/http_response.rs"]
-mod http_response;
+#[path = "execution_shard/owner_call.rs"]
+mod owner_call;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use admission::load_image_components;
@@ -72,6 +72,7 @@ use lifecycle_replay::PureNativeShardLifecycleReplay;
 #[cfg(test)]
 pub(crate) use actor_transfer::PureNativeActorImportFailure;
 pub(crate) use actor_transfer::PureNativeActorTransfer;
+pub(crate) use capability_ingress::managed_capability_term;
 pub(crate) use capability_ingress::PureNativeCapabilityWait;
 pub(crate) use timer_ingress::PureNativeTimerWait;
 
@@ -392,15 +393,6 @@ impl PureNativeExecutionShard {
                 PureNativeExecution::Complete(value) => {
                     self.finish_owner(owner, VmExitReason::Normal)?;
                     return Ok(value);
-                }
-                PureNativeExecution::HttpResponse(_) => {
-                    self.finish_owner(
-                        owner,
-                        VmExitReason::Error(
-                            "HTTP response returned through a public-value call".to_string(),
-                        ),
-                    )?;
-                    return Err("error[execution_shard.result_projection]: HTTP response returned through a public-value call".to_string());
                 }
                 PureNativeExecution::Suspended(suspension) => {
                     self.resume_call(owner, *suspension)?
@@ -770,10 +762,7 @@ impl PureNativeExecutionShard {
     fn record_completion(&mut self, owner: VmProcessId, execution: &PureNativeExecution) {
         #[cfg(not(test))]
         let _ = owner;
-        if matches!(
-            execution,
-            PureNativeExecution::Complete(_) | PureNativeExecution::HttpResponse(_)
-        ) {
+        if matches!(execution, PureNativeExecution::Complete(_)) {
             self.completed_call_count = self.completed_call_count.saturating_add(1);
             #[cfg(test)]
             self.trace

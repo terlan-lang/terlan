@@ -181,10 +181,13 @@
     },
     {
       "name": "terlan-runtime-abi",
-      "responsibility": "Own stable typed AOT image transition and failure contracts shared across Terlan runtime boundaries.",
+      "responsibility": "Own stable typed AOT transitions, failure contracts, native value bindings, and generic owner-checked resource storage shared across runtime and package boundaries.",
       "top_level_feature_modules": [
         "boundary_error",
-        "boundary_type"
+        "boundary_type",
+        "native_record",
+        "native_value",
+        "resource"
       ]
     },
     {
@@ -282,6 +285,69 @@
       "responsibility": "Own AST-based Rust canonical-type and build-boundary quality analysis without loading parser dependencies into Terlan products.",
       "top_level_feature_modules": [
         "type_inventory"
+      ]
+    },
+    {
+      "name": "terlan-std-native",
+      "responsibility": "Own standard-library native package composition and package operation contracts through Cargo dependencies, without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "packages",
+        "postgres"
+      ]
+    },
+    {
+      "name": "terlan-data-native",
+      "responsibility": "Own maintained JSON parsing, encoding, value storage, and remaining native projections inside std.data without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "lib",
+        "projection",
+        "scalar",
+        "value"
+      ]
+    },
+    {
+      "name": "terlan-net-native",
+      "responsibility": "Own maintained URL parsing and accessor projection inside std.net through the shared value binding ABI.",
+      "top_level_feature_modules": [
+        "lib"
+      ]
+    },
+    {
+      "name": "terlan-http-native",
+      "responsibility": "Own HTTP host request/response adapters, maintained HTTP/cookie codecs, their argument contracts, and shared HTTP errors inside std.http without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "bindings",
+        "cookies",
+        "error",
+        "request",
+        "response"
+      ]
+    },
+    {
+      "name": "terlan-crypto-native",
+      "responsibility": "Own maintained SHA-256 framing and Ed25519 verification through package-owned value bindings without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "ed25519",
+        "hash",
+        "hash_bindings",
+        "lib"
+      ]
+    },
+    {
+      "name": "terlan-encoding-native",
+      "responsibility": "Own maintained Base64 and MD5 codecs through package-owned value bindings without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "base64",
+        "bindings",
+        "lib",
+        "md5"
+      ]
+    },
+    {
+      "name": "terlan-time-native",
+      "responsibility": "Own bounded host wall-clock and monotonic-clock observations through package-owned value bindings without compiler or VM dependencies.",
+      "top_level_feature_modules": [
+        "lib"
       ]
     }
   ],

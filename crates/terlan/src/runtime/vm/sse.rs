@@ -4,7 +4,6 @@ use std::collections::VecDeque;
 use super::memory::{
     VmMemoryAccountant, VmMemoryPressureOutcome, VmSharedAllocationId, VmSharedAllocationKind,
 };
-use super::native_callable::VmNativeCallableRef;
 #[cfg(test)]
 use super::process::{VmProcessId, VmProcessTable};
 #[cfg(test)]
@@ -18,35 +17,7 @@ mod sse_live_session;
 mod sse_test;
 pub(crate) use sse_live_session::VmSseLiveSession;
 
-/// VM SSE stream failure with stable typed variants.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum VmSseError {
-    #[cfg(test)]
-    Closed,
-    BackpressureExceeded,
-    #[cfg(test)]
-    InvalidEventName,
-    #[cfg(test)]
-    InvalidRetry,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    InvalidKeepAlive,
-    #[cfg(test)]
-    HeartbeatTimedOut,
-    #[cfg(test)]
-    InvalidReconnectToken,
-    #[cfg(test)]
-    StaleReconnectToken,
-    #[cfg(test)]
-    InvalidProtocolAssetHash,
-    #[cfg(test)]
-    StaleProtocolAssetHash,
-    #[cfg(test)]
-    DomPatchBackpressureExceeded,
-    #[cfg(test)]
-    EventTooLarge,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    CallbacksAlreadyConfigured,
-}
+pub(crate) use terlan_http_native::channel_plan::SseError as VmSseError;
 
 /// Typed failure from an SSE stream governed by VM memory ownership.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -201,40 +172,11 @@ pub(crate) struct VmSseDomPatchBackpressure {
     rejected_patches: usize,
 }
 
-/// VM SSE endpoint policy installed on an HTTP route.
-///
-/// Inputs:
-/// - Maximum pending event count, maximum encoded event bytes, and optional
-///   keep-alive interval.
-///
-/// Output:
-/// - Route-level SSE policy that can open bounded VM-owned streams.
-///
-/// Transformation:
-/// - Keeps router dispatch typed without storing live mutable stream state in the
-///   route table itself.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct VmSseEndpointPlan {
-    max_pending_events: usize,
-    max_event_bytes: usize,
-    keep_alive_ms: Option<u64>,
-    callbacks: Option<VmSseCallbackPlan>,
-}
-
-/// Complete static callback set for one generated SSE endpoint.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct VmSseCallbackPlan {
-    /// Called after stream admission.
-    pub(crate) open: VmNativeCallableRef,
-    /// Called when one application event becomes ready.
-    pub(crate) event_ready: VmNativeCallableRef,
-    /// Called when the VM emits a keep-alive comment.
-    pub(crate) keep_alive: VmNativeCallableRef,
-    /// Called before graceful stream drain and close.
-    pub(crate) drain: VmNativeCallableRef,
-    /// Called during abrupt scheduler or transport cancellation.
-    pub(crate) cancellation: VmNativeCallableRef,
-}
+/// Runtime specialization of the package-owned channel descriptor.
+pub(crate) type VmSseEndpointPlan =
+    terlan_http_native::channel_plan::SseEndpointPlan<super::ReplValue>;
+pub(crate) type VmSseCallbackPlan =
+    terlan_http_native::channel_plan::SseCallbacks<super::ReplValue>;
 
 /// VM-owned bounded SSE stream queue.
 ///
@@ -303,75 +245,6 @@ impl VmSseEvent {
     pub(crate) fn encode(&self) -> Result<Vec<u8>, VmSseError> {
         let text = encode_event_text(self)?;
         Ok(text.into_bytes())
-    }
-}
-
-impl VmSseEndpointPlan {
-    /// Creates an SSE endpoint plan with explicit non-zero stream limits.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn new(
-        max_pending_events: usize,
-        max_event_bytes: usize,
-    ) -> Result<Self, VmSseError> {
-        if max_pending_events == 0 || max_event_bytes == 0 {
-            return Err(VmSseError::BackpressureExceeded);
-        }
-        Ok(Self {
-            max_pending_events,
-            max_event_bytes,
-            keep_alive_ms: None,
-            callbacks: None,
-        })
-    }
-
-    /// Adds a non-zero keep-alive interval in milliseconds.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn with_keep_alive_ms(mut self, keep_alive_ms: u64) -> Result<Self, VmSseError> {
-        if keep_alive_ms == 0 {
-            return Err(VmSseError::InvalidKeepAlive);
-        }
-        self.keep_alive_ms = Some(keep_alive_ms);
-        Ok(self)
-    }
-
-    /// Opens a bounded stream instance from this route endpoint plan.
-    pub(crate) fn open_stream(&self) -> Result<VmSseStream, VmSseError> {
-        VmSseStream::new(self.max_pending_events, self.max_event_bytes)
-    }
-
-    /// Returns the maximum queued event count for streams opened from this plan.
-    pub(crate) fn max_pending_events(&self) -> usize {
-        self.max_pending_events
-    }
-
-    /// Returns the maximum encoded event size for streams opened from this plan.
-    #[cfg(test)]
-    pub(crate) fn max_event_bytes(&self) -> usize {
-        self.max_event_bytes
-    }
-
-    /// Returns the optional keep-alive interval in milliseconds.
-    #[cfg(test)]
-    pub(crate) fn keep_alive_ms(&self) -> Option<u64> {
-        self.keep_alive_ms
-    }
-
-    /// Attaches one complete closure-free callback set to this endpoint.
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-    pub(crate) fn with_callbacks(
-        mut self,
-        callbacks: VmSseCallbackPlan,
-    ) -> Result<Self, VmSseError> {
-        if self.callbacks.is_some() {
-            return Err(VmSseError::CallbacksAlreadyConfigured);
-        }
-        self.callbacks = Some(callbacks);
-        Ok(self)
-    }
-
-    /// Returns the generated callback set retained by this endpoint.
-    pub(crate) fn callbacks(&self) -> Option<&VmSseCallbackPlan> {
-        self.callbacks.as_ref()
     }
 }
 

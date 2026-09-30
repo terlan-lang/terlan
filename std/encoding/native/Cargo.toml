@@ -1,0 +1,16 @@
+[package]
+name = "terlan-encoding-native"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+base64.workspace = true
+md-5 = "0.11.0"
+terlan-runtime-abi.workspace = true

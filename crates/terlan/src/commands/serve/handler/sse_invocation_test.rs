@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::aot_metadata::AotRouterRouteTarget;
+use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
 use crate::runtime::vm::sse::{VmSseEndpointPlan, VmSseLiveSession};
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;
@@ -58,22 +58,26 @@ fn runtime() -> (
         crate::validation::target_profile::TargetProfile::Vm,
     )
     .expect("compile callback source");
-    let (core, router) = crate::compiler::router::prepare_aot_router_module(&artifacts.core)
-        .expect("prepare callback router");
-    let router = router.expect("callback router plan");
-    let AotRouterRouteTarget::Sse(endpoint) = &router.routes[0].target else {
-        panic!("expected SSE endpoint")
-    };
-    let endpoint = endpoint.clone();
     let image = crate::commands::build::vm_artifact::native_image::compile_serve_native_image(
         &web_root,
         "app_SseCallbacks",
-        &core,
+        &artifacts.core,
     )
     .expect("compile callback native image")
     .expect("callbacks produce native image");
-    let runtime = AotHandlerRuntime::load("app.SseCallbacks".to_string(), &image, Some(router))
+    let runtime = AotHandlerRuntime::load("app.SseCallbacks".to_string(), &image, None)
         .expect("load callback runtime");
+    let router = runtime
+        .execute_http_router("app.SseCallbacks", "router", &mut |_| {})
+        .unwrap();
+    let VmHttpRouterOutcome::Matched(route) =
+        router.dispatch(VmHttpRouteMethod::Get, "/events").unwrap()
+    else {
+        panic!("expected SSE route");
+    };
+    let VmHttpRouteTarget::SseEndpoint(endpoint) = route.target else {
+        panic!("SSE endpoint")
+    };
     (root, Arc::new(runtime), endpoint)
 }
 
@@ -155,7 +159,8 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         module: "app.SseCallbacks".to_string(),
         function: "terminal_drained".to_string(),
         arity: 0,
-    };
+    }
+    .into_value();
     let terminal_plan = VmSseEndpointPlan::new(4, 1024)
         .expect("terminal endpoint")
         .with_callbacks(callbacks)

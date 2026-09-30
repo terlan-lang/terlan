@@ -3,25 +3,31 @@
  *
  * `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
  * handlers. The HTTP server binds request cookies to VM session actor
- * identity; source code works with an opaque session handle and explicit
- * response threading.
+ * identity; source code owns the private session record and explicit response
+ * threading. Native operations receive only the selected identity.
  */
 module std.http.Session.
 
+import std.core.Option.{None, Some}.
 import std.core.Unit.
+import std.http.Cookies.{delete_header, set_header_with_options}.
+import std.http.{Request, Response}.
 
 import type std.core.Option.
 import type std.http.{Request, Response}.
 
 /**
- * Session represents one VM-owned HTTP session actor.
+ * Session represents a source-owned reference to an HTTP session actor.
  *
  * Input: no type parameter.
- * Output: an opaque session handle whose runtime representation is VM owned.
+ * Output: a managed record with private identity and pending-cookie fields.
  * Transformation: hides actor ids, VM table ids, sticky routing metadata, and
  * recovery policy while preserving a stable handler-facing session value.
  */
-pub opaque type Session.
+pub struct Session {
+    #identity: String,
+    #pending_identity: String,
+}.
 
 /**
  * Returns the current request session.
@@ -32,8 +38,17 @@ pub opaque type Session.
  * Transformation: asks the HTTP runtime to bind request cookies to session
  * actor identity without exposing cookie parsing or actor placement details.
  */
-@compiler.native {std.http.session.current}
 pub current(request: Request): Session ->
+    let {identity, created} = lookup(request.cookie("terlan_session"));
+    let pending =
+        if {
+            created -> identity;
+            true -> ""
+        };
+    Session {#identity: identity, #pending_identity: pending}.
+
+@compiler.native {std.http.session.current}
+lookup(cookie: Option[String]): {String, Bool} ->
     native.
 
 /**
@@ -44,8 +59,11 @@ pub current(request: Request): Session ->
  * Transformation: reads VM table state owned by the session actor without
  * exposing the backing table handle.
  */
-@compiler.native {std.http.session.get}
 pub (session: Session) get(key: String): Option[String] ->
+    read(session.#identity, key).
+
+@compiler.native {std.http.session.get}
+read(identity: String, key: String): Option[String] ->
     native.
 
 /**
@@ -55,8 +73,12 @@ pub (session: Session) get(key: String): Option[String] ->
  * Output: `Unit`.
  * Transformation: updates VM table state through the session actor boundary.
  */
-@compiler.native {std.http.session.set}
 pub (mut session: Session) set(key: String, value: String): Unit ->
+    let _written = write(session.#identity, key, value);
+    session.
+
+@compiler.native {std.http.session.set}
+write(identity: String, key: String, value: String): Unit ->
     native.
 
 /**
@@ -66,8 +88,12 @@ pub (mut session: Session) set(key: String, value: String): Unit ->
  * Output: `Unit`.
  * Transformation: removes VM table state through the session actor boundary.
  */
-@compiler.native {std.http.session.delete}
 pub (mut session: Session) delete(key: String): Unit ->
+    let _removed = remove(session.#identity, key);
+    session.
+
+@compiler.native {std.http.session.delete}
+remove(identity: String, key: String): Unit ->
     native.
 
 /**
@@ -78,8 +104,12 @@ pub (mut session: Session) delete(key: String): Unit ->
  * Transformation: preserves actor-owned table state while requiring the HTTP
  * runtime to thread a replacement session cookie into the response.
  */
-@compiler.native {std.http.session.rotate}
 pub (mut session: Session) rotate(): Session ->
+    let identity = renew(session.#identity);
+    Session {#identity: identity, #pending_identity: identity}.
+
+@compiler.native {std.http.session.rotate}
+renew(identity: String): String ->
     native.
 
 /**
@@ -90,8 +120,12 @@ pub (mut session: Session) rotate(): Session ->
  * Transformation: requests cleanup of the VM session actor and its owned table
  * state; future use of the stale handle must fail through runtime diagnostics.
  */
-@compiler.native {std.http.session.expire}
 pub (mut session: Session) expire(): Unit ->
+    let _expired = invalidate(session.#identity);
+    session.
+
+@compiler.native {std.http.session.expire}
+invalidate(identity: String): Unit ->
     native.
 
 /**
@@ -102,6 +136,48 @@ pub (mut session: Session) expire(): Unit ->
  * Transformation: makes response cookie threading explicit so handler code does
  * not depend on implicit global response state.
  */
-@compiler.native {std.http.session.with_response}
 pub with_response(response: Response, session: Session): Response ->
+    case response_cookie(session) {
+        None -> response;
+        Some(header) ->
+            let _attached = response.set_cookie_header(header);
+            response
+    }.
+
+response_cookie(session: Session): Option[String] ->
+    case live_identity(session) {
+        Some("") -> None;
+        Some(identity) ->
+            Some(
+                set_header_with_options(
+                    "terlan_session",
+                    identity,
+                    "/",
+                    "",
+                    0,
+                    false,
+                    "",
+                    true,
+                    false,
+                    "Lax",
+                ),
+            );
+        None -> Some(delete_header("terlan_session", "/"))
+    }.
+
+/**
+ * Combines an atomic liveness check with the immutable source pending identity.
+ *
+ * A live session returns its pending identity, including an empty string
+ * when no replacement is pending. An expired identity returns None. Source
+ * owns the cookie name, attributes, omission, and deletion policy.
+ */
+live_identity(session: Session): Option[String] ->
+    if {
+        is_live(session.#identity) -> Some(session.#pending_identity);
+        true -> None
+    }.
+
+@compiler.native {std.http.session.is_live}
+is_live(identity: String): Bool ->
     native.

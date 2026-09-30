@@ -4,14 +4,14 @@ use std::io::{Read, Write};
 use std::thread;
 use std::time::Duration;
 
-use tungstenite::protocol::frame::coding::CloseCode;
-use tungstenite::protocol::{CloseFrame, Message, Role, WebSocket};
-use tungstenite::Error as WebSocketError;
+use terlan_http_native::websocket::{
+    Error as WebSocketError, ErrorKind, Message, Server as WebSocket,
+};
 
-use crate::runtime::vm::http::{
+use crate::runtime::vm::websocket::VmWebSocketFrame;
+use terlan_http_native::http1::{
     write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
 };
-use crate::runtime::vm::websocket::VmWebSocketFrame;
 
 use super::handler::VmHttpChannelTransport;
 use super::VmStreamHttp1Exchange;
@@ -59,7 +59,7 @@ fn pump_websocket<S>(
 where
     S: Read + Write,
 {
-    let mut socket = WebSocket::from_raw_socket(stream, Role::Server, None);
+    let mut socket = WebSocket::new(stream, session.plan().max_frame_bytes());
     notify_websocket_writable(&mut session)?;
     loop {
         match socket.read() {
@@ -94,7 +94,7 @@ where
                 close_websocket_after_error(&mut socket, &mut session, &error);
                 return Err(error);
             }
-            Err(WebSocketError::ConnectionClosed | WebSocketError::AlreadyClosed) => {
+            Err(error) if error.kind() == ErrorKind::Closed => {
                 return session.close().map(|_| ());
             }
             Err(error) => {
@@ -136,10 +136,7 @@ fn close_websocket_after_error<S>(
     S: Read + Write,
 {
     let _ = session.cancel(reason.to_string());
-    let _ = socket.close(Some(CloseFrame {
-        code: CloseCode::Unsupported,
-        reason: "unsupported channel payload".into(),
-    }));
+    let _ = socket.close_unsupported();
     let _ = socket.flush();
 }
 
@@ -156,7 +153,8 @@ where
     S: Read + Write,
 {
     match socket.flush() {
-        Ok(()) | Err(WebSocketError::ConnectionClosed | WebSocketError::AlreadyClosed) => Ok(()),
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == ErrorKind::Closed => Ok(()),
         Err(error) => Err(render_websocket_transport_error(error)),
     }
 }
@@ -177,8 +175,8 @@ where
         .header("x-content-type-options", "nosniff")
         .body(())
         .map_err(|error| format!("failed to build VM SSE stream response: {error}"))?;
-    write_http1_stream_head(stream, &response, false)?;
-    write_http1_stream_chunk(stream, b": connected\n\n")?;
+    write_http1_stream_head(stream, &response, false).map_err(|failure| failure.message)?;
+    write_http1_stream_chunk(stream, b": connected\n\n").map_err(|failure| failure.message)?;
     stream
         .flush()
         .map_err(|error| format!("failed to flush VM SSE stream head: {error}"))?;
@@ -192,18 +190,21 @@ where
             return cancel_sse_disconnect(&mut session, error);
         }
         if !session.is_open() {
-            write_http1_stream_end(stream)?;
+            write_http1_stream_end(stream).map_err(|failure| failure.message)?;
             return stream
                 .flush()
                 .map_err(|error| format!("failed to flush VM SSE drain: {error}"));
         }
 
         thread::sleep(Duration::from_millis(keep_alive_ms));
-        if let Err(error) = write_http1_stream_chunk(stream, b": keep-alive\n\n").and_then(|_| {
-            stream
-                .flush()
-                .map_err(|error| format!("failed to flush VM SSE keep-alive: {error}"))
-        }) {
+        if let Err(error) = write_http1_stream_chunk(stream, b": keep-alive\n\n")
+            .map_err(|failure| failure.message)
+            .and_then(|_| {
+                stream
+                    .flush()
+                    .map_err(|error| format!("failed to flush VM SSE keep-alive: {error}"))
+            })
+        {
             return cancel_sse_disconnect(&mut session, error);
         }
         if !session.is_waiting() {
@@ -223,7 +224,7 @@ fn flush_sse_events(
 ) -> Result<(), String> {
     let mut wrote_event = false;
     while let Some(frame) = session.flush_next_event()? {
-        write_http1_stream_chunk(writer, &frame)?;
+        write_http1_stream_chunk(writer, &frame).map_err(|failure| failure.message)?;
         wrote_event = true;
     }
     if !wrote_event {

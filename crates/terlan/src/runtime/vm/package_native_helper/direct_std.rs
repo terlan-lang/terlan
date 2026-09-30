@@ -39,9 +39,7 @@ pub(super) fn supports(operation: &str) -> bool {
             | "std.native.collections.vector.swap"
             | "std.native.collections.vector.push"
             | "std.native.collections.vector.to_list"
-    ) || operation.starts_with("std.data.json.")
-        || operation.starts_with("std.encoding.base64.")
-        || operation == "std.encoding.md5.digest"
+    ) || crate::std_native_packages::resource_operation(operation).is_some()
         || operation == "std.data.toml.parse"
         || operation == "std.package.registry.parse_publish_request"
         || operation == "std.package.registry.parse_yank_request"
@@ -54,39 +52,6 @@ pub(super) fn supports(operation: &str) -> bool {
         || operation == "std.package.registry.dependency_candidates_valid"
         || operation.starts_with("std.regex.regex.")
         || operation.starts_with("std.io.path.")
-        || operation == "std.http.request.body_json"
-        || operation == "std.http.request.body_file_path"
-        || operation == "std.http.request.body_text"
-        || operation == "std.http.request.method"
-        || operation == "std.http.request.path"
-        || operation == "std.http.request.param"
-        || operation == "std.http.request.query"
-        || operation == "std.http.request.query_string"
-        || operation == "std.http.request.header"
-        || operation == "std.http.request.cookie"
-        || operation == "std.http.request.cookies"
-        || operation == "std.http.response.json"
-        || operation == "std.http.response.json_text"
-        || operation == "std.http.response.text"
-        || operation == "std.http.response.html"
-        || operation == "std.http.response.file"
-        || operation == "std.http.response.redirect"
-        || operation == "std.http.cookies.get"
-        || operation == "std.http.cookies.set_header"
-        || operation == "std.http.cookies.set_header_with_options"
-        || operation == "std.http.cookies.delete_header"
-        || operation == "std.net.uri.parse"
-        || operation == "std.net.uri.to_string"
-        || operation == "std.net.uri.scheme"
-        || operation == "std.net.uri.host"
-        || operation == "std.net.uri.path"
-        || operation == "std.net.uri.query"
-        || operation == "std.net.uri.fragment"
-        || operation == "std.crypto.hash.sha256_framed"
-        || operation == "std.crypto.hash.sha256_domain_framed"
-        || operation == "std.crypto.hash.sha256_nul_separated"
-        || operation == "std.crypto.hash.sha256_bytes"
-        || operation == "std.crypto.ed25519.verify"
         || operation == "std.system.process.run"
         || operation == "std.system.process.run_many"
         || operation == "std.system.process.run_length_framed"
@@ -144,6 +109,9 @@ pub(super) fn call(
 }
 
 fn typed_result_error_name(operation: &str) -> Option<&'static str> {
+    if let Some(contract) = crate::std_native_packages::resource_operation(operation) {
+        return contract.result_error;
+    }
     if matches!(
         operation,
         "std.random.random.seed"
@@ -162,58 +130,8 @@ fn typed_result_error_name(operation: &str) -> Option<&'static str> {
     ) {
         return Some("RegistryProtocolError");
     }
-    if matches!(
-        operation,
-        "std.encoding.base64.decode"
-            | "std.encoding.base64.decode_url"
-            | "std.encoding.base64.decode_bytes"
-            | "std.encoding.base64.decode_url_bytes"
-    ) {
-        return Some("Base64Error");
-    }
-    if matches!(
-        operation,
-        "std.data.json.float"
-            | "std.data.json.parse"
-            | "std.data.json.stringify"
-            | "std.data.json.stringify_pretty"
-            | "std.data.json.get"
-            | "std.data.json.keys"
-            | "std.data.json.object_length"
-            | "std.data.json.required_fields"
-            | "std.data.json.required_field_rows"
-            | "std.data.json.required_field_rows_page"
-            | "std.data.json.nested_string_field_rows"
-            | "std.data.json.nested_string_field_rows_page"
-            | "std.data.json.string_field_rows"
-            | "std.data.json.string_fields"
-            | "std.data.json.string_object_rows"
-            | "std.data.json.length"
-            | "std.data.json.at"
-            | "std.data.json.as_string"
-            | "std.data.json.as_int"
-            | "std.data.json.as_float"
-            | "std.data.json.as_bool"
-    ) {
-        return Some("JsonError");
-    }
     if matches!(operation, "std.io.path.from_string" | "std.io.path.join") {
         return Some("PathError");
-    }
-    if matches!(
-        operation,
-        "std.http.request.body_json" | "std.http.cookies.set_header"
-    ) {
-        return Some("HttpError");
-    }
-    if matches!(operation, "std.http.cookies.set_header_with_options") {
-        return Some("HttpError");
-    }
-    if matches!(operation, "std.http.cookies.delete_header") {
-        return Some("HttpError");
-    }
-    if operation == "std.net.uri.parse" {
-        return Some("UriError");
     }
     (operation == "std.regex.regex.compile").then_some("RegexError")
 }
@@ -223,6 +141,16 @@ fn repl_to_bridge(
     owner_process_id: u64,
 ) -> VmRuntimeResult<NativeBoundaryBridgeValue> {
     match value {
+        ReplValue::Map(entries) => entries
+            .iter()
+            .map(|(key, value)| {
+                Ok((
+                    repl_to_bridge(key, owner_process_id)?,
+                    repl_to_bridge(value, owner_process_id)?,
+                ))
+            })
+            .collect::<VmRuntimeResult<_>>()
+            .map(NativeBoundaryBridgeValue::Map),
         ReplValue::Unit => Ok(NativeBoundaryBridgeValue::Unit),
         ReplValue::Int(value) => Ok(NativeBoundaryBridgeValue::Int(*value)),
         ReplValue::Float(value) => {
@@ -286,10 +214,7 @@ fn supported_handle_type(type_name: &str) -> bool {
         type_name,
         "std.data.Json.Json"
             | "std.regex.Regex.Regex"
-            | "std.http.Request.Request"
             | "std.http.Response.Response"
-            | "std.http.Cookies.Jar"
-            | "std.net.Uri.Uri"
             | "std.io.Path.Path"
             | "std.random.Random.Generator"
             | "std.native.collections.Vector.Vector"
@@ -307,6 +232,16 @@ fn bridge_to_repl(
             .map(|value| bridge_to_repl(resources, owner_process_id, value))
             .collect::<Result<Vec<_>, _>>()
             .map(ReplValue::Tuple),
+        NativeBoundaryBridgeValue::Map(entries) => entries
+            .into_iter()
+            .map(|(key, value)| {
+                Ok((
+                    bridge_to_repl(resources, owner_process_id, key)?,
+                    bridge_to_repl(resources, owner_process_id, value)?,
+                ))
+            })
+            .collect::<VmRuntimeResult<_>>()
+            .map(ReplValue::Map),
         NativeBoundaryBridgeValue::Unit => Ok(ReplValue::Unit),
         NativeBoundaryBridgeValue::Text(value) => Ok(ReplValue::String(value)),
         NativeBoundaryBridgeValue::Bytes(value) => Ok(ReplValue::Bytes(value.into())),
@@ -375,10 +310,7 @@ fn native_handle_from_store(
         ResourceKind::RandomGenerator => "std.random.Random.Generator",
         ResourceKind::Regex => "std.regex.Regex.Regex",
         ResourceKind::Path => "std.io.Path.Path",
-        ResourceKind::HttpRequest => "std.http.Request.Request",
         ResourceKind::HttpResponse => "std.http.Response.Response",
-        ResourceKind::HttpCookieJar => "std.http.Cookies.Jar",
-        ResourceKind::Uri => "std.net.Uri.Uri",
         ResourceKind::NativeVector => "std.native.collections.Vector.Vector",
         kind => {
             return Err(format!(
@@ -474,7 +406,7 @@ fn result_ok(value: ReplValue) -> ReplValue {
     }
 }
 
-fn typed_result_error(error: DispatchError, error_name: &str) -> ReplValue {
+pub(super) fn typed_result_error(error: DispatchError, error_name: &str) -> ReplValue {
     ReplValue::Record {
         name: "Err".to_string(),
         fields: vec![(

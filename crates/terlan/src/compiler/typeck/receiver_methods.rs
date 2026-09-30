@@ -170,7 +170,12 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
     let imported = resolved
         .interface_map
         .values()
-        .filter(|interface| imported_modules.contains(&interface.module))
+        // Core interfaces are the implicit prelude, just as for trait lookup.
+        // Their callable signatures, not a primitive-method table, own dispatch.
+        .filter(|interface| {
+            imported_modules.contains(&interface.module)
+                || interface.module.starts_with("std.core.")
+        })
         .flat_map(|interface| {
             let global_aliases = &global_aliases;
             interface

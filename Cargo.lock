@@ -4122,7 +4122,6 @@ dependencies = [
  "bytes",
  "comrak",
  "concurrent-queue",
- "cookie",
  "cranelift-codegen",
  "cranelift-frontend",
  "cranelift-module",
@@ -4143,7 +4142,6 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "libloading 0.9.0",
- "md-5",
  "mime_guess",
  "mio",
  "notify",
@@ -4179,10 +4177,14 @@ dependencies = [
  "tempfile",
  "terl-docs",
  "terlan-archive",
+ "terlan-data-native",
+ "terlan-http-native",
  "terlan-libpq",
+ "terlan-net-native",
  "terlan-process-owner",
  "terlan-runtime-abi",
  "terlan-service-foundation",
+ "terlan-std-native",
  "terlan-storage",
  "time",
  "tokio",
@@ -4218,6 +4220,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "terlan-crypto-native"
+version = "0.0.9"
+dependencies = [
+ "base64",
+ "rustls",
+ "sha2",
+ "terlan-runtime-abi",
+]
+
+[[package]]
+name = "terlan-data-native"
+version = "0.0.9"
+dependencies = [
+ "serde_json",
+ "terlan-runtime-abi",
+]
+
+[[package]]
+name = "terlan-encoding-native"
+version = "0.0.9"
+dependencies = [
+ "base64",
+ "md-5",
+ "terlan-runtime-abi",
+]
+
+[[package]]
 name = "terlan-foundations-adapter"
 version = "0.0.9"
 dependencies = [
@@ -4225,6 +4254,30 @@ dependencies = [
  "serde",
  "serde_json",
  "terlan-service-foundation",
+]
+
+[[package]]
+name = "terlan-http-native"
+version = "0.0.9"
+dependencies = [
+ "axum",
+ "bytes",
+ "cookie",
+ "futures-util",
+ "http",
+ "http-body-util",
+ "httparse",
+ "hyper",
+ "mime_guess",
+ "rcgen",
+ "rustls",
+ "serde",
+ "serde_json",
+ "terlan-data-native",
+ "terlan-net-native",
+ "terlan-runtime-abi",
+ "time",
+ "tungstenite",
 ]
 
 [[package]]
@@ -4236,6 +4289,16 @@ dependencies = [
  "getrandom 0.4.3",
  "pkg-config",
  "polling",
+]
+
+[[package]]
+name = "terlan-net-native"
+version = "0.0.9"
+dependencies = [
+ "rcgen",
+ "rustls",
+ "terlan-runtime-abi",
+ "url",
 ]
 
 [[package]]
@@ -4272,6 +4335,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "terlan-std-native"
+version = "0.0.9"
+dependencies = [
+ "terlan-crypto-native",
+ "terlan-data-native",
+ "terlan-encoding-native",
+ "terlan-http-native",
+ "terlan-net-native",
+ "terlan-runtime-abi",
+ "terlan-time-native",
+]
+
+[[package]]
 name = "terlan-storage"
 version = "0.0.9"
 dependencies = [
@@ -4295,6 +4371,13 @@ dependencies = [
  "signal-hook",
  "terlan-process-owner",
  "toml",
+]
+
+[[package]]
+name = "terlan-time-native"
+version = "0.0.9"
+dependencies = [
+ "terlan-runtime-abi",
 ]
 
 [[package]]

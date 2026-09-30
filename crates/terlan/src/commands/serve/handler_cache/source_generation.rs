@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 const SERVE_RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
 const COMPILER_DAEMON_ENV: &str = "TERLAN_SERVE_COMPILER_DAEMON";
 const COMPILER_DAEMON_PREFIX: &str = "TERLAN_GENERATION:";
-const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v5";
+const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v6";
 const ACTIVE_GENERATION_SCHEMA: &str = "terlan-serve-active-generation-v1";
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const RELOAD_REPORT_SCHEMA: &str = "terlan-aot-developer-hot-reload-v1";
@@ -44,7 +44,6 @@ pub(super) struct PersistedServeGeneration {
     image: PathBuf,
     image_sha256: String,
     image_bytes: u64,
-    router: Option<AotRouterPlan>,
     request_projections: Vec<crate::runtime::vm::aot_metadata::NativeRequestProjection>,
     compatibility: ServeGenerationCompatibility,
 }
@@ -175,7 +174,6 @@ fn compile_source_candidate(
         expected_module,
     )?;
     let compatibility = compatibility_for_core(&compiled.core)?;
-    let router = compiled.router;
     let image = compiled.image;
     let canonical_image = image.path.canonicalize().map_err(|error| {
         format!(
@@ -219,7 +217,6 @@ fn compile_source_candidate(
         image: portable_image,
         image_sha256,
         image_bytes,
-        router: router.clone(),
         request_projections: image.request_projections.clone(),
         compatibility: compatibility.clone(),
     };
@@ -228,7 +225,6 @@ fn compile_source_candidate(
         runtime: Arc::new(AotHandlerRuntime::load_with_request_projections(
             expected_module.to_string(),
             &image.path,
-            router,
             image.request_projections,
             http_session_service_for(web_root)?,
         )?),
@@ -396,7 +392,6 @@ fn load_persisted_generation(
         runtime: Arc::new(AotHandlerRuntime::load_with_request_projections(
             generation.module.clone(),
             &image,
-            generation.router.clone(),
             generation.request_projections.clone(),
             http_session_service_for(web_root)?,
         )?),

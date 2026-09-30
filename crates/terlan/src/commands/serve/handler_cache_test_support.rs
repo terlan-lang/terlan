@@ -43,16 +43,16 @@ pub(in crate::commands::serve) fn compile_native_handler_fixture(
         crate::validation::target_profile::TargetProfile::Vm,
     )
     .expect("compile native handler source");
-    let (core, router) = crate::compiler::router::prepare_aot_router_module(&artifacts.core)
-        .expect("prepare native handler module");
     let image = crate::commands::build::vm_artifact::native_image::compile_serve_native_image(
-        &web_root, image_name, &core,
+        &web_root,
+        image_name,
+        &artifacts.core,
     )
     .expect("compile native handler image")
     .expect("handler produces native image");
     CompiledNativeHandlerFixture {
         root,
         image,
-        router,
+        router: None,
     }
 }

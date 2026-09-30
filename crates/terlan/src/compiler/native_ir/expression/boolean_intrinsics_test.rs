@@ -15,8 +15,8 @@ fn call(intrinsic: CorePrimitiveIntrinsic, args: Vec<CoreExpr>) -> CoreIntrinsic
     }
 }
 
-/// A comparison reads each potentially effectful operand once, in order, and
-/// keeps nested locals disjoint from the result bindings introduced by lowering.
+/// A language conversion evaluates its operand once and keeps nested locals
+/// disjoint from the result binding introduced by lowering.
 #[test]
 fn boolean_intrinsics_bind_operands_once_and_rebase_nested_locals() {
     let operand = |function: &str| CoreExpr::Let {
@@ -31,44 +31,26 @@ fn boolean_intrinsics_bind_operands_once_and_rebase_nested_locals() {
         body: Box::new(CoreExpr::Var("temporary".to_string())),
     };
     let lowered = lower_boolean_intrinsic(
-        &call(
-            CorePrimitiveIntrinsic::BoolCompare,
-            vec![operand("left"), operand("right")],
-        ),
+        &call(CorePrimitiveIntrinsic::BoolToString, vec![operand("left")]),
         &HashMap::from([("outer".to_string(), 0)]),
         &HashMap::from([("outer".to_string(), NativeType::Bool)]),
-        &HashMap::from([
-            (("left".to_string(), 0), 10),
-            (("right".to_string(), 0), 20),
-        ]),
-        &HashMap::from([
-            (("left".to_string(), 0), NativeType::Bool),
-            (("right".to_string(), 0), NativeType::Bool),
-        ]),
+        &HashMap::from([(("left".to_string(), 0), 10)]),
+        &HashMap::from([(("left".to_string(), 0), NativeType::Bool)]),
         &HashMap::new(),
     )
-    .expect("lower comparison operands");
+    .expect("lower conversion operand");
     let NativeExpr::Let { bindings, body } = lowered else {
-        panic!("bound comparison operands")
+        panic!("bound conversion operand")
     };
     assert_eq!(
         bindings,
-        vec![
-            NativeExpr::Let {
-                bindings: vec![NativeExpr::Call {
-                    function: 10,
-                    args: vec![]
-                }],
-                body: Box::new(NativeExpr::Param(1))
-            },
-            NativeExpr::Let {
-                bindings: vec![NativeExpr::Call {
-                    function: 20,
-                    args: vec![]
-                }],
-                body: Box::new(NativeExpr::Param(2))
-            },
-        ]
+        vec![NativeExpr::Let {
+            bindings: vec![NativeExpr::Call {
+                function: 10,
+                args: vec![]
+            }],
+            body: Box::new(NativeExpr::Param(1))
+        },]
     );
     let mut calls = 0;
     crate::compiler::native_ir::call_composition::walk_native_expr(&body, &mut |expr| {
@@ -76,15 +58,16 @@ fn boolean_intrinsics_bind_operands_once_and_rebase_nested_locals() {
             calls += 1;
         }
     });
-    assert_eq!(calls, 0, "comparison branches must only read bound values");
+    assert_eq!(
+        calls, 0,
+        "conversion branches must only read the bound value"
+    );
 }
 
 /// Invalid Boolean arities are rejected before touching malformed operands.
 #[test]
 fn boolean_intrinsics_reject_invalid_arity() {
     for (intrinsic, arity) in [
-        (CorePrimitiveIntrinsic::BoolEqual, 2),
-        (CorePrimitiveIntrinsic::BoolCompare, 2),
         (CorePrimitiveIntrinsic::BoolToString, 1),
         (CorePrimitiveIntrinsic::BoolFromString, 1),
     ] {

@@ -214,7 +214,6 @@ pub(crate) fn target_profile_checks_with_options(
 ) -> Vec<TargetProfileViolation> {
     let mut violations = Vec::new();
     let std_call_heads = std_call_heads(module);
-
     validate_core_imports(profile, module, options, &mut violations);
 
     if module.metadata.unresolved_constructor_call_candidate_count

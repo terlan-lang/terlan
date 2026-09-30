@@ -226,9 +226,9 @@ fn core_sequence_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
             let pattern = match &value {
                 CoreExpr::MutableReceiverCall { receiver, .. } => match receiver.as_ref() {
                     CoreExpr::Var(name) => CorePattern::Var(name.clone()),
-                    _ => CorePattern::Var(format!("_seq{index}")),
+                    _ => CorePattern::Var(format!("$seq{index}")),
                 },
-                _ => CorePattern::Var(format!("_seq{index}")),
+                _ => CorePattern::Var(format!("$seq{index}")),
             };
             Some(CoreLetBinding { pattern, value })
         })
@@ -640,8 +640,8 @@ fn core_record_construct_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<Cor
 /// - `None` when any field value remains unsupported.
 ///
 /// Transformation:
-/// - Preserves field keys and source assignment mode, while recursively
-///   lowering field value expressions into backend-agnostic CoreIR.
+/// - Uses canonical field names after source visibility checking and preserves
+///   assignment mode while lowering values into backend-agnostic CoreIR.
 fn core_record_expr_fields_from_syntax(
     expr: &SyntaxExprOutput,
 ) -> Option<Vec<CoreRecordExprField>> {
@@ -649,7 +649,7 @@ fn core_record_expr_fields_from_syntax(
         .iter()
         .map(|field| {
             core_expr_from_syntax(&field.value).map(|value| CoreRecordExprField {
-                key: field.key.clone(),
+                key: split_private_field_spelling(&field.key).0.to_string(),
                 required: field.required,
                 value,
             })
@@ -680,7 +680,9 @@ fn core_field_access_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExp
 
     Some(CoreExpr::FieldAccess {
         base: Box::new(core_expr_from_syntax(&expr.children[0])?),
-        field: expr.text.clone()?,
+        field: split_private_field_spelling(expr.text.as_deref()?)
+            .0
+            .to_string(),
     })
 }
 
@@ -714,7 +716,7 @@ fn core_record_access_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreEx
     Some(CoreExpr::RecordAccess {
         base: Box::new(core_expr_from_syntax(&expr.children[0])?),
         name: name.to_string(),
-        field: field.to_string(),
+        field: split_private_field_spelling(field).0.to_string(),
     })
 }
 

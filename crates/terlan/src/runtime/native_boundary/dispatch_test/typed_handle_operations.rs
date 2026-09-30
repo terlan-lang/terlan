@@ -1,110 +1,10 @@
 use super::*;
+use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
-/// Validates bridge HTTP dispatch stores request and response handles.
-///
-/// Inputs:
-/// - Resource store containing an HTTP request value.
-///
-/// Output:
-/// - Test passes when request parsing returns a JSON handle and response
-///   construction returns an HTTP response handle.
-///
-/// Transformation:
-/// - Exercises the resource-backed HTTP bridge path that server adapters can
-///   use without exposing Rust HTTP values directly to VM terms.
+/// Cookie codecs and JSON serialization retain their package resource boundaries.
 #[test]
-pub(super) fn bridge_dispatch_http_request_and_response_operations_use_handles() {
+pub(super) fn bridge_dispatch_cookie_codecs_and_json_serialization() {
     let mut store = ResourceStore::new();
-    let request = store
-        .insert(ResourceValue::HttpRequest(
-            http::Request::from_parts_with_raw_query_metadata(
-                "GET",
-                "/users/42",
-                r#"{"name":"Ada"}"#,
-                crate::terlan_native::http::RequestMetadata {
-                    params: vec![("id".to_string(), "42".to_string())],
-                    query_string: ("tab=profile").into(),
-                    query: vec![("tab".to_string(), "profile".to_string())],
-                    headers: vec![("Accept".to_string(), "application/json".to_string())],
-                    cookies: vec![("theme".to_string(), "dark".to_string())],
-                },
-            ),
-        ))
-        .ok();
-    let Some(request) = request else {
-        return;
-    };
-
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.body_text",
-            &[NativeBoundaryBridgeValue::Handle(request)],
-        ),
-        Some(NativeBoundaryBridgeValue::Text(
-            r#"{"name":"Ada"}"#.to_string()
-        ))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.param",
-            &[
-                NativeBoundaryBridgeValue::Handle(request),
-                NativeBoundaryBridgeValue::Text("id".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::OptionalText(Some(
-            "42".to_string()
-        )))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.query",
-            &[
-                NativeBoundaryBridgeValue::Handle(request),
-                NativeBoundaryBridgeValue::Text("tab".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::OptionalText(Some(
-            "profile".to_string()
-        )))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.query_string",
-            &[NativeBoundaryBridgeValue::Handle(request)],
-        ),
-        Some(NativeBoundaryBridgeValue::Text("tab=profile".to_string()))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.header",
-            &[
-                NativeBoundaryBridgeValue::Handle(request),
-                NativeBoundaryBridgeValue::Text("ACCEPT".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::OptionalText(Some(
-            "application/json".to_string()
-        )))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.request.cookie",
-            &[
-                NativeBoundaryBridgeValue::Handle(request),
-                NativeBoundaryBridgeValue::Text("theme".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::OptionalText(Some(
-            "dark".to_string()
-        )))
-    );
     assert_eq!(
         bridge_dispatch_ok(
             &mut store,
@@ -143,122 +43,21 @@ pub(super) fn bridge_dispatch_http_request_and_response_operations_use_handles()
         ))
     );
 
-    let Some(NativeBoundaryBridgeValue::Handle(jar)) = bridge_dispatch_ok(
+    let body = NativeBoundaryBridgeValue::Text(r#"{"name":"Ada"}"#.into());
+    let Some(NativeBoundaryBridgeValue::Handle(parsed)) =
+        bridge_dispatch_ok(&mut store, "std.data.json.parse", &[body])
+    else {
+        return;
+    };
+    let serialized = bridge_dispatch_ok(
         &mut store,
-        "std.http.request.cookies",
-        &[NativeBoundaryBridgeValue::Handle(request)],
-    ) else {
-        return;
-    };
+        "std.data.json.to_string",
+        &[NativeBoundaryBridgeValue::Handle(parsed)],
+    )
+    .expect("serialize live JSON resource");
     assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.cookies.get",
-            &[
-                NativeBoundaryBridgeValue::Handle(jar),
-                NativeBoundaryBridgeValue::Text("theme".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::OptionalText(Some(
-            "dark".to_string()
-        )))
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.cookies.set",
-            &[
-                NativeBoundaryBridgeValue::Handle(jar),
-                NativeBoundaryBridgeValue::Text("session".to_string()),
-                NativeBoundaryBridgeValue::Text("abc123".to_string()),
-                NativeBoundaryBridgeValue::Text("/".to_string()),
-                NativeBoundaryBridgeValue::Bool(true),
-                NativeBoundaryBridgeValue::Bool(false),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::Unit)
-    );
-    assert_eq!(
-        bridge_dispatch_ok(
-            &mut store,
-            "std.http.cookies.delete",
-            &[
-                NativeBoundaryBridgeValue::Handle(jar),
-                NativeBoundaryBridgeValue::Text("theme".to_string()),
-                NativeBoundaryBridgeValue::Text("/".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryBridgeValue::Unit)
-    );
-    let Some(cookie_jar) = store.http_cookie_jar(jar).ok() else {
-        return;
-    };
-    assert_eq!(
-        cookie_jar.mutations(),
-        &[
-            "session=abc123; HttpOnly; Path=/".to_string(),
-            "theme=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT".to_string(),
-        ]
-    );
-
-    let Some(NativeBoundaryBridgeValue::Handle(parsed)) = bridge_dispatch_ok(
-        &mut store,
-        "std.http.request.body_json",
-        &[NativeBoundaryBridgeValue::Handle(request)],
-    ) else {
-        return;
-    };
-    let Some(NativeBoundaryBridgeValue::Handle(response)) = bridge_dispatch_ok(
-        &mut store,
-        "std.http.response.json",
-        &[
-            NativeBoundaryBridgeValue::Handle(parsed),
-            NativeBoundaryBridgeValue::Int(200),
-        ],
-    ) else {
-        return;
-    };
-
-    let response = store.http_response(response).ok();
-    let Some(response) = response else {
-        return;
-    };
-    assert_eq!(response.content_type(), "application/json; charset=utf-8");
-    assert_eq!(response.body(), r#"{"name":"Ada"}"#);
-
-    let Some(NativeBoundaryBridgeValue::Handle(response)) = bridge_dispatch_ok(
-        &mut store,
-        "std.http.response.html",
-        &[
-            NativeBoundaryBridgeValue::Text("<main>ok</main>".to_string()),
-            NativeBoundaryBridgeValue::Int(200),
-        ],
-    ) else {
-        return;
-    };
-    let Some(response) = store.http_response(response).ok() else {
-        return;
-    };
-    assert_eq!(response.content_type(), "text/html; charset=utf-8");
-    assert_eq!(response.body(), "<main>ok</main>");
-
-    let Some(NativeBoundaryBridgeValue::Handle(response)) = bridge_dispatch_ok(
-        &mut store,
-        "std.http.response.redirect",
-        &[
-            NativeBoundaryBridgeValue::Text("/login".to_string()),
-            NativeBoundaryBridgeValue::Int(302),
-        ],
-    ) else {
-        return;
-    };
-    let Some(response) = store.http_response(response).ok() else {
-        return;
-    };
-    assert_eq!(response.status_code(), 302);
-    assert_eq!(
-        response.headers(),
-        &[("Location".to_string(), "/login".to_string())]
+        serialized,
+        NativeBoundaryBridgeValue::Text(r#"{"name":"Ada"}"#.into())
     );
 }
 
@@ -348,40 +147,18 @@ pub(super) fn bridge_dispatch_regex_matching_line_numbers_returns_typed_list() {
     );
 }
 
-/// Validates bridge URI operations use opaque handles.
-///
-/// Inputs:
-/// - URI source text.
-///
-/// Output:
-/// - Test passes when parse returns a handle and component access accepts
-///   that handle.
-///
-/// Transformation:
-/// - Exercises resource-backed URI parse and component dispatch.
+/// Removed URI handle operations must not silently execute legacy adapters.
 #[test]
-pub(super) fn bridge_dispatch_uri_returns_and_accepts_handles() {
+pub(super) fn bridge_dispatch_rejects_removed_uri_handle_operations() {
     let mut store = ResourceStore::new();
-    let Some(NativeBoundaryBridgeValue::Handle(uri)) = bridge_dispatch_ok(
+    assert!(dispatch_with_resources(
         &mut store,
         "std.net.uri.parse",
-        &[NativeBoundaryBridgeValue::Text(String::from(
-            "https://example.com/docs",
-        ))],
-    ) else {
-        return;
-    };
-
-    assert_eq!(
-        dispatch_with_resources(
-            &mut store,
-            "std.net.uri.host",
-            &[NativeBoundaryBridgeValue::Handle(uri)]
-        ),
-        Ok(NativeBoundaryBridgeValue::OptionalText(Some(String::from(
-            "example.com"
-        ))))
-    );
+        &[NativeBoundaryBridgeValue::Text(
+            "https://example.com".into()
+        )],
+    )
+    .is_err());
 }
 
 /// Validates bridge dispatch stores and reuses Postgres row handles.
@@ -713,10 +490,16 @@ pub(super) fn dispatches_base64_round_trip() {
 
     assert_eq!(
         dispatch(
-            "std.encoding.base64.decode",
+            "std.encoding.base64.decode_text",
             &[NativeBoundaryValue::Text(encoded)]
         ),
-        Ok(NativeBoundaryValue::Text(String::from("hello Terlan")))
+        Ok(NativeBoundaryValue::Record {
+            name: "Ok".into(),
+            fields: vec![(
+                "value".into(),
+                NativeBoundaryValue::Text(String::from("hello Terlan"))
+            )]
+        })
     );
 
     let bytes = vec![0, 127, 128, 255];
@@ -728,10 +511,13 @@ pub(super) fn dispatches_base64_round_trip() {
     };
     assert_eq!(
         dispatch(
-            "std.encoding.base64.decode_bytes",
+            "std.encoding.base64.decode_octets",
             &[NativeBoundaryValue::Text(encoded_bytes)]
         ),
-        Ok(NativeBoundaryValue::Bytes(bytes))
+        Ok(NativeBoundaryValue::Record {
+            name: "Ok".into(),
+            fields: vec![("value".into(), NativeBoundaryValue::Bytes(bytes))]
+        })
     );
 }
 
@@ -774,40 +560,23 @@ pub(super) fn dispatches_path_join_and_file_name() {
     );
 }
 
-/// Validates URI dispatch over parse and component accessors.
-///
-/// Inputs:
-/// - HTTPS URI source text.
-///
-/// Output:
-/// - Test passes when component accessors return stable values.
-///
-/// Transformation:
-/// - Routes URI operations through the shared dispatcher.
+/// Accessors are Terlan source bodies, not runtime handle operations.
 #[test]
-pub(super) fn dispatches_uri_components() {
-    let Some(NativeBoundaryValue::Uri(uri)) = dispatch_ok(
-        "std.net.uri.parse",
-        &[NativeBoundaryValue::Text(String::from(
-            "https://example.com/docs?q=terlan",
-        ))],
-    ) else {
-        return;
-    };
-
-    assert_eq!(
-        dispatch(
-            "std.net.uri.scheme",
-            &[NativeBoundaryValue::Uri(uri.clone())]
-        ),
-        Ok(NativeBoundaryValue::Text(String::from("https")))
-    );
-    assert_eq!(
-        dispatch("std.net.uri.host", &[NativeBoundaryValue::Uri(uri)]),
-        Ok(NativeBoundaryValue::OptionalText(Some(String::from(
-            "example.com"
-        ))))
-    );
+pub(super) fn dispatcher_rejects_removed_uri_component_operations() {
+    for operation in [
+        "std.net.uri.scheme",
+        "std.net.uri.host",
+        "std.net.uri.path",
+        "std.net.uri.query",
+        "std.net.uri.fragment",
+        "std.net.uri.to_string",
+    ] {
+        assert!(dispatch(
+            operation,
+            &[NativeBoundaryValue::Text("not a handle".into())]
+        )
+        .is_err());
+    }
 }
 
 /// Validates Postgres config dispatch reaches stable adapter errors.
@@ -1056,4 +825,108 @@ pub(super) fn rejects_unknown_operation_with_stable_error_code() {
         .unwrap_or_else(|| DispatchError::new("missing", "", 0));
 
     assert_eq!(error.code(), "dispatch.unknown_operation");
+}
+
+/// Retired request operations must fail before argument or handle decoding.
+#[test]
+fn source_request_operations_are_absent_from_native_dispatch() {
+    for method in [
+        "body_file_path",
+        "body_text",
+        "body_json",
+        "method",
+        "path",
+        "param",
+        "query",
+        "query_string",
+        "header",
+        "cookie",
+        "cookies",
+    ] {
+        let operation = format!("std.http.request.{method}");
+        assert_eq!(operation_arity(&operation), None);
+        for args in [
+            vec![],
+            vec![NativeBoundaryValue::Text("request".into())],
+            vec![
+                NativeBoundaryValue::Text("request".into()),
+                NativeBoundaryValue::Text("key".into()),
+            ],
+        ] {
+            assert_eq!(
+                dispatch(&operation, &args).unwrap_err().code(),
+                "dispatch.unknown_operation"
+            );
+        }
+        let mut store = ResourceStore::new();
+        for args in [
+            vec![],
+            vec![NativeBoundaryBridgeValue::Text("request".into())],
+            vec![NativeBoundaryBridgeValue::Handle(NativeBoundaryHandle {
+                id: u64::MAX,
+                generation: u64::MAX,
+            })],
+        ] {
+            assert_eq!(
+                dispatch_with_resources(&mut store, &operation, &args)
+                    .unwrap_err()
+                    .code(),
+                "dispatch.unknown_operation",
+                "{operation}"
+            );
+        }
+    }
+}
+
+#[test]
+fn json_render_rejects_invalid_resources_and_retired_http_json_dispatch() {
+    let mut store = ResourceStore::new();
+    let handle = store
+        .insert(ResourceValue::Json(json::string("kept")))
+        .unwrap();
+    for arguments in [
+        vec![],
+        vec![
+            NativeBoundaryBridgeValue::Handle(handle),
+            NativeBoundaryBridgeValue::Int(200),
+        ],
+        vec![NativeBoundaryBridgeValue::Handle(NativeBoundaryHandle {
+            id: u64::MAX,
+            generation: u64::MAX,
+        })],
+    ] {
+        assert_eq!(
+            dispatch_with_resources(&mut store, "std.http.response.json", &arguments)
+                .unwrap_err()
+                .code(),
+            "dispatch.unknown_operation"
+        );
+    }
+    assert_eq!(operation_arity("std.http.response.json"), None);
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.data.json.to_string",
+            &[NativeBoundaryBridgeValue::Handle(handle)]
+        )
+        .unwrap(),
+        NativeBoundaryBridgeValue::Text(r#""kept""#.into())
+    );
+    assert_eq!(
+        dispatch("std.data.json.to_string", &[NativeBoundaryValue::Int(0)])
+            .unwrap_err()
+            .code(),
+        "dispatch.type"
+    );
+    store.dispose(handle).unwrap();
+    assert_eq!(
+        dispatch_with_resources(
+            &mut store,
+            "std.data.json.to_string",
+            &[NativeBoundaryBridgeValue::Handle(handle)]
+        )
+        .unwrap_err()
+        .code(),
+        "resource.stale_handle"
+    );
 }

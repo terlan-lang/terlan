@@ -27,6 +27,8 @@ pub opaque type Json.
 /// data shape without exposing target-specific exception values.
 
 pub struct JsonError {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 
@@ -420,8 +422,8 @@ pub (json: Json) string_field_rows(fields: List[String]): Result[List[StringFiel
 /// Input: a JSON object and ordered field names.
 /// Output: one optional string per requested field. Missing and non-string
 /// members become `None` without exposing backend JSON values.
-/// Transformation: performs one typed native traversal and preserves requested
-/// field order for efficient manifest metadata decoding.
+/// Transformation: validates the receiver and composes typed accessors in
+/// Terlan source, preserving requested field order and duplicate names.
 
 pub (json: Json) string_fields(fields: List[String]): Result[List[Option[String]], JsonError].
 
@@ -451,3 +453,12 @@ pub stringify(json: Json): Result[String, JsonError].
 /// capability while retaining deterministic object-key order.
 
 pub stringify_pretty(json: Json): Result[String, JsonError].
+
+/// Renders a validated JSON value as compact text.
+///
+/// Input: one live `Json` value.
+/// Output: its compact JSON representation, preserving escaping and key order.
+/// Transformation: uses the maintained value renderer; unlike parsing arbitrary
+/// text, rendering a validated JSON value requires no recoverable error branch.
+
+pub to_string(json: Json): String.

@@ -18,12 +18,15 @@ use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
 
 fn restorable_pairing(retention_ms: u64, retained_room_capacity: usize) -> VmWebSocketPairingPlan {
     use crate::runtime::vm::native_callable::VmNativeCallableRef;
-    use crate::runtime::vm::websocket::VmWebSocketPairRestorationPlan;
+    use terlan_http_native::channel_plan::WebSocketRestoration;
 
-    let callback = |function: &str, arity| VmNativeCallableRef {
-        module: "app.Socket".into(),
-        function: function.into(),
-        arity,
+    let callback = |function: &str, arity| {
+        VmNativeCallableRef {
+            module: "app.Socket".into(),
+            function: function.into(),
+            arity,
+        }
+        .into_value()
     };
     VmWebSocketPairingPlan {
         waiting: "waiting".into(),
@@ -31,7 +34,7 @@ fn restorable_pairing(retention_ms: u64, retained_room_capacity: usize) -> VmWeb
         second_matched: String::new(),
         peer_left: "left".into(),
         stateful: true,
-        restoration: Some(VmWebSocketPairRestorationPlan {
+        restoration: Some(WebSocketRestoration {
             waiting: callback("waiting", 0),
             peer_left: callback("peer_left", 0),
             room_query: "room_id".into(),
@@ -63,12 +66,14 @@ fn websocket_hub_pairs_broadcasts_and_notifies_disconnect() {
             module: "app.Socket".into(),
             function: "inbound".into(),
             arity: 1,
-        },
+        }
+        .into_value(),
         cancellation: crate::runtime::vm::native_callable::VmNativeCallableRef {
             module: "app.Socket".into(),
             function: "cancelled".into(),
             arity: 1,
-        },
+        }
+        .into_value(),
     };
     let first = hub
         .join("/ws".into(), "/ws?player=first".into(), 4, &pairing)
@@ -101,12 +106,14 @@ fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
             module: "app.Socket".into(),
             function: "inbound".into(),
             arity: 5,
-        },
+        }
+        .into_value(),
         cancellation: crate::runtime::vm::native_callable::VmNativeCallableRef {
             module: "app.Socket".into(),
             function: "cancelled".into(),
             arity: 1,
-        },
+        }
+        .into_value(),
     };
     let first = hub
         .join("/ws".into(), "/ws?player=Ada".into(), 4, &pairing)
@@ -297,6 +304,13 @@ mod mtls;
 
 #[path = "hyper_server_tls_transport_test.rs"]
 mod tls_transport;
+
+#[path = "hyper_server_json_body_test.rs"]
+mod json_body;
+
+#[path = "hyper_server_source_protocol_test_support.rs"]
+mod source_protocol;
+pub(in crate::commands::serve) use source_protocol::with_source_protocol_server;
 
 #[test]
 fn protocol_errors_are_hyper_responses() {
@@ -610,8 +624,7 @@ fn temp_web_root() -> PathBuf {
     root
 }
 
-#[test]
-fn source_response_stream_reaches_production_hyper_with_bounds_and_metadata() {
+fn streaming_source_fixture() -> (PathBuf, PathBuf) {
     let root = temp_web_root();
     let web = root.join("_build/web");
     std::fs::create_dir_all(root.join("src/app")).unwrap();
@@ -626,6 +639,7 @@ fn source_response_stream_reaches_production_hyper_with_bounds_and_metadata() {
         root.join("src/app/Api.terl"),
         r#"module app.Api.
 import std.http.Response.
+import std.http.Cookies.
 import type std.http.Request.{Request}.
 import type std.http.Response.{Response}.
 pub handle(request: Request): Response ->
@@ -636,6 +650,7 @@ pub handle(request: Request): Response ->
         _ -> Response.stream(["hello", "", request.body_text(), "é🙂"], 201, "text/plain", 3, 1)
             .with_status(202)
             .with_cookie("session", "abc", "/", true, true)
+            .with_header("Set-Cookie", Cookies.set_header("native", request.body_text(), "/", true, true))
             .with_security_headers(Response.default_security_headers())
     }.
 "#,
@@ -653,6 +668,62 @@ pub handle(request: Request): Response ->
     .unwrap();
     crate::commands::serve::prewarm_dynamic_handler_sources(&web)
         .expect("compile streaming source");
+    (root, web)
+}
+
+#[test]
+fn source_response_stream_reaches_generated_owner_with_package_binding() {
+    if std::env::var_os("TERLAN_TEST_AOT_CAPABILITY_PUMP").is_none() {
+        let name = concat!(
+            module_path!(),
+            "::source_response_stream_reaches_generated_owner_with_package_binding"
+        );
+        let name = name.strip_prefix("terlan::").unwrap_or(name);
+        let output = crate::commands::process_runner::run_command_with_timeout(
+            std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", name, "--nocapture"])
+                .env("TERLAN_TEST_AOT_CAPABILITY_PUMP", "1"),
+            "generated HTTP package binding",
+            Duration::from_secs(60),
+        )
+        .unwrap();
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed; 0 failed"));
+        return;
+    }
+    let (root, web) = streaming_source_fixture();
+    let wire = crate::commands::serve::request_dispatch::handle_vm_stream_http1_request(
+        &web,
+        b"GET /stream HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nXYZ",
+    )
+    .unwrap();
+    let split = wire
+        .windows(4)
+        .position(|bytes| bytes == b"\r\n\r\n")
+        .unwrap()
+        + 4;
+    let head = std::str::from_utf8(&wire[..split]).unwrap();
+    assert!(
+        head.starts_with("HTTP/1.1 202"),
+        "{}",
+        String::from_utf8_lossy(&wire)
+    );
+    assert!(
+        head.contains("native=XYZ; HttpOnly; Secure; Path=/\r\n"),
+        "{head}"
+    );
+    assert_eq!(&wire[split..], streamed_body());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn source_response_stream_reaches_production_hyper_with_bounds_and_metadata() {
+    let (root, web) = streaming_source_fixture();
     let (server_config, client_config) = tls_pair_with_client_alpn(b"http/1.1");
     let listener =
         crate::runtime::vm::protocol_task_executor::bind_protocol_listener("127.0.0.1", 0).unwrap();
@@ -688,35 +759,23 @@ pub handle(request: Request): Response ->
         .unwrap()
         + 4;
     let head = std::str::from_utf8(&response[..split]).unwrap();
-    assert!(head.starts_with("HTTP/1.1 202"), "{head}");
+    assert!(
+        head.starts_with("HTTP/1.1 202"),
+        "{}",
+        String::from_utf8_lossy(&response)
+    );
     assert!(head.contains("transfer-encoding: chunked\r\n"), "{head}");
     assert!(!head.contains("content-length:"), "{head}");
     assert!(
         head.contains("set-cookie: session=abc; HttpOnly; Secure; Path=/\r\n"),
         "{head}"
     );
+    assert!(
+        head.contains("set-cookie: native=XYZ; HttpOnly; Secure; Path=/\r\n"),
+        "{head}"
+    );
     assert!(head.contains("x-frame-options: DENY\r\n"), "{head}");
-    let expected = [
-        b"3\r\nhel\r\n2\r\nlo\r\n3\r\nXYZ\r\n3\r\n".as_slice(),
-        &"é🙂".as_bytes()[..3],
-        b"\r\n3\r\n",
-        &"é🙂".as_bytes()[3..],
-        b"\r\n0\r\n\r\n",
-    ]
-    .concat();
-    assert_eq!(&response[split..], expected);
-    let vm_wire = crate::commands::serve::request_dispatch::handle_vm_stream_http1_request(
-        &web,
-        b"GET /stream HTTP/1.1\r\nHost: localhost\r\nContent-Length: 3\r\n\r\nXYZ",
-    )
-    .unwrap();
-    let vm_split = vm_wire
-        .windows(4)
-        .position(|bytes| bytes == b"\r\n\r\n")
-        .unwrap()
-        + 4;
-    assert!(vm_wire.starts_with(b"HTTP/1.1 202"));
-    assert_eq!(&vm_wire[vm_split..], expected);
+    assert_eq!(&response[split..], streamed_body());
     let head = request("HEAD", "");
     assert!(head.starts_with(b"HTTP/1.1 202"));
     assert!(head.ends_with(b"\r\n\r\n"));
@@ -730,4 +789,15 @@ pub handle(request: Request): Response ->
     assert!(String::from_utf8_lossy(&invalid).contains("invalid Response.stream limits"));
     server.stop().unwrap();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn streamed_body() -> Vec<u8> {
+    [
+        b"3\r\nhel\r\n2\r\nlo\r\n3\r\nXYZ\r\n3\r\n".as_slice(),
+        &"é🙂".as_bytes()[..3],
+        b"\r\n3\r\n",
+        &"é🙂".as_bytes()[3..],
+        b"\r\n0\r\n\r\n",
+    ]
+    .concat()
 }

@@ -1,0 +1,33 @@
+[package]
+name = "terlan-http-native"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+axum.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+http-body-util.workspace = true
+bytes.workspace = true
+serde.workspace = true
+cookie = "0.18.1"
+http.workspace = true
+hyper.workspace = true
+httparse.workspace = true
+mime_guess.workspace = true
+tungstenite.workspace = true
+terlan-data-native = { path = "../../data/native" }
+terlan-net-native = { path = "../../net/native" }
+time = { workspace = true, features = ["formatting", "parsing"] }
+terlan-runtime-abi.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+rcgen.workspace = true
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }

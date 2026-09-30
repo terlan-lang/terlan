@@ -1,13 +1,13 @@
 use super::super::framing::VmInMemoryFrameReader;
-use super::super::http::response_wire::{
-    write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
-};
 use super::super::process::VmProcessId;
 use super::super::tcp::VmTcpRuntime;
 use super::stream::{
     write_or_park, VmHttpResponseStream, VmHttpStreamInfo, VmHttpStreamState, VmHttpTcpWrite,
 };
 use super::{VmHttpStaticError, VmHttpStreamPlan};
+use terlan_http_native::http1::{
+    write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// HTTP/1 stream lifecycle including head and terminal framing phases.

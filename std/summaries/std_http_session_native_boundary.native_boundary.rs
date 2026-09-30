@@ -11,23 +11,23 @@ pub const NATIVE_MODULE: &str = "std_http_session_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("current", 1),
-    ("get", 2),
-    ("set", 3),
-    ("delete", 2),
-    ("rotate", 1),
-    ("expire", 1),
-    ("with_response", 2),
+    ("lookup", 1),
+    ("read", 2),
+    ("write", 3),
+    ("remove", 2),
+    ("renew", 1),
+    ("invalidate", 1),
+    ("is_live", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("current", "std.http.session.current", 1),
-    ("get", "std.http.session.get", 2),
-    ("set", "std.http.session.set", 3),
-    ("delete", "std.http.session.delete", 2),
-    ("rotate", "std.http.session.rotate", 1),
-    ("expire", "std.http.session.expire", 1),
-    ("with_response", "std.http.session.with_response", 2),
+    ("lookup", "std.http.session.current", 1),
+    ("read", "std.http.session.get", 2),
+    ("write", "std.http.session.set", 3),
+    ("remove", "std.http.session.delete", 2),
+    ("renew", "std.http.session.rotate", 1),
+    ("invalidate", "std.http.session.expire", 1),
+    ("is_live", "std.http.session.is_live", 1),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -161,7 +161,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
                         "std.http.session.delete" => native_unimplemented_operation(operation),
                         "std.http.session.rotate" => native_unimplemented_operation(operation),
                         "std.http.session.expire" => native_unimplemented_operation(operation),
-                        "std.http.session.with_response" => native_unimplemented_operation(operation),
+                        "std.http.session.is_live" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

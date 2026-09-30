@@ -1,4 +1,3 @@
-use super::request_dispatch::*;
 use super::response_rendering::*;
 use super::*;
 
@@ -580,20 +579,6 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         &matched.handler.function,
         matched.handler.arity,
     );
-    let projected_headers =
-        if projection.requires(crate::runtime::native::http::RequestFieldProjection::HEADERS) {
-            request_header_pairs(request.headers())
-        } else {
-            Default::default()
-        };
-    let projected_cookies = if projection
-        .requires(crate::runtime::native::http::RequestFieldProjection::COOKIES)
-        || projection.requires(crate::runtime::native::http::RequestFieldProjection::COOKIE_JAR)
-    {
-        request_cookie_pairs(request.headers())
-    } else {
-        Default::default()
-    };
     let native_request = crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
         if projection.requires(crate::runtime::native::http::RequestFieldProjection::METHOD) {
             method.to_owned()
@@ -610,31 +595,12 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         } else {
             Default::default()
         },
-        crate::terlan_native::http::RequestMetadata {
-            params: if projection
-                .requires(crate::runtime::native::http::RequestFieldProjection::PARAMS)
-            {
-                matched.params.clone()
-            } else {
-                Default::default()
-            },
-            query_string: if projection
-                .requires(crate::runtime::native::http::RequestFieldProjection::QUERY_STRING)
-            {
-                request_query.to_owned()
-            } else {
-                Default::default()
-            },
-            query: if projection
-                .requires(crate::runtime::native::http::RequestFieldProjection::QUERY)
-            {
-                query_pairs(request_query)
-            } else {
-                Default::default()
-            },
-            headers: projected_headers,
-            cookies: projected_cookies,
-        },
+        crate::terlan_native::http::RequestMetadata::from_http(
+            projection,
+            &matched.params,
+            request_query,
+            request.headers(),
+        ),
     )
     .with_body_file_path(
         if projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH)

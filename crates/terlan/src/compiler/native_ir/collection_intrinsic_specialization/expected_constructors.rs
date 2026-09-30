@@ -18,6 +18,21 @@ pub(in crate::compiler::native_ir) fn annotate_function_result_constructors(
     }
 }
 pub(crate) fn annotate_expected_structural_constructors(expr: &mut CoreExpr, expected: &CoreType) {
+    if let (CoreExpr::Atom(atom), CoreType::Union(variants)) = (&*expr, expected) {
+        if variants
+            .iter()
+            .any(|variant| matches!(variant, CoreType::AtomLiteral(name) if name == atom))
+            && variants
+                .iter()
+                .any(|variant| !matches!(variant, CoreType::AtomLiteral(_)))
+        {
+            *expr = CoreExpr::Cast {
+                expr: Box::new(expr.clone()),
+                target_type: expected.clone(),
+            };
+            return;
+        }
+    }
     if let CoreExpr::Cast {
         expr: constructor,
         target_type,

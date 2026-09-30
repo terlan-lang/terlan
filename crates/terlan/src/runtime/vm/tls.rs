@@ -669,55 +669,43 @@ fn build_internal_server_config_from_der(
 
 /// Loads a PEM certificate chain through the maintained rustls PKI parser.
 fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'static>>, String> {
-    use rustls::pki_types::pem::PemObject;
-
     let pem = fs::read(path).map_err(|err| {
         format!(
             "VM TLS failed to open certificate `{}`: {err}",
             path.display()
         )
     })?;
-    let certificates = CertificateDer::pem_slice_iter(&pem)
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|err| {
+    terlan_net_native::tls::parse_certificate_chain(&pem).map_err(|err| match err {
+        rustls::pki_types::pem::Error::NoItemsFound => format!(
+            "VM TLS certificate `{}` did not contain any PEM certificates",
+            path.display()
+        ),
+        err => {
             format!(
                 "VM TLS failed to parse certificate `{}`: {err}",
                 path.display()
             )
-        })?;
-    if certificates.is_empty() {
-        return Err(format!(
-            "VM TLS certificate `{}` did not contain any PEM certificates",
-            path.display()
-        ));
-    }
-    Ok(certificates)
+        }
+    })
 }
 
 /// Loads the first supported PEM private key through the rustls PKI parser.
 fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, String> {
-    use rustls::pki_types::pem::PemObject;
-
     let pem = fs::read(path).map_err(|err| {
         format!(
             "VM TLS failed to open private key `{}`: {err}",
             path.display()
         )
     })?;
-    if !pem
-        .windows(b"-----BEGIN".len())
-        .any(|bytes| bytes == b"-----BEGIN")
-    {
-        return Err(format!(
+    terlan_net_native::tls::parse_private_key(&pem).map_err(|err| match err {
+        rustls::pki_types::pem::Error::NoItemsFound => format!(
             "VM TLS private key `{}` did not contain a supported unencrypted PEM key",
             path.display()
-        ));
-    }
-    PrivateKeyDer::from_pem_slice(&pem).map_err(|err| {
-        format!(
+        ),
+        err => format!(
             "VM TLS failed to parse private key `{}`: {err}",
             path.display()
-        )
+        ),
     })
 }
 
@@ -726,13 +714,7 @@ fn rustls_server_config(
     certificates: Vec<CertificateDer<'static>>,
     private_key: PrivateKeyDer<'static>,
 ) -> Result<ServerConfig, String> {
-    let builder =
-        ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
-            .with_safe_default_protocol_versions()
-            .expect("rustls ring provider should support safe default protocol versions");
-    builder
-        .with_no_client_auth()
-        .with_single_cert(certificates, private_key)
+    terlan_net_native::tls::server_config(certificates, private_key)
         .map_err(|err| format!("VM TLS failed to build server config: {err}"))
 }
 

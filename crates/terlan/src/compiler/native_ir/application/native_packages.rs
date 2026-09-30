@@ -77,14 +77,14 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
         .flat_map(|core| {
             core.types.iter().filter_map(move |declaration| {
                 let canonical = format!("{}.{}", core.module, declaration.name);
-                if is_compiler_owned_value_facade(&canonical) {
-                    return None;
-                }
-                let body = if matches!(
+                let opaque = matches!(
                     declaration.visibility,
                     crate::terlan_typeck::CoreVisibility::Opaque
-                ) && declaration.core_body.is_none()
-                {
+                ) && declaration.core_body.is_none();
+                if opaque && is_compiler_owned_value_facade(&canonical) {
+                    return None;
+                }
+                let body = if opaque {
                     Some(CoreType::Struct {
                         name: canonical.clone(),
                         fields: vec![
@@ -122,10 +122,6 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 /// Reports whether a bodyless opaque type has a compiler-owned physical
 /// representation rather than a native-package capability handle.
 ///
-/// `Template.Html` is typechecked as an opaque trust boundary, then erased to
-/// an owner-local managed string by template lowering. Treating it as a native
-/// resource would replace list element types with the four-field capability
-/// handle layout before that lowering runs.
 /// Process identities and lifecycle tokens likewise retain the scalar ABI
 /// owned by VM intrinsic lowering, not a native worker's resource layout.
 /// Byte and bit buffers retain their managed-buffer ABI even when their opaque
@@ -135,14 +131,12 @@ pub(super) fn native_package_aliases(cores: &[CoreModule]) -> HashMap<String, (S
 fn is_compiler_owned_value_facade(canonical: &str) -> bool {
     matches!(
         canonical,
-        "std.template.Template.Html"
-            | "std.core.Task.Task"
+        "std.core.Task.Task"
             | "std.collections.List.List"
             | "std.collections.Map.Map"
             | "std.collections.Set.Set"
             | "std.collections.Iterator.Iterator"
             | "std.http.Request.Request"
-            | "std.http.Response.Response"
             | "std.http.Cookies.Jar"
             | "std.http.Session.Session"
             | "std.vm.Bytes.Bytes"

@@ -1,3 +1,6 @@
+use super::value_size::{
+    LOGICAL_SEQUENCE_HEADER_BYTES, LOGICAL_STRING_HEADER_BYTES, LOGICAL_VALUE_SLOT_BYTES,
+};
 use super::*;
 
 #[cfg(test)]

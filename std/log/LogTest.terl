@@ -18,3 +18,7 @@ pub warn_returns_unit(): Bool ->
 @test
 pub error_returns_unit(): Bool ->
     assert_equal(Unit, std.log.Log.error("error")).
+
+@test
+pub event_uses_source_level_helper(): Bool ->
+    assert_equal(Unit, std.log.Log.event("event", [])).

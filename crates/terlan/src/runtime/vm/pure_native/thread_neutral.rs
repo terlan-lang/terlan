@@ -4,7 +4,7 @@ use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::actor::VmNativeTraceCall;
 
-use super::{NativeContinuationTable, NativeResultProjection};
+use super::NativeContinuationTable;
 
 /// Stable identities required to resume one exact native call.
 #[derive(Debug)]
@@ -28,7 +28,6 @@ pub(super) struct OwnedNativeTransition {
 #[derive(Debug)]
 pub(super) struct OwnedNativeResumeProgram {
     pub(super) result_type: TvmBoundaryType,
-    pub(super) result_projection: NativeResultProjection,
     pub(super) continuations: NativeContinuationTable,
     pub(super) resume_count: usize,
 }
@@ -52,7 +51,6 @@ pub(super) struct NativeResumeState {
     pub(super) owner_id: u64,
     pub(super) values: Vec<i64>,
     pub(super) result_type: TvmBoundaryType,
-    pub(super) result_projection: NativeResultProjection,
     pub(super) continuations: NativeContinuationTable,
     pub(super) resume_count: usize,
     pub(super) trace_call: VmNativeTraceCall,
@@ -121,7 +119,6 @@ impl PureNativeSuspension {
             owner_id: self.identity.owner_id,
             values: self.transition.values,
             result_type: self.resume.result_type,
-            result_projection: self.resume.result_projection,
             continuations: self.resume.continuations,
             resume_count: self.resume.resume_count,
             trace_call: self.trace_call,

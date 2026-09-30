@@ -80,10 +80,13 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
             "session_get_and_response_threading_execute",
         )?;
         self.write(
+            "std/http/Session.terl",
+            "set_header_with_options(\n\"terlan_session\", identity, \"/\", \"\", 0, false, \"\", true, false, \"Lax\"",
+        )?;
+        self.write(
             "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
             r#"
-{SESSION_COOKIE_NAME}={session_id}; Path=/; HttpOnly; SameSite=Lax
-SESSION_COOKIE_NAME runtime.expire(session) runtime.rotate(session)
+runtime.expire(session) runtime.rotate(session)
 "#,
         )?;
         self.write("crates/terlan/src/runtime/vm/http_session/state.rs", "")?;

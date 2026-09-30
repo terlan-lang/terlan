@@ -6,7 +6,8 @@
  */
 module std.data.JsonTest.
 
-import std.core.Option.{is_none}.
+import std.core.Atom.
+import std.core.Option.{None, Some, is_none}.
 import std.core.Result.{Err, Ok, is_err, with_default}.
 import std.data.Json.
 import std.test.Test.{assert, assert_equal}.
@@ -240,6 +241,27 @@ pub string_fields_preserve_order_and_missing_members(): Bool ->
         _ -> false
     };
     is_none(missing) and std.core.Option.with_default(name, "") == "Ada" and is_none(count).
+
+@test
+pub string_fields_preserve_duplicates_empty_strings_and_nonstring_members(): Bool ->
+    let {
+        Ok(value) <-
+            Json.parse(
+                "{\"name\":\"Ada\",\"empty\":\"\",\"nil\":null,\"bool\":true,\"list\":[],\"object\":{}}",
+            );
+        Ok(values) <- value.string_fields(["empty", "name", "name", "nil", "bool", "list", "object"])
+    } else {
+        _ -> false
+    };
+    assert_equal([Some(""), Some("Ada"), Some("Ada"), None, None, None, None], values).
+
+@test
+pub string_fields_validate_object_even_with_no_requested_fields(): Bool ->
+    assert_equal(Ok([]), Json.object().string_fields([]))
+        and case Json.array().string_fields([]) {
+    Err(reason) -> Atom.to_string(reason.code) == "json.not_object";
+    Ok(_) -> false
+}.
 
 @test
 pub required_fields_project_owned_values_in_one_call(): Bool ->

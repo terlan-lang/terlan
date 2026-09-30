@@ -1,6 +1,7 @@
 module std.http.SseTest.
 
-import std.http.Sse.
+import std.core.Option.{None, Some}.
+import std.http.{Response, Sse}.
 
 import type std.http.Response.
 import type std.http.Sse.{Endpoint, Event}.
@@ -23,8 +24,79 @@ pub queued_response(): Response ->
 pub bounded_endpoint(): Endpoint ->
     Sse.endpoint_with_keep_alive(16, 4096, 15000).
 
-@test
-pub sse_event_metadata_builders_record_typed_descriptor(): Bool -> true.
+idle(): Unit ->
+    Unit.
+
+consume(_value: String): Unit ->
+    Unit.
 
 @test
-pub sse_endpoint_records_stream_limits(): Bool -> true.
+pub sse_callbacks_are_retained_without_mutating_the_original(): Bool ->
+    let original = bounded_endpoint();
+    let configured = original.callbacks(idle, consume, idle, idle, consume);
+    let repeated = configured.callbacks(idle, consume, idle, idle, consume);
+    original == bounded_endpoint()
+        and configured != original
+        and repeated != configured
+        and configured.max_pending_events == 16
+        and configured.keep_alive_ms == Some(15000).
+
+@test
+pub sse_event_metadata_builders_record_typed_descriptor(): Bool ->
+    let original = Sse.data("tick");
+    let tagged = original.with_id("42").with_name("counter").with_retry_ms(1500);
+    original.data == "tick"
+        and original.id == None
+        and original.event == None
+        and original.retry_ms == None
+        and tagged.data == "tick"
+        and tagged.id == Some("42")
+        and tagged.event == Some("counter")
+        and tagged.retry_ms == Some(1500).
+
+@test
+pub sse_endpoint_records_stream_limits(): Bool ->
+    let defaults = Sse.endpoint();
+    let bounded = bounded_endpoint();
+    defaults.max_pending_events == 128
+        and defaults.max_event_bytes == 65536
+        and defaults.keep_alive_ms == None
+        and bounded.max_pending_events == 16
+        and bounded.max_event_bytes == 4096
+        and bounded.keep_alive_ms == Some(15000).
+
+@test
+pub sse_metadata_replacement_preserves_other_fields_and_empty_values(): Bool ->
+    let event = Sse.data("line one\nline two").with_id("old").with_name("old").with_retry_ms(1);
+    let replaced = event.with_id("").with_name("new").with_retry_ms(0);
+    replaced.data == "line one\nline two"
+        and replaced.id == Some("")
+        and replaced.event == Some("new")
+        and replaced.retry_ms == Some(0)
+        and event.id == Some("old")
+        and event.retry_ms == Some(1).
+
+@test
+pub sse_descriptors_do_not_silently_normalize_unvalidated_input(): Bool ->
+    let event = Sse.data("").with_id("line\nbreak").with_retry_ms(-1);
+    let endpoint = Sse.endpoint_with_keep_alive(0, -1, 0);
+    event.data == ""
+        and event.id == Some("line\nbreak")
+        and event.retry_ms == Some(-1)
+        and endpoint.max_pending_events == 0
+        and endpoint.max_event_bytes == -1
+        and endpoint.keep_alive_ms == Some(0).
+
+@test
+pub sse_response_encodes_in_order_with_source_owned_stream_defaults(): Bool ->
+    Sse.response([Sse.data("first\r\nsecond"), event_with_metadata()], 201) == Response.stream(
+    ["data: first\ndata: second\n\n", "id: 42\nevent: counter\nretry: 1500\ndata: tick\n\n"],
+    201,
+    "text/event-stream; charset=utf-8",
+    16384,
+    128,
+).
+
+@test
+pub sse_empty_response_retains_default_status_and_empty_stream(): Bool ->
+    Sse.response([]) == Response.stream([], 200, "text/event-stream; charset=utf-8", 16384, 128).

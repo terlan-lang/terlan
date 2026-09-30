@@ -257,5 +257,6 @@ run(effect: Effect[String]): String -> Effect.run(effect).
 pub check(): Bool -> run(plan("answer ")) == "answer 42".
 "#,
         EFFECT,
+        include_str!("../../../../../std/core/String.terl"),
     ]);
 }

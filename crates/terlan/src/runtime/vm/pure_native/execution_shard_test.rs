@@ -762,9 +762,6 @@ fn literal_area_collector_helper_observes_actor_drain_without_polling() {
                     .expect("release completed actor state");
                 break;
             }
-            PureNativeExecution::HttpResponse(_) => {
-                panic!("round-trip fixture cannot return an HTTP response")
-            }
         };
     }
 
@@ -896,9 +893,6 @@ fn generated_actor_state_migrates_repeatedly_and_resumes_exactly_once() {
                     .finish_completed_call(owner)
                     .expect("finish migrated actor");
                 break;
-            }
-            PureNativeExecution::HttpResponse(_) => {
-                panic!("public actor migration unexpectedly returned an HTTP projection")
             }
             PureNativeExecution::Suspended(next) => first
                 .resume_call(owner, *next)

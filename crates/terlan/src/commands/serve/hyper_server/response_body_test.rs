@@ -4,14 +4,11 @@ use super::*;
 fn stream_polling_preserves_bytes_and_bounds_until_completion() {
     let source = Bytes::from_static("helloé🙂".as_bytes());
     let start = source.as_ptr();
-    let stream = VmHttpResponseChunks::new(vec![Bytes::new(), source], 3, 1).unwrap();
+    let stream = HttpResponseChunks::new(vec![Bytes::new(), source], 3, 1).unwrap();
     let mut response = http::Response::new(Bytes::new());
     response.extensions_mut().insert(stream);
     let mut response = ResponseBody::from_response(response);
-    assert!(response
-        .extensions()
-        .get::<VmHttpResponseChunks>()
-        .is_none());
+    assert!(response.extensions().get::<HttpResponseChunks>().is_none());
     let body = response.body_mut();
     assert_eq!(body.size_hint().exact(), None);
     let mut context = Context::from_waker(std::task::Waker::noop());
@@ -41,9 +38,9 @@ fn stream_polling_preserves_bytes_and_bounds_until_completion() {
 #[test]
 fn stream_rejects_invalid_limits_and_accepts_empty_bodies() {
     for (size, pending) in [(0, 1), (-1, 1), (1, 0), (1, -1)] {
-        assert!(VmHttpResponseChunks::new(vec![], size, pending).is_err());
+        assert!(HttpResponseChunks::new(vec![], size, pending).is_err());
     }
-    let mut stream = VmHttpResponseChunks::new(vec![Bytes::new()], 1, 1).unwrap();
+    let mut stream = HttpResponseChunks::new(vec![Bytes::new()], 1, 1).unwrap();
     assert!(stream.is_complete());
     assert_eq!(stream.next_chunk(), None);
 }
@@ -51,7 +48,7 @@ fn stream_rejects_invalid_limits_and_accepts_empty_bodies() {
 #[test]
 fn cancelling_a_stream_releases_unemitted_source_chunks() {
     let backing = bytes::Bytes::from(vec![1; 1024]);
-    let mut stream = VmHttpResponseChunks::new(vec![backing.clone()], 1, 1).unwrap();
+    let mut stream = HttpResponseChunks::new(vec![backing.clone()], 1, 1).unwrap();
     drop(stream.next_chunk());
     assert!(!backing.is_unique());
     drop(stream);

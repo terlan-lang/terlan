@@ -1,6 +1,7 @@
 module std.http.WebSocketTest.
 
 import std.http.WebSocket.
+import std.http.WebSocket.{CloseFrame, PingFrame, PongFrame, TextFrame}.
 
 import type std.http.WebSocket.{Endpoint, Frame}.
 
@@ -23,14 +24,76 @@ pub close_frame(): Frame ->
 pub bounded_endpoint(): Endpoint ->
     WebSocket.endpoint(16, 4096).
 
-@test
-pub websocket_text_records_typed_descriptor(): Bool -> true.
+idle(): Unit ->
+    Unit.
+
+consume(_value: String): Unit ->
+    Unit.
+
+echo(value: String): String ->
+    value.
 
 @test
-pub websocket_control_records_close_descriptor(): Bool -> true.
+pub websocket_callbacks_and_pairing_are_retained_without_overwrite(): Bool ->
+    let original = bounded_endpoint();
+    let callbacks = original.callbacks(idle, consume, idle, idle, consume);
+    let paired = original.paired_callbacks("wait", "one", "two", "left", echo, consume);
+    let conflicting = callbacks.paired_callbacks("wait", "one", "two", "left", echo, consume);
+    original == bounded_endpoint()
+        and callbacks != original
+        and paired != original
+        and conflicting != callbacks
+        and conflicting != paired
+        and conflicting.max_pending_frames == 16
+        and conflicting.max_frame_bytes == 4096.
 
 @test
-pub websocket_control_records_ping_and_pong_descriptors(): Bool -> true.
+pub websocket_text_records_typed_descriptor(): Bool ->
+    case text_frame() {
+        TextFrame(value) -> value == "hello";
+        _ -> false
+    }.
 
 @test
-pub websocket_endpoint_records_channel_limits(): Bool -> true.
+pub websocket_control_records_close_descriptor(): Bool ->
+    case close_frame() {
+        CloseFrame -> true;
+        _ -> false
+    }.
+
+@test
+pub websocket_control_records_ping_and_pong_descriptors(): Bool ->
+    case WebSocket.ping("hb") {
+    PingFrame(value) -> value == "hb";
+    _ -> false
+}
+        and case heartbeat_frames() {
+    PongFrame(value) -> value == "hb";
+    _ -> false
+}.
+
+@test
+pub websocket_endpoint_records_channel_limits(): Bool ->
+    let defaults = WebSocket.endpoint();
+    let bounded = bounded_endpoint();
+    defaults.max_pending_frames == 128
+        and defaults.max_frame_bytes == 65536
+        and bounded.max_pending_frames == 16
+        and bounded.max_frame_bytes == 4096.
+
+@test
+pub websocket_variants_remain_distinct_with_identical_payloads(): Bool ->
+    WebSocket.text("") != WebSocket.ping("")
+        and WebSocket.ping("") != WebSocket.pong("")
+        and WebSocket.pong("") != WebSocket.close().
+
+@test
+pub websocket_payloads_are_source_values_not_encoded_frames(): Bool ->
+    case WebSocket.text("line\nbreak") {
+    TextFrame(value) -> value == "line\nbreak";
+    _ -> false
+}
+        and case WebSocket.ping("") {
+    PingFrame(value) -> value == "";
+    _ -> false
+}.

@@ -10,7 +10,6 @@ use crate::runtime::vm::pure_native::{
 };
 use crate::runtime::vm::scheduler_topology::VmFixedActorRoute;
 use crate::runtime::vm::ReplValue;
-use crate::runtime::vm::VmHttpCallResult;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
 use std::time::{Duration, Instant};
 
@@ -81,11 +80,11 @@ impl LocalImmediateShard {
         module: &str,
         function: &str,
         args: &[ReplValue],
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.select_export(module, function);
-        let result =
-            self.shard
-                .call_on_admitted_fixed_owner_http_response(self.owner, &self.export, args);
+        let result = self
+            .shard
+            .call_on_admitted_fixed_owner(self.owner, &self.export, args);
         self.finish_http_call(result, args.len())
     }
     pub(super) fn call_one_http_response(
@@ -93,11 +92,11 @@ impl LocalImmediateShard {
         module: &str,
         function: &str,
         argument: ReplValue,
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.select_export(module, function);
         self.argument_scratch.clear();
         self.argument_scratch.push(argument);
-        let result = self.shard.call_on_admitted_fixed_owner_http_response(
+        let result = self.shard.call_on_admitted_fixed_owner(
             self.owner,
             &self.export,
             &self.argument_scratch,
@@ -112,7 +111,7 @@ impl LocalImmediateShard {
         function: &str,
         request: RequestParts,
         projection: RequestFieldProjection,
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         self.select_export(module, function);
         match self.request_scratch.as_mut() {
             Some(scratch) => replace_vm_request_descriptor(scratch, request, projection),
@@ -120,7 +119,7 @@ impl LocalImmediateShard {
                 self.request_scratch = Some(vm_request_descriptor_owned(request, projection));
             }
         }
-        let result = self.shard.call_on_admitted_fixed_owner_http_response(
+        let result = self.shard.call_on_admitted_fixed_owner(
             self.owner,
             &self.export,
             std::slice::from_ref(
@@ -160,9 +159,9 @@ impl LocalImmediateShard {
 
     fn finish_http_call(
         &mut self,
-        result: Result<VmHttpCallResult, String>,
+        result: Result<ReplValue, String>,
         arity: usize,
-    ) -> Result<VmHttpCallResult, String> {
+    ) -> Result<ReplValue, String> {
         match result {
             Ok(value) => Ok(value),
             Err(error) => {
@@ -181,10 +180,10 @@ impl LocalImmediateShard {
     pub(super) fn begin(
         &mut self,
         route: VmFixedActorRoute,
-        export: String,
+        target: crate::runtime::vm::pure_native::NativeCallTarget<'_>,
         args: Vec<ReplValue>,
     ) -> Result<OwnedInvocationStep, String> {
-        let (owner, execution) = self.shard.begin_call(&export, &args)?;
+        let (owner, execution) = self.shard.begin_target_call(&target, &args)?;
         self.advance(route, owner, execution)
     }
 
@@ -244,13 +243,6 @@ impl LocalImmediateShard {
                 PureNativeExecution::Complete(value) => {
                     self.shard.finish_completed_call(owner)?;
                     return Ok(OwnedInvocationStep::Complete { route, value });
-                }
-                PureNativeExecution::HttpResponse(_) => {
-                    self.shard.cancel_call(
-                        owner,
-                        "typed HTTP response entered suspendable invocation path",
-                    )?;
-                    return Err("error[serve.aot.result_projection]: typed HTTP response entered the asynchronous invocation path".to_string());
                 }
                 PureNativeExecution::Suspended(suspension)
                     if suspension.operation() == TvmTransitionOperation::Receive =>

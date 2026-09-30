@@ -5,7 +5,7 @@ fn fixture() -> (String, String, TrustPin, Vec<u8>, Vec<u8>, Vec<u8>) {
     let origin = "https://registry.example.test".to_string();
     let key_id = "root-1".to_string();
     let seed = STANDARD.encode([23_u8; 32]);
-    let public_key = crate::runtime::native::ed25519::sign(&seed, "probe")
+    let public_key = terlan_std_native::crypto::ed25519::sign(&seed, "probe")
         .unwrap()
         .public_key_base64;
     let pin = TrustPin {
@@ -156,7 +156,7 @@ fn rejects_invalid_signatures_and_root_rollback() {
 #[test]
 fn rejects_duplicate_signatures_as_one_threshold_vote() {
     let (origin, seed, pin, _root_bytes, _snapshot, _index) = fixture();
-    let public_key = crate::runtime::native::ed25519::sign(&seed, "probe")
+    let public_key = terlan_std_native::crypto::ed25519::sign(&seed, "probe")
         .unwrap()
         .public_key_base64;
     let root = RootRecord {
@@ -210,7 +210,7 @@ fn envelope<T: Serialize>(
     let payload_base64 = STANDARD.encode(&payload);
     let input =
         format!("{SIGNED_RESOURCE_SCHEMA}\n{origin}\n{route}\n{payload_sha}\n{payload_base64}");
-    let signature = crate::runtime::native::ed25519::sign(seed, &input).unwrap();
+    let signature = terlan_std_native::crypto::ed25519::sign(seed, &input).unwrap();
     serde_json::to_vec(&SignedResourceRecord {
         schema: SIGNED_RESOURCE_SCHEMA.into(),
         origin: origin.into(),

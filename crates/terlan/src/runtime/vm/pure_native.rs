@@ -1,5 +1,6 @@
 //! Execution-shard-owned execution of compiler-produced AOT artifacts.
 
+mod call_target;
 mod continuation_table;
 mod direct_backend;
 pub(super) mod execution;
@@ -25,7 +26,7 @@ use crate::runtime::native_image::{
 use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
 use crate::runtime::vm::process::{VmManagedMailboxToken, VmMessage, VmProcessSource};
 use crate::runtime::vm::ReplValue;
-use crate::runtime::vm::VmAotHttpResponse;
+pub(crate) use call_target::NativeCallTarget;
 use continuation_table::NativeContinuationTable;
 
 pub(crate) use crate::runtime::vm::native_image_diagnostics::{
@@ -39,6 +40,7 @@ pub(crate) use execution::{
 };
 pub(crate) use execution_runtime::PendingNativeCompletionFrame;
 pub(crate) use execution_runtime::{NativeContinuationClaim, PureNativeExecutionRuntime};
+pub(crate) use execution_shard::managed_capability_term;
 #[cfg(test)]
 pub(crate) use execution_shard::PureNativeActorImportFailure;
 pub(crate) use execution_shard::{
@@ -166,6 +168,17 @@ impl<'a> PureNativeExecutionContext<'a> {
 
 /// Runtime-side driver for one admitted native image.
 pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
+    /// Enters an authenticated, owned function value using the same transition ABI.
+    fn closure_frame(
+        &mut self,
+        _context: &mut PureNativeExecutionContext<'_>,
+        _request_id: u64,
+        _closure: &ReplValue,
+        _args: &[ReplValue],
+    ) -> crate::runtime::vm::VmRuntimeResult<TvmControlFrame> {
+        Err("error[execution_shard.closure]: backend cannot invoke function values".into())
+    }
+
     fn call_frame(
         &mut self,
         context: &mut PureNativeExecutionContext<'_>,
@@ -188,11 +201,9 @@ pub(crate) trait NativeImageBackend: std::fmt::Debug + Send + Sync {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-        projection: NativeResultProjection,
-    ) -> Result<NativeDecodedResult, String> {
+    ) -> Result<ReplValue, String> {
         let _ = context;
-        let _ = projection;
-        decode_native_value(result_type, value).map(NativeDecodedResult::Value)
+        decode_native_value(result_type, value)
     }
 
     /// Materializes one typed transition payload from backend-owned storage.
@@ -326,7 +337,6 @@ struct PreparedNativeCall {
     /// Populated only after generated code actually returns a transition.
     continuations: Option<NativeContinuationTable>,
     trace_source: Option<VmProcessSource>,
-    result_projection: NativeResultProjection,
 }
 
 /// Last resolved entry on one owner-local boundary.
@@ -336,20 +346,6 @@ struct NativeCallCache {
     arity: usize,
     export_index: usize,
     continuations: NativeContinuationTable,
-}
-
-/// Call-scoped result representation selected by the VM consumer.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum NativeResultProjection {
-    PublicValue,
-    HttpResponse,
-}
-
-/// Backend-decoded result before the execution driver selects its consumer.
-#[derive(Debug)]
-pub(crate) enum NativeDecodedResult {
-    Value(ReplValue),
-    HttpResponse(VmAotHttpResponse),
 }
 
 impl PureNativeBoundary {
@@ -373,7 +369,6 @@ impl PureNativeBoundary {
         function: &str,
         args: &[ReplValue],
         trace_enabled: bool,
-        result_projection: NativeResultProjection,
     ) -> Result<PreparedNativeCall, String> {
         let owner_id = context.owner_id();
         let artifact = self.artifact.as_ref().ok_or_else(|| {
@@ -437,7 +432,6 @@ impl PureNativeBoundary {
             trace_source: trace_enabled.then(|| {
                 VmProcessSource::new(export.module.clone(), export.function.clone(), export.arity)
             }),
-            result_projection,
         })
     }
 
@@ -733,6 +727,7 @@ fn validate_arguments(export: &PureNativeExportSpec, args: &[ReplValue]) -> Resu
                 | (TvmBoundaryType::Bytes, ReplValue::Bytes(_))
                 | (TvmBoundaryType::Binary, ReplValue::BitString(_)) => true,
                 (TvmBoundaryType::Managed(_), ReplValue::Tuple(_))
+                | (TvmBoundaryType::Managed(_), ReplValue::Closure(_))
                 | (TvmBoundaryType::Managed(_), ReplValue::Record { .. })
                 | (TvmBoundaryType::Managed(_), ReplValue::List(_))
                 | (TvmBoundaryType::Managed(_), ReplValue::Map(_))
@@ -755,6 +750,7 @@ fn validate_arguments(export: &PureNativeExportSpec, args: &[ReplValue]) -> Resu
                 ReplValue::Bytes(_) => "Bytes",
                 ReplValue::BitString(_) => "Binary",
                 ReplValue::Tuple(_)
+                | ReplValue::Closure(_)
                 | ReplValue::Record { .. }
                 | ReplValue::List(_)
                 | ReplValue::Map(_)

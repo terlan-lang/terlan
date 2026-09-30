@@ -56,10 +56,15 @@ pub(super) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
                         if import.module == *provider
                             || import.module == format!("{provider}.{declaration}")
                         {
-                            candidates
-                                .entry(declaration.clone())
-                                .or_default()
-                                .insert(format!("{provider}.{declaration}"));
+                            let module_name = provider.rsplit('.').next().expect("module name");
+                            for name in
+                                [declaration.clone(), format!("{module_name}.{declaration}")]
+                            {
+                                candidates
+                                    .entry(name)
+                                    .or_default()
+                                    .insert(format!("{provider}.{declaration}"));
+                            }
                         }
                     }
                 }
@@ -140,12 +145,10 @@ fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, Strin
 }
 
 fn qualify_name(name: &mut String, scope: &NominalScope<'_>) {
-    if !name.contains('.') {
-        if scope.local.contains(name) {
-            *name = format!("{}.{}", scope.module, name);
-        } else if let Some(canonical) = scope.imported.get(name) {
-            *name = canonical.clone();
-        }
+    if !name.contains('.') && scope.local.contains(name) {
+        *name = format!("{}.{}", scope.module, name);
+    } else if let Some(canonical) = scope.imported.get(name) {
+        *name = canonical.clone();
     }
     // Compiler-owned collections have one established ABI spelling, whether
     // their opaque declaration is loaded or only an intrinsic refers to them.
@@ -158,48 +161,7 @@ fn qualify_name(name: &mut String, scope: &NominalScope<'_>) {
 }
 
 fn qualify_type(ty: &mut CoreType, scope: &NominalScope<'_>) {
-    match ty {
-        CoreType::Named(name) => qualify_name(name, scope),
-        CoreType::Apply { constructor, args } => {
-            qualify_name(constructor, scope);
-            args.iter_mut().for_each(|ty| qualify_type(ty, scope));
-        }
-        CoreType::List(item) => qualify_type(item, scope),
-        CoreType::Tuple(items) => items.iter_mut().for_each(|item| match item {
-            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => {
-                qualify_type(ty, scope);
-            }
-        }),
-        CoreType::Struct { name, fields } => {
-            qualify_name(name, scope);
-            fields
-                .iter_mut()
-                .for_each(|field| qualify_type(&mut field.ty, scope));
-        }
-        CoreType::Map(fields) => fields
-            .iter_mut()
-            .for_each(|field| qualify_type(&mut field.value, scope)),
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => {
-            params.iter_mut().for_each(|ty| qualify_type(ty, scope));
-            qualify_type(return_type, scope);
-        }
-        CoreType::Union(types) => types.iter_mut().for_each(|ty| qualify_type(ty, scope)),
-        CoreType::Int
-        | CoreType::Float
-        | CoreType::Number
-        | CoreType::String
-        | CoreType::Binary
-        | CoreType::Atom
-        | CoreType::Bool
-        | CoreType::Term
-        | CoreType::Dynamic
-        | CoreType::Never
-        | CoreType::AtomLiteral(_) => {}
-    }
+    ty.visit_names_mut(&mut |name| qualify_name(name, scope));
 }
 
 fn qualify_intrinsic_id(id: &mut CoreIntrinsicId, scope: &NominalScope<'_>) {

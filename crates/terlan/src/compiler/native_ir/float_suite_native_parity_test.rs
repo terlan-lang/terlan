@@ -64,7 +64,19 @@ pub parse_float(value: String): Option[Float] -> from_string(value).\n",
     let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
-    let modules = NativeModule::lower_application(&[&core]).expect("lower Float application");
+    let roots = core
+        .functions
+        .iter()
+        .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+        .collect::<Vec<_>>();
+    let provider = super::source_constructor_test::checked_provider(include_str!(
+        "../../../../../std/core/Float.terl"
+    ));
+    let mut cores = vec![core, provider];
+    super::prune_application_to_function_roots(&mut cores, &roots)
+        .expect("retain Float source bodies");
+    let modules = NativeModule::lower_application(&cores.iter().collect::<Vec<_>>())
+        .expect("lower Float application");
     let exports = modules
         .iter()
         .flat_map(|module| &module.functions)

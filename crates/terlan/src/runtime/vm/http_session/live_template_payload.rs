@@ -41,6 +41,7 @@ pub(super) fn validate_live_template_patch_payload(
 
 fn unsupported_live_template_patch_value(value: &ReplValue) -> Option<&'static str> {
     match value {
+        ReplValue::Closure(_) => Some("Function"),
         ReplValue::Bytes(_) => Some("Bytes"),
         ReplValue::BitString(_) => Some("BitString"),
         ReplValue::RandomGenerator(_) => Some("RandomGenerator"),

@@ -1,8 +1,5 @@
 //! Tests for compiler-owned typed HTML fragment lowering.
 
-use std::sync::Arc;
-
-use crate::runtime::native_image::managed::encode_string_list_join_operation;
 use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
@@ -11,10 +8,11 @@ use crate::terlan_typeck::{
     CoreType,
 };
 
-use super::template_values::{
-    lower_managed_template_operation, lower_template_values, managed_template_operation_type,
-};
-use super::{native_type, NativeExpr, NativeType};
+use super::template_values::lower_template_values;
+use super::{native_type, NativeType};
+
+#[path = "template_library_test.rs"]
+mod source_authority;
 
 /// Creates one checked module importing the public template facade.
 fn template_core() -> CoreModule {
@@ -73,24 +71,42 @@ fn instantiate(core: &mut CoreModule, name: &str, fields: Vec<CoreRecordExprFiel
 }
 
 #[test]
-fn public_html_types_erase_to_managed_strings_only_after_typechecking() {
-    for name in ["Html", "Template.Html", "std.template.Template.Html"] {
+fn html_names_have_no_builtin_storage_representation() {
+    for name in [
+        "Html",
+        "Template.Html",
+        "std.template.Template.Html",
+        "app.Html",
+    ] {
         let ty = CoreType::Named(name.to_string());
-        assert_eq!(native_type(Some(&ty), name), Some(NativeType::StringRef));
+        assert!(matches!(
+            native_type(Some(&ty), name),
+            Some(NativeType::ManagedRef(_))
+        ));
     }
-    let unrelated = CoreType::Named("app.Html".to_string());
-    assert!(matches!(
-        native_type(Some(&unrelated), "app.Html"),
-        Some(NativeType::ManagedRef(_))
-    ));
 }
 
 #[test]
-fn trusted_and_empty_fragments_lower_to_the_string_representation() {
-    let mut core = template_core();
-    *body(&mut core) = template_call("trusted", vec![template_call("empty", Vec::new())]);
-    lower_template_values(&mut core).expect("lower fragments");
-    assert_eq!(body(&mut core), &CoreExpr::Binary("\"\"".to_string()));
+fn template_helpers_are_ordinary_provider_calls() {
+    let calls = [
+        template_call("trusted", vec![template_call("empty", Vec::new())]),
+        template_call(
+            "join",
+            vec![CoreExpr::List(vec![
+                template_call("trusted", vec![CoreExpr::Binary("\"<p>\"".into())]),
+                template_call("trusted", vec![CoreExpr::Binary("\"</p>\"".into())]),
+            ])],
+        ),
+        template_call("join", vec![CoreExpr::Var("fragments".into())]),
+        template_call("to_string", vec![CoreExpr::Var("fragment".into())]),
+        template_call("unknown", Vec::new()),
+    ];
+    for call in calls {
+        let mut core = template_core();
+        *body(&mut core) = call.clone();
+        lower_template_values(&mut core).expect("retain source call");
+        assert_eq!(*body(&mut core), call);
+    }
 }
 
 /// Template rewriting must preserve instantiation of unrelated user functions.
@@ -105,105 +121,6 @@ fn template_lowering_preserves_explicit_generic_call_arguments() {
     *body(&mut core) = call.clone();
     lower_template_values(&mut core).expect("lower unrelated generic call");
     assert_eq!(*body(&mut core), call);
-}
-
-#[test]
-fn literal_join_lowers_to_ordered_managed_appends_without_a_list_literal() {
-    let mut core = template_core();
-    *body(&mut core) = template_call(
-        "join",
-        vec![CoreExpr::List(vec![
-            template_call("trusted", vec![CoreExpr::Binary("\"<p>\"".to_string())]),
-            template_call("trusted", vec![CoreExpr::Binary("\"Ada\"".to_string())]),
-            template_call("trusted", vec![CoreExpr::Binary("\"</p>\"".to_string())]),
-        ])],
-    );
-    lower_template_values(&mut core).expect("lower literal join");
-
-    assert_eq!(
-        body(&mut core),
-        &CoreExpr::RemoteCall {
-            type_args: Vec::new(),
-            module: "$terlan.managed.template".to_string(),
-            function: "append".to_string(),
-            args: vec![
-                CoreExpr::RemoteCall {
-                    type_args: Vec::new(),
-                    module: "$terlan.managed.template".to_string(),
-                    function: "append".to_string(),
-                    args: vec![
-                        CoreExpr::Binary("\"<p>\"".to_string()),
-                        CoreExpr::Binary("\"Ada\"".to_string()),
-                    ],
-                },
-                CoreExpr::Binary("\"</p>\"".to_string()),
-            ],
-        }
-    );
-}
-
-#[test]
-fn list_constructor_join_uses_the_same_literal_fragment_lowering() {
-    let mut core = template_core();
-    *body(&mut core) = template_call(
-        "join",
-        vec![CoreExpr::ConstructorCall {
-            type_args: Vec::new(),
-            constructor: "std.collections.List.List".to_string(),
-            constructor_identity: Some("std.collections.List.List/2".to_string()),
-            args: vec![
-                CoreExpr::Binary("\"left\"".to_string()),
-                CoreExpr::Binary("\"right\"".to_string()),
-            ],
-        }],
-    );
-    lower_template_values(&mut core).expect("lower list constructor join");
-    assert!(matches!(
-        body(&mut core),
-        CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.template" && function == "append" && args.len() == 2
-    ));
-}
-
-#[test]
-fn dynamic_join_lowers_to_the_checked_managed_list_operation() {
-    let mut core = template_core();
-    *body(&mut core) = template_call("join", vec![CoreExpr::Var("fragments".to_string())]);
-    lower_template_values(&mut core).expect("lower dynamic join");
-    assert_eq!(
-        managed_template_operation_type(body(&mut core)),
-        Some(NativeType::StringRef)
-    );
-    let lowered = lower_managed_template_operation(body(&mut core), |_| Ok(NativeExpr::Param(0)))
-        .expect("lower operation")
-        .expect("managed operation");
-    assert_eq!(
-        lowered,
-        NativeExpr::ManagedOperation {
-            encoded: Arc::from(encode_string_list_join_operation()),
-            args: vec![NativeExpr::Param(0)],
-        }
-    );
-}
-
-#[test]
-fn malformed_public_template_calls_fail_with_typed_diagnostics() {
-    for (function, args, diagnostic) in [
-        (
-            "trusted",
-            Vec::new(),
-            "error[native_ir.template_arity]: Template.trusted does not accept 0 argument(s)",
-        ),
-        (
-            "unknown",
-            Vec::new(),
-            "error[native_ir.template_function]: Template.unknown/0 is not in the managed template profile",
-        ),
-    ] {
-        let mut core = template_core();
-        *body(&mut core) = template_call(function, args);
-        assert_eq!(lower_template_values(&mut core).unwrap_err(), diagnostic);
-    }
 }
 
 #[test]

@@ -16,7 +16,6 @@ use super::{native_image, native_reuse, std_source};
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) struct CompiledServeApplication {
     pub(crate) core: CoreModule,
-    pub(crate) router: Option<crate::runtime::vm::aot_metadata::AotRouterPlan>,
     pub(crate) image: native_image::CompiledServeNativeImage,
 }
 
@@ -134,9 +133,6 @@ pub(crate) fn compile_serve_application(
         .iter()
         .position(|module| module.compiled.core.module == expected_module)
         .ok_or_else(|| format!("serve application is missing route module `{expected_module}`"))?;
-    let (route_core, router) =
-        crate::compiler::router::prepare_aot_router_module(&modules[route_index].compiled.core)?;
-    modules[route_index].compiled.core = route_core;
     let core = modules[route_index].compiled.core.clone();
     let cores = modules
         .iter()
@@ -168,11 +164,7 @@ pub(crate) fn compile_serve_application(
             "error[serve.aot.image_required]: application route module `{expected_module}` did not produce a native image"
         )
     })?;
-    Ok(CompiledServeApplication {
-        core,
-        router,
-        image,
-    })
+    Ok(CompiledServeApplication { core, image })
 }
 
 /// Removes the build output root from source identities embedded in packaged

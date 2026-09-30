@@ -5,7 +5,6 @@ use std::sync::Arc;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 #[cfg(test)]
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::native_callable::VmNativeCallableRef;
 #[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 #[cfg(test)]
@@ -178,7 +177,7 @@ impl AotSseCallbackSession {
         self.invocation.resume(wake)
     }
 
-    /// Starts one event using its statically selected callback.
+    /// Starts one event using its retained source callback.
     fn invoke(
         &mut self,
         event: AotSseCallbackEvent,
@@ -188,8 +187,8 @@ impl AotSseCallbackSession {
         self.invocation.invoke(event, callback.as_ref(), args)
     }
 
-    /// Selects the static callback assigned to one lifecycle event.
-    fn callback(&self, event: AotSseCallbackEvent) -> Option<&VmNativeCallableRef> {
+    /// Selects the source callback assigned to one lifecycle event.
+    fn callback(&self, event: AotSseCallbackEvent) -> Option<&ReplValue> {
         let callbacks = self.callbacks.as_ref()?;
         Some(match event {
             AotSseCallbackEvent::Open => &callbacks.open,

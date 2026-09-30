@@ -66,9 +66,14 @@ pub(super) fn compile_vm_modules(
 
 /// Returns the shared host-bound worker ceiling for compiler-owned build work.
 pub(super) fn bounded_worker_limit() -> usize {
-    thread::available_parallelism()
+    let available = thread::available_parallelism()
         .map(usize::from)
-        .unwrap_or(1)
+        .unwrap_or(1);
+    std::env::var("TERLAN_BUILD_JOBS")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(available)
         .min(MAX_FRONTEND_WORKERS)
 }
 

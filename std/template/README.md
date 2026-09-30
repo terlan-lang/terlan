@@ -19,13 +19,17 @@ values instead of untyped strings.
 - `std.template.Template.trusted`: explicit trusted HTML conversion.
 - `std.template.Template.empty`: empty trusted HTML fragment.
 - `std.template.Template.join`: concatenates trusted fragments.
+- `std.template.Template.to_string`: reads already trusted fragment bytes.
 
 ## Core Model
 
 Plain `String` interpolation is escaped as text by the template compiler.
 `Html` is the separate type for values that are already trusted to contain HTML.
-The standard library only declares the source-facing shape; the compiler owns
-escaping rules, diagnostics, generated template functions, and final output.
+The package owns the opaque string representation and all four fragment helpers.
+Joining reuses `std.core.String.join`; no helper call is replaced by its module
+or function name. The compiler still owns checked template syntax, escaping,
+diagnostics, and generated render plans. That rendering machinery remains a
+separate ownership concern.
 
 Important invariants:
 
@@ -67,3 +71,5 @@ Important invariants:
 
 - Positive source tests live beside the module as `TemplateTest.terl`.
 - Runtime rendering tests live in the compiler/template command tests.
+- Source-authority tests execute changed and renamed providers, plus rejection
+  tests for untrusted strings and imported opaque constructors.

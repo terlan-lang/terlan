@@ -18,9 +18,9 @@ implementations are delegated to maintained Rust crates through NativeBoundary.
 
 ## Core Model
 
-Encoding modules are pure helper APIs. They should lower directly to native
-functions where supported and should not require BEAM process wrappers or
-long-lived native resources.
+Encoding modules use copied values and do not retain native resources. The
+maintained codecs live in `native/`; `Base64.terl` constructs portable decoder
+errors from the backend failure category and message.
 
 The main flow is:
 
@@ -37,7 +37,10 @@ Important invariants:
 
 ## Integration Points
 
-- `terlan_native_boundary`: owns Rust-backed codec operations.
+- `native/`: owns codec bindings, argument validation, and maintained libraries.
+- `std/native/packages.rs`: registers exact operation names with the generic
+  copied-value bridge. The compiler and VM have no encoding dispatch cases or
+  special knowledge of `Base64Error`.
 - `std/RUST_BACKED_MANIFEST.tsv`: records native operation ownership.
 - HTTP and data modules may use encoding helpers later for protocol work.
 
@@ -56,7 +59,8 @@ Important invariants:
 
 ## Testing Notes
 
-- Positive tests should live beside the module as `*Test.terl` sources when
-  the API becomes release-tested.
+- `Base64Test.terl`, `Base64PropertyTest.terl`, and `Md5Test.terl` exercise the
+  source APIs. Package Rust tests cover codec and binding adversarial cases.
 - Native artifact drift is checked by `make stdlib-check`.
-- Add negative fixtures for malformed input when typed decoding errors land.
+- Compiled VM tests cover source error policy, binary/text distinctions, and
+  execution without a native helper process.

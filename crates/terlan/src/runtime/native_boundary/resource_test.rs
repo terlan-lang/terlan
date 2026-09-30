@@ -1,6 +1,5 @@
 use super::*;
 use serde_json::Value;
-use std::collections::BTreeMap;
 
 /// Builds a JSON resource fixture.
 ///
@@ -194,28 +193,4 @@ fn rejects_stale_generation_with_stable_error_code() {
         .err()
         .unwrap_or_else(|| ResourceError::new("missing", ""));
     assert_eq!(error.code(), "resource.stale_handle");
-}
-
-/// Validates id allocation overflow is rejected before insertion.
-///
-/// Inputs:
-/// - Store whose next id is `u64::MAX`.
-///
-/// Output:
-/// - Test passes when insertion returns `resource.id_overflow`.
-///
-/// Transformation:
-/// - Exercises checked resource-id allocation.
-#[test]
-fn insert_rejects_id_overflow() {
-    let mut store = ResourceStore {
-        next_id: u64::MAX,
-        resources: BTreeMap::new(),
-    };
-
-    let error = store
-        .insert(json_resource())
-        .err()
-        .unwrap_or_else(|| ResourceError::new("missing", ""));
-    assert_eq!(error.code(), "resource.id_overflow");
 }

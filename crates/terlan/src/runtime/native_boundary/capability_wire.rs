@@ -51,6 +51,8 @@ impl From<CapabilityHandle> for NativeBoundaryHandle {
 pub(crate) enum CapabilityValue {
     /// Terlan Unit.
     Unit,
+    /// Recursively bounded map keys and values.
+    Map(Vec<(Self, Self)>),
     /// Owned UTF-8 text.
     Text(String),
     /// Owned arbitrary bytes.
@@ -91,6 +93,12 @@ impl CapabilityValue {
             Self::Tuple(values) => {
                 NativeBoundaryTerm::Tuple(values.into_iter().map(Self::into_term).collect())
             }
+            Self::Map(entries) => NativeBoundaryTerm::Map(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (key.into_term(), value.into_term()))
+                    .collect(),
+            ),
             Self::Unit => NativeBoundaryTerm::Unit,
             Self::Text(value) => NativeBoundaryTerm::Text(value),
             Self::Bytes(value) => NativeBoundaryTerm::Bytes(value),
@@ -126,6 +134,12 @@ impl CapabilityValue {
             NativeBoundaryTerm::Tuple(values) => {
                 Self::Tuple(values.into_iter().map(Self::from_term).collect())
             }
+            NativeBoundaryTerm::Map(entries) => Self::Map(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (Self::from_term(key), Self::from_term(value)))
+                    .collect(),
+            ),
             NativeBoundaryTerm::Unit => Self::Unit,
             NativeBoundaryTerm::Text(value) => Self::Text(value),
             NativeBoundaryTerm::Bytes(value) => Self::Bytes(value),
@@ -166,6 +180,9 @@ impl CapabilityValue {
             match value {
                 Self::Handle(handle) => handles.push(*handle),
                 Self::OptionalHandle(Some(handle)) => handles.push(*handle),
+                Self::Map(entries) => {
+                    pending.extend(entries.iter().flat_map(|(key, value)| [key, value]))
+                }
                 Self::Record { fields, .. } => {
                     pending.extend(fields.iter().map(|(_, value)| value));
                 }
@@ -360,6 +377,9 @@ pub(crate) fn validate_capability_term_budget(values: &[CapabilityValue]) -> Res
         }
         match value {
             CapabilityValue::List(items) | CapabilityValue::Tuple(items) => pending.extend(items),
+            CapabilityValue::Map(entries) => {
+                pending.extend(entries.iter().flat_map(|(key, value)| [key, value]))
+            }
             CapabilityValue::Record { fields, .. } => {
                 pending.extend(fields.iter().map(|(_, value)| value));
             }

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crate::runtime::vm::http_router::{
     validate_response_middleware_result, VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome,
 };
-use crate::runtime::vm::{ReplValue, VmHttpCallResult};
+use crate::runtime::vm::ReplValue;
 use crate::terlan_native::http as native_http;
 use crate::web_route::{is_identifier, route_param_names, validate_route_pattern};
 
@@ -44,8 +44,8 @@ pub(super) use manifest_lookup::{
     manifest_static_response_for_request,
 };
 use request_materialization::vm_source_request_tuple_owned;
-use response_bridge::validate_response_header;
 pub(super) use response_bridge::{static_response_header_tuples, HandlerBody, HandlerResponse};
+use response_bridge::{static_response_vm_value, validate_response_header};
 use route::route_param_argument;
 #[cfg(test)]
 use route::select_handler_for_request;
@@ -125,12 +125,8 @@ pub(super) fn execute_vm_handler_with_package_root_projected(
     package_root: &Path,
     output: &mut dyn FnMut(&str),
 ) -> Result<HandlerResponse, String> {
-    match execute_vm_handler_response(vm, matched, request, projection, output)? {
-        VmHttpCallResult::Response(response) => HandlerResponse::from_aot_http_response(response),
-        VmHttpCallResult::Generic(value) => {
-            HandlerResponse::from_owned_vm_response_with_package_root(value, package_root)
-        }
-    }
+    let value = execute_vm_handler_response(vm, matched, request, projection, output)?;
+    HandlerResponse::from_owned_vm_response_with_package_root(value, package_root)
 }
 
 /// Executes a manifest-selected request through its source router graph.
@@ -205,6 +201,7 @@ fn execute_vm_router_with_package_root(
     let outcome =
         match router.dispatch_with_typed_middleware(method, request.path(), |middleware, _| {
             vm.execute_callable(module, middleware, vec![middleware_request.clone()], output)
+                .map_err(String::from)
         }) {
             Ok(outcome) => outcome,
             Err(error) => {
@@ -293,7 +290,7 @@ fn execute_vm_router_with_package_root(
             }
             let response = match vm.execute_callable(module, &handler, args, output) {
                 Ok(response) => response,
-                Err(error) => execute_router_recovery(vm, module, &router, error, output)?,
+                Err(error) => execute_router_recovery(vm, module, &router, error.into(), output)?,
             };
             (response, route_params, response_middleware)
         }
@@ -413,36 +410,6 @@ fn finish_router_response(
     HandlerResponse::from_vm_response_with_package_root(&response, runtime.package_root)
 }
 
-fn static_response_vm_value(response: &WebPackageStaticResponse) -> ReplValue {
-    let kind = if response.content_type == "text/html; charset=utf-8" {
-        1
-    } else {
-        0
-    };
-    ReplValue::Tuple(vec![
-        ReplValue::Int(0),
-        ReplValue::Int(kind),
-        ReplValue::String(response.body.clone()),
-        ReplValue::Int(i64::from(response.status)),
-        ReplValue::String(String::new()),
-        ReplValue::List(
-            response
-                .headers
-                .iter()
-                .map(|header| {
-                    ReplValue::Tuple(vec![
-                        ReplValue::String(header.name.clone()),
-                        ReplValue::String(header.value.clone()),
-                    ])
-                })
-                .collect(),
-        ),
-        ReplValue::List(Vec::new()),
-        ReplValue::Int(0),
-        ReplValue::Int(0),
-    ])
-}
-
 /// Converts a validated manifest method into the VM router method domain.
 fn vm_route_method(method: &str) -> Result<VmHttpRouteMethod, String> {
     VmHttpRouteMethod::from_name(method)
@@ -456,7 +423,7 @@ fn execute_vm_handler_response(
     request: native_http::Request,
     projection: native_http::RequestFieldProjection,
     output: &mut dyn FnMut(&str),
-) -> Result<VmHttpCallResult, String> {
+) -> Result<ReplValue, String> {
     if matched.handler.arity == 1 {
         return vm.execute_projected_http_request(
             &matched.handler.module,
@@ -496,34 +463,11 @@ fn execute_vm_handler_response(
 
 /// Builds a borrowed request descriptor for router and long-lived channels.
 fn vm_request_descriptor(request: &native_http::Request, params: &[(String, String)]) -> ReplValue {
-    let cookies = string_map(request.cookie_pairs());
-    ReplValue::Tuple(vec![
-        ReplValue::Int(0),
-        ReplValue::String(request.method().to_string()),
-        ReplValue::String(request.path().to_string()),
-        string_map(params),
-        ReplValue::String(request.body().to_string()),
-        ReplValue::String(request.query_string().to_string()),
-        string_map(request.query_pairs()),
-        string_map(request.header_pairs()),
-        cookies.clone(),
-        ReplValue::Tuple(vec![cookies, ReplValue::List(Vec::new())]),
-        ReplValue::String(request.body_file_path().to_string()),
-    ])
-}
-
-/// Builds a VM string map from request metadata pairs.
-fn string_map(entries: &[(String, String)]) -> ReplValue {
-    ReplValue::Map(
-        entries
-            .iter()
-            .map(|(key, value)| {
-                (
-                    ReplValue::String(key.clone()),
-                    ReplValue::String(value.clone()),
-                )
-            })
-            .collect(),
+    let mut parts = request.clone().into_parts();
+    parts.params = params.to_vec();
+    request_materialization::vm_request_descriptor_owned(
+        parts,
+        native_http::RequestFieldProjection::Complete,
     )
 }
 

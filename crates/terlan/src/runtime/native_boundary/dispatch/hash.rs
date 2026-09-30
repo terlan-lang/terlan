@@ -10,14 +10,6 @@ use sha2::Digest;
 use super::filesystem::dispatch_file_error;
 use super::{DispatchError, NativeBoundaryValue};
 
-pub(super) fn field_too_large(operation: &str) -> DispatchError {
-    DispatchError::new(
-        "dispatch.hash_field_too_large",
-        format!("SHA-256 framed field length does not fit u64 for `{operation}`"),
-        0,
-    )
-}
-
 const SHA256_HEX_LENGTH: usize = 64;
 const MAXIMUM_LABELED_FILES: usize = 65_536;
 const MAXIMUM_FORBIDDEN_FRAGMENTS: usize = 256;

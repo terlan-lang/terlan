@@ -76,6 +76,20 @@ fn type_parser_rejects_legacy_atom_payloads() {
     }
 }
 
+/// A union of atom singletons must not be consumed as one quoted atom payload.
+#[test]
+fn type_parser_preserves_atom_singleton_unions() {
+    let source = r#"Atom["request"] | Atom["not_request"]"#;
+    assert_eq!(atom_type_literal_payload(source), None);
+    let ty = parse_type_expr(source, &HashSet::new(), &mut HashMap::new(), &mut 0);
+    let Some(Type::Union(items)) = ty else {
+        panic!("expected an atom union, got {ty:?}");
+    };
+    assert_eq!(items.len(), 2);
+    assert!(items.contains(&Type::LiteralAtom("request".into())));
+    assert!(items.contains(&Type::LiteralAtom("not_request".into())));
+}
+
 /// Verifies singleton atom types decode canonical string-literal escapes.
 ///
 /// Inputs:

@@ -2,35 +2,46 @@
 //!
 //! `std.http.Sse` exposes typed event and endpoint builders for VM-owned
 //! `text/event-stream` responses. The runtime owns concrete stream queues,
-//! backpressure, cancellation, and wire encoding.
+//! backpressure, and cancellation. The package owns response composition and
+//! delegates event framing to its maintained native codec.
 
 module std.http.Sse.
 
 /// Endpoint represents one server-sent event route policy.
 ///
 /// Input: bounded queue and payload settings.
-/// Output: an opaque endpoint plan consumed by router/runtime lowering.
+/// Output: a source-owned endpoint policy validated when a route is admitted.
 /// Transformation: keeps live stream state out of source values while allowing
 /// route declarations to install explicit SSE endpoint limits.
 
-pub opaque type Endpoint.
+pub struct Endpoint {
+    max_pending_events: Int,
+    max_event_bytes: Int,
+    keep_alive_ms: Option[Int],
+    #callbacks: List[Callbacks]
+}.
 
 /// Event represents one server-sent event payload.
 ///
 /// Input: optional event metadata plus required UTF-8 data.
-/// Output: an opaque event handle owned by the HTTP runtime.
+/// Output: a source-owned event value with optional metadata.
 /// Transformation: hides raw SSE frame construction while preserving typed
-/// handler code that can later be lowered into VM event streams.
+/// handler code without allocating a stream or native resource.
 
-pub opaque type Event.
+pub struct Event {
+    id: Option[String],
+    event: Option[String],
+    retry_ms: Option[Int],
+    data: String
+}.
 
 /// Installs the complete generated callback set for an endpoint.
 ///
 /// Input: one endpoint and static callbacks for open, event-ready, keep-alive,
 /// graceful drain, and cancellation lifecycle events.
 /// Output: the endpoint with one callback set attached.
-/// Transformation: keeps callback identities in compiler-owned route metadata
-/// while the VM owns invocation, suspension, resumption, and cleanup.
+/// Transformation: retains callbacks as ordinary source values. Repeated sets
+/// remain visible for admission to reject; no callback runs during construction.
 
 pub (endpoint: Endpoint) callbacks(open: () -> Unit, event_ready: (String) -> Unit, keep_alive: () -> Unit, drain: () -> Unit, cancellation: (String) -> Unit): Endpoint.
 
@@ -38,9 +49,9 @@ pub (endpoint: Endpoint) callbacks(open: () -> Unit, event_ready: (String) -> Un
 ///
 /// Input: one UTF-8 event data string.
 /// Output: an `Event` with no id, event name, or retry hint.
-/// Transformation: delegates target event construction to the VM HTTP runtime
-/// without exposing raw `data:` frame syntax.
+/// Transformation: constructs an ordinary source record without encoding wire bytes.
 
+@pure
 pub data(value: String): Event.
 
 /// Creates an SSE endpoint plan.
@@ -50,6 +61,7 @@ pub data(value: String): Event.
 /// Transformation: records explicit stream bounds for the VM HTTP runtime
 /// without allocating a live stream at source evaluation time.
 
+@pure
 pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpoint.
 
 /// Creates an SSE endpoint plan with keep-alive comments.
@@ -75,7 +87,7 @@ pub response(events: List[Event], status: Int = 200): Response.
 ///
 /// Input: one `Event` and one UTF-8 id string.
 /// Output: the updated `Event`.
-/// Transformation: records id metadata on the target-owned event descriptor
+/// Transformation: records id metadata on the source-owned event descriptor
 /// while preserving expression-style source code.
 
 pub (event: Event) with_id(id: String): Event.
@@ -84,7 +96,7 @@ pub (event: Event) with_id(id: String): Event.
 ///
 /// Input: one `Event` and one UTF-8 event name.
 /// Output: the updated `Event`.
-/// Transformation: records event-name metadata on the target-owned descriptor
+/// Transformation: records event-name metadata on the source-owned descriptor
 /// instead of asking source code to write raw `event:` frame lines.
 
 pub (event: Event) with_name(name: String): Event.
@@ -93,7 +105,8 @@ pub (event: Event) with_name(name: String): Event.
 ///
 /// Input: one `Event` and a reconnect retry delay in milliseconds.
 /// Output: the updated `Event`.
-/// Transformation: records retry metadata for VM-side validation and wire
-/// encoding.
+/// Transformation: records retry metadata; transport admission validates it before encoding.
 
 pub (event: Event) with_retry_ms(retry_ms: Int): Event.
+
+export type Callbacks.

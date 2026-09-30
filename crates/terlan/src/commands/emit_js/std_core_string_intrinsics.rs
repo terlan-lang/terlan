@@ -35,12 +35,6 @@ pub(super) fn core_string_intrinsic_call_to_oxc_expression<'a>(
         CorePrimitiveIntrinsic::StringLength => {
             core_string_length_intrinsic_to_oxc_expression(ast, args)
         }
-        CorePrimitiveIntrinsic::StringIsEmpty => {
-            core_string_is_empty_intrinsic_to_oxc_expression(ast, args)
-        }
-        CorePrimitiveIntrinsic::StringAppend => {
-            core_string_append_intrinsic_to_oxc_expression(ast, args)
-        }
         CorePrimitiveIntrinsic::StringConcat => {
             core_string_concat_intrinsic_to_oxc_expression(ast, args)
         }
@@ -124,68 +118,6 @@ fn core_string_method_intrinsic_to_oxc_expression<'a>(
         arguments.push(Argument::from(core_expr_to_oxc_expression(ast, arg)?));
     }
     Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, arguments, false))
-}
-
-/// Lowers `core.string.is_empty` into a JavaScript strict empty-string check.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `args`: CoreIR intrinsic arguments in `(value)` order.
-///
-/// Output:
-/// - `Some(Expression)` for `value === ""`.
-/// - `None` when the intrinsic has the wrong arity or unsupported value.
-///
-/// Transformation:
-/// - Converts the backend-neutral empty-string predicate into direct
-///   JavaScript strict equality without consulting target runtime helpers.
-fn core_string_is_empty_intrinsic_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    args: &[CoreExpr],
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_span::SPAN;
-    use oxc_syntax::operator::BinaryOperator;
-
-    let [value] = args else {
-        return None;
-    };
-    Some(ast.expression_binary(
-        SPAN,
-        core_expr_to_oxc_expression(ast, value)?,
-        BinaryOperator::StrictEquality,
-        ast.expression_string_literal(SPAN, oxc_string_value(ast, ""), None),
-    ))
-}
-
-/// Lowers `core.string.append` into JavaScript string concatenation.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `args`: CoreIR intrinsic arguments in `(left, right)` order.
-///
-/// Output:
-/// - `Some(Expression)` for `left + right`.
-/// - `None` when the intrinsic has the wrong arity or unsupported operands.
-///
-/// Transformation:
-/// - Converts the backend-neutral append operation into JavaScript `+` because
-///   the std contract guarantees both operands are typed as `String`.
-fn core_string_append_intrinsic_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    args: &[CoreExpr],
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_span::SPAN;
-    use oxc_syntax::operator::BinaryOperator;
-
-    let [left, right] = args else {
-        return None;
-    };
-    Some(ast.expression_binary(
-        SPAN,
-        core_expr_to_oxc_expression(ast, left)?,
-        BinaryOperator::Addition,
-        core_expr_to_oxc_expression(ast, right)?,
-    ))
 }
 
 /// Lowers `core.string.concat` into a JavaScript array `.join("")` call.

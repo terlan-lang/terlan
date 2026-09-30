@@ -250,8 +250,10 @@ pub(super) fn infer_native_type_impl(
             let mut types = clauses.iter().map(|clause| {
                 infer_native_type_impl(&clause.body, variables, functions, constructors)
             });
-            let first = types.next()??;
-            types.all(|ty| ty == Some(first)).then_some(first)
+            types
+                .next()
+                .flatten()
+                .filter(|first| types.all(|ty| ty == Some(*first)))
         }
         CoreExpr::Case { clauses, .. } => {
             let mut types = clauses.iter().map(|clause| {
@@ -274,6 +276,20 @@ pub(super) fn infer_native_type_impl(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            let target = native_type(Some(target_type), &target_type.contract_text());
+            if let (Some(target), Some(constructors)) = (target, constructors) {
+                if super::super::constructors::zero_field_managed_variant_layout(
+                    expr,
+                    target,
+                    constructors,
+                )
+                .ok()
+                .flatten()
+                .is_some()
+                {
+                    return Some(target);
+                }
+            }
             if matches!(expr.as_ref(), CoreExpr::RecordConstruct { .. }) {
                 return super::super::native_type_with_constructors(
                     Some(target_type),
@@ -296,7 +312,7 @@ pub(super) fn infer_native_type_impl(
                 return native_type(Some(target_type), &target_type.contract_text());
             }
             let source = infer_native_type_impl(expr, variables, functions, constructors)?;
-            let target = native_type(Some(target_type), &target_type.contract_text())?;
+            let target = target?;
             let erased = crate::runtime::native_image::managed::managed_erased_value_semantic_id()
                 .ok()
                 .map(NativeType::ManagedRef);

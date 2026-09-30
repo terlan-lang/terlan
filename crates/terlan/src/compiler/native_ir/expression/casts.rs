@@ -6,7 +6,7 @@ use crate::runtime::native_image::managed::{
     encode_erased_value_box_operation, encode_erased_value_is_type_operation,
     encode_erased_value_unbox_operation, managed_erased_value_semantic_id,
 };
-use crate::terlan_typeck::{CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CoreType};
+use crate::terlan_typeck::{CoreExpr, CoreIfClause, CoreIntrinsicCall, CoreIntrinsicId, CoreType};
 
 use super::{
     infer_native_type_for_lowering, lower_expr_with_constructors,
@@ -68,10 +68,46 @@ pub(super) fn lower_cast(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> super::super::NativeIrResult<NativeExpr> {
+    // A checked conditional may join distinct constructor representations.
+    // Apply its expected type to each result, never to the guard expressions.
+    if let CoreExpr::If { clauses } = expr {
+        if !clauses.is_empty() {
+            let contextual = CoreExpr::If {
+                clauses: clauses
+                    .iter()
+                    .map(|clause| CoreIfClause {
+                        condition: clause.condition.clone(),
+                        body: CoreExpr::Cast {
+                            expr: Box::new(clause.body.clone()),
+                            target_type: target_type.clone(),
+                        },
+                    })
+                    .collect(),
+            };
+            return lower_expr_with_constructors(
+                &contextual,
+                params,
+                param_types,
+                functions,
+                function_types,
+                constructors,
+            )
+            .map_err(Into::into);
+        }
+    }
     let erased = NativeType::ManagedRef(
         managed_erased_value_semantic_id().map_err(|error| error.to_string())?,
     );
     let target = native_type(Some(target_type), &target_type.contract_text());
+    if let Some(target) = target {
+        if let Some(value) = super::super::constructors::lower_zero_field_managed_variant(
+            expr,
+            target,
+            constructors,
+        )? {
+            return Ok(value);
+        }
+    }
     let source =
         super::infer_native_type_with_constructors(expr, param_types, function_types, constructors);
     if target == Some(erased) || source == Some(erased) {

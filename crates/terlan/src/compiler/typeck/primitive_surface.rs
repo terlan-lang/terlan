@@ -164,38 +164,8 @@ pub(super) fn primitive_receiver_method_scheme(
 
     let binary = Type::Binary;
     match (method, arg_count) {
-        ("equal", 1) | ("contains", 1) | ("starts_with", 1) | ("ends_with", 1) => {
-            Some(FunctionScheme {
-                params: vec![binary],
-                ret: Type::Bool,
-                generic_params: Vec::new(),
-                bounds: Vec::new(),
-            })
-        }
-        ("compare", 1) => Some(FunctionScheme {
+        ("contains", 1) | ("starts_with", 1) | ("ends_with", 1) => Some(FunctionScheme {
             params: vec![binary],
-            ret: Type::Union(vec![
-                Type::LiteralAtom("lt".to_string()),
-                Type::LiteralAtom("eq".to_string()),
-                Type::LiteralAtom("gt".to_string()),
-            ]),
-            generic_params: Vec::new(),
-            bounds: Vec::new(),
-        }),
-        ("append", 1) => Some(FunctionScheme {
-            params: vec![binary],
-            ret: Type::Binary,
-            generic_params: Vec::new(),
-            bounds: Vec::new(),
-        }),
-        ("from_string", 0) => Some(FunctionScheme {
-            params: Vec::new(),
-            ret: structural_option_type(Type::Binary),
-            generic_params: Vec::new(),
-            bounds: Vec::new(),
-        }),
-        ("is_empty", 0) => Some(FunctionScheme {
-            params: Vec::new(),
             ret: Type::Bool,
             generic_params: Vec::new(),
             bounds: Vec::new(),
@@ -230,17 +200,14 @@ pub(super) fn primitive_receiver_method_scheme(
             generic_params: Vec::new(),
             bounds: Vec::new(),
         }),
-        ("to_string", 0)
-        | ("lowercase", 0)
-        | ("uppercase", 0)
-        | ("trim", 0)
-        | ("trim_start", 0)
-        | ("trim_end", 0) => Some(FunctionScheme {
-            params: Vec::new(),
-            ret: Type::Binary,
-            generic_params: Vec::new(),
-            bounds: Vec::new(),
-        }),
+        ("lowercase", 0) | ("uppercase", 0) | ("trim", 0) | ("trim_start", 0) | ("trim_end", 0) => {
+            Some(FunctionScheme {
+                params: Vec::new(),
+                ret: Type::Binary,
+                generic_params: Vec::new(),
+                bounds: Vec::new(),
+            })
+        }
         _ => None,
     }
 }
@@ -287,8 +254,6 @@ pub(super) fn primitive_receiver_method_arg_names(
     arg_count: usize,
 ) -> Option<Vec<&'static str>> {
     match (method, arg_count) {
-        ("equal", 1) | ("compare", 1) => Some(vec!["other"]),
-        ("append", 1) => Some(vec!["suffix"]),
         ("contains", 1) => Some(vec!["pattern"]),
         ("starts_with", 1) => Some(vec!["prefix"]),
         ("ends_with", 1) => Some(vec!["suffix"]),

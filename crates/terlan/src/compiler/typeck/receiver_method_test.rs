@@ -3,6 +3,9 @@ pub(super) use super::*;
 pub(super) use crate::terlan_syntax::parse_module_as_syntax_output;
 
 #[cfg(test)]
+#[path = "receiver_method_test/callback_aliases.rs"]
+mod callback_aliases;
+#[cfg(test)]
 #[path = "receiver_method_test/dispatch_and_identity.rs"]
 mod dispatch_and_identity;
 #[cfg(test)]

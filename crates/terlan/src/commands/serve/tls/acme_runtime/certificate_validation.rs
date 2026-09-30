@@ -395,29 +395,24 @@ pub(super) fn acme_directory_url(provider: ProjectServerTlsProvider) -> &'static
 /// - Delegates PEM parsing to the maintained rustls PKI type parser and
 ///   converts parse/IO failures into stable serve diagnostics.
 pub(super) fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'static>>, String> {
-    use rustls::pki_types::pem::PemObject;
-
     let pem = fs::read(path).map_err(|err| {
         format!(
             "error[serve_tls]: failed to open TLS certificate `{}`: {err}",
             path.display()
         )
     })?;
-    let certificates = CertificateDer::pem_slice_iter(&pem)
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|err| {
+    terlan_net_native::tls::parse_certificate_chain(&pem).map_err(|err| match err {
+        rustls::pki_types::pem::Error::NoItemsFound => format!(
+            "error[serve_tls]: TLS certificate `{}` did not contain any PEM certificates",
+            path.display()
+        ),
+        err => {
             format!(
                 "error[serve_tls]: failed to parse TLS certificate `{}`: {err}",
                 path.display()
             )
-        })?;
-    if certificates.is_empty() {
-        return Err(format!(
-            "error[serve_tls]: TLS certificate `{}` did not contain any PEM certificates",
-            path.display()
-        ));
-    }
-    Ok(certificates)
+        }
+    })
 }
 
 /// Loads one PEM private key.
@@ -433,28 +428,21 @@ pub(super) fn load_certificate_chain(path: &Path) -> Result<Vec<CertificateDer<'
 ///   the maintained rustls PKI parser, preserving encrypted-key rejection as a
 ///   user-facing runtime diagnostic.
 pub(super) fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>, String> {
-    use rustls::pki_types::pem::PemObject;
-
     let pem = fs::read(path).map_err(|err| {
         format!(
             "error[serve_tls]: failed to open TLS private key `{}`: {err}",
             path.display()
         )
     })?;
-    if !pem
-        .windows(b"-----BEGIN".len())
-        .any(|bytes| bytes == b"-----BEGIN")
-    {
-        return Err(format!(
+    terlan_net_native::tls::parse_private_key(&pem).map_err(|err| match err {
+        rustls::pki_types::pem::Error::NoItemsFound => format!(
             "error[serve_tls]: TLS private key `{}` did not contain a supported unencrypted PEM key",
             path.display()
-        ));
-    }
-    PrivateKeyDer::from_pem_slice(&pem).map_err(|err| {
-        format!(
+        ),
+        err => format!(
             "error[serve_tls]: failed to parse TLS private key `{}`: {err}",
             path.display()
-        )
+        ),
     })
 }
 
@@ -474,15 +462,8 @@ pub(super) fn rustls_server_config(
     certificates: Vec<CertificateDer<'static>>,
     private_key: PrivateKeyDer<'static>,
 ) -> Result<ServerConfig, String> {
-    let mut config =
-        ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
-            .with_safe_default_protocol_versions()
-            .map_err(|err| {
-                format!("error[serve_tls]: failed to select TLS protocol versions: {err}")
-            })?
-            .with_no_client_auth()
-            .with_single_cert(certificates, private_key)
-            .map_err(|err| format!("error[serve_tls]: failed to build TLS server config: {err}"))?;
+    let mut config = terlan_net_native::tls::server_config(certificates, private_key)
+        .map_err(|err| format!("error[serve_tls]: failed to build TLS server config: {err}"))?;
     config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     Ok(config)
 }

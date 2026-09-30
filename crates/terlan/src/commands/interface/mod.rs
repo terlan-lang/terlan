@@ -11,6 +11,10 @@ use crate::validation::phase_manifest::current_syntax_contract_identity;
 
 use crate::{support::write_if_changed_or_forced, CliState};
 
+#[cfg(test)]
+#[path = "interface_test.rs"]
+mod tests;
+
 /// Executes the `interface` CLI command.
 ///
 /// Inputs:
@@ -96,6 +100,28 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
             .iter()
             .map(|(_, _, syntax, interface)| (syntax.module_name.clone(), interface.clone())),
     );
+    // Batch inputs can arrive before their parents. Resolve inherited fields
+    // to a fixed point before writing any interface or dependency fingerprint.
+    for _ in 0..inputs.len() {
+        let mut changed = false;
+        for (_, _, syntax, interface) in &mut inputs {
+            let expanded = match expanded_interface(syntax, &interfaces) {
+                Ok(expanded) => expanded,
+                Err(diagnostics) => {
+                    for diagnostic in diagnostics {
+                        eprintln!("{}", diagnostic.message);
+                    }
+                    return ExitCode::from(1);
+                }
+            };
+            changed |= interface.struct_fields != expanded.struct_fields;
+            *interface = expanded;
+            interfaces.insert(syntax.module_name.clone(), interface.clone());
+        }
+        if !changed {
+            break;
+        }
+    }
     for (path, source, syntax_output, interface) in inputs {
         if let Err(code) = write_interface_input(
             path,
@@ -111,6 +137,20 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
     }
 
     ExitCode::SUCCESS
+}
+
+fn expanded_interface(
+    syntax: &crate::terlan_syntax::SyntaxModuleOutput,
+    interfaces: &HashMap<String, crate::terlan_hir::ModuleInterface>,
+) -> Result<crate::terlan_hir::ModuleInterface, Vec<crate::terlan_typeck::Diagnostic>> {
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(syntax, interfaces);
+    let (expanded, diagnostics) =
+        crate::terlan_typeck::expand_syntax_includes(syntax.clone(), &resolved.module);
+    if !diagnostics.is_empty() {
+        return Err(diagnostics);
+    }
+    Ok(syntax_module_output_to_interface(&expanded))
 }
 
 fn write_interface_input(

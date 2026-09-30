@@ -13,6 +13,8 @@ use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 pub enum NativeBoundaryTerm {
     /// Terlan `Unit`.
     Unit,
+    /// Owned key/value entries, distinct from a list of pairs.
+    Map(Vec<(Self, Self)>),
     /// Terlan `String`.
     Text(String),
     /// Terlan VM-owned `Bytes`.
@@ -197,6 +199,12 @@ pub fn encode_bridge_value(value: NativeBoundaryBridgeValue) -> NativeBoundaryTe
         NativeBoundaryBridgeValue::Tuple(values) => {
             NativeBoundaryTerm::Tuple(values.into_iter().map(encode_bridge_value).collect())
         }
+        NativeBoundaryBridgeValue::Map(entries) => NativeBoundaryTerm::Map(
+            entries
+                .into_iter()
+                .map(|(key, value)| (encode_bridge_value(key), encode_bridge_value(value)))
+                .collect(),
+        ),
         NativeBoundaryBridgeValue::Unit => NativeBoundaryTerm::Unit,
         NativeBoundaryBridgeValue::Text(value) => NativeBoundaryTerm::Text(value),
         NativeBoundaryBridgeValue::Bytes(value) => NativeBoundaryTerm::Bytes(value),
@@ -247,6 +255,12 @@ pub fn decode_bridge_value(term: &NativeBoundaryTerm) -> NativeBoundaryBridgeVal
         NativeBoundaryTerm::Tuple(values) => {
             NativeBoundaryBridgeValue::Tuple(values.iter().map(decode_bridge_value).collect())
         }
+        NativeBoundaryTerm::Map(entries) => NativeBoundaryBridgeValue::Map(
+            entries
+                .iter()
+                .map(|(key, value)| (decode_bridge_value(key), decode_bridge_value(value)))
+                .collect(),
+        ),
         NativeBoundaryTerm::Unit => NativeBoundaryBridgeValue::Unit,
         NativeBoundaryTerm::Text(value) => NativeBoundaryBridgeValue::Text(value.clone()),
         NativeBoundaryTerm::Bytes(value) => NativeBoundaryBridgeValue::Bytes(value.clone()),

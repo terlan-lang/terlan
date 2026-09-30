@@ -11,7 +11,6 @@ pub(crate) fn core_typed_receiver_intrinsic(
         CoreType::String => "std.core.String",
         CoreType::Int => "std.core.Int",
         CoreType::Float => "std.core.Float",
-        CoreType::Bool => "std.core.Bool",
         _ => return None,
     };
     core_primitive_intrinsic(module, function, arity)
@@ -40,14 +39,12 @@ pub(crate) fn core_primitive_intrinsic(
     arity: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
     match module {
-        "std.core.Bool" => core_bool_primitive_intrinsic(function, arity),
         "std.core.Atom" => core_atom_primitive_intrinsic(function, arity),
         "std.core.Type" => core_type_primitive_intrinsic(function, arity),
         "std.core.Memory" => core_memory_primitive_intrinsic(function, arity),
         "std.core.Int" => core_int_primitive_intrinsic(function, arity),
         "std.core.Float" => core_float_primitive_intrinsic(function, arity),
         "std.core.String" => core_string_primitive_intrinsic(function, arity),
-        "std.crypto.Hash" => core_crypto_hash_primitive_intrinsic(function, arity),
         "std.collections.List" => core_list_primitive_intrinsic(function, arity),
         "std.collections.Iterator" => core_iterator_primitive_intrinsic(function, arity),
         "std.collections.Map" => core_map_primitive_intrinsic(function, arity),
@@ -63,16 +60,6 @@ pub(crate) fn core_primitive_intrinsic(
         "std.vm.Timeout" => core_vm_timeout_primitive_intrinsic(function, arity),
         "std.vm.Tcp" => core_vm_tcp_primitive_intrinsic(function, arity),
         "std.vm.Port" => core_vm_port_primitive_intrinsic(function, arity),
-        _ => None,
-    }
-}
-
-fn core_crypto_hash_primitive_intrinsic(
-    function: &str,
-    arity: usize,
-) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("sha256", 1) => Some(CorePrimitiveIntrinsic::CryptoSha256),
         _ => None,
     }
 }
@@ -157,8 +144,8 @@ fn core_vm_effect_primitive_intrinsic(
 ///   names, or arity mismatch.
 ///
 /// Transformation:
-/// - Maps source APIs such as `std.io.Console.println(value)` and
-///   `std.log.Log.info(value)` to backend-neutral CoreIR runtime capability
+/// - Maps source APIs such as `std.io.Console.println(value)` to
+///   backend-neutral CoreIR runtime capability
 ///   identities without carrying target module names into CoreIR.
 pub(super) fn core_runtime_capability(
     module: &str,
@@ -168,14 +155,6 @@ pub(super) fn core_runtime_capability(
     match (module, function, arity) {
         ("std.io.Console", "println", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
         ("std.io.Console", "eprintln", 1) => Some(CoreRuntimeCapability::ConsoleEprintln),
-        ("std.time.Clock", "unix_time_ns", 0) => Some(CoreRuntimeCapability::ClockUnixTimeNs),
-        ("std.time.Clock", "monotonic_time_ns", 0) => {
-            Some(CoreRuntimeCapability::ClockMonotonicTimeNs)
-        }
-        ("std.log.Log", "debug", 1)
-        | ("std.log.Log", "info", 1)
-        | ("std.log.Log", "warn", 1)
-        | ("std.log.Log", "error", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
         ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
         ("std.io.File", "read_bytes", 1) => Some(CoreRuntimeCapability::FileReadBytes),
@@ -290,29 +269,6 @@ fn core_type_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePri
     }
 }
 
-/// Resolves a `std.core.Bool` operation name and arity to a primitive intrinsic.
-///
-/// Inputs:
-/// - `function`: source-level operation name after `std.core.Bool`.
-/// - `arity`: argument count for the call.
-///
-/// Output:
-/// - `Some(CorePrimitiveIntrinsic)` for selected Bool release hooks.
-/// - `None` for non-intrinsic operations or arity mismatch.
-///
-/// Transformation:
-/// - Maps the 0.0.1 Bool API hooks to stable CoreIR intrinsic identities so
-///   external projects do not depend on backend-generated internal module artifacts.
-fn core_bool_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
-    match (function, arity) {
-        ("equal", 2) => Some(CorePrimitiveIntrinsic::BoolEqual),
-        ("compare", 2) => Some(CorePrimitiveIntrinsic::BoolCompare),
-        ("to_string", 1) => Some(CorePrimitiveIntrinsic::BoolToString),
-        ("from_string", 1) => Some(CorePrimitiveIntrinsic::BoolFromString),
-        _ => None,
-    }
-}
-
 /// Resolves a `std.core.Atom` operation name and arity to a primitive intrinsic.
 ///
 /// Inputs:
@@ -374,8 +330,6 @@ fn core_float_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePr
         ("floor", 1) => Some(CorePrimitiveIntrinsic::FloatFloor),
         ("ceil", 1) => Some(CorePrimitiveIntrinsic::FloatCeil),
         ("log", 1) => Some(CorePrimitiveIntrinsic::FloatLog),
-        ("pi", 0) => Some(CorePrimitiveIntrinsic::FloatPi),
-        ("tau", 0) => Some(CorePrimitiveIntrinsic::FloatTau),
         _ => None,
     }
 }
@@ -397,12 +351,6 @@ fn core_float_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePr
 ///   without carrying backend module/function names into CoreIR.
 fn core_string_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
-        ("equal", 2) => Some(CorePrimitiveIntrinsic::StringEqual),
-        ("compare", 2) => Some(CorePrimitiveIntrinsic::StringCompare),
-        ("to_string", 1) => Some(CorePrimitiveIntrinsic::StringToString),
-        ("from_string", 1) => Some(CorePrimitiveIntrinsic::StringFromString),
-        ("is_empty", 1) => Some(CorePrimitiveIntrinsic::StringIsEmpty),
-        ("append", 2) => Some(CorePrimitiveIntrinsic::StringAppend),
         ("concat", 1) => Some(CorePrimitiveIntrinsic::StringConcat),
         ("contains", 2) => Some(CorePrimitiveIntrinsic::StringContains),
         ("starts_with", 2) => Some(CorePrimitiveIntrinsic::StringStartsWith),

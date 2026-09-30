@@ -10,9 +10,22 @@ use crate::terlan_typeck::{
 
 use super::atom_inventory::{
     application_atom_identities, collect_expr, collect_pattern, collect_type,
-    RUNTIME_BASE64_ERROR_ATOMS, RUNTIME_JSON_ERROR_ATOMS, RUNTIME_REGEX_ERROR_ATOMS,
-    RUNTIME_URI_ERROR_ATOMS,
+    RUNTIME_JSON_ERROR_ATOMS, RUNTIME_REGEX_ERROR_ATOMS,
 };
+
+#[test]
+fn http_atoms_require_declared_types_or_linked_providers() {
+    for (source, expected) in [
+        ("module plain. pub value(): Int -> 1.", vec![]),
+        ("module consumer. import std.http.Request. pub value(): Int -> 1.", vec![]),
+        ("module tuple_shape. pub value(input: {Atom[\"custom\"], Int}): Int -> 1.", vec!["custom"]),
+        ("module request_shape. pub value(input: {Atom[\"request\"], Int}): Int -> 1.", vec!["request"]),
+        ("module parser. type ParseFailure = Atom[\"json.parse\"]. pub value(): ParseFailure -> ParseFailure.", vec!["json.parse"]),
+    ] {
+        let core = super::source_constructor_test::checked_provider(source);
+        assert_eq!(application_atom_identities(&[&core]), expected, "{source}");
+    }
+}
 
 #[test]
 fn random_error_atoms_follow_the_provider_or_import() {
@@ -43,47 +56,33 @@ fn random_error_atoms_follow_the_provider_or_import() {
     assert_eq!(RUNTIME_RANDOM_ERROR_ATOMS.len(), 5);
 }
 
-/// Decoder errors are admitted only when the image includes the Base64 contract.
 #[test]
-fn base64_error_atoms_follow_the_provider_or_import() {
-    for (source, expected) in [
-        ("module unrelated. pub value(): Int -> 1.", false),
-        ("module std.encoding.Base64. pub value(): Int -> 1.", true),
-        (
-            "module consumer. import std.encoding.Base64. pub value(): Int -> 1.",
-            true,
-        ),
+fn base64_error_atoms_are_source_declared() {
+    for source in [
+        "module std.encoding.Base64. pub value(): Int -> 1.",
+        "module consumer. import std.encoding.Base64. pub value(): Int -> 1.",
     ] {
-        let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source)
-            .expect("parse atom inventory source");
-        let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
-        let resolved =
-            crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
-                .module;
-        let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
-        let atoms = application_atom_identities(&[&core]);
-        for code in RUNTIME_BASE64_ERROR_ATOMS {
-            assert_eq!(
-                atoms.iter().any(|atom| atom == code),
-                expected,
-                "{source}: {code}"
-            );
-        }
+        let core = super::source_constructor_test::checked_provider(source);
+        assert!(application_atom_identities(&[&core]).is_empty());
     }
-    assert_eq!(
-        RUNTIME_BASE64_ERROR_ATOMS,
-        &["base64.decode", "base64.utf8"]
+    let core = super::source_constructor_test::checked_provider(
+        "module app.Codec. type Failure = Atom[\"base64.decode\"]. pub value(): Failure -> Failure.",
     );
+    assert_eq!(application_atom_identities(&[&core]), vec!["base64.decode"]);
 }
 
-/// URI parse failures use a finite code only admitted with the URI provider.
+/// Module names alone cannot inject library-owned error atoms.
 #[test]
-fn uri_error_atoms_follow_the_provider_or_import() {
+fn uri_error_atoms_are_not_injected_by_provider_or_import() {
     for (source, expected) in [
         ("module unrelated. pub value(): Int -> 1.", false),
-        ("module std.net.Uri. pub value(): Int -> 1.", true),
+        ("module std.net.Uri. pub value(): Int -> 1.", false),
         (
             "module consumer. import std.net.Uri. pub value(): Int -> 1.",
+            false,
+        ),
+        (
+            "module package.Parser. type ParseFailure = Atom[\"uri.parse\"]. pub error(): ParseFailure -> ParseFailure.",
             true,
         ),
     ] {
@@ -97,7 +96,6 @@ fn uri_error_atoms_follow_the_provider_or_import() {
         let atoms = application_atom_identities(&[&core]);
         assert_eq!(atoms.iter().any(|atom| atom == "uri.parse"), expected);
     }
-    assert_eq!(RUNTIME_URI_ERROR_ATOMS, &["uri.parse"]);
 }
 
 /// Proves NativeBoundary JSON error identities remain a finite canonical set.

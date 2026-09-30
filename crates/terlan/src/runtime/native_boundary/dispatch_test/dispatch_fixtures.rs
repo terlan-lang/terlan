@@ -86,18 +86,31 @@ pub(super) fn bridge_dispatch_ok(
 /// - Checked-in manifest rows for Rust-backed std operations.
 ///
 /// Output:
-/// - Test passes when each manifest operation is known to dispatch.
+/// - Every manifest operation has exactly one legacy or package-owned provider.
 ///
 /// Transformation:
 /// - Compares the release manifest operation inventory to
-///   `operation_arity` so dispatch cannot silently drift from std.
+///   registered binding arities so dispatch cannot silently drift from std.
 #[test]
 pub(super) fn operation_arities_cover_rust_backed_std_manifest() {
     let operations = rust_backed_manifest_operations();
     assert!(!operations.is_empty());
 
     for (operation, arity) in operations {
-        assert_eq!(operation_arity(operation), Some(arity), "{operation}");
+        // The actor-worker adapter intercepts database calls before legacy dispatch.
+        let actor_worker = crate::std_native_packages::postgres::operation_arity(operation);
+        let legacy = actor_worker.or_else(|| operation_arity(operation));
+        let bindings = crate::std_native_packages::VALUE_BINDINGS
+            .iter()
+            .filter(|binding| binding.operation == operation)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            usize::from(legacy.is_some()) + bindings.len(),
+            1,
+            "{operation} must have exactly one implementation owner"
+        );
+        let registered = bindings.first().map(|binding| binding.arity);
+        assert_eq!(legacy.or(registered), Some(arity), "{operation}");
     }
 }
 
@@ -440,133 +453,9 @@ pub(super) fn adversarial_native_boundary_dispatch_rejects_cross_resource_handle
     assert_eq!(error.code(), "resource.kind");
 }
 
-/// Validates direct HTTP dispatch over request and response operations.
-///
-/// Inputs:
-/// - Rust-native request and JSON values wrapped as neutral dispatch values.
-///
-/// Output:
-/// - Test passes when body JSON parsing returns a JSON value and response
-///   builders return HTTP response values.
-///
-/// Transformation:
-/// - Exercises the NativeBoundary HTTP dispatch branches without crossing the
-///   resource-handle bridge.
+/// Cookie and response dispatch retain native behavior without Request accessors.
 #[test]
-pub(super) fn dispatch_http_request_and_response_operations_return_native_values() {
-    let request = http::Request::from_parts_with_metadata(
-        "GET",
-        "/users/42",
-        r#"{"name":"Ada"}"#,
-        vec![("id".to_string(), "42".to_string())],
-        vec![("tab".to_string(), "profile".to_string())],
-        vec![("theme".to_string(), "dark".to_string())],
-    );
-    let Some(NativeBoundaryValue::Json(parsed)) = dispatch_ok(
-        "std.http.request.body_json",
-        &[NativeBoundaryValue::HttpRequest(request)],
-    ) else {
-        return;
-    };
-    let name = json::get(&parsed, "name")
-        .and_then(|value| json::as_string(&value))
-        .unwrap_or_else(|_| String::new());
-
-    assert_eq!(name, "Ada");
-
-    let request = http::Request::from_parts_with_raw_query_metadata(
-        "GET",
-        "/users/42",
-        "raw body",
-        crate::terlan_native::http::RequestMetadata {
-            params: vec![("id".to_string(), "42".to_string())],
-            query_string: ("tab=profile").into(),
-            query: vec![("tab".to_string(), "profile".to_string())],
-            headers: vec![("Accept".to_string(), "application/json".to_string())],
-            cookies: vec![("theme".to_string(), "dark".to_string())],
-        },
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.body_text",
-            &[NativeBoundaryValue::HttpRequest(request.clone())],
-        ),
-        Some(NativeBoundaryValue::Text("raw body".to_string()))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.body_file_path",
-            &[NativeBoundaryValue::HttpRequest(
-                request.clone().with_body_file_path("/tmp/body-upload")
-            )],
-        ),
-        Some(NativeBoundaryValue::Text("/tmp/body-upload".to_string()))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.method",
-            &[NativeBoundaryValue::HttpRequest(request.clone())],
-        ),
-        Some(NativeBoundaryValue::Text("GET".to_string()))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.path",
-            &[NativeBoundaryValue::HttpRequest(request.clone())],
-        ),
-        Some(NativeBoundaryValue::Text("/users/42".to_string()))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.param",
-            &[
-                NativeBoundaryValue::HttpRequest(request.clone()),
-                NativeBoundaryValue::Text("id".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryValue::OptionalText(Some("42".to_string())))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.query",
-            &[
-                NativeBoundaryValue::HttpRequest(request.clone()),
-                NativeBoundaryValue::Text("tab".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryValue::OptionalText(Some(
-            "profile".to_string()
-        )))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.query_string",
-            &[NativeBoundaryValue::HttpRequest(request.clone())],
-        ),
-        Some(NativeBoundaryValue::Text("tab=profile".to_string()))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.header",
-            &[
-                NativeBoundaryValue::HttpRequest(request.clone()),
-                NativeBoundaryValue::Text("accept".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryValue::OptionalText(Some(
-            "application/json".to_string()
-        )))
-    );
-    assert_eq!(
-        dispatch_ok(
-            "std.http.request.cookie",
-            &[
-                NativeBoundaryValue::HttpRequest(request),
-                NativeBoundaryValue::Text("theme".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryValue::OptionalText(Some("dark".to_string())))
-    );
+pub(super) fn dispatch_http_cookie_and_response_operations_return_native_values() {
     assert_eq!(
         dispatch_ok(
             "std.http.cookies.set_header",
@@ -614,113 +503,6 @@ pub(super) fn dispatch_http_request_and_response_operations_return_native_values
             "session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT".to_string()
         ))
     );
-
-    let request = http::Request::from_parts_with_metadata(
-        "GET",
-        "/profile",
-        "",
-        Vec::new(),
-        Vec::new(),
-        vec![("theme".to_string(), "dark".to_string())],
-    );
-    let Some(NativeBoundaryValue::HttpCookieJar(jar)) = dispatch_ok(
-        "std.http.request.cookies",
-        &[NativeBoundaryValue::HttpRequest(request)],
-    ) else {
-        return;
-    };
-    assert_eq!(
-        dispatch_ok(
-            "std.http.cookies.get",
-            &[
-                NativeBoundaryValue::HttpCookieJar(jar),
-                NativeBoundaryValue::Text("theme".to_string()),
-            ],
-        ),
-        Some(NativeBoundaryValue::OptionalText(Some("dark".to_string())))
-    );
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.json",
-        &[
-            NativeBoundaryValue::Json(json::r#bool(true)),
-            NativeBoundaryValue::Int(200),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 200);
-    assert_eq!(response.content_type(), "application/json; charset=utf-8");
-    assert_eq!(response.body(), "true");
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.json_text",
-        &[
-            NativeBoundaryValue::Text(String::from("{\"ok\":true}")),
-            NativeBoundaryValue::Int(200),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 200);
-    assert_eq!(response.content_type(), "application/json; charset=utf-8");
-    assert_eq!(response.body(), "{\"ok\":true}");
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.text",
-        &[
-            NativeBoundaryValue::Text(String::from("ok")),
-            NativeBoundaryValue::Int(201),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 201);
-    assert_eq!(response.content_type(), "text/plain; charset=utf-8");
-    assert_eq!(response.body(), "ok");
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.html",
-        &[
-            NativeBoundaryValue::Text(String::from("<main>ok</main>")),
-            NativeBoundaryValue::Int(202),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 202);
-    assert_eq!(response.content_type(), "text/html; charset=utf-8");
-    assert_eq!(response.body(), "<main>ok</main>");
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.file",
-        &[
-            NativeBoundaryValue::Text(String::from("downloads/report.txt")),
-            NativeBoundaryValue::Int(206),
-            NativeBoundaryValue::Text(String::from("text/plain; charset=utf-8")),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 206);
-    assert_eq!(response.content_type(), "text/plain; charset=utf-8");
-    assert_eq!(response.file_path(), Some("downloads/report.txt"));
-    assert_eq!(response.body(), "");
-
-    let Some(NativeBoundaryValue::HttpResponse(response)) = dispatch_ok(
-        "std.http.response.redirect",
-        &[
-            NativeBoundaryValue::Text(String::from("/login")),
-            NativeBoundaryValue::Int(301),
-        ],
-    ) else {
-        return;
-    };
-    assert_eq!(response.status_code(), 301);
-    assert_eq!(
-        response.headers(),
-        &[("Location".to_string(), "/login".to_string())]
-    );
 }
 
 /// Verifies direct NativeBoundary dispatch cannot bypass VM stream ownership.
@@ -738,5 +520,5 @@ pub(super) fn dispatch_http_stream_response_requires_vm_runtime() {
     )
     .expect_err("direct NativeBoundary streaming must fail");
 
-    assert_eq!(error.code(), "dispatch.streaming_requires_vm");
+    assert_eq!(error.code(), "dispatch.unknown_operation");
 }

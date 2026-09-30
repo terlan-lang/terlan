@@ -80,6 +80,17 @@ fn native_cache_control_header_crosses_the_response_bridge() {
     );
 }
 
+#[test]
+fn owned_header_validation_retains_original_string_allocations() {
+    let name = "X-Owned".to_string();
+    let value = "original value".to_string();
+    let name_ptr = name.as_ptr();
+    let value_ptr = value.as_ptr();
+    let (name, value) = validate_response_header_owned(name, value).unwrap();
+    assert_eq!(name.as_ptr(), name_ptr);
+    assert_eq!(value.as_ptr(), value_ptr);
+}
+
 /// Verifies native text, HTML, and JSON responses preserve media and body semantics.
 #[test]
 fn native_body_responses_decode_from_uniform_managed_layout() {
@@ -126,58 +137,4 @@ fn native_redirect_and_unknown_kind_are_checked() {
         HandlerResponse::from_vm_response_inner(&response(99, "bad", 200), None).unwrap_err(),
         "error[serve_handler]: unsupported native Response kind `99`"
     );
-}
-
-/// Verifies the direct AOT envelope preserves body, headers, and status.
-#[test]
-fn typed_aot_response_skips_generic_vm_materialization() {
-    let decoded = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
-        kind: 2,
-        status: 201,
-        payload: Bytes::from_static(br#"{"created":true}"#),
-        headers: vec![("X-Request-Id".to_string(), "abc".to_string())],
-    })
-    .expect("decode typed AOT response");
-    assert_eq!(decoded.status, 201);
-    assert_eq!(decoded.content_type, "application/json; charset=utf-8");
-    assert_eq!(decoded.body.as_bytes(), br#"{"created":true}"#);
-    assert_eq!(
-        decoded.headers,
-        vec![("X-Request-Id".to_string(), "abc".to_string())]
-    );
-}
-
-/// Verifies typed redirects and malformed values retain boundary validation.
-#[test]
-fn typed_aot_response_validates_redirect_and_protocol_fields() {
-    let decoded = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
-        kind: 3,
-        status: 308,
-        payload: Bytes::from_static(b"/next"),
-        headers: Vec::new(),
-    })
-    .expect("decode typed redirect");
-    assert!(decoded.body.is_empty());
-    assert_eq!(
-        decoded.headers,
-        vec![("Location".to_string(), "/next".to_string())]
-    );
-
-    let invalid = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
-        kind: 0,
-        status: 99,
-        payload: Bytes::from_static(b"bad"),
-        headers: Vec::new(),
-    })
-    .unwrap_err();
-    assert!(invalid.contains("outside HTTP range"));
-
-    let invalid = HandlerResponse::from_aot_http_response(VmAotHttpResponse {
-        kind: 0,
-        status: 200,
-        payload: Bytes::from_static(b"bad"),
-        headers: vec![("Bad Header".to_string(), "value".to_string())],
-    })
-    .unwrap_err();
-    assert!(invalid.contains("not a valid HTTP token"));
 }

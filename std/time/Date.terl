@@ -84,7 +84,7 @@ pub to_iso(date: Date): String ->
     ).
 
 /**
- * Returns today's date in UTC through the VM-owned wall clock.
+ * Returns today's date in UTC through the package-owned wall clock.
  */
 pub today_utc(): Date ->
     from_epoch_days(floor_div(Clock.unix_time_ns(), 86400000000000)).

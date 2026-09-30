@@ -466,7 +466,7 @@ pub(super) fn vm_http_request_header_parser_reports_partial_headers() {
     let error = parse_http1_request_headers(b"GET / HTTP/1.1\r\n")
         .expect_err("partial request parse should fail");
 
-    assert_eq!(error, "VM HTTP parser reported partial headers");
+    assert_eq!(error.message, "VM HTTP parser reported partial headers");
 }
 
 #[test]

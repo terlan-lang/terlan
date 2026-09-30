@@ -26,6 +26,11 @@ immediately executable on the existing backend path. Server runtimes can later
 attach request id, route, handler, release/build id, and duration context
 around the same source-level calls without changing user code.
 
+The forwarding bodies live in `Log.terl` and are linked as ordinary functions.
+The compiler does not map log-level names to console operations. The current
+console fallback prints the supplied message for every level; it does not yet
+attach a level prefix or structured metadata.
+
 Important invariants:
 
 - Source code imports `std.log.Log`, not a backend logging module.

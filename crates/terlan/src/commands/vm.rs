@@ -250,12 +250,6 @@ fn call_with_command_capabilities(
                 shard.finish_completed_call(owner)?;
                 return Ok(value);
             }
-            PureNativeExecution::HttpResponse(_) => {
-                let error = "error[vm.command_result]: VM command entry returned an HTTP response"
-                    .to_string();
-                shard.cancel_call(owner, error.clone())?;
-                return Err(error);
-            }
             PureNativeExecution::Suspended(suspension)
                 if suspension.operation() == TvmTransitionOperation::Capability =>
             {

@@ -52,18 +52,18 @@ fn native_boundary_security_rejects_uncovered_operations() {
     );
 }
 
-/// Verifies WebSocket operations are covered by the HTTP WebSocket policy.
+/// Verifies cookie codecs are covered by the HTTP cookies policy.
 #[test]
-fn native_boundary_security_accepts_websocket_policy_coverage() {
-    let rules = vec![policy("std.http.WebSocket").with_capability("http.websocket")];
+fn native_boundary_security_accepts_cookie_policy_coverage() {
+    let rules = vec![policy("std.http.Cookies").with_capability("http.cookies")];
     let operations = vec![
         RustBackedOperation {
-            module: "std.http.WebSocket".to_string(),
-            operation: "std.http.websocket.text".to_string(),
+            module: "std.http.Cookies".to_string(),
+            operation: "std.http.cookies.set_header".to_string(),
         },
         RustBackedOperation {
-            module: "std.http.WebSocket".to_string(),
-            operation: "std.http.websocket.endpoint".to_string(),
+            module: "std.http.Cookies".to_string(),
+            operation: "std.http.cookies.delete_header".to_string(),
         },
     ];
 
@@ -71,7 +71,7 @@ fn native_boundary_security_accepts_websocket_policy_coverage() {
 
     assert!(
         diagnostics.is_empty(),
-        "expected WebSocket operations to be covered, got {diagnostics:?}"
+        "expected cookie operations to be covered, got {diagnostics:?}"
     );
 }
 

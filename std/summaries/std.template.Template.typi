@@ -34,6 +34,16 @@ pub empty(): Html.
 
 pub join(fragments: List[Html]): Html.
 
+/// Returns the exact bytes of an already trusted fragment without escaping.
+///
+/// Input: one trusted `Html` fragment.
+/// Output: its UTF-8 string representation.
+/// Transformation: exposes the package-owned representation without granting
+/// trust to any new content.
+
+@pure
+pub to_string(fragment: Html): String.
+
 /// Creates a trusted HTML fragment from a string.
 ///
 /// Input: one UTF-8 string that the caller has already audited or sanitized.

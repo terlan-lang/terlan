@@ -4,7 +4,8 @@ use crate::runtime::vm::process::{VmExitReason, VmProcessId};
 use crate::runtime::vm::ReplValue;
 use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
-use super::super::{NativeResultProjection, PureNativeExecution};
+use super::super::NativeCallTarget;
+use super::super::PureNativeExecution;
 use super::{call_source, PureNativeExecutionShard};
 
 fn service_actor_error(rendered: impl Into<String>) -> BoundaryError {
@@ -22,12 +23,22 @@ impl PureNativeExecutionShard {
         function: &str,
         args: &[ReplValue],
     ) -> Result<(VmProcessId, PureNativeExecution), BoundaryError> {
+        self.begin_target_call(&NativeCallTarget::Export(function.into()), args)
+    }
+
+    /// Starts an export or owned function under the same supervised actor lifecycle.
+    pub(crate) fn begin_target_call(
+        &mut self,
+        target: &NativeCallTarget<'_>,
+        args: &[ReplValue],
+    ) -> Result<(VmProcessId, PureNativeExecution), BoundaryError> {
         self.require_routable("begin_call")
             .map_err(service_actor_error)?;
         let owner = self
             .actors
-            .spawn_fixed_owner_root(call_source(function, args.len()));
-        self.begin_call_for_owner(owner, function, args)
+            .spawn_fixed_owner_root(call_source(&target.source_name(), args.len()));
+        self.begin_routed_owner_call(owner, target, args)
+            .map_err(service_actor_error)
             .map(|execution| (owner, execution))
     }
 
@@ -76,12 +87,7 @@ impl PureNativeExecutionShard {
         }
         let result = (|| {
             let mut execution = self
-                .begin_fixed_owner_call_with_projection(
-                    owner,
-                    function,
-                    args,
-                    NativeResultProjection::PublicValue,
-                )
+                .begin_fixed_owner_call(owner, function, args)
                 .map_err(service_actor_error)?;
             loop {
                 execution = match execution {
@@ -89,13 +95,9 @@ impl PureNativeExecutionShard {
                         self.reset_owner_heap(owner).map_err(service_actor_error)?;
                         return Ok(value);
                     }
-                    PureNativeExecution::HttpResponse(_) => {
-                        return Err(service_actor_error("error[execution_shard.result_projection]: HTTP response returned through a public-value call"))
-                    }
-                    PureNativeExecution::Suspended(suspension) => {
-                        self.resume_call(owner, *suspension)
-                            .map_err(service_actor_error)?
-                    }
+                    PureNativeExecution::Suspended(suspension) => self
+                        .resume_call(owner, *suspension)
+                        .map_err(service_actor_error)?,
                 };
             }
         })();
@@ -114,12 +116,7 @@ impl PureNativeExecutionShard {
         function: &str,
         args: &[ReplValue],
     ) -> Result<PureNativeExecution, BoundaryError> {
-        self.begin_call_for_owner_with_projection(
-            owner,
-            function,
-            args,
-            NativeResultProjection::PublicValue,
-        )
-        .map_err(service_actor_error)
+        self.begin_routed_owner_call(owner, &NativeCallTarget::Export(function.into()), args)
+            .map_err(service_actor_error)
     }
 }

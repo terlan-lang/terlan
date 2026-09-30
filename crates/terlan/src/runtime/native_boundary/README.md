@@ -12,8 +12,8 @@ readable while test coverage stays close.
   release credits and reject late replies.
 - Carry one cloneable request-scoped cancellation token from capability
   transport admission through executor and resource-dispatch checkpoints.
-- Keep concrete native-backed resources, such as Vector, under
-  `runtime/native` so NativeBoundary stays focused on bridge and safety contracts.
+- Migrate concrete native-backed resources into their owning std packages;
+  `runtime/native` remains an interim facade during this migration.
 - Keep dispatch inputs and outputs explicit.
 - Avoid unsafe code and panic-oriented failure handling.
 - Preserve small functions suitable for later verification work.
@@ -32,8 +32,14 @@ readable while test coverage stays close.
   resource limits shared by the launcher and in-worker attestation, plus the
   fail-closed host capability matrix.
 - `metadata.rs`: static worker ownership and bridge-selection contracts.
-- `resource.rs`, `handle.rs`, `runtime.rs`, and `worker.rs`: runtime state
-  helpers.
+- `terlan-runtime-abi`: the shared typed resource registry, handle identity,
+  owner validation, and disposal rules. Native packages can reuse these without
+  depending on the compiler or a closed enum of std resource kinds.
+- `resource.rs`: the interim typed-accessor facade for legacy adapters over
+  that shared registry; the std-specific enum still needs migration.
+- `terlan-std-native`: package registration through an ordinary Cargo dependency;
+  the runtime consumes bindings without textually compiling std source modules.
+- `handle.rs`, `runtime.rs`, and `worker.rs`: runtime state helpers.
 - Data/protocol bridge modules that mediate native adapters through handles.
 - `runtime/native`: concrete Rust-native adapters used through NativeBoundary
   bridge dispatch.

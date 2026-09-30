@@ -184,13 +184,6 @@ fn execute_root(
                 shard.finish_completed_call(owner)?;
                 return Ok(value);
             }
-            PureNativeExecution::HttpResponse(_) => {
-                shard.cancel_call(owner, "package call returned an HTTP response")?;
-                return Err(
-                    "error[execution_shard.result_projection]: package call returned an HTTP response"
-                        .into(),
-                );
-            }
             PureNativeExecution::Suspended(suspension)
                 if suspension.operation() == TvmTransitionOperation::Capability =>
             {

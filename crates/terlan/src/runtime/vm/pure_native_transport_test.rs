@@ -67,15 +67,9 @@ impl NativeImageBackend for TypedMailboxBackend {
         _context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-        projection: NativeResultProjection,
-    ) -> Result<NativeDecodedResult, String> {
-        if projection != NativeResultProjection::PublicValue {
-            return Err("unexpected typed mailbox result projection".to_string());
-        }
+    ) -> Result<ReplValue, String> {
         match (result_type, value) {
-            (TvmBoundaryType::String, 41) => Ok(NativeDecodedResult::Value(ReplValue::String(
-                "mailbox".to_string(),
-            ))),
+            (TvmBoundaryType::String, 41) => Ok(ReplValue::String("mailbox".to_string())),
             _ => Err("unexpected typed mailbox result".to_string()),
         }
     }
@@ -365,11 +359,7 @@ impl NativeImageBackend for ManagedMailboxBackend {
         context: &PureNativeExecutionContext<'_>,
         result_type: &TvmBoundaryType,
         value: i64,
-        projection: NativeResultProjection,
-    ) -> Result<NativeDecodedResult, String> {
-        if projection != NativeResultProjection::PublicValue {
-            return Err("unexpected managed result projection".to_string());
-        }
+    ) -> Result<ReplValue, String> {
         if result_type != &self.boundary_type() {
             return Err("unexpected managed result type".to_string());
         }
@@ -389,10 +379,10 @@ impl NativeImageBackend for ManagedMailboxBackend {
                     .map_err(|error| error.to_string())?;
                 match (view.field(0), view.field(1)) {
                     (Ok(ManagedFieldValue::Int(integer)), Ok(ManagedFieldValue::Bool(boolean))) => {
-                        Ok(NativeDecodedResult::Value(ReplValue::Tuple(vec![
+                        Ok(ReplValue::Tuple(vec![
                             ReplValue::Int(integer),
                             ReplValue::Bool(boolean),
-                        ])))
+                        ]))
                     }
                     _ => Err("managed Pair fields did not match".to_string()),
                 }

@@ -1,7 +1,7 @@
 //! Test-runner-only access to production HTTP request and response values.
 use super::{PureNativeCapabilityRequest, ReplValue, VmRuntimeResult};
 use crate::runtime::native::http::{self, RequestFieldProjection};
-use crate::runtime::vm::http_request_value::vm_request_descriptor_owned;
+use crate::runtime::vm::native_value::from_native;
 
 pub(super) fn call(
     enabled: bool,
@@ -29,10 +29,10 @@ pub(super) fn call(
                     cookies: http::parse_request_cookie_header(cookie_header),
                 },
             );
-            Ok(vm_request_descriptor_owned(
+            Ok(from_native(terlan_http_native::request_descriptor(
                 request.into_parts(),
                 RequestFieldProjection::Complete,
-            ))
+            )))
         }
         (
             "std.test.fixture.http_response_header",

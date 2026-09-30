@@ -8,7 +8,7 @@
  */
 module std.log.Log.
 
-import std.core.Unit.
+import std.io.Console.
 
 import type std.log.Field.
 
@@ -20,9 +20,8 @@ import type std.log.Field.
  * Transformation: delegates to the portable console capability while keeping
  * the source dependency on the logging API rather than on a backend framework.
  */
-@compiler.intrinsic
 pub debug(message: String): Unit ->
-    Unit.
+    Console.println(message).
 
 /**
  * Writes an info-level log message.
@@ -32,9 +31,8 @@ pub debug(message: String): Unit ->
  * Transformation: delegates to the portable console capability while keeping
  * the source dependency on the logging API rather than on a backend framework.
  */
-@compiler.intrinsic
 pub info(message: String): Unit ->
-    Unit.
+    Console.println(message).
 
 /**
  * Writes a warning-level log message.
@@ -44,9 +42,8 @@ pub info(message: String): Unit ->
  * Transformation: delegates to the portable console capability while keeping
  * the source dependency on the logging API rather than on a backend framework.
  */
-@compiler.intrinsic
 pub warn(message: String): Unit ->
-    Unit.
+    Console.println(message).
 
 /**
  * Writes an error-level log message.
@@ -56,9 +53,8 @@ pub warn(message: String): Unit ->
  * Transformation: delegates to the portable console capability while keeping
  * the source dependency on the logging API rather than on a backend framework.
  */
-@compiler.intrinsic
 pub error(message: String): Unit ->
-    Unit.
+    Console.println(message).
 
 /**
  * Emits a structured event while preserving the existing level helpers.

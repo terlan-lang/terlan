@@ -22,7 +22,7 @@ pub const TVM_SQL_CAPABILITY_PREFIX_WORDS: usize = 11;
 /// by their protocol-specific branches.
 pub const fn tvm_fixed_capability_frame_words(tag: i64) -> Option<usize> {
     match tag {
-        8 | 12 | 33 | 36 | 37 | 59 => Some(4),
+        8 | 12 | 33 | 59 => Some(4),
         1 | 2 | 3 | 6 | 9 | 10 | 11 | 13 | 14 | 15 | 16 | 18 | 19 | 22 | 23 | 30 | 31 | 32 | 35
         | 38 | 40 | 44 | 46 | 48 | 49 | 53 | 54 | 55 | 58 => Some(5),
         4 | 5 | 17 | 20 | 34 | 43 | 45 | 47 | 50 | 51 | 52 | 56 => Some(6),

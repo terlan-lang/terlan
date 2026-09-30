@@ -50,9 +50,6 @@ pub(crate) mod framing;
 pub(crate) mod http;
 #[cfg(test)]
 pub(crate) mod http_metrics;
-pub(crate) mod http_request_value;
-pub(crate) mod http_response_chunks;
-mod http_response_value;
 pub(crate) mod http_router;
 pub(crate) mod http_session;
 #[cfg(test)]
@@ -81,6 +78,7 @@ pub(crate) mod native_boundary;
 pub(crate) mod native_callable;
 pub(crate) mod native_exchange;
 pub(crate) mod native_image_diagnostics;
+pub(crate) mod native_value;
 pub(crate) mod package_native_helper;
 #[cfg(test)]
 pub(crate) mod package_transport;
@@ -138,7 +136,7 @@ pub(crate) mod tls_test_support;
 #[cfg(test)]
 pub(crate) mod udp;
 mod value;
-pub(crate) use http_response_value::{VmAotHttpResponse, VmHttpCallResult};
+pub(crate) use value::NativeClosureValue;
 pub(crate) use value::ReplValue;
 pub(crate) mod websocket;
 pub(crate) mod work_stealing;

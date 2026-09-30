@@ -1,0 +1,1011 @@
+/**
+ * Lowers projected expression trees into resolved expression plans.
+ */
+module self_host.ProjectedExpressionIrPlan.
+
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, expression_type, indexed_label, last_string, literal_operands, nested_if_result_type, node_opcode, node_size, register, resolved_or_dynamic, some_string}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.SelfHostIrSyntax.{IrParameter}.
+import self_host.SelfHostSemanticIrSyntax.{SemanticInstructionPlan}.
+import self_host.{ProjectedExpressionSupportIrPlan, ProjectedExpressionSyntax, ProjectedTypeConstraintSyntax, SelfHostIrSyntax, SelfHostSemanticIrSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Bool, Int, String}.
+
+struct ChildrenPlan {
+    next_id: Int,
+    results: List[String],
+    instructions: List[SemanticInstructionPlan],
+}.
+
+constructor ChildrenPlan {
+    (next_id: Int, results: List[String], instructions: List[SemanticInstructionPlan]): ChildrenPlan ->
+        ChildrenPlan {next_id: next_id, results: results, instructions: instructions}
+}.
+
+struct ExpressionPair {
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+}.
+
+constructor ExpressionPair {
+    (first: ProjectedExpressionNode, second: ProjectedExpressionNode): ExpressionPair ->
+        ExpressionPair {first: first, second: second}
+}.
+
+struct ExpressionTriple {
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    third: ProjectedExpressionNode,
+}.
+
+constructor ExpressionTriple {
+    (
+        first: ProjectedExpressionNode,
+        second: ProjectedExpressionNode,
+        third: ProjectedExpressionNode,
+    ): ExpressionTriple ->
+        ExpressionTriple {first: first, second: second, third: third}
+}.
+
+expression_pair(values: List[ProjectedExpressionNode]): Option[ExpressionPair] ->
+    case values {
+        [first, second] -> expression_pair_value(first, second);
+        _ -> None
+    }.
+
+expression_pair_value(
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+): Option[ExpressionPair] ->
+    Some(ExpressionPair(first = first, second = second)).
+
+expression_triple(values: List[ProjectedExpressionNode]): Option[ExpressionTriple] ->
+    case values {
+        [first | rest] -> expression_triple_after_first(first, expression_pair(rest));
+        _ -> None
+    }.
+
+expression_triple_after_first(
+    first: ProjectedExpressionNode,
+    value: Option[ExpressionPair],
+): Option[ExpressionTriple] ->
+    case value {
+        Some(pair) -> expression_triple_value(first, pair);
+        _ -> None
+    }.
+
+expression_triple_value(
+    first: ProjectedExpressionNode,
+    pair: ExpressionPair,
+): Option[ExpressionTriple] ->
+    Some(ExpressionTriple(first = first, second = pair.first, third = pair.second)).
+
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
+
+prepend_reversed[T](values: List[T], output: List[T]): List[T] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_reversed(rest, [value | output])
+    }.
+
+concat[T](left: List[T], right: List[T]): List[T] ->
+    prepend_reversed(reverse_at(left, List.new[T]()), right).
+
+lower_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case values {
+        [] ->
+            ChildrenPlan(
+                next_id = next_id,
+                results = List.new[String](),
+                instructions = List.new[SemanticInstructionPlan](),
+            );
+        [value | rest] ->
+            let lowered = lower_expression(value, next_id, facts, parameters);
+            let remaining = lower_children(rest, lowered.next_id, facts, parameters);
+            ChildrenPlan(
+                next_id = remaining.next_id,
+                results = [lowered.result | remaining.results],
+                instructions = concat(lowered.instructions, remaining.instructions),
+            )
+    }.
+
+call_identity(callee: ProjectedExpressionNode): List[String] ->
+    if {
+        callee.kind == "field" -> field_call_identity(callee, callee.children);
+        true -> [callee.text]
+    }.
+
+field_call_identity(
+    callee: ProjectedExpressionNode,
+    values: List[ProjectedExpressionNode],
+): List[String] ->
+    case values {
+        [base | _rest] -> [base.text, callee.text];
+        [] -> [callee.text]
+    }.
+
+call_opcode(callee: ProjectedExpressionNode): String ->
+    if {
+        callee.kind == "field" -> "call-import";
+        true -> "call-local"
+    }.
+
+lower_call_arguments(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case values {
+        [sequence] where sequence.kind == "sequence" or sequence.kind == "call-arguments" ->
+            lower_children(sequence.children, next_id + 1, facts, parameters);
+        _ -> lower_children(values, next_id, facts, parameters)
+    }.
+
+lower_call(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [callee | arguments] ->
+            let argument_start = node_id + 1 + node_size(callee);
+            let lowered = lower_call_arguments(arguments, argument_start, facts, parameters);
+            let result = register(node_id);
+            let instruction_result = some_string(result);
+            let resolved_type = expression_type(node, facts, parameters);
+            let operands = concat(call_identity(callee), lowered.results);
+            let instruction =
+                SemanticInstructionPlan(
+                    opcode = call_opcode(callee),
+                    result = instruction_result,
+                    operands = operands,
+                    resolved_type = resolved_type,
+                );
+            let instructions = concat(lowered.instructions, [instruction]);
+            ExpressionPlan(
+                next_id = node_id + node_size(node),
+                result = result,
+                result_type = resolved_type,
+                instructions = instructions,
+            );
+        _ ->
+            let result = register(node_id);
+            let instruction_result = some_string(result);
+            ExpressionPlan(
+                next_id = node_id + node_size(node),
+                result = result,
+                result_type = None,
+                instructions = [
+                    SemanticInstructionPlan(
+                        opcode = "unsupported-call",
+                        result = instruction_result,
+                        operands = List.new[String](),
+                        resolved_type = None,
+                    ),
+                ],
+            )
+    }.
+
+lower_let(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [pattern | rest] -> lower_let_source(node, node_id, pattern, rest, facts, parameters);
+        [] -> empty_let_plan(node, node_id)
+    }.
+
+lower_let_source(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    pattern: ProjectedExpressionNode,
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case values {
+        [source | rest] ->
+            lower_let_continuation(node, node_id, pattern, source, rest, facts, parameters);
+        [] -> empty_let_plan(node, node_id)
+    }.
+
+lower_let_continuation(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case values {
+        [continuation | fallback] ->
+            build_lower_let(
+                node,
+                node_id,
+                pattern,
+                source,
+                continuation,
+                fallback,
+                facts,
+                parameters,
+            );
+        [] -> empty_let_plan(node, node_id)
+    }.
+
+build_lower_let(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    fallback: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let lowered_source = lower_expression(source, source_id, facts, parameters);
+    let lowered_continuation = lower_expression(continuation, lowered_source.next_id, facts, parameters);
+    let lowered_fallback = lower_children(fallback, lowered_continuation.next_id, facts, parameters);
+    let binding = lower_let_binding(pattern, lowered_source);
+    ExpressionPlan(
+        next_id = node_id + node_size(node),
+        result = lowered_continuation.result,
+        result_type = expression_type(node, facts, parameters),
+        instructions = concat(
+            lowered_source.instructions,
+            concat(
+                binding,
+                concat(lowered_continuation.instructions, lowered_fallback.instructions),
+            ),
+        ),
+    ).
+
+lower_let_binding(
+    pattern: ProjectedExpressionNode,
+    source: ExpressionPlan,
+): List[SemanticInstructionPlan] ->
+    if {
+        pattern.kind == "binding-pattern" -> [
+            SemanticInstructionPlan(
+                opcode = "move",
+                result = some_string(pattern.text),
+                operands = [source.result],
+                resolved_type = resolved_or_dynamic(source.result_type),
+            ),
+        ];
+        true -> List.new[SemanticInstructionPlan]()
+    }.
+
+empty_let_plan(node: ProjectedExpressionNode, node_id: Int): ExpressionPlan ->
+    ExpressionPlan(
+        next_id = node_id + node_size(node),
+        result = register(node_id),
+        result_type = None,
+        instructions = List.new[SemanticInstructionPlan](),
+    ).
+
+leaf_selection_value(node: ProjectedExpressionNode): Bool ->
+    node.kind == "integer"
+        or node.kind == "float"
+        or node.kind == "string"
+        or node.kind == "constructor"
+        or node.kind == "primary"
+        or node.kind == "identifier"
+        or node.kind == "atom".
+
+leaf_if_supported(node: ProjectedExpressionNode): Bool ->
+    case node.children {
+        [first, second] -> leaf_if_first_supported(first, second);
+        _ -> false
+    }.
+
+leaf_if_first_supported(first: ProjectedExpressionNode, second: ProjectedExpressionNode): Bool ->
+    case first.children {
+        [_first_condition, first_body] -> leaf_if_second_supported(first_body, second);
+        _ -> false
+    }.
+
+leaf_if_second_supported(
+    first_body: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+): Bool ->
+    case second.children {
+        [second_condition, second_body] ->
+            second_condition.text == "true"
+                and leaf_selection_value(first_body)
+                and leaf_selection_value(second_body);
+        _ -> false
+    }.
+
+pure_selection_condition(node: ProjectedExpressionNode): Bool ->
+    if {
+        leaf_selection_value(node) -> true;
+        true -> pure_selection_node(node)
+    }.
+
+pure_selection_node(node: ProjectedExpressionNode): Bool ->
+    if {
+        node.kind == "unary" or node.kind == "tuple-or-group" -> pure_selection_single_child(node.children);
+        true -> pure_selection_binary_node(node)
+    }.
+
+pure_selection_binary_node(node: ProjectedExpressionNode): Bool ->
+    if {
+        node.kind == "binary" -> pure_selection_binary_children(node.children);
+        true -> false
+    }.
+
+pure_selection_single_child(children: List[ProjectedExpressionNode]): Bool ->
+    case children {
+        [value] -> pure_selection_condition(value);
+        _ -> false
+    }.
+
+pure_selection_binary_children(children: List[ProjectedExpressionNode]): Bool ->
+    case children {
+        [first, second] -> pure_selection_condition(first) and pure_selection_condition(second);
+        _ -> false
+    }.
+
+leaf_if_three_supported(node: ProjectedExpressionNode): Bool ->
+    case expression_triple(node.children) {
+        Some(clauses) ->
+            leaf_if_three_supported_first(
+                expression_pair(clauses.first.children),
+                expression_pair(clauses.second.children),
+                expression_pair(clauses.third.children),
+            );
+        _ -> false
+    }.
+
+leaf_if_three_supported_first(
+    first: Option[ExpressionPair],
+    second: Option[ExpressionPair],
+    third: Option[ExpressionPair],
+): Bool ->
+    case first {
+        Some(value) -> leaf_if_three_supported_second(value, second, third);
+        _ -> false
+    }.
+
+leaf_if_three_supported_second(
+    first: ExpressionPair,
+    second: Option[ExpressionPair],
+    third: Option[ExpressionPair],
+): Bool ->
+    case second {
+        Some(value) -> leaf_if_three_supported_third(first, value, third);
+        _ -> false
+    }.
+
+leaf_if_three_supported_third(
+    first: ExpressionPair,
+    second: ExpressionPair,
+    third: Option[ExpressionPair],
+): Bool ->
+    case third {
+        Some(value) ->
+            value.first.text == "true"
+                and pure_selection_condition(first.first)
+                and pure_selection_condition(second.first)
+                and leaf_selection_value(first.second)
+                and leaf_selection_value(second.second)
+                and leaf_selection_value(value.second);
+        _ -> false
+    }.
+
+leaf_if_chain_clauses_supported(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [clause] -> leaf_if_chain_last_supported(clause.children);
+        [clause | rest] -> leaf_if_chain_nonlast_supported(clause.children, rest)
+    }.
+
+leaf_if_chain_last_supported(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [condition, body] -> condition.text == "true" and leaf_selection_value(body);
+        _ -> false
+    }.
+
+leaf_if_chain_nonlast_supported(
+    values: List[ProjectedExpressionNode],
+    rest: List[ProjectedExpressionNode],
+): Bool ->
+    case values {
+        [condition, body] ->
+            pure_selection_condition(condition)
+                and leaf_selection_value(body)
+                and leaf_if_chain_clauses_supported(rest);
+        _ -> false
+    }.
+
+leaf_if_long_supported(node: ProjectedExpressionNode): Bool ->
+    node.children.length() >= 4 and leaf_if_chain_clauses_supported(node.children).
+
+lower_leaf_if(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case node.children {
+        [first, second] -> lower_leaf_if_first(node, node_id, first, second, facts, parameters);
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_first(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case first.children {
+        [first_condition, first_body] ->
+            lower_leaf_if_second(
+                node,
+                node_id,
+                first,
+                second,
+                first_condition,
+                first_body,
+                facts,
+                parameters,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_second(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    second: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case second.children {
+        [second_condition, second_body] ->
+            lower_leaf_if_direct(
+                node,
+                node_id,
+                first,
+                first_condition,
+                first_body,
+                second_condition,
+                second_body,
+                facts,
+                parameters,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    first: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+    let first_body_id = node_id + 2 + node_size(first_condition);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = node_id + 1 + node_size(first);
+    let second_body_id = second_id + 1 + node_size(second_condition);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let result = register(node_id);
+    let result_type = nested_if_result_type(node, first_body_plan, second_body_plan, facts, parameters);
+    ExpressionPlan(
+        node_id + node_size(node),
+        result,
+        result_type,
+        concat_instructions(
+            first_condition_plan.instructions,
+            concat_instructions(
+                first_body_plan.instructions,
+                concat_instructions(
+                    second_body_plan.instructions,
+                    [
+                        SemanticInstructionPlan(
+                            "select",
+                            some_string(result),
+                            [
+                                first_condition_plan.result,
+                                first_body_plan.result,
+                                second_body_plan.result,
+                            ],
+                            result_type,
+                        ),
+                    ],
+                ),
+            ),
+        ),
+    ).
+
+unsupported_leaf_if_plan(node: ProjectedExpressionNode, node_id: Int): ExpressionPlan ->
+    ExpressionPlan(
+        node_id + node_size(node),
+        register(node_id),
+        None,
+        List.new[SemanticInstructionPlan](),
+    ).
+
+lower_leaf_if_three(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case expression_triple(node.children) {
+        Some(clauses) ->
+            lower_leaf_if_three_first(
+                expression_pair(clauses.first.children),
+                expression_pair(clauses.second.children),
+                expression_pair(clauses.third.children),
+                node,
+                node_id,
+                facts,
+                parameters,
+                clauses,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_three_first(
+    first: Option[ExpressionPair],
+    second: Option[ExpressionPair],
+    third: Option[ExpressionPair],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    clauses: ExpressionTriple,
+): ExpressionPlan ->
+    case first {
+        Some(value) ->
+            lower_leaf_if_three_second(
+                value,
+                second,
+                third,
+                node,
+                node_id,
+                facts,
+                parameters,
+                clauses,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_three_second(
+    first: ExpressionPair,
+    second: Option[ExpressionPair],
+    third: Option[ExpressionPair],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    clauses: ExpressionTriple,
+): ExpressionPlan ->
+    case second {
+        Some(value) ->
+            lower_leaf_if_three_third(
+                first,
+                value,
+                third,
+                node,
+                node_id,
+                facts,
+                parameters,
+                clauses,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_three_third(
+    first: ExpressionPair,
+    second: ExpressionPair,
+    third: Option[ExpressionPair],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    clauses: ExpressionTriple,
+): ExpressionPlan ->
+    case third {
+        Some(value) ->
+            lower_leaf_if_three_bound(
+                node,
+                node_id,
+                facts,
+                parameters,
+                clauses.first,
+                clauses.second,
+                first.first,
+                first.second,
+                second.first,
+                second.second,
+                value.first,
+                value.second,
+            );
+        _ -> unsupported_leaf_if_plan(node, node_id)
+    }.
+
+lower_leaf_if_three_bound(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+    first_clause: ProjectedExpressionNode,
+    second_clause: ProjectedExpressionNode,
+    first_condition: ProjectedExpressionNode,
+    first_body: ProjectedExpressionNode,
+    second_condition: ProjectedExpressionNode,
+    second_body: ProjectedExpressionNode,
+    third_condition: ProjectedExpressionNode,
+    third_body: ProjectedExpressionNode,
+): ExpressionPlan ->
+    let first_condition_plan = lower_expression(first_condition, node_id + 2, facts, parameters);
+    let first_body_id = node_id + 2 + node_size(first_condition);
+    let first_body_plan = lower_expression(first_body, first_body_id, facts, parameters);
+    let second_id = node_id + 1 + node_size(first_clause);
+    let second_condition_id = second_id + 1;
+    let second_condition_plan = lower_expression(second_condition, second_condition_id, facts, parameters);
+    let second_body_id = second_condition_id + node_size(second_condition);
+    let second_body_plan = lower_expression(second_body, second_body_id, facts, parameters);
+    let third_id = second_id + node_size(second_clause);
+    let third_body_id = third_id + 1 + node_size(third_condition);
+    let third_body_plan = lower_expression(third_body, third_body_id, facts, parameters);
+    let fallback_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+    let tail_type =
+        matching_plan_result_type(
+            second_body_plan.result_type,
+            third_body_plan.result_type,
+            fallback_type,
+        );
+    let result_type = matching_plan_result_type(first_body_plan.result_type, tail_type, fallback_type);
+    let tail_result = indexed_label("%leaf_if_tail_", node_id);
+    let result = register(node_id);
+    ExpressionPlan(
+        node_id + node_size(node),
+        result,
+        result_type,
+        concat_instructions(
+            first_condition_plan.instructions,
+            concat_instructions(
+                first_body_plan.instructions,
+                concat_instructions(
+                    second_condition_plan.instructions,
+                    concat_instructions(
+                        second_body_plan.instructions,
+                        concat_instructions(
+                            third_body_plan.instructions,
+                            [
+                                SemanticInstructionPlan(
+                                    "select",
+                                    some_string(tail_result),
+                                    [
+                                        second_condition_plan.result,
+                                        second_body_plan.result,
+                                        third_body_plan.result,
+                                    ],
+                                    tail_type,
+                                ),
+                                SemanticInstructionPlan(
+                                    "select",
+                                    some_string(result),
+                                    [
+                                        first_condition_plan.result,
+                                        first_body_plan.result,
+                                        tail_result,
+                                    ],
+                                    result_type,
+                                ),
+                            ],
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ).
+
+pub matching_plan_result_type(
+    first: Option[String],
+    second: Option[String],
+    fallback: Option[String],
+): Option[String] ->
+    case first {
+        Some(first_name) -> matching_plan_second_result_type(first_name, second, fallback);
+        None -> fallback
+    }.
+
+matching_plan_second_result_type(
+    first_name: String,
+    second: Option[String],
+    fallback: Option[String],
+): Option[String] ->
+    case second {
+        Some(second_name) where first_name == second_name -> some_string(first_name);
+        _ -> fallback
+    }.
+
+lower_leaf_if_clause_chain(
+    values: List[ProjectedExpressionNode],
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case values {
+        [] ->
+            ExpressionPlan(
+                clause_id,
+                register(clause_id),
+                None,
+                List.new[SemanticInstructionPlan](),
+            );
+        [clause | rest] ->
+            lower_leaf_if_clause_chain_bound(
+                clause.children,
+                clause,
+                rest,
+                clause_id,
+                facts,
+                parameters,
+            )
+    }.
+
+lower_leaf_if_clause_chain_bound(
+    values: List[ProjectedExpressionNode],
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case expression_pair(values) {
+        Some(parts) ->
+            lower_leaf_if_clause_chain_rest(parts, clause, rest, clause_id, facts, parameters);
+        _ -> unsupported_leaf_if_plan(clause, clause_id)
+    }.
+
+lower_leaf_if_clause_chain_rest(
+    parts: ExpressionPair,
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    case rest {
+        [] ->
+            lower_leaf_if_last_clause(
+                clause,
+                parts.first,
+                parts.second,
+                clause_id,
+                facts,
+                parameters,
+            );
+        _ ->
+            lower_leaf_if_nonlast_clause(
+                clause,
+                parts.first,
+                parts.second,
+                rest,
+                clause_id,
+                facts,
+                parameters,
+            )
+    }.
+
+lower_leaf_if_last_clause(
+    clause: ProjectedExpressionNode,
+    condition: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let body_id = clause_id + 1 + node_size(condition);
+    let body_plan = lower_expression(body, body_id, facts, parameters);
+    ExpressionPlan(
+        clause_id + node_size(clause),
+        body_plan.result,
+        body_plan.result_type,
+        body_plan.instructions,
+    ).
+
+lower_leaf_if_nonlast_clause(
+    clause: ProjectedExpressionNode,
+    condition: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    clause_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let condition_plan = lower_expression(condition, clause_id + 1, facts, parameters);
+    let body_id = clause_id + 1 + node_size(condition);
+    let body_plan = lower_expression(body, body_id, facts, parameters);
+    let tail_plan = lower_leaf_if_clause_chain(rest, clause_id + node_size(clause), facts, parameters);
+    let result = indexed_label("%leaf_if_clause_", clause_id);
+    let result_type =
+        matching_plan_result_type(
+            body_plan.result_type,
+            tail_plan.result_type,
+            some_string("Dynamic"),
+        );
+    ExpressionPlan(
+        tail_plan.next_id,
+        result,
+        result_type,
+        concat_instructions(
+            condition_plan.instructions,
+            concat_instructions(
+                body_plan.instructions,
+                concat_instructions(
+                    tail_plan.instructions,
+                    [
+                        SemanticInstructionPlan(
+                            "select",
+                            some_string(result),
+                            [condition_plan.result, body_plan.result, tail_plan.result],
+                            result_type,
+                        ),
+                    ],
+                ),
+            ),
+        ),
+    ).
+
+lower_leaf_if_long(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let lowered = lower_leaf_if_clause_chain(node.children, node_id + 1, facts, parameters);
+    ExpressionPlan(
+        node_id + node_size(node),
+        lowered.result,
+        lowered.result_type,
+        lowered.instructions,
+    ).
+
+pub lower_expression(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "call" -> lower_call(node, node_id, facts, parameters);
+        true -> lower_expression_after_call(node, node_id, facts, parameters)
+    }.
+
+lower_expression_after_call(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "let" or node.kind == "let-refutable" -> lower_let(node, node_id, facts, parameters);
+        true -> lower_expression_after_let(node, node_id, facts, parameters)
+    }.
+
+lower_expression_after_let(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "if" and leaf_if_supported(node) -> lower_leaf_if(node, node_id, facts, parameters);
+        true -> lower_expression_after_leaf_if(node, node_id, facts, parameters)
+    }.
+
+lower_expression_after_leaf_if(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "if" and leaf_if_three_supported(node) -> lower_leaf_if_three(node, node_id, facts, parameters);
+        true -> lower_expression_after_leaf_if_three(node, node_id, facts, parameters)
+    }.
+
+lower_expression_after_leaf_if_three(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    if {
+        node.kind == "if" and leaf_if_long_supported(node) -> lower_leaf_if_long(node, node_id, facts, parameters);
+        true -> lower_generic_expression(node, node_id, facts, parameters)
+    }.
+
+lower_generic_expression(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let children = lower_children(node.children, node_id + 1, facts, parameters);
+    let structural = structural_expression(node);
+    let result = expression_result(structural, children.results, node_id);
+    let result_type = expression_type(node, facts, parameters);
+    let operands = concat(literal_operands(node), children.results);
+    let instructions =
+        expression_instructions(
+            structural,
+            node,
+            result,
+            operands,
+            result_type,
+            children.instructions,
+        );
+    ExpressionPlan(
+        next_id = node_id + node_size(node),
+        result = result,
+        result_type = result_type,
+        instructions = instructions,
+    ).
+
+structural_expression(node: ProjectedExpressionNode): Bool ->
+    node.kind == "sequence"
+        or node.kind == "call-arguments"
+        or node.kind == "named-argument"
+        or node.kind == "tuple-or-group" and node.children.length() == 1.
+
+expression_result(structural: Bool, results: List[String], node_id: Int): String ->
+    if {
+        structural -> last_string(results);
+        true -> register(node_id)
+    }.
+
+expression_instructions(
+    structural: Bool,
+    node: ProjectedExpressionNode,
+    result: String,
+    operands: List[String],
+    result_type: Option[String],
+    child_instructions: List[SemanticInstructionPlan],
+): List[SemanticInstructionPlan] ->
+    if {
+        structural -> child_instructions;
+        true -> concat(
+            child_instructions,
+            [
+                SemanticInstructionPlan(
+                    opcode = node_opcode(node),
+                    result = some_string(result),
+                    operands = operands,
+                    resolved_type = result_type,
+                ),
+            ],
+        )
+    }.

@@ -184,7 +184,7 @@ pub(super) fn render_consumer_test(manifest: &CAbiBindingManifest) -> Result<Str
         assertions.join(" and ")
     ));
     Ok(format!(
-        "module {}.NativeBoundaryTest.\n\nimport {}.{{{imports}}}.\n\n@test\npub generated_c_abi_native_boundary_executes(): Bool ->\n{body}",
+        "module {}.NativeBoundaryTest.\n\nimport {}.{{{imports}}}.\nimport std.collections.List.\n\n@test\npub generated_c_abi_native_boundary_executes(): Bool ->\n{body}",
         manifest.package.namespace, module.module
     ))
 }

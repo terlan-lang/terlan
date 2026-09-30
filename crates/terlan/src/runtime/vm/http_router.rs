@@ -444,6 +444,9 @@ impl VmHttpRouter {
 }
 
 fn is_response_descriptor(value: &ReplValue) -> bool {
+    if let ReplValue::Record { name, .. } = value {
+        return name == "Response";
+    }
     matches!(
         value,
         ReplValue::Tuple(fields)

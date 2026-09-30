@@ -10,6 +10,8 @@ module std.http.Cookies.
 
 import std.core.Option.{None, Some, is_some, with_default}.
 import std.core.Unit.
+import std.collections.Map.
+import std.collections.List.
 
 import type std.core.Option.
 
@@ -97,11 +99,23 @@ pub constructor Options {
  * Jar represents request-scoped cookie state.
  *
  * Input: no type parameter.
- * Output: an opaque cookie jar handle owned by the HTTP runtime.
+ * Output: a source-owned snapshot of incoming cookies and pending headers.
  * Transformation: lets handlers read incoming cookies and record outgoing
  * cookie mutations without manually threading response headers.
  */
-pub opaque type Jar.
+pub struct Jar {
+    #incoming: Map[String, String],
+    #pending: List[String],
+}.
+
+/**
+ * Returns pending response headers.
+ *
+ * Input: one cookie jar receiver.
+ * Output: serialized cookie mutations in insertion order.
+ * Transformation: exposes an immutable snapshot for response composition.
+ */
+pub (jar: Jar) headers(): List[String] -> jar.#pending.
 
 /**
  * Returns an incoming cookie value.
@@ -109,12 +123,11 @@ pub opaque type Jar.
  * Input: one cookie jar receiver and one cookie name.
  * Output: `Some(value)` when the request included a cookie named `name`,
  * otherwise `None`.
- * Transformation: reads parsed request-cookie metadata from the runtime-owned
+ * Transformation: reads parsed request-cookie metadata from the source-owned
  * jar without exposing the raw `Cookie` header.
  */
-@compiler.native {std.http.cookies.get}
 pub (jar: Jar) get(name: String): Option[String] ->
-    native.
+    jar.#incoming.get(name).
 
 /**
  * Records a response cookie mutation.
@@ -126,7 +139,6 @@ pub (jar: Jar) get(name: String): Option[String] ->
  * adapter so the server can apply the resulting `Set-Cookie` header to the
  * returned response.
  */
-@compiler.native {std.http.cookies.set}
 pub (mut jar: Jar) set(
     name: String,
     value: String,
@@ -134,7 +146,8 @@ pub (mut jar: Jar) set(
     http_only: Bool = false,
     secure: Bool = false,
 ): Unit ->
-    native.
+    let header = set_header(name, value, path, http_only, secure);
+    Jar { #incoming: jar.#incoming, #pending: jar.#pending.concat([header]) }.
 
 /**
  * Records a response cookie deletion.
@@ -144,9 +157,9 @@ pub (mut jar: Jar) set(
  * Transformation: validates the cookie name/path and records an expiring
  * `Set-Cookie` mutation through the HTTP adapter.
  */
-@compiler.native {std.http.cookies.delete}
 pub (mut jar: Jar) delete(name: String, path: String = "/"): Unit ->
-    native.
+    let header = delete_header(name, path);
+    Jar { #incoming: jar.#incoming, #pending: jar.#pending.concat([header]) }.
 
 /**
  * Builds a `Set-Cookie` header value.

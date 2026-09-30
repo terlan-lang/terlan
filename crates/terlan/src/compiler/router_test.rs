@@ -123,8 +123,8 @@ pub router(): Router ->
     let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[1].target else {
         panic!("expected WebSocket target")
     };
-    assert_eq!(websocket.max_pending_frames, 4);
-    assert_eq!(websocket.max_frame_bytes, 1024);
+    assert_eq!(websocket.max_pending_frames(), 4);
+    assert_eq!(websocket.max_frame_bytes(), 1024);
 }
 
 /// Verifies WebSocket callback builders retain one complete static callback set.

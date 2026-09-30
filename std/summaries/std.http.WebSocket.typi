@@ -6,31 +6,75 @@
 
 module std.http.WebSocket.
 
+/// CloseFrame represents a request to close the channel.
+///
+/// Input: none.
+/// Output: a singleton close intent.
+/// Transformation: separates close intent from transport lifecycle execution.
+
+pub type CloseFrame =
+    Atom["close"].
+
 /// Endpoint represents one WebSocket route policy.
 ///
 /// Input: inbound queue and frame-size settings.
-/// Output: an opaque endpoint plan consumed by router/runtime lowering.
+/// Output: a source-owned endpoint policy validated when a route is admitted.
 /// Transformation: keeps live connection state out of source values while
 /// allowing route declarations to install explicit WebSocket limits.
 
-pub opaque type Endpoint.
+pub struct Endpoint {
+    max_pending_frames: Int,
+    max_frame_bytes: Int,
+    #policies: List[Policy]
+}.
 
-/// Frame represents one outbound WebSocket data or control frame.
+/// Frame is an outbound text or control-frame intent.
+///
+/// Input: a text, ping, pong, or close value.
+/// Output: a source-owned discriminated union.
+/// Transformation: permits ordinary pattern matching without native handles.
+
+pub type Frame =
+    TextFrame
+  | PingFrame
+  | PongFrame
+  | CloseFrame.
+
+/// PingFrame carries an outbound heartbeat payload.
+///
+/// Input: one UTF-8 payload.
+/// Output: a source-owned tagged control-frame value.
+/// Transformation: records intent; transport admission validates byte limits.
+
+pub type PingFrame =
+    {Atom["ping"], value: String}.
+
+/// PongFrame carries an outbound heartbeat response.
+///
+/// Input: one UTF-8 payload.
+/// Output: a source-owned tagged control-frame value.
+/// Transformation: preserves payload bytes without performing socket I/O.
+
+pub type PongFrame =
+    {Atom["pong"], value: String}.
+
+/// TextFrame carries one outbound WebSocket text payload.
 ///
 /// Input: typed text or control-frame metadata.
-/// Output: an opaque frame descriptor owned by the HTTP runtime.
+/// Output: a source-owned tagged text-frame value.
 /// Transformation: hides raw WebSocket frame bytes while preserving typed
-/// handler code that can later be lowered into VM channel sends.
+/// handler code without allocating a connection or native resource.
 
-pub opaque type Frame.
+pub type TextFrame =
+    {Atom["text"], value: String}.
 
 /// Installs the complete generated callback set for an endpoint.
 ///
 /// Input: one endpoint and static callbacks for open, inbound frame, writable,
 /// graceful close, and cancellation lifecycle events.
 /// Output: the endpoint with one callback set attached.
-/// Transformation: keeps callback identities in compiler-owned route metadata
-/// while the VM owns invocation, suspension, resumption, and cleanup.
+/// Transformation: retains callbacks as ordinary source values without invoking
+/// them. Duplicate/conflicting declarations remain visible to route admission.
 
 pub (endpoint: Endpoint) callbacks(open: () -> Unit, inbound: (String) -> Unit, writable: () -> Unit, close: () -> Unit, cancellation: (String) -> Unit): Endpoint.
 
@@ -41,6 +85,7 @@ pub (endpoint: Endpoint) callbacks(open: () -> Unit, inbound: (String) -> Unit, 
 /// Transformation: records deterministic close intent while stream shutdown and
 /// cleanup remain VM-owned runtime behavior.
 
+@pure
 pub close(): Frame.
 
 /// Creates a WebSocket endpoint plan.
@@ -50,6 +95,7 @@ pub close(): Frame.
 /// Transformation: records explicit channel bounds for the VM HTTP runtime
 /// without allocating a live socket at source evaluation time.
 
+@pure
 pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65536): Endpoint.
 
 /// Installs a two-peer session policy with source-owned protocol payloads.
@@ -105,7 +151,8 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(waiting: String, first_matche
 ///
 /// Input: one UTF-8 text payload.
 /// Output: a `Frame` with text payload semantics.
-/// Transformation: delegates target frame construction to the VM WebSocket
-/// runtime without exposing raw opcode or masking details.
+/// Transformation: constructs the ordinary TextFrame variant without encoding wire bytes.
 
 pub text(value: String): Frame.
+
+export type Callbacks, Matched, Pairing, Policy, RestorablePairing, Restored, StatefulInbound, StatefulPairing.

@@ -48,12 +48,6 @@ fn vm_session_error(error: String) -> terlan_runtime_abi::BoundaryError {
     )
 }
 
-/// Threads session response metadata onto a response value.
-#[cfg(test)]
-pub fn with_response<T>(response: T, _session: &VmHttpSession) -> T {
-    response
-}
-
 pub(crate) fn normalize_cookie_value(value: &str) -> Option<&str> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
@@ -61,10 +55,6 @@ pub(crate) fn normalize_cookie_value(value: &str) -> Option<&str> {
     } else {
         Some(trimmed)
     }
-}
-
-pub(crate) fn cookie_header_for(session_id: &str) -> String {
-    format!("{SESSION_COOKIE_NAME}={session_id}; Path=/; HttpOnly; SameSite=Lax")
 }
 
 pub(crate) fn created_session_table_id(event: VmTableEvent) -> VmTableId {

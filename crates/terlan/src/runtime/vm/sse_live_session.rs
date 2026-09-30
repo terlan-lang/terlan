@@ -17,7 +17,7 @@ pub(crate) struct VmSseLiveSession {
 impl VmSseLiveSession {
     /// Opens bounded stream state directly from an admitted endpoint plan.
     pub(crate) fn open(plan: VmSseEndpointPlan) -> Result<Self, VmSseError> {
-        let stream = plan.open_stream()?;
+        let stream = VmSseStream::new(plan.max_pending_events(), plan.max_event_bytes())?;
         Ok(Self {
             plan,
             stream,

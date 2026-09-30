@@ -12,6 +12,21 @@ fn heap() -> ActorHeap {
 }
 
 #[test]
+fn retired_sha256_opcode_is_rejected() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::from_image(&[], &[], &[]).unwrap();
+    let input = heap.allocate_string("abc").unwrap().encoded_abi_word() as i64;
+    let encoded = b"TVMU\x01\x00\x08\x00";
+    assert!(!super::super::managed_abi_result_is_reference(encoded));
+    for words in [vec![], vec![input], vec![input, input]] {
+        assert_eq!(
+            execute_string_operation(&mut heap, &layouts, encoded, &words),
+            Err(ManagedMemoryError::InvalidManagedOperation)
+        );
+    }
+}
+
+#[test]
 fn atom_text_uses_the_current_image_table_and_managed_string_result() {
     let encoded = encode_atom_to_string_operation();
     assert!(super::super::managed_abi_result_is_reference(&encoded));

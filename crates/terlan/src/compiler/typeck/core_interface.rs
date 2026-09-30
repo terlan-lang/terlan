@@ -246,6 +246,9 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
         .flat_map(|((name, arity), signatures)| {
             signatures.iter().map(move |signature| CoreFunction {
                 receiver_method: signature.receiver_method,
+                receiver_mutable: signature.receiver_mutable,
+                receiver_command: signature.receiver_mutable
+                    && super::declarations::is_unit_type_text(&signature.return_type),
                 trait_method: None,
                 source: None,
                 name: name.clone(),
@@ -274,6 +277,9 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
             .iter()
             .map(|((name, arity), signature)| CoreFunction {
                 receiver_method: signature.receiver_method,
+                receiver_mutable: signature.receiver_mutable,
+                receiver_command: signature.receiver_mutable
+                    && super::declarations::is_unit_type_text(&signature.return_type),
                 trait_method: None,
                 source: None,
                 name: name.clone(),

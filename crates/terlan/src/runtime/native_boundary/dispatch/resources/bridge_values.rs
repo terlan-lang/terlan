@@ -54,6 +54,16 @@ fn decode_bridge_arg(
             .map(|value| decode_bridge_arg(store, operation, index, value))
             .collect::<Result<Vec<_>, _>>()
             .map(NativeBoundaryValue::Tuple),
+        NativeBoundaryBridgeValue::Map(entries) => entries
+            .iter()
+            .map(|(key, value)| {
+                Ok((
+                    decode_bridge_arg(store, operation, index, key)?,
+                    decode_bridge_arg(store, operation, index, value)?,
+                ))
+            })
+            .collect::<Result<_, _>>()
+            .map(NativeBoundaryValue::Map),
         NativeBoundaryBridgeValue::Unit => Ok(NativeBoundaryValue::Unit),
         NativeBoundaryBridgeValue::Text(value) => Ok(NativeBoundaryValue::Text(value.clone())),
         NativeBoundaryBridgeValue::Bytes(value) => Ok(NativeBoundaryValue::Bytes(value.clone())),
@@ -63,37 +73,11 @@ fn decode_bridge_arg(
         NativeBoundaryBridgeValue::PostgresConfig(value) => {
             Ok(NativeBoundaryValue::PostgresConfig(value.clone()))
         }
-        NativeBoundaryBridgeValue::Handle(handle) if operation == "std.http.response.json" => store
-            .json(*handle)
-            .cloned()
-            .map(NativeBoundaryValue::Json)
-            .map_err(dispatch_resource_error),
-        NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.data.json.") => {
-            store
-                .json(*handle)
-                .cloned()
-                .map(NativeBoundaryValue::Json)
-                .map_err(dispatch_resource_error)
-        }
         NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.regex.regex.") => {
             store
                 .regex(*handle)
                 .cloned()
                 .map(NativeBoundaryValue::Regex)
-                .map_err(dispatch_resource_error)
-        }
-        NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.http.request.") => {
-            store
-                .http_request(*handle)
-                .cloned()
-                .map(NativeBoundaryValue::HttpRequest)
-                .map_err(dispatch_resource_error)
-        }
-        NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.http.cookies.") => {
-            store
-                .http_cookie_jar(*handle)
-                .cloned()
-                .map(NativeBoundaryValue::HttpCookieJar)
                 .map_err(dispatch_resource_error)
         }
         NativeBoundaryBridgeValue::Handle(handle)
@@ -109,11 +93,6 @@ fn decode_bridge_arg(
             .path(*handle)
             .cloned()
             .map(NativeBoundaryValue::Path)
-            .map_err(dispatch_resource_error),
-        NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.net.uri.") => store
-            .uri(*handle)
-            .cloned()
-            .map(NativeBoundaryValue::Uri)
             .map_err(dispatch_resource_error),
         NativeBoundaryBridgeValue::Handle(handle)
             if matches!(
@@ -165,25 +144,10 @@ fn decode_bridge_arg(
                 .collect::<Result<Vec<_>, _>>()?,
         }),
         NativeBoundaryBridgeValue::List(values)
-            if ((matches!(
+            if (matches!(
                 operation,
-                "std.data.json.string_field_rows"
-                    | "std.data.json.string_fields"
-                    | "std.data.json.required_fields"
-                    | "std.data.json.required_field_rows"
-            ) && index == 1)
-                || (operation == "std.data.json.required_fields" && matches!(index, 2 | 3))
-                || (operation == "std.data.json.required_field_rows"
-                    && matches!(index, 2 | 3))
-                || (operation == "std.data.json.required_field_rows_page"
-                    && matches!(index, 3..=5))
-                || (operation == "std.data.json.nested_string_field_rows"
-                    && matches!(index, 1 | 3))
-                || (operation == "std.data.json.nested_string_field_rows_page"
-                    && matches!(index, 3 | 5))
-                || (operation == "std.data.json.string_object_rows" && index == 0))
-                || (operation == "std.crypto.hash.sha256_framed" && index == 0)
-                || (operation == "std.crypto.hash.sha256_nul_separated" && index == 0)
+                "std.crypto.hash.sha256_framed" | "std.crypto.hash.sha256_nul_separated"
+            ) && index == 0)
                 || (operation == "std.crypto.hash.sha256_domain_framed" && index == 1) =>
         {
             Ok(NativeBoundaryValue::List(
@@ -195,31 +159,6 @@ fn decode_bridge_arg(
                             Ok(NativeBoundaryValue::Text(value.clone()))
                         }
                         _ => Err(type_error(operation, list_index, "String")),
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-            ))
-        }
-        NativeBoundaryBridgeValue::List(rows)
-            if operation == "std.data.json.string_object_rows" && index == 1 =>
-        {
-            Ok(NativeBoundaryValue::List(
-                rows.iter()
-                    .enumerate()
-                    .map(|(row_index, row)| {
-                        let NativeBoundaryBridgeValue::List(values) = row else {
-                            return Err(type_error(operation, row_index, "List[String]"));
-                        };
-                        values
-                            .iter()
-                            .enumerate()
-                            .map(|(value_index, value)| match value {
-                                NativeBoundaryBridgeValue::Text(value) => {
-                                    Ok(NativeBoundaryValue::Text(value.clone()))
-                                }
-                                _ => Err(type_error(operation, value_index, "String")),
-                            })
-                            .collect::<Result<Vec<_>, _>>()
-                            .map(NativeBoundaryValue::List)
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             ))
@@ -264,6 +203,16 @@ pub(super) fn encode_bridge_result(
             .map(|value| encode_bridge_result(store, caller_process_id, value))
             .collect::<Result<Vec<_>, _>>()
             .map(NativeBoundaryBridgeValue::Tuple),
+        NativeBoundaryValue::Map(entries) => entries
+            .into_iter()
+            .map(|(key, value)| {
+                Ok((
+                    encode_bridge_result(store, caller_process_id, key)?,
+                    encode_bridge_result(store, caller_process_id, value)?,
+                ))
+            })
+            .collect::<Result<_, _>>()
+            .map(NativeBoundaryBridgeValue::Map),
         NativeBoundaryValue::Unit => Ok(NativeBoundaryBridgeValue::Unit),
         NativeBoundaryValue::Text(value) => Ok(NativeBoundaryBridgeValue::Text(value)),
         NativeBoundaryValue::Bytes(value) => Ok(NativeBoundaryBridgeValue::Bytes(value)),
@@ -294,24 +243,12 @@ pub(super) fn encode_bridge_result(
             .insert_for_owner(caller_process_id, ResourceValue::Regex(value))
             .map(NativeBoundaryBridgeValue::Handle)
             .map_err(dispatch_resource_error),
-        NativeBoundaryValue::HttpRequest(value) => store
-            .insert_for_owner(caller_process_id, ResourceValue::HttpRequest(value))
-            .map(NativeBoundaryBridgeValue::Handle)
-            .map_err(dispatch_resource_error),
         NativeBoundaryValue::HttpResponse(value) => store
             .insert_for_owner(caller_process_id, ResourceValue::HttpResponse(value))
             .map(NativeBoundaryBridgeValue::Handle)
             .map_err(dispatch_resource_error),
-        NativeBoundaryValue::HttpCookieJar(value) => store
-            .insert_for_owner(caller_process_id, ResourceValue::HttpCookieJar(value))
-            .map(NativeBoundaryBridgeValue::Handle)
-            .map_err(dispatch_resource_error),
         NativeBoundaryValue::Path(value) => store
             .insert_for_owner(caller_process_id, ResourceValue::Path(value))
-            .map(NativeBoundaryBridgeValue::Handle)
-            .map_err(dispatch_resource_error),
-        NativeBoundaryValue::Uri(value) => store
-            .insert_for_owner(caller_process_id, ResourceValue::Uri(value))
             .map(NativeBoundaryBridgeValue::Handle)
             .map_err(dispatch_resource_error),
         NativeBoundaryValue::PostgresPool(value) => store

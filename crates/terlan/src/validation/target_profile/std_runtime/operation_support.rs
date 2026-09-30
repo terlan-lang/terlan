@@ -39,8 +39,6 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
             CoreIntrinsicId::Primitive(
                 CorePrimitiveIntrinsic::TypeOf
                     | CorePrimitiveIntrinsic::IsType
-                    | CorePrimitiveIntrinsic::BoolEqual
-                    | CorePrimitiveIntrinsic::BoolCompare
                     | CorePrimitiveIntrinsic::BoolToString
                     | CorePrimitiveIntrinsic::BoolFromString
                     | CorePrimitiveIntrinsic::AtomToString
@@ -54,14 +52,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CorePrimitiveIntrinsic::FloatFloor
                     | CorePrimitiveIntrinsic::FloatCeil
                     | CorePrimitiveIntrinsic::FloatLog
-                    | CorePrimitiveIntrinsic::FloatPi
-                    | CorePrimitiveIntrinsic::FloatTau
-                    | CorePrimitiveIntrinsic::StringEqual
                     | CorePrimitiveIntrinsic::StringCompare
-                    | CorePrimitiveIntrinsic::StringToString
-                    | CorePrimitiveIntrinsic::StringFromString
-                    | CorePrimitiveIntrinsic::StringIsEmpty
-                    | CorePrimitiveIntrinsic::StringAppend
                     | CorePrimitiveIntrinsic::StringConcat
                     | CorePrimitiveIntrinsic::StringContains
                     | CorePrimitiveIntrinsic::StringStartsWith
@@ -118,8 +109,6 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
             ) | CoreIntrinsicId::Runtime(
                 CoreRuntimeCapability::ConsolePrintln
                     | CoreRuntimeCapability::ConsoleEprintln
-                    | CoreRuntimeCapability::ClockUnixTimeNs
-                    | CoreRuntimeCapability::ClockMonotonicTimeNs
                     | CoreRuntimeCapability::FileExists
                     | CoreRuntimeCapability::FileReadText
                     | CoreRuntimeCapability::FileWriteText

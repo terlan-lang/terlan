@@ -11,23 +11,11 @@ pub const NATIVE_MODULE: &str = "std_http_sse_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("data", 1),
-    ("with_id", 2),
-    ("with_name", 2),
-    ("with_retry_ms", 2),
-    ("response", 2),
-    ("endpoint", 2),
-    ("endpoint_with_keep_alive", 3),
+    ("encode", 4),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("data", "std.http.sse.data", 1),
-    ("with_id", "std.http.sse.with_id", 2),
-    ("with_name", "std.http.sse.with_name", 2),
-    ("with_retry_ms", "std.http.sse.with_retry_ms", 2),
-    ("response", "std.http.sse.response", 2),
-    ("endpoint", "std.http.sse.endpoint", 2),
-    ("endpoint_with_keep_alive", "std.http.sse.endpoint_with_keep_alive", 3),
+    ("encode", "std.http.sse.encode_event", 4),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -155,13 +143,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
-                        "std.http.sse.data" => native_unimplemented_operation(operation),
-                        "std.http.sse.with_id" => native_unimplemented_operation(operation),
-                        "std.http.sse.with_name" => native_unimplemented_operation(operation),
-                        "std.http.sse.with_retry_ms" => native_unimplemented_operation(operation),
-                        "std.http.sse.response" => native_unimplemented_operation(operation),
-                        "std.http.sse.endpoint" => native_unimplemented_operation(operation),
-                        "std.http.sse.endpoint_with_keep_alive" => native_unimplemented_operation(operation),
+                        "std.http.sse.encode_event" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

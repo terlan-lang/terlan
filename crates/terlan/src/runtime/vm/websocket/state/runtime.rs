@@ -797,22 +797,8 @@ impl VmWebSocketSession {
 pub(crate) fn build_websocket_upgrade_response(
     sec_websocket_key: &str,
 ) -> Result<VmWebSocketUpgradeResponse, String> {
-    let key = sec_websocket_key.trim();
-    if key.is_empty() {
-        return Err("error[vm_websocket]: missing Sec-WebSocket-Key".to_string());
-    }
-
-    Ok(VmWebSocketUpgradeResponse {
-        status: 101,
-        headers: vec![
-            ("upgrade".to_string(), "websocket".to_string()),
-            ("connection".to_string(), "Upgrade".to_string()),
-            (
-                "sec-websocket-accept".to_string(),
-                derive_accept_key(key.as_bytes()),
-            ),
-        ],
-    })
+    terlan_http_native::websocket::upgrade_response(sec_websocket_key)
+        .map_err(|error| format!("error[vm_websocket]: {}", error.message()))
 }
 
 /// Serializes VM-owned WebSocket upgrade response metadata into HTTP/1 bytes.
@@ -887,7 +873,7 @@ pub fn endpoint(
         terlan_runtime_abi::BoundaryError::message(
             terlan_runtime_abi::ErrorDomain::VmRuntime,
             "construct WebSocket endpoint",
-            error,
+            error.to_string(),
         )
     })
 }

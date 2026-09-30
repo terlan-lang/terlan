@@ -15,7 +15,8 @@ pub(crate) struct VmWebSocketLiveSession {
 impl VmWebSocketLiveSession {
     /// Opens bounded inbound state directly from an admitted endpoint plan.
     pub(crate) fn open(plan: VmWebSocketEndpointPlan) -> Self {
-        let inbound = plan.open_inbound_queue();
+        let inbound =
+            VmWebSocketInboundQueue::new(plan.max_pending_frames(), plan.max_frame_bytes());
         Self {
             plan,
             inbound,

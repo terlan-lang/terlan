@@ -15,13 +15,30 @@ mod direct_std;
 mod distributed_state;
 mod distributed_storage;
 mod execution;
+mod owned_native_dispatch;
 mod postgres;
 mod postgres_dispatch;
 mod postgres_transport;
-pub(crate) use postgres_dispatch::VmPostgresDispatcher;
+mod resource_projection;
+mod resource_transport;
+pub(crate) use owned_native_dispatch::VmOwnedNativeDispatcher;
+#[cfg(test)]
+mod crypto_test;
+#[cfg(test)]
+#[path = "package_native_helper/encoding_test.rs"]
+mod encoding_test;
+
+#[cfg(test)]
+#[path = "package_native_helper/clock_test.rs"]
+mod clock_test;
+#[cfg(test)]
+mod http_channel_value_test;
 mod scheduling;
+#[cfg(test)]
+mod source_test_support;
 mod storage_transport;
 mod test_fixtures;
+mod value_package;
 pub(crate) use execution::execute_call;
 pub(crate) use storage_transport::VmStorageBinding;
 #[path = "package_native_helper/helper_process.rs"]
@@ -127,6 +144,9 @@ impl VmPackageNativeHelpers {
         admitted_atoms: &[String],
     ) -> VmRuntimeResult<ReplValue> {
         let namespace = package_operation_namespace(&request.operation)?;
+        if let Some(binding) = value_package::binding(&request.operation) {
+            return value_package::call(binding, request);
+        }
         if request.operation.starts_with("std.test.fixture.") {
             return test_fixtures::call(self.test_fixtures, request);
         }

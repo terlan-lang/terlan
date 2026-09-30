@@ -366,7 +366,7 @@ fn immediate_callback_executes_on_its_protocol_owner_without_rpc() {
 }
 
 #[test]
-fn admitted_body_handler_retains_compiler_request_projection() {
+fn admitted_source_body_handler_uses_record_ingress_and_returns_source_response() {
     let _guard = generation_test_guard();
     const REQUEST_MODULE: &str = "app.RequestProjection";
     let root = test_fs::temp_path("serve", "aot_handler_request_projection");
@@ -387,20 +387,18 @@ fn admitted_body_handler_retains_compiler_request_projection() {
         entry
             .runtime
             .request_projection(REQUEST_MODULE, "handle", 1),
-        crate::runtime::native::http::RequestFieldProjection::Fields(
-            1 << crate::runtime::native::http::RequestFieldProjection::BODY,
-        )
+        crate::runtime::native::http::RequestFieldProjection::Complete
     );
     assert_eq!(
         entry
             .runtime
             .scalar_request_ingress(REQUEST_MODULE, "handle", 1)
             .map(|(_, field)| field),
-        Some(crate::runtime::native::http::RequestFieldProjection::BODY)
+        None
     );
-    let projection = crate::runtime::native::http::RequestFieldProjection::Fields(
-        1 << crate::runtime::native::http::RequestFieldProjection::BODY,
-    );
+    let projection = entry
+        .runtime
+        .request_projection(REQUEST_MODULE, "handle", 1);
     let request = crate::terlan_native::http::Request::new("typed response body").into_parts();
     let response = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
         VmSchedulerId::primary(),
@@ -417,12 +415,15 @@ fn admitted_body_handler_retains_compiler_request_projection() {
                 .expect("execute typed HTTP response")
         },
     );
-    let crate::runtime::vm::VmHttpCallResult::Response(response) = response else {
-        panic!("direct handler did not use the typed managed Response projection")
-    };
-    assert_eq!(response.kind, 0);
+    let value = response;
+    let response =
+        crate::commands::serve::handler::HandlerResponse::from_owned_vm_response_with_package_root(
+            value,
+            std::path::Path::new("/tmp"),
+        )
+        .unwrap();
     assert_eq!(response.status, 200);
-    assert_eq!(response.payload, "typed response body");
+    assert_eq!(response.body.as_bytes(), b"typed response body");
     assert!(response.headers.is_empty());
 
     let large_body = "x".repeat(4 * 1024);
@@ -442,10 +443,14 @@ fn admitted_body_handler_retains_compiler_request_projection() {
                 .expect("execute transferred typed HTTP response")
         },
     );
-    let crate::runtime::vm::VmHttpCallResult::Response(response) = response else {
-        panic!("large direct handler did not use the typed Response projection")
-    };
-    assert_eq!(&response.payload[..], large_body.as_bytes());
+    let value = response;
+    let response =
+        crate::commands::serve::handler::HandlerResponse::from_owned_vm_response_with_package_root(
+            value,
+            std::path::Path::new("/tmp"),
+        )
+        .unwrap();
+    assert_eq!(response.body.as_bytes(), large_body.as_bytes());
 
     cache()
         .expect("handler cache")
