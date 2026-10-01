@@ -94,7 +94,17 @@ fn request_cookie_header_parser_preserves_duplicates_and_quoted_values() {
 ///   full HTTP request.
 #[test]
 fn cookie_set_header_serializes_supported_attributes() {
-    let header = set_header("session", "abc123", "/account", true, true).expect("valid cookie");
+    let header = set_header_with_options(
+        "session",
+        "abc123",
+        &CookieOptions {
+            path: "/account".into(),
+            http_only: true,
+            secure: true,
+            ..default_options()
+        },
+    )
+    .expect("valid cookie");
 
     assert_eq!(header, "session=abc123; HttpOnly; Secure; Path=/account");
 }
@@ -150,7 +160,7 @@ fn cookie_set_header_with_options_serializes_same_site_variants() {
         (CookieSameSite::Strict, "SameSite=Strict"),
         (CookieSameSite::None, "SameSite=None"),
     ] {
-        let mut options = CookieOptions::defaults();
+        let mut options = default_options();
         options.same_site = Some(policy);
         let header =
             set_header_with_options("session", "abc123", &options).expect("valid cookie options");
@@ -175,7 +185,16 @@ fn cookie_set_header_with_options_serializes_same_site_variants() {
 ///   `Response.set_cookie_header`.
 #[test]
 fn cookie_delete_header_serializes_expiring_cookie() {
-    let header = delete_header("session", "/").expect("valid deletion cookie");
+    let header = set_header_with_options(
+        "session",
+        "",
+        &CookieOptions {
+            max_age: Some(0),
+            expires: Some("Thu, 01 Jan 1970 00:00:00 GMT".into()),
+            ..default_options()
+        },
+    )
+    .expect("valid deletion cookie");
 
     assert_eq!(
         header,
@@ -197,7 +216,8 @@ fn cookie_delete_header_serializes_expiring_cookie() {
 #[test]
 fn cookie_set_header_rejects_invalid_names() {
     for name in ["", "$Version", "bad name", "bad;name"] {
-        let error = set_header(name, "abc", "/", false, false).expect_err("invalid cookie name");
+        let error = set_header_with_options(name, "abc", &default_options())
+            .expect_err("invalid cookie name");
 
         assert_eq!(error.code(), "http.cookie.invalid_name");
         assert_eq!(error.status(), 400);
@@ -217,9 +237,17 @@ fn cookie_set_header_rejects_invalid_names() {
 ///   boundary.
 #[test]
 fn cookie_set_header_rejects_invalid_values_and_paths() {
-    let value_error =
-        set_header("session", "abc;HttpOnly", "/", false, false).expect_err("bad value");
-    let path_error = set_header("session", "abc", "relative", false, false).expect_err("bad path");
+    let value_error = set_header_with_options("session", "abc;HttpOnly", &default_options())
+        .expect_err("bad value");
+    let path_error = set_header_with_options(
+        "session",
+        "abc",
+        &CookieOptions {
+            path: "relative".into(),
+            ..default_options()
+        },
+    )
+    .expect_err("bad path");
 
     assert_eq!(value_error.code(), "http.cookie.invalid_value");
     assert_eq!(path_error.code(), "http.cookie.invalid_path");
@@ -237,15 +265,27 @@ fn cookie_set_header_rejects_invalid_values_and_paths() {
 /// - Pins the validation boundary for future typed cookie option lowering.
 #[test]
 fn cookie_set_header_with_options_rejects_invalid_optional_attributes() {
-    let mut options = CookieOptions::defaults();
+    let mut options = default_options();
     options.domain = Some("bad;domain".to_string());
     let domain_error = set_header_with_options("session", "abc", &options).expect_err("bad domain");
 
-    let mut options = CookieOptions::defaults();
+    let mut options = default_options();
     options.expires = Some("bad\nexpires".to_string());
     let expires_error =
         set_header_with_options("session", "abc", &options).expect_err("bad expires");
 
     assert_eq!(domain_error.code(), "http.cookie.invalid_attribute");
     assert_eq!(expires_error.code(), "http.cookie.invalid_attribute");
+}
+
+fn default_options() -> CookieOptions {
+    CookieOptions {
+        path: "/".into(),
+        domain: None,
+        max_age: None,
+        expires: None,
+        http_only: false,
+        secure: false,
+        same_site: None,
+    }
 }

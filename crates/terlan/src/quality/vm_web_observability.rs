@@ -56,24 +56,24 @@ const REQUIRED_VM_HTTP_TEST_ANCHORS: &[&str] = &[
 
 const REQUIRED_STREAM_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/runtime/vm/sse.rs",
+        "std/http/native/src/sse_session.rs",
         &[
-            "VmSseStreamInfo",
+            "SseStreamInfo",
             "pending_events",
             "max_pending_events",
             "emitted_events",
-            "inspect(&self) -> VmSseStreamInfo",
+            "inspect(&self) -> SseStreamInfo",
             "BackpressureExceeded",
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/websocket.rs",
+        "std/http/native/src/websocket/session.rs",
         &[
-            "VmWebSocketInboundQueueInfo",
+            "InboundQueueInfo",
             "pending_frames",
             "queued_frame_bytes",
-            "inspect(&self) -> VmWebSocketInboundQueueInfo",
-            "error[vm_websocket_queue]: pending frame queue is full",
+            "inspect(&self) -> InboundQueueInfo",
+            "pending frame queue is full",
         ],
     ),
 ];

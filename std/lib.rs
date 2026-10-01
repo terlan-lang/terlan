@@ -7,7 +7,9 @@ mod packages;
 #[path = "db/native_operations.rs"]
 pub mod postgres;
 
-pub use packages::{resource_operation, value_binding, RESOURCE_OPERATIONS, VALUE_BINDINGS};
+pub use packages::{
+    context_operation_arity, resource_operation, value_binding, RESOURCE_OPERATIONS, VALUE_BINDINGS,
+};
 
 /// Cryptographic operations shared with host package tooling.
 pub use terlan_crypto_native as crypto;

@@ -8,7 +8,6 @@ use super::tls::VmTlsTcpServerStream;
 #[cfg(test)]
 pub(crate) use memory::{VmAccountedWebSocketInboundQueue, VmAccountedWebSocketQueueError};
 pub(crate) use memory::{VmWebSocketInboundQueue, VmWebSocketInboundQueueInfo};
-pub(crate) use websocket_live_session::VmWebSocketLiveSession;
 
 #[cfg(test)]
 use std::{
@@ -18,8 +17,6 @@ use std::{
 
 #[path = "websocket/memory.rs"]
 mod memory;
-#[path = "websocket_live_session.rs"]
-mod websocket_live_session;
 
 #[cfg(test)]
 #[path = "websocket/memory_test.rs"]

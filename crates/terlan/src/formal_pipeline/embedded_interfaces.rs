@@ -90,6 +90,7 @@ pub(super) const EMBEDDED_STD_INTERFACES: &[EmbeddedStdInterface] = &[
     embedded!("std.http.Session"),
     embedded!("std.http.Sse"),
     embedded!("std.http.WebSocket"),
+    embedded!("std.http.WebSocketIdentity"),
     embedded!("std.http.Tls"),
     embedded!("std.native.collections.Vector"),
     embedded!("std.core.Option"),

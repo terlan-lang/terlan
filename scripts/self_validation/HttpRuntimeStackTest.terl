@@ -6,6 +6,7 @@ module scripts.self_validation.HttpRuntimeStack.
 import std.collections.List.
 import std.core.Result.{Ok}.
 import std.core.String.
+import std.data.{Json, Toml}.
 import std.io.File.{read_text, read_text_many, read_text_tree_matching, text_file_contents}.
 import std.regex.Regex.
 
@@ -25,7 +26,15 @@ pub repository_boundary_holds(root: String): Bool ->
     }.
 
 dependencies_hold(manifest: String): Bool ->
-    regex_matches("(?m)^\\s*http\\s*=", manifest) and regex_matches("(?m)^\\s*hyper\\s*=", manifest).
+    let {
+        Ok(document) <- Toml.parse(manifest);
+        Ok(dependencies) <- document.get("dependencies");
+        Ok(_) <- dependencies.get("http");
+        Ok(_) <- dependencies.get("hyper")
+    } else {
+        _ -> false
+    };
+    true.
 
 marker_files_hold(root: String): Bool ->
     case read_text_many(marker_paths(root)) {
@@ -97,20 +106,26 @@ makefile_contains_gate_contract(makefile: String): Bool ->
 @pure
 marker_paths(root: String): List[String] ->
     [
-        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/std/http/native/src/http1/connection.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/server_lifecycle/vm_stream.rs"),
-        String.append(root, "/std/http/native/src/response.rs"),
-        String.append(root, "/std/http/native/src/response.rs"),
+        String.append(root, "/std/http/native/src/content_type.rs"),
+        String.append(root, "/std/http/native/src/content_type.rs"),
         String.append(root, "/std/http/native/src/cookies.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/hyper_server/tls_io.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/tls/acme_runtime.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/tls/acme_runtime.rs"),
     ].
 
 @pure
@@ -118,9 +133,9 @@ required_markers(): List[String] ->
     [
         "hyper::server::conn::http1",
         "serve_protocol_tasks",
-        "VmReadyTcpStream",
-        ".serve_connection(HyperVmIo::new(stream), service)",
-        "struct HyperVmIo",
+        "VmReadyStream",
+        "terlan_http_native::http1::serve_connection(io, service)",
+        "type HyperVmIo = terlan_http_native::plain_io::PlainIo<VmReadyStream>",
         "hyper_server::serve(listener, web_root, max_body_bytes)",
         "pub fn content_type_for_path",
         "mime_guess::from_path(path)",
@@ -130,6 +145,12 @@ required_markers(): List[String] ->
         "RecursiveMode::Recursive",
         "fn watch_web_package_for_reload",
         "fn should_reload_for_event",
+        "use terlan_http_native::response_body::ResponseBody",
+        "terlan_http_native::upgrade_io::UpgradeIo<",
+        "output::drain(&mut socket, &lease.outbound, websocket_transport_wait)",
+        "terlan_http_native::tls::TlsIo<VmReadyStream>",
+        "tls_runtime::load(",
+        "terlan_http_native::acme::issuer::issue_certificate_cache(",
     ].
 
 @pure
@@ -142,6 +163,20 @@ forbidden_patterns(): List[String] ->
         "\\bDefaultHasher::new\\s*\\(",
         "\\bweb_package_snapshot\\s*\\(",
         "\\btungstenite::",
+        "\\bruntime::vm::hyper_tls\\b",
+        "\\bstruct\\s+HyperWebSocketIo\\b",
+        "\\benum\\s+ResponseBody\\b",
+        "\\bfn\\s+(load_certificate_chain|load_private_key|rustls_server_config|manual_runtime_tls_config|internal_runtime_tls_config)\\s*\\(",
+        "\\bfn\\s+(acme_runtime_plan|load_acme_runtime_tls_cache|validate_acme_certificate_cache_age|validate_acme_certificate_cache_domains|validate_acme_key_custody_policy)\\s*\\(",
+        "\\bfn\\s+(load_or_create_acme_account|pending_http01_challenges|generate_acme_csr|wait_for_acme_order_ready|wait_for_acme_certificate)\\b",
+        "\\binstant_acme::(Account|NewOrder|OrderStatus|AuthorizationStatus)\\b",
+        "\\bruntime::vm::acme_worker\\b",
+        "\\bVmAcmeWorkerRuntime\\b",
+        "\\bmatch\\s+tls\\.mode\\b",
+        "\\bfn\\s+validate_manual_tls_file_references?\\b",
+        "\\bhyper::server::conn::http1\\b",
+        "\\bhttp1::Builder\\b",
+        "\\bfn\\s+(flush_websocket_nonblocking|drain_hub_outbound)\\b",
     ].
 
 @test
@@ -150,8 +185,19 @@ pub repository_http_runtime_stack_holds(): Bool ->
 
 @test
 pub dependencies_require_hyper_and_http(): Bool ->
-    dependencies_hold("http = \"1\"\nhyper = { version = \"1\" }")
-        and not dependencies_hold("http = \"1\"").
+    dependencies_hold("[dependencies]\nhttp = \"1\"\nhyper = { version = \"1\" }")
+        and dependencies_hold("[dependencies]\nhttp.workspace = true\nhyper.workspace = true")
+        and dependencies_hold("[dependencies.http]\nworkspace = true\n[dependencies.hyper]\nversion = \"1\"")
+        and not dependencies_hold("[dependencies]\nhttp = \"1\"").
+
+@test
+pub dependency_inventory_rejects_malformed_and_wrong_scope_declarations(): Bool ->
+    not dependencies_hold("http = \"1\"\nhyper = \"1\"")
+        and not dependencies_hold("[dev-dependencies]\nhttp = \"1\"\nhyper = \"1\"")
+        and not dependencies_hold("[dependencies]\nhttp-extra = \"1\"\nhyper = \"1\"")
+        and not dependencies_hold("# [dependencies]\n# http = \"1\"\n# hyper = \"1\"")
+        and not dependencies_hold("dependencies = false")
+        and not dependencies_hold("[dependencies]\nhttp = ").
 
 @test
 pub manual_request_parsing_is_rejected(): Bool ->
@@ -164,20 +210,74 @@ pub polling_reload_backend_is_rejected(): Bool ->
 @test
 pub maintained_hyper_connection_is_accepted(): Bool ->
     source_rejects_no_patterns(
-        "http1::Builder::new().serve_connection(io, service)",
-        forbidden_patterns(),
-    ).
+    "terlan_http_native::http1::serve_connection(io, service)",
+    forbidden_patterns(),
+)
+        and not source_rejects_no_patterns(
+    "http1::Builder::new().serve_connection(io, service)",
+    forbidden_patterns(),
+)
+        and not source_rejects_no_patterns("use hyper::server::conn::http1;", forbidden_patterns()).
 
 @test
 pub websocket_protocol_stays_in_the_http_package(): Bool ->
-    not source_rejects_no_patterns(
-        "use tungstenite::protocol::WebSocket;",
-        forbidden_patterns(),
-    )
+    not source_rejects_no_patterns("use tungstenite::protocol::WebSocket;", forbidden_patterns())
+        and not source_rejects_no_patterns("async fn drain_hub_outbound() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("async fn flush_websocket_nonblocking() {}", forbidden_patterns())
+        and source_rejects_no_patterns("use terlan_http_native::websocket::Server;", forbidden_patterns()).
+
+@test
+pub host_uses_package_upgrade_body_and_tls_adapters(): Bool ->
+    not source_rejects_no_patterns("struct HyperWebSocketIo { }", forbidden_patterns())
+        and not source_rejects_no_patterns("enum ResponseBody { }", forbidden_patterns())
+        and not source_rejects_no_patterns("use crate::runtime::vm::hyper_tls;", forbidden_patterns())
         and source_rejects_no_patterns(
-            "use terlan_http_native::websocket::Server;",
-            forbidden_patterns(),
-        ).
+    "type HyperWebSocketIo = terlan_http_native::upgrade_io::UpgradeIo<Plain, Tls>;",
+    forbidden_patterns(),
+)
+        and source_rejects_no_patterns(
+    "use terlan_http_native::response_body::ResponseBody;",
+    forbidden_patterns(),
+).
+
+@test
+pub certificate_material_setup_stays_in_the_http_package(): Bool ->
+    not source_rejects_no_patterns("fn load_certificate_chain() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn load_private_key() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn rustls_server_config() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn manual_runtime_tls_config() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn internal_runtime_tls_config() {}", forbidden_patterns())
+        and source_rejects_no_patterns(
+    "use terlan_http_native::tls_material::{load_certificate_chain, load_private_key};",
+    forbidden_patterns(),
+).
+
+@test
+pub acme_cache_admission_stays_in_the_http_package(): Bool ->
+    not source_rejects_no_patterns("fn acme_runtime_plan() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn load_acme_runtime_tls_cache() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn validate_acme_certificate_cache_age() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn validate_acme_certificate_cache_domains() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn validate_acme_key_custody_policy() {}", forbidden_patterns())
+        and source_rejects_no_patterns(
+    "use terlan_http_native::acme::load_acme_runtime_tls_cache;",
+    forbidden_patterns(),
+).
+
+@test
+pub acme_protocol_implementation_stays_in_the_http_package(): Bool ->
+    not source_rejects_no_patterns("async fn load_or_create_acme_account() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("async fn wait_for_acme_order_ready<F>() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("async fn wait_for_acme_certificate<F>() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("use instant_acme::OrderStatus;", forbidden_patterns())
+        and not source_rejects_no_patterns("use crate::runtime::vm::acme_worker;", forbidden_patterns())
+        and not source_rejects_no_patterns("VmAcmeWorkerRuntime::new()", forbidden_patterns())
+        and not source_rejects_no_patterns("match tls.mode { Mode::Auto => cached_tls() }", forbidden_patterns())
+        and not source_rejects_no_patterns("fn validate_manual_tls_file_references() {}", forbidden_patterns())
+        and source_rejects_no_patterns(
+    "use terlan_http_native::acme::issuer::issue_certificate_cache;",
+    forbidden_patterns(),
+).
 
 @test
 pub make_target_block_requires_owned_command(): Bool ->

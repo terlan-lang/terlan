@@ -306,16 +306,7 @@ impl PureNativeExecutionRuntime {
         request_id: u64,
         continuation_id: u64,
     ) -> Result<NativeContinuationClaim, String> {
-        let pending = self.continuations.get(&owner_id).ok_or_else(|| {
-            format!(
-                "error[execution_shard.continuation_stale]: continuation {continuation_id} is not parked for actor {owner_id}"
-            )
-        })?;
-        if (pending.request_id, pending.continuation_id) != (request_id, continuation_id) {
-            return Err(format!(
-                "error[execution_shard.continuation_identity]: resume ({request_id}, {owner_id}, {continuation_id}) does not own the parked continuation"
-            ));
-        }
+        self.validate_continuation(owner_id, request_id, continuation_id)?;
         let pending = self
             .continuations
             .remove(&owner_id)
@@ -328,6 +319,26 @@ impl PureNativeExecutionRuntime {
             managed: pending.managed,
             completions: pending.completions,
         })
+    }
+
+    /// Checks parked authority before an owner-local native service can mutate state.
+    pub(crate) fn validate_continuation(
+        &self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+    ) -> Result<(), String> {
+        let pending = self.continuations.get(&owner_id).ok_or_else(|| {
+            format!(
+                "error[execution_shard.continuation_stale]: continuation {continuation_id} is not parked for actor {owner_id}"
+            )
+        })?;
+        if (pending.request_id, pending.continuation_id) != (request_id, continuation_id) {
+            return Err(format!(
+                "error[execution_shard.continuation_identity]: resume ({request_id}, {owner_id}, {continuation_id}) does not own the parked continuation"
+            ));
+        }
+        Ok(())
     }
 
     /// Releases one actor's continuation, managed heap, and mailbox roots.

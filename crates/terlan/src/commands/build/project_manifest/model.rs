@@ -1,5 +1,5 @@
-pub(crate) use crate::commands::serve::tls_contract::{
-    ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
+pub(crate) use terlan_http_native::tls_config::{
+    Config as ProjectServerTls, Mode as ProjectServerTlsMode, Provider as ProjectServerTlsProvider,
 };
 
 /// Parsed Terlan project manifest.

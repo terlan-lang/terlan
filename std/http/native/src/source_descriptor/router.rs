@@ -235,10 +235,24 @@ fn callbacks<V: DescriptorValue, C>(
     arity: usize,
     callback: &mut impl FnMut(&V, usize) -> Result<C>,
 ) -> Result<Vec<C>> {
-    list(values)?
-        .iter()
-        .map(|value| callback(value, arity))
-        .collect()
+    let name = if arity == 1 {
+        "RequestPipeline"
+    } else {
+        "ResponsePipeline"
+    };
+    let [declared, execute] = record(values, name, ["callbacks", "execute"])?;
+    // The source owns invocation order and short-circuiting. Validate retained
+    // declarations, but admit only its executable stage closures.
+    for value in list(declared)? {
+        callback(value, arity)?;
+    }
+    let execute = list(execute)?;
+    if execute.len() > 1 {
+        return Err(error(
+            "middleware pipeline must contain at most one executable stage",
+        ));
+    }
+    execute.iter().map(|value| callback(value, arity)).collect()
 }
 
 fn install<T>(slot: &mut Option<T>, value: T, name: &str) -> Result<()> {

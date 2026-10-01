@@ -11,6 +11,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+instant-acme = { version = "0.7", optional = true }
 axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
@@ -18,9 +19,13 @@ futures-util = { version = "0.3", default-features = false, features = ["alloc"]
 http-body-util.workspace = true
 bytes.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+rustls-webpki = "0.103.13"
+rcgen.workspace = true
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
 cookie = "0.18.1"
 http.workspace = true
-hyper.workspace = true
+hyper = { workspace = true, features = ["server", "http2"] }
 httparse.workspace = true
 mime_guess.workspace = true
 percent-encoding.workspace = true
@@ -29,8 +34,12 @@ terlan-data-native = { path = "../../data/native" }
 terlan-net-native = { path = "../../net/native" }
 time = { workspace = true, features = ["formatting", "parsing"] }
 terlan-runtime-abi.workspace = true
+tempfile.workspace = true
 
 [dev-dependencies]
+instant-acme = "0.7"
+hyper = { workspace = true, features = ["client", "http1", "http2"] }
 serde_json.workspace = true
-rcgen.workspace = true
-rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+
+[features]
+acme-issuer = ["dep:instant-acme"]

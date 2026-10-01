@@ -7,12 +7,6 @@ pub(crate) fn expr_is_scalar(expr: &CoreExpr) -> bool {
         };
         return args.iter().all(expr_is_scalar);
     }
-    if super::super::http_values::managed_http_operation_type(expr).is_some() {
-        let CoreExpr::RemoteCall { args, .. } = expr else {
-            unreachable!("managed HTTP operations are remote calls");
-        };
-        return args.iter().all(expr_is_scalar);
-    }
     match expr {
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Var(_) => true,
         CoreExpr::Atom(_) => true,

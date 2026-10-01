@@ -31,20 +31,10 @@ use super::{
     encode_string_prepend_projected_literal_operation, encode_string_trim_end_operation,
     encode_string_trim_operation, encode_string_trim_start_operation,
     encode_string_utf8_find_any_byte_operation, encode_template_render_operation,
-    execute_managed_operation_with_context, managed_abi_result_is_reference,
-    ManagedBinaryPatternEndian, ManagedBinaryPatternField, ManagedBitStringOperation,
-    ManagedTemplateValueKind,
+    execute_managed_operation, managed_abi_result_is_reference, ManagedBinaryPatternEndian,
+    ManagedBinaryPatternField, ManagedBitStringOperation, ManagedTemplateValueKind,
 };
 use crate::runtime::vm::ReplValue;
-
-pub(crate) fn execute_managed_operation(
-    heap: &mut ActorHeap,
-    layouts: &ManagedLayoutRegistry,
-    encoded: &[u8],
-    words: &[i64],
-) -> Result<u64, ManagedMemoryError> {
-    execute_managed_operation_with_context(heap, layouts, None, encoded, words)
-}
 
 const REQUEST: &str = "Named(Request)";
 const STRING_MAP: &str = "std.http.Request.StringMap";

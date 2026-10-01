@@ -110,18 +110,6 @@ pub(super) fn lower_expr_with_constructors(
     {
         return Ok(operation);
     }
-    if let Some(operation) = super::http_values::lower_managed_http_operation(expr, |argument| {
-        lower_expr_with_constructors(
-            argument,
-            params,
-            param_types,
-            functions,
-            function_types,
-            constructors,
-        )
-    })? {
-        return Ok(operation);
-    }
     match expr {
         CoreExpr::Atom(value) if value == "Unit" => Ok(NativeExpr::Unit),
         CoreExpr::Var(value) if value == "Unit" => Ok(NativeExpr::Unit),

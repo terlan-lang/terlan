@@ -7,4 +7,5 @@ if [[ $# -ne 1 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-"$ROOT/compiler/self_host/scripts/projected_oracle.sh" source-closure "$1"
+TERLC=${TERLC:-target/debug/terlc}
+"$TERLC" --incremental run "$ROOT/compiler/self_host/scripts/SourceClosure.terls" -- "$1"

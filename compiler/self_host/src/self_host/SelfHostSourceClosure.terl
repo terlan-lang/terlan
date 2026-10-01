@@ -135,6 +135,13 @@ module_file(name: String): String ->
 @pure
 module_directory(name: String): String ->
     if {
+        name == "self_host" -> "compiler/self_host/src/self_host";
+        true -> nested_module_directory(name)
+    }.
+
+@pure
+nested_module_directory(name: String): String ->
+    if {
         String.starts_with(name, "self_host.") -> String.concat([
             "compiler/self_host/src/self_host/",
             String.utf8_slice(name, 10, String.byte_size(name) - 10),
@@ -219,7 +226,15 @@ write_manifest(output: String, closure: ClosureState): Bool ->
     }.
 
 write_closure(output: String, closure: ClosureState): Bool ->
-    if { closure.unresolved != [] -> false; true -> write_manifest(output, closure) }.
+    if {
+        closure.unresolved != [] -> let _written = File.write_text(
+            String.append(output, ".errors"),
+            manifest(reverse_strings(closure.unresolved)),
+        );
+        false;
+        true -> let _cleared = File.write_text(String.append(output, ".errors"), "");
+        write_manifest(output, closure)
+    }.
 
 write_initial(output: String, initial: List[String]): Bool ->
     let seeded = add_paths(initial, ClosureState(queue = List.new[String](), seen = List.new[String](), unresolved = List.new[String]()));

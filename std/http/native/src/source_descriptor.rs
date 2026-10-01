@@ -4,11 +4,17 @@ use terlan_runtime_abi::{DescriptorValue, DescriptorView, NativeAdapterError};
 
 mod channels;
 mod execution;
+mod response;
+mod restoration;
 mod router;
+mod transition;
 pub use channels::{sse_endpoint, websocket_endpoint};
 pub(crate) use execution::middleware_result;
 pub use execution::HandlerPipeline;
+pub use response::{cached_response, response, SourceResponse, SourceResponseBody};
+pub use restoration::restoration_identity;
 pub use router::{router, Route, RouteTarget, Router};
+pub use transition::{paired_transition, PairedTransition};
 
 #[cfg(test)]
 #[path = "source_descriptor_test.rs"]

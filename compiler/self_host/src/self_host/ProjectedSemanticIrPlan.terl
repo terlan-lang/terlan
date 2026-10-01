@@ -6,11 +6,11 @@ module self_host.ProjectedSemanticIrPlan.
 import self_host.BackendSyntax.{BackendDeclaration}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
 import self_host.ProjectedExpressionIrPlan.{lower_expression}.
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, body_for, concat_blocks, concat_instructions, ir_parameters, node_size, none_string, parameter, parameter_count, resolved_return, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_parameters, body_for, concat_blocks, concat_instructions, ir_parameters, lambda_body, lambda_body_id, lambda_captures, lambda_parameters, lambda_symbol, node_size, none_string, parameter, parameter_count, resolved_or_dynamic, resolved_return, shallow_pattern_bindings, shallow_pattern_operands, shallow_pattern_supported, some_string}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
-import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_two_at, embedded_if_at, root_embedded_if_blocks}.
+import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_at, embedded_if_at, root_embedded_if_blocks, root_refutable_let_blocks}.
 import self_host.ProjectedNestedControlIrPlan.{ExpressionNodePair, ExpressionNodeQuad, ExpressionNodeTriple, expression_node_pair, expression_node_quad, expression_node_triple, linear_binding, nested_let_if_blocks}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 import self_host.SelfHostIrSyntax.{IrParameter}.
@@ -20,6 +20,231 @@ import self_host.{BackendSyntax, FunctionSyntax, MethodSyntax, ParameterSyntax, 
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.{Bool, Int, String}.
+
+root_case_one_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case expression_node_pair(node.children) {
+        Some(parts) ->
+            root_case_one_direct_clause(
+                parts.first,
+                expression_node_pair(parts.second.children),
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+root_case_one_direct_clause(
+    subject: ProjectedExpressionNode,
+    clause: Option[ExpressionNodePair],
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case clause {
+        Some(parts) ->
+            root_case_one_direct_supported(
+                shallow_pattern_supported(parts.first),
+                subject,
+                parts.first,
+                parts.second,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+root_case_one_direct_supported(
+    valid: Bool,
+    subject: ProjectedExpressionNode,
+    pattern: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case valid {
+        true ->
+            root_case_one_direct_bound(
+                subject,
+                pattern,
+                body,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+root_case_one_direct_bound(
+    subject: ProjectedExpressionNode,
+    pattern: ProjectedExpressionNode,
+    body: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    let subject_plan = lower_expression(subject, node_id + 1, facts, parameters);
+    let clause_id = node_id + 1 + node_size(subject);
+    let body_id = clause_id + 1 + node_size(pattern);
+    let body_plan = lower_expression(body, body_id, facts, parameters);
+    Some(root_case_one_blocks(entry_instructions, subject_plan, pattern, body_plan)).
+
+root_case_one_blocks(
+    entry_instructions: List[SemanticInstructionPlan],
+    subject_plan: ExpressionPlan,
+    pattern: ProjectedExpressionNode,
+    body_plan: ExpressionPlan,
+): List[SemanticBlockPlan] ->
+    let environment = "%root_case_environment_0";
+    let matched = "%root_case_match_0";
+    [
+        SemanticBlockPlan(
+            "entry",
+            concat_instructions(entry_instructions, subject_plan.instructions),
+            SemanticTerminatorPlan("jump", List.new[String](), ["root_case_pattern_0"]),
+        ),
+        SemanticBlockPlan(
+            "root_case_pattern_0",
+            [
+                SemanticInstructionPlan(
+                    "prepare-pattern",
+                    some_string(environment),
+                    shallow_pattern_operands(subject_plan.result, pattern),
+                    some_string("PatternMatch"),
+                ),
+                SemanticInstructionPlan(
+                    "pattern-matched",
+                    some_string(matched),
+                    [environment],
+                    some_string("Bool"),
+                ),
+            ],
+            SemanticTerminatorPlan(
+                "branch",
+                [matched],
+                ["root_case_body_0", "root_case_unreachable"],
+            ),
+        ),
+        SemanticBlockPlan(
+            "root_case_body_0",
+            concat_instructions(
+                shallow_pattern_bindings(pattern, environment),
+                body_plan.instructions,
+            ),
+            SemanticTerminatorPlan("return", [body_plan.result], List.new[String]()),
+        ),
+        SemanticBlockPlan(
+            "root_case_unreachable",
+            List.new[SemanticInstructionPlan](),
+            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+        ),
+    ].
+
+root_case_one_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    if {
+        node.kind == "let" -> root_case_one_let_at(node, node_id, entry_instructions, facts, parameters);
+        true -> root_case_one_nonlet_at(node, node_id, entry_instructions, facts, parameters)
+    }.
+
+root_case_one_let_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case expression_node_triple(node.children) {
+        Some(parts) ->
+            root_case_one_let_parts(
+                parts.first.kind == "binding-pattern",
+                parts.first,
+                parts.second,
+                parts.third,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        _ -> None
+    }.
+
+root_case_one_let_parts(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    case valid {
+        true ->
+            root_case_one_let_bound(
+                pattern,
+                source,
+                continuation,
+                node_id,
+                entry_instructions,
+                facts,
+                parameters,
+            );
+        false -> None
+    }.
+
+root_case_one_let_bound(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    root_case_one_at(
+        continuation,
+        source_id + node_size(source),
+        concat_instructions(
+            entry_instructions,
+            concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+        ),
+        facts,
+        parameters,
+    ).
+
+root_case_one_nonlet_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_instructions: List[SemanticInstructionPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    if {
+        node.kind == "case" -> root_case_one_direct(node, node_id, entry_instructions, facts, parameters);
+        true -> None
+    }.
 
 root_case_two_direct(
     node: ProjectedExpressionNode,
@@ -204,6 +429,40 @@ root_case_two_direct_bound(
         parameters,
     ).
 
+embedded_case_or_if_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    case_label_prefix: String,
+    if_label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case embedded_case_at(
+        node,
+        node_id,
+        entry_label,
+        case_label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> Some(embedded);
+        None -> embedded_if_at(
+            node,
+            node_id,
+            entry_label,
+            if_label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
 root_case_two_prepare(
     first_body: ProjectedExpressionNode,
     first_body_id: Int,
@@ -240,21 +499,23 @@ root_case_two_prepare(
     let first_bindings = shallow_pattern_bindings(first_pattern, first_environment);
     let second_bindings = shallow_pattern_bindings(second_pattern, second_environment);
     let first_embedded =
-        embedded_case_two_at(
+        embedded_case_or_if_at(
             first_body,
             first_body_id,
             "root_case_body_0",
             "root_case_body_0_case_",
+            "root_case_body_0_if_",
             first_bindings,
             "root_case_join",
             facts,
             parameters,
         );
     let second_embedded =
-        embedded_if_at(
+        embedded_case_or_if_at(
             second_body,
             second_body_id,
             "root_case_body_1",
+            "root_case_body_1_case_",
             "root_case_body_1_if_",
             second_bindings,
             "root_case_join",
@@ -294,19 +555,18 @@ root_case_two_select_first(
 ): Option[List[SemanticBlockPlan]] ->
     case first_embedded {
         Some(embedded) ->
-            Some(
-                root_case_two_first_embedded_blocks(
-                    embedded,
-                    entry_instructions,
-                    subject_plan,
-                    first_prepare,
-                    first_match,
-                    second_prepare,
-                    second_match,
-                    second_bindings,
-                    second_body_plan,
-                    phi_type,
-                ),
+            root_case_two_select_both_or_first(
+                embedded,
+                second_embedded,
+                entry_instructions,
+                subject_plan,
+                first_prepare,
+                first_match,
+                second_prepare,
+                second_match,
+                second_bindings,
+                second_body_plan,
+                phi_type,
             );
         None ->
             root_case_two_select_second(
@@ -323,6 +583,45 @@ root_case_two_select_first(
                 second_body_plan,
                 phi_type,
             )
+    }.
+
+root_case_two_select_both_or_first(
+    first_embedded: EmbeddedBranchPlan,
+    second_embedded: Option[EmbeddedBranchPlan],
+    entry_instructions: List[SemanticInstructionPlan],
+    subject_plan: ExpressionPlan,
+    first_prepare: SemanticInstructionPlan,
+    first_match: String,
+    second_prepare: SemanticInstructionPlan,
+    second_match: String,
+    second_bindings: List[SemanticInstructionPlan],
+    second_body_plan: ExpressionPlan,
+    phi_type: String,
+): Option[List[SemanticBlockPlan]] ->
+    case second_embedded {
+        Some(embedded) -> Some(root_case_two_both_embedded_blocks(
+            first_embedded,
+            embedded,
+            entry_instructions,
+            subject_plan,
+            first_prepare,
+            first_match,
+            second_prepare,
+            second_match,
+            phi_type,
+        ));
+        None -> Some(root_case_two_first_embedded_blocks(
+            first_embedded,
+            entry_instructions,
+            subject_plan,
+            first_prepare,
+            first_match,
+            second_prepare,
+            second_match,
+            second_bindings,
+            second_body_plan,
+            phi_type,
+        ))
     }.
 
 root_case_two_select_second(
@@ -458,6 +757,91 @@ root_case_two_first_embedded_blocks(
                     SemanticTerminatorPlan("return", ["%root_case_result"], List.new[String]()),
                 ),
             ],
+        ),
+    ).
+
+root_case_two_both_embedded_blocks(
+    first_embedded: EmbeddedBranchPlan,
+    second_embedded: EmbeddedBranchPlan,
+    entry_instructions: List[SemanticInstructionPlan],
+    subject_plan: ExpressionPlan,
+    first_prepare: SemanticInstructionPlan,
+    first_match: String,
+    second_prepare: SemanticInstructionPlan,
+    second_match: String,
+    phi_type: String,
+): List[SemanticBlockPlan] ->
+    concat_blocks(
+        [
+            SemanticBlockPlan(
+                "entry",
+                concat_instructions(entry_instructions, subject_plan.instructions),
+                SemanticTerminatorPlan("jump", List.new[String](), ["root_case_pattern_0"]),
+            ),
+            SemanticBlockPlan(
+                "root_case_pattern_0",
+                [
+                    first_prepare,
+                    SemanticInstructionPlan(
+                        "pattern-matched",
+                        some_string(first_match),
+                        ["%root_case_environment_0"],
+                        some_string("Bool"),
+                    ),
+                ],
+                SemanticTerminatorPlan(
+                    "branch",
+                    [first_match],
+                    ["root_case_body_0", "root_case_pattern_1"],
+                ),
+            ),
+            SemanticBlockPlan(
+                "root_case_pattern_1",
+                [
+                    second_prepare,
+                    SemanticInstructionPlan(
+                        "pattern-matched",
+                        some_string(second_match),
+                        ["%root_case_environment_1"],
+                        some_string("Bool"),
+                    ),
+                ],
+                SemanticTerminatorPlan(
+                    "branch",
+                    [second_match],
+                    ["root_case_body_1", "root_case_unreachable"],
+                ),
+            ),
+        ],
+        concat_blocks(
+            first_embedded.blocks,
+            concat_blocks(
+                second_embedded.blocks,
+                [
+                    SemanticBlockPlan(
+                        "root_case_unreachable",
+                        List.new[SemanticInstructionPlan](),
+                        SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                    ),
+                    SemanticBlockPlan(
+                        "root_case_join",
+                        [
+                            SemanticInstructionPlan(
+                                "phi",
+                                some_string("%root_case_result"),
+                                [
+                                    first_embedded.exit_label,
+                                    first_embedded.result,
+                                    second_embedded.exit_label,
+                                    second_embedded.result,
+                                ],
+                                some_string(phi_type),
+                            ),
+                        ],
+                        SemanticTerminatorPlan("return", ["%root_case_result"], List.new[String]()),
+                    ),
+                ],
+            ),
         ),
     ).
 
@@ -865,10 +1249,14 @@ projected_function_blocks(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): List[SemanticBlockPlan] ->
-    case nested_let_if_blocks(node, facts, parameters) {
+    case root_refutable_let_blocks(node, facts, parameters) {
         Some(blocks) -> blocks;
         None ->
-            projected_embedded_or_case_blocks(node, return_name, linear_blocks, facts, parameters)
+            case nested_let_if_blocks(node, facts, parameters) {
+                Some(blocks) -> blocks;
+                None ->
+                    projected_embedded_or_case_blocks(node, return_name, linear_blocks, facts, parameters)
+            }
     }.
 
 projected_embedded_or_case_blocks(
@@ -881,7 +1269,26 @@ projected_embedded_or_case_blocks(
     case root_embedded_if_blocks(node, facts, parameters) {
         Some(blocks) -> blocks;
         None ->
-            projected_case_two_or_three_blocks(node, return_name, linear_blocks, facts, parameters)
+            projected_case_blocks(node, return_name, linear_blocks, facts, parameters)
+    }.
+
+projected_case_blocks(
+    node: ProjectedExpressionNode,
+    return_name: String,
+    linear_blocks: List[SemanticBlockPlan],
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): List[SemanticBlockPlan] ->
+    case root_case_one_at(node, 0, List.new[SemanticInstructionPlan](), facts, parameters) {
+        Some(blocks) -> blocks;
+        None ->
+            projected_case_two_or_three_blocks(
+                node,
+                return_name,
+                linear_blocks,
+                facts,
+                parameters,
+            )
     }.
 
 projected_case_two_or_three_blocks(
@@ -1230,6 +1637,7 @@ plans(
         [declaration | rest] ->
             prepend_declaration_plan(
                 declaration_plan(module_name, declaration, bodies, facts),
+                declaration,
                 module_name,
                 rest,
                 bodies,
@@ -1250,14 +1658,154 @@ declaration_plan(
 
 prepend_declaration_plan(
     plan: Option[SemanticFunctionPlan],
+    declaration: BackendDeclaration,
     module_name: String,
     rest: List[BackendDeclaration],
     bodies: List[ProjectedBody],
     facts: List[InferredTypeFact],
 ): List[SemanticFunctionPlan] ->
     case plan {
-        Some(value) -> [value | plans(module_name, rest, bodies, facts)];
+        Some(value) -> [value | concat_function_plans(
+            declaration_lambda_plans(module_name, declaration, bodies, facts),
+            plans(module_name, rest, bodies, facts),
+        )];
         None -> plans(module_name, rest, bodies, facts)
+    }.
+
+concat_function_plans(
+    left: List[SemanticFunctionPlan],
+    right: List[SemanticFunctionPlan],
+): List[SemanticFunctionPlan] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | concat_function_plans(rest, right)]
+    }.
+
+declaration_ir_parameters(declaration: BackendDeclaration): List[IrParameter] ->
+    case declaration.payload {
+        FunctionPayload(function) -> ir_parameters(function.typed_parameters);
+        MethodPayload(method) -> [parameter(method.receiver) | ir_parameters(method.parameters)];
+        _ -> List.new[IrParameter]()
+    }.
+
+lambda_function_plan(
+    module_name: String,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    outer_parameters: List[IrParameter],
+    facts: List[InferredTypeFact],
+): Option[SemanticFunctionPlan] ->
+    case lambda_body(node) {
+        Some(body) ->
+            let captures = lambda_captures(node, outer_parameters);
+            let parameters = append_ir_parameters(captures, lambda_parameters(node));
+            let body_id = lambda_body_id(node, node_id);
+            let expression = lower_expression(body, body_id, facts, parameters);
+            Some(SemanticFunctionPlan(
+                module_name = module_name,
+                name = lambda_symbol(node),
+                arity = parameter_count(parameters),
+                parameters = parameters,
+                resolved_return_type = resolved_or_dynamic(expression.result_type),
+                blocks = projected_function_blocks(
+                    body,
+                    "",
+                    projected_linear_blocks(expression),
+                    facts,
+                    parameters,
+                ),
+                native_symbol = none_string(),
+            ));
+        None -> None
+    }.
+
+lambda_nested_plans(
+    module_name: String,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    outer_parameters: List[IrParameter],
+    facts: List[InferredTypeFact],
+): List[SemanticFunctionPlan] ->
+    case lambda_body(node) {
+        Some(body) ->
+            let parameters = append_ir_parameters(
+                lambda_captures(node, outer_parameters),
+                lambda_parameters(node),
+            );
+            lambda_plans_at(module_name, body, lambda_body_id(node, node_id), parameters, facts);
+        None -> List.new[SemanticFunctionPlan]()
+    }.
+
+prepend_lambda_plan(
+    plan: Option[SemanticFunctionPlan],
+    nested: List[SemanticFunctionPlan],
+): List[SemanticFunctionPlan] ->
+    case plan {
+        Some(value) -> [value | nested];
+        None -> nested
+    }.
+
+lambda_plans_at(
+    module_name: String,
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    outer_parameters: List[IrParameter],
+    facts: List[InferredTypeFact],
+): List[SemanticFunctionPlan] ->
+    if {
+        node.kind == "lambda" -> prepend_lambda_plan(
+            lambda_function_plan(module_name, node, node_id, outer_parameters, facts),
+            lambda_nested_plans(module_name, node, node_id, outer_parameters, facts),
+        );
+        true -> lambda_child_plans(
+            module_name,
+            node.children,
+            node_id + 1,
+            outer_parameters,
+            facts,
+        )
+    }.
+
+lambda_child_plans(
+    module_name: String,
+    values: List[ProjectedExpressionNode],
+    child_id: Int,
+    outer_parameters: List[IrParameter],
+    facts: List[InferredTypeFact],
+): List[SemanticFunctionPlan] ->
+    case values {
+        [] -> List.new[SemanticFunctionPlan]();
+        [value | rest] -> concat_function_plans(
+            lambda_plans_at(module_name, value, child_id, outer_parameters, facts),
+            lambda_child_plans(
+                module_name,
+                rest,
+                child_id + node_size(value),
+                outer_parameters,
+                facts,
+            ),
+        )
+    }.
+
+declaration_lambda_plans(
+    module_name: String,
+    declaration: BackendDeclaration,
+    bodies: List[ProjectedBody],
+    facts: List[InferredTypeFact],
+): List[SemanticFunctionPlan] ->
+    case body_for(declaration.symbol_name, bodies) {
+        Some(body) ->
+            case body.expression.node {
+                Some(node) -> lambda_plans_at(
+                    module_name,
+                    node,
+                    0,
+                    declaration_ir_parameters(declaration),
+                    facts,
+                );
+                None -> List.new[SemanticFunctionPlan]()
+            };
+        None -> List.new[SemanticFunctionPlan]()
     }.
 
 pub lower(frontend: ProjectedFrontendModule, semantics: LocalSemanticResult): SemanticModulePlan ->

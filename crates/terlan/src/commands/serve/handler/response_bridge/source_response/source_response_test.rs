@@ -1,5 +1,19 @@
 use super::*;
 
+fn decode(
+    name: &str,
+    fields: Vec<(String, ReplValue)>,
+    root: Option<&Path>,
+) -> Result<HandlerResponse, String> {
+    super::decode(
+        ReplValue::Record {
+            name: name.into(),
+            fields,
+        },
+        root,
+    )
+}
+
 fn response() -> Vec<(String, ReplValue)> {
     vec![
         ("kind".into(), ReplValue::Int(0)),
@@ -121,6 +135,29 @@ fn source_files_use_the_existing_file_safety_boundary() {
 }
 
 #[test]
+fn source_files_reject_directories_missing_files_and_escaping_symlinks() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir(root.path().join("directory")).unwrap();
+    for path in ["directory", "missing.txt"] {
+        let mut fields = response();
+        fields[0].1 = ReplValue::Int(4);
+        fields[1].1 = ReplValue::String(path.into());
+        assert!(decode("Response", fields, Some(root.path())).is_err());
+    }
+    #[cfg(unix)]
+    {
+        let outside = tempfile::NamedTempFile::new().unwrap();
+        std::os::unix::fs::symlink(outside.path(), root.path().join("escape")).unwrap();
+        let mut fields = response();
+        fields[0].1 = ReplValue::Int(4);
+        fields[1].1 = ReplValue::String("escape".into());
+        assert!(decode("Response", fields, Some(root.path()))
+            .unwrap_err()
+            .contains("not package-relative"));
+    }
+}
+
+#[test]
 fn source_file_responses_preserve_bytes_metadata_and_owned_decode() {
     let root = tempfile::tempdir().unwrap();
     let bytes = [0, 255, 42, 10];
@@ -145,7 +182,7 @@ fn source_file_responses_preserve_bytes_metadata_and_owned_decode() {
         assert_eq!(
             owned.content_type,
             if content_type.is_empty() {
-                native_http::content_type_for_path(&root.path().join("body.txt"))
+                terlan_http_native::content_type_for_path(&root.path().join("body.txt"))
             } else {
                 content_type.to_string()
             }

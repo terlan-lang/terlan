@@ -4,7 +4,8 @@ use super::super::{
     http_message_id_to_int, resolve_http_session_affinity_key, rotate, set, VmHttpSession,
     VmHttpSessionAffinityError, VmHttpSessionAffinityKey, VmHttpSessionCommandOutcome,
     VmHttpSessionLiveTemplateSourceSpan, VmHttpSessionLiveTemplateSubscriber,
-    VmHttpSessionLiveTemplateSubscriptionAuthorization, VmHttpSessionRuntime,
+    VmHttpSessionLiveTemplateSubscriptionAuthorization, VmHttpSessionRecoveryPolicy,
+    VmHttpSessionRuntime,
 };
 use crate::runtime::vm::process::{VmExitReason, VmProcessId};
 use crate::runtime::vm::table::{VmTableEvent, VmTableId};
@@ -48,7 +49,7 @@ pub(super) fn http_session_lookup_creates_actor_and_sticky_metadata() {
         lookup.route.sticky_key,
         format!("node-a:{}", lookup.session.id)
     );
-    assert_eq!(lookup.pending_identity, Some(lookup.session.id.clone()));
+    assert_eq!(lookup.route.session_id, lookup.session.id);
 
     let snapshots = sessions.snapshots();
     assert_eq!(snapshots.len(), 1);
@@ -141,7 +142,41 @@ pub(super) fn http_session_blank_cookie_creates_replacement_session() {
     let lookup = current(&mut sessions, Some("   ")).expect("blank cookie should create session");
 
     assert_eq!(lookup.session.id.len(), 43);
-    assert_eq!(lookup.pending_identity, Some(lookup.session.id.clone()));
+    assert_ne!(lookup.session.id, "   ");
+}
+
+#[test]
+fn http_session_exact_identity_boundary_does_not_normalize_whitespace() {
+    let mut sessions = VmHttpSessionRuntime::new_with_recovery_policy(
+        "exact-identity",
+        10,
+        VmHttpSessionRecoveryPolicy::FailClosed,
+    )
+    .unwrap();
+    let created = current(&mut sessions, None).unwrap();
+    sessions
+        .write(&created.session, "kept", ReplValue::Int(42))
+        .unwrap();
+    for identity in [
+        " ".to_string(),
+        "\u{2003}".to_string(),
+        format!(" {} ", created.session.id),
+        format!("\u{2003}{}\u{2003}", created.session.id),
+    ] {
+        assert!(current(&mut sessions, Some(&identity)).is_err());
+        assert_eq!(sessions.snapshots().len(), 1);
+        assert_eq!(
+            sessions.read(&created.session, "kept").unwrap(),
+            Some(ReplValue::Int(42))
+        );
+    }
+    assert_eq!(
+        current(&mut sessions, Some(&created.session.id)).unwrap(),
+        created
+    );
+    let empty = current(&mut sessions, Some("")).unwrap();
+    assert_ne!(empty.session, created.session);
+    assert_eq!(sessions.snapshots().len(), 2);
 }
 
 #[test]
@@ -263,8 +298,10 @@ pub(super) fn http_session_delete_reports_stale_table_after_internal_cleanup() {
         .expect("write should succeed");
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
     sessions.tables.cleanup_owner(actor);
 
@@ -308,7 +345,7 @@ pub(super) fn http_session_private_lookup_paths_report_stale_sessions() {
             .expect_err("expired live record should clean itself up"),
         format!("stale HTTP session `{}`", created.session.id)
     );
-    assert!(sessions.sessions.is_empty());
+    assert!(sessions.sessions.entries().is_empty());
 }
 
 #[test]
@@ -330,7 +367,7 @@ pub(super) fn http_session_reuses_actor_and_table_state_for_cookie_lookup() {
 
     assert_eq!(reused.session, created.session);
     assert_eq!(reused.route.actor_pid, created.route.actor_pid);
-    assert_eq!(reused.pending_identity, None);
+    assert_eq!(reused.route, created.route);
     assert_eq!(
         sessions
             .read(&reused.session, "user_id")
@@ -367,8 +404,10 @@ pub(super) fn http_session_actor_crash_during_request_cleans_state_and_replaces_
         .expect("write should succeed");
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
 
     sessions
@@ -389,10 +428,7 @@ pub(super) fn http_session_actor_crash_during_request_cleans_state_and_replaces_
         .expect("stale crashed cookie should create replacement");
     assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.pending_identity,
-        Some(replacement.session.id.clone())
-    );
+    assert_eq!(replacement.route.session_id, replacement.session.id);
     assert_eq!(
         sessions
             .read(&replacement.session, "cart")
@@ -415,8 +451,10 @@ pub(super) fn http_session_reconnect_after_actor_crash_replaces_cookie_without_r
         .expect("write should succeed");
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
 
     sessions
@@ -429,10 +467,7 @@ pub(super) fn http_session_reconnect_after_actor_crash_replaces_cookie_without_r
 
     assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.pending_identity,
-        Some(replacement.session.id.clone())
-    );
+    assert_eq!(replacement.route.session_id, replacement.session.id);
     assert_eq!(
         sessions
             .read(&replacement.session, "draft")
@@ -714,8 +749,10 @@ pub(super) fn http_session_live_template_subscribers_are_cleaned_after_actor_exi
 
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
     sessions
         .actors

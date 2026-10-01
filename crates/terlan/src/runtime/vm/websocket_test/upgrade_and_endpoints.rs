@@ -135,11 +135,11 @@ pub(super) fn vm_websocket_adapter_endpoint_validates_channel_limits() {
 #[test]
 pub(super) fn vm_websocket_endpoint_opens_bounded_inbound_queue() {
     let endpoint = VmWebSocketEndpointPlan::new(3, 8).expect("endpoint plan");
-    let queue = crate::runtime::vm::websocket::VmWebSocketLiveSession::open(endpoint);
+    let queue = terlan_http_native::websocket::session::Session::open(endpoint);
 
     assert_eq!(
         queue.inspect(),
-        VmWebSocketInboundQueueInfo {
+        terlan_http_native::websocket::session::InboundQueueInfo {
             pending_frames: 0,
             max_pending_frames: 3,
             queued_frame_bytes: 0,

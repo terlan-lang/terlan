@@ -1,6 +1,21 @@
 use super::source_test_support::assert_source_checks;
 
 #[test]
+fn canonical_websocket_identity_tests_execute_with_package_query_decoder() {
+    assert_source_checks(
+        "websocket_identity_source",
+        &include_str!("../../../../../../std/http/WebSocketIdentityTest.terl").replace(
+            "module std.http.WebSocketIdentityTest.",
+            "module websocket_identity_source.",
+        ),
+        &[
+            "fresh_or_restored_identity_follows_source_policy",
+            "last_duplicate_value_wins_and_partial_identity_is_rejected",
+        ],
+    );
+}
+
+#[test]
 fn canonical_sse_value_tests_execute_without_native_helpers() {
     assert_source_checks(
         "sse_source",

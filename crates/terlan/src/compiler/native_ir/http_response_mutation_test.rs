@@ -1,10 +1,6 @@
 //! Mutation names must not override ordinary provider methods or local receivers.
 
 use super::check_sources;
-use crate::compiler::native_ir::{
-    http_values::lower_http_values, source_constructor_test::checked_provider,
-};
-use crate::terlan_typeck::{CoreEffectSet, CoreExpr, CoreIntrinsicCall, CoreIntrinsicId, CoreType};
 
 #[test]
 fn response_mutators_execute_provider_bodies_and_preserve_command_results() {
@@ -40,70 +36,4 @@ pub check(): Bool ->
         &caller.replace("std.http.Response", "app.Response"),
         &provider.replace("std.http.Response", "app.Response"),
     ]);
-}
-
-#[test]
-fn response_receiver_names_and_retired_cookie_native_operation_are_not_substituted() {
-    let mut core =
-        checked_provider("module caller. import std.http.Response. pub check(): Bool -> true.");
-    for method in ["status", "header", "set_cookie_header"] {
-        let args = vec![CoreExpr::Int(1); if method == "header" { 2 } else { 1 }];
-        let mutable = CoreExpr::MutableReceiverCall {
-            receiver: Box::new(CoreExpr::Var("unrelated".into())),
-            method: method.into(),
-            args: args.clone(),
-            effects: CoreEffectSet {
-                effects: vec!["state".into()],
-            },
-        };
-        let remote = CoreExpr::RemoteCall {
-            module: "__receiver__".into(),
-            function: method.into(),
-            type_args: vec![],
-            args: std::iter::once(CoreExpr::Var("unrelated".into()))
-                .chain(args)
-                .collect(),
-        };
-        for expression in [mutable, remote] {
-            core.functions[0].clauses[0].body.core_expr = Some(expression.clone());
-            lower_http_values(&mut core).unwrap();
-            assert_eq!(
-                core.functions[0].clauses[0].body.core_expr,
-                Some(expression)
-            );
-        }
-    }
-    let retired = primitive("set_cookie_header", 2);
-    core.functions[0].clauses[0].body.core_expr = Some(retired.clone());
-    lower_http_values(&mut core).unwrap();
-    assert_eq!(core.functions[0].clauses[0].body.core_expr, Some(retired));
-}
-
-#[test]
-fn retired_response_mutations_never_gain_compiler_semantics() {
-    let mut core = checked_provider("module std.http.Response. pub check(): Bool -> true.");
-    for (name, arity) in [("status", 2), ("header", 3)] {
-        for wrong in [0, 1, arity + 1] {
-            let expression = primitive(name, wrong);
-            core.functions[0].clauses[0].body.core_expr = Some(expression.clone());
-            lower_http_values(&mut core).unwrap();
-            assert_eq!(
-                core.functions[0].clauses[0].body.core_expr,
-                Some(expression)
-            );
-        }
-    }
-}
-
-fn primitive(name: &str, arity: usize) -> CoreExpr {
-    CoreExpr::Intrinsic(CoreIntrinsicCall {
-        id: CoreIntrinsicId::NativeOperation {
-            operation: format!("std.http.response.{name}"),
-            parameter_types: vec![],
-        },
-        args: vec![CoreExpr::Int(0); arity],
-        return_type: CoreType::Named("Response".into()),
-        effects: CoreEffectSet { effects: vec![] },
-        span: crate::terlan_syntax::span::Span::new(0, 0),
-    })
 }

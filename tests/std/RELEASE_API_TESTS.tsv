@@ -602,6 +602,7 @@ std.net.Uri.scheme	std/net/UriTest.terl	component_accessors_read_expected_parts
 std.net.Uri.host	std/net/UriTest.terl	component_accessors_read_expected_parts
 std.net.Uri.path	std/net/UriTest.terl	component_accessors_read_expected_parts
 std.net.Uri.query	std/net/UriTest.terl	component_accessors_read_expected_parts
+std.net.Uri.query_pairs	std/net/UriTest.terl	query_pairs_preserve_order_duplicates_and_decoding
 std.net.Uri.fragment	std/net/UriTest.terl	component_accessors_read_expected_parts
 std.random.Random.Generator	std/random/RandomTest.terl	seeded_generators_replay_first_int
 std.random.Random.RandomError	std/random/RandomTest.terl	invalid_seed_returns_typed_error
@@ -743,6 +744,7 @@ std.http.WebSocket.ping	std/http/WebSocketTest.terl	websocket_control_records_pi
 std.http.WebSocket.pong	std/http/WebSocketTest.terl	websocket_control_records_ping_and_pong_descriptors
 std.http.WebSocket.close	std/http/WebSocketTest.terl	websocket_control_records_close_descriptor
 std.http.WebSocket.endpoint	std/http/LiveChannelTest.terl	live_channel_group_records_sse_and_websocket_endpoints
+std.http.WebSocketIdentity.resolve	std/http/WebSocketIdentityTest.terl	fresh_or_restored_identity_follows_source_policy
 std.http.Tls.Auto	std/http/TlsTest.terl	tls_auto_config_records_acme_defaults
 std.http.Tls.Manual	std/http/TlsTest.terl	tls_manual_and_internal_configs_record_mode_specific_fields
 std.http.Tls.Internal	std/http/TlsTest.terl	tls_manual_and_internal_configs_record_mode_specific_fields

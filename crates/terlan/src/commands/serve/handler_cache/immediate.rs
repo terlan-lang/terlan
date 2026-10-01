@@ -259,6 +259,13 @@ impl LocalImmediateShard {
                     if suspension.operation() == TvmTransitionOperation::Capability =>
                 {
                     let wait = self.shard.begin_capability_call(owner, &suspension)?;
+                    if self.shard.has_native_service(&wait) {
+                        self.count_local_transition(&mut local_transitions, owner, &suspension)?;
+                        execution =
+                            self.shard
+                                .resume_native_service_call(owner, *suspension, wait)?;
+                        continue;
+                    }
                     return Ok(OwnedInvocationStep::CapabilityWaiting {
                         route,
                         owner,
@@ -289,19 +296,29 @@ impl LocalImmediateShard {
                     });
                 }
                 PureNativeExecution::Suspended(suspension) => {
-                    local_transitions += 1;
-                    if local_transitions > MAX_LOCAL_TRANSITIONS_PER_STEP {
-                        let operation = suspension.operation().clone();
-                        let reason = format!(
-                            "error[serve.aot.transition_budget]: generated callback exceeded {MAX_LOCAL_TRANSITIONS_PER_STEP} local transitions; last operation was {operation:?}"
-                        );
-                        self.shard.cancel_call(owner, reason.clone())?;
-                        return Err(reason);
-                    }
+                    self.count_local_transition(&mut local_transitions, owner, &suspension)?;
                     execution = self.shard.resume_call(owner, *suspension)?;
                 }
             }
         }
+    }
+
+    fn count_local_transition(
+        &mut self,
+        count: &mut usize,
+        owner: VmProcessId,
+        suspension: &PureNativeSuspension,
+    ) -> Result<(), String> {
+        *count += 1;
+        if *count > MAX_LOCAL_TRANSITIONS_PER_STEP {
+            let operation = suspension.operation();
+            let reason = format!(
+                "error[serve.aot.transition_budget]: generated callback exceeded {MAX_LOCAL_TRANSITIONS_PER_STEP} local transitions; last operation was {operation:?}"
+            );
+            self.shard.cancel_call(owner, reason.clone())?;
+            return Err(reason);
+        }
+        Ok(())
     }
 }
 

@@ -1,0 +1,11 @@
+#!/usr/bin/env -S terlc run
+/** Writes the deterministic compiler and standard-library source closure. */
+import self_host.SelfHostSourceClosure.
+import std.core.Option.{None, Some}.
+import std.system.Arguments.
+
+case Arguments.get(0) {
+    Some(output) -> assert(SelfHostSourceClosure.write(output));
+    None -> assert(false)
+};
+Unit.

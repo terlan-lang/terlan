@@ -29,14 +29,24 @@ pub struct Router {
     #entries: List[Entry],
 }.
 
+struct RequestPipeline {
+    #callbacks: List[Middleware],
+    #execute: List[Middleware],
+}.
+
+struct ResponsePipeline {
+    #callbacks: List[ResponseMiddleware],
+    #execute: List[ResponseMiddleware],
+}.
+
 type RouteEntry =
       {
           Atom["route"],
           method: String,
           path: String,
           handler: Handler,
-          middleware: List[Middleware],
-          response_middleware: List[ResponseMiddleware]
+          middleware: RequestPipeline,
+          response_middleware: ResponsePipeline
       }.
 
 type SseEntry =
@@ -44,8 +54,8 @@ type SseEntry =
           Atom["sse"],
           path: String,
           endpoint: SseEndpoint,
-          middleware: List[Middleware],
-          response_middleware: List[ResponseMiddleware]
+          middleware: RequestPipeline,
+          response_middleware: ResponsePipeline
       }.
 
 type WebSocketEntry =
@@ -53,8 +63,8 @@ type WebSocketEntry =
           Atom["websocket"],
           path: String,
           endpoint: WebSocketEndpoint,
-          middleware: List[Middleware],
-          response_middleware: List[ResponseMiddleware]
+          middleware: RequestPipeline,
+          response_middleware: ResponsePipeline
       }.
 
 type MiddlewareEntry = {Atom["middleware"], callback: Middleware}.
@@ -65,8 +75,8 @@ type FallbackEntry =
       {
           Atom["fallback"],
           callback: Handler,
-          middleware: List[Middleware],
-          response_middleware: List[ResponseMiddleware]
+          middleware: RequestPipeline,
+          response_middleware: ResponsePipeline
       }.
 
 type ErrorEntry = {Atom["error"], callback: (String) -> Response}.
@@ -329,7 +339,10 @@ pub new(): Router ->
  * router value.
  */
 pub (router: Router) get(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("GET", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("GET", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a `POST` route.
@@ -340,7 +353,10 @@ pub (router: Router) get(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) post(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("POST", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("POST", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a `PUT` route.
@@ -351,7 +367,10 @@ pub (router: Router) post(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) put(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("PUT", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("PUT", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a `PATCH` route.
@@ -362,7 +381,10 @@ pub (router: Router) put(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) patch(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("PATCH", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("PATCH", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a `DELETE` route.
@@ -373,7 +395,10 @@ pub (router: Router) patch(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) delete(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("DELETE", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("DELETE", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a `HEAD` route.
@@ -384,7 +409,10 @@ pub (router: Router) delete(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) head(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("HEAD", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("HEAD", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds an `OPTIONS` route.
@@ -395,7 +423,10 @@ pub (router: Router) head(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) options(pattern: String, handler: Handler): Router ->
-    append_target(router, RouteEntry("OPTIONS", pattern, handler, [], [])).
+    append_target(
+        router,
+        RouteEntry("OPTIONS", pattern, handler, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a WebSocket channel route.
@@ -407,7 +438,10 @@ pub (router: Router) options(pattern: String, handler: Handler): Router ->
  * owns upgrade, frame, and session state.
  */
 pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router ->
-    append_target(router, WebSocketEntry(pattern, endpoint, [], [])).
+    append_target(
+        router,
+        WebSocketEntry(pattern, endpoint, request_pipeline([]), response_pipeline([])),
+    ).
 
 /**
  * Adds a server-sent event channel route.
@@ -418,7 +452,7 @@ pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Ro
  * owns event-stream state and scheduling.
  */
 pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router ->
-    append_target(router, SseEntry(pattern, endpoint, [], [])).
+    append_target(router, SseEntry(pattern, endpoint, request_pipeline([]), response_pipeline([]))).
 
 /**
  * Adds middleware to a router scope.
@@ -455,7 +489,7 @@ pub (router: Router) map_response(middleware: ResponseMiddleware): Router ->
  * route matches the request.
  */
 pub (router: Router) fallback(handler: Handler): Router ->
-    append_target(router, FallbackEntry(handler, [], [])).
+    append_target(router, FallbackEntry(handler, request_pipeline([]), response_pipeline([]))).
 
 /**
  * Adds a router-level error handler.
@@ -560,8 +594,8 @@ method_fallback_route(
     method: String,
     path: String,
     handler: Handler,
-    middleware: List[Middleware],
-    response_middleware: List[ResponseMiddleware],
+    middleware: RequestPipeline,
+    response_middleware: ResponsePipeline,
 ): Entry ->
     RouteEntry(method, path, handler, middleware, response_middleware).
 
@@ -598,30 +632,93 @@ scope_entry(
                 method,
                 path,
                 handler,
-                insert_callbacks(scoped, middleware_offset, middleware),
-                insert_callbacks(scoped_response, response_offset, response_middleware),
+                request_pipeline(insert_callbacks(scoped.#callbacks, middleware_offset, middleware)),
+                response_pipeline(
+                    insert_callbacks(
+                        scoped_response.#callbacks,
+                        response_offset,
+                        response_middleware,
+                    ),
+                ),
             );
         SseEntry(path, endpoint, scoped, scoped_response) ->
             SseEntry(
                 path,
                 endpoint,
-                insert_callbacks(scoped, middleware_offset, middleware),
-                insert_callbacks(scoped_response, response_offset, response_middleware),
+                request_pipeline(insert_callbacks(scoped.#callbacks, middleware_offset, middleware)),
+                response_pipeline(
+                    insert_callbacks(
+                        scoped_response.#callbacks,
+                        response_offset,
+                        response_middleware,
+                    ),
+                ),
             );
         WebSocketEntry(path, endpoint, scoped, scoped_response) ->
             WebSocketEntry(
                 path,
                 endpoint,
-                insert_callbacks(scoped, middleware_offset, middleware),
-                insert_callbacks(scoped_response, response_offset, response_middleware),
+                request_pipeline(insert_callbacks(scoped.#callbacks, middleware_offset, middleware)),
+                response_pipeline(
+                    insert_callbacks(
+                        scoped_response.#callbacks,
+                        response_offset,
+                        response_middleware,
+                    ),
+                ),
             );
         FallbackEntry(handler, scoped, scoped_response) ->
             FallbackEntry(
                 handler,
-                insert_callbacks(scoped, middleware_offset, middleware),
-                insert_callbacks(scoped_response, response_offset, response_middleware),
+                request_pipeline(insert_callbacks(scoped.#callbacks, middleware_offset, middleware)),
+                response_pipeline(
+                    insert_callbacks(
+                        scoped_response.#callbacks,
+                        response_offset,
+                        response_middleware,
+                    ),
+                ),
             );
         _ -> entry
+    }.
+
+request_pipeline(callbacks: List[Middleware]): RequestPipeline ->
+    let execute =
+        case callbacks {
+            [] -> [];
+            _ -> [(request: Request) -> run_request_pipeline(callbacks, request)]
+        };
+    RequestPipeline {#callbacks: callbacks, #execute: execute}.
+
+run_request_pipeline(callbacks: List[Middleware], request: Request): MiddlewareResult ->
+    case callbacks {
+        [] -> Continue;
+        [callback | rest] ->
+            case callback(request) {
+                Continue -> run_request_pipeline(rest, request);
+                Respond(response) -> Respond(response)
+            }
+    }.
+
+response_pipeline(callbacks: List[ResponseMiddleware]): ResponsePipeline ->
+    let execute =
+        case callbacks {
+            [] -> [];
+            _ ->
+                [
+                    (request: Request, response: Response) -> run_response_pipeline(callbacks, request, response),
+                ]
+        };
+    ResponsePipeline {#callbacks: callbacks, #execute: execute}.
+
+run_response_pipeline(
+    callbacks: List[ResponseMiddleware],
+    request: Request,
+    response: Response,
+): Response ->
+    case callbacks {
+        [] -> response;
+        [callback | rest] -> callback(request, run_response_pipeline(rest, request, response))
     }.
 
 insert_callbacks[T](values: List[T], offset: Int, callbacks: List[T]): List[T] ->

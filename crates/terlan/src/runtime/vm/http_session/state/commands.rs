@@ -32,6 +32,20 @@ pub fn rotate(
     runtime.rotate(session).map_err(vm_session_error)
 }
 
+/// Acquires the exact source-selected identity without cookie interpretation.
+pub fn current(
+    runtime: &mut VmHttpSessionRuntime,
+    identity: Option<&str>,
+) -> Result<VmHttpSessionLookup, terlan_runtime_abi::BoundaryError> {
+    runtime.lookup_or_create(identity).map_err(|error| {
+        terlan_runtime_abi::BoundaryError::message(
+            terlan_runtime_abi::ErrorDomain::VmRuntime,
+            "resolve current HTTP session",
+            error,
+        )
+    })
+}
+
 /// Expires one VM session actor and its owned table state.
 pub fn expire(
     runtime: &mut VmHttpSessionRuntime,
@@ -46,15 +60,6 @@ fn vm_session_error(error: String) -> terlan_runtime_abi::BoundaryError {
         "mutate HTTP session",
         error,
     )
-}
-
-pub(crate) fn normalize_cookie_value(value: &str) -> Option<&str> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed)
-    }
 }
 
 pub(crate) fn created_session_table_id(event: VmTableEvent) -> VmTableId {
@@ -240,20 +245,6 @@ impl VmHttpSessionAffinityError {
             ),
         }
     }
-}
-
-pub(crate) fn stale_session_diagnostic(session_id: &str) -> String {
-    format!("stale HTTP session `{session_id}`")
-}
-
-#[cfg(test)]
-pub(crate) fn duplicate_persistence_snapshot_diagnostic(session_id: &str) -> String {
-    format!("HTTP session persistence snapshot `{session_id}` would overwrite live session")
-}
-
-#[cfg(test)]
-pub(crate) fn expired_persistence_snapshot_diagnostic(session_id: &str) -> String {
-    format!("HTTP session persistence snapshot `{session_id}` is expired")
 }
 
 #[cfg(test)]

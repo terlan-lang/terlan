@@ -8,6 +8,8 @@ mod response_cookie_test;
 mod response_header_test;
 #[path = "response_json_test.rs"]
 mod response_json_test;
+#[path = "response_source_contract_test.rs"]
+mod response_source_contract_test;
 #[path = "response_sse_test.rs"]
 mod response_sse_test;
 #[path = "response_stream_test.rs"]

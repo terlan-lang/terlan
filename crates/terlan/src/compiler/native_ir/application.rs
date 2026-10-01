@@ -218,7 +218,6 @@ impl NativeModule {
         for core in &mut normalized_cores {
             super::list_comprehension::lower_list_comprehensions(core)?;
             super::template_values::lower_template_values(core)?;
-            super::http_values::lower_http_values(core)?;
         }
         // Generated deferred collectors introduce checked Effect applications.
         // Resolve those new witnesses before result-only generic inference;
@@ -285,12 +284,10 @@ impl NativeModule {
         timings.mark("task-value-lowering");
         // Generic specialization can make collection receiver types concrete
         // only after the first target-owned normalization pass. Re-run the
-        // idempotent HTTP/template lowerings so newly specialized Map/Option
-        // and template calls cannot leak into final NativeIR as open stdlib
-        // calls.
+        // idempotent template lowering so newly specialized template calls
+        // cannot leak into final NativeIR as open stdlib calls.
         for core in &mut normalized_cores {
             super::template_values::lower_template_values(core)?;
-            super::http_values::lower_http_values(core)?;
         }
         normalize_application_remote_calls(&mut normalized_cores, false);
         structural_patterns::scalar_replace(&mut normalized_cores)?;

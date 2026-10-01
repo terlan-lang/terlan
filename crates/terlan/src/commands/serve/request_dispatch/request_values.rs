@@ -43,7 +43,7 @@ pub(in crate::commands::serve) fn handle_vm_stream_http1_exchange(
     let mut channel = None;
     if let Err(error) =
         handle_http1_in_memory_exchange(&mut reader, &mut response, true, |request| {
-            handle_vm_stream_request(request, web_root, &mut channel)
+            handle_vm_stream_request(request, web_root, &mut channel, true)
         })
     {
         return vm_stream_bad_request_response(&error).map(|response| VmStreamHttp1Exchange {

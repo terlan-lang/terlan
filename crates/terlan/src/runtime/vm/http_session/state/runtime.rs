@@ -1,3 +1,4 @@
+use super::resources::Resources;
 use super::*;
 #[cfg(test)]
 use crate::runtime::vm::actor::VmActorReceive;
@@ -22,9 +23,8 @@ impl VmHttpSessionRuntime {
         if node_id.trim().is_empty() {
             return Err("HTTP session node id cannot be empty".to_string());
         }
-        if ttl_ticks == 0 {
-            return Err("HTTP session TTL must be greater than 0".to_string());
-        }
+        let sessions =
+            SessionRegistry::new(ttl_ticks, recovery_policy).map_err(|error| error.to_string())?;
         #[cfg(test)]
         let live_template_protocol =
             crate::runtime::vm::live_template_protocol::generate_vm_live_template_protocol_manifest(
@@ -36,43 +36,40 @@ impl VmHttpSessionRuntime {
         Ok(Self {
             actors: VmActorRuntime::default(),
             tables: VmTableStore::default(),
-            sessions: BTreeMap::new(),
-            now_tick: 0,
-            ttl_ticks,
+            sessions,
             node_id,
-            recovery_policy,
             #[cfg(test)]
             live_template_protocol,
         })
     }
 
-    /// Looks up an existing cookie session or creates a new actor-backed one.
+    /// Acquires an exact identity selected by source, or creates a new actor.
     pub(crate) fn lookup_or_create(
         &mut self,
-        cookie_value: Option<&str>,
+        identity: Option<&str>,
     ) -> Result<VmHttpSessionLookup, String> {
-        if let Some(session_id) = cookie_value.and_then(normalize_cookie_value) {
-            if self.is_live_session(session_id) {
-                return self.lookup_existing(session_id);
-            }
-            self.expire_session_if_present(session_id)?;
-            if self.recovery_policy == VmHttpSessionRecoveryPolicy::FailClosed {
-                return Err(stale_session_diagnostic(session_id));
-            }
-        }
-
-        self.create_session()
+        let record = self
+            .sessions
+            .acquire(
+                identity,
+                &mut Resources {
+                    actors: &mut self.actors,
+                    tables: &mut self.tables,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(self.lookup_for_record(record))
     }
 
     /// Looks up a session only after explicit stateful actor affinity is valid.
     #[cfg(test)]
     pub(crate) fn lookup_or_create_with_affinity_keys(
         &mut self,
-        cookie_value: Option<&str>,
+        identity: Option<&str>,
         affinity_keys: &[VmHttpSessionAffinityKey],
     ) -> Result<VmHttpSessionLookup, String> {
         resolve_http_session_affinity_key(affinity_keys).map_err(|err| err.render())?;
-        self.lookup_or_create(cookie_value)
+        self.lookup_or_create(identity)
     }
 
     /// Writes one session value.
@@ -86,8 +83,8 @@ impl VmHttpSessionRuntime {
         self.tables
             .insert(
                 self.actors.processes(),
-                record.actor,
-                record.table,
+                record.value.actor,
+                record.value.table,
                 ReplValue::String(key.into()),
                 value,
             )
@@ -103,8 +100,8 @@ impl VmHttpSessionRuntime {
         let record = self.live_record(&session.id)?;
         self.tables.lookup(
             self.actors.processes(),
-            record.actor,
-            record.table,
+            record.value.actor,
+            record.value.table,
             &ReplValue::String(key.to_string()),
         )
     }
@@ -118,8 +115,8 @@ impl VmHttpSessionRuntime {
         let record = self.live_record(&session.id)?;
         let deleted = self.tables.delete(
             self.actors.processes(),
-            record.actor,
-            record.table,
+            record.value.actor,
+            record.value.table,
             &ReplValue::String(key.to_string()),
         )?;
         Ok(deleted_session_value(deleted))
@@ -129,7 +126,7 @@ impl VmHttpSessionRuntime {
     #[cfg(test)]
     pub(crate) fn state_version(&mut self, session: &VmHttpSession) -> Result<u64, String> {
         self.live_record(&session.id)
-            .map(|record| record.state_version)
+            .map(|record| record.value.state_version)
     }
 
     /// Applies one state update only if the caller observed the current version.
@@ -141,11 +138,11 @@ impl VmHttpSessionRuntime {
         update: impl FnOnce(&mut Self, &VmHttpSession) -> Result<(), String>,
     ) -> Result<u64, String> {
         let record = self.live_record(&session.id)?;
-        if record.state_version != expected_version {
+        if record.value.state_version != expected_version {
             return Err(state_version_conflict_diagnostic(
                 &session.id,
                 expected_version,
-                record.state_version,
+                record.value.state_version,
             ));
         }
 
@@ -153,7 +150,7 @@ impl VmHttpSessionRuntime {
         self.live_record(&session.id)?;
         let record = self
             .sessions
-            .get_mut(&session.id)
+            .value_mut(&session.id)
             .expect("live HTTP session should have mutable state version");
         record.state_version = record.state_version.saturating_add(1);
         Ok(record.state_version)
@@ -166,15 +163,17 @@ impl VmHttpSessionRuntime {
         session: &VmHttpSession,
     ) -> Result<VmHttpSessionPersistenceSnapshot, String> {
         let record = self.live_record(&session.id)?;
-        let table_entries =
-            self.tables
-                .entries(self.actors.processes(), record.actor, record.table)?;
+        let table_entries = self.tables.entries(
+            self.actors.processes(),
+            record.value.actor,
+            record.value.table,
+        )?;
         Ok(VmHttpSessionPersistenceSnapshot {
             session_id: record.id,
             expires_at_tick: record.expires_at_tick,
-            state_version: record.state_version,
+            state_version: record.value.state_version,
             table_entries,
-            command_results: record.command_results,
+            command_results: record.value.command_results,
         })
     }
 
@@ -185,12 +184,9 @@ impl VmHttpSessionRuntime {
         snapshot: VmHttpSessionPersistenceSnapshot,
     ) -> Result<VmHttpSessionLookup, String> {
         let session_id = normalize_persistence_session_id(&snapshot.session_id)?;
-        if snapshot.expires_at_tick <= self.now_tick {
-            return Err(expired_persistence_snapshot_diagnostic(session_id));
-        }
-        if self.sessions.contains_key(session_id) {
-            return Err(duplicate_persistence_snapshot_diagnostic(session_id));
-        }
+        self.sessions
+            .validate_restore(session_id, snapshot.expires_at_tick)
+            .map_err(|error| error.to_string())?;
 
         let actor = self
             .actors
@@ -218,15 +214,19 @@ impl VmHttpSessionRuntime {
         }
         let record = VmHttpSessionRecord {
             id: session_id.to_string(),
-            actor,
-            table,
             expires_at_tick: snapshot.expires_at_tick,
-            state_version: snapshot.state_version,
-            command_results: snapshot.command_results,
-            live_template_subscribers: BTreeMap::new(),
+            value: VmHttpSessionResource {
+                actor,
+                table,
+                state_version: snapshot.state_version,
+                command_results: snapshot.command_results,
+                live_template_subscribers: BTreeMap::new(),
+            },
         };
-        self.sessions.insert(record.id.clone(), record.clone());
-        Ok(self.lookup_for_record(record.clone(), Some(record.id.clone())))
+        self.sessions
+            .restore(record.clone())
+            .map_err(|error| error.to_string())?;
+        Ok(self.lookup_for_record(record))
     }
 
     /// Enqueues one VM message on the stateful session actor mailbox.
@@ -237,7 +237,8 @@ impl VmHttpSessionRuntime {
         payload: ReplValue,
     ) -> Result<u64, String> {
         let record = self.live_record(&session.id)?;
-        self.actors.send(record.actor, record.actor, payload)
+        self.actors
+            .send(record.value.actor, record.value.actor, payload)
     }
 
     /// Reports stateful actor mailbox pressure with a stable attribution string.
@@ -257,13 +258,13 @@ impl VmHttpSessionRuntime {
         let mailbox_len = self
             .actors
             .processes()
-            .get(record.actor)
+            .get(record.value.actor)
             .expect("live HTTP session actor should exist")
             .mailbox_len();
         let saturated = mailbox_len >= threshold;
         Ok(VmHttpSessionMailboxBackpressure {
             session_id: record.id.clone(),
-            actor_pid: record.actor.as_u64(),
+            actor_pid: record.value.actor.as_u64(),
             mailbox_len,
             threshold,
             saturated,
@@ -293,12 +294,11 @@ impl VmHttpSessionRuntime {
 
         let snapshot = self.persistence_snapshot(session)?;
         let migrated = destination.replay_persistence_snapshot(snapshot)?;
-        self.expire_session_if_present(&session.id)?;
+        self.expire(session)?;
         Ok(VmHttpSessionWorkerMigration {
             session_id: session.id.clone(),
             source_route: source.route,
             destination_route: migrated.route.clone(),
-            pending_identity: migrated.pending_identity,
             diagnostic: worker_migration_diagnostic(
                 &session.id,
                 &self.node_id,
@@ -323,24 +323,26 @@ impl VmHttpSessionRuntime {
             ));
         }
         let record = self.live_record(&session.id)?;
-        let durable_table_entries =
-            self.tables
-                .entries(self.actors.processes(), record.actor, record.table)?;
+        let durable_table_entries = self.tables.entries(
+            self.actors.processes(),
+            record.value.actor,
+            record.value.table,
+        )?;
         Ok(VmHttpSessionHotReloadMigrationReport {
             session_id: record.id.clone(),
             previous_generation,
             active_generation,
             compatible: true,
             durable_table_entries: durable_table_entries.len(),
-            durable_command_results: record.command_results.len(),
-            transient_subscribers: record.live_template_subscribers.len(),
+            durable_command_results: record.value.command_results.len(),
+            transient_subscribers: record.value.live_template_subscribers.len(),
             diagnostic: hot_reload_migration_compatibility_diagnostic(
                 &record.id,
                 previous_generation,
                 active_generation,
                 durable_table_entries.len(),
-                record.command_results.len(),
-                record.live_template_subscribers.len(),
+                record.value.command_results.len(),
+                record.value.live_template_subscribers.len(),
             ),
         })
     }
@@ -355,14 +357,14 @@ impl VmHttpSessionRuntime {
     ) -> Result<VmHttpSessionCommandOutcome, String> {
         let command_id = normalize_command_id(command_id)?;
         let record = self.live_record(&session.id)?;
-        if let Some(result) = record.command_results.get(command_id).cloned() {
+        if let Some(result) = record.value.command_results.get(command_id).cloned() {
             return Ok(VmHttpSessionCommandOutcome::Replayed(result));
         }
 
         let result = command(self, session)?;
         self.live_record(&session.id)?;
         self.sessions
-            .get_mut(&session.id)
+            .value_mut(&session.id)
             .expect("live HTTP session should have a mutable session record")
             .command_results
             .insert(command_id.to_string(), result.clone());
@@ -383,7 +385,7 @@ impl VmHttpSessionRuntime {
         &mut self,
         session: &VmHttpSession,
     ) -> Result<Option<ReplValue>, String> {
-        let actor = self.live_record(&session.id)?.actor;
+        let actor = self.live_record(&session.id)?.value.actor;
         match self.actors.receive_next_or_block(actor)? {
             VmActorReceive::Message(message) => Ok(Some(message.payload)),
             VmActorReceive::Blocked | VmActorReceive::Timeout => Ok(None),
@@ -412,7 +414,7 @@ impl VmHttpSessionRuntime {
         };
         self.live_record(&session.id)?;
         self.sessions
-            .get_mut(&session.id)
+            .value_mut(&session.id)
             .expect("live HTTP session should have mutable subscriber state")
             .live_template_subscribers
             .insert(subscriber.id.clone(), subscriber.clone());
@@ -470,7 +472,7 @@ impl VmHttpSessionRuntime {
 
         self.live_record(&session.id)?;
         self.sessions
-            .get_mut(&session.id)
+            .value_mut(&session.id)
             .expect("live HTTP session should have mutable subscriber state")
             .live_template_subscribers
             .insert(subscriber.id.clone(), subscriber.clone());
@@ -499,7 +501,7 @@ impl VmHttpSessionRuntime {
         self.live_record(&session.id)?;
         Ok(self
             .sessions
-            .get_mut(&session.id)
+            .value_mut(&session.id)
             .expect("live HTTP session should have mutable subscriber state")
             .live_template_subscribers
             .remove(subscriber_id))
@@ -512,7 +514,12 @@ impl VmHttpSessionRuntime {
         session: &VmHttpSession,
     ) -> Result<Vec<VmHttpSessionLiveTemplateSubscriber>, String> {
         let record = self.live_record(&session.id)?;
-        Ok(record.live_template_subscribers.values().cloned().collect())
+        Ok(record
+            .value
+            .live_template_subscribers
+            .values()
+            .cloned()
+            .collect())
     }
 
     /// Binds a typed template to the VM actor state slot it renders.
@@ -532,25 +539,25 @@ impl VmHttpSessionRuntime {
         let record = self.live_record(&session.id)?;
         let state_value = self.tables.lookup(
             self.actors.processes(),
-            record.actor,
-            record.table,
+            record.value.actor,
+            record.value.table,
             &ReplValue::String(state_key.clone()),
         )?;
 
         Ok(VmHttpSessionLiveTemplateActorBinding {
             session_id: record.id.clone(),
-            actor_pid: record.actor.as_u64(),
-            table_id: record.table.as_u64(),
+            actor_pid: record.value.actor.as_u64(),
+            table_id: record.value.table.as_u64(),
             template_id: template_id.clone(),
             state_key: state_key.clone(),
             state_value,
-            state_version: record.state_version,
-            live_template_subscriber_count: record.live_template_subscribers.len(),
+            state_version: record.value.state_version,
+            live_template_subscriber_count: record.value.live_template_subscribers.len(),
             diagnostic: live_template_actor_binding_diagnostic(
                 &record.id,
                 &template_id,
                 &state_key,
-                record.actor.as_u64(),
+                record.value.actor.as_u64(),
             ),
         })
     }
@@ -582,6 +589,7 @@ impl VmHttpSessionRuntime {
         validate_live_template_source_location(source_line, source_column)?;
         let record = self.live_record(&session.id)?;
         let subscriber = record
+            .value
             .live_template_subscribers
             .get(&subscriber_id)
             .ok_or_else(|| {
@@ -590,14 +598,14 @@ impl VmHttpSessionRuntime {
 
         Ok(VmHttpSessionLiveTemplateSubscriptionTrace {
             session_id: record.id.clone(),
-            actor_pid: record.actor.as_u64(),
+            actor_pid: record.value.actor.as_u64(),
             subscriber_id: subscriber.id.clone(),
             transport: subscriber.transport.clone(),
             template_id: template_id.clone(),
             source_module: source_module.clone(),
             source_line,
             source_column,
-            state_version: record.state_version,
+            state_version: record.value.state_version,
             diagnostic: live_template_source_map_trace_diagnostic(
                 &record.id,
                 &subscriber.id,
@@ -631,6 +639,7 @@ impl VmHttpSessionRuntime {
             .map_err(|_| "HTTP live-template state version overflowed Int".to_string())?;
         let record = self.live_record(&session.id)?;
         let subscriber_events = record
+            .value
             .live_template_subscribers
             .values()
             .map(|subscriber| VmHttpSessionLiveTemplateFanoutEvent {
@@ -663,40 +672,58 @@ impl VmHttpSessionRuntime {
         &mut self,
         session: &VmHttpSession,
     ) -> Result<VmHttpSessionLookup, String> {
-        let mut record = self.live_record(&session.id)?;
-        let identity = self.allocate_session_id()?;
-        self.sessions.remove(&session.id);
-        record.id = identity;
-        record.expires_at_tick = self.now_tick.saturating_add(self.ttl_ticks);
-        self.sessions.insert(record.id.clone(), record.clone());
-        Ok(self.lookup_for_record(record.clone(), Some(record.id.clone())))
+        let record = self
+            .sessions
+            .rotate(
+                &session.id,
+                &mut Resources {
+                    actors: &mut self.actors,
+                    tables: &mut self.tables,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(self.lookup_for_record(record))
     }
 
-    /// Advances the deterministic VM session clock.
+    /// Advances the package session clock deterministically in lifecycle tests.
     #[cfg(test)]
     pub(crate) fn advance_ticks(&mut self, ticks: u64) {
-        self.now_tick = self.now_tick.saturating_add(ticks);
+        self.sessions.advance_ticks(ticks);
     }
 
-    /// Expires due sessions and returns removed session ids.
     #[cfg(test)]
     pub(crate) fn expire_due(&mut self) -> Result<Vec<String>, String> {
-        let expired = self
-            .sessions
-            .values()
-            .filter(|record| record.expires_at_tick <= self.now_tick)
-            .map(|record| record.id.clone())
-            .collect::<Vec<_>>();
-        for session_id in &expired {
-            self.expire_session_if_present(session_id)?;
-        }
-        Ok(expired)
+        self.sessions
+            .expire_due(&mut Resources {
+                actors: &mut self.actors,
+                tables: &mut self.tables,
+            })
+            .map_err(|error| error.to_string())
     }
 
-    /// Expires one explicit session handle.
+    pub(crate) fn expire_due_limit(
+        &mut self,
+        limit: usize,
+    ) -> Result<Vec<String>, terlan_http_native::session_registry::SessionError> {
+        self.sessions.expire_due_limit(
+            &mut Resources {
+                actors: &mut self.actors,
+                tables: &mut self.tables,
+            },
+            limit,
+        )
+    }
+
     pub(crate) fn expire(&mut self, session: &VmHttpSession) -> Result<(), String> {
-        self.live_record(&session.id)?;
-        self.expire_session_if_present(&session.id)
+        self.sessions
+            .expire(
+                &session.id,
+                &mut Resources {
+                    actors: &mut self.actors,
+                    tables: &mut self.tables,
+                },
+            )
+            .map_err(|error| error.to_string())
     }
 
     /// Reports whether a managed session handle still names a live actor.
@@ -714,71 +741,45 @@ impl VmHttpSessionRuntime {
             .map(|snapshot| (snapshot.id, snapshot.len))
             .collect::<BTreeMap<_, _>>();
         self.sessions
+            .entries()
             .values()
             .map(|record| VmHttpSessionSnapshot {
                 session_id: record.id.clone(),
-                actor_pid: record.actor.as_u64(),
-                table_id: record.table.as_u64(),
-                table_len: table_lengths.get(&record.table).copied().unwrap_or(0),
-                live_template_subscriber_count: record.live_template_subscribers.len(),
+                actor_pid: record.value.actor.as_u64(),
+                table_id: record.value.table.as_u64(),
+                table_len: table_lengths.get(&record.value.table).copied().unwrap_or(0),
+                live_template_subscriber_count: record.value.live_template_subscribers.len(),
                 actor_mailbox_len: self
                     .actors
                     .processes()
-                    .get(record.actor)
+                    .get(record.value.actor)
                     .map(|process| process.mailbox_len())
                     .unwrap_or(0),
-                state_version: record.state_version,
+                state_version: record.value.state_version,
                 expires_at_tick: record.expires_at_tick,
                 sticky_key: self.sticky_key(&record.id),
             })
             .collect()
     }
 
-    fn create_session(&mut self) -> Result<VmHttpSessionLookup, String> {
-        let session_id = self.allocate_session_id()?;
-        let actor = self
-            .actors
-            .spawn_root(VmProcessSource::new("std.http.Session", "actor", 0));
-        let table = created_session_table_id(
-            self.tables
-                .create(
-                    self.actors.processes(),
-                    actor,
-                    format!("http_session:{session_id}"),
-                    VmTableAccess::OwnerOnly,
-                )
-                .expect("new HTTP session actor should be live for table creation"),
-        );
-        let record = VmHttpSessionRecord {
-            id: session_id.clone(),
-            actor,
-            table,
-            expires_at_tick: self.now_tick.saturating_add(self.ttl_ticks),
-            state_version: 0,
-            command_results: BTreeMap::new(),
-            live_template_subscribers: BTreeMap::new(),
-        };
-        self.sessions.insert(session_id.clone(), record.clone());
-        Ok(self.lookup_for_record(record, Some(session_id)))
-    }
-
+    #[cfg(test)]
     pub(in crate::runtime::vm::http_session) fn lookup_existing(
         &self,
         session_id: &str,
     ) -> Result<VmHttpSessionLookup, String> {
         let record = self
             .sessions
+            .entries()
             .get(session_id)
             .cloned()
-            .ok_or_else(|| stale_session_diagnostic(session_id))?;
-        Ok(self.lookup_for_record(record, None))
+            .ok_or_else(|| {
+                terlan_http_native::session_registry::SessionError::Stale(session_id.into())
+                    .to_string()
+            })?;
+        Ok(self.lookup_for_record(record))
     }
 
-    fn lookup_for_record(
-        &self,
-        record: VmHttpSessionRecord,
-        pending_identity: Option<String>,
-    ) -> VmHttpSessionLookup {
+    fn lookup_for_record(&self, record: VmHttpSessionRecord) -> VmHttpSessionLookup {
         VmHttpSessionLookup {
             session: VmHttpSession {
                 id: record.id.clone(),
@@ -786,10 +787,9 @@ impl VmHttpSessionRuntime {
             route: VmHttpSessionRoute {
                 node_id: self.node_id.clone(),
                 session_id: record.id.clone(),
-                actor_pid: record.actor.as_u64(),
+                actor_pid: record.value.actor.as_u64(),
                 sticky_key: self.sticky_key(&record.id),
             },
-            pending_identity,
         }
     }
 
@@ -798,81 +798,34 @@ impl VmHttpSessionRuntime {
         &mut self,
         session_id: &str,
     ) -> Result<VmHttpSessionRecord, String> {
-        let Some(record) = self.sessions.get(session_id).cloned() else {
-            return Err(stale_session_diagnostic(session_id));
-        };
-        if record.expires_at_tick <= self.now_tick {
-            self.expire_session_if_present(session_id)?;
-            return Err(stale_session_diagnostic(session_id));
-        }
-        if let Some(reason) = self.session_actor_exit_reason(record.actor) {
-            self.sessions.remove(session_id);
-            self.tables.cleanup_owner(record.actor);
-            return Err(crashed_session_actor_diagnostic(
+        self.sessions
+            .live(
                 session_id,
-                record.actor,
-                &reason,
-            ));
-        }
-        Ok(record)
+                &mut Resources {
+                    actors: &mut self.actors,
+                    tables: &mut self.tables,
+                },
+            )
+            .map_err(|error| error.to_string())
     }
 
     fn is_live_session(&self, session_id: &str) -> bool {
-        self.sessions.get(session_id).is_some_and(|record| {
-            record.expires_at_tick > self.now_tick
-                && self.session_actor_exit_reason(record.actor).is_none()
+        self.sessions.is_live(session_id, |resource| {
+            resources::exit_reason(&self.actors, resource.actor).is_none()
         })
     }
 
+    #[cfg(test)]
     pub(in crate::runtime::vm::http_session) fn session_actor_exit_reason(
         &self,
         actor: VmProcessId,
     ) -> Option<VmExitReason> {
-        match self.actors.processes().get(actor) {
-            Some(process) => match &process.state {
-                VmProcessState::Exited(reason) => Some(reason.clone()),
-                VmProcessState::Runnable
-                | VmProcessState::Blocked
-                | VmProcessState::Hibernated
-                | VmProcessState::Suspended(_) => None,
-            },
-            None => Some(VmExitReason::Error("missing actor process".to_string())),
-        }
-    }
-
-    fn expire_session_if_present(&mut self, session_id: &str) -> Result<(), String> {
-        let Some(record) = self.sessions.remove(session_id) else {
-            return Ok(());
-        };
-        self.actors
-            .exit_actor(record.actor, VmExitReason::Normal)
-            .map(|_| ())?;
-        self.tables.cleanup_owner(record.actor);
-        Ok(())
-    }
-
-    fn allocate_session_id(&self) -> Result<String, String> {
-        terlan_http_native::session_identity::issue(|identity| self.sessions.contains_key(identity))
-            .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))
+        resources::exit_reason(&self.actors, actor)
     }
 
     fn sticky_key(&self, session_id: &str) -> String {
         format!("{}:{session_id}", self.node_id)
     }
-}
-
-/// Returns the current request session through the VM session runtime.
-pub fn current(
-    runtime: &mut VmHttpSessionRuntime,
-    cookie_value: Option<&str>,
-) -> Result<VmHttpSessionLookup, terlan_runtime_abi::BoundaryError> {
-    runtime.lookup_or_create(cookie_value).map_err(|error| {
-        terlan_runtime_abi::BoundaryError::message(
-            terlan_runtime_abi::ErrorDomain::VmRuntime,
-            "resolve current HTTP session",
-            error,
-        )
-    })
 }
 
 /// Reads one string session value through the VM session runtime.

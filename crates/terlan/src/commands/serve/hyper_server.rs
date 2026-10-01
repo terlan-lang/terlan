@@ -2,33 +2,22 @@
 
 use std::cell::RefCell;
 use std::convert::Infallible;
-use std::io::{self, IoSlice, Write as _};
 use std::net as std_net;
 use std::path::{Path, PathBuf};
-use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::mpsc::{Receiver, TryRecvError};
 use std::sync::Arc;
-use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use http_body_util::{BodyExt, Full};
+use http_body_util::Full;
 use hyper::body::Incoming;
-use hyper::rt::{Read, ReadBufCursor, Write};
-use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
-use terlan_http_native::websocket::{ErrorKind, Message, Server as WebSocket};
-
-use crate::runtime::vm::protocol_task_executor::{
-    protocol_sleep_until, serve_protocol_tasks, VmProtocolTaskFactory, VmReadyTcpStream,
+use terlan_http_native::request_body::{
+    collect_bounded_body, declared_body_exceeds_limit, spool_bounded_body_to_root, BodyReadError,
+    TemporaryBodyFile,
 };
-use crate::runtime::vm::websocket::VmWebSocketFrame;
-#[cfg(test)]
-use crate::runtime::vm::websocket::VmWebSocketPairingPlan;
-use crate::runtime::vm::ReplValue;
+use terlan_http_native::websocket::{output, ErrorKind, Message, Server as WebSocket};
 
 use super::handle_vm_stream_request;
 use super::handler::VmHttpChannelTransport;
@@ -37,11 +26,14 @@ use super::server_lifecycle::{
 };
 #[cfg(test)]
 use super::{channel_transport, handle_vm_stream_http1_exchange};
+use crate::runtime::vm::protocol_task_executor::{
+    protocol_sleep_until, serve_protocol_tasks, VmProtocolTaskFactory, VmReadyStream,
+};
+use crate::runtime::vm::ReplValue;
 
 mod http2;
-mod response_body;
-use crate::runtime::vm::hyper_tls as tls_io;
-use response_body::ResponseBody;
+mod tls_io;
+use terlan_http_native::response_body::ResponseBody;
 mod websocket_hub;
 use websocket_hub::WebSocketHub;
 
@@ -56,47 +48,33 @@ pub(super) fn serve(
     web_root: PathBuf,
     max_body_bytes: u64,
 ) -> Result<(), String> {
+    let maintenance =
+        super::handler_cache::http_session_maintenance_for(&web_root).map_err(String::from)?;
     let web_root = Arc::new(web_root);
     let websocket_hub = Arc::new(WebSocketHub::default());
     let factory: VmProtocolTaskFactory = Arc::new(move |stream, route| {
         let web_root = owner_local_web_root(&web_root);
         let websocket_hub = Arc::clone(&websocket_hub);
-        let pending_upgrade = Rc::new(RefCell::new(None));
-        let service_pending_upgrade = Rc::clone(&pending_upgrade);
-        let service = service_fn(move |request| {
-            let web_root = Rc::clone(&web_root);
-            let pending_upgrade = Rc::clone(&service_pending_upgrade);
-            async move {
-                Ok::<_, Infallible>(
-                    handle_request(
-                        request,
-                        web_root.as_ref().as_path(),
-                        max_body_bytes,
-                        Some(&pending_upgrade),
-                    )
-                    .await,
-                )
-            }
-        });
-        let connection = http1::Builder::new()
-            .serve_connection(HyperVmIo::new(stream), service)
-            .with_upgrades();
         Box::pin(async move {
-            connection.await.map_err(|error| {
-                format!(
-                    "process {} scheduler {}: Hyper HTTP/1 connection failed: {error}",
-                    route.process.as_u64(),
-                    route.scheduler.index()
-                )
-            })?;
-            let pending = pending_upgrade.borrow_mut().take();
-            if let Some(pending) = pending {
-                pump_hyper_websocket(pending, websocket_hub).await?;
-            }
-            Ok(())
+            serve_http1(
+                HyperVmIo::new(stream),
+                web_root,
+                max_body_bytes,
+                websocket_hub,
+                |error| {
+                    format!(
+                        "process {} scheduler {}: Hyper HTTP/1 connection failed: {error}",
+                        route.process.as_u64(),
+                        route.scheduler.index()
+                    )
+                },
+            )
+            .await
         })
     });
-    serve_protocol_tasks(listener, factory)
+    let incoming = terlan_net_native::tcp::TcpIncoming::new(listener)
+        .map_err(|error| format!("error[serve.tcp]: {error}"))?;
+    serve_protocol_tasks(Box::new(incoming), factory, maintenance)
 }
 
 /// Runs rustls and ALPN-selected Hyper protocol futures on VM protocol owners.
@@ -106,10 +84,15 @@ pub(super) fn serve_tls(
     server_config: Arc<rustls::ServerConfig>,
     max_body_bytes: u64,
 ) -> Result<(), String> {
+    let maintenance =
+        super::handler_cache::http_session_maintenance_for(&web_root).map_err(String::from)?;
     let websocket_hub = Arc::new(WebSocketHub::default());
+    let incoming = terlan_net_native::tcp::TcpIncoming::new(listener)
+        .map_err(|error| format!("error[serve.tcp]: {error}"))?;
     serve_protocol_tasks(
-        listener,
+        Box::new(incoming),
         tls_factory(web_root, server_config, max_body_bytes, websocket_hub),
+        maintenance,
     )
 }
 
@@ -138,38 +121,13 @@ fn tls_factory(
                 .negotiated_protocol()
                 .map_err(|error| error.to_string())?
             {
-                tls_io::VmTlsHttpProtocol::Http1 => {
-                    let pending_upgrade = Rc::new(std::cell::RefCell::new(None));
-                    let service_pending_upgrade = Rc::clone(&pending_upgrade);
-                    let service = service_fn(move |request| {
-                        let web_root = Rc::clone(&web_root);
-                        let pending_upgrade = Rc::clone(&service_pending_upgrade);
-                        async move {
-                            Ok::<_, std::convert::Infallible>(
-                                handle_request(
-                                    request,
-                                    web_root.as_ref().as_path(),
-                                    max_body_bytes,
-                                    Some(&pending_upgrade),
-                                )
-                                .await,
-                            )
-                        }
-                    });
-                    http1::Builder::new()
-                        .serve_connection(io, service)
-                        .with_upgrades()
-                        .await
-                        .map_err(|error| {
-                            format!("Hyper HTTP/1.1 TLS connection failed: {error}")
-                        })?;
-                    let pending = pending_upgrade.borrow_mut().take();
-                    if let Some(pending) = pending {
-                        pump_hyper_websocket(pending, websocket_hub).await?;
-                    }
-                    Ok(())
+                tls_io::HttpProtocol::Http1 => {
+                    serve_http1(io, web_root, max_body_bytes, websocket_hub, |error| {
+                        format!("Hyper HTTP/1.1 TLS connection failed: {error}")
+                    })
+                    .await
                 }
-                tls_io::VmTlsHttpProtocol::Http2 => {
+                tls_io::HttpProtocol::Http2 => {
                     let service = service_fn(move |request| {
                         let web_root = Rc::clone(&web_root);
                         async move {
@@ -191,6 +149,43 @@ fn tls_factory(
     })
 }
 
+async fn serve_http1<I>(
+    io: I,
+    web_root: Rc<PathBuf>,
+    max_body_bytes: u64,
+    websocket_hub: Arc<WebSocketHub>,
+    failure_context: impl FnOnce(hyper::Error) -> String,
+) -> Result<(), String>
+where
+    I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+{
+    let pending_upgrade = Rc::new(RefCell::new(None));
+    let service_pending_upgrade = Rc::clone(&pending_upgrade);
+    let service = service_fn(move |request| {
+        let web_root = Rc::clone(&web_root);
+        let pending_upgrade = Rc::clone(&service_pending_upgrade);
+        async move {
+            Ok::<_, Infallible>(
+                handle_request(
+                    request,
+                    web_root.as_path(),
+                    max_body_bytes,
+                    Some(&pending_upgrade),
+                )
+                .await,
+            )
+        }
+    });
+    terlan_http_native::http1::serve_connection(io, service)
+        .await
+        .map_err(failure_context)?;
+    let pending = pending_upgrade.borrow_mut().take();
+    if let Some(pending) = pending {
+        pump_hyper_websocket(pending, websocket_hub).await?;
+    }
+    Ok(())
+}
+
 fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
     LOCAL_WEB_ROOT.with(|local| {
         let mut local = local.borrow_mut();
@@ -206,56 +201,6 @@ fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
                 .expect("owner-local web root is initialized before cloning"),
         )
     })
-}
-
-#[derive(Debug, Eq, PartialEq)]
-enum BodyReadError {
-    TooLarge,
-    Invalid(String),
-    Unavailable(String),
-}
-
-static NEXT_UPLOAD_FILE: AtomicU64 = AtomicU64::new(1);
-
-struct TemporaryBodyFile {
-    path: PathBuf,
-}
-
-impl Drop for TemporaryBodyFile {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
-    }
-}
-
-fn declared_body_exceeds_limit(headers: &http::HeaderMap, max_body_bytes: u64) -> bool {
-    headers
-        .get_all(http::header::CONTENT_LENGTH)
-        .iter()
-        .filter_map(|value| value.to_str().ok())
-        .filter_map(|value| value.trim().parse::<u64>().ok())
-        .any(|length| length > max_body_bytes)
-}
-
-async fn collect_bounded_body<B>(mut body: B, max_body_bytes: u64) -> Result<Vec<u8>, BodyReadError>
-where
-    B: hyper::body::Body<Data = Bytes> + Unpin,
-    B::Error: std::fmt::Display,
-{
-    let mut bytes = Vec::new();
-    while let Some(frame) = body.frame().await {
-        let frame = frame.map_err(|error| BodyReadError::Invalid(error.to_string()))?;
-        let Ok(data) = frame.into_data() else {
-            continue;
-        };
-        let next_length = (bytes.len() as u64)
-            .checked_add(data.len() as u64)
-            .ok_or(BodyReadError::TooLarge)?;
-        if next_length > max_body_bytes {
-            return Err(BodyReadError::TooLarge);
-        }
-        bytes.extend_from_slice(&data);
-    }
-    Ok(bytes)
 }
 
 async fn spool_bounded_body<B>(
@@ -274,165 +219,8 @@ where
     spool_bounded_body_to_root(body, max_body_bytes, Path::new(&configured_root)).await
 }
 
-async fn spool_bounded_body_to_root<B>(
-    mut body: B,
-    max_body_bytes: u64,
-    root: &Path,
-) -> Result<TemporaryBodyFile, BodyReadError>
-where
-    B: hyper::body::Body<Data = Bytes> + Unpin,
-    B::Error: std::fmt::Display,
-{
-    let root = root.to_path_buf();
-    if !root.is_absolute() {
-        return Err(BodyReadError::Unavailable(
-            "TERLAN_SERVE_UPLOAD_ROOT must be absolute".into(),
-        ));
-    }
-    std::fs::create_dir_all(&root).map_err(|error| {
-        BodyReadError::Unavailable(format!("cannot create upload root: {error}"))
-    })?;
-    let root = std::fs::canonicalize(&root).map_err(|error| {
-        BodyReadError::Unavailable(format!("cannot resolve upload root: {error}"))
-    })?;
-    let (temporary, mut file) = (0..16)
-        .find_map(|_| {
-            let sequence = NEXT_UPLOAD_FILE.fetch_add(1, Ordering::Relaxed);
-            let path = root.join(format!(
-                "terlan-request-body-{}-{sequence}.upload",
-                std::process::id()
-            ));
-            match std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-            {
-                Ok(file) => Some(Ok((TemporaryBodyFile { path }, file))),
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => None,
-                Err(error) => Some(Err(BodyReadError::Unavailable(format!(
-                    "cannot create request body file: {error}"
-                )))),
-            }
-        })
-        .unwrap_or_else(|| {
-            Err(BodyReadError::Unavailable(
-                "cannot allocate a unique request body file".into(),
-            ))
-        })?;
-    let mut written = 0_u64;
-    while let Some(frame) = body.frame().await {
-        let frame = frame.map_err(|error| BodyReadError::Invalid(error.to_string()))?;
-        let Ok(data) = frame.into_data() else {
-            continue;
-        };
-        written = written
-            .checked_add(data.len() as u64)
-            .ok_or(BodyReadError::TooLarge)?;
-        if written > max_body_bytes {
-            return Err(BodyReadError::TooLarge);
-        }
-        file.write_all(&data)
-            .map_err(|error| BodyReadError::Unavailable(format!("cannot spool body: {error}")))?;
-    }
-    file.flush()
-        .map_err(|error| BodyReadError::Unavailable(format!("cannot flush body: {error}")))?;
-    drop(file);
-    Ok(temporary)
-}
-
-/// Hyper I/O facade; readiness and polling remain owned by the VM executor.
-struct HyperVmIo {
-    stream: VmReadyTcpStream,
-}
-
-impl HyperVmIo {
-    fn new(stream: VmReadyTcpStream) -> Self {
-        Self { stream }
-    }
-
-    fn into_inner(self) -> VmReadyTcpStream {
-        self.stream
-    }
-}
-
-impl Read for HyperVmIo {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        _context: &mut Context<'_>,
-        mut buffer: ReadBufCursor<'_>,
-    ) -> Poll<io::Result<()>> {
-        if buffer.remaining() == 0 {
-            return Poll::Ready(Ok(()));
-        }
-        loop {
-            // SAFETY: `SockRef::recv` accepts `MaybeUninit<u8>` directly and
-            // initializes exactly the returned byte count. Advancing by that
-            // count therefore satisfies Hyper's ReadBufCursor contract.
-            let outcome = unsafe { self.stream.read_uninit(buffer.as_mut()) };
-            match outcome {
-                Ok(read) => {
-                    // SAFETY: the receive above initialized exactly `read`
-                    // bytes in the cursor's currently unfilled region.
-                    unsafe { buffer.advance(read) };
-                    return Poll::Ready(Ok(()));
-                }
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                    return Poll::Pending;
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Poll::Ready(Err(error)),
-            }
-        }
-    }
-}
-
-impl Write for HyperVmIo {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        _context: &mut Context<'_>,
-        buffer: &[u8],
-    ) -> Poll<io::Result<usize>> {
-        loop {
-            match self.stream.write(buffer) {
-                Ok(written) => return Poll::Ready(Ok(written)),
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                    return Poll::Pending;
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Poll::Ready(Err(error)),
-            }
-        }
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, _context: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_shutdown(self: Pin<&mut Self>, _context: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(self.stream.shutdown_write())
-    }
-
-    fn is_write_vectored(&self) -> bool {
-        true
-    }
-
-    fn poll_write_vectored(
-        mut self: Pin<&mut Self>,
-        _context: &mut Context<'_>,
-        buffers: &[IoSlice<'_>],
-    ) -> Poll<io::Result<usize>> {
-        loop {
-            match self.stream.write_vectored(buffers) {
-                Ok(written) => return Poll::Ready(Ok(written)),
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                    return Poll::Pending;
-                }
-                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
-                Err(error) => return Poll::Ready(Err(error)),
-            }
-        }
-    }
-}
+/// Package-owned Hyper adaptation; the VM supplies only registered streams.
+type HyperVmIo = terlan_http_native::plain_io::PlainIo<VmReadyStream>;
 
 async fn handle_request(
     mut request: Request<Incoming>,
@@ -479,7 +267,7 @@ async fn handle_request(
     };
     let mut request = Request::from_parts(parts, body);
     if let Some(temporary) = &temporary {
-        let Some(path) = temporary.path.to_str() else {
+        let Some(path) = temporary.path().to_str() else {
             return error_response(503, "temporary request path is not UTF-8".into());
         };
         request
@@ -500,7 +288,7 @@ async fn handle_request(
         .map(|target| target.as_str().to_string())
         .unwrap_or_else(|| channel_route.clone());
     let mut channel = None;
-    let response = match handle_vm_stream_request(request, web_root, &mut channel) {
+    let response = match handle_vm_stream_request(request, web_root, &mut channel, false) {
         Ok(response) => response,
         Err(error) => return error_response(500, error),
     };
@@ -564,94 +352,7 @@ struct PendingHyperUpgrade {
     request_target: String,
 }
 
-struct HyperWebSocketIo {
-    prefix: Bytes,
-    prefix_offset: usize,
-    stream: HyperWebSocketStream,
-}
-
-impl HyperWebSocketIo {
-    fn from_upgraded(upgraded: hyper::upgrade::Upgraded) -> Result<Self, String> {
-        let (prefix, stream) = match upgraded.downcast::<HyperVmIo>() {
-            Ok(parts) => (
-                parts.read_buf,
-                HyperWebSocketStream::Plain(parts.io.into_inner()),
-            ),
-            Err(upgraded) => {
-                let parts = upgraded.downcast::<tls_io::VmTlsHyperIo>().map_err(|_| {
-                    "error[serve.websocket.upgrade]: Hyper returned an unexpected transport type"
-                        .to_string()
-                })?;
-                (
-                    parts.read_buf,
-                    HyperWebSocketStream::Tls(Box::new(parts.io)),
-                )
-            }
-        };
-        Ok(Self {
-            prefix,
-            prefix_offset: 0,
-            stream,
-        })
-    }
-}
-
-enum HyperWebSocketStream {
-    Plain(VmReadyTcpStream),
-    Tls(Box<tls_io::VmTlsHyperIo>),
-}
-
-impl std::io::Read for HyperWebSocketStream {
-    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-        match self {
-            Self::Plain(stream) => std::io::Read::read(stream, buffer),
-            Self::Tls(stream) => std::io::Read::read(stream, buffer),
-        }
-    }
-}
-
-impl std::io::Write for HyperWebSocketStream {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        match self {
-            Self::Plain(stream) => std::io::Write::write(stream, buffer),
-            Self::Tls(stream) => std::io::Write::write(stream, buffer),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match self {
-            Self::Plain(stream) => std::io::Write::flush(stream),
-            Self::Tls(stream) => std::io::Write::flush(stream),
-        }
-    }
-}
-
-impl std::io::Read for HyperWebSocketIo {
-    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-        if self.prefix_offset < self.prefix.len() {
-            let remaining = &self.prefix[self.prefix_offset..];
-            let copied = remaining.len().min(buffer.len());
-            buffer[..copied].copy_from_slice(&remaining[..copied]);
-            self.prefix_offset += copied;
-            return Ok(copied);
-        }
-        std::io::Read::read(&mut self.stream, buffer)
-    }
-}
-
-impl std::io::Write for HyperWebSocketIo {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        std::io::Write::write(&mut self.stream, buffer)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        std::io::Write::flush(&mut self.stream)
-    }
-
-    fn write_vectored(&mut self, buffers: &[IoSlice<'_>]) -> io::Result<usize> {
-        std::io::Write::write_vectored(&mut self.stream, buffers)
-    }
-}
+type HyperWebSocketIo = terlan_http_native::upgrade_io::UpgradeIo<HyperVmIo, tls_io::HttpTlsIo>;
 
 async fn pump_hyper_websocket(
     mut pending: PendingHyperUpgrade,
@@ -663,8 +364,13 @@ async fn pump_hyper_websocket(
     let io = HyperWebSocketIo::from_upgraded(upgraded)?;
     let mut socket = WebSocket::new(io, pending.session.plan().max_frame_bytes());
     let mut pairing = pending.session.plan().pairing().cloned();
+    let mut identity = None;
     if let Some(pairing) = &mut pairing {
         if pairing.restoration.is_some() {
+            identity = pending
+                .session
+                .dispatch_pair_identity_output(pending.request_target.clone())
+                .await?;
             pairing.waiting = pending.session.dispatch_pair_waiting_output()?;
             pairing.peer_left = pending.session.dispatch_pair_peer_left_output()?;
         }
@@ -677,6 +383,7 @@ async fn pump_hyper_websocket(
                 pending.request_target.clone(),
                 pending.session.inspect().max_pending_frames,
                 pairing,
+                identity,
             )
         })
         .transpose()?;
@@ -687,20 +394,18 @@ async fn pump_hyper_websocket(
 
     loop {
         if let Some(lease) = &lease {
-            if !drain_hub_outbound(&mut socket, &lease.outbound).await? {
+            if !output::drain(&mut socket, &lease.outbound, websocket_transport_wait).await? {
                 return pending.session.close().map(|_| ());
             }
         }
         match socket.read() {
             Ok(Message::Text(text)) => {
-                let result = pending
-                    .session
-                    .enqueue_inbound(VmWebSocketFrame::Text(text.to_string()));
+                let result = pending.session.enqueue_inbound(text);
                 match result {
                     Ok(()) => {
                         if let Some(lease) = &lease {
                             if pairing.as_ref().is_some_and(|pairing| pairing.stateful) {
-                                lease.drain_stateful_inbound(&mut pending.session)?;
+                                websocket_hub::drain_stateful_inbound(lease, &mut pending.session)?;
                             } else {
                                 for payload in drain_websocket_inbound(&mut pending.session)? {
                                     lease.broadcast(payload)?;
@@ -717,13 +422,17 @@ async fn pump_hyper_websocket(
                 }
             }
             Ok(Message::Ping(_)) => {
-                flush_websocket_nonblocking(&mut socket).await?;
+                if !output::flush(&mut socket, websocket_transport_wait).await? {
+                    return pending.session.close().map(|_| ());
+                }
                 notify_websocket_writable(&mut pending.session)?;
             }
             Ok(Message::Pong(_)) => {}
             Ok(Message::Close(_)) => {
                 let callback = pending.session.close().map(|_| ());
-                let flush = flush_websocket_nonblocking(&mut socket).await;
+                let flush = output::flush(&mut socket, websocket_transport_wait)
+                    .await
+                    .map(|_| ());
                 return callback.and(flush);
             }
             Ok(Message::Binary(_)) => {
@@ -739,9 +448,11 @@ async fn pump_hyper_websocket(
                 return Err(error);
             }
             Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
+                websocket_transport_wait().await;
             }
-            Err(error) if error.kind() == ErrorKind::Interrupted => {}
+            Err(error) if error.kind() == ErrorKind::Interrupted => {
+                websocket_transport_wait().await;
+            }
             Err(error) if error.kind() == ErrorKind::Disconnected => {
                 return pending.session.close().map(|_| ());
             }
@@ -787,55 +498,8 @@ fn notify_websocket_writable(
     Ok(())
 }
 
-async fn flush_websocket_nonblocking(
-    socket: &mut WebSocket<HyperWebSocketIo>,
-) -> Result<(), String> {
-    loop {
-        match socket.flush() {
-            Ok(()) => return Ok(()),
-            Err(error) if error.kind() == ErrorKind::Closed => return Ok(()),
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
-            }
-            Err(error) if error.kind() == ErrorKind::Interrupted => {}
-            Err(error) if error.kind() == ErrorKind::Disconnected => return Ok(()),
-            Err(error) => {
-                return Err(format!("error[serve.websocket.transport]: {error}"));
-            }
-        }
-    }
-}
-
-async fn drain_hub_outbound(
-    socket: &mut WebSocket<HyperWebSocketIo>,
-    outbound: &Receiver<String>,
-) -> Result<bool, String> {
-    let mut wrote = false;
-    loop {
-        match outbound.try_recv() {
-            Ok(payload) => {
-                match socket.write_text(payload) {
-                    Ok(()) => {}
-                    Err(error) if error.kind() == ErrorKind::WouldBlock => {}
-                    Err(error) if error.kind() == ErrorKind::Disconnected => return Ok(false),
-                    Err(error) => {
-                        return Err(format!("error[serve.websocket.transport]: {error}"));
-                    }
-                }
-                wrote = true;
-            }
-            Err(TryRecvError::Empty) => break,
-            Err(TryRecvError::Disconnected) => {
-                return Err(
-                    "error[serve.websocket.transport]: outbound hub disconnected".to_string(),
-                )
-            }
-        }
-    }
-    if wrote {
-        flush_websocket_nonblocking(socket).await?;
-    }
-    Ok(true)
+async fn websocket_transport_wait() {
+    protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
 }
 
 fn error_response(status: u16, message: String) -> Response<ResponseBody> {

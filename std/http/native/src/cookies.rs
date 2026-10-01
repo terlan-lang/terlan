@@ -62,8 +62,7 @@ pub fn parse_request_cookie_header(cookie_header: &str) -> Vec<(String, String)>
 /// Cookie options for `Set-Cookie` serialization.
 ///
 /// Inputs:
-/// - Produced by current helper defaults or future typed cookie option
-///   lowering.
+/// - Produced by the source-selected cookie options at the package boundary.
 ///
 /// Output:
 /// - Stable option values consumed by `set_header_with_options`.
@@ -87,62 +86,6 @@ pub struct CookieOptions {
     pub secure: bool,
     /// Optional SameSite policy.
     pub same_site: Option<CookieSameSite>,
-}
-
-impl CookieOptions {
-    /// Builds default cookie options for the current public helper.
-    ///
-    /// Inputs:
-    /// - No explicit input.
-    ///
-    /// Output:
-    /// - Cookie options with path `/` and all optional attributes absent.
-    ///
-    /// Transformation:
-    /// - Centralizes default cookie option values so legacy and future helpers
-    ///   serialize through the same validation path.
-    pub fn defaults() -> Self {
-        Self {
-            path: "/".to_string(),
-            domain: None,
-            max_age: None,
-            expires: None,
-            http_only: false,
-            secure: false,
-            same_site: None,
-        }
-    }
-}
-
-/// Builds a conservative `Set-Cookie` header value.
-///
-/// Inputs:
-/// - `name`: cookie name.
-/// - `value`: cookie value.
-/// - `path`: cookie path attribute.
-/// - `http_only`: whether to append `HttpOnly`.
-/// - `secure`: whether to append `Secure`.
-///
-/// Output:
-/// - Serialized `Set-Cookie` header value.
-/// - `Err(HttpError)` when name, value, or path cannot be safely emitted.
-///
-/// Transformation:
-/// - Validates the practical cookie subset needed by the first Terlan HTTP
-///   runtime and serializes it without exposing handler code to header
-///   assembly details.
-pub fn set_header(
-    name: &str,
-    value: &str,
-    path: &str,
-    http_only: bool,
-    secure: bool,
-) -> Result<String, HttpError> {
-    let mut options = CookieOptions::defaults();
-    options.path = path.to_string();
-    options.http_only = http_only;
-    options.secure = secure;
-    set_header_with_options(name, value, &options)
 }
 
 /// Builds a `Set-Cookie` header value from typed cookie options.
@@ -195,31 +138,6 @@ pub fn set_header_with_options(
         builder = builder.same_site(same_site.to_cookie_same_site());
     }
     Ok(builder.build().to_string())
-}
-
-/// Builds a conservative cookie deletion header value.
-///
-/// Inputs:
-/// - `name`: cookie name.
-/// - `path`: cookie path attribute.
-///
-/// Output:
-/// - Serialized `Set-Cookie` header value that expires the cookie.
-/// - `Err(HttpError)` when name or path cannot be safely emitted.
-///
-/// Transformation:
-/// - Reuses the same validation as `set_header` and delegates serialization of
-///   the `Max-Age=0` plus epoch `Expires` deletion shape to the maintained
-///   cookie crate.
-pub fn delete_header(name: &str, path: &str) -> Result<String, HttpError> {
-    validate_cookie_name(name)?;
-    validate_cookie_path(path)?;
-    Ok(Cookie::build((name.to_string(), String::new()))
-        .path(path.to_string())
-        .max_age(Duration::seconds(0))
-        .expires(OffsetDateTime::UNIX_EPOCH)
-        .build()
-        .to_string())
 }
 
 /// Parses a cookie Expires option.

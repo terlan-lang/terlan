@@ -1,6 +1,4 @@
-use super::{
-    call, native_handle_from_store, supported_handle_type, supports, typed_result_error_name,
-};
+use super::{call, supported_handle_type, supports, typed_result_error_name};
 use crate::runtime::native_boundary::resource::{ResourceStore, ResourceValue};
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::pure_native::PureNativeCapabilityRequest;
@@ -343,25 +341,40 @@ fn call_supports_direct_base64_without_a_std_package_helper() {
 }
 
 #[test]
-fn native_handle_from_store_includes_response_handles() {
+fn retired_response_handles_are_not_admitted_even_with_live_resource_ids() {
     let mut resources = ResourceStore::new();
-    let response_handle = resources
+    let handle = resources
         .insert_for_owner(
             OWNER_PROCESS_ID,
-            ResourceValue::HttpResponse(crate::runtime::native::http::Response::from_parts(
-                200,
-                "text/plain",
-                "ok",
-            )),
+            ResourceValue::Json(crate::terlan_native::json::null()),
         )
-        .expect("response inserted into test store");
-
-    assert_eq!(
-        native_handle_from_store(&resources, OWNER_PROCESS_ID, response_handle)
-            .expect("response handle projected")
-            .type_name(),
-        "std.http.Response.Response"
-    );
+        .unwrap();
+    let before = resources.clone();
+    let value =
+        super::native_handle_value(OWNER_PROCESS_ID, handle, "std.http.Response.Response").unwrap();
+    assert!(!supported_handle_type("std.http.Response.Response"));
+    for argument in [
+        value.clone(),
+        ReplValue::List(vec![value.clone()]),
+        ReplValue::Tuple(vec![value]),
+    ] {
+        let error = call(
+            &mut resources,
+            OWNER_PROCESS_ID,
+            &PureNativeCapabilityRequest {
+                capability: "package-native".into(),
+                operation: "std.data.json.render".into(),
+                arguments: vec![],
+                package_arguments: Some(vec![argument]),
+                result_type: TvmBoundaryType::String,
+            },
+        )
+        .unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("unsupported handle type `std.http.Response.Response`"));
+        assert_eq!(resources, before);
+    }
 }
 
 #[test]
@@ -427,24 +440,5 @@ fn source_cookie_jar_has_no_native_operations_or_handle_type() {
             error.to_string().contains("dispatch.unknown_operation"),
             "{error}"
         );
-    }
-}
-
-impl ReplValue {
-    fn type_name(&self) -> &str {
-        match self {
-            ReplValue::Record { name: _, fields } => fields
-                .iter()
-                .find_map(|(field, value)| {
-                    if field == "$native_type" {
-                        if let ReplValue::String(value) = value {
-                            return Some(value.as_str());
-                        }
-                    }
-                    None
-                })
-                .unwrap_or(""),
-            _ => "",
-        }
     }
 }

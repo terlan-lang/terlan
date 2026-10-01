@@ -10,10 +10,9 @@ fn heap() -> ActorHeap {
 }
 
 fn execute(heap: &mut ActorHeap, encoded: &[u8], word: i64) -> Result<u64, ManagedMemoryError> {
-    super::super::execute_managed_operation_with_context(
+    super::super::execute_managed_operation(
         heap,
         &ManagedLayoutRegistry::default(),
-        None,
         encoded,
         &[word],
     )

@@ -1,6 +1,6 @@
 pub(super) use super::cache::{
-    load_acme_certificate_cache_metadata, redact_acme_cache_support_bundle,
-    restrict_private_key_file_permissions, validate_acme_key_custody_policy,
+    load_acme_certificate_cache_metadata, restrict_private_key_file_permissions,
+    validate_acme_key_custody_policy,
 };
 pub(super) use super::{
     acme_runtime_plan, acme_runtime_tls_config_with_local_issuer, runtime_tls_config,

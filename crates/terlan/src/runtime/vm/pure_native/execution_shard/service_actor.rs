@@ -69,7 +69,8 @@ impl PureNativeExecutionShard {
                 owner.as_u64()
             )));
         }
-        self.begin_call_for_owner(owner, function, args)
+        self.begin_routed_owner_call(owner, &NativeCallTarget::Export(function.into()), args)
+            .map_err(service_actor_error)
     }
 
     /// Runs one complete synchronous call on an existing fixed-owner actor.
@@ -108,15 +109,5 @@ impl PureNativeExecutionShard {
             );
         }
         result
-    }
-
-    fn begin_call_for_owner(
-        &mut self,
-        owner: VmProcessId,
-        function: &str,
-        args: &[ReplValue],
-    ) -> Result<PureNativeExecution, BoundaryError> {
-        self.begin_routed_owner_call(owner, &NativeCallTarget::Export(function.into()), args)
-            .map_err(service_actor_error)
     }
 }

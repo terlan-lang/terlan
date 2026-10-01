@@ -92,6 +92,11 @@ pub parse_reports_invalid_uri_text(): Bool ->
     assert(is_err(Uri.parse("not a uri"))).
 
 @test
+pub query_pairs_preserve_order_duplicates_and_decoding(): Bool ->
+    Uri.query_pairs("") == []
+        and Uri.query_pairs("a=1&a=2&room=a%2Bb+c&empty") == [{"a", "1"}, {"a", "2"}, {"room", "a+b c"}, {"empty", ""}].
+
+@test
 pub parse_builds_portable_error_in_terlan(): Bool ->
     case Uri.parse("https://[::1") {
         Err(reason) ->

@@ -6,7 +6,6 @@ use std::io::{Cursor, Read, Write};
 use tungstenite::protocol::{Message, Role, WebSocket};
 
 use crate::commands::serve::handler_cache::handler_cache_test_support::clear_vm_handler_module_cache_for_test;
-use crate::runtime::vm::websocket::VmWebSocketFrame;
 use crate::support::test_fs;
 
 use super::*;
@@ -211,6 +210,31 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
     let root = channel_package();
     let web_root = root.join("_build/web");
 
+    for version in [http::Version::HTTP_11, http::Version::HTTP_2] {
+        let mut channel = None;
+        let request = http::Request::builder()
+            .method("GET")
+            .uri("/events")
+            .version(version)
+            .body(String::new())
+            .unwrap();
+        let response = crate::commands::serve::handle_vm_stream_request(
+            request,
+            &web_root,
+            &mut channel,
+            false,
+        )
+        .unwrap();
+        assert_eq!(response.status(), 501);
+        assert!(
+            channel.is_none(),
+            "unsupported transport must not retain a session"
+        );
+        assert!(
+            String::from_utf8_lossy(response.body()).contains("serve_http.upgrade_adapter_missing")
+        );
+    }
+
     let mut websocket = handle_vm_stream_http1_exchange(
         &web_root,
         b"GET /socket HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
@@ -220,13 +244,13 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
         panic!("expected retained WebSocket session")
     };
     session
-        .enqueue_inbound(VmWebSocketFrame::Text("queued-one".to_string()))
+        .enqueue_inbound("queued-one".into())
         .expect("queue first frame");
     session
-        .enqueue_inbound(VmWebSocketFrame::Text("queued-two".to_string()))
+        .enqueue_inbound("queued-two".into())
         .expect("queue second frame");
     let pressure = session
-        .enqueue_inbound(VmWebSocketFrame::Text("overflow".to_string()))
+        .enqueue_inbound("overflow".into())
         .expect_err("bounded WebSocket queue must reject overflow");
     assert!(
         pressure.contains("pending frame queue is full"),

@@ -1,12 +1,11 @@
 //! Bounded connection acceptance and fixed-owner admission.
 
 use std::io;
-use std::net as std_net;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use mio::net::{TcpListener, TcpStream};
 use mio::{Interest, Registry, Waker as MioWaker};
+use terlan_runtime_abi::poll_io::{IncomingStreams, ReadinessStream};
 
 use super::{
     render_io, reserve_admission_target, reserve_remote_admission_target, VmProtocolShardIngress,
@@ -52,27 +51,23 @@ impl VmProtocolCapacity {
 
 /// Per-owner accept point with VM-directed overload correction.
 pub(super) struct VmProtocolAcceptor {
-    listener: TcpListener,
+    listener: Box<dyn IncomingStreams>,
     ingresses: Vec<Arc<VmProtocolShardIngress>>,
     local_index: usize,
     capacity: Arc<VmProtocolCapacity>,
     next_tie: usize,
-    local_admissions: Vec<TcpStream>,
-    pending_admission: Option<TcpStream>,
+    local_admissions: Vec<Box<dyn ReadinessStream>>,
+    pending_admission: Option<Box<dyn ReadinessStream>>,
 }
 
 impl VmProtocolAcceptor {
     pub(super) fn new(
-        listener: std_net::TcpListener,
+        mut listener: Box<dyn IncomingStreams>,
         registry: &Registry,
         ingresses: Vec<Arc<VmProtocolShardIngress>>,
         local_index: usize,
         capacity: Arc<VmProtocolCapacity>,
     ) -> Result<Self, String> {
-        listener
-            .set_nonblocking(true)
-            .map_err(render_io("acceptor listener"))?;
-        let mut listener = TcpListener::from_std(listener);
         registry
             .register(&mut listener, ACCEPTOR_LISTENER_TOKEN, Interest::READABLE)
             .map_err(render_io("acceptor listener registration"))?;
@@ -94,7 +89,7 @@ impl VmProtocolAcceptor {
             let stream = match self.pending_admission.take() {
                 Some(stream) => stream,
                 None => match self.listener.accept() {
-                    Ok((stream, _)) => stream,
+                    Ok(stream) => stream,
                     Err(error) if error.kind() == io::ErrorKind::WouldBlock => return Ok(false),
                     Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
                     Err(error) => return Err(format!("error[vm.protocol_accept]: {error}")),
@@ -129,7 +124,11 @@ impl VmProtocolAcceptor {
         Ok(true)
     }
 
-    fn admit_reserved(&mut self, stream: TcpStream, target: usize) -> Result<(), String> {
+    fn admit_reserved(
+        &mut self,
+        stream: Box<dyn ReadinessStream>,
+        target: usize,
+    ) -> Result<(), String> {
         if target == self.local_index {
             self.local_admissions.push(stream);
         } else {
@@ -158,11 +157,14 @@ impl VmProtocolAcceptor {
         Ok(())
     }
 
-    pub(super) fn take_local_admissions(&mut self) -> Vec<TcpStream> {
+    pub(super) fn take_local_admissions(&mut self) -> Vec<Box<dyn ReadinessStream>> {
         std::mem::take(&mut self.local_admissions)
     }
 
-    pub(super) fn recycle_local_admissions(&mut self, mut admissions: Vec<TcpStream>) {
+    pub(super) fn recycle_local_admissions(
+        &mut self,
+        mut admissions: Vec<Box<dyn ReadinessStream>>,
+    ) {
         admissions.clear();
         self.local_admissions = admissions;
     }

@@ -64,6 +64,110 @@ pub parameter_count(values: List[IrParameter]): Int ->
         [_ | rest] -> 1 + parameter_count(rest)
     }.
 
+pub parameter_named(name: String, values: List[IrParameter]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.name == name -> true;
+            true -> parameter_named(name, rest)
+        }
+    }.
+
+pub append_ir_parameters(
+    left: List[IrParameter],
+    right: List[IrParameter],
+): List[IrParameter] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_ir_parameters(rest, right)]
+    }.
+
+pub parameter_names(values: List[IrParameter]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.name | parameter_names(rest)]
+    }.
+
+lambda_pattern_name(pattern: ProjectedExpressionNode): String ->
+    case String.split(pattern.text, ":") {
+        [name | _rest] -> String.trim(name);
+        [] -> pattern.text
+    }.
+
+lambda_pattern_type(pattern: ProjectedExpressionNode): String ->
+    case String.split(pattern.text, ":") {
+        [_name, type_name] -> String.trim(type_name);
+        _ -> "Dynamic"
+    }.
+
+lambda_parameter(pattern: ProjectedExpressionNode): IrParameter ->
+    IrParameter(lambda_pattern_name(pattern), lambda_pattern_type(pattern)).
+
+lambda_parameter_nodes(values: List[ProjectedExpressionNode]): List[IrParameter] ->
+    case values {
+        [] -> List.new[IrParameter]();
+        [value | rest] -> [lambda_parameter(value) | lambda_parameter_nodes(rest)]
+    }.
+
+pub lambda_parameters(node: ProjectedExpressionNode): List[IrParameter] ->
+    case node.children {
+        [patterns, _body] -> lambda_parameter_nodes(patterns.children);
+        _ -> List.new[IrParameter]()
+    }.
+
+pub lambda_body(node: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
+    case node.children {
+        [_patterns, body] -> Some(body);
+        _ -> None
+    }.
+
+pub lambda_body_id(node: ProjectedExpressionNode, node_id: Int): Int ->
+    case node.children {
+        [patterns, _body] -> node_id + 1 + node_size(patterns);
+        _ -> node_id + 1
+    }.
+
+pub lambda_symbol(node: ProjectedExpressionNode): String ->
+    String.concat(["$lambda$", Int.to_string(node.start_byte)]).
+
+node_references(name: String, node: ProjectedExpressionNode): Bool ->
+    if {
+        (node.kind == "identifier" or node.kind == "atom") and node.text == name -> true;
+        true -> children_reference(name, node.children)
+    }.
+
+children_reference(name: String, values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            node_references(name, value) -> true;
+            true -> children_reference(name, rest)
+        }
+    }.
+
+lambda_capture_parameters(
+    body: ProjectedExpressionNode,
+    local: List[IrParameter],
+    outer: List[IrParameter],
+): List[IrParameter] ->
+    case outer {
+        [] -> List.new[IrParameter]();
+        [value | rest] -> if {
+            not parameter_named(value.name, local) and node_references(value.name, body) ->
+                [value | lambda_capture_parameters(body, local, rest)];
+            true -> lambda_capture_parameters(body, local, rest)
+        }
+    }.
+
+pub lambda_captures(
+    node: ProjectedExpressionNode,
+    outer: List[IrParameter],
+): List[IrParameter] ->
+    case lambda_body(node) {
+        Some(body) -> lambda_capture_parameters(body, lambda_parameters(node), outer);
+        None -> List.new[IrParameter]()
+    }.
+
 pub ir_parameters(values: List[ParameterSyntax]): List[IrParameter] ->
     case values {
         [] -> List.new[IrParameter]();
@@ -71,9 +175,12 @@ pub ir_parameters(values: List[ParameterSyntax]): List[IrParameter] ->
     }.
 
 pub shallow_pattern_supported(pattern: ProjectedExpressionNode): Bool ->
-    case pattern.children {
+    pattern_children_supported(pattern.children).
+
+pattern_children_supported(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
         [] -> true;
-        [first | rest] -> shallow_pattern_supported_tail(first, rest)
+        [value | rest] -> shallow_pattern_supported(value) and pattern_children_supported(rest)
     }.
 
 shallow_pattern_supported_tail(
@@ -96,9 +203,18 @@ shallow_pattern_supported_pair(
     }.
 
 pub shallow_pattern_operands(subject: String, pattern: ProjectedExpressionNode): List[String] ->
-    case pattern.children {
-        [] -> [subject, pattern.kind, pattern.text, "0"];
-        [first | rest] -> shallow_pattern_operand_tail(subject, pattern, first, rest)
+    [subject | pattern_operands(pattern)].
+
+pattern_operands(pattern: ProjectedExpressionNode): List[String] ->
+    concat(
+        [pattern.kind, pattern.text, Int.to_string(pattern.children.length())],
+        pattern_children_operands(pattern.children),
+    ).
+
+pattern_children_operands(values: List[ProjectedExpressionNode]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> concat(pattern_operands(value), pattern_children_operands(rest))
     }.
 
 shallow_pattern_operand_tail(
@@ -155,10 +271,21 @@ pub shallow_pattern_bindings(
     pattern: ProjectedExpressionNode,
     environment: String,
 ): List[SemanticInstructionPlan] ->
-    let root = shallow_binding(pattern, environment);
-    case pattern.children {
-        [] -> root;
-        [first | rest] -> shallow_pattern_binding_tail(root, first, rest, environment)
+    concat_instructions(
+        shallow_binding(pattern, environment),
+        pattern_children_bindings(pattern.children, environment),
+    ).
+
+pattern_children_bindings(
+    values: List[ProjectedExpressionNode],
+    environment: String,
+): List[SemanticInstructionPlan] ->
+    case values {
+        [] -> List.new[SemanticInstructionPlan]();
+        [value | rest] -> concat_instructions(
+            shallow_pattern_bindings(value, environment),
+            pattern_children_bindings(rest, environment),
+        )
     }.
 
 shallow_pattern_binding_tail(
@@ -283,6 +410,16 @@ expression_identifier_type(text: String, parameters: List[IrParameter]): Option[
     }.
 
 expression_type_after_identifier(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[String] ->
+    if {
+        node.kind == "atom-literal" -> some_string("Atom");
+        true -> expression_type_after_atom_literal(node, facts, parameters)
+    }.
+
+expression_type_after_atom_literal(
     node: ProjectedExpressionNode,
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
@@ -565,6 +702,7 @@ pub node_opcode(node: ProjectedExpressionNode): String ->
         node.kind == "integer"
             or node.kind == "float"
             or node.kind == "string"
+            or node.kind == "atom-literal"
             or node.kind == "constructor"
             or node.kind == "primary" -> "load-literal";
         true -> move_node_opcode(node)
@@ -629,6 +767,7 @@ pub literal_operands(node: ProjectedExpressionNode): List[String] ->
         node.kind == "integer"
             or node.kind == "float"
             or node.kind == "string"
+            or node.kind == "atom-literal"
             or node.kind == "atom"
             or node.kind == "constructor"
             or node.kind == "primary" -> [node.text];

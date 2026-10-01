@@ -49,7 +49,6 @@ pub(super) fn managed_allocate_inner(
         runtime.heap(context.owner_id)?;
         let layouts = runtime.layouts.as_ref();
         let closure_dispatch = runtime.closure_dispatch.as_deref();
-        let http_sessions = runtime.http_sessions.as_ref();
         let heap = runtime.heaps.get_mut(&context.owner_id).ok_or_else(|| {
             "error[managed_execution.heap]: actor heap insertion was lost".to_string()
         })?;
@@ -60,10 +59,9 @@ pub(super) fn managed_allocate_inner(
                 super::super::execute_closure_allocation(heap, dispatch, layout, fields)
                     .map_err(|error| error.to_string())
             } else if super::super::is_managed_operation(layout) {
-                super::super::execute_managed_operation_with_context(
+                super::super::execute_managed_operation(
                     heap,
                     layouts,
-                    http_sessions,
                     layout,
                     fields,
                 )

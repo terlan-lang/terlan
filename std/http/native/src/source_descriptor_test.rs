@@ -17,6 +17,16 @@ fn tag(name: &str, mut fields: Vec<V>) -> V {
     ) {
         fields.extend([V::List(vec![]), V::List(vec![])]);
     }
+    if matches!(name, "route" | "sse" | "websocket" | "fallback") && fields.len() >= 3 {
+        let count = fields.len();
+        for (index, arity) in [(count - 2, 1), (count - 1, 2)] {
+            let V::List(values) = &fields[index] else {
+                continue;
+            };
+            let stage = (!values.is_empty()).then(|| cb(100 + arity, arity));
+            fields[index] = pipeline(values.clone(), stage, arity);
+        }
+    }
     let (constructor, names): (_, &[&str]) = match name {
         "route" => (
             "Route",
@@ -76,11 +86,8 @@ fn tag(name: &str, mut fields: Vec<V>) -> V {
             &[
                 "waiting",
                 "peer_left",
-                "room_query",
-                "player_query",
+                "identity",
                 "room_prefix",
-                "first_player",
-                "second_player",
                 "retention_ms",
                 "retained_room_capacity",
                 "matched",
@@ -99,6 +106,20 @@ fn tag(name: &str, mut fields: Vec<V>) -> V {
             .map(|(name, value)| ((*name).into(), value))
             .collect(),
     }
+}
+
+fn pipeline(callbacks: Vec<V>, stage: Option<V>, arity: i64) -> V {
+    rec(
+        if arity == 1 {
+            "RequestPipeline"
+        } else {
+            "ResponsePipeline"
+        },
+        &[
+            ("callbacks", V::List(callbacks)),
+            ("execute", V::List(stage.into_iter().collect())),
+        ],
+    )
 }
 fn cb(id: i64, arity: i64) -> V {
     V::Tuple(vec![V::Int(id), V::Int(arity)])
@@ -315,11 +336,8 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
         vec![
             cb(1, 0),
             cb(2, 0),
-            "room".into(),
-            "player".into(),
+            cb(7, 1),
             "room-".into(),
-            "one".into(),
-            "two".into(),
             1000i64.into(),
             4i64.into(),
             cb(3, 4),
@@ -341,8 +359,14 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
         ),
         (1, 2, 3, 4)
     );
-    assert_eq!(recovery.room_query, "room");
-    assert_eq!(recovery.player_query, "player");
+    assert_eq!(recovery.identity, 7);
+    for arity in [0, 2] {
+        assert!(websocket_endpoint(
+            &websocket(replace(&restoration, "identity", cb(7, arity))),
+            admit
+        )
+        .is_err());
+    }
     assert_eq!(recovery.room_prefix, "room-");
     assert_eq!(
         (recovery.retention_ms, recovery.retained_room_capacity),
@@ -413,8 +437,8 @@ fn router_groups_preserve_global_and_scoped_middleware_and_channel_targets() {
     let plan = router(&value, admit).unwrap();
     assert_eq!(plan.routes.len(), 3);
     assert_eq!(plan.routes[0].path, "/api/users");
-    assert_eq!(plan.routes[0].middleware, [3]);
-    assert_eq!(plan.routes[0].response_middleware, [4]);
+    assert_eq!(plan.routes[0].middleware, [101]);
+    assert_eq!(plan.routes[0].response_middleware, [102]);
     assert!(matches!(plan.routes[0].target, RouteTarget::Handler(5)));
     // Path, fallback, and scoped middleware composition are source behavior.
     // Admission must neither invent routes nor prepend callbacks a second time.
@@ -451,8 +475,8 @@ fn fallback_callbacks_are_explicit_validated_source_values() {
     .unwrap();
     let admitted = plan.fallback.unwrap();
     assert_eq!(admitted.handler, 1);
-    assert_eq!(admitted.middleware, [3, 2]);
-    assert_eq!(admitted.response_middleware, [4]);
+    assert_eq!(admitted.middleware, [101]);
+    assert_eq!(admitted.response_middleware, [102]);
     for invalid in [
         rec("Fallback", &[("callback", cb(1, 1))]),
         replace(&fallback, "callback", cb(1, 2)),
@@ -573,19 +597,30 @@ fn scoped_route_callbacks_are_source_values_and_validated_for_every_target() {
         );
         assert!(plan.routes[0].response_middleware.is_empty());
         let scoped = replace(
-            &replace(&target, "middleware", V::List(vec![cb(4, 1), cb(3, 1)])),
+            &replace(
+                &target,
+                "middleware",
+                pipeline(vec![cb(4, 1), cb(3, 1)], Some(cb(7, 1)), 1),
+            ),
             "response_middleware",
-            V::List(vec![cb(6, 2), cb(5, 2)]),
+            pipeline(vec![cb(6, 2), cb(5, 2)], Some(cb(8, 2)), 2),
         );
         let plan = decode(scoped.clone()).unwrap();
-        assert_eq!(plan.routes[0].middleware, [4, 3]);
-        assert_eq!(plan.routes[0].response_middleware, [6, 5]);
+        assert_eq!(plan.routes[0].middleware, [7]);
+        assert_eq!(plan.routes[0].response_middleware, [8]);
         for (key, wrong_arity) in [("middleware", 2), ("response_middleware", 1)] {
             for value in [
                 V::Unit,
                 V::Tuple(vec![]),
                 V::List(vec![cb(1, wrong_arity)]),
                 V::List(vec![V::Unit]),
+                pipeline(vec![cb(1, wrong_arity)], None, 3 - wrong_arity),
+                pipeline(vec![], Some(cb(1, wrong_arity)), 3 - wrong_arity),
+                replace(
+                    &pipeline(vec![], None, 3 - wrong_arity),
+                    "execute",
+                    V::List(vec![cb(1, 3 - wrong_arity), cb(2, 3 - wrong_arity)]),
+                ),
             ] {
                 assert!(decode(replace(&scoped, key, value)).is_err(), "{key}");
             }

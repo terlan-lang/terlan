@@ -958,6 +958,120 @@ invalid_list_cons(slice: GroupSlice): ProjectedExpressionResult ->
     ProjectedExpressionResult(false, None, slice.rest, "list cons expression is invalid").
 
 @pure
+lambda_parameters(values: List[ProjectedCanonicalToken]): NodeListParse ->
+    lambda_parameters_at(values, List.new[ProjectedExpressionNode]()).
+
+@pure
+lambda_parameters_at(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    case values {
+        [] -> NodeListParse(true, reverse(output), "");
+        [first | rest] -> lambda_parameter_item([first | rest], output)
+    }.
+
+@pure
+lambda_parameter_item(
+    values: List[ProjectedCanonicalToken],
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    let item = partition(values, ",");
+    let parsed = ProjectedPatternParser.parse(item.left);
+    case parsed.node {
+        Some(parameter) -> lambda_parameter_parsed(item, parsed, parameter, output);
+        None -> NodeListParse(false, reverse(output), "lambda parameter is invalid")
+    }.
+
+@pure
+lambda_parameter_parsed(
+    item: TokenPartition,
+    parsed: ProjectedExpressionResult,
+    parameter: ProjectedExpressionNode,
+    output: List[ProjectedExpressionNode],
+): NodeListParse ->
+    if {
+        not parsed.valid or parsed.rest != [] ->
+            NodeListParse(false, reverse(output), "lambda parameter is invalid");
+        item.found -> lambda_parameters_at(item.right, [parameter | output]);
+        true -> NodeListParse(true, reverse([parameter | output]), "")
+    }.
+
+@pure
+parse_lambda_primary(
+    opening: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let parameters = group(opening, values);
+    case parameters.close {
+        Some(close) -> parse_lambda_after_parameters(opening, close, parameters);
+        None -> ProjectedExpressionResult(false, None, parameters.rest, "lambda is missing -> body")
+    }.
+
+@pure
+parse_lambda_after_parameters(
+    opening: ProjectedCanonicalToken,
+    close: ProjectedCanonicalToken,
+    parameters: GroupSlice,
+): ProjectedExpressionResult ->
+    case parameters.rest {
+        [arrow | body_tokens] where arrow.text == "->" ->
+            parse_lambda_expression(opening, close, parameters, arrow, body_tokens);
+        _ -> ProjectedExpressionResult(false, None, parameters.rest, "lambda is missing -> body")
+    }.
+
+@pure
+parse_lambda_expression(
+    opening: ProjectedCanonicalToken,
+    close: ProjectedCanonicalToken,
+    parameters: GroupSlice,
+    arrow: ProjectedCanonicalToken,
+    body_tokens: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let parsed_parameters = lambda_parameters(parameters.inner);
+    let body = parse(body_tokens);
+    case body.node {
+        Some(body_node) -> build_lambda_expression(
+            opening,
+            close,
+            arrow,
+            parsed_parameters,
+            body,
+            body_node,
+        );
+        None -> ProjectedExpressionResult(false, None, body.rest, "lambda body is invalid")
+    }.
+
+@pure
+build_lambda_expression(
+    opening: ProjectedCanonicalToken,
+    close: ProjectedCanonicalToken,
+    arrow: ProjectedCanonicalToken,
+    parameters: NodeListParse,
+    body: ProjectedExpressionResult,
+    body_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let parameter_node = node(
+        "parameters",
+        "",
+        opening.start_byte,
+        close.end_byte,
+        parameters.nodes,
+    );
+    ProjectedExpressionResult(
+        parameters.valid and body.valid,
+        Some(node(
+            "lambda",
+            arrow.text,
+            opening.start_byte,
+            body_node.end_byte,
+            [parameter_node, body_node],
+        )),
+        body.rest,
+        node_list_message(parameters.valid, parameters.message, body.message),
+    ).
+
+@pure
 parse_primary(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
         [] -> ProjectedExpressionResult(false, None, values, "expression is missing a primary");
@@ -970,6 +1084,7 @@ parse_primary_first(
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
+        first.terminal == "lambda-(" -> parse_lambda_primary(first, rest);
         first.text == "if" -> parse_if_primary(first, rest);
         true -> parse_primary_case(first, rest)
     }.

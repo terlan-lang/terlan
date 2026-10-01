@@ -131,43 +131,14 @@ pub check(): Bool ->
 }
 
 #[test]
-fn security_named_constructors_are_not_replaced_by_http_layouts() {
-    use crate::terlan_typeck::CoreExpr;
-    let mut core = super::source_constructor_test::checked_provider(
-        "module security_namesake. import std.http.Response. pub check(): Bool -> true.",
-    );
-    for owner in ["app.Policy", "std.http.Response"] {
-        let expression = CoreExpr::ConstructorCall {
-            constructor: format!("{owner}.SecurityHeaders"),
-            constructor_identity: Some(format!("{owner}.SecurityHeaders")),
-            type_args: Vec::new(),
-            args: (0..5).map(CoreExpr::Int).collect(),
-        };
-        core.functions[0].clauses[0].body.core_expr = Some(expression.clone());
-        super::http_values::lower_http_values(&mut core).unwrap();
-        assert_eq!(
-            core.functions[0].clauses[0].body.core_expr.as_ref(),
-            Some(&expression)
-        );
-    }
-}
-
-#[test]
-fn standard_response_has_no_native_operations_or_compiler_owned_layouts() {
-    let mut core = super::source_constructor_test::checked_provider(include_str!(
+fn standard_response_has_no_native_operations() {
+    let core = super::source_constructor_test::checked_provider(include_str!(
         "../../../../../std/http/Response.terl"
     ));
     assert!(core
         .functions
         .iter()
         .all(|function| function.native_operation.is_none()));
-    assert!(super::http_values::http_managed_layouts(&core)
-        .unwrap()
-        .is_empty());
-    super::http_values::lower_http_values(&mut core).unwrap();
-    assert!(super::http_values::http_managed_layouts(&core)
-        .unwrap()
-        .is_empty());
 }
 
 #[test]
@@ -197,42 +168,6 @@ pub check(): Bool ->
         &caller.replace("std.http.Response", "app.Response"),
         &provider.replace("std.http.Response", "app.Response"),
     ]);
-}
-
-#[test]
-fn ordinary_response_calls_retain_explicit_types_and_namespace_boundaries() {
-    use crate::terlan_typeck::{CoreExpr, CoreType};
-    let mut core = super::source_constructor_test::checked_provider(
-        "module response_calls. import std.http.Response. pub check(): Bool -> true.",
-    );
-    let remote = CoreExpr::RemoteCall {
-        module: "std.http.Response".into(),
-        function: "source_policy".into(),
-        type_args: vec![CoreType::String],
-        args: vec![CoreExpr::Binary("\"value\"".into())],
-    };
-    let qualified = CoreExpr::Call {
-        function: "std.http.Response.source_policy".into(),
-        type_args: vec![CoreType::String],
-        args: vec![CoreExpr::Binary("\"value\"".into())],
-    };
-    let namesake = CoreExpr::Call {
-        function: "std.http.ResponsePolicy.default_security_headers".into(),
-        type_args: Vec::new(),
-        args: Vec::new(),
-    };
-    for (input, expected) in [
-        (remote.clone(), remote.clone()),
-        (qualified.clone(), qualified),
-        (namesake.clone(), namesake),
-    ] {
-        core.functions[0].clauses[0].body.core_expr = Some(input);
-        super::http_values::lower_http_values(&mut core).unwrap();
-        assert_eq!(
-            core.functions[0].clauses[0].body.core_expr.as_ref(),
-            Some(&expected)
-        );
-    }
 }
 
 #[test]
@@ -277,5 +212,21 @@ pub check(): Bool ->
         and deployed.hsts_max_age == 31536000 and deployed.hsts_include_subdomains.
 "#,
         include_str!("../../../../../std/http/Response.terl"),
+    ]);
+}
+
+#[test]
+fn response_generic_calls_and_namesakes_execute_declared_bodies() {
+    check_sources(&[
+        r#"module response_generics.
+import std.http.Response.
+import std.http.Response.{source_policy as alias}.
+import app.ResponsePolicy.
+pub check(): Bool ->
+    Response.source_policy[String]("value") == "value"
+    and alias[Int](42) == 42 and ResponsePolicy.default_security_headers() == 93.
+"#,
+        "module std.http.Response. pub source_policy[T](value: T): T -> value.",
+        "module app.ResponsePolicy. pub default_security_headers(): Int -> 93.",
     ]);
 }

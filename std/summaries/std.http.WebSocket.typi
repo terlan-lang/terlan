@@ -70,7 +70,7 @@ pub type TextFrame =
 
 /// Installs the complete generated callback set for an endpoint.
 ///
-/// Input: one endpoint and static callbacks for open, inbound frame, writable,
+/// Input: one endpoint and source callbacks for open, inbound frame, writable,
 /// graceful close, and cancellation lifecycle events.
 /// Output: the endpoint with one callback set attached.
 /// Transformation: retains callbacks as ordinary source values without invoking
@@ -144,6 +144,8 @@ pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(waiting: () -> Str
 /// the previous state, the sender role (`1` or `2`), the inbound frame, and the
 /// two original HTTP request targets. It returns the next state followed by
 /// independently addressed payloads for the first and second peer.
+/// An empty payload suppresses delivery to that peer. This source adapter
+/// translates that convention into explicit optional transport payloads.
 
 pub (endpoint: Endpoint) stateful_paired_callbacks(waiting: String, first_matched: String, second_matched: String, peer_left: String, inbound: (String, Int, String, String, String) -> {String, String, String}, cancellation: (String) -> Unit): Endpoint.
 

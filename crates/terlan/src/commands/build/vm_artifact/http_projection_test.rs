@@ -32,7 +32,7 @@ fn http_adapter_preserves_verified_fields_and_suspension() {
 
 #[test]
 fn out_of_contract_fields_cannot_enable_a_scalar_ingress() {
-    for fields in [vec![0], vec![11], vec![usize::MAX]] {
+    for fields in [vec![0], vec![10], vec![11], vec![usize::MAX]] {
         let output = request_projections(vec![projection(&fields)])
             .pop()
             .unwrap();

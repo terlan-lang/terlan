@@ -4,11 +4,13 @@ use crate::terlan_syntax::{
     SyntaxDeclarationPayload, SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput,
     SyntaxModuleOutput, SyntaxPatternKind, SyntaxPatternOutput,
 };
+use crate::terlan_typeck::CoreFunctionSource;
 
 /// Retain shortened receiver arities as ordinary source callables. Defaults are
 /// evaluated in their provider's scope, not guessed from a method name at a call.
-pub(super) fn materialize(module: &mut SyntaxModuleOutput) {
+pub(super) fn materialize(module: &mut SyntaxModuleOutput) -> Vec<(usize, CoreFunctionSource)> {
     let mut generated = Vec::new();
+    let mut sources = Vec::new();
     for declaration in &module.declarations {
         let SyntaxDeclarationPayload::Method {
             receiver,
@@ -74,9 +76,19 @@ pub(super) fn materialize(module: &mut SyntaxModuleOutput) {
                 span: declaration.span,
             }];
             generated.push(wrapper);
+            sources.push((
+                count + 1,
+                CoreFunctionSource {
+                    module: module.module_name.clone(),
+                    function: name.clone(),
+                    arity: params.len() + 1,
+                    declaration_span: Some(declaration.span.into()),
+                },
+            ));
         }
     }
     module.declarations.extend(generated);
+    sources
 }
 
 fn expression(kind: SyntaxExprKind, text: Option<String>) -> SyntaxExprOutput {

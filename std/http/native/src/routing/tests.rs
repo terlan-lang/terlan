@@ -9,6 +9,59 @@ fn matched(router: &Router<Value>, method: RouteMethod, path: &str) -> RouteDisp
 }
 
 #[test]
+fn deployment_routes_preserve_handler_and_channel_targets() {
+    use crate::source_descriptor::{
+        Route as SourceRoute, RouteTarget as SourceTarget, Router as SourceRouter,
+    };
+    let sse = SseEndpointPlan::<Value>::new(4, 1024)
+        .unwrap()
+        .with_keep_alive_ms(250)
+        .unwrap();
+    let websocket = WebSocketEndpointPlan::<Value>::new(8, 2048).unwrap();
+    let routes = [
+        ("/health", SourceTarget::Handler("health".into())),
+        ("/assets/app.js", SourceTarget::Handler("asset".into())),
+        ("/events", SourceTarget::Sse(sse.clone())),
+        ("/socket", SourceTarget::WebSocket(websocket.clone())),
+    ]
+    .into_iter()
+    .map(|(path, target)| SourceRoute {
+        method: "GET".into(),
+        path: path.into(),
+        target,
+        middleware: vec!["authorize".into()],
+        response_middleware: vec!["secure".into()],
+    })
+    .collect();
+    let router = SourceRouter {
+        routes,
+        ..SourceRouter::default()
+    }
+    .into_routing_table()
+    .unwrap();
+    for (path, target) in [
+        ("/health", RouteTarget::Handler("health".into())),
+        ("/assets/app.js", RouteTarget::Handler("asset".into())),
+        ("/events", RouteTarget::SseEndpoint(sse)),
+        ("/socket", RouteTarget::WebSocketEndpoint(websocket)),
+    ] {
+        let route = matched(&router, RouteMethod::Get, path);
+        assert_eq!(route.target, target);
+        assert_eq!(route.middleware, vec![Value::from("authorize")]);
+        assert_eq!(route.response_middleware, vec![Value::from("secure")]);
+        assert_eq!(
+            router.dispatch(RouteMethod::Post, path).unwrap(),
+            RouterOutcome::NotFound,
+            "channel admission must not invent methods"
+        );
+    }
+    assert_eq!(
+        router.dispatch(RouteMethod::Get, "/missing").unwrap(),
+        RouterOutcome::NotFound
+    );
+}
+
+#[test]
 fn dispatch_uses_shared_precedence_independent_of_registration_order() {
     let declarations = ["/api/*", "/api/:id", "/api/status", "/api/nested/*", "*"];
     for reverse in [false, true] {

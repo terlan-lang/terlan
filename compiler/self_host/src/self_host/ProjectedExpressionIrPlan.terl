@@ -3,7 +3,7 @@
  */
 module self_host.ProjectedExpressionIrPlan.
 
-import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, expression_type, indexed_label, last_string, literal_operands, nested_if_result_type, node_opcode, node_size, register, resolved_or_dynamic, some_string}.
+import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, concat_instructions, expression_type, indexed_label, lambda_captures, lambda_symbol, last_string, literal_operands, nested_if_result_type, node_opcode, node_size, parameter_named, parameter_names, register, resolved_or_dynamic, some_string}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 import self_host.SelfHostIrSyntax.{IrParameter}.
@@ -135,9 +135,10 @@ field_call_identity(
         [] -> [callee.text]
     }.
 
-call_opcode(callee: ProjectedExpressionNode): String ->
+call_opcode(callee: ProjectedExpressionNode, parameters: List[IrParameter]): String ->
     if {
         callee.kind == "field" -> "call-import";
+        parameter_named(callee.text, parameters) -> "call-value";
         true -> "call-local"
     }.
 
@@ -169,7 +170,7 @@ lower_call(
             let operands = concat(call_identity(callee), lowered.results);
             let instruction =
                 SemanticInstructionPlan(
-                    opcode = call_opcode(callee),
+                    opcode = call_opcode(callee, parameters),
                     result = instruction_result,
                     operands = operands,
                     resolved_type = resolved_type,
@@ -893,6 +894,29 @@ lower_leaf_if_long(
         lowered.instructions,
     ).
 
+lower_lambda(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ExpressionPlan ->
+    let result = register(node_id);
+    let result_type = resolved_or_dynamic(expression_type(node, facts, parameters));
+    let captures = lambda_captures(node, parameters);
+    ExpressionPlan(
+        node_id + node_size(node),
+        result,
+        result_type,
+        [
+            SemanticInstructionPlan(
+                "make-closure",
+                some_string(result),
+                [lambda_symbol(node) | parameter_names(captures)],
+                result_type,
+            ),
+        ],
+    ).
+
 pub lower_expression(
     node: ProjectedExpressionNode,
     node_id: Int,
@@ -945,6 +969,7 @@ lower_expression_after_leaf_if_three(
 ): ExpressionPlan ->
     if {
         node.kind == "if" and leaf_if_long_supported(node) -> lower_leaf_if_long(node, node_id, facts, parameters);
+        node.kind == "lambda" -> lower_lambda(node, node_id, facts, parameters);
         true -> lower_generic_expression(node, node_id, facts, parameters)
     }.
 

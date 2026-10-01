@@ -89,18 +89,18 @@ VM HTTP server handler poll limit must be greater than 0
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/sse.rs",
+            "std/http/native/src/sse_session.rs",
             r#"
-VmSseStreamInfo pending_events max_pending_events emitted_events
-inspect(&self) -> VmSseStreamInfo BackpressureExceeded
+SseStreamInfo pending_events max_pending_events emitted_events
+inspect(&self) -> SseStreamInfo BackpressureExceeded
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/websocket.rs",
+            "std/http/native/src/websocket/session.rs",
             r#"
-VmWebSocketInboundQueueInfo pending_frames queued_frame_bytes
-inspect(&self) -> VmWebSocketInboundQueueInfo
-error[vm_websocket_queue]: pending frame queue is full
+InboundQueueInfo pending_frames queued_frame_bytes
+inspect(&self) -> InboundQueueInfo
+pending frame queue is full
 "#,
         )?;
         self.write(
@@ -221,19 +221,27 @@ fn vm_web_observability_rejects_missing_connection_id_anchor() {
 
 #[test]
 fn vm_web_observability_rejects_missing_stream_inspection_anchor() {
-    let repo = TestRepo::new("missing-stream-inspection").expect("fixture");
-    repo.write_complete_fixture().expect("write fixture");
-    let path = repo.root().join("crates/terlan/src/runtime/vm/sse.rs");
-    let source = fs::read_to_string(&path).expect("sse source");
-    repo.write(
-        "crates/terlan/src/runtime/vm/sse.rs",
-        &source.replace("VmSseStreamInfo", ""),
-    )
-    .expect("rewrite sse source");
-
-    let error = run_vm_web_observability(repo.root()).expect_err("anchor should fail");
-
-    assert!(error.contains("VmSseStreamInfo"));
+    for (owner, legacy, anchor) in [
+        (
+            "std/http/native/src/sse_session.rs",
+            "crates/terlan/src/runtime/vm/sse.rs",
+            "SseStreamInfo",
+        ),
+        (
+            "std/http/native/src/websocket/session.rs",
+            "crates/terlan/src/runtime/vm/websocket.rs",
+            "InboundQueueInfo",
+        ),
+    ] {
+        let repo = TestRepo::new("missing-stream-inspection").expect("fixture");
+        repo.write_complete_fixture().expect("write fixture");
+        let source = fs::read_to_string(repo.root().join(owner)).unwrap();
+        repo.write(owner, &source.replace(anchor, "")).unwrap();
+        repo.write(legacy, &source).unwrap();
+        let error = run_vm_web_observability(repo.root())
+            .expect_err("legacy model cannot satisfy package inspection");
+        assert!(error.contains(owner) && error.contains(anchor), "{error}");
+    }
 }
 
 #[test]

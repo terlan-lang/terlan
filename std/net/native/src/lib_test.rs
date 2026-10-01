@@ -86,6 +86,34 @@ fn native_entrypoint_validates_arity_and_types() {
             (PARSE.invoke)(&arguments).unwrap_err().code(),
             "native_package.arguments"
         );
+        assert_eq!(
+            (QUERY_PAIRS.invoke)(&arguments).unwrap_err().code(),
+            if arguments.len() == 1 {
+                "dispatch.type"
+            } else {
+                "native_package.arguments"
+            }
+        );
+    }
+}
+
+#[test]
+fn query_binding_preserves_wire_order_duplicates_and_maintained_decoding() {
+    for (query, expected) in [
+        ("", vec![]),
+        ("a=1&a=2", vec![("a", "1"), ("a", "2")]),
+        (
+            "room=a+b&player=one%2Btwo",
+            vec![("room", "a b"), ("player", "one+two")],
+        ),
+        (
+            "empty&=value&bad=%ZZ",
+            vec![("empty", ""), ("", "value"), ("bad", "%ZZ")],
+        ),
+    ] {
+        let expected = NativeValue::from(expected);
+        assert_eq!(NativeValue::from(query_pairs(query)), expected);
+        assert_eq!((QUERY_PAIRS.invoke)(&[query.into()]).unwrap(), expected);
     }
 }
 

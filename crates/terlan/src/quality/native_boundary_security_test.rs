@@ -56,16 +56,10 @@ fn native_boundary_security_rejects_uncovered_operations() {
 #[test]
 fn native_boundary_security_accepts_cookie_policy_coverage() {
     let rules = vec![policy("std.http.Cookies").with_capability("http.cookies")];
-    let operations = vec![
-        RustBackedOperation {
-            module: "std.http.Cookies".to_string(),
-            operation: "std.http.cookies.set_header".to_string(),
-        },
-        RustBackedOperation {
-            module: "std.http.Cookies".to_string(),
-            operation: "std.http.cookies.delete_header".to_string(),
-        },
-    ];
+    let operations = vec![RustBackedOperation {
+        module: "std.http.Cookies".to_string(),
+        operation: "std.http.cookies.set_header_with_options".to_string(),
+    }];
 
     let diagnostics = check_native_boundary_security(&rules, &operations);
 

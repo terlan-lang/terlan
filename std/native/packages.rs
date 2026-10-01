@@ -2,9 +2,8 @@
 
 pub static VALUE_BINDINGS: &[terlan_runtime_abi::NativeBinding] = &[
     terlan_net_native::PARSE,
-    terlan_http_native::SET_HEADER,
+    terlan_net_native::QUERY_PAIRS,
     terlan_http_native::SET_HEADER_WITH_OPTIONS,
-    terlan_http_native::DELETE_HEADER,
     terlan_http_native::ENCODE_EVENT,
     terlan_encoding_native::ENCODE,
     terlan_encoding_native::ENCODE_URL,
@@ -44,6 +43,17 @@ pub fn resource_operation(
         .iter()
         .flat_map(|operations| operations.iter())
         .find(|contract| contract.operation == operation)
+}
+
+/// Declared context-call arity, not an execution grant. The package's callable
+/// catalog is the authority; no storage is created or consulted by this lookup.
+pub fn context_operation_arity(operation: &str) -> Option<usize> {
+    terlan_http_native::session_bindings::bindings::<
+        dyn terlan_http_native::session_bindings::SessionStorage,
+    >()
+    .iter()
+    .find(|binding| binding.operation == operation)
+    .map(|binding| binding.arity())
 }
 
 #[cfg(test)]

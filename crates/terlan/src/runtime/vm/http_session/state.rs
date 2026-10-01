@@ -79,19 +79,11 @@ pub enum VmHttpSessionAffinityError {
     },
 }
 
-/// Result of cookie-to-session lookup.
+/// Acquired actor identity and placement, independent of response cookie policy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmHttpSessionLookup {
     pub(crate) session: VmHttpSession,
     pub(crate) route: VmHttpSessionRoute,
-    pub(crate) pending_identity: Option<String>,
-}
-
-impl VmHttpSessionLookup {
-    /// Splits a lookup into its opaque handle and pending public identity.
-    pub(crate) fn into_managed_parts(self) -> (VmHttpSession, Option<String>) {
-        (self.session, self.pending_identity)
-    }
 }
 
 /// Idempotent stateful HTTP command result.
@@ -132,7 +124,6 @@ pub struct VmHttpSessionWorkerMigration {
     pub(crate) session_id: String,
     pub(crate) source_route: VmHttpSessionRoute,
     pub(crate) destination_route: VmHttpSessionRoute,
-    pub(crate) pending_identity: Option<String>,
     pub(crate) diagnostic: String,
 }
 
@@ -234,58 +225,38 @@ pub struct VmHttpSessionSnapshot {
     pub(crate) sticky_key: String,
 }
 
-/// Session recovery behavior for stale or expired cookie ids.
-///
-/// Inputs:
-/// - Selected by the VM HTTP runtime or deployment profile.
-///
-/// Output:
-/// - Deterministic stale-session behavior.
-///
-/// Transformation:
-/// - Makes recovery policy explicit so correctness never silently depends on
-///   load-balancer stickiness. Distributed and persistent recovery modes can
-///   extend this enum without changing handler-facing session calls.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VmHttpSessionRecoveryPolicy {
-    CreateLocalReplacement,
-    FailClosed,
-}
+pub use terlan_http_native::session_registry::RecoveryPolicy as VmHttpSessionRecoveryPolicy;
+
+use terlan_http_native::session_registry::{SessionEntry, SessionRegistry};
+
+pub(super) type VmHttpSessionRecord = SessionEntry<VmHttpSessionResource>;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct VmHttpSessionRecord {
-    pub(super) id: String,
+pub(super) struct VmHttpSessionResource {
     pub(super) actor: VmProcessId,
     pub(super) table: VmTableId,
-    pub(super) expires_at_tick: u64,
     pub(super) state_version: u64,
     pub(super) command_results: BTreeMap<String, ReplValue>,
     pub(super) live_template_subscribers: BTreeMap<String, VmHttpSessionLiveTemplateSubscriber>,
 }
 
-/// VM-owned HTTP session runtime.
+/// VM actor/table adapter for the package-owned HTTP session registry.
 ///
 /// Inputs:
-/// - Request cookie session ids, session state reads/writes, rotation, and
-///   expiration ticks.
+/// - Source-selected identities, state reads/writes, rotation, and host ticks.
 ///
 /// Output:
-/// - Session actors, VM-owned table state, response cookie headers, sticky
-///   routing metadata, and inspection rows.
+/// - Session resource handles, table state, routing metadata, and inspection rows.
 ///
 /// Transformation:
-/// - Reuses the VM actor runtime for process identity and the VM table store
-///   for state. The HTTP layer only binds cookies to session ids; it does not
-///   own hidden maps or a parallel session subsystem.
+/// - Delegates identity, lifetime, and recovery policy to std.http. Resource
+///   mechanics reuse VM actors and tables; response cookies remain source-owned.
 #[derive(Debug)]
 pub struct VmHttpSessionRuntime {
     pub(super) actors: VmActorRuntime,
     pub(super) tables: VmTableStore,
-    pub(super) sessions: BTreeMap<String, VmHttpSessionRecord>,
-    now_tick: u64,
-    ttl_ticks: u64,
+    pub(super) sessions: SessionRegistry<VmHttpSessionResource>,
     node_id: String,
-    recovery_policy: VmHttpSessionRecoveryPolicy,
     #[cfg(test)]
     pub(crate) live_template_protocol: VmLiveTemplateProtocolManifest,
 }
@@ -294,6 +265,9 @@ pub struct VmHttpSessionRuntime {
 mod commands;
 #[path = "state/runtime.rs"]
 mod runtime;
+
+#[path = "state/resources.rs"]
+mod resources;
 
 pub(crate) use commands::*;
 pub(crate) use runtime::*;

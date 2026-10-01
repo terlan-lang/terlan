@@ -1,0 +1,7 @@
+//! Source policy for two-peer reconnect identity; decoding stays in std.net.Uri.
+
+module std.http.WebSocketIdentity.
+
+/// Resolves a fresh connection or an explicit room and role, preserving last-query-value wins.
+
+pub resolve(target: String, room_query: String, player_query: String, first_player: String, second_player: String): Result[Option[{String, Int}], String].

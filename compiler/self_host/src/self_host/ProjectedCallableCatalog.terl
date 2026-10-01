@@ -248,7 +248,7 @@ interface_callable(module_name: String, value: ExportedSymbol): CallableDeclarat
         value.name,
         value.arity,
         class_kind(value.class),
-        none_return_type(),
+        value.return_type,
         value.span.start_byte,
     ).
 

@@ -11,7 +11,8 @@ use serde::Deserialize;
 use crate::commands::build::project_manifest;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 use crate::commands::dev_dependencies;
-use crate::commands::serve::tls_contract::{ProjectServerTls, ProjectServerTlsMode};
+use crate::commands::serve::tls_contract::ProjectServerTls;
+use terlan_http_native::tls_paths::validate_manual_tls_file_references;
 
 use super::handler::{
     validate_error_handler, validate_file_response, validate_handler, validate_handler_routes,
@@ -263,88 +264,6 @@ fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
         if let Some(project_root) = path.parent() {
             dev_dependencies::validate_project_compose(project_root)?;
         }
-    }
-    Ok(())
-}
-
-/// Validates manual TLS file references for a package-adjacent project.
-///
-/// Inputs:
-/// - `project_root`: directory containing the adjacent `terlan.toml`.
-/// - `manifest`: parsed project manifest.
-///
-/// Output:
-/// - `Ok(())` when TLS is absent, non-manual, or all manual file references
-///   point at existing files.
-/// - Stable `error[serve_package]` diagnostic when a manual certificate,
-///   private key, or custom CA path is missing or resolves outside the project.
-///
-/// Transformation:
-/// - Keeps build-time TLS shape validation in the project manifest parser and
-///   applies serve-time filesystem validation only for local manual TLS
-///   references that the runtime will later need to open.
-fn validate_manual_tls_file_references(
-    project_root: &Path,
-    tls: &ProjectServerTls,
-) -> Result<(), String> {
-    if tls.mode != ProjectServerTlsMode::Manual {
-        return Ok(());
-    }
-    for (field, value) in [
-        ("cert", tls.cert.as_deref()),
-        ("key", tls.key.as_deref()),
-        ("ca", tls.ca.as_deref()),
-    ] {
-        let Some(value) = value else {
-            continue;
-        };
-        validate_manual_tls_file_reference(project_root, field, value)?;
-    }
-    Ok(())
-}
-
-/// Validates one manual TLS file reference.
-///
-/// Inputs:
-/// - `project_root`: directory containing the adjacent `terlan.toml`.
-/// - `field`: TLS field name, such as `cert`, `key`, or `ca`.
-/// - `value`: project-relative file path from the manifest.
-///
-/// Output:
-/// - `Ok(())` when the path is relative, stays inside the project, and exists
-///   as a file.
-/// - Stable `error[serve_package]` diagnostic otherwise.
-///
-/// Transformation:
-/// - Resolves project-relative TLS paths without following runtime certificate
-///   loading semantics, giving `terlc serve --check` a deterministic local
-///   validation boundary before rustls socket serving is implemented.
-fn validate_manual_tls_file_reference(
-    project_root: &Path,
-    field: &str,
-    value: &str,
-) -> Result<(), String> {
-    let relative = Path::new(value);
-    if relative.is_absolute()
-        || relative.components().any(|component| {
-            matches!(
-                component,
-                std::path::Component::ParentDir
-                    | std::path::Component::RootDir
-                    | std::path::Component::Prefix(_)
-            )
-        })
-    {
-        return Err(format!(
-            "error[serve_package]: [server.tls] manual {field} path `{value}` must be project-relative and stay inside the project"
-        ));
-    }
-    let full_path = project_root.join(relative);
-    if !full_path.is_file() {
-        return Err(format!(
-            "error[serve_package]: [server.tls] manual {field} file `{}` does not exist",
-            full_path.display()
-        ));
     }
     Ok(())
 }

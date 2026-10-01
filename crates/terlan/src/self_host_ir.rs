@@ -385,6 +385,7 @@ fn instruction_opcode_supported(opcode: &str) -> bool {
         "add-small"
             | "call-import"
             | "call-local"
+            | "call-value"
             | "div-small"
             | "equal"
             | "get-map-elements"
@@ -392,6 +393,7 @@ fn instruction_opcode_supported(opcode: &str) -> bool {
             | "get-tuple-element"
             | "less-small"
             | "load-literal"
+            | "make-closure"
             | "move"
             | "mul-small"
             | "neg-small"
@@ -413,6 +415,7 @@ fn instruction_operands_valid(instruction: &IrInstruction, labels: &HashSet<&str
     match instruction.opcode.as_str() {
         "call-import" => operands.len() >= 2,
         "call-local" => !operands.is_empty(),
+        "call-value" | "make-closure" => !operands.is_empty(),
         "put-list" | "put-tuple" => true,
         "add-small" | "div-small" | "equal" | "get-tuple-element" | "less-small" | "mul-small"
         | "rem-small" | "sub-small" => operands.len() == 2,

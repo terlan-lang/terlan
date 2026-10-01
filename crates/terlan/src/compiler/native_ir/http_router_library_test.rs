@@ -4,6 +4,62 @@ use super::source_constructor_test::check_sources;
 
 const ROUTER: &str = include_str!("../../../../../std/http/Router.terl");
 
+#[test]
+fn middleware_execution_order_and_short_circuit_are_source_owned() {
+    let body = r#"
+import std.http.Response.
+import std.http.Request.
+proceed(_request: Request): MiddlewareResult -> Continue.
+stop(_request: Request): MiddlewareResult -> Respond(Response.text("first")).
+later(_request: Request): MiddlewareResult -> Respond(Response.text("later")).
+outer(_request: Request, response: Response): Response ->
+    if { response == Response.text("middle") -> Response.text("done"); true -> Response.text("wrong") }.
+inner(_request: Request, response: Response): Response ->
+    if { response == Response.text("start") -> Response.text("middle"); true -> Response.text("wrong") }.
+pub check(): Bool ->
+    let request = Request.make("/pipeline");
+    let before = request_pipeline([proceed, stop, later]);
+    let post = response_pipeline([outer, inner]);
+    let requested = case before.#execute {
+        [callback] -> case callback(request) {
+            Respond(response) -> response == Response.text("first");
+            Continue -> false
+        };
+        _ -> false
+    };
+    let responded = case post.#execute {
+        [callback] -> callback(request, Response.text("start")) == Response.text("done");
+        _ -> false
+    };
+    requested and responded
+        and request_pipeline([]).#execute == [] and response_pipeline([]).#execute == []
+        and run_request_pipeline([proceed, proceed], request) == Continue.
+"#;
+    let verify = |provider: &str, body: &str, owner: &str| {
+        check_sources(&[
+            &format!("{provider}\n{body}").replace("std.http.Router", owner),
+            "module std.http.Request. pub struct Request {path: String}. pub make(path: String): Request -> Request {path: path}.",
+            include_str!("../../../../../std/http/Response.terl"),
+            include_str!("../../../../../std/http/Error.terl"),
+            include_str!("../../../../../std/http/Sse.terl"),
+            include_str!("../../../../../std/http/WebSocket.terl"),
+        ]);
+    };
+    for owner in ["std.http.Router", "app.Pipelines"] {
+        verify(ROUTER, body, owner);
+        let changed = ROUTER.replace(
+            "callback(request, run_response_pipeline(rest, request, response))",
+            "run_response_pipeline(rest, request, callback(request, response))",
+        );
+        assert_ne!(changed, ROUTER);
+        verify(
+            &changed,
+            &body.replace("== Response.text(\"done\")", "== Response.text(\"wrong\")"),
+            owner,
+        );
+    }
+}
+
 fn check_router(body: &str, owner: &str) {
     check_router_provider(ROUTER, body, owner);
 }
@@ -36,12 +92,15 @@ pub check(): Bool ->
         .patch("/four", handler).delete("/five", handler)
         .head("/six", handler).options("/seven", handler);
     let unchanged = case empty.#entries { [] -> true; _ -> false };
-    let first_unchanged = case first.#entries { [RouteEntry("GET", "/one", _, [], [])] -> true; _ -> false };
+    let first_unchanged = case first.#entries {
+        [RouteEntry("GET", "/one", _, before, post)] -> before.#execute == [] and post.#execute == [];
+        _ -> false
+    };
     let ordered = case all.#entries {
-        [RouteEntry("GET", "/one", _, [], []), RouteEntry("POST", "/two", _, [], []),
-         RouteEntry("PUT", "/three", _, [], []), RouteEntry("PATCH", "/four", _, [], []),
-         RouteEntry("DELETE", "/five", _, [], []), RouteEntry("HEAD", "/six", _, [], []),
-         RouteEntry("OPTIONS", "/seven", _, [], [])] -> true;
+        [RouteEntry("GET", "/one", _, _, _), RouteEntry("POST", "/two", _, _, _),
+         RouteEntry("PUT", "/three", _, _, _), RouteEntry("PATCH", "/four", _, _, _),
+         RouteEntry("DELETE", "/five", _, _, _), RouteEntry("HEAD", "/six", _, _, _),
+         RouteEntry("OPTIONS", "/seven", _, _, _)] -> true;
         _ -> false
     };
     unchanged and first_unchanged and ordered.
@@ -49,8 +108,8 @@ pub check(): Bool ->
     check_router(body, "std.http.Router");
     check_router(body, "app.Routes");
     let changed = ROUTER.replace(
-        "RouteEntry(\"GET\", pattern, handler, [], [])",
-        "RouteEntry(\"SOURCE\", pattern, handler, [], [])",
+        "RouteEntry(\"GET\", pattern, handler,",
+        "RouteEntry(\"SOURCE\", pattern, handler,",
     );
     assert_ne!(changed, ROUTER);
     check_router_provider(
@@ -69,8 +128,8 @@ configure(scoped: Router): Router -> scoped.get("/child", handler).group("/inner
 pub check(): Bool ->
     let router = new().group("/prefix", configure);
     case router.#entries {
-        [GroupStartEntry, RouteEntry("GET", "/prefix/child", _, [], []),
-         GroupStartEntry, RouteEntry("GET", "/prefix/inner/leaf", _, [], []),
+        [GroupStartEntry, RouteEntry("GET", "/prefix/child", _, _, _),
+         GroupStartEntry, RouteEntry("GET", "/prefix/inner/leaf", _, _, _),
          GroupEndEntry, GroupEndEntry] -> true;
         _ -> false
     }.
@@ -121,13 +180,13 @@ scope_sizes(entries: List[Entry]): List[{Int, Int}] ->
     case entries {
         [] -> [];
         [RouteEntry(_, _, _, middleware, response) | rest] ->
-            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+            [{List.length(middleware.#callbacks), List.length(response.#callbacks)} | scope_sizes(rest)];
         [SseEntry(_, _, middleware, response) | rest] ->
-            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+            [{List.length(middleware.#callbacks), List.length(response.#callbacks)} | scope_sizes(rest)];
         [WebSocketEntry(_, _, middleware, response) | rest] ->
-            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+            [{List.length(middleware.#callbacks), List.length(response.#callbacks)} | scope_sizes(rest)];
         [FallbackEntry(_, middleware, response) | rest] ->
-            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+            [{List.length(middleware.#callbacks), List.length(response.#callbacks)} | scope_sizes(rest)];
         [_ | rest] -> scope_sizes(rest)
     }.
 pub check(): Bool ->
@@ -148,8 +207,8 @@ pub check(): Bool ->
     check_router(body, "std.http.Router");
     check_router(body, "app.Routes");
     let changed = ROUTER.replace(
-        "insert_callbacks(scoped, middleware_offset, middleware)",
-        "scoped",
+        "insert_callbacks(scoped.#callbacks, middleware_offset, middleware)",
+        "scoped.#callbacks",
     );
     assert_ne!(changed, ROUTER);
     check_router_provider(
@@ -261,11 +320,14 @@ pub check(): Bool ->
         .sse("/events", std.http.Sse.endpoint(7, 256))
         .websocket("/socket", std.http.WebSocket.endpoint(9, 512));
     case router.#entries {
-        [MiddlewareEntry(_), ResponseMiddlewareEntry(_), FallbackEntry(_, [_], [_]), ErrorEntry(_),
-         OverloadEntry(Atom["reject"], 41), LifecycleEntry(_), SseEntry("/events", sse, [_], [_]),
-         WebSocketEntry("/socket", ws, [_], [_])] ->
+        [MiddlewareEntry(_), ResponseMiddlewareEntry(_), FallbackEntry(_, before, post), ErrorEntry(_),
+         OverloadEntry(Atom["reject"], 41), LifecycleEntry(_), SseEntry("/events", sse, sb, sa),
+         WebSocketEntry("/socket", ws, wb, wa)] ->
             sse.max_pending_events == 7 and sse.max_event_bytes == 256
-                and ws.max_pending_frames == 9 and ws.max_frame_bytes == 512;
+                and ws.max_pending_frames == 9 and ws.max_frame_bytes == 512
+                and List.length(before.#execute) == 1 and List.length(post.#execute) == 1
+                and List.length(sb.#execute) == 1 and List.length(sa.#execute) == 1
+                and List.length(wb.#execute) == 1 and List.length(wa.#execute) == 1;
         _ -> false
     }.
 "#,

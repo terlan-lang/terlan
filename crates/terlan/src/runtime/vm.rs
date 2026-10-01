@@ -1,6 +1,8 @@
 pub(crate) mod accelerator_operation;
+#[cfg(test)]
 pub(crate) mod acme_worker;
 pub(crate) mod actor;
+pub(crate) mod actor_state;
 pub(crate) mod aot_metadata;
 pub(crate) mod bitstring;
 #[cfg(test)]
@@ -51,10 +53,10 @@ pub(crate) mod http;
 #[cfg(test)]
 pub(crate) mod http_metrics;
 pub(crate) mod http_router;
+#[cfg(test)]
 pub(crate) mod http_session;
 #[cfg(test)]
 pub(crate) mod http_static;
-pub(crate) mod hyper_tls;
 #[cfg(test)]
 pub(crate) mod io_diagnostics;
 #[cfg(test)]
@@ -114,6 +116,7 @@ pub(crate) mod scheduler;
 pub(crate) mod scheduler_topology;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod source_reload;
+#[cfg(test)]
 pub(crate) mod sse;
 #[cfg(test)]
 mod statistics;
@@ -138,6 +141,7 @@ pub(crate) mod udp;
 mod value;
 pub(crate) use value::NativeClosureValue;
 pub(crate) use value::ReplValue;
+#[cfg(test)]
 pub(crate) mod websocket;
 pub(crate) mod work_stealing;
 

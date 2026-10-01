@@ -2,8 +2,10 @@
 
 use std::cell::{Cell, RefCell};
 use std::future::Future;
+#[cfg(test)]
 use std::io;
-use std::net::{self as std_net, SocketAddr, ToSocketAddrs};
+#[cfg(test)]
+use std::net as std_net;
 use std::pin::Pin;
 use std::sync::atomic::Ordering;
 use std::sync::{mpsc, Arc, Mutex, OnceLock, Weak};
@@ -12,9 +14,8 @@ use std::task::Wake;
 use std::task::{Context, Poll as TaskPoll};
 use std::thread;
 
-use mio::net::TcpStream;
 use mio::{Events, Interest, Poll, Token, Waker as MioWaker};
-use socket2::{Domain, Protocol, Socket, Type};
+use terlan_runtime_abi::poll_io::{IncomingStreams, ReadinessStream};
 
 use super::scheduler_topology::{VmSchedulerId, VmSchedulerTopology};
 
@@ -22,8 +23,11 @@ mod acceptor;
 mod admission;
 mod lazy_queue;
 mod local_resources;
+mod maintenance;
+pub(crate) use maintenance::VmProtocolMaintenance;
 mod process_ids;
 mod server;
+pub(crate) mod task_group;
 mod timers;
 mod transport;
 mod wake;
@@ -46,7 +50,7 @@ use server::{join_protocol_threads, stop_protocol_threads};
 use timers::{next_protocol_timer_timeout, wake_due_protocol_timers};
 pub(crate) use timers::{protocol_sleep_until, VmProtocolSleep};
 use transport::{render_io, VmReadyEvent};
-pub(crate) use transport::{VmProtocolTaskRoute, VmReadyTcpStream, VmSocketReadinessWake};
+pub(crate) use transport::{VmProtocolTaskRoute, VmReadyStream, VmSocketReadinessWake};
 #[cfg(test)]
 use wake::VmProtocolTaskWake;
 use wake::{VmProtocolOwnerWake, VmProtocolTaskWakeSlot};
@@ -69,9 +73,8 @@ thread_local! {
         RefCell::new(VmProtocolLocalResources::default());
 }
 pub(crate) type VmProtocolTaskFuture = Pin<Box<dyn Future<Output = Result<(), String>> + 'static>>;
-pub(crate) type VmProtocolTaskFactory = Arc<
-    dyn Fn(VmReadyTcpStream, VmProtocolTaskRoute) -> VmProtocolTaskFuture + Send + Sync + 'static,
->;
+pub(crate) type VmProtocolTaskFactory =
+    Arc<dyn Fn(VmReadyStream, VmProtocolTaskRoute) -> VmProtocolTaskFuture + Send + Sync + 'static>;
 
 /// Returns the fixed VM scheduler that owns the calling socket-task loop.
 pub(crate) fn current_protocol_scheduler() -> Option<VmSchedulerId> {
@@ -194,39 +197,21 @@ fn with_protocol_task<R>(route: VmProtocolTaskRoute, operation: impl FnOnce() ->
     operation()
 }
 
-/// Binds a reusable listener before fixed VM protocol shards start.
-pub(crate) fn bind_protocol_listener(
-    host: &str,
-    port: u16,
-) -> Result<std_net::TcpListener, String> {
-    let addresses = (host, port)
-        .to_socket_addrs()
-        .map_err(|error| format!("error[vm.protocol_bind]: resolve {host}:{port}: {error}"))?;
-    let mut last_error = None;
-    for address in addresses {
-        match bind_address(address) {
-            Ok(listener) => return Ok(listener),
-            Err(error) => last_error = Some(error),
-        }
-    }
-    Err(format!(
-        "error[vm.protocol_bind]: bind {host}:{port}: {}",
-        last_error
-            .map(|error| error.to_string())
-            .unwrap_or_else(|| "host resolved to no addresses".to_string())
-    ))
-}
+#[cfg(test)]
+pub(crate) use terlan_net_native::tcp::bind_listener as bind_protocol_listener;
 
 /// Runs generic protocol futures only on VM-owned fixed scheduler threads.
 pub(crate) fn serve_protocol_tasks(
-    listener: std_net::TcpListener,
+    listener: Box<dyn IncomingStreams>,
     factory: VmProtocolTaskFactory,
+    maintenance: VmProtocolMaintenance,
 ) -> Result<(), String> {
     let topology = VmSchedulerTopology::from_environment()?;
-    start_protocol_tasks_with_topology(listener, factory, topology)?.join()
+    start_protocol_tasks(listener, factory, topology, Some(maintenance))?.join()
 }
 
 /// Starts a managed protocol server on one explicit fixed-scheduler topology.
+#[cfg(test)]
 pub(crate) fn start_protocol_tasks_with_topology(
     listener: std_net::TcpListener,
     factory: VmProtocolTaskFactory,
@@ -235,6 +220,19 @@ pub(crate) fn start_protocol_tasks_with_topology(
     let address = listener
         .local_addr()
         .map_err(render_io("listener address"))?;
+    let listener = terlan_net_native::tcp::TcpIncoming::new(listener)
+        .map_err(render_io("listener preparation"))?;
+    let mut server = start_protocol_tasks(Box::new(listener), factory, topology, None)?;
+    server.address = Some(address);
+    Ok(server)
+}
+
+fn start_protocol_tasks(
+    listener: Box<dyn IncomingStreams>,
+    factory: VmProtocolTaskFactory,
+    topology: VmSchedulerTopology,
+    maintenance: Option<VmProtocolMaintenance>,
+) -> Result<VmProtocolTaskServer, String> {
     let capacity = Arc::new(VmProtocolCapacity::default());
     let mut shards = Vec::with_capacity(topology.width());
     for scheduler in topology.schedulers() {
@@ -248,6 +246,7 @@ pub(crate) fn start_protocol_tasks_with_topology(
         .iter()
         .map(VmProtocolShardStartup::ingress)
         .collect::<Vec<_>>();
+    shards[0].maintenance = maintenance;
     shards[0].attach_acceptor(listener, ingresses, 0, Arc::clone(&capacity))?;
     let controls = shards
         .iter()
@@ -276,30 +275,13 @@ pub(crate) fn start_protocol_tasks_with_topology(
             ));
         }
     }
-    Ok(VmProtocolTaskServer::new(address, controls, threads))
-}
-
-fn bind_address(address: SocketAddr) -> io::Result<std_net::TcpListener> {
-    let socket = Socket::new(
-        Domain::for_address(address),
-        Type::STREAM,
-        Some(Protocol::TCP),
-    )?;
-    #[cfg(unix)]
-    {
-        socket.set_reuse_address(true)?;
-        socket.set_reuse_port(true)?;
-    }
-    socket.set_nonblocking(true)?;
-    socket.bind(&address.into())?;
-    socket.listen(1_024)?;
-    Ok(socket.into())
+    Ok(VmProtocolTaskServer::new(controls, threads))
 }
 
 /// Bounded socket ingress and load accounting for one fixed VM owner.
 struct VmProtocolShardIngress {
     scheduler: VmSchedulerId,
-    sockets: VmLazyBoundedQueue<TcpStream>,
+    sockets: VmLazyBoundedQueue<Box<dyn ReadinessStream>>,
     load: VmProtocolShardLoad,
     owner_parked: VmProtocolOwnerParked,
     poll_waker: Arc<MioWaker>,
@@ -331,7 +313,11 @@ impl VmProtocolShardIngress {
         debug_assert!(prior > 0, "protocol shard reservation underflow");
     }
 
-    fn admit_reserved(&self, stream: TcpStream, wake_owner: bool) -> Result<(), String> {
+    fn admit_reserved(
+        &self,
+        stream: Box<dyn ReadinessStream>,
+        wake_owner: bool,
+    ) -> Result<(), String> {
         if let Err(error) = self.sockets.push(stream) {
             self.release_reservation();
             drop(error.into_inner());
@@ -357,7 +343,7 @@ impl VmProtocolShardIngress {
     }
 
     #[cfg(test)]
-    fn admit(&self, stream: TcpStream, wake_owner: bool) -> Result<(), String> {
+    fn admit(&self, stream: Box<dyn ReadinessStream>, wake_owner: bool) -> Result<(), String> {
         if !self.try_reserve() {
             return Err(format!(
                 "error[vm.protocol_capacity]: scheduler {} is full",
@@ -381,6 +367,7 @@ struct VmProtocolTaskShard {
     events: Events,
     ready_events: Vec<VmReadyEvent>,
     factory: VmProtocolTaskFactory,
+    maintenance: Option<VmProtocolMaintenance>,
     tasks: Vec<Option<VmProtocolTask>>,
     task_wake_slots: Vec<VmProtocolTaskWakeSlot>,
     task_generations: Vec<usize>,
@@ -403,6 +390,7 @@ struct VmProtocolShardStartup {
     events: Events,
     ready_events: Vec<VmReadyEvent>,
     factory: VmProtocolTaskFactory,
+    maintenance: Option<VmProtocolMaintenance>,
     scheduled: Arc<VmLazyBoundedQueue<Token>>,
     poll_waker: Arc<MioWaker>,
     control_port: Arc<VmProtocolControlPort>,
@@ -465,6 +453,7 @@ impl VmProtocolShardStartup {
             events: Events::with_capacity(64),
             ready_events: Vec::with_capacity(64),
             factory,
+            maintenance: None,
             scheduled,
             poll_waker,
             control_port,
@@ -477,7 +466,7 @@ impl VmProtocolShardStartup {
 
     fn attach_acceptor(
         &mut self,
-        listener: std_net::TcpListener,
+        listener: Box<dyn IncomingStreams>,
         ingresses: Vec<Arc<VmProtocolShardIngress>>,
         local_index: usize,
         capacity: Arc<VmProtocolCapacity>,
@@ -510,6 +499,7 @@ impl VmProtocolShardStartup {
             events: self.events,
             ready_events: self.ready_events,
             factory: self.factory,
+            maintenance: self.maintenance,
             tasks: Vec::new(),
             task_wake_slots: Vec::new(),
             task_generations: Vec::new(),
@@ -532,6 +522,11 @@ impl VmProtocolTaskShard {
     fn run(mut self) -> Result<(), String> {
         let mut accept_pending = false;
         loop {
+            if let Some(maintenance) = &mut self.maintenance {
+                if let Err(error) = maintenance.run_due(std::time::Instant::now()) {
+                    eprintln!("{error}");
+                }
+            }
             wake_due_protocol_timers();
             let idle =
                 self.ingress.sockets.is_empty() && !accept_pending && !has_owner_local_scheduled();
@@ -547,7 +542,12 @@ impl VmProtocolTaskShard {
                     self.poll
                         .poll(
                             &mut self.events,
-                            next_protocol_timer_timeout(std::time::Instant::now()),
+                            maintenance::next_timeout(
+                                next_protocol_timer_timeout(std::time::Instant::now()),
+                                self.maintenance
+                                    .as_ref()
+                                    .and_then(|task| task.timeout(std::time::Instant::now())),
+                            ),
                         )
                         .map_err(render_io("readiness poll"))?;
                 } else {
@@ -641,7 +641,7 @@ impl VmProtocolTaskShard {
         false
     }
 
-    fn admit_stream(&mut self, mut stream: TcpStream) -> Result<(), String> {
+    fn admit_stream(&mut self, mut stream: Box<dyn ReadinessStream>) -> Result<(), String> {
         if self.active_task_count >= MAX_TASKS_PER_SHARD {
             return Err(format!(
                 "error[vm.protocol_capacity]: scheduler {} task table full",
@@ -660,7 +660,7 @@ impl VmProtocolTaskShard {
         let route = self.process_ids.next_route(self.scheduler)?;
         self.prepare_task_wake_slot(slot, token);
         let future = (self.factory)(
-            VmReadyTcpStream::new(stream, Arc::clone(&self.owner_wake), token),
+            transport::ready_stream(stream, Arc::clone(&self.owner_wake), token),
             route,
         );
         self.tasks[slot] = Some(VmProtocolTask {
@@ -860,3 +860,7 @@ pub(crate) fn next_protocol_task_route(
 #[path = "protocol_task_executor_test.rs"]
 #[cfg(test)]
 mod protocol_task_executor_test;
+
+#[cfg(test)]
+#[path = "protocol_task_executor/package_stream_test.rs"]
+mod package_stream_test;

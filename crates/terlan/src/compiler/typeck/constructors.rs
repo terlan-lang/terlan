@@ -39,7 +39,15 @@ pub(super) fn infer_constructor_call(
     errors: &mut Vec<String>,
 ) -> Option<Type> {
     if let Some(schemes) = ctx.constructors.get(name) {
-        return infer_constructor_schemes(name, schemes, args, arg_names, subst, errors);
+        return infer_constructor_schemes(
+            name,
+            schemes,
+            args,
+            arg_names,
+            ctx.aliases,
+            subst,
+            errors,
+        );
     }
 
     // An imported explicit constructor owns construction authority before an
@@ -54,8 +62,15 @@ pub(super) fn infer_constructor_call(
                 interface,
                 ctx.aliases,
             ) {
-                let constructed =
-                    infer_constructor_schemes(name, &schemes, args, arg_names, subst, errors)?;
+                let constructed = infer_constructor_schemes(
+                    name,
+                    &schemes,
+                    args,
+                    arg_names,
+                    ctx.aliases,
+                    subst,
+                    errors,
+                )?;
                 return Some(expand_type_aliases(
                     &constructed,
                     &interface_type_aliases(interface),
@@ -65,7 +80,7 @@ pub(super) fn infer_constructor_call(
     }
 
     let schemes = alias_constructor_call_schemes(name, ctx.aliases)?;
-    infer_constructor_schemes(name, &schemes, args, arg_names, subst, errors)
+    infer_constructor_schemes(name, &schemes, args, arg_names, ctx.aliases, subst, errors)
 }
 
 /// Infers a constructor call against a candidate scheme set.
@@ -90,6 +105,7 @@ pub(super) fn infer_constructor_schemes(
     schemes: &[ConstructorScheme],
     args: &[Type],
     arg_names: &[Option<String>],
+    aliases: &HashMap<String, TypeAlias>,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
@@ -147,12 +163,13 @@ pub(super) fn infer_constructor_schemes(
                 &instantiated,
                 vararg,
                 &effective_args,
+                aliases,
                 &mut trial_subst,
             )
         } else if effective_args.len() >= instantiated.min_arity
             && effective_args.len() <= instantiated.fixed_params.len()
         {
-            infer_fixed_constructor_call(&instantiated, &effective_args, &mut trial_subst)
+            infer_fixed_constructor_call(&instantiated, &effective_args, aliases, &mut trial_subst)
         } else {
             Err(format!(
                 "constructor {} has arity mismatch: expected {}..{} args, found {}",
@@ -237,10 +254,11 @@ fn validate_required_defaulted_constructor_call_args(
 fn infer_fixed_constructor_call(
     scheme: &ConstructorScheme,
     args: &[Type],
+    aliases: &HashMap<String, TypeAlias>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
     for (expected, actual) in scheme.fixed_params.iter().zip(args.iter()) {
-        unify(expected, actual, subst)?;
+        unify_constructor_argument(expected, actual, aliases, subst)?;
     }
 
     Ok(instantiate_type(&scheme.ret, subst))
@@ -266,6 +284,7 @@ fn infer_varargs_constructor_call(
     scheme: &ConstructorScheme,
     vararg: &Type,
     args: &[Type],
+    aliases: &HashMap<String, TypeAlias>,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
     if args.len() < scheme.fixed_params.len() {
@@ -278,14 +297,36 @@ fn infer_varargs_constructor_call(
     }
 
     for (expected, actual) in scheme.fixed_params.iter().zip(args.iter()) {
-        unify(expected, actual, subst)?;
+        unify_constructor_argument(expected, actual, aliases, subst)?;
     }
 
     for actual in args.iter().skip(scheme.fixed_params.len()) {
-        unify(vararg, actual, subst)?;
+        unify_constructor_argument(vararg, actual, aliases, subst)?;
     }
 
     Ok(instantiate_type(&scheme.ret, subst))
+}
+
+fn unify_constructor_argument(
+    expected: &Type,
+    actual: &Type,
+    aliases: &HashMap<String, TypeAlias>,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(), String> {
+    // Preserve named generic arguments when direct unification succeeds. A
+    // structural retry must not inherit partial bindings from a failed attempt.
+    let mut trial = subst.clone();
+    match unify(expected, actual, &mut trial) {
+        Ok(()) => {
+            *subst = trial;
+            Ok(())
+        }
+        Err(original) => {
+            let expected = expand_type_aliases(&apply_subst(expected, subst), aliases);
+            let actual = expand_type_aliases(&apply_subst(actual, subst), aliases);
+            unify(&expected, &actual, subst).map_err(|_| original)
+        }
+    }
 }
 
 /// Infers an opaque alias constructor call.

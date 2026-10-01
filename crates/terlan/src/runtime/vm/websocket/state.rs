@@ -79,10 +79,6 @@ impl VmWebSocketFrame {
 // Live descriptors retain admitted source callbacks; they are not persisted metadata.
 pub(crate) type VmWebSocketEndpointPlan =
     terlan_http_native::channel_plan::WebSocketEndpointPlan<crate::runtime::vm::ReplValue>;
-pub(crate) type VmWebSocketCallbackPlan =
-    terlan_http_native::channel_plan::WebSocketCallbacks<crate::runtime::vm::ReplValue>;
-pub(crate) type VmWebSocketPairingPlan =
-    terlan_http_native::channel_plan::WebSocketPairing<crate::runtime::vm::ReplValue>;
 
 /// Inspectable VM WebSocket session state.
 ///

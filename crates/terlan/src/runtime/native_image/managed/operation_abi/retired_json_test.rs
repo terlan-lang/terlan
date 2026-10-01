@@ -1,6 +1,6 @@
 //! Retired std JSON opcodes cannot bypass package resource dispatch.
 
-use super::{execute_managed_operation_with_context, is_managed_operation};
+use super::{execute_managed_operation, is_managed_operation};
 use crate::runtime::native_image::managed::{
     ActorHeap, ActorId, HeapLimits, ManagedLayoutRegistry, ManagedMemoryError, SemanticTypeId,
 };
@@ -49,9 +49,7 @@ fn retired_json_operations_reject_before_reading_or_allocating_heap_values() {
                 vec![0, 0],
             ] {
                 assert_eq!(
-                    execute_managed_operation_with_context(
-                        &mut heap, &layouts, None, &encoded, &words,
-                    ),
+                    execute_managed_operation(&mut heap, &layouts, &encoded, &words,),
                     Err(ManagedMemoryError::InvalidAggregateAbi)
                 );
                 assert_eq!(heap.allocated_bytes(), before);

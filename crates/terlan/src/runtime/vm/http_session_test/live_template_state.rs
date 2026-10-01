@@ -83,8 +83,10 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
 
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
     sessions
         .actors
@@ -225,8 +227,10 @@ pub(super) fn http_session_traces_live_template_subscription_source_map() {
 
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
     sessions
         .actors
@@ -363,7 +367,7 @@ pub(super) fn http_session_live_template_state_update_rejects_int_overflow() {
     let created = sessions.lookup_or_create(None).expect("create session");
     sessions
         .sessions
-        .get_mut(&created.session.id)
+        .value_mut(&created.session.id)
         .expect("session record")
         .state_version = u64::MAX;
     let update: fn(&mut VmHttpSessionRuntime, &VmHttpSession) -> Result<(), String> =
@@ -483,7 +487,7 @@ pub(super) fn http_session_persistence_snapshot_replays_after_restart() {
     assert_eq!(restored.session.id, created.session.id);
     assert_eq!(restored.route.node_id, "node-b");
     assert_eq!(restored.route.actor_pid, 1);
-    assert_eq!(restored.pending_identity, Some(created.session.id.clone()));
+    assert_eq!(restored.route.session_id, created.session.id);
     assert_eq!(
         restarted
             .read(&restored.session, "cart")
@@ -584,8 +588,10 @@ pub(super) fn http_session_reports_normal_and_missing_actor_exit_reasons() {
     let created = sessions.lookup_or_create(None).expect("create session");
     let actor = sessions
         .sessions
+        .entries()
         .get(&created.session.id)
         .expect("session record")
+        .value
         .actor;
 
     sessions
@@ -727,7 +733,6 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
                     sticky_key: snapshot.sticky_key,
                 },
             ),
-            pending_identity: Some(created.session.id.clone(),),
             diagnostic: format!(
                 "HTTP session `{}` migrated from worker `node-a` to worker `node-b` as actor 1",
                 created.session.id
@@ -864,7 +869,7 @@ pub(super) fn http_session_rotate_changes_cookie_without_losing_actor_state() {
 
     assert_ne!(rotated.session.id, created.session.id);
     assert_eq!(rotated.route.actor_pid, created.route.actor_pid);
-    assert_eq!(rotated.pending_identity, Some(rotated.session.id.clone()));
+    assert_eq!(rotated.route.session_id, rotated.session.id);
     assert_eq!(
         sessions
             .read(&rotated.session, "role")
@@ -911,10 +916,7 @@ pub(super) fn http_session_expiration_cleans_actor_table_and_reports_stale() {
         .expect("expired cookie should create replacement");
     assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(
-        replacement.pending_identity,
-        Some(replacement.session.id.clone())
-    );
+    assert_eq!(replacement.route.session_id, replacement.session.id);
 }
 
 #[test]

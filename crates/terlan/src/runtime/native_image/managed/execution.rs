@@ -11,7 +11,7 @@ use crate::runtime::native_image::{
     TvmBoundaryType, TvmCallableDescriptor, TvmManagedCollectionDescriptor,
     TvmManagedLayoutDescriptor,
 };
-use crate::runtime::vm::http_session::VmHttpSessionService;
+use terlan_runtime_abi::NativeServices;
 
 use super::ManagedRoot;
 use super::{
@@ -35,6 +35,10 @@ mod hibernation;
 #[path = "execution/owner_heaps.rs"]
 mod owner_heaps;
 use owner_heaps::ManagedOwnerHeaps;
+
+#[cfg(test)]
+#[path = "execution/native_services_test.rs"]
+mod native_services_test;
 
 const DEFAULT_SOFT_HEAP_BYTES: usize = 1024 * 1024;
 const DEFAULT_HARD_HEAP_BYTES: usize = 64 * 1024 * 1024;
@@ -63,8 +67,8 @@ pub(crate) struct ManagedExecutionRuntime {
     mailbox_fragments: HashMap<u32, ManagedMailboxFragment>,
     /// Next nonzero shard-local managed mailbox fragment identity.
     next_mailbox_fragment_id: u32,
-    /// Shared VM-owned HTTP session actors available to request shards.
-    http_sessions: Option<VmHttpSessionService>,
+    /// Explicit host-granted package contexts shared by execution shards.
+    native_services: Option<NativeServices>,
     /// Last synchronous allocator diagnostic retained across the C ABI return.
     last_allocation_error: Option<String>,
     /// Whether generated callable-entry probes should retain stable identities.
@@ -144,7 +148,7 @@ impl ManagedExecutionRuntime {
             recycled_heaps: Vec::new(),
             mailbox_fragments: HashMap::new(),
             next_mailbox_fragment_id: 0,
-            http_sessions: None,
+            native_services: None,
             last_allocation_error: None,
             callable_coverage_enabled: callable_coverage_file.is_some(),
             covered_callables: BTreeSet::new(),
@@ -231,7 +235,7 @@ impl ManagedExecutionRuntime {
             recycled_heaps: Vec::new(),
             mailbox_fragments: HashMap::new(),
             next_mailbox_fragment_id: 0,
-            http_sessions: self.http_sessions.clone(),
+            native_services: self.native_services.clone(),
             last_allocation_error: None,
             callable_coverage_enabled: self.callable_coverage_file.is_some(),
             covered_callables: BTreeSet::new(),
@@ -261,9 +265,13 @@ impl ManagedExecutionRuntime {
         }
     }
 
-    /// Attaches one VM-owned HTTP session runtime to this image template.
-    pub(crate) fn attach_http_sessions(&mut self, sessions: VmHttpSessionService) {
-        self.http_sessions = Some(sessions);
+    /// Attaches explicit host-granted package contexts to this image template.
+    pub(crate) fn attach_native_services(&mut self, services: NativeServices) {
+        self.native_services = Some(services);
+    }
+
+    pub(crate) fn native_services(&self) -> Option<&NativeServices> {
+        self.native_services.as_ref()
     }
 
     /// Takes the exact managed allocator diagnostic from the last dispatch.

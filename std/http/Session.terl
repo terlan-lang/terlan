@@ -9,6 +9,7 @@
 module std.http.Session.
 
 import std.core.Option.{None, Some}.
+import std.core.String.
 import std.core.Unit.
 import std.http.Cookies.{delete_header, set_header_with_options}.
 import std.http.{Request, Response}.
@@ -39,16 +40,21 @@ pub struct Session {
  * actor identity without exposing cookie parsing or actor placement details.
  */
 pub current(request: Request): Session ->
-    let {identity, created} = lookup(request.cookie("terlan_session"));
+    let requested =
+        case request.cookie("terlan_session") {
+            Some(value) -> value.trim();
+            None -> ""
+        };
+    let identity = lookup(requested);
     let pending =
         if {
-            created -> identity;
-            true -> ""
+            identity == requested -> "";
+            true -> identity
         };
     Session {#identity: identity, #pending_identity: pending}.
 
 @compiler.native {std.http.session.current}
-lookup(cookie: Option[String]): {String, Bool} ->
+lookup(identity: String): String ->
     native.
 
 /**

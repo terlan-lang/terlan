@@ -22,6 +22,15 @@ pub(super) fn inline_record_forwarders(cores: &mut [CoreModule]) {
         .iter()
         .flat_map(|core| {
             core.functions.iter().filter_map(move |function| {
+                if crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic(
+                    &core.module,
+                    &function.name,
+                    function.arity,
+                )
+                .is_some()
+                {
+                    return None;
+                }
                 direct_forwarder(function).map(|forwarder| {
                     (
                         (core.module.clone(), function.name.clone(), function.arity),

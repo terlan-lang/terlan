@@ -14,9 +14,16 @@ pub plain(value: Int = 1): Int -> value.
     )
     .unwrap();
     let original = module.declarations.len();
-    materialize(&mut module);
+    let sources = materialize(&mut module);
+    assert_eq!(sources.len(), 2);
     assert_eq!(module.declarations.len(), original + 2);
     for (index, declaration) in module.declarations[original..].iter().enumerate() {
+        let (arity, source) = &sources[index];
+        assert_eq!(*arity, index + 2);
+        assert_eq!(source.module, module.module_name);
+        assert_eq!(source.function, "adjust");
+        assert_eq!(source.arity, 4);
+        assert_eq!(source.declaration_span, Some(declaration.span.into()));
         assert!(declaration.annotations.is_empty());
         let SyntaxDeclarationPayload::Method {
             receiver,

@@ -32,10 +32,8 @@ pub expire(session: Session): Response ->
 "#,
     );
     let mut state = VmHttpSessionRuntime::new("cookie-policy", 100).unwrap();
-    let (handle, pending) = http_session::current(&mut state, None)
-        .unwrap()
-        .into_managed_parts();
-    let pending = pending.unwrap();
+    let handle = http_session::current(&mut state, None).unwrap().session;
+    let pending = handle.managed_id().to_owned();
     let sessions = VmHttpSessionService::new(state);
     let runtime = AotHandlerRuntime {
         module: "app.SessionCookies".into(),
@@ -58,6 +56,23 @@ pub expire(session: Session): Response ->
         ],
     };
     let mut helpers = VmPackageNativeHelpers::default();
+    let protocol = crate::runtime::vm::protocol_task_executor::next_protocol_task_route(
+        crate::runtime::vm::scheduler_topology::VmSchedulerId::primary(),
+    )
+    .unwrap();
+    let protocol_step =
+        crate::runtime::vm::protocol_task_executor::with_protocol_task_for_test(protocol, || {
+            runtime.begin_request_invocation("app.SessionCookies", "handle", vec![session("")])
+        })
+        .unwrap();
+    assert!(matches!(
+        protocol_step,
+        AotHandlerInvocationStep::Complete(_)
+    ));
+    assert!(
+        runtime.generation.shards[0].initialized().is_none(),
+        "granted context must execute on the protocol owner without starting a second owner"
+    );
     for invalid in ["bad;value", "bad\r\nvalue", "bad\0value"] {
         let step = runtime
             .begin_request_invocation("app.SessionCookies", "handle", vec![session(invalid)])
@@ -82,7 +97,7 @@ pub expire(session: Session): Response ->
             "invalid cookie input must never complete a response"
         );
         assert!(sessions
-            .with_runtime(|state| state.is_live(&handle))
+            .with_storage(|state| state.is_live(&handle))
             .unwrap());
     }
     let deletion = "terlan_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -109,11 +124,7 @@ pub expire(session: Session): Response ->
             let request = invocation.request().unwrap();
             assert_eq!(
                 request.operation,
-                if expired {
-                    "std.http.cookies.delete_header"
-                } else {
-                    "std.http.cookies.set_header_with_options"
-                }
+                "std.http.cookies.set_header_with_options"
             );
             let ReplValue::String(header) = helpers.call(1, request, &[]).unwrap() else {
                 panic!("cookie codec must return text");
@@ -160,7 +171,7 @@ pub expire(session: Session): Response ->
         "codec failure must not return a response"
     );
     assert!(sessions
-        .with_runtime(|state| state.snapshots().is_empty())
+        .with_storage(|state| state.snapshots().is_empty())
         .unwrap());
     drop(runtime);
     std::fs::remove_dir_all(fixture.root).unwrap();

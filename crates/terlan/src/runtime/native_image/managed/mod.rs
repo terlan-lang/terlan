@@ -60,7 +60,7 @@ pub use maps::{
     ManagedKeySemantics, ManagedMap, ManagedMapDescriptor, ManagedMapProfile,
     ManagedScalarKeySemantics, ManagedStringKeySemantics,
 };
-pub(crate) use operation_abi::execute_managed_operation_with_context;
+pub(crate) use operation_abi::execute_managed_operation;
 #[cfg(any(test, feature = "native-codegen"))]
 pub(crate) use operation_abi::managed_abi_result_is_reference;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
@@ -95,10 +95,7 @@ pub use operation_abi::{
     encode_map_get_operation, encode_map_get_option_operation, encode_map_is_empty_operation,
     encode_map_iterator_operation, encode_map_length_operation, encode_map_put_operation,
     encode_map_remove_operation, encode_map_take_operation, encode_memory_retained_size_operation,
-    encode_memory_shallow_size_operation, encode_session_current_operation,
-    encode_session_expire_operation, encode_session_get_operation,
-    encode_session_is_live_operation, encode_session_mutation_operation,
-    encode_session_rotate_operation, encode_set_add_operation, encode_set_clear_operation,
+    encode_memory_shallow_size_operation, encode_set_add_operation, encode_set_clear_operation,
     encode_set_contains_operation, encode_set_empty_operation, encode_set_from_list_operation,
     encode_set_is_empty_operation, encode_set_iterator_operation, encode_set_length_operation,
     encode_set_remove_operation, encode_string_append_operation, encode_string_byte_size_operation,
@@ -117,7 +114,7 @@ pub use operation_abi::{
     encode_string_utf8_byte_at_operation, encode_string_utf8_find_any_byte_operation,
     encode_string_utf8_slice_operation, encode_template_render_operation, is_managed_operation,
     ManagedBinaryPatternEndian, ManagedBinaryPatternField, ManagedBitStringOperation,
-    ManagedSessionMutation, ManagedTemplateValueKind,
+    ManagedTemplateValueKind,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use operation_abi::{

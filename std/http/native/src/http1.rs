@@ -1,6 +1,7 @@
-//! Bounded HTTP/1 decoding over caller-owned bytes and streams.
-//! Protocol parsing belongs to httparse; sockets and scheduling stay with callers.
+//! Buffered HTTP/1 decoding via httparse and live connections via Hyper.
+//! Callers retain transport resources and scheduling ownership.
 
+mod connection;
 mod request_read;
 mod response_write;
 #[cfg(test)]
@@ -8,6 +9,7 @@ mod response_write_test;
 #[cfg(test)]
 mod tests;
 
+pub use connection::serve_connection;
 pub use request_read::{read_http1_request, RequestReadFailure, RequestReadFailureKind};
 pub use response_write::{
     write_http1_response, write_http1_stream_chunk, write_http1_stream_end,

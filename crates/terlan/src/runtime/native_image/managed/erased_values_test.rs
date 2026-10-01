@@ -1,7 +1,7 @@
 use super::*;
 use crate::runtime::native_image::managed::{
     encode_erased_value_box_operation, encode_erased_value_unbox_operation,
-    execute_managed_operation_with_context, managed_abi_result_is_reference, ActorId, HeapLimits,
+    execute_managed_operation, managed_abi_result_is_reference, ActorId, HeapLimits,
     ManagedClosureDescriptor, ManagedClosureImageGeneration, ManagedLayoutRegistry, ManagedRoot,
     RootLocation,
 };
@@ -149,44 +149,21 @@ fn erased_value_abi_preserves_reference_classification_and_validates_descriptors
     assert!(managed_abi_result_is_reference(&boxing));
     assert!(!managed_abi_result_is_reference(&unboxing));
     assert!(managed_abi_result_is_reference(&reference_unbox));
-    let boxed =
-        execute_managed_operation_with_context(&mut heap, &layouts, None, &boxing, &[42]).unwrap();
+    let boxed = execute_managed_operation(&mut heap, &layouts, &boxing, &[42]).unwrap();
     assert_eq!(
-        execute_managed_operation_with_context(
-            &mut heap,
-            &layouts,
-            None,
-            &unboxing,
-            &[boxed as i64]
-        ),
+        execute_managed_operation(&mut heap, &layouts, &unboxing, &[boxed as i64]),
         Ok(42)
     );
-    assert!(
-        execute_managed_operation_with_context(&mut heap, &layouts, None, &boxing, &[]).is_err()
-    );
+    assert!(execute_managed_operation(&mut heap, &layouts, &boxing, &[]).is_err());
     for offset in [0, 4, 6, 7, 8, 16] {
         let mut malformed = boxing.clone();
         malformed[offset] = 255;
-        assert!(execute_managed_operation_with_context(
-            &mut heap,
-            &layouts,
-            None,
-            &malformed,
-            &[42]
-        )
-        .is_err());
+        assert!(execute_managed_operation(&mut heap, &layouts, &malformed, &[42]).is_err());
     }
     let mut oversized = boxing.clone();
     oversized.push(0);
     for malformed in [&boxing[..31], &oversized] {
-        assert!(execute_managed_operation_with_context(
-            &mut heap,
-            &layouts,
-            None,
-            malformed,
-            &[42]
-        )
-        .is_err());
+        assert!(execute_managed_operation(&mut heap, &layouts, malformed, &[42]).is_err());
     }
     assert!(encode_erased_value_box_operation(&TvmBoundaryType::Json).is_err());
 }

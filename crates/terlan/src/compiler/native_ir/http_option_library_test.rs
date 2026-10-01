@@ -1,32 +1,5 @@
 //! HTTP imports do not replace source option policy or restrict matching.
 
-use super::*;
-
-#[test]
-fn retired_option_helpers_have_no_type_or_lowering() {
-    for name in [
-        "option_is_none",
-        "option_some",
-        "session_get_is_none",
-        "session_get_some",
-    ] {
-        for arity in 0..4 {
-            let expression = CoreExpr::RemoteCall {
-                module: "$terlan.managed.http".into(),
-                function: name.into(),
-                type_args: vec![],
-                args: vec![CoreExpr::Int(0); arity],
-            };
-            assert_eq!(managed_http_operation_type(&expression), None);
-            assert!(lower_managed_http_operation(&expression, |_| panic!(
-                "retired helper must not evaluate inputs"
-            ))
-            .unwrap()
-            .is_none());
-        }
-    }
-}
-
 #[test]
 fn map_lookup_patterns_support_literals_guards_and_source_option_defaults() {
     let caller = r#"

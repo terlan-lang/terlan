@@ -38,13 +38,6 @@ const OPERATION_ARITIES: &[(&str, usize)] = &[
     ("std.crypto.hash.audit_labeled_file_patterns", 3),
     ("std.io.archive.create", 2),
     ("std.io.archive.extract", 2),
-    ("std.http.session.current", 1),
-    ("std.http.session.get", 2),
-    ("std.http.session.set", 3),
-    ("std.http.session.delete", 2),
-    ("std.http.session.rotate", 1),
-    ("std.http.session.expire", 1),
-    ("std.http.session.is_live", 1),
     ("std.io.path.extension", 1),
     ("std.io.path.file_name", 1),
     ("std.io.path.from_string", 1),
@@ -147,6 +140,7 @@ const OPERATION_ARITIES: &[(&str, usize)] = &[
 pub fn operation_arity(operation: &str) -> Option<usize> {
     crate::std_native_packages::resource_operation(operation)
         .map(|contract| contract.arity)
+        .or_else(|| crate::std_native_packages::context_operation_arity(operation))
         .or_else(|| {
             OPERATION_ARITIES
                 .iter()

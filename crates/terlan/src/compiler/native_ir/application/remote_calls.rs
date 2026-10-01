@@ -65,6 +65,7 @@ fn normalize_remote_expr(
                             function: target,
                             args: std::mem::take(args),
                         };
+                        normalize_selected_primitive(expr);
                     }
                 }
                 return;
@@ -77,9 +78,7 @@ fn normalize_remote_expr(
             {
                 return;
             }
-            if crate::compiler::native_ir::http_values::is_managed_http_module(module)
-                || crate::compiler::native_ir::template_values::is_managed_template_module(module)
-            {
+            if crate::compiler::native_ir::template_values::is_managed_template_module(module) {
                 return;
             }
             *expr = CoreExpr::Call {
@@ -96,6 +95,9 @@ fn normalize_remote_expr(
                 if let Some(lowered) = test_assertion_expr(function, args) {
                     *expr = lowered;
                 }
+            }
+            if phase == RemoteCallPhase::Final {
+                normalize_selected_primitive(expr);
             }
         }
         CoreExpr::ConstructorCall { args, .. } => {
@@ -308,6 +310,36 @@ fn normalize_remote_expr(
             normalize_remote_expr(body, phase, local_functions, application_functions)
         }
         _ => {}
+    }
+}
+
+/// Late receiver resolution must not execute registered primitive placeholder bodies.
+fn normalize_selected_primitive(expr: &mut CoreExpr) {
+    let CoreExpr::Call {
+        type_args,
+        function,
+        args,
+    } = expr
+    else {
+        return;
+    };
+    if !type_args.is_empty() {
+        return;
+    }
+    let Some((module, name)) = function.rsplit_once('.') else {
+        return;
+    };
+    use crate::terlan_typeck::core_intrinsic_lowering::{
+        core_intrinsic_expr_from_parts, core_primitive_intrinsic,
+    };
+    if core_primitive_intrinsic(module, name, args.len()).is_some() {
+        *expr = core_intrinsic_expr_from_parts(
+            module,
+            name,
+            std::mem::take(args),
+            crate::terlan_syntax::span::Span::new(0, 0),
+        )
+        .expect("registered primitive retains its lowering");
     }
 }
 

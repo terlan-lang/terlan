@@ -139,6 +139,11 @@ pub(super) fn specialize_expr(
         CoreExpr::Atom(value) if value == "Unit" => Some(CoreType::Named("Unit".to_string())),
         CoreExpr::Atom(_) => Some(CoreType::Atom),
         CoreExpr::Var(_) => specialize_variable(expr, variables),
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => specialize_lambda(params, parameter_types, body, variables, functions, module),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base_type = specialize_expr(base, variables, functions, module)?;
             named_field_type_with_nominals(&base_type, field, functions, module)
@@ -746,7 +751,7 @@ pub(super) fn specialize_expr(
                     };
                 }
             }
-            let mut result = None;
+            let mut result = (!clauses.is_empty()).then_some(CoreType::Never);
             for clause in clauses {
                 let mut variables = variables.clone();
                 if let Some(scrutinee_type) = scrutinee_type.as_ref() {
@@ -756,20 +761,16 @@ pub(super) fn specialize_expr(
                     specialize_expr(guard, &variables, functions, module);
                 }
                 let branch = specialize_expr(&mut clause.body, &variables, functions, module);
-                if result.is_none() {
-                    result = branch;
-                }
+                merge_witness(&mut result, branch);
             }
             result
         }
         CoreExpr::If { clauses } => {
-            let mut result = None;
+            let mut result = (!clauses.is_empty()).then_some(CoreType::Never);
             for clause in clauses {
                 specialize_expr(&mut clause.condition, variables, functions, module);
                 let branch = specialize_expr(&mut clause.body, variables, functions, module);
-                if result.is_none() {
-                    result = branch;
-                }
+                merge_witness(&mut result, branch);
             }
             result
         }
@@ -882,6 +883,10 @@ fn functionalize_collection_receiver_binding(
 }
 
 mod support;
+
+#[cfg(test)]
+#[path = "collection_intrinsic_specialization/branch_test.rs"]
+mod branch_test;
 
 pub(super) use support::list_element;
 use support::*;

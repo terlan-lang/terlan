@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::json;
 
+use super::support::{make_target_body, make_target_prerequisites};
 use crate::terlan_quality::QualityResult;
 
 const REPORT_PATH: &str = "target/quality/vm-web-deployment-profile-report.json";
@@ -20,37 +21,56 @@ const REQUIRED_SERVE_ARG_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_ROUTER_ANCHORS: &[&str] = &[
-    "VmHttpRouteMethod",
-    "VmHttpRouteTarget",
-    "VmHttpRouter",
-    "dispatch(",
-    "route(",
-    "pub(crate) fn sse(",
-    "pub(crate) fn websocket(",
+    "pub enum RouteMethod",
+    "pub enum RouteTarget",
+    "pub struct Router",
+    "pub fn dispatch(",
+    "pub fn route(",
+    "SseEndpoint(",
+    "WebSocketEndpoint(",
 ];
 
 const REQUIRED_ROUTER_TEST_ANCHORS: &[&str] = &[
-    "VmHttpRouteMethod::Get",
-    ".dispatch(VmHttpRouteMethod::Get, \"/health\")",
-    ".dispatch(VmHttpRouteMethod::Get, \"/assets/app.js\")",
-    ".dispatch(VmHttpRouteMethod::Get, \"/events\")",
-    ".dispatch(VmHttpRouteMethod::Get, \"/socket\")",
+    "deployment_routes_preserve_handler_and_channel_targets",
+    "RouteMethod::Get",
+    "\"/health\"",
+    "\"/assets/app.js\"",
+    "\"/events\"",
+    "\"/socket\"",
 ];
 
-const REQUIRED_TLS_ACME_ANCHORS: &[&str] = &[
-    "runtime_tls_config_for_serve",
-    "acme_runtime_tls_config_for_serve",
-    "acme_http01_challenge",
-    "is_acme_http01_token",
-    "load_acme_runtime_tls_cache",
-];
-
-const REQUIRED_TLS_TEST_ANCHORS: &[&str] = &[
-    "runtime_tls_config_for_serve_accepts_auto_tls_certificate_cache",
-    "acme_http01_challenge_cache_rejects_invalid_token",
-    "hyper_request_handler_serves_acme_http01_challenge_from_auto_tls_cache",
-    "vm_stream_request_serves_acme_http01_challenge_without_hyper",
-    "vm_stream_request_rejects_invalid_acme_http01_token_without_hyper",
+const REQUIRED_TLS_ANCHORS: &[(&str, &[&str])] = &[
+    (
+        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+        &["runtime_tls_config_for_serve", "tls_runtime::load("],
+    ),
+    (
+        "std/http/native/src/tls_runtime.rs",
+        &["load_acme_runtime_tls_cache", "issuer(&plan)?"],
+    ),
+    (
+        "std/http/native/src/acme.rs",
+        &["acme_http01_challenge", "is_acme_http01_token"],
+    ),
+    (
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test/cache_custody.rs",
+        &["runtime_tls_config_for_serve_accepts_auto_tls_certificate_cache"],
+    ),
+    (
+        "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test/tls_and_acme_fixtures.rs",
+        &["acme_http01_challenge_cache_rejects_invalid_token"],
+    ),
+    (
+        "crates/terlan/src/commands/serve/serve_test/static_fallbacks.rs",
+        &["hyper_request_handler_serves_acme_http01_challenge_from_auto_tls_cache"],
+    ),
+    (
+        "crates/terlan/src/commands/serve/serve_test/upgrades_and_acme.rs",
+        &[
+            "vm_stream_request_serves_acme_http01_challenge_without_hyper",
+            "vm_stream_request_rejects_invalid_acme_http01_token_without_hyper",
+        ],
+    ),
 ];
 
 const REQUIRED_RESPONSE_ANCHORS: &[(&str, &[&str])] = &[
@@ -74,20 +94,27 @@ const REQUIRED_RESPONSE_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/handler/response_bridge.rs",
+        "std/http/native/src/response_headers.rs",
         &[
             "validate_response_header",
-            "Location",
-            "Set-Cookie",
-            "unsupported cookie SameSite value",
+            "HeaderName::from_bytes",
+            "HeaderValue::from_str",
+            "content-length",
         ],
     ),
     (
-        "std/http/Session.terl",
+        "std/http/native/src/bindings.rs",
         &[
-            "set_header_with_options(",
-            "\"terlan_session\", identity, \"/\", \"\", 0, false, \"\", true, false, \"Lax\"",
+            "dispatch.http.cookie.invalid_same_site",
+            "CookieSameSite::Lax",
+            "CookieSameSite::Strict",
+            "CookieSameSite::None",
         ],
+    ),
+    ("std/http/Session.terl", &["set_header_with_options("]),
+    (
+        "std/http/SessionTest.terl",
+        &["; HttpOnly; SameSite=Lax; Path=/"],
     ),
 ];
 
@@ -105,15 +132,26 @@ const REQUIRED_STREAM_ANCHORS: &[(&str, &[&str])] = &[
         &["endpoint", "max_pending_frames", "max_frame_bytes"],
     ),
     (
-        "crates/terlan/src/runtime/vm/sse.rs",
-        &["VmSseEndpointPlan", "VmSseStream", "flush_next"],
+        "std/http/native/src/sse_session.rs",
+        &[
+            "pub struct SseSession<C>",
+            "crate::encode_event(",
+            "pub fn flush_next(",
+        ],
     ),
     (
-        "crates/terlan/src/runtime/vm/websocket.rs",
+        "std/http/native/src/websocket.rs",
         &[
-            "build_websocket_upgrade_response",
-            "serialize_websocket_upgrade_response",
-            "VmWebSocketEndpointPlan",
+            "pub fn upgrade_response",
+            "tungstenite::handshake::derive_accept_key",
+        ],
+    ),
+    (
+        "std/http/native/src/websocket/session.rs",
+        &[
+            "pub struct Session<C>",
+            "pub fn enqueue_inbound(",
+            "pub fn next_inbound(",
         ],
     ),
     (
@@ -138,13 +176,11 @@ const REQUIRED_MANIFEST_TEST_ANCHORS: &[&str] = &[
     "validate_web_package_accepts_static_response_headers",
 ];
 
-const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-deployment-profile-check: vm-web-lifecycle-health-check",
-    "$(MAKE) http-router-check",
-    "$(MAKE) http-tls-check",
-    "$(MAKE) native-boundary-http-cookie-check",
-    "vm_web_deployment_profile_test",
-    "vm-web-deployment-profile",
+const REQUIRED_GATE_PREREQUISITES: &[&str] = &[
+    "vm-web-lifecycle-health-check",
+    "http-router-check",
+    "http-tls-check",
+    "native-boundary-http-cookie-check",
 ];
 
 const PROFILE_MATRIX: &[&str] = &[
@@ -183,7 +219,7 @@ const URL_RECONSTRUCTION_CASES: &[&str] = &[
 ];
 
 const COOKIE_DECISIONS: &[&str] = &[
-    "Set-Cookie headers are validated at the response bridge",
+    "Set-Cookie headers are validated by the HTTP package response boundary",
     "SameSite supports lax, strict, and none through typed std.http.Cookies",
     "session cookies are HttpOnly and SameSite=Lax by default",
     "Secure inference under TLS termination is rejected until profiles exist",
@@ -191,14 +227,14 @@ const COOKIE_DECISIONS: &[&str] = &[
 
 const UPGRADE_CASES: &[&str] = &[
     "WebSocket upgrade state is classified before static fallback",
-    "VM stream WebSocket handshake is serialized by VM WebSocket runtime",
+    "WebSocket handshake metadata uses the HTTP package's maintained codec binding",
     "SSE endpoints carry explicit queue and keep-alive policy",
     "reverse-proxy WebSocket/SSE upgrades are rejected until profile-owned",
 ];
 
 const HEALTH_ENDPOINT_CASES: &[&str] = &[
     "route manifest can declare health handlers",
-    "VM router dispatches a /health route",
+    "HTTP package router dispatches a /health route",
     "Compose dependency healthcheck is validated by the lifecycle gate",
     "public readiness/liveness exposure remains rejected until profiled",
 ];
@@ -244,34 +280,33 @@ pub fn run_vm_web_deployment_profile(root: &Path) -> QualityResult<VmWebDeployme
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http_router.rs",
+        "std/http/native/src/routing.rs",
         REQUIRED_ROUTER_ANCHORS,
-        "VM route deployment surface",
+        "package route deployment surface",
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/runtime/vm/http_router_test.rs",
+        "std/http/native/src/routing/tests.rs",
         REQUIRED_ROUTER_TEST_ANCHORS,
-        "VM route deployment tests",
+        "package route deployment tests",
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/tls.rs",
-        REQUIRED_TLS_ACME_ANCHORS,
-        "TLS and ACME deployment surface",
+        "std/http/Router.terl",
+        &[
+            "pub (router: Router) sse(",
+            "pub (router: Router) websocket(",
+        ],
+        "source channel route builders",
     )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "crates/terlan/src/commands/serve/tls_test.rs",
-        &REQUIRED_TLS_TEST_ANCHORS[..2],
-        "TLS and ACME deployment tests",
-    )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "crates/terlan/src/commands/serve/serve_test.rs",
-        &REQUIRED_TLS_TEST_ANCHORS[2..],
-        "serve ACME routing tests",
-    )?);
+    for (relative, anchors) in REQUIRED_TLS_ANCHORS {
+        diagnostics.extend(validate_required_terms(
+            root,
+            relative,
+            anchors,
+            "TLS and ACME deployment surface and tests",
+        )?);
+    }
     for (relative, anchors) in REQUIRED_RESPONSE_ANCHORS {
         diagnostics.extend(validate_required_terms(
             root,
@@ -394,11 +429,20 @@ fn validate_required_terms(
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
     let text = fs::read_to_string(root.join("Makefile"))
         .map_err(|err| format!("Makefile: failed to read VM web deployment gate: {err}"))?;
-    Ok(REQUIRED_GATE_TERMS
+    let target = "vm-web-deployment-profile-check";
+    let prerequisites = make_target_prerequisites(&text, target).unwrap_or_default();
+    let mut diagnostics = REQUIRED_GATE_PREREQUISITES
         .iter()
-        .filter(|term| !text.contains(**term))
-        .map(|term| format!("Makefile: missing VM web deployment gate term `{term}`"))
-        .collect())
+        .filter(|term| !prerequisites.iter().any(|value| value == **term))
+        .map(|term| format!("Makefile: `{target}` must declare prerequisite `{term}`"))
+        .collect::<Vec<_>>();
+    let command = "$(TERLAN_QUALITY) vm-web-deployment-profile";
+    if !make_target_body(&text, target)
+        .is_some_and(|body| body.lines().any(|line| line.trim() == command))
+    {
+        diagnostics.push(format!("Makefile: `{target}` must run `{command}`"));
+    }
+    Ok(diagnostics)
 }
 
 /// Validates no placeholder report entries.

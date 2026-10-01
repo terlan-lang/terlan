@@ -80,15 +80,6 @@ fn decode_bridge_arg(
                 .map(NativeBoundaryValue::Regex)
                 .map_err(dispatch_resource_error)
         }
-        NativeBoundaryBridgeValue::Handle(handle)
-            if operation.starts_with("std.http.response.") =>
-        {
-            store
-                .http_response(*handle)
-                .cloned()
-                .map(NativeBoundaryValue::HttpResponse)
-                .map_err(dispatch_resource_error)
-        }
         NativeBoundaryBridgeValue::Handle(handle) if operation.starts_with("std.io.path.") => store
             .path(*handle)
             .cloned()
@@ -241,10 +232,6 @@ pub(super) fn encode_bridge_result(
             .map_err(dispatch_resource_error),
         NativeBoundaryValue::Regex(value) => store
             .insert_for_owner(caller_process_id, ResourceValue::Regex(value))
-            .map(NativeBoundaryBridgeValue::Handle)
-            .map_err(dispatch_resource_error),
-        NativeBoundaryValue::HttpResponse(value) => store
-            .insert_for_owner(caller_process_id, ResourceValue::HttpResponse(value))
             .map(NativeBoundaryBridgeValue::Handle)
             .map_err(dispatch_resource_error),
         NativeBoundaryValue::Path(value) => store

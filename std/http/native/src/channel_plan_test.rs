@@ -134,22 +134,24 @@ fn paired_restoration_roundtrips_without_a_vm_callback_type() {
     pair.restoration = Some(WebSocketRestoration {
         waiting: callback(),
         peer_left: callback(),
-        room_query: "room".into(),
-        player_query: "player".into(),
+        identity: callback(),
         room_prefix: "session".into(),
-        first_player: "one".into(),
-        second_player: "two".into(),
         retention_ms: 5000,
         retained_room_capacity: 16,
         matched: callback(),
         restored: callback(),
     });
-    roundtrip(
-        &WebSocketEndpointPlan::new(1, 1024)
-            .unwrap()
-            .with_pairing(pair)
-            .unwrap(),
-    );
+    let plan = WebSocketEndpointPlan::new(1, 1024)
+        .unwrap()
+        .with_pairing(pair)
+        .unwrap();
+    roundtrip(&plan);
+    let mut legacy = serde_json::to_value(plan).unwrap();
+    let restoration = legacy["pairing"]["restoration"].as_object_mut().unwrap();
+    restoration.remove("identity");
+    restoration.insert("room_query".into(), json!("room"));
+    restoration.insert("player_query".into(), json!("player"));
+    reject::<WebSocketEndpointPlan<Callback>>(legacy);
 }
 
 #[test]

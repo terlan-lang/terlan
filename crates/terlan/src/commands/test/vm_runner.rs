@@ -3,10 +3,12 @@ use std::time::Instant;
 
 use super::manifest::{TestRunReport, TestRunResult, TestRunStatus};
 use super::DiscoveredTest;
-use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
+use crate::runtime::vm::actor_state::VmActorStateStore;
 use crate::runtime::vm::package_native_helper::{execute_call, VmPackageNativeHelpers};
 use crate::runtime::vm::pure_native::{PureNativeExecutionImage, PureNativeExecutionShard};
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::session_service::SessionService;
+use terlan_http_native::session_store::SessionStore;
 
 /// Executes selected tests exclusively through native exports.
 pub(super) fn run_discovered_terlan_vm_tests(
@@ -24,9 +26,15 @@ pub(super) fn run_discovered_terlan_vm_tests(
     })?;
     // Test suites use the same actor/table service as HTTP handlers, scoped to
     // this run so session state never escapes into another invocation.
-    let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new("terlc-test", 86_400)?);
-    let mut native =
-        PureNativeExecutionImage::load_with_http_sessions(native_image, sessions)?.spawn_shard()?;
+    let sessions = SessionService::new(
+        SessionStore::with_defaults(VmActorStateStore::default())
+            .map_err(|error| error.to_string())?,
+    );
+    let mut native = PureNativeExecutionImage::load_with_native_services(
+        native_image,
+        sessions.native_services().map_err(String::from)?,
+    )?
+    .spawn_shard()?;
     for test in tests {
         let qualified_name = format!("{module_name}.{}", test.name);
         if !native.has_export(&qualified_name, 0) {

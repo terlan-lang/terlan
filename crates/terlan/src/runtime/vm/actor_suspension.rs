@@ -728,7 +728,7 @@ impl VmActorRuntime {
         self.native_continuations.len()
     }
 
-    fn validate_native_continuation_owner(
+    pub(crate) fn validate_native_continuation_owner(
         &self,
         owner_id: u64,
         request_id: u64,

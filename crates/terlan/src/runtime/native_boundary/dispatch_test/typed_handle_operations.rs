@@ -1,6 +1,31 @@
 use super::*;
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
+#[test]
+fn source_cookie_policy_operations_are_absent_from_native_dispatch() {
+    for operation in [
+        "std.http.cookies.set_header",
+        "std.http.cookies.delete_header",
+    ] {
+        assert_eq!(operation_arity(operation), None);
+        for count in [0, 2, 5, 10] {
+            let args = vec![NativeBoundaryValue::Text("value".into()); count];
+            assert_eq!(
+                dispatch(operation, &args).unwrap_err().code(),
+                "dispatch.unknown_operation"
+            );
+            let mut store = ResourceStore::new();
+            let args = vec![NativeBoundaryBridgeValue::Text("value".into()); count];
+            assert_eq!(
+                dispatch_with_resources(&mut store, operation, &args)
+                    .unwrap_err()
+                    .code(),
+                "dispatch.unknown_operation"
+            );
+        }
+    }
+}
+
 /// Cookie codecs and JSON serialization retain their package resource boundaries.
 #[test]
 pub(super) fn bridge_dispatch_cookie_codecs_and_json_serialization() {
@@ -8,13 +33,18 @@ pub(super) fn bridge_dispatch_cookie_codecs_and_json_serialization() {
     assert_eq!(
         bridge_dispatch_ok(
             &mut store,
-            "std.http.cookies.set_header",
+            "std.http.cookies.set_header_with_options",
             &[
                 NativeBoundaryBridgeValue::Text("session".to_string()),
                 NativeBoundaryBridgeValue::Text("abc123".to_string()),
                 NativeBoundaryBridgeValue::Text("/".to_string()),
+                NativeBoundaryBridgeValue::Text(String::new()),
+                NativeBoundaryBridgeValue::Int(0),
+                NativeBoundaryBridgeValue::Bool(false),
+                NativeBoundaryBridgeValue::Text(String::new()),
                 NativeBoundaryBridgeValue::Bool(true),
                 NativeBoundaryBridgeValue::Bool(true),
+                NativeBoundaryBridgeValue::Text(String::new()),
             ],
         ),
         Some(NativeBoundaryBridgeValue::Text(

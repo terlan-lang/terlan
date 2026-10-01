@@ -13,7 +13,6 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
 use crate::runtime::vm::http_router::VmHttpRouter;
-use crate::runtime::vm::http_session::VmHttpSessionService;
 use crate::runtime::vm::protocol_task_executor::{
     retire_protocol_resource, with_current_protocol_resource,
 };
@@ -27,6 +26,7 @@ use crate::runtime::vm::work_stealing::{
 };
 use crate::runtime::vm::ReplValue;
 use crate::support::fingerprint;
+use terlan_http_native::session_service::{SessionHost, SessionService};
 
 use super::handler::WebPackageHandler;
 use super::source_path_from_manifest;
@@ -57,6 +57,7 @@ pub(super) use cache_storage::invalidate_vm_handler_cache;
 use immediate::{finish_immediate_step, LocalImmediateShard};
 #[cfg(test)]
 use router_materialization::materialize_router;
+pub(super) use session_service::http_session_maintenance_for;
 use session_service::http_session_service_for;
 use source_generation::cached_source_entry;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
@@ -223,14 +224,17 @@ struct AotGeneratedWorkMetricsSnapshot {
 }
 
 impl AotHandlerGeneration {
-    fn load(image: &Path, sessions: VmHttpSessionService) -> Result<Self, String> {
+    fn load(
+        image: &Path,
+        sessions: SessionService<impl SessionHost + 'static>,
+    ) -> Result<Self, String> {
         let scheduler_count = VmSchedulerTopology::from_environment()?.width();
         Self::load_with_shard_count(image, sessions, scheduler_count)
     }
 
     fn load_with_shard_count(
         image: &Path,
-        sessions: VmHttpSessionService,
+        sessions: SessionService<impl SessionHost + 'static>,
         shard_count: usize,
     ) -> Result<Self, String> {
         Self::load_with_shard_count_and_failure(image, sessions, shard_count, None)
@@ -240,7 +244,7 @@ impl AotHandlerGeneration {
     #[cfg(test)]
     fn load_with_start_failure(
         image: &Path,
-        sessions: VmHttpSessionService,
+        sessions: SessionService<impl SessionHost + 'static>,
         shard_count: usize,
         fail_at: usize,
     ) -> Result<Self, String> {
@@ -250,7 +254,7 @@ impl AotHandlerGeneration {
     /// Starts one complete fixed-scheduler generation or tears it all down.
     fn load_with_shard_count_and_failure(
         image: &Path,
-        sessions: VmHttpSessionService,
+        sessions: SessionService<impl SessionHost + 'static>,
         shard_count: usize,
         _fail_at: Option<usize>,
     ) -> Result<Self, String> {
@@ -266,8 +270,9 @@ impl AotHandlerGeneration {
                 identity.checked_add(1)
             })
             .map_err(|_| "error[serve.aot.generation]: identity exhausted".to_string())?;
-        let image = Arc::new(PureNativeExecutionImage::load_with_http_sessions(
-            image, sessions,
+        let image = Arc::new(PureNativeExecutionImage::load_with_native_services(
+            image,
+            sessions.native_services().map_err(String::from)?,
         )?);
         let scheduler_control = Arc::new(VmFixedSchedulerControl::default());
         let scheduler_failure = Arc::new(Mutex::new(None));

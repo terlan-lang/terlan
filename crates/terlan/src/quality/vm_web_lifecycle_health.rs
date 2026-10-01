@@ -34,11 +34,8 @@ const REQUIRED_COMPOSE_TEST_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_TLS_READINESS_ANCHORS: &[&str] = &[
-    "Maximum order-state refresh attempts while waiting for ACME readiness",
-    "challenge readiness",
-    "Loads live TLS configuration for normal `terlc serve` startup",
-    "acme_runtime_tls_config_for_serve",
-    "issue_acme_certificate",
+    "tls_runtime::load(",
+    "issue_acme_certificate_cache_for_serve",
     "load_acme_runtime_tls_cache",
 ];
 
@@ -234,9 +231,12 @@ pub fn run_vm_web_lifecycle_health(root: &Path) -> QualityResult<VmWebLifecycleH
         REQUIRED_COMPOSE_TEST_ANCHORS,
         "dependency health tests",
     )?);
-    diagnostics.extend(validate_required_terms(
+    diagnostics.extend(validate_required_terms_across(
         root,
-        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+        &[
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "std/http/native/src/tls_runtime.rs",
+        ],
         REQUIRED_TLS_READINESS_ANCHORS,
         "TLS readiness lifecycle",
     )?);

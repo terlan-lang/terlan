@@ -6,17 +6,14 @@ use rcgen::generate_simple_self_signed;
 use crate::commands::build::project_manifest::{
     ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
 };
-use crate::runtime::vm::acme_worker::{
-    VmAcmeMode, VmAcmeWorkerExecutionLane, VmAcmeWorkerRuntime, VmAcmeWorkerState,
-};
-use crate::runtime::vm::process::VmProcessId;
 use crate::support::test_fs;
 
 use super::super::{
-    acme_contact_strings, acme_domain_identifiers, acme_runtime_plan, generate_acme_csr,
+    acme_contact_strings, acme_domain_identifiers, acme_runtime_plan,
+    acme_runtime_tls_config_with_local_issuer, generate_acme_csr,
     issue_acme_certificate_cache_preflight, load_acme_account_credentials,
-    pending_http01_challenges, runtime_tls_config, start_live_acme_worker_for_serve,
-    store_acme_account_credentials, store_acme_certificate_cache, store_acme_http01_challenge,
+    pending_http01_challenges, runtime_tls_config, store_acme_account_credentials,
+    store_acme_certificate_cache, store_acme_http01_challenge,
 };
 
 /// Sample serialized ACME credentials accepted by `instant-acme`.
@@ -431,44 +428,25 @@ pub(super) fn acme_contact_strings_wrap_optional_email() {
     assert!(acme_contact_strings(None).is_empty());
 }
 
-/// Verifies serve live ACME issuance starts a VM-owned worker lane.
-///
-/// Inputs:
-/// - Auto TLS project metadata with one domain, email, and ACME provider.
-///
-/// Output:
-/// - Test passes when the VM worker receives a live execution lane and the
-///   normalized serve metadata.
-///
-/// Transformation:
-/// - Proves the live serve path no longer depends on a separate env-gated
-///   runtime path before the maintained ACME client is invoked.
+/// Verifies normalized project metadata reaches the package's real issuer boundary.
 #[test]
-pub(super) fn serve_live_acme_issuance_starts_vm_worker_lane() {
-    let dir = temp_dir("serve_live_acme_worker_lane");
+pub(super) fn serve_acme_handoff_uses_package_plan_without_vm_protocol_state() {
+    let dir = temp_dir("serve_acme_package_handoff");
     fs::create_dir_all(&dir).expect("create temp root");
     let tls = auto_tls_model(vec!["example.test"], Some("admin@example.test"), None, None);
-    let plan = acme_runtime_plan(&dir, &tls);
-    let mut worker_runtime = VmAcmeWorkerRuntime::new();
-
-    let worker =
-        start_live_acme_worker_for_serve(&plan, &mut worker_runtime).expect("start worker");
-    let info = worker_runtime
-        .inspect_worker(worker)
-        .expect("inspect worker");
-
-    assert_eq!(info.owner, VmProcessId::system_runtime_worker());
-    assert_eq!(info.request.domain, "example.test");
-    assert_eq!(info.request.account_id, "admin@example.test");
-    assert_eq!(info.request.cache_key, plan.cache_dir.display().to_string());
-    assert_eq!(info.request.mode, VmAcmeMode::Live);
-    assert_eq!(
-        info.execution_lane,
-        VmAcmeWorkerExecutionLane::Live {
-            directory_url: plan.directory_url.clone()
-        }
-    );
-    assert_eq!(info.state, VmAcmeWorkerState::Requested);
+    let expected = acme_runtime_plan(&dir, &tls);
+    let mut called = false;
+    let result = acme_runtime_tls_config_with_local_issuer(&dir, &tls, |plan| {
+        called = true;
+        assert_eq!(plan.domains, ["example.test"]);
+        assert_eq!(plan.email.as_deref(), Some("admin@example.test"));
+        assert_eq!(plan.cache_dir, expected.cache_dir);
+        assert_eq!(plan.directory_url, expected.directory_url);
+        Err("test issuer rejected issuance".into())
+    });
+    assert!(called);
+    assert_eq!(result.err().unwrap(), "test issuer rejected issuance");
+    assert!(!expected.certificate_path.exists());
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
@@ -604,13 +582,15 @@ pub(super) fn generate_acme_csr_returns_der_and_private_key_pem() {
     let plan = acme_runtime_plan(&dir, &tls);
     let (csr_der, private_key_pem) =
         generate_acme_csr(&["example.test".to_string()]).expect("generate csr");
-    let generated =
-        generate_simple_self_signed(vec!["example.test".to_string()]).expect("generate cert");
-
     assert!(!csr_der.is_empty());
     assert!(private_key_pem.contains("PRIVATE KEY"));
-    store_acme_certificate_cache(&plan, &generated.cert.pem(), &private_key_pem)
-        .expect("generated private key should be runtime-parseable");
+    let key = rcgen::KeyPair::from_pem(&private_key_pem).expect("parse CSR key");
+    let certificate = rcgen::CertificateParams::new(vec!["example.test".to_string()])
+        .expect("certificate params")
+        .self_signed(&key)
+        .expect("certificate for CSR key");
+    store_acme_certificate_cache(&plan, &certificate.pem(), &private_key_pem)
+        .expect("generated private key should match certificate material");
 
     fs::remove_dir_all(dir).expect("cleanup");
 }
@@ -722,11 +702,13 @@ pub(super) fn acme_account_credentials_round_trip_through_cache() {
     let plan = acme_runtime_plan(&dir, &tls);
     let credentials = sample_account_credentials();
 
-    assert!(load_acme_account_credentials(&plan)
-        .expect("missing account cache should be ok")
-        .is_none());
+    assert!(
+        load_acme_account_credentials::<instant_acme::AccountCredentials>(&plan)
+            .expect("missing account cache should be ok")
+            .is_none()
+    );
     store_acme_account_credentials(&plan, &credentials).expect("store account credentials");
-    let loaded = load_acme_account_credentials(&plan)
+    let loaded = load_acme_account_credentials::<instant_acme::AccountCredentials>(&plan)
         .expect("load account credentials")
         .expect("stored account credentials");
 
@@ -757,7 +739,7 @@ pub(super) fn acme_account_credentials_cache_reports_invalid_json() {
         .expect("create cache dir");
     fs::write(&plan.account_credentials_path, "not json").expect("write invalid credentials");
 
-    let message = match load_acme_account_credentials(&plan) {
+    let message = match load_acme_account_credentials::<instant_acme::AccountCredentials>(&plan) {
         Ok(_) => panic!("invalid account credentials should fail"),
         Err(message) => message,
     };

@@ -55,11 +55,27 @@ VmAcmeWorkerWake::RenewalDue renewal_due_wakeups
         self.write(
             "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
-instant_acme AcmeHttp01Challenge acme_http01_challenge
-runtime_tls_config_for_serve pending_http01_challenges rustls_server_config
-store_acme_http01_challenge
-start_live_acme_worker_for_serve VmAcmeWorkerRuntime
+AcmeHttp01Challenge acme_http01_challenge
+runtime_tls_config_for_serve
+terlan_http_native::acme::issuer::issue_certificate_cache(
+tls_runtime::load( VmAcmeWorkerRuntime
 VmAcmeWorkerExecutionLane::Live VmProcessId::system_runtime_worker
+"#,
+        )?;
+        self.write(
+            "std/http/native/src/acme/issuer.rs",
+            r#"
+instant_acme issue_certificate_cache pending_http01_challenges
+store_acme_http01_challenge store_acme_certificate_cache delay_for(delay).await
+"#,
+        )?;
+        self.write(
+            "std/http/native/src/acme/issuer_test.rs",
+            r#"
+real_client_issues_matching_material_and_reuses_cached_account
+cancelling_a_pending_delay_stops_protocol_progress
+order_and_certificate_polling_have_bounded_nonblocking_backoff
+observer_can_reject_publication_after_certificate_arrives
 "#,
         )?;
         self.write(
@@ -94,7 +110,7 @@ vm_acme_worker_starts_issuance_without_new_challenge_for_valid_authorizations
         self.write(
             "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
             r#"
-serve_live_acme_issuance_starts_vm_worker_lane
+serve_acme_handoff_uses_package_plan_without_vm_protocol_state
 pending_http01_challenges_reject_missing_http01
 acme_http01_challenge_cache_writes_valid_token
 acme_http01_challenge_cache_rejects_invalid_token
@@ -123,6 +139,7 @@ vm_tls_runtime_builds_manual_rustls_server_config
 vm_tls_runtime_builds_internal_rustls_server_config
 "#,
         )?;
+        self.write("std/http/native/src/tls_runtime.rs", "pub fn load( validate_acme_provider_supported load_acme_runtime_tls_cache issuer(&plan)?")?;
         self.write("Makefile", COMPLETE_MAKEFILE)
     }
 }
@@ -139,6 +156,34 @@ vm-http-acme-tls-base-check: vm-timer-deadline-check http-tls-check
 vm-http-acme-worker-migration-check: vm-http-acme-tls-base-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-acme-worker
 "#;
+
+#[test]
+fn vm_http_acme_worker_accepts_actual_package_ownership() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    run_vm_http_acme_worker(&root).expect("repository ACME ownership");
+}
+
+#[test]
+fn vm_http_acme_worker_requires_package_issuer_and_cancellation_tests() {
+    for (path, marker) in [
+        (
+            "std/http/native/src/acme/issuer.rs",
+            "delay_for(delay).await",
+        ),
+        (
+            "std/http/native/src/acme/issuer_test.rs",
+            "cancelling_a_pending_delay_stops_protocol_progress",
+        ),
+    ] {
+        let repo = TestRepo::new("package-issuer").expect("fixture");
+        repo.write_complete_fixture().expect("write fixture");
+        let source = fs::read_to_string(repo.root().join(path)).unwrap();
+        repo.write(path, &source.replace(marker, "")).unwrap();
+        assert!(run_vm_http_acme_worker(repo.root())
+            .unwrap_err()
+            .contains(marker));
+    }
+}
 
 #[test]
 fn vm_http_acme_worker_writes_report_for_current_foundation() {
@@ -163,7 +208,9 @@ fn vm_http_acme_worker_writes_report_for_current_foundation() {
     assert!(report.contains("issuance waiters park and wake through VM scheduler handles"));
     assert!(report.contains("due renewal emits VM wakeup"));
     assert!(report.contains("deterministic and live lanes share one VM worker contract"));
-    assert!(report.contains("serve auto TLS starts a VM-owned live ACME worker lane"));
+    assert!(
+        report.contains("serve auto TLS delegates issuance and cache policy to the HTTP package")
+    );
     assert!(!report.contains("real VM-owned ACME worker runtime"));
     assert!(!report.contains("support-bundle capture from VM worker state"));
     assert!(!report.contains("VM backpressure hook for issuance queue limits"));
@@ -185,13 +232,13 @@ fn vm_http_acme_worker_rejects_missing_serve_worker_handoff_anchor() {
     let source = fs::read_to_string(&path).expect("tls source");
     repo.write(
         "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
-        &source.replace("start_live_acme_worker_for_serve", ""),
+        &source.replace("tls_runtime::load(", ""),
     )
     .expect("rewrite tls source");
 
     let error = run_vm_http_acme_worker(repo.root()).expect_err("anchor should fail");
 
-    assert!(error.contains("start_live_acme_worker_for_serve"));
+    assert!(error.contains("tls_runtime::load("));
 }
 
 #[test]

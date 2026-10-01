@@ -183,14 +183,26 @@ impl PureNativeExecutionShard {
         let epoch = self.require_active_epoch("resume_capability_value_call")?;
         wait.validate(self.supervisor.shard_id(), epoch, owner, &suspension)?;
         let result_type = wait.request.result_type.clone();
+        let execution = self.complete_capability_value(owner, suspension, &result_type, &value)?;
+        self.commit_epoch_operation(wait.completion)?;
+        Ok(execution)
+    }
+
+    fn complete_capability_value(
+        &mut self,
+        owner: VmProcessId,
+        suspension: PureNativeSuspension,
+        result_type: &TvmBoundaryType,
+        value: &ReplValue,
+    ) -> Result<PureNativeExecution, String> {
         let execution = {
             let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
             self.boundary.resume_capability_value_for_actor(
                 &mut self.actors,
                 &mut context,
                 suspension,
-                &result_type,
-                &value,
+                result_type,
+                value,
             )
         };
         let execution = match execution {
@@ -206,7 +218,6 @@ impl PureNativeExecutionShard {
             }
         };
         self.record_completion(owner, &execution);
-        self.commit_epoch_operation(wait.completion)?;
         Ok(execution)
     }
 
@@ -245,6 +256,9 @@ impl PureNativeExecutionShard {
             .drive_resident_execution(&mut self.actors, &mut context, owner, execution)
     }
 }
+
+#[path = "native_service_ingress.rs"]
+mod native_service_ingress;
 
 /// Converts the closed worker term set into the generated boundary value requested by code.
 fn capability_reply_value(

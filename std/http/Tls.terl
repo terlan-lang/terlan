@@ -3,7 +3,8 @@
  *
  * `std.http.Tls` describes the source-visible TLS configuration shape used by
  * Terlan HTTP servers. Runtime certificate loading, ACME, rustls integration,
- * and certificate cache state remain target-owned implementation details.
+ * and certificate cache state belong to the HTTP package's native boundary.
+ * Hosts provide project discovery and execution, not TLS mode/cache policy.
  */
 module std.http.Tls.
 

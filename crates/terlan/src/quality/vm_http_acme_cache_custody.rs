@@ -9,7 +9,7 @@ const REPORT_PATH: &str = "target/quality/vm-http-acme-cache-custody-report.json
 
 const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
+        "std/http/native/src/acme/cache.rs",
         &[
             "AcmeCertificateCacheMetadata",
             "schema_version",
@@ -31,19 +31,19 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
             "load_acme_certificate_cache_metadata",
             "store_acme_certificate_cache_metadata",
             "write_cache_file_atomically",
-            "rename_cache_file",
+            "persist_cache_file",
             "restrict_private_key_file_permissions",
             "validate_private_key_cache_permissions",
             "validate_acme_certificate_cache_mode",
             "validate_acme_certificate_cache_provenance_hash",
             "AcmeCacheSupportBundleRedaction",
             "redact_acme_cache_support_bundle",
-            "AcmeKeyCustodyPolicy",
+            "validate_acme_cache_paths",
             "validate_acme_key_custody_policy",
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+        "std/http/native/src/acme.rs",
         &[
             "load_acme_runtime_tls_cache",
             "validate_acme_certificate_cache_age",
@@ -60,17 +60,24 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/tls.rs",
+        "std/net/native/src/tls.rs",
         &[
-            "load_certificate_chain",
-            "load_private_key",
+            "parse_certificate_chain",
+            "parse_private_key",
             "with_single_cert",
-            "VM TLS manual encrypted private keys are not supported",
         ],
     ),
 ];
 
 const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
+    (
+        "std/http/native/src/acme/tests.rs",
+        &[
+            "acme_cache_support_bundle_redaction_removes_sensitive_material",
+            "rejected_replacement_keeps_published_material_and_cleans_staging_files",
+            "cache_paths_reject_parent_traversal_before_reads_or_writes",
+        ],
+    ),
     (
         "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &[
@@ -90,16 +97,14 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
             "runtime_tls_config_rejects_future_dated_auto_tls_certificate_cache_metadata",
             "runtime_tls_config_rejects_stale_auto_tls_certificate_cache",
             "runtime_tls_config_rejects_zerossl_primary_before_cache_loading",
-            "acme_cache_support_bundle_redaction_removes_sensitive_material",
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/tls_test.rs",
+        "std/http/native/src/tls_material_test.rs",
         &[
-            "vm_tls_runtime_reports_missing_manual_private_key_file",
-            "vm_tls_runtime_reports_malformed_manual_private_key_file",
-            "vm_tls_runtime_reports_manual_private_key_without_supported_key",
-            "vm_tls_runtime_rejects_manual_encrypted_private_key_plan",
+            "manual_propagates_file_and_material_errors_without_accepting_partial_configuration",
+            "pem_failures_keep_file_context_and_never_accept_partial_chains",
+            "manual_rejects_missing_fields_and_encrypted_key_options_before_io",
         ],
     ),
 ];
@@ -130,7 +135,7 @@ const KEY_CUSTODY_DECISIONS: &[&str] = &[
     "private key parsed only by maintained PEM/TLS libraries",
     "private key diagnostics redacted",
     "private key cache write is atomic",
-    "private key handoff remains VM-owned",
+    "key cache admission is HTTP-package-owned",
     "encrypted keys fail closed",
     "unsupported keys fail closed",
 ];
@@ -238,11 +243,11 @@ pub fn run_vm_http_acme_cache_custody(root: &Path) -> QualityResult<VmHttpAcmeCa
         "renewalEligibility": RENEWAL_ELIGIBILITY,
         "redactionOutcomes": REDACTION_OUTCOMES,
         "maintainedCrateBoundaries": [
-            "rustls-pemfile parses certificate and private-key PEM",
+            "rustls-pki-types parses certificate and private-key PEM",
             "rustls validates certificate/private-key pairing for server config",
             "rustls-webpki validates cached ACME certificate DNS identity",
             "rustls-webpki parses cached ACME certificate not-before/not-after",
-            "rcgen remains limited to local deterministic certificate fixtures",
+            "rcgen supplies internal certificates and ACME CSR material",
             "serde_json serializes renewal metadata",
             "instant_acme owns account credential payloads"
         ],

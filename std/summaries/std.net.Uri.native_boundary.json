@@ -2,6 +2,11 @@
   "functions": [
     {
       "arity": 1,
+      "name": "query_pairs",
+      "operation": "std.net.uri.query_pairs"
+    },
+    {
+      "arity": 1,
       "name": "parse_parts",
       "operation": "std.net.uri.parse_parts"
     }

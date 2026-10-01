@@ -19,6 +19,7 @@ impl VmProcessId {
     }
 
     /// Returns the reserved process id used by VM-owned runtime workers.
+    #[cfg(test)]
     pub(crate) fn system_runtime_worker() -> Self {
         Self(0)
     }
