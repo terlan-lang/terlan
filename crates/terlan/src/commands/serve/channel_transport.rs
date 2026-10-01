@@ -8,7 +8,6 @@ use terlan_http_native::websocket::{
     Error as WebSocketError, ErrorKind, Message, Server as WebSocket,
 };
 
-use crate::runtime::vm::websocket::VmWebSocketFrame;
 use terlan_http_native::http1::{
     write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
 };
@@ -65,7 +64,7 @@ where
         match socket.read() {
             Ok(Message::Text(text)) => {
                 let result = session
-                    .enqueue_inbound(VmWebSocketFrame::Text(text.to_string()))
+                    .enqueue_inbound(text)
                     .and_then(|()| drain_websocket_inbound(&mut session));
                 if let Err(error) = result {
                     close_websocket_after_error(&mut socket, &mut session, &error);
@@ -223,7 +222,7 @@ fn flush_sse_events(
     session: &mut super::handler::AotSseCallbackSession,
 ) -> Result<(), String> {
     let mut wrote_event = false;
-    while let Some(frame) = session.flush_next_event()? {
+    while let Some(frame) = session.flush_next_event() {
         write_http1_stream_chunk(writer, &frame).map_err(|failure| failure.message)?;
         wrote_event = true;
     }

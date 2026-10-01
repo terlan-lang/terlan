@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use crate::runtime::native::http::RequestFieldProjection;
 use crate::runtime::vm::aot_metadata::NativeRequestProjection;
-use crate::runtime::vm::http_session::VmHttpSessionService;
+use terlan_http_native::session_service::{SessionHost, SessionService};
 
 use super::{AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime};
 
@@ -19,7 +19,7 @@ impl AotHandlerRuntime {
         module: String,
         image: &Path,
         projections: Vec<NativeRequestProjection>,
-        sessions: VmHttpSessionService,
+        sessions: SessionService<impl SessionHost + 'static>,
     ) -> Result<Self, String> {
         let mut primary_request_projection = None;
         let mut request_projections = HashMap::<String, HashMap<usize, _>>::new();

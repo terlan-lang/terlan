@@ -51,6 +51,7 @@ module	std.http.Session	std/http/Session.terl	std/summaries/std.http.Session.typ
 module	std.http.Sse	std/http/Sse.terl	std/summaries/std.http.Sse.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Sse.html
 module	std.http.Tls	std/http/Tls.terl	std/summaries/std.http.Tls.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.Tls.html
 module	std.http.WebSocket	std/http/WebSocket.terl	std/summaries/std.http.WebSocket.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.WebSocket.html
+module	std.http.WebSocketIdentity	std/http/WebSocketIdentity.terl	std/summaries/std.http.WebSocketIdentity.typi	tests/std/RELEASE_API_TESTS.tsv	std.http.WebSocketIdentity.html
 module	std.js.Array	std/js/Array.terl	std/summaries/std.js.Array.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Array.html
 module	std.js.Dom.Document	std/js/dom/Document.terl	std/summaries/std.js.Dom.Document.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Dom.Document.html
 module	std.js.Dom.HTMLElement	std/js/dom/HTMLElement.terl	std/summaries/std.js.Dom.HTMLElement.typi	tests/std/RELEASE_API_TESTS.tsv	std.js.Dom.HTMLElement.html

@@ -111,7 +111,7 @@ fn websocket_upgrade_state_reports_malformed_partial_handshakes() {
 ///
 /// Transformation:
 /// - Locks the serve layer to metadata adaptation only; WebSocket protocol
-///   response planning stays under `runtime::vm::websocket`.
+///   response planning stays under the HTTP package's maintained codec.
 #[test]
 fn websocket_upgrade_response_reuses_vm_handshake_plan() {
     let request = Request::builder()

@@ -4,7 +4,7 @@ use crate::{RequestFieldProjection as Projection, RequestParts};
 use terlan_runtime_abi::{native_record, NativeValue};
 
 /// Materializes the private source Request record. Unobserved fields keep their
-/// ordinary empty values; cookie mutations never carry over between requests.
+/// ordinary empty values. Cookie jars are constructed by Terlan, not ingress.
 pub fn request_descriptor(request: RequestParts, projection: Projection) -> NativeValue {
     let RequestParts {
         method,
@@ -24,21 +24,9 @@ pub fn request_descriptor(request: RequestParts, projection: Projection) -> Nati
     let query_string = projected_string(projection, Projection::QUERY_STRING, query_string);
     let query = projected_map(projection, Projection::QUERY, query);
     let headers = projected_map(projection, Projection::HEADERS, headers);
-    let (direct, incoming) = match (
-        projection.requires(Projection::COOKIES),
-        projection.requires(Projection::COOKIE_JAR),
-    ) {
-        (true, true) => (cookies.clone(), cookies),
-        (true, false) => (cookies, Vec::new()),
-        (false, true) => (Vec::new(), cookies),
-        (false, false) => (Vec::new(), Vec::new()),
-    };
-    let cookies = string_map(direct);
-    let incoming = string_map(incoming);
-    let pending = NativeValue::List(Vec::new());
-    let cookie_jar = native_record!(Jar, { incoming, pending });
+    let cookies = projected_map(projection, Projection::COOKIES, cookies);
     let body_file_path = projected_string(projection, Projection::BODY_FILE_PATH, body_file_path);
-    native_record!(Request, { method, path, params, body, query_string, query, headers, cookies, cookie_jar, body_file_path })
+    native_record!(Request, { method, path, params, body, query_string, query, headers, cookies, body_file_path })
 }
 
 /// The source-visible request tuple used by pattern-head route handlers.

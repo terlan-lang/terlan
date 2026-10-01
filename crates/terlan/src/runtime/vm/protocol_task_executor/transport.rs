@@ -1,13 +1,10 @@
 //! Nonblocking transport facade owned by one VM protocol task.
 
-use std::io::{self, Read, Write};
-use std::mem::MaybeUninit;
-use std::net::Shutdown;
+use std::io;
 use std::sync::Arc;
 
-use mio::net::TcpStream;
 use mio::{Interest, Token};
-use socket2::SockRef;
+use terlan_runtime_abi::poll_io::{ReadinessStream, ReadyStream, WriteInterest};
 
 use super::{current_protocol_scheduler, VmProtocolOwnerWake};
 use crate::runtime::vm::process::VmProcessId;
@@ -58,51 +55,35 @@ impl From<&mio::event::Event> for VmReadyEvent {
     }
 }
 
-/// Nonblocking transport handed to a protocol adapter after VM registration.
-pub(crate) struct VmReadyTcpStream {
-    stream: TcpStream,
+/// VM ownership adapter for the package-owned socket transport.
+pub(crate) type VmReadyStream = ReadyStream<Box<dyn ReadinessStream>, VmSocketInterest>;
+
+pub(crate) struct VmSocketInterest {
     owner: Arc<VmProtocolOwnerWake>,
     token: Token,
-    writable_interest_armed: bool,
 }
 
-impl VmReadyTcpStream {
-    pub(super) fn new(stream: TcpStream, owner: Arc<VmProtocolOwnerWake>, token: Token) -> Self {
-        Self {
-            stream,
-            owner,
-            token,
-            writable_interest_armed: false,
-        }
-    }
+pub(super) fn ready_stream(
+    stream: Box<dyn ReadinessStream>,
+    owner: Arc<VmProtocolOwnerWake>,
+    token: Token,
+) -> VmReadyStream {
+    ReadyStream::new(stream, VmSocketInterest { owner, token })
+}
 
-    /// Adds write readiness only after a direct nonblocking write stalls.
-    fn arm_writable_interest(&mut self) -> io::Result<()> {
-        if self.writable_interest_armed {
-            return Ok(());
-        }
+impl<S: mio::event::Source> WriteInterest<S> for VmSocketInterest {
+    fn arm_writable(&mut self, stream: &mut S) -> io::Result<()> {
         self.owner.registry.reregister(
-            &mut self.stream,
+            stream,
             self.token,
             Interest::READABLE.add(Interest::WRITABLE),
-        )?;
-        self.writable_interest_armed = true;
-        Ok(())
-    }
-
-    pub(crate) fn shutdown_write(&self) -> io::Result<()> {
-        self.stream.shutdown(Shutdown::Write)
-    }
-
-    /// Reads directly into protocol-owned uninitialized receive storage.
-    ///
-    /// `socket2` exposes the operating-system receive contract without first
-    /// constructing an initialized `u8` slice, so maintained protocol
-    /// adapters can avoid a zero-fill and an intermediate copy.
-    pub(crate) fn read_uninit(&self, buffer: &mut [MaybeUninit<u8>]) -> io::Result<usize> {
-        SockRef::from(&self.stream).recv(buffer)
+        )
     }
 }
+
+#[cfg(test)]
+#[path = "transport_test.rs"]
+mod tests;
 
 impl VmProtocolTaskRoute {
     /// Returns the protocol process that owns this connection task.
@@ -129,38 +110,6 @@ impl VmProtocolTaskRoute {
                 "error[vm.protocol_completion_owner]: process {} completion was published outside a protocol scheduler",
                 self.process().as_u64()
             )),
-        }
-    }
-}
-
-impl Read for VmReadyTcpStream {
-    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-        self.stream.read(buffer)
-    }
-}
-
-impl Write for VmReadyTcpStream {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        match self.stream.write(buffer) {
-            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                self.arm_writable_interest()?;
-                Err(error)
-            }
-            outcome => outcome,
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-
-    fn write_vectored(&mut self, buffers: &[io::IoSlice<'_>]) -> io::Result<usize> {
-        match self.stream.write_vectored(buffers) {
-            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
-                self.arm_writable_interest()?;
-                Err(error)
-            }
-            outcome => outcome,
         }
     }
 }

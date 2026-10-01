@@ -66,9 +66,7 @@ fn metadata_projection_preserves_exact_observed_fields_for_every_mask() {
         );
         assert_eq!(
             actual.cookies.as_slice(),
-            if projection.requires(Projection::COOKIES)
-                || projection.requires(Projection::COOKIE_JAR)
-            {
+            if projection.requires(Projection::COOKIES) {
                 complete.cookies.as_slice()
             } else {
                 &[]

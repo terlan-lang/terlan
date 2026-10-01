@@ -213,7 +213,6 @@ mod higher_order_specialization;
 #[path = "native_ir/higher_order_specialization_test.rs"]
 #[cfg(test)]
 mod higher_order_specialization_test;
-mod http_values;
 #[cfg(test)]
 #[path = "native_ir/http_values_test.rs"]
 #[cfg(test)]

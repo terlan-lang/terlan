@@ -7,6 +7,10 @@
 //! admitted here explicitly so trusted applications can invoke a fixed host
 //! adapter without requiring a package-native helper binary.
 
+#[cfg(test)]
+#[path = "session_contract_test.rs"]
+mod session_contract_test;
+
 use crate::runtime::vm::pure_native::PureNativeCapabilityRequest;
 use crate::runtime::vm::{ReplValue, VmRuntimeError, VmRuntimeResult};
 use crate::terlan_native_boundary::dispatch::{
@@ -214,7 +218,6 @@ fn supported_handle_type(type_name: &str) -> bool {
         type_name,
         "std.data.Json.Json"
             | "std.regex.Regex.Regex"
-            | "std.http.Response.Response"
             | "std.io.Path.Path"
             | "std.random.Random.Generator"
             | "std.native.collections.Vector.Vector"
@@ -310,7 +313,6 @@ fn native_handle_from_store(
         ResourceKind::RandomGenerator => "std.random.Random.Generator",
         ResourceKind::Regex => "std.regex.Regex.Regex",
         ResourceKind::Path => "std.io.Path.Path",
-        ResourceKind::HttpResponse => "std.http.Response.Response",
         ResourceKind::NativeVector => "std.native.collections.Vector.Vector",
         kind => {
             return Err(format!(

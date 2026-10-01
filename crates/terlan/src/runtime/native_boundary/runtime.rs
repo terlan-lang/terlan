@@ -5,7 +5,6 @@
 //! through resource-backed adapters, and encode a stable reply term. It is not
 //! an Erlang NIF ABI compatibility layer.
 
-use crate::terlan_native::http;
 use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken;
 use crate::terlan_native_boundary::dispatch::{
     dispatch_with_resources, dispatch_with_resources_for_process,
@@ -48,25 +47,6 @@ impl NativeBoundaryRuntime {
             resources: ResourceStore::new(),
             resource_events: NativeBoundaryResourceEventLog::default(),
         }
-    }
-
-    /// Returns a server-owned HTTP response resource snapshot.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle returned by `std.http.response.*`.
-    ///
-    /// Output:
-    /// - `Ok(response)` with the portable response metadata and body.
-    /// - `Err(ResourceError)` when the handle is stale or not a response.
-    ///
-    /// Transformation:
-    /// - Validates the runtime resource handle and clones the response so an
-    ///   HTTP server adapter can serialize it after handler execution.
-    pub fn http_response(
-        &self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<http::Response, ResourceError> {
-        self.resources.http_response(handle).cloned()
     }
 
     /// Calls one operation through the stable term boundary.

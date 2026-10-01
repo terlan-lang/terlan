@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
 
-//! Package-owned maintained URL and TLS codecs, independent of compiler/VM state.
+//! Package-owned maintained URL, socket, and TLS adapters, independent of VM state.
 
+pub mod tcp;
 pub mod tls;
 pub mod tls_stream;
+pub mod transport;
 
 /// Decodes form-url-encoded query pairs in wire order using the maintained URL codec.
 pub fn query_pairs(query: &str) -> Vec<(String, String)> {
@@ -15,7 +17,18 @@ pub fn query_pairs(query: &str) -> Vec<(String, String)> {
 use terlan_runtime_abi::{native_record, BoundaryError, ErrorDomain, NativeBinding, NativeValue};
 use url::Url;
 
-/// The sole native operation needed by the Terlan URI implementation.
+/// Exposes the same maintained query decoder to ordinary Terlan package code.
+pub const QUERY_PAIRS: NativeBinding = NativeBinding {
+    operation: "std.net.uri.query_pairs",
+    arity: 1,
+    invoke: |arguments| {
+        use terlan_runtime_abi::FromNativeValue;
+        QUERY_PAIRS.validate_arity(arguments.len())?;
+        Ok(query_pairs(<&str>::from_native(&arguments[0])?).into())
+    },
+};
+
+/// Maintained URL parsing for the Terlan URI implementation.
 pub const PARSE: NativeBinding = NativeBinding {
     operation: "std.net.uri.parse_parts",
     arity: 1,

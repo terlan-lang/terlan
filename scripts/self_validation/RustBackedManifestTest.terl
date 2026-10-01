@@ -229,6 +229,7 @@ allowed_crate(value: String): Bool ->
         or value == "sha2"
         or value == "rustls"
         or value == "terlan"
+        or value == "terlan-http-native"
         or value == "std::path"
         or value == "std::time"
         or value == "std::env::consts"
@@ -785,6 +786,12 @@ pub parser_accepts_rows_and_rejects_bad_arity(): Bool ->
     let bad_inventory = parse_manifest(bad, "manifest");
     let bad_empty = diagnostics_empty(bad_inventory.diagnostics);
     good_count == 1 and not bad_empty.
+
+@test
+pub package_owned_http_crate_is_recognized_exactly(): Bool ->
+    allowed_crate("terlan-http-native")
+        and not allowed_crate("terlan-http-native-extra")
+        and not allowed_crate("app-http-native").
 
 @test
 pub repository_manifest_matches_compiler_metadata(): Bool ->

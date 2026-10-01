@@ -12,7 +12,7 @@ use super::protocol::{
 };
 use super::state::{ConnectionId, ServerOptions, ServerReply, ServerState};
 use super::super::protocol_task_executor::{
-    VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyTcpStream,
+    VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyStream,
 };
 
 /// Shared deterministic EPMD registry used by fixed protocol owners.
@@ -57,7 +57,7 @@ enum VmEpmdConnectionPhase {
 
 /// One EPMD socket future owned by a fixed protocol scheduler.
 struct VmEpmdConnection {
-    stream: VmReadyTcpStream,
+    stream: VmReadyStream,
     route: VmProtocolTaskRoute,
     state: VmSharedEpmdState,
     connection: ConnectionId,
@@ -68,7 +68,7 @@ struct VmEpmdConnection {
 impl VmEpmdConnection {
     /// Creates a connection future bound to its exact protocol-task route.
     fn new(
-        stream: VmReadyTcpStream,
+        stream: VmReadyStream,
         route: VmProtocolTaskRoute,
         state: VmSharedEpmdState,
     ) -> Self {

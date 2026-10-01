@@ -21,7 +21,6 @@ pub struct Request {
     #query: Map[String, String],
     #headers: Map[String, String],
     #cookies: Map[String, String],
-    #cookie_jar: Jar,
     #body_file_path: String
 }.
 
@@ -70,12 +69,11 @@ pub (request: Request) cookie(name: String): Option[String].
 /// Returns the request-scoped cookie jar.
 ///
 /// Input: one `Request` receiver.
-/// Output: a mutable-capable `Cookies.Jar` handle for reading incoming cookies
+/// Output: a fresh source-owned `Cookies.Jar` for reading incoming cookies
 /// and recording response cookie mutations.
-/// Transformation: asks the HTTP runtime for the request-owned cookie view
-/// without exposing raw headers or response-header threading to handlers.
+/// Transformation: initializes an empty pending-header list in Terlan from the
+/// decoded incoming snapshot. Separate calls never share outgoing mutations.
 
-@pure
 pub (request: Request) cookies(): Jar.
 
 /// Returns a request header value.

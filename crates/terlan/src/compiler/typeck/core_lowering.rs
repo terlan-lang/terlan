@@ -124,7 +124,7 @@ pub fn lower_syntax_module_output_to_core(
         resolved,
         &core.constructors,
     );
-    receiver_defaults::materialize(&mut prepared_module);
+    let receiver_sources = receiver_defaults::materialize(&mut prepared_module);
     let (mut prepared_module, _) =
         super::prepare_syntax_constants_with_interfaces(&prepared_module, &resolved.interface_map);
     annotate_syntax_comprehension_lifts(&mut prepared_module, resolved);
@@ -132,6 +132,15 @@ pub fn lower_syntax_module_output_to_core(
     imported_atoms::canonicalize(&mut prepared_module, resolved);
     let module = &prepared_module;
     core.functions = core_syntax_functions(module);
+    for (arity, source) in receiver_sources {
+        if let Some(function) = core
+            .functions
+            .iter_mut()
+            .find(|function| function.name == source.function && function.arity == arity)
+        {
+            function.source = Some(source);
+        }
+    }
     constructor_functions::retain_sources(&mut core);
     let macro_functions = module
         .declarations

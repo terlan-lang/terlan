@@ -4,11 +4,12 @@ module self_host.ModuleInterface.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.SemanticSyntax.{InterfaceSource, SemanticModule, SemanticSymbol}.
 import self_host.Syntax.{ExportDeclaration, FunctionDeclaration, MethodDeclaration}.
-import self_host.TypedModuleSyntax.{TypedDeclaration}.
+import self_host.ConstructorSyntax.{ConstructorClauseSyntax}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, MethodPayload, TypedDeclaration, TypedDeclarationPayload}.
 
 import std.collections.List.
-import std.core.{Int, String}.
-import std.core.Option.{Some}.
+import std.core.{Bool, Int, String}.
+import std.core.Option.{None, Option, Some}.
 import self_host.CallableArity.{of}.
 import self_host.ExportReferenceLowering.
 
@@ -54,6 +55,57 @@ declaration_arity(
     }.
 
 @pure
+selected_return_type(valid: Bool, text: String): Option[String] ->
+    if { valid -> Some(text); true -> None }.
+
+@pure
+constructor_return_type(arity: Int, values: List[ConstructorClauseSyntax]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.parameters.length() == arity -> selected_return_type(value.return_type.valid, value.return_type.syntax.text);
+            true -> constructor_return_type(arity, rest)
+        }
+    }.
+
+@pure
+payload_return_type(value: TypedDeclarationPayload, arity: Int): Option[String] ->
+    case value {
+        FunctionPayload(function) -> selected_return_type(function.return_type.valid, function.return_type.syntax.text);
+        _ -> method_payload_return_type(value, arity)
+    }.
+
+@pure
+method_payload_return_type(value: TypedDeclarationPayload, arity: Int): Option[String] ->
+    case value {
+        MethodPayload(method) -> selected_return_type(method.return_type.valid, method.return_type.syntax.text);
+        _ -> constructor_payload_return_type(value, arity)
+    }.
+
+@pure
+constructor_payload_return_type(value: TypedDeclarationPayload, arity: Int): Option[String] ->
+    case value {
+        ConstructorPayload(constructor_payload) -> constructor_return_type(arity, constructor_payload.clauses);
+        _ -> None
+    }.
+
+@pure
+declaration_return_type(
+    name: String,
+    start_byte: Int,
+    arity: Int,
+    values: List[TypedDeclaration],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.symbol_name == name and value.span.start_byte == start_byte ->
+                payload_return_type(value.payload, arity);
+            true -> declaration_return_type(name, start_byte, arity, rest)
+        }
+    }.
+
+@pure
 exported(
     values: List[SemanticSymbol],
     declarations: List[TypedDeclaration],
@@ -64,6 +116,12 @@ exported(
             value.name,
             declaration_arity(value.name, value.span.start_byte, declarations),
             value.class,
+            declaration_return_type(
+                value.name,
+                value.span.start_byte,
+                declaration_arity(value.name, value.span.start_byte, declarations),
+                declarations,
+            ),
             value.span,
         ) | exported(rest, declarations)];
         [_value | rest] -> exported(rest, declarations)
@@ -76,7 +134,7 @@ exported_interface_declarations(values: List[SemanticSymbol]): List[ExportedSymb
         [value | rest]
             where value.is_public
                 and value.class != FunctionDeclaration
-                and value.class != MethodDeclaration -> [ExportedSymbol(value.name, -1, value.class, value.span) | exported_interface_declarations(rest)];
+                and value.class != MethodDeclaration -> [ExportedSymbol(value.name, -1, value.class, None, value.span) | exported_interface_declarations(rest)];
         [_value | rest] -> exported_interface_declarations(rest)
     }.
 
@@ -84,7 +142,7 @@ exported_interface_declarations(values: List[SemanticSymbol]): List[ExportedSymb
 exported_reference(value: TypedDeclaration, rest: List[TypedDeclaration]): List[ExportedSymbol] ->
     let reference = ExportReferenceLowering.lower(value);
     if {
-        reference.valid -> [ExportedSymbol(reference.name, reference.arity, value.class, value.span) | interface_exports(rest)];
+        reference.valid -> [ExportedSymbol(reference.name, reference.arity, value.class, None, value.span) | interface_exports(rest)];
         true -> interface_exports(rest)
     }.
 
@@ -107,7 +165,7 @@ module_symbols(source: SemanticModule): List[ExportedSymbol] ->
 
 @pure
 pub lower(source: SemanticModule): ModuleInterface ->
-    ModuleInterface("terlan.self-host.interface/v1", source.name, module_symbols(source)).
+    ModuleInterface("terlan.self-host.interface/v2", source.name, module_symbols(source)).
 
 @pure
 rendered_arity(arity: Int): String ->
@@ -135,6 +193,6 @@ render_symbols(values: List[ExportedSymbol]): String ->
 @pure
 pub render(source: ModuleInterface): String ->
     String.append(
-        "schema terlan.self-host.interface/v1.\nmodule ",
+        "schema terlan.self-host.interface/v2.\nmodule ",
         String.append(source.module_name, String.append(".\n", render_symbols(source.symbols))),
     ).

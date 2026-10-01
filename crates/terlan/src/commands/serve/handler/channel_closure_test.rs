@@ -11,15 +11,16 @@ use crate::runtime::native_image::managed::{
     ManagedClosureDescriptor, ManagedClosureImageGeneration,
 };
 use crate::runtime::vm::pure_native::PureNativeExecutionImage;
-use crate::runtime::vm::sse::{VmSseCallbackPlan, VmSseEndpointPlan, VmSseLiveSession};
-use crate::runtime::vm::websocket::{
-    VmWebSocketCallbackPlan, VmWebSocketEndpointPlan, VmWebSocketFrame, VmWebSocketLiveSession,
-    VmWebSocketPairingPlan,
-};
 use crate::runtime::vm::{NativeClosureValue, ReplValue};
 use crate::support::test_fs::TestDirectory;
 use crate::{CliCommand, CliState};
 use terlan_http_native::channel_plan::WebSocketRestoration;
+use terlan_http_native::channel_plan::{SseCallbacks, SseEndpointPlan};
+use terlan_http_native::channel_plan::{
+    WebSocketCallbacks, WebSocketEndpointPlan, WebSocketPairing,
+};
+use terlan_http_native::sse_session::SseSession;
+use terlan_http_native::websocket::session::Session;
 
 #[test]
 fn captured_channel_callbacks_preserve_state_wakes_and_recovery() {
@@ -31,12 +32,17 @@ fn captured_channel_callbacks_preserve_state_wakes_and_recovery() {
 module channels.
 import std.core.Unit.
 import std.vm.Process.
+import std.core.Result.{Ok}.
+import std.core.Option.{Some}.
+import type std.core.{Option, Result}.
 type Idle = () -> Unit.
 type Event = (String) -> Unit.
 type TextCallback = () -> String.
 type Matched = (String, Int, String, String) -> String.
 type Restored = (String, String, Int, String, String) -> String.
-type Inbound = (String, Int, String, String, String) -> {String, String, String}.
+type Inbound = (String, Int, String, String, String) -> {String, Option[String], Option[String]}.
+type Identity = (String) -> Result[Option[{String, Int}], String].
+pub identity(prefix: String): Identity -> (target: String) -> Ok(Some({prefix + target, 2})).
 checked(value: String): Unit ->
     case value {
         "captured:" -> Unit;
@@ -54,7 +60,7 @@ pub restored(prefix: String): Restored ->
         prefix + room + state + first + second.
 pub inbound(prefix: String): Inbound ->
     (state: String, _role: Int, data: String, first: String, second: String) ->
-        {prefix + state + data, first, second}.
+        {prefix + state + data, Some(first), Some(second)}.
 "#,
     )
     .unwrap();
@@ -87,12 +93,21 @@ pub inbound(prefix: String): Inbound ->
     let matched = make("matched");
     let restored = make("restored");
     let inbound = make("inbound");
+    let identity = make("identity");
     drop(producer);
     drop(image);
     let runtime = Arc::new(AotHandlerRuntime::load("channels".into(), &path, None).unwrap());
     exercise_sse(&runtime, &idle, &event, &waiting);
     exercise_websocket(&runtime, &idle, &event, &waiting);
-    exercise_recovery(&runtime, event, text.clone(), matched, restored, inbound);
+    exercise_recovery(
+        &runtime,
+        event,
+        text.clone(),
+        matched,
+        restored,
+        inbound,
+        identity,
+    );
     reject_invalid_callbacks(runtime, &text, &waiting);
 }
 
@@ -102,9 +117,9 @@ fn exercise_sse(
     event: &ReplValue,
     waiting: &ReplValue,
 ) {
-    let sse = VmSseEndpointPlan::new(2, 128)
+    let sse = SseEndpointPlan::new(2, 128)
         .unwrap()
-        .with_callbacks(VmSseCallbackPlan {
+        .with_callbacks(SseCallbacks {
             open: idle.clone(),
             event_ready: waiting.clone(),
             keep_alive: idle.clone(),
@@ -115,7 +130,7 @@ fn exercise_sse(
     let mut session = AotSseCallbackSession::open(
         Arc::clone(runtime),
         "channels".into(),
-        VmSseLiveSession::open(sse.clone()).unwrap(),
+        SseSession::open(sse.clone()),
     )
     .unwrap();
     let AotChannelCallbackState::Waiting(wait) = session.event_ready("event".into()).unwrap()
@@ -134,7 +149,7 @@ fn exercise_sse(
     let mut session = AotSseCallbackSession::open(
         Arc::clone(runtime),
         "channels".into(),
-        VmSseLiveSession::open(sse).unwrap(),
+        SseSession::open(sse),
     )
     .unwrap();
     assert!(matches!(
@@ -151,9 +166,9 @@ fn exercise_websocket(
     event: &ReplValue,
     waiting: &ReplValue,
 ) {
-    let ws = VmWebSocketEndpointPlan::new(2, 128)
+    let ws = WebSocketEndpointPlan::new(2, 128)
         .unwrap()
-        .with_callbacks(VmWebSocketCallbackPlan {
+        .with_callbacks(WebSocketCallbacks {
             open: idle.clone(),
             inbound: waiting.clone(),
             writable: idle.clone(),
@@ -164,13 +179,10 @@ fn exercise_websocket(
     let mut session = AotWebSocketCallbackSession::open(
         Arc::clone(runtime),
         "channels".into(),
-        VmWebSocketLiveSession::open(ws.clone()),
+        Session::open(ws.clone()),
     )
     .unwrap();
-    let AotChannelCallbackState::Waiting(wait) = session
-        .inbound(VmWebSocketFrame::Text("event".into()))
-        .unwrap()
-    else {
+    let AotChannelCallbackState::Waiting(wait) = session.inbound("event".into()).unwrap() else {
         panic!("captured inbound must park");
     };
     assert!(session.writable().unwrap_err().contains("callback_busy"));
@@ -185,13 +197,11 @@ fn exercise_websocket(
     let mut session = AotWebSocketCallbackSession::open(
         Arc::clone(runtime),
         "channels".into(),
-        VmWebSocketLiveSession::open(ws),
+        Session::open(ws),
     )
     .unwrap();
     assert!(matches!(
-        session
-            .inbound(VmWebSocketFrame::Text("event".into()))
-            .unwrap(),
+        session.inbound("event".into()).unwrap(),
         AotChannelCallbackState::Waiting(_)
     ));
     completed(session.cancel("disconnect".into()).unwrap());
@@ -205,10 +215,11 @@ fn exercise_recovery(
     matched: ReplValue,
     restored: ReplValue,
     inbound: ReplValue,
+    identity: ReplValue,
 ) {
-    let paired = VmWebSocketEndpointPlan::new(2, 128)
+    let paired = WebSocketEndpointPlan::new(2, 128)
         .unwrap()
-        .with_pairing(VmWebSocketPairingPlan {
+        .with_pairing(WebSocketPairing {
             waiting: String::new(),
             first_matched: String::new(),
             second_matched: String::new(),
@@ -219,11 +230,8 @@ fn exercise_recovery(
             restoration: Some(WebSocketRestoration {
                 waiting: text.clone(),
                 peer_left: text.clone(),
-                room_query: "room".into(),
-                player_query: "player".into(),
+                identity,
                 room_prefix: "room-".into(),
-                first_player: "one".into(),
-                second_player: "two".into(),
                 retention_ms: 1000,
                 retained_room_capacity: 4,
                 matched,
@@ -234,10 +242,17 @@ fn exercise_recovery(
     let mut session = AotWebSocketCallbackSession::open(
         Arc::clone(runtime),
         "channels".into(),
-        VmWebSocketLiveSession::open(paired),
+        Session::open(paired.clone()),
     )
     .unwrap();
     assert_eq!(session.dispatch_pair_waiting_output().unwrap(), "captured:");
+    assert_eq!(
+        std::future::Future::poll(
+            std::pin::pin!(session.dispatch_pair_identity_output("target".into())),
+            &mut std::task::Context::from_waker(std::task::Waker::noop())
+        ),
+        std::task::Poll::Ready(Ok(Some(("captured:target".into(), 2))))
+    );
     assert_eq!(
         session.dispatch_pair_peer_left_output().unwrap(),
         "captured:"
@@ -260,9 +275,7 @@ fn exercise_recovery(
             .unwrap(),
         "captured:roomstatefirstsecond"
     );
-    session
-        .enqueue_inbound(VmWebSocketFrame::Text("data".into()))
-        .unwrap();
+    session.enqueue_inbound("data".into()).unwrap();
     let (_, value) = session
         .dispatch_next_stateful_inbound_output("state".into(), 1, "first".into(), "second".into())
         .unwrap();
@@ -270,11 +283,71 @@ fn exercise_recovery(
         value,
         Some(ReplValue::Tuple(vec![
             ReplValue::String("captured:statedata".into()),
-            ReplValue::String("first".into()),
-            ReplValue::String("second".into())
+            ReplValue::Record {
+                name: "Some".into(),
+                fields: vec![("value".into(), ReplValue::String("first".into()))]
+            },
+            ReplValue::Record {
+                name: "Some".into(),
+                fields: vec![("value".into(), ReplValue::String("second".into()))]
+            }
         ]))
     );
+    exercise_package_hub(&paired, &mut session);
     completed(session.cancel("disconnect".into()).unwrap());
+}
+
+fn exercise_package_hub(
+    plan: &WebSocketEndpointPlan<ReplValue>,
+    session: &mut AotWebSocketCallbackSession,
+) {
+    use terlan_http_native::websocket::hub::WebSocketHub;
+
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = plan.pairing().unwrap();
+    let first = hub
+        .join("/ws".into(), "first".into(), 4, pairing, None)
+        .unwrap();
+    first.outbound.try_recv().unwrap();
+    let mut second = hub
+        .join("/ws".into(), "second".into(), 4, pairing, None)
+        .unwrap();
+    second.dispatch_admission(session).unwrap();
+    assert_eq!(
+        first.outbound.try_recv().unwrap(),
+        "captured:room-1firstsecond"
+    );
+    assert_eq!(
+        second.outbound.try_recv().unwrap(),
+        "captured:room-1firstsecond"
+    );
+    session.enqueue_inbound("data".into()).unwrap();
+    first
+        .transition(|state, role, first, second| {
+            let (dispatched, output) =
+                session.dispatch_next_stateful_inbound_output(state, role, first, second)?;
+            assert!(dispatched);
+            Ok(terlan_http_native::source_descriptor::paired_transition(output.unwrap()).unwrap())
+        })
+        .unwrap();
+    assert_eq!(first.outbound.try_recv().unwrap(), "first");
+    assert_eq!(second.outbound.try_recv().unwrap(), "second");
+    drop(second);
+    first.outbound.try_recv().unwrap();
+    let mut restored = hub
+        .join(
+            "/ws".into(),
+            "reconnect".into(),
+            4,
+            pairing,
+            Some(("room-1".into(), 2)),
+        )
+        .unwrap();
+    restored.dispatch_admission(session).unwrap();
+    assert_eq!(
+        restored.outbound.try_recv().unwrap(),
+        "captured:room-1captured:datafirstsecond"
+    );
 }
 
 fn completed(state: AotChannelCallbackState) {

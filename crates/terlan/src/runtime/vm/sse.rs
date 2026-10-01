@@ -9,13 +9,10 @@ use super::process::{VmProcessId, VmProcessTable};
 #[cfg(test)]
 use super::scheduler::VmScheduler;
 
-#[path = "sse_live_session.rs"]
-mod sse_live_session;
 #[cfg(test)]
 #[path = "sse_test.rs"]
 #[cfg(test)]
 mod sse_test;
-pub(crate) use sse_live_session::VmSseLiveSession;
 
 pub(crate) use terlan_http_native::channel_plan::SseError as VmSseError;
 
@@ -175,8 +172,6 @@ pub(crate) struct VmSseDomPatchBackpressure {
 /// Runtime specialization of the package-owned channel descriptor.
 pub(crate) type VmSseEndpointPlan =
     terlan_http_native::channel_plan::SseEndpointPlan<super::ReplValue>;
-pub(crate) type VmSseCallbackPlan =
-    terlan_http_native::channel_plan::SseCallbacks<super::ReplValue>;
 
 /// VM-owned bounded SSE stream queue.
 ///

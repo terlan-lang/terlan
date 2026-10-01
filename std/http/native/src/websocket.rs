@@ -7,8 +7,11 @@ use std::io::{self, Read, Write};
 use tungstenite::protocol::{frame::coding::CloseCode, CloseFrame, Role, WebSocketConfig};
 use tungstenite::WebSocket;
 
-pub use tungstenite::Message;
+pub use tungstenite::{Message, Utf8Bytes};
 pub mod client;
+pub mod hub;
+pub mod output;
+pub mod session;
 
 /// Opening-handshake response metadata, independent of socket and actor state.
 #[derive(Clone, Debug, Eq, PartialEq)]

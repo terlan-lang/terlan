@@ -27,9 +27,12 @@ pub handle(request: Request): Response ->
     let first = jar.set("session", "new");
     let second = jar.delete("session");
     jar.set("other", "last", "/private", true, true);
+    let fresh = request.cookies();
     let body = case first == Unit and second == Unit and
         with_default(jar.get("missing"), "absent") == "absent" and
-        with_default(request.cookie("session"), "missing") == "original" {
+        with_default(request.cookie("session"), "missing") == "original" and
+        fresh.headers() == [] and
+        with_default(fresh.get("session"), "missing") == "original" {
         true -> with_default(jar.get("session"), "missing");
         false -> "invalid-command-result"
     };
@@ -70,13 +73,13 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
         .unwrap();
     let mut helpers = VmPackageNativeHelpers::default();
     let mut headers = Vec::new();
-    for operation in ["set_header", "delete_header", "set_header"] {
+    for _ in 0..3 {
         let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
             panic!("jar mutation must suspend for package validation");
         };
         assert_eq!(
             invocation.request().unwrap().operation,
-            format!("std.http.cookies.{operation}")
+            "std.http.cookies.set_header_with_options"
         );
         let ReplValue::String(header) =
             helpers.call(1, invocation.request().unwrap(), &[]).unwrap()
@@ -123,11 +126,7 @@ pub invalid(request: Request, name: String, value: String, path: String, remove:
         };
         assert_eq!(
             invocation.request().unwrap().operation,
-            if remove {
-                "std.http.cookies.delete_header"
-            } else {
-                "std.http.cookies.set_header"
-            }
+            "std.http.cookies.set_header_with_options"
         );
         let error = helpers
             .call(1, invocation.request().unwrap(), &[])
@@ -178,19 +177,15 @@ pub handle(name: String): Response ->
         )
         .unwrap();
     let mut expected_headers = Vec::new();
-    for operation in [
-        "set_header",
-        "set_header_with_options",
-        "delete_header",
-        "set_header",
-        "set_header_with_options",
-        "delete_header",
-    ] {
+    for _ in 0..6 {
         let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
             panic!("cookie serialization must use the package boundary");
         };
         let request = invocation.request().unwrap();
-        assert_eq!(request.operation, format!("std.http.cookies.{operation}"));
+        assert_eq!(
+            request.operation,
+            "std.http.cookies.set_header_with_options"
+        );
         let ReplValue::String(header) = helpers.call(1, request, &[]).unwrap() else {
             panic!("cookie codec must return a string");
         };

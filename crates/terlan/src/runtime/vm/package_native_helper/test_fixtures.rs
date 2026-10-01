@@ -34,29 +34,17 @@ pub(super) fn call(
                 RequestFieldProjection::Complete,
             )))
         }
-        (
-            "std.test.fixture.http_response_header",
-            Some([ReplValue::Tuple(fields), ReplValue::String(name)]),
-        ) => {
-            let [ReplValue::Int(0), ReplValue::Int(_), _, ReplValue::Int(_), ReplValue::String(_), ReplValue::List(headers), ..] =
-                fields.as_slice()
-            else {
-                return Err(
-                    "error[test.fixture_arguments]: expected a managed HTTP response".into(),
-                );
-            };
-            for header in headers {
-                let ReplValue::Tuple(pair) = header else {
-                    return Err("error[test.fixture_arguments]: malformed response header".into());
-                };
-                let [ReplValue::String(key), ReplValue::String(value)] = pair.as_slice() else {
-                    return Err("error[test.fixture_arguments]: malformed response header".into());
-                };
-                if key.eq_ignore_ascii_case(name) {
-                    return Ok(ReplValue::String(value.clone()));
-                }
-            }
-            Ok(ReplValue::String(String::new()))
+        ("std.test.fixture.http_response_header", Some([response, ReplValue::String(name)])) => {
+            let response = terlan_http_native::source_descriptor::response(response.clone())
+                .map_err(|error| format!("error[test.fixture_arguments]: {}", error.message()))?;
+            Ok(ReplValue::String(
+                response
+                    .headers
+                    .into_iter()
+                    .find(|(key, _)| key.eq_ignore_ascii_case(name))
+                    .map(|(_, value)| value)
+                    .unwrap_or_default(),
+            ))
         }
         _ => Err("error[test.fixture_arguments]: unknown fixture or invalid argument shape".into()),
     }

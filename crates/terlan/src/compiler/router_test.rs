@@ -238,9 +238,9 @@ pub router(): Router ->
     assert_eq!(pairing.inbound.arity, 5);
 }
 
-/// Verifies restorable endpoints retain source-owned identity and entry callbacks.
+/// Legacy static extraction cannot replace source-owned reconnect closures.
 #[test]
-fn aot_router_plan_materializes_restorable_websocket_pairing() {
+fn aot_router_plan_rejects_static_restorable_websocket_pairing() {
     let source = r#"module app.RestorableSocket.
 
 import std.core.Unit.
@@ -266,27 +266,9 @@ pub router(): Router ->
     let resolved = resolve_syntax_module_output(&syntax).module;
     let core = lower_syntax_module_output_to_core(&syntax, &resolved);
 
-    let (_, plan) = prepare_aot_router_module(&core).expect("extract restorable router plan");
-    let plan = plan.expect("router plan");
-    let AotRouterRouteTarget::WebSocket(websocket) = &plan.routes[0].target else {
-        panic!("expected WebSocket target")
-    };
-    let pairing = websocket.pairing().expect("pairing plan");
-    let restoration = pairing.restoration.as_ref().expect("restoration plan");
-    assert!(pairing.stateful);
-    assert_eq!(restoration.room_query, "room_id");
-    assert_eq!(restoration.player_query, "player_id");
-    assert_eq!(restoration.room_prefix, "room-");
-    assert_eq!(restoration.first_player, "player-1");
-    assert_eq!(restoration.second_player, "player-2");
-    assert_eq!(restoration.retention_ms, 300000);
-    assert_eq!(restoration.retained_room_capacity, 1024);
-    assert_eq!(restoration.waiting.function, "waiting");
-    assert_eq!(restoration.waiting.arity, 0);
-    assert_eq!(restoration.peer_left.function, "peer_left");
-    assert_eq!(restoration.peer_left.arity, 0);
-    assert_eq!(restoration.matched.arity, 4);
-    assert_eq!(restoration.restored.arity, 5);
+    assert!(prepare_aot_router_module(&core)
+        .unwrap_err()
+        .contains("requires source execution"));
 }
 
 /// Verifies selected callback imports retain their provider identity.

@@ -7,124 +7,39 @@ use crate::runtime::vm::{
     tcp::{VmTcpRuntime, VmTcpStream},
 };
 
-/// Typed result exposed after one HTTP request handler invocation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum VmHttpRequestOutcome {
-    Response { status: u16 },
-    Error { message: String },
-}
-
-/// Shutdown transition exposed to HTTP lifecycle middleware.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmHttpShutdownMode {
-    Drain,
-    Immediate,
-}
-
-/// Typed VM HTTP lifecycle transition.
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum VmHttpLifecycleEvent {
-    WorkerStart {
-        process: VmProcessId,
-    },
-    RequestStart {
-        process: VmProcessId,
-        method: String,
-        path: String,
-    },
-    RequestEnd {
-        process: VmProcessId,
-        method: String,
-        path: String,
-        outcome: VmHttpRequestOutcome,
-    },
-    ChannelBind {
-        process: VmProcessId,
-        stream: VmTcpStream,
-    },
-    ChannelUnbind {
-        process: VmProcessId,
-        stream: VmTcpStream,
-        reason: VmExitReason,
-    },
-    ShutdownHandoff {
-        mode: VmHttpShutdownMode,
-        active_handlers: usize,
-    },
-}
-
-/// Middleware-facing lifecycle hook for VM HTTP transitions.
-///
-/// `authorize` runs before policy-sensitive transitions and may reject them.
-/// `observe` runs only after a transition succeeds. Cleanup transitions bypass
-/// authorization so a hook cannot retain a process or stream accidentally.
-pub(crate) trait VmHttpLifecycleHook {
-    fn authorize(&mut self, _event: &VmHttpLifecycleEvent) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn observe(&mut self, _event: &VmHttpLifecycleEvent) -> Result<(), String> {
-        Ok(())
-    }
-}
+#[cfg(test)]
+pub(crate) use terlan_http_native::lifecycle::RequestOutcome as VmHttpRequestOutcome;
+pub(crate) use terlan_http_native::lifecycle::ShutdownMode as VmHttpShutdownMode;
+pub(crate) type VmHttpLifecycleEvent =
+    terlan_http_native::lifecycle::LifecycleEvent<VmProcessId, VmTcpStream, VmExitReason>;
+pub(crate) type VmHttpLifecycleHook =
+    dyn terlan_http_native::lifecycle::LifecycleHook<VmProcessId, VmTcpStream, VmExitReason>;
 
 pub(super) fn dispatch_http_handler(
     resources: &mut VmHttpRequestResourceTracker,
-    lifecycle_hook: &mut Option<Box<dyn VmHttpLifecycleHook>>,
+    lifecycle_hook: &mut Option<Box<VmHttpLifecycleHook>>,
     process: VmProcessId,
     request: ::http::Request<String>,
     handler: &mut impl FnMut(::http::Request<String>) -> Result<::http::Response<String>, String>,
 ) -> Result<::http::Response<String>, String> {
-    let method = request.method().as_str().to_string();
-    let path = request.uri().path().to_string();
-    let start = VmHttpLifecycleEvent::RequestStart {
+    terlan_http_native::lifecycle::dispatch_handler(
+        &mut resources.inner,
+        lifecycle_hook,
         process,
-        method: method.clone(),
-        path: path.clone(),
-    };
-    if let Some(hook) = lifecycle_hook.as_mut() {
-        hook.authorize(&start)?;
-    }
-    let request_id = resources.begin(process, request.body().len())?;
-    if let Some(hook) = lifecycle_hook.as_mut() {
-        if let Err(error) = hook.observe(&start) {
-            resources.finish(process, request_id)?;
-            return Err(error);
-        }
-    }
-    let result = handler(request);
-    resources.finish(process, request_id)?;
-    let outcome = match &result {
-        Ok(response) => VmHttpRequestOutcome::Response {
-            status: response.status().as_u16(),
-        },
-        Err(message) => VmHttpRequestOutcome::Error {
-            message: message.clone(),
-        },
-    };
-    let observed = match lifecycle_hook.as_mut() {
-        Some(hook) => hook.observe(&VmHttpLifecycleEvent::RequestEnd {
-            process,
-            method,
-            path,
-            outcome,
-        }),
-        None => Ok(()),
-    };
-    match (result, observed) {
-        (Ok(response), Ok(())) => Ok(response),
-        (Err(error), Ok(())) => Err(error),
-        (Ok(_), Err(error)) => Err(error),
-        (Err(handler), Err(hook)) => Err(format!(
-            "{handler}; lifecycle observation failed after cleanup: {hook}"
-        )),
-    }
+        request,
+        handler,
+        super::request_resources::resource_error,
+    )
 }
 
 impl VmHttpTcpServer {
     /// Installs one lifecycle hook for subsequent server transitions.
     #[cfg(test)]
-    pub(crate) fn install_lifecycle_hook(&mut self, hook: impl VmHttpLifecycleHook + 'static) {
+    pub(crate) fn install_lifecycle_hook(
+        &mut self,
+        hook: impl terlan_http_native::lifecycle::LifecycleHook<VmProcessId, VmTcpStream, VmExitReason>
+            + 'static,
+    ) {
         self.lifecycle_hook = Some(Box::new(hook));
     }
 

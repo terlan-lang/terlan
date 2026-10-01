@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[cfg(test)]
+#[path = "dynamic_arguments_test.rs"]
+mod dynamic_arguments_test;
+
 pub(in crate::compiler::native_ir) fn composed_call_region<F>(
     expr: &CoreExpr,
     suspending: &HashSet<(String, usize)>,
@@ -47,9 +51,11 @@ where
             })
         }
         CoreExpr::FunctionCall { callee, args }
-            if args.iter().all(|arg| {
-                !expr_calls_suspending(arg, suspending) && !contains_process_yield(arg)
-            }) =>
+            if !expr_calls_suspending(callee, suspending)
+                && !contains_process_yield(callee)
+                && args.iter().all(|arg| {
+                    !expr_calls_suspending(arg, suspending) && !contains_process_yield(arg)
+                }) =>
         {
             Some(CallRegion {
                 prefix: Vec::new(),
@@ -61,6 +67,23 @@ where
                 join: None,
             })
         }
+        CoreExpr::FunctionCall { callee, args } => {
+            let values = std::iter::once(callee.as_ref().clone())
+                .chain(args.iter().cloned())
+                .collect::<Vec<_>>();
+            composed_argument_region(
+                &values,
+                suspending,
+                is_composable,
+                result_name,
+                reserved,
+                "$native_dynamic_arg",
+                |mut values| CoreExpr::FunctionCall {
+                    callee: Box::new(values.remove(0)),
+                    args: values,
+                },
+            )
+        }
         CoreExpr::Call {
             function,
             args,
@@ -69,44 +92,19 @@ where
             || is_composable(function, args.len()))
             && !args.is_empty() =>
         {
-            for (call_index, arg) in args.iter().enumerate() {
-                let Some(mut region) =
-                    composed_call_region_at(arg, suspending, is_composable, result_name, reserved)
-                else {
-                    if expr_calls_suspending(arg, suspending) || contains_process_yield(arg) {
-                        return None;
-                    }
-                    continue;
-                };
-                let mut resumed_args = args.clone();
-                let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
-                for (index, earlier) in args[..call_index].iter().enumerate() {
-                    let name = unique_prefix_name(
-                        &format!("$native_call_arg_{index}"),
-                        &region,
-                        &evaluated_prefix,
-                        reserved,
-                    );
-                    evaluated_prefix.push(CoreLetBinding {
-                        pattern: CorePattern::Var(name.clone()),
-                        value: earlier.clone(),
-                    });
-                    resumed_args[index] = CoreExpr::Var(name);
-                }
-                evaluated_prefix.append(&mut region.prefix);
-                resumed_args[call_index] = region.resume.clone();
-                region.prefix = evaluated_prefix;
-                return Some(map_region_resumes(region, |resume| {
-                    let mut args = resumed_args.clone();
-                    args[call_index] = resume;
-                    CoreExpr::Call {
-                        type_args: type_args.clone(),
-                        function: function.clone(),
-                        args,
-                    }
-                }));
-            }
-            None
+            composed_argument_region(
+                args,
+                suspending,
+                is_composable,
+                result_name,
+                reserved,
+                "$native_call_arg",
+                |args| CoreExpr::Call {
+                    type_args: type_args.clone(),
+                    function: function.clone(),
+                    args,
+                },
+            )
         }
         CoreExpr::RemoteCall {
             module,
@@ -617,6 +615,54 @@ fn is_checked_atom_literal(value: &CoreExpr) -> bool {
         CoreExpr::Cast { expr, .. } => is_checked_atom_literal(expr),
         _ => false,
     }
+}
+
+/// Evaluate the callable/earlier operands once, before parking on a later operand.
+fn composed_argument_region<F>(
+    args: &[CoreExpr],
+    suspending: &HashSet<(String, usize)>,
+    is_composable: &F,
+    result_name: &str,
+    reserved: &HashSet<String>,
+    prefix_name: &str,
+    rebuild: impl Fn(Vec<CoreExpr>) -> CoreExpr,
+) -> Option<CallRegion>
+where
+    F: Fn(&str, usize) -> bool,
+{
+    for (call_index, arg) in args.iter().enumerate() {
+        let Some(mut region) =
+            composed_call_region_at(arg, suspending, is_composable, result_name, reserved)
+        else {
+            if expr_calls_suspending(arg, suspending) || contains_process_yield(arg) {
+                return None;
+            }
+            continue;
+        };
+        let mut resumed_args = args.to_vec();
+        let mut evaluated_prefix = Vec::with_capacity(call_index + region.prefix.len());
+        for (index, earlier) in args[..call_index].iter().enumerate() {
+            let name = unique_prefix_name(
+                &format!("{prefix_name}_{index}"),
+                &region,
+                &evaluated_prefix,
+                reserved,
+            );
+            evaluated_prefix.push(CoreLetBinding {
+                pattern: CorePattern::Var(name.clone()),
+                value: earlier.clone(),
+            });
+            resumed_args[index] = CoreExpr::Var(name);
+        }
+        evaluated_prefix.append(&mut region.prefix);
+        region.prefix = evaluated_prefix;
+        return Some(map_region_resumes(region, |resume| {
+            let mut args = resumed_args.clone();
+            args[call_index] = resume;
+            rebuild(args)
+        }));
+    }
+    None
 }
 
 /// Applies one surrounding evaluation context to both the call result and its

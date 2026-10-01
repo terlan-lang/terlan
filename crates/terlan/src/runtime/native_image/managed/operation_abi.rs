@@ -2,8 +2,6 @@
 
 use std::{num::NonZeroUsize, sync::Arc};
 
-use crate::runtime::vm::http_session::VmHttpSessionService;
-
 use super::{
     ActorHeap, ManagedAggregate, ManagedAggregateDescriptor, ManagedFieldValue,
     ManagedLayoutRegistry, ManagedList, ManagedMap, ManagedMemoryError, ManagedStringKeySemantics,
@@ -44,8 +42,9 @@ mod pattern;
 #[path = "operation_abi/projection.rs"]
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod projection;
-#[path = "operation_abi/session.rs"]
-mod session;
+#[cfg(test)]
+#[path = "operation_abi/session_cookie_test.rs"]
+mod retired_session_test;
 #[path = "operation_abi/string.rs"]
 mod string;
 mod string_pattern;
@@ -93,11 +92,6 @@ pub use memory::{encode_memory_retained_size_operation, encode_memory_shallow_si
 pub use pattern::{encode_managed_type_is_operation, encode_managed_variant_is_operation};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use projection::{decode_aggregate_field_projection, scalar_string_projection_rewrite};
-pub use session::{
-    encode_session_current_operation, encode_session_expire_operation,
-    encode_session_get_operation, encode_session_is_live_operation,
-    encode_session_mutation_operation, encode_session_rotate_operation, ManagedSessionMutation,
-};
 use string::{
     append_strings, concatenate_strings, join_string_list, prepend_string_literal, strings_equal,
     transform_string,
@@ -163,7 +157,6 @@ pub fn is_managed_operation(encoded: &[u8]) -> bool {
         || float::is_float_operation(encoded)
         || integer::is_integer_operation(encoded)
         || pattern::is_pattern_operation(encoded)
-        || session::is_session_operation(encoded)
         || string::is_string_operation(encoded)
         || template::is_template_operation(encoded)
 }
@@ -191,9 +184,6 @@ pub(crate) fn managed_abi_result_is_reference(encoded: &[u8]) -> bool {
     }
     if bytes::is_bytes_operation(encoded) {
         return bytes::bytes_operation_result_is_reference(encoded);
-    }
-    if session::is_session_operation(encoded) {
-        return session::session_operation_result_is_reference(encoded);
     }
     if pattern::is_pattern_operation(encoded) {
         return false;
@@ -365,11 +355,10 @@ pub fn encode_string_escape_html_attribute_operation() -> Vec<u8> {
     header(STRING_ESCAPE_HTML_ATTRIBUTE)
 }
 
-/// Executes one operation with optional VM-owned request services.
-pub(crate) fn execute_managed_operation_with_context(
+/// Executes a checked managed-value operation without package services.
+pub(crate) fn execute_managed_operation(
     heap: &mut ActorHeap,
     layouts: &ManagedLayoutRegistry,
-    http_sessions: Option<&VmHttpSessionService>,
     encoded: &[u8],
     words: &[i64],
 ) -> Result<u64, ManagedMemoryError> {
@@ -406,15 +395,6 @@ pub(crate) fn execute_managed_operation_with_context(
         }
         if pattern::is_pattern_operation(encoded) {
             return pattern::execute_pattern_operation(heap, layouts, encoded, words);
-        }
-        if session::is_session_operation(encoded) {
-            return session::execute_session_operation(
-                heap,
-                layouts,
-                http_sessions,
-                encoded,
-                words,
-            );
         }
         if string::is_string_operation(encoded) {
             return string::execute_string_operation(heap, layouts, encoded, words);
@@ -877,5 +857,3 @@ mod operation_abi_test;
 #[cfg(test)]
 #[path = "operation_abi/retired_json_test.rs"]
 mod retired_json_test;
-#[cfg(test)]
-pub(crate) use operation_abi_test::execute_managed_operation;

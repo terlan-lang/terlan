@@ -1,0 +1,54 @@
+/**
+ * Source policy for two-peer reconnect identity; decoding stays in std.net.Uri.
+ */
+module std.http.WebSocketIdentity.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.net.Uri.
+
+import type std.core.{Option, Result}.
+
+/**
+ * Resolves a fresh connection or an explicit room and role, preserving last-query-value wins.
+ */
+pub resolve(
+    target: String,
+    room_query: String,
+    player_query: String,
+    first_player: String,
+    second_player: String,
+): Result[Option[{String, Int}], String] ->
+    case target.split_once("?") {
+        None -> Ok(None);
+        Some({_path, query}) ->
+            let pairs = Uri.query_pairs(query);
+            case {last_value(pairs, room_query, None), last_value(pairs, player_query, None)} {
+                {None, None} -> Ok(None);
+                {Some(room), Some(player)} where room != "" and player != "" ->
+                    if {
+                        player == first_player -> Ok(Some({room, 1}));
+                        player == second_player -> Ok(Some({room, 2}));
+                        true -> Err("error[serve.websocket.restore]: unknown player")
+                    };
+                _ ->
+                    Err(
+                        "error[serve.websocket.restore]: room and player query values must be supplied together",
+                    )
+            }
+    }.
+
+last_value(pairs: List[{String, String}], key: String, found: Option[String]): Option[String] ->
+    case pairs {
+        [] -> found;
+        [{name, value} | rest] ->
+            last_value(
+                rest,
+                key,
+                if {
+                    name == key -> Some(value);
+                    true -> found
+                },
+            )
+    }.

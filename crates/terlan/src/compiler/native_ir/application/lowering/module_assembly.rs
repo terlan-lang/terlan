@@ -7,7 +7,7 @@ use super::super::*;
 use super::support::trace_native_aot;
 
 /// Closes one non-empty lowered module over every managed layout reachable
-/// from its selected functions and checked HTTP/native-package boundaries.
+/// from its selected functions and checked native-package boundaries.
 pub(super) struct ModuleAssemblyContext<'a, 'candidate> {
     pub(super) started: Instant,
     pub(super) core: &'a CoreModule,
@@ -116,10 +116,6 @@ pub(super) fn assemble_native_module(
         })
         .collect();
     merge_expression_managed_layouts(&mut managed_layouts, lowered_aggregates)?;
-    merge_managed_layouts(
-        &mut managed_layouts,
-        super::super::super::http_values::http_managed_layouts(core)?,
-    )?;
     managed_layouts.extend(native_handle_layouts(core)?);
     managed_layouts.extend(native_transparent_record_layouts(core)?);
     managed_layouts.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));

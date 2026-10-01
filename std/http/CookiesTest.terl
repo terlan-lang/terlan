@@ -1,9 +1,10 @@
 module std.http.CookiesTest.
 
+import std.collections.Map.
 import std.core.Option.{None, Some}.
 import std.core.Unit.
 import std.http.Cookies.{Lax, None as CrossSite, Options, Strict, delete_header, set_header, set_header_options, set_header_with_options}.
-import std.http.Response.
+import std.http.{Cookies, Response}.
 import std.test.Test.{assert_equal}.
 
 import type std.core.Option.
@@ -68,6 +69,17 @@ pub cookie_header_builders_serialize_defaults(): Bool ->
 ).
 
 @test
+pub cookie_defaults_flags_and_deletion_paths_are_source_composition(): Bool ->
+    assert_equal("sid=value; Path=/", set_header("sid", "value"))
+        and assert_equal("sid=value; HttpOnly; Path=/private", set_header("sid", "value", "/private", true))
+        and assert_equal("sid=value; Secure; Path=/", set_header("sid", "value", "/", false, true))
+        and assert_equal("sid=value; HttpOnly; Secure; Path=/", set_header("sid", "value", "/", true, true))
+        and assert_equal(
+    "sid=; Path=/private; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    delete_header("sid", "/private"),
+).
+
+@test
 pub cookie_full_options_header_serializes_attributes(): Bool ->
     assert_equal(
         "session=abc123; HttpOnly; SameSite=Strict; Secure; Path=/account; Domain=example.com; Max-Age=3600; Expires=Wed, 21 Oct 2026 07:28:00 GMT",
@@ -79,6 +91,28 @@ pub cookie_jar_get_reads_present_and_missing_values(): Bool ->
     let jar = sample_jar();
     assert_equal("abc123", option_string_or_empty(jar.get("session")))
         and assert_equal("", option_string_or_empty(jar.get("missing"))).
+
+@test
+pub source_jar_construction_preserves_empty_values_and_map_snapshots(): Bool ->
+    let incoming = Map({"session", "original"}, {"empty", ""});
+    let jar = Cookies.from_map(incoming);
+    incoming.put("session", "changed");
+    assert_equal(Some("original"), jar.get("session"))
+        and assert_equal(Some(""), jar.get("empty"))
+        and assert_equal(None, jar.get("missing"))
+        and assert_equal([], jar.headers())
+        and assert_equal(None, Cookies.from_map(Map.new[String, String]()).get("session")).
+
+@test
+pub request_cookie_views_do_not_share_pending_mutations(): Bool ->
+    let request = request_fixture("session=original");
+    let jar = request.cookies();
+    jar.set("session", "outgoing");
+    let fresh = request.cookies();
+    assert_equal([], fresh.headers())
+        and assert_equal(Some("original"), fresh.get("session"))
+        and assert_equal(Some("original"), request.cookie("session"))
+        and assert_equal(["session=outgoing; Path=/"], jar.headers()).
 
 @test
 pub typed_cookie_options_serialize_present_and_absent_attributes(): Bool ->

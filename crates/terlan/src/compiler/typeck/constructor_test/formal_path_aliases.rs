@@ -1,6 +1,59 @@
 use super::*;
 
 #[test]
+fn constructor_arguments_expand_returned_callback_aliases() {
+    let diagnostics = check_syntax_output(
+        r#"
+module returned_callbacks.
+type Callback = (Int) -> Int.
+type Wrapped = {Atom["wrapped"], callback: Callback}.
+type Callbacks = List[Callback].
+constructor Callbacks {
+    (...items: Callback): Callbacks -> items
+}.
+make(): Callback -> (value: Int) -> value + 1.
+pub fixed(): Wrapped -> Wrapped(make()).
+pub named(): Wrapped -> Wrapped(callback = make()).
+pub repeated(): Callbacks -> Callbacks(make(), make()).
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+#[test]
+fn constructor_callback_alias_expansion_does_not_accept_incompatible_functions() {
+    for (signature, body) in [
+        ("(Int) -> String", "(value: Int) -> \"wrong\""),
+        ("(String) -> Int", "(value: String) -> 1"),
+        ("() -> Int", "() -> 1"),
+        ("Int", "1"),
+    ] {
+        for constructor in ["Wrapped(make())", "Callbacks(make())"] {
+            let source = format!(
+                r#"
+module invalid_callback.
+type Callback = (Int) -> Int.
+type Other = {signature}.
+type Wrapped = {{Atom["wrapped"], callback: Callback}}.
+type Callbacks = List[Callback].
+constructor Callbacks {{ (...items: Callback): Callbacks -> items }}.
+make(): Other -> {body}.
+pub bad(): Dynamic -> {constructor}.
+"#
+            );
+            let diagnostics = check_syntax_output(&source);
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diag| diag.message.contains("expected")
+                        || diag.message.contains("arity mismatch")),
+                "{source}\n{diagnostics:?}"
+            );
+        }
+    }
+}
+
+#[test]
 fn syntax_output_raw_atom_patterns_do_not_require_constructor_declarations_on_formal_path() {
     let diagnostics = check_syntax_output(
         "\

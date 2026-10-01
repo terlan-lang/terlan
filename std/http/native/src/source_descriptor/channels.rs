@@ -106,11 +106,8 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                 &[
                     "waiting",
                     "peer_left",
-                    "room_query",
-                    "player_query",
+                    "identity",
                     "room_prefix",
-                    "first_player",
-                    "second_player",
                     "retention_ms",
                     "retained_room_capacity",
                     "matched",
@@ -148,7 +145,7 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
             .map_err(|cause| error(cause.to_string())),
         (
             "Restorable_pairing",
-            [waiting, peer_left, room_query, player_query, room_prefix, first_player, second_player, retention, capacity, matched, restored, inbound, cancellation],
+            [waiting, peer_left, identity, room_prefix, retention, capacity, matched, restored, inbound, cancellation],
         ) => plan
             .with_pairing(WebSocketPairing {
                 waiting: String::new(),
@@ -159,11 +156,8 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                 restoration: Some(WebSocketRestoration {
                     waiting: callback(waiting, 0)?,
                     peer_left: callback(peer_left, 0)?,
-                    room_query: text(*room_query)?,
-                    player_query: text(*player_query)?,
+                    identity: callback(identity, 1)?,
                     room_prefix: text(*room_prefix)?,
-                    first_player: text(*first_player)?,
-                    second_player: text(*second_player)?,
                     retention_ms: positive_u64(*retention)?,
                     retained_room_capacity: positive(*capacity)?,
                     matched: callback(matched, 4)?,

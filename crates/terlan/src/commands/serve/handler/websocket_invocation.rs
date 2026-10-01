@@ -2,14 +2,13 @@
 
 use std::sync::Arc;
 
+use terlan_http_native::channel_plan::WebSocketEndpointPlan;
+use terlan_http_native::websocket::session::{InboundQueueInfo, Session};
+use terlan_http_native::websocket::Utf8Bytes;
+
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
-use crate::runtime::vm::websocket::VmWebSocketFrame;
-use crate::runtime::vm::websocket::{
-    VmWebSocketCallbackPlan, VmWebSocketEndpointPlan, VmWebSocketInboundQueueInfo,
-    VmWebSocketLiveSession,
-};
 use crate::runtime::vm::ReplValue;
 
 use super::channel_invocation::{AotChannelCallbackState, AotChannelInvocation};
@@ -25,6 +24,8 @@ pub(in crate::commands::serve) enum AotWebSocketCallbackEvent {
     PairMatched,
     /// A disconnected paired seat was reclaimed.
     PairRestored,
+    /// Resolve source-owned reconnect identity before room admission.
+    PairIdentity,
     /// The first peer is waiting for an opponent.
     PairWaiting,
     /// The connected peer's opponent disconnected.
@@ -43,8 +44,7 @@ pub(in crate::commands::serve) type AotWebSocketCallbackState = AotChannelCallba
 /// One WebSocket connection bound to a native image generation and callback set.
 #[derive(Debug)]
 pub(in crate::commands::serve) struct AotWebSocketCallbackSession {
-    live: VmWebSocketLiveSession,
-    callbacks: Option<VmWebSocketCallbackPlan>,
+    live: Session<ReplValue>,
     invocation: AotChannelInvocation<AotWebSocketCallbackEvent>,
 }
 
@@ -53,31 +53,26 @@ impl AotWebSocketCallbackSession {
     pub(in crate::commands::serve) fn open(
         runtime: Arc<AotHandlerRuntime>,
         module: String,
-        live: VmWebSocketLiveSession,
+        live: Session<ReplValue>,
     ) -> Result<Self, String> {
-        let callbacks = live.plan().callbacks().cloned();
         let invocation = AotChannelInvocation::new("websocket", runtime, module);
-        let mut session = Self {
-            live,
-            callbacks,
-            invocation,
-        };
+        let mut session = Self { live, invocation };
         session.invoke(AotWebSocketCallbackEvent::Open, Vec::new())?;
         Ok(session)
     }
 
-    /// Returns whether the underlying VM-owned connection remains open.
+    /// Returns whether the package-owned connection remains open.
     pub(in crate::commands::serve) fn is_open(&self) -> bool {
         self.live.is_open()
     }
 
     /// Returns the immutable endpoint policy retained by the live connection.
-    pub(in crate::commands::serve) fn plan(&self) -> &VmWebSocketEndpointPlan {
+    pub(in crate::commands::serve) fn plan(&self) -> &WebSocketEndpointPlan<ReplValue> {
         self.live.plan()
     }
 
     /// Returns bounded inbound queue state for transport admission checks.
-    pub(in crate::commands::serve) fn inspect(&self) -> VmWebSocketInboundQueueInfo {
+    pub(in crate::commands::serve) fn inspect(&self) -> InboundQueueInfo {
         self.live.inspect()
     }
 
@@ -95,9 +90,11 @@ impl AotWebSocketCallbackSession {
     /// Queues one decoded frame under the admitted endpoint pressure limits.
     pub(in crate::commands::serve) fn enqueue_inbound(
         &mut self,
-        frame: VmWebSocketFrame,
+        text: Utf8Bytes,
     ) -> Result<(), String> {
-        self.live.enqueue_inbound(frame)
+        self.live
+            .enqueue_inbound(text)
+            .map_err(|error| error.to_string())
     }
 
     /// Dispatches or wakes generated code with the oldest queued text frame.
@@ -111,22 +108,10 @@ impl AotWebSocketCallbackSession {
     pub(in crate::commands::serve) fn dispatch_next_inbound_output(
         &mut self,
     ) -> Result<(bool, Option<ReplValue>), String> {
-        let Some(frame) = self.live.next_inbound() else {
+        let Some(text) = self.live.next_inbound() else {
             return Ok((false, None));
         };
-        #[cfg(not(test))]
-        let VmWebSocketFrame::Text(value) = frame;
-        #[cfg(test)]
-        let value = match frame {
-            VmWebSocketFrame::Text(value) => value,
-            #[cfg(test)]
-            VmWebSocketFrame::Control(_) => {
-                return Err(
-                    "error[serve.websocket.callback_frame]: only admitted text data frames enter the source callback"
-                        .to_string(),
-                )
-            }
-        };
+        let value = text.to_string();
         if let Some(wait) = self.invocation.pending_wait()? {
             if wait.boundary_type() != &TvmBoundaryType::String {
                 return Err(format!(
@@ -137,7 +122,7 @@ impl AotWebSocketCallbackSession {
             let state = self.resume(wait.wake(ReplValue::String(value)))?;
             Ok((true, completed_value(state)))
         } else {
-            let state = self.inbound(VmWebSocketFrame::Text(value))?;
+            let state = self.inbound(value)?;
             Ok((true, completed_value(state)))
         }
     }
@@ -150,22 +135,10 @@ impl AotWebSocketCallbackSession {
         first_request: String,
         second_request: String,
     ) -> Result<(bool, Option<ReplValue>), String> {
-        let Some(frame) = self.live.next_inbound() else {
+        let Some(text) = self.live.next_inbound() else {
             return Ok((false, None));
         };
-        #[cfg(not(test))]
-        let VmWebSocketFrame::Text(value) = frame;
-        #[cfg(test)]
-        let value = match frame {
-            VmWebSocketFrame::Text(value) => value,
-            #[cfg(test)]
-            VmWebSocketFrame::Control(_) => {
-                return Err(
-                    "error[serve.websocket.callback_frame]: only admitted text data frames enter the source callback"
-                        .to_string(),
-                )
-            }
-        };
+        let value = text.to_string();
         if let Some(wait) = self.invocation.pending_wait()? {
             if wait.boundary_type() != &TvmBoundaryType::String {
                 return Err(format!(
@@ -188,6 +161,29 @@ impl AotWebSocketCallbackSession {
             )?;
             Ok((true, completed_value(state)))
         }
+    }
+
+    /// Resolves reconnect identity using the admitted source callback.
+    pub(in crate::commands::serve) async fn dispatch_pair_identity_output(
+        &mut self,
+        target: String,
+    ) -> Result<Option<(String, i64)>, String> {
+        let callback = self
+            .callback(AotWebSocketCallbackEvent::PairIdentity)
+            .cloned()
+            .ok_or_else(|| {
+                "error[serve.websocket.callback_result]: no reconnect identity callback".to_string()
+            })?;
+        let value = self
+            .invocation
+            .invoke_suspendable(
+                AotWebSocketCallbackEvent::PairIdentity,
+                &callback,
+                vec![ReplValue::String(target)],
+            )
+            .await?;
+        terlan_http_native::source_descriptor::restoration_identity(&value)
+            .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))
     }
 
     /// Builds one role-specific payload after a fresh pair is formed.
@@ -257,21 +253,8 @@ impl AotWebSocketCallbackSession {
     /// Dispatches one admitted inbound text frame through generated code.
     pub(in crate::commands::serve) fn inbound(
         &mut self,
-        frame: VmWebSocketFrame,
+        value: String,
     ) -> Result<AotWebSocketCallbackState, String> {
-        #[cfg(not(test))]
-        let VmWebSocketFrame::Text(value) = frame;
-        #[cfg(test)]
-        let value = match frame {
-            VmWebSocketFrame::Text(value) => value,
-            #[cfg(test)]
-            VmWebSocketFrame::Control(_) => {
-                return Err(
-                    "error[serve.websocket.callback_frame]: only admitted text data frames enter the source callback"
-                        .to_string(),
-                )
-            }
-        };
         self.invoke(
             AotWebSocketCallbackEvent::Inbound,
             vec![ReplValue::String(value)],
@@ -349,11 +332,12 @@ impl AotWebSocketCallbackSession {
 
     /// Selects the static callback assigned to one lifecycle event.
     fn callback(&self, event: AotWebSocketCallbackEvent) -> Option<&ReplValue> {
-        if let Some(callbacks) = self.callbacks.as_ref() {
+        if let Some(callbacks) = self.live.plan().callbacks() {
             return Some(match event {
                 AotWebSocketCallbackEvent::Open => &callbacks.open,
                 AotWebSocketCallbackEvent::Inbound => &callbacks.inbound,
                 AotWebSocketCallbackEvent::PairMatched
+                | AotWebSocketCallbackEvent::PairIdentity
                 | AotWebSocketCallbackEvent::PairRestored
                 | AotWebSocketCallbackEvent::PairWaiting
                 | AotWebSocketCallbackEvent::PairPeerLeft => return None,
@@ -364,6 +348,10 @@ impl AotWebSocketCallbackSession {
         }
         let pairing = self.live.plan().pairing()?;
         match event {
+            AotWebSocketCallbackEvent::PairIdentity => pairing
+                .restoration
+                .as_ref()
+                .map(|restoration| &restoration.identity),
             AotWebSocketCallbackEvent::Inbound => Some(&pairing.inbound),
             AotWebSocketCallbackEvent::PairMatched => pairing
                 .restoration
@@ -400,3 +388,7 @@ fn completed_value(state: AotWebSocketCallbackState) -> Option<ReplValue> {
 #[path = "websocket_invocation_test.rs"]
 #[cfg(test)]
 mod websocket_invocation_test;
+
+#[cfg(test)]
+#[path = "websocket_identity_test.rs"]
+mod websocket_identity_test;

@@ -1,19 +1,9 @@
 {
   "functions": [
     {
-      "arity": 5,
-      "name": "set_header",
-      "operation": "std.http.cookies.set_header"
-    },
-    {
       "arity": 10,
       "name": "set_header_with_options",
       "operation": "std.http.cookies.set_header_with_options"
-    },
-    {
-      "arity": 2,
-      "name": "delete_header",
-      "operation": "std.http.cookies.delete_header"
     }
   ],
   "module": "std_http_cookies_native_boundary",

@@ -45,17 +45,31 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
         "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
-            "instant_acme",
             "AcmeHttp01Challenge",
             "acme_http01_challenge",
             "runtime_tls_config_for_serve",
-            "start_live_acme_worker_for_serve",
-            "VmAcmeWorkerRuntime",
-            "VmAcmeWorkerExecutionLane::Live",
-            "VmProcessId::system_runtime_worker",
+            "tls_runtime::load(",
+            "terlan_http_native::acme::issuer::issue_certificate_cache(",
+        ],
+    ),
+    (
+        "std/http/native/src/tls_runtime.rs",
+        &[
+            "pub fn load(",
+            "validate_acme_provider_supported",
+            "load_acme_runtime_tls_cache",
+            "issuer(&plan)?",
+        ],
+    ),
+    (
+        "std/http/native/src/acme/issuer.rs",
+        &[
+            "instant_acme",
+            "issue_certificate_cache",
             "pending_http01_challenges",
-            "rustls_server_config",
             "store_acme_http01_challenge",
+            "store_acme_certificate_cache",
+            "delay_for(delay).await",
         ],
     ),
     (
@@ -82,6 +96,15 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
+        "std/http/native/src/acme/issuer_test.rs",
+        &[
+            "real_client_issues_matching_material_and_reuses_cached_account",
+            "cancelling_a_pending_delay_stops_protocol_progress",
+            "order_and_certificate_polling_have_bounded_nonblocking_backoff",
+            "observer_can_reject_publication_after_certificate_arrives",
+        ],
+    ),
+    (
         "crates/terlan/src/runtime/vm/acme_worker_test.rs",
         &[
             "vm_acme_worker_runs_http01_state_machine_without_network",
@@ -99,7 +122,7 @@ const REQUIRED_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
         "crates/terlan/src/commands/serve/tls/acme_runtime/tls_test.rs",
         &[
-            "serve_live_acme_issuance_starts_vm_worker_lane",
+            "serve_acme_handoff_uses_package_plan_without_vm_protocol_state",
             "pending_http01_challenges_reject_missing_http01",
             "acme_http01_challenge_cache_writes_valid_token",
             "acme_http01_challenge_cache_rejects_invalid_token",
@@ -150,7 +173,7 @@ const WORKER_STATE_TRACES: &[&str] = &[
     "challenge and issuance telemetry spans emitted",
     "issuance waiters park and wake through VM scheduler handles",
     "deterministic and live lanes share one VM worker contract",
-    "serve auto TLS starts a VM-owned live ACME worker lane",
+    "serve auto TLS delegates issuance and cache policy to the HTTP package",
 ];
 
 const CHALLENGE_ROUTING_TRACES: &[&str] = &[
@@ -248,13 +271,14 @@ pub fn run_vm_http_acme_worker(root: &Path) -> QualityResult<VmHttpAcmeWorkerSum
     }
     let report = json!({
         "schema": "terlan-vm-http-acme-worker-report-v1",
+        "scope": "VM worker traces are retained test-only reference models, not evidence of production ACME scheduling",
         "workerStateTraces": WORKER_STATE_TRACES,
         "challengeRoutingTraces": CHALLENGE_ROUTING_TRACES,
         "cacheProvenance": CACHE_PROVENANCE_FIELDS,
         "renewalDecisions": RENEWAL_DECISIONS,
         "cancellationShutdownOutcomes": CANCELLATION_SHUTDOWN_OUTCOMES,
         "stagingModeDocs": [
-            "live issuance remains opt-in until the VM worker owns the lifecycle",
+            "live issuance remains opt-in with a temporary host executor",
             "staging/live provider choice must be recorded in cache provenance",
             "ZeroSSL fallback remains rejected before network issuance"
         ],

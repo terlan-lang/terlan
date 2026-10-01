@@ -6,16 +6,20 @@ use terlan_runtime_abi::NativeAdapterError;
 const IDENTITY_BYTES: usize = 32;
 const MAX_ATTEMPTS: usize = 16;
 
-/// Issues an OS-random identity not already present in the caller's registry.
+/// Issues an OS-random identity distinct from the supplied and occupied identities.
 /// The caller must retain exclusive registry access until insertion.
-pub fn issue(mut occupied: impl FnMut(&str) -> bool) -> Result<String, NativeAdapterError> {
-    issue_with(&mut occupied, |bytes| {
+pub fn issue(
+    excluded: &str,
+    mut occupied: impl FnMut(&str) -> bool,
+) -> Result<String, NativeAdapterError> {
+    issue_with(excluded, &mut occupied, |bytes| {
         getrandom::fill(bytes)
             .map_err(|error| NativeAdapterError::new("http.session.entropy", error.to_string(), 0))
     })
 }
 
 fn issue_with(
+    excluded: &str,
     occupied: &mut impl FnMut(&str) -> bool,
     mut fill: impl FnMut(&mut [u8]) -> Result<(), NativeAdapterError>,
 ) -> Result<String, NativeAdapterError> {
@@ -23,7 +27,7 @@ fn issue_with(
         let mut bytes = [0; IDENTITY_BYTES];
         fill(&mut bytes)?;
         let identity = URL_SAFE_NO_PAD.encode(bytes);
-        if !occupied(&identity) {
+        if identity != excluded && !occupied(&identity) {
             return Ok(identity);
         }
     }

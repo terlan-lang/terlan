@@ -26,6 +26,7 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
     endpoint: &WebPackageSse,
     request: &native_http::Request,
     package_root: &Path,
+    live_transport_available: bool,
     output: &mut dyn FnMut(&str),
 ) -> Result<VmSseRouterAdmission, String> {
     let router = vm.execute_http_router(&endpoint.module, "router", output)?;
@@ -68,13 +69,19 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
                     endpoint.route
                 ));
             };
-            let session =
-                crate::runtime::vm::sse::VmSseLiveSession::open(plan).map_err(|error| {
-                    format!(
-                        "error[serve_router]: cannot open SSE route `{}`: {error:?}",
-                        endpoint.route
-                    )
-                })?;
+            // Middleware may return a normal response even without a live
+            // transport. Never run open callbacks for a stream we cannot serve.
+            if !live_transport_available {
+                return Ok(VmSseRouterAdmission::Respond(HandlerResponse {
+                    status: 501,
+                    content_type: "text/plain; charset=utf-8".into(),
+                    headers: Vec::new(),
+                    body: super::HandlerBody::Text(
+                        "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for SSE".into(),
+                    ),
+                }));
+            }
+            let session = terlan_http_native::sse_session::SseSession::open(plan);
             AotSseCallbackSession::open(vm, endpoint.module.clone(), session)
                 .map(|session| VmSseRouterAdmission::Stream(Box::new(session)))
         }

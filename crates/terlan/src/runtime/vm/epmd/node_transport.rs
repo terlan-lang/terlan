@@ -10,7 +10,7 @@ use std::task::{Context, Poll};
 
 use super::super::fixed_scheduler_control::VmFixedSchedulerControl;
 use super::super::protocol_task_executor::{
-    VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyTcpStream,
+    VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyStream,
 };
 use super::super::scheduler_topology::VmFixedActorRoute;
 
@@ -125,7 +125,7 @@ enum VmNodeTransportPhase {
 
 /// One logical-node socket future pinned to a fixed protocol owner.
 struct VmNodeTransportConnection<P> {
-    stream: VmReadyTcpStream,
+    stream: VmReadyStream,
     route: VmProtocolTaskRoute,
     router: Arc<VmNodeTransportRouter<P>>,
     phase: VmNodeTransportPhase,
@@ -134,7 +134,7 @@ struct VmNodeTransportConnection<P> {
 impl<P> VmNodeTransportConnection<P> {
     /// Creates one connection that admits exactly one bounded actor message.
     fn new(
-        stream: VmReadyTcpStream,
+        stream: VmReadyStream,
         route: VmProtocolTaskRoute,
         router: Arc<VmNodeTransportRouter<P>>,
     ) -> Self {

@@ -69,9 +69,6 @@ pub(super) fn infer_native_type_impl(
     if let Some(ty) = super::super::template_values::managed_template_operation_type(expr) {
         return Some(ty);
     }
-    if let Some(ty) = super::super::http_values::managed_http_operation_type(expr) {
-        return Some(ty);
-    }
     match expr {
         CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "Unit" => Some(NativeType::Unit),
         CoreExpr::Int(_) => Some(NativeType::Int),

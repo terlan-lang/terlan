@@ -2638,17 +2638,16 @@ tvm-aot-http-managed-cycle-check: tvm-aot-consumer-check
 
 tvm-aot-http-request-accessor-check: tvm-aot-http-managed-cycle-check
 	$(RUST_TEST) -p terlan --lib operation_abi_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::request_accessors_are_not_replaced_by_http_lowering -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_request_library_test::request_library_reads_its_own_fields_and_preserves_missing_and_empty_values -- --exact
 
 tvm-aot-http-response-mutation-check: tvm-aot-http-request-accessor-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::response_updates_are_persistent_and_preserve_repeated_headers -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::response_mutation_primitives_lower_to_persistent_operations -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_response_library_test::mutation_authority_test::response_mutators_execute_provider_bodies_and_preserve_command_results -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::response_bridge::response_bridge_test::native_repeated_headers_are_validated_and_preserved -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_source_reload_resumes_package_cookie_codec -- --exact
 
 tvm-aot-http-typed-metadata-check: tvm-aot-http-response-mutation-check
-	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::http::http_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::typed_cookie_jar_calls_rewrite_to_managed_operations -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::retired_http_test::retired_http_operations_reject_before_reading_or_allocating_heap_values -- --exact
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_response_library_test
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_cookie_library_test
 	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::response_policy_test
@@ -2665,7 +2664,6 @@ tvm-aot-http-router-callable-check: tvm-aot-http-typed-metadata-check
 tvm-aot-http-managed-error-check: tvm-aot-http-router-callable-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::aggregate_scalar_projection_returns_an_unboxed_native_word -- --exact
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_error_library_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::http_error_calls_remain_source_owned -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::dynamic_dispatch::vm_stream_request_activates_materialized_router_middleware_without_hyper -- --exact
 
 tvm-aot-http-template-check: tvm-aot-http-managed-error-check
@@ -2684,24 +2682,28 @@ tvm-aot-http-template-expression-check: tvm-aot-http-template-render-plan-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_executes_complete_typed_template_matrix -- --exact
 
 tvm-aot-http-body-json-check: tvm-aot-http-template-expression-check
-	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::json::json_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::body_json_result_case_lowers_to_typed_managed_branches -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_request_decodes_managed_json_body_result -- --exact
+	$(RUST_TEST) -p terlan --lib compiler::native_ir::json_library_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_request_library_test::body_json_uses_source_policy_and_ordinary_guarded_result_matching -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::hyper_server::hyper_server_test::json_body::vm_stream_request_decodes_managed_json_body_result -- --exact
 
 tvm-aot-http-session-check: tvm-aot-http-body-json-check
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::http_values_test::session_authority_test
-	$(RUST_TEST) -p terlan --lib runtime::native_image::managed::operation_abi::session::session_cookie_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::session_primitive_installs_complete_managed_boundary_metadata -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler_cache::response_policy_test::session_provider_test::canonical_session_provider_preserves_commands_rotation_and_expiration -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::retired_session_test::retired_session_opcodes_cannot_read_or_allocate_heap_values -- --exact
+	$(RUST_TEST) -p terlan --lib runtime::vm::http_session::package_storage::tests
+	$(RUST_TEST) -p terlan --lib runtime::vm::protocol_task_executor::maintenance::tests
+	$(RUST_TEST) -p terlan --lib runtime::vm::actor_state::tests
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::response_policy_test::session_provider_test
+	$(RUST_TEST) -p terlan-http-native --lib session_
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::http_session::http_session_test::session_actor_fixtures::http_session_adapter_functions_delegate_to_actor_runtime -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::observability_and_packages::vm_stream_session_state_and_lifecycle_are_vm_owned -- --exact
 
 tvm-aot-http-managed-boundary-check: tvm-aot-http-session-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::complete_http_managed_boundary_inventory_is_closed_and_decodable -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::http_imports_do_not_install_runtime_layouts -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::retired_http_calls_have_no_inferred_type_or_executable_lowering -- --exact
 
 tvm-aot-http-channel-plan-check: tvm-aot-http-managed-boundary-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::router::router_test::aot_router_plan_materializes_canonical_channel_targets -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::request_option_case_lowers_without_scalar_constructor_patterns -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::option_authority_test::map_lookup_patterns_support_literals_guards_and_source_option_defaults -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_sse_route_activates_materialized_router_middleware -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::upgrades_and_acme::vm_stream_websocket_upgrade_activates_materialized_router_middleware -- --exact
 
@@ -3245,11 +3247,10 @@ vm-http-acme-tls-production-check: vm-http-acme-renewal-rotation-check
 	! rg -n 'serve_tls\.adapter_missing|maintained async Hyper TLS adapter is required' crates/terlan/src/commands/serve
 
 vm-http-protocol-readiness-check: vm-http-acme-tls-production-check
-	$(TERLC_EXACT_TEST) commands::serve::hyper_server::http2::http2_test::http2_limits_bound_streams_flow_headers_frames_and_owner_tasks -- --exact
-	$(TERLC_EXACT_TEST) commands::serve::hyper_server::http2::http2_test::owner_local_http2_executor_fails_loudly_at_capacity -- --exact
+	$(RUST_TEST) -p terlan-http-native --lib http2::tests
+	$(RUST_TEST) -p terlan --lib -- runtime::vm::protocol_task_executor::task_group::tests commands::serve::hyper_server::http2::tests
 	$(TERLC_EXACT_TEST) runtime::vm::http::deadline_test::vm_http_tcp_server_deadline_cancels_parked_handler_and_closes_stream -- --exact
 	$(TERLC_EXACT_TEST) runtime::vm::http::lifecycle_test::vm_http_tcp_server_drain_does_not_count_cancellation_as_completion -- --exact
-	grep -F 'hyper = { version = "1.10.1", features = ["client", "http1", "http2", "server"] }' crates/terlan/Cargo.toml
 
 terlan-vm-run-command-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::run::run_test::validate_run_args_defaults_to_vm_target -- --exact

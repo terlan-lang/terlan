@@ -62,6 +62,8 @@ pub check(): Bool ->
 #[test]
 fn websocket_policies_preserve_captured_callbacks_and_all_pairing_parameters() {
     let body = r#"
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
 idle(): Unit -> Unit.
 consume(_value: String): Unit -> Unit.
 check_basic(policy: Policy): Bool -> case policy {
@@ -77,16 +79,20 @@ check_pairing(policy: Policy): Bool -> case policy {
 }.
 check_stateful(policy: Policy): Bool -> case policy {
     StatefulPairing("state-wait", "state-one", "state-two", "state-left", inbound, cancel) ->
-        inbound("s", 1, "f", "a", "b") == {"sf", "a", "b"} and cancel("closed") == Unit;
+        let delivers = case inbound("s", 1, "f", "a", "b") { {"sf", Some("a"), Some("b")} -> true; _ -> false };
+        delivers and cancel("closed") == Unit;
     _ -> false
 }.
 check_restorable(policy: Policy): Bool -> case policy {
-    RestorablePairing(waiting, peer_left, "room", "player", "room-", "one", "two", 107, 13,
+    RestorablePairing(waiting, peer_left, identity, "room-", 107, 13,
         matched, restored_view, inbound, cancel) ->
-        waiting() == "captured:wait" and peer_left() == "captured:left"
+        let selected = identity("/ws?room=r&player=two");
+        let resolves = case selected { Ok(Some({room, role})) -> room == "r" and role == 2; _ -> false };
+        let delivers = case inbound("s", 2, "f", "a", "b") { {"sf", Some("a"), Some("b")} -> true; _ -> false };
+        resolves and waiting() == "captured:wait" and peer_left() == "captured:left"
             and matched("r", 1, "a", "b") == "rab"
             and restored_view("s", "r", 2, "a", "b") == "srab"
-            and inbound("s", 2, "f", "a", "b") == {"sf", "a", "b"}
+            and delivers
             and cancel("closed") == Unit;
     _ -> false
 }.
@@ -120,7 +126,51 @@ pub check(): Bool ->
             "{}\n{body}",
             include_str!("../../../../../std/http/WebSocket.terl")
         )
-        .replace("std.http.WebSocket", owner);
-        check_sources(&[&source]);
+        .replace("module std.http.WebSocket.", &format!("module {owner}."));
+        check_sources(&[
+            &source,
+            include_str!("../../../../../std/http/WebSocketIdentity.terl"),
+            include_str!("../../../../../std/core/Option.terl"),
+            include_str!("../../../../../std/core/Result.terl"),
+            include_str!("../../../../../std/core/String.terl"),
+            "module std.net.Uri. pub query_pairs(query: String): List[{String, String}] -> [{\"room\", \"r\"}, {\"player\", \"two\"}].",
+        ]);
+    }
+}
+
+#[test]
+fn websocket_delivery_policy_is_executed_source_even_when_provider_is_renamed() {
+    let provider = include_str!("../../../../../std/http/WebSocket.terl");
+    let body = r#"
+consume(_value: String): Unit -> Unit.
+pub check(): Bool ->
+    let prefix = "captured:";
+    let endpoint = endpoint(4, 128).stateful_paired_callbacks("wait", "one", "two", "left",
+        (state: String, role: Int, frame: String, first: String, second: String) ->
+            {prefix + state + frame, first, second}, consume);
+    case endpoint.#policies {
+        [StatefulPairing(_, _, _, _, inbound, _)] ->
+            let silent = case inbound("s", 1, "f", "", "") { {"captured:sf", None, None} -> true; _ -> false };
+            let first = case inbound("s", 2, "f", "first", "") { {"captured:sf", Some("first"), None} -> true; _ -> false };
+            let second = case inbound("s", 1, "f", "", "second") { {"captured:sf", None, Some("second")} -> true; _ -> false };
+            let both = case inbound("s", 2, "f", " ", "text") { {"captured:sf", Some(" "), Some("text")} -> true; _ -> false };
+            silent and first and second and both;
+        _ -> false
+    }.
+"#;
+    for owner in ["std.http.WebSocket", "app.SourceDelivery"] {
+        let provider = provider.replace("module std.http.WebSocket.", &format!("module {owner}."));
+        check_sources(&[
+            &format!("{provider}\n{body}"),
+            include_str!("../../../../../std/core/Option.terl"),
+        ]);
+        // Changing only package source must change delivery, including empty frames.
+        let changed = provider.replace("\"\" -> None", "\"\" -> Some(payload)");
+        assert_ne!(changed, provider);
+        let expected = body.replace("None", "Some(\"\")");
+        check_sources(&[
+            &format!("{changed}\n{expected}"),
+            include_str!("../../../../../std/core/Option.terl"),
+        ]);
     }
 }

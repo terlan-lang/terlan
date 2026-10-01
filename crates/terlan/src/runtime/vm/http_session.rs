@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use std::collections::BTreeMap;
 
 use super::actor::VmActorRuntime;
@@ -14,37 +12,15 @@ use live_template_payload::validate_live_template_patch_payload;
 #[cfg(test)]
 pub(crate) use live_template_payload::VmHttpSessionLiveTemplateSourceSpan;
 
-/// Cloneable VM service handle for session state shared by request shards.
-///
-/// The handle keeps synchronization inside the session service rather than in
-/// generated-code execution state. Shards carry only this explicit service
-/// capability and never expose or retain its lock guard.
-#[derive(Clone, Debug)]
-pub(crate) struct VmHttpSessionService {
-    runtime: Arc<Mutex<VmHttpSessionRuntime>>,
-}
-
-impl VmHttpSessionService {
-    pub(crate) fn new(runtime: VmHttpSessionRuntime) -> Self {
-        Self {
-            runtime: Arc::new(Mutex::new(runtime)),
-        }
-    }
-
-    pub(crate) fn with_runtime<T>(
-        &self,
-        operation: impl FnOnce(&mut VmHttpSessionRuntime) -> T,
-    ) -> Result<T, String> {
-        let mut runtime = self
-            .runtime
-            .lock()
-            .map_err(|_| "HTTP session service lock poisoned".to_string())?;
-        Ok(operation(&mut runtime))
-    }
-}
+/// Package-owned application context over the remaining VM storage adapter.
+pub(crate) type VmHttpSessionService =
+    terlan_http_native::session_service::SessionService<VmHttpSessionRuntime>;
 
 #[path = "http_session/diagnostics.rs"]
 mod diagnostics;
+
+#[path = "http_session/package_storage.rs"]
+mod package_storage;
 
 #[path = "http_session/live_template_payload.rs"]
 #[cfg(test)]

@@ -76,8 +76,7 @@ crates/terlan/src/commands/build/release_bundle.rs	11	internal-helper	command-er
 crates/terlan/src/commands/build/source_roots.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/target_gate.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_debug.rs	1	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/vm_artifact/native_image.rs	4	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/vm_artifact/native_image/serve_fixture.rs	1	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/vm_artifact/native_image.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_reuse.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/orchestration.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_launcher.rs	1	internal-helper	command-errors	0.0.9
@@ -122,7 +121,7 @@ crates/terlan/src/commands/serve/args.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/channel_transport.rs	9	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler.rs	19	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/channel_invocation.rs	6	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/serve/handler/response_bridge.rs	22	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/serve/handler/response_bridge.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/response_bridge/source_response.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/route.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/sse.rs	2	internal-helper	command-errors	0.0.9
@@ -131,7 +130,7 @@ crates/terlan/src/commands/serve/handler/suspendable.rs	1	internal-helper	comman
 crates/terlan/src/commands/serve/handler/suspendable_router.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/websocket.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler/websocket_invocation.rs	16	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/serve/handler_cache.rs	18	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/serve/handler_cache.rs	19	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler_cache/cache_storage.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler_cache/http_response.rs	6	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler_cache/immediate.rs	15	internal-helper	command-errors	0.0.9
@@ -196,7 +195,6 @@ crates/terlan/src/compiler/native_ir/collections.rs	12	internal-helper	compiler-
 crates/terlan/src/compiler/native_ir/composed_continuation.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors.rs	11	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/field_types.rs	3	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/constructors/projection.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/records.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/structural_registry.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/continuation_sharing.rs	4	internal-helper	compiler-errors	0.0.9
@@ -205,7 +203,7 @@ crates/terlan/src/compiler/native_ir/control/gated_call.rs	1	internal-helper	com
 crates/terlan/src/compiler/native_ir/control/prepared_call.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/control/yield_lowering.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/control_completion.rs	1	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/cranelift.rs	1	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/cranelift.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/call_then.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/callables.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/expression.rs	1	internal-helper	compiler-errors	0.0.9
@@ -214,7 +212,6 @@ crates/terlan/src/compiler/native_ir/cranelift/image_entry.rs	1	internal-helper	
 crates/terlan/src/compiler/native_ir/cranelift/indirect.rs	6	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/managed.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/setup.rs	2	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/cranelift/suspending_body.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/tail_call.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/test_support.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/cranelift/try_expr.rs	2	internal-helper	compiler-errors	0.0.9
@@ -243,10 +240,6 @@ crates/terlan/src/compiler/native_ir/generic_specialization/generic_unification.
 crates/terlan/src/compiler/native_ir/generic_specialization/inference.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/generic_specialization/module.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/higher_order_specialization.rs	7	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/http_values.rs	4	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/http_values/layout.rs	4	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/http_values/session.rs	4	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/http_values/traversal.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/lowering_test_support.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/native_object_test_support.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/nested_closure_lifting.rs	3	internal-helper	compiler-errors	0.0.9
@@ -373,7 +366,7 @@ crates/terlan/src/runtime/vm/http.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/deadline.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/lifecycle.rs	7	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/lifecycle_hooks.rs	5	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/http/overload.rs	2	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/http/overload.rs	3	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/protocol.rs	3	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/protocol/exchange.rs	20	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/protocol/server_runtime.rs	20	internal-helper	runtime-errors	0.0.9
@@ -383,13 +376,13 @@ crates/terlan/src/runtime/vm/http/response_wire.rs	1	internal-helper	runtime-err
 crates/terlan/src/runtime/vm/http/soak.rs	14	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/soak_pressure.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http/template_response.rs	4	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/http_session.rs	1	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/http_router.rs	12	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http_session/live_template_command.rs	4	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http_session/live_template_payload.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http_session/live_template_repeated_diff.rs	7	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http_session/live_template_response.rs	6	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/http_session/state/commands.rs	6	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/http_session/state/runtime.rs	33	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/http_session/state/runtime.rs	30	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/io_diagnostics.rs	8	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/io_runtime_boundary.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/live_template_protocol.rs	6	internal-helper	runtime-errors	0.0.9
@@ -420,7 +413,7 @@ crates/terlan/src/runtime/vm/process/parking.rs	3	internal-helper	runtime-errors
 crates/terlan/src/runtime/vm/process/transfer.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/process_alias/transfer.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/process_environment.rs	2	internal-helper	runtime-errors	0.0.9
-crates/terlan/src/runtime/vm/protocol_task_executor.rs	15	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/vm/protocol_task_executor.rs	16	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/protocol_task_executor/acceptor.rs	5	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/protocol_task_executor/local_resources.rs	2	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/vm/protocol_task_executor/process_ids.rs	3	internal-helper	runtime-errors	0.0.9

@@ -552,23 +552,22 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             "std.net.Uri",
             uri_std_source(),
             "std_net_uri_native_boundary",
-            1,
-            &[("parse_parts", 1, "std.net.uri.parse_parts")],
+            2,
+            &[
+                ("parse_parts", 1, "std.net.uri.parse_parts"),
+                ("query_pairs", 1, "std.net.uri.query_pairs"),
+            ],
         ),
         (
             "std.http.Cookies",
             http_cookies_std_source(),
             "std_http_cookies_native_boundary",
-            3,
-            &[
-                ("set_header", 5, "std.http.cookies.set_header"),
-                (
-                    "set_header_with_options",
-                    10,
-                    "std.http.cookies.set_header_with_options",
-                ),
-                ("delete_header", 2, "std.http.cookies.delete_header"),
-            ],
+            1,
+            &[(
+                "set_header_with_options",
+                10,
+                "std.http.cookies.set_header_with_options",
+            )],
         ),
         (
             "std.db.Postgres",

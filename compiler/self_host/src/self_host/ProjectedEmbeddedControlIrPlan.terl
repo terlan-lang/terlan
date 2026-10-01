@@ -1171,7 +1171,7 @@ pub root_embedded_if_blocks(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[List[SemanticBlockPlan]] ->
-    case embedded_if_at(
+    case embedded_if_any_at(
         node,
         0,
         "entry",
@@ -1688,3 +1688,1524 @@ embedded_case_two_nonlet_at(
         );
         true -> None
     }.
+
+struct GeneralCaseClausePlan {
+    index: Int,
+    pattern: ProjectedExpressionNode,
+    bindings: List[SemanticInstructionPlan],
+    body: ExpressionPlan,
+    embedded: Option[EmbeddedBranchPlan],
+}.
+
+constructor GeneralCaseClausePlan {
+    (
+        index: Int,
+        pattern: ProjectedExpressionNode,
+        bindings: List[SemanticInstructionPlan],
+        body: ExpressionPlan,
+        embedded: Option[EmbeddedBranchPlan],
+    ): GeneralCaseClausePlan ->
+        GeneralCaseClausePlan {
+            index: index,
+            pattern: pattern,
+            bindings: bindings,
+            body: body,
+            embedded: embedded,
+        }
+}.
+
+general_case_label(label_prefix: String, kind: String, index: Int): String ->
+    embedded_label(label_prefix, embedded_label(kind, Int.to_string(index))).
+
+general_case_environment(label_prefix: String, index: Int): String ->
+    embedded_label("%", general_case_label(label_prefix, "environment_", index)).
+
+general_case_match(label_prefix: String, index: Int): String ->
+    embedded_label("%", general_case_label(label_prefix, "match_", index)).
+
+general_embedded_control_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case embedded_refutable_let_at(
+        node,
+        node_id,
+        entry_label,
+        embedded_label(label_prefix, "refutable_let_"),
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> Some(embedded);
+        None ->
+            case embedded_case_at(
+                node,
+                node_id,
+                entry_label,
+                embedded_label(label_prefix, "case_"),
+                entry_instructions,
+                join_target,
+                facts,
+                parameters,
+            ) {
+                Some(embedded) -> Some(embedded);
+                None -> embedded_if_any_at(
+                    node,
+                    node_id,
+                    entry_label,
+                    embedded_label(label_prefix, "if_"),
+                    entry_instructions,
+                    join_target,
+                    facts,
+                    parameters,
+                )
+            }
+    }.
+
+general_case_clause_plans(
+    values: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralCaseClausePlan]] ->
+    case values {
+        [] -> Some(List.new[GeneralCaseClausePlan]());
+        [clause | rest] -> general_case_clause_pair(
+            expression_node_pair(clause.children),
+            clause,
+            rest,
+            index,
+            clause_id,
+            label_prefix,
+            join_label,
+            facts,
+            parameters,
+        )
+    }.
+
+general_case_clause_pair(
+    parts: Option[ExpressionNodePair],
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralCaseClausePlan]] ->
+    case parts {
+        Some(value) -> general_case_clause_supported(
+            shallow_pattern_supported(value.first),
+            value,
+            clause,
+            rest,
+            index,
+            clause_id,
+            label_prefix,
+            join_label,
+            facts,
+            parameters,
+        );
+        None -> None
+    }.
+
+general_case_clause_supported(
+    valid: Bool,
+    parts: ExpressionNodePair,
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralCaseClausePlan]] ->
+    case valid {
+        true -> general_case_clause_bound(
+            parts,
+            clause,
+            rest,
+            index,
+            clause_id,
+            label_prefix,
+            join_label,
+            facts,
+            parameters,
+        );
+        false -> None
+    }.
+
+general_case_clause_bound(
+    parts: ExpressionNodePair,
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralCaseClausePlan]] ->
+    let body_id = clause_id + 1 + node_size(parts.first);
+    let body_plan = lower_expression(parts.second, body_id, facts, parameters);
+    let body_label = general_case_label(label_prefix, "body_", index);
+    let environment = general_case_environment(label_prefix, index);
+    let bindings = shallow_pattern_bindings(parts.first, environment);
+    let embedded = general_embedded_control_at(
+        parts.second,
+        body_id,
+        body_label,
+        embedded_label(body_label, "_"),
+        bindings,
+        join_label,
+        facts,
+        parameters,
+    );
+    case general_case_clause_plans(
+        rest,
+        index + 1,
+        clause_id + node_size(clause),
+        label_prefix,
+        join_label,
+        facts,
+        parameters,
+    ) {
+        Some(plans) -> Some([
+            GeneralCaseClausePlan(index, parts.first, bindings, body_plan, embedded)
+            | plans
+        ]);
+        None -> None
+    }.
+
+general_case_next_pattern(
+    values: List[GeneralCaseClausePlan],
+    label_prefix: String,
+    unreachable_label: String,
+): String ->
+    case values {
+        [value | _] -> general_case_label(label_prefix, "pattern_", value.index);
+        [] -> unreachable_label
+    }.
+
+general_case_body_blocks(
+    value: GeneralCaseClausePlan,
+    label_prefix: String,
+    join_label: String,
+): List[SemanticBlockPlan] ->
+    case value.embedded {
+        Some(embedded) -> embedded.blocks;
+        None -> [
+            SemanticBlockPlan(
+                general_case_label(label_prefix, "body_", value.index),
+                concat_instructions(value.bindings, value.body.instructions),
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+        ]
+    }.
+
+general_case_clause_blocks(
+    values: List[GeneralCaseClausePlan],
+    subject: String,
+    label_prefix: String,
+    join_label: String,
+    unreachable_label: String,
+): List[SemanticBlockPlan] ->
+    case values {
+        [] -> List.new[SemanticBlockPlan]();
+        [value | rest] ->
+            let environment = general_case_environment(label_prefix, value.index);
+            let matched = general_case_match(label_prefix, value.index);
+            let body_label = general_case_label(label_prefix, "body_", value.index);
+            concat_blocks(
+                [
+                    SemanticBlockPlan(
+                        general_case_label(label_prefix, "pattern_", value.index),
+                        [
+                            SemanticInstructionPlan(
+                                "prepare-pattern",
+                                some_string(environment),
+                                shallow_pattern_operands(subject, value.pattern),
+                                some_string("PatternMatch"),
+                            ),
+                            SemanticInstructionPlan(
+                                "pattern-matched",
+                                some_string(matched),
+                                [environment],
+                                some_string("Bool"),
+                            ),
+                        ],
+                        SemanticTerminatorPlan(
+                            "branch",
+                            [matched],
+                            [body_label, general_case_next_pattern(rest, label_prefix, unreachable_label)],
+                        ),
+                    ),
+                ],
+                concat_blocks(
+                    general_case_body_blocks(value, label_prefix, join_label),
+                    general_case_clause_blocks(
+                        rest,
+                        subject,
+                        label_prefix,
+                        join_label,
+                        unreachable_label,
+                    ),
+                ),
+            )
+    }.
+
+general_case_phi_operands(values: List[GeneralCaseClausePlan], label_prefix: String): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> general_case_phi_value(
+            value,
+            general_case_phi_operands(rest, label_prefix),
+            label_prefix,
+        )
+    }.
+
+general_case_phi_value(
+    value: GeneralCaseClausePlan,
+    rest: List[String],
+    label_prefix: String,
+): List[String] ->
+    case value.embedded {
+        Some(embedded) -> [embedded.exit_label | [embedded.result | rest]];
+        None -> [
+            general_case_label(label_prefix, "body_", value.index)
+            | [value.body.result | rest]
+        ]
+    }.
+
+general_case_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    subject: ExpressionPlan,
+    plans: List[GeneralCaseClausePlan],
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let join_label = embedded_label(label_prefix, "join");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let result = register(node_id);
+    concat_general_case_blocks(
+        node,
+        plans,
+        EmbeddedBranchPlan(
+            concat_blocks(
+                [
+                    SemanticBlockPlan(
+                        entry_label,
+                        concat_instructions(entry_instructions, subject.instructions),
+                        SemanticTerminatorPlan(
+                            "jump",
+                            List.new[String](),
+                            [general_case_label(label_prefix, "pattern_", 0)],
+                        ),
+                    ),
+                ],
+                concat_blocks(
+                    general_case_clause_blocks(
+                        plans,
+                        subject.result,
+                        label_prefix,
+                        join_label,
+                        unreachable_label,
+                    ),
+                    [
+                        SemanticBlockPlan(
+                            unreachable_label,
+                            List.new[SemanticInstructionPlan](),
+                            SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                        ),
+                        SemanticBlockPlan(
+                            join_label,
+                            [
+                                SemanticInstructionPlan(
+                                    "phi",
+                                    some_string(result),
+                                    general_case_phi_operands(plans, label_prefix),
+                                    resolved_or_dynamic(expression_type(node, facts, parameters)),
+                                ),
+                            ],
+                            SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                        ),
+                    ],
+                ),
+            ),
+            result,
+            join_label,
+        ),
+    ).
+
+concat_general_case_blocks(
+    _node: ProjectedExpressionNode,
+    _plans: List[GeneralCaseClausePlan],
+    plan: EmbeddedBranchPlan,
+): EmbeddedBranchPlan ->
+    plan.
+
+general_case_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [subject | clauses] -> general_case_direct_clauses(
+            clauses,
+            node,
+            node_id,
+            subject,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [] -> None
+    }.
+
+general_case_direct_clauses(
+    clauses: List[ProjectedExpressionNode],
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    subject: ProjectedExpressionNode,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case clauses {
+        [] -> None;
+        [_ | _] ->
+            let subject_plan = lower_expression(subject, node_id + 1, facts, parameters);
+            let join_label = embedded_label(label_prefix, "join");
+            case general_case_clause_plans(
+                clauses,
+                0,
+                node_id + 1 + node_size(subject),
+                label_prefix,
+                join_label,
+                facts,
+                parameters,
+            ) {
+                Some(plans) -> Some(general_case_blocks(
+                    node,
+                    node_id,
+                    subject_plan,
+                    plans,
+                    entry_label,
+                    label_prefix,
+                    entry_instructions,
+                    join_target,
+                    facts,
+                    parameters,
+                ));
+                None -> None
+            }
+    }.
+
+/** Lowers an embedded case with any non-empty clause count and recursive control-flow bodies. */
+pub embedded_case_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "case" -> general_case_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> embedded_case_two_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+struct GeneralIfClausePlan {
+    index: Int,
+    condition: ExpressionPlan,
+    body: ExpressionPlan,
+    embedded: Option[EmbeddedBranchPlan],
+}.
+
+constructor GeneralIfClausePlan {
+    (
+        index: Int,
+        condition: ExpressionPlan,
+        body: ExpressionPlan,
+        embedded: Option[EmbeddedBranchPlan],
+    ): GeneralIfClausePlan ->
+        GeneralIfClausePlan {
+            index: index,
+            condition: condition,
+            body: body,
+            embedded: embedded,
+        }
+}.
+
+general_if_clause_plans(
+    values: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralIfClausePlan]] ->
+    case values {
+        [] -> Some(List.new[GeneralIfClausePlan]());
+        [clause | rest] -> general_if_clause_pair(
+            expression_node_pair(clause.children),
+            clause,
+            rest,
+            index,
+            clause_id,
+            label_prefix,
+            join_label,
+            facts,
+            parameters,
+        )
+    }.
+
+general_if_clause_pair(
+    parts: Option[ExpressionNodePair],
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralIfClausePlan]] ->
+    case parts {
+        Some(value) -> general_if_clause_bound(
+            value,
+            clause,
+            rest,
+            index,
+            clause_id,
+            label_prefix,
+            join_label,
+            facts,
+            parameters,
+        );
+        None -> None
+    }.
+
+general_if_clause_bound(
+    parts: ExpressionNodePair,
+    clause: ProjectedExpressionNode,
+    rest: List[ProjectedExpressionNode],
+    index: Int,
+    clause_id: Int,
+    label_prefix: String,
+    join_label: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[GeneralIfClausePlan]] ->
+    let condition_id = clause_id + 1;
+    let body_id = condition_id + node_size(parts.first);
+    let condition_plan = lower_expression(parts.first, condition_id, facts, parameters);
+    let body_plan = lower_expression(parts.second, body_id, facts, parameters);
+    let body_label = general_case_label(label_prefix, "body_", index);
+    let embedded = general_embedded_control_at(
+        parts.second,
+        body_id,
+        body_label,
+        embedded_label(body_label, "_"),
+        List.new[SemanticInstructionPlan](),
+        join_label,
+        facts,
+        parameters,
+    );
+    case general_if_clause_plans(
+        rest,
+        index + 1,
+        clause_id + node_size(clause),
+        label_prefix,
+        join_label,
+        facts,
+        parameters,
+    ) {
+        Some(plans) -> Some([
+            GeneralIfClausePlan(index, condition_plan, body_plan, embedded)
+            | plans
+        ]);
+        None -> None
+    }.
+
+general_if_next_condition(
+    values: List[GeneralIfClausePlan],
+    label_prefix: String,
+    unreachable_label: String,
+): String ->
+    case values {
+        [value | _] -> general_case_label(label_prefix, "condition_", value.index);
+        [] -> unreachable_label
+    }.
+
+general_if_body_blocks(
+    value: GeneralIfClausePlan,
+    label_prefix: String,
+    join_label: String,
+): List[SemanticBlockPlan] ->
+    case value.embedded {
+        Some(embedded) -> embedded.blocks;
+        None -> [
+            SemanticBlockPlan(
+                general_case_label(label_prefix, "body_", value.index),
+                value.body.instructions,
+                SemanticTerminatorPlan("jump", List.new[String](), [join_label]),
+            ),
+        ]
+    }.
+
+general_if_clause_blocks(
+    values: List[GeneralIfClausePlan],
+    label_prefix: String,
+    join_label: String,
+    unreachable_label: String,
+): List[SemanticBlockPlan] ->
+    case values {
+        [] -> List.new[SemanticBlockPlan]();
+        [value | rest] ->
+            let body_label = general_case_label(label_prefix, "body_", value.index);
+            concat_blocks(
+                [
+                    SemanticBlockPlan(
+                        general_case_label(label_prefix, "condition_", value.index),
+                        value.condition.instructions,
+                        SemanticTerminatorPlan(
+                            "branch",
+                            [value.condition.result],
+                            [body_label, general_if_next_condition(rest, label_prefix, unreachable_label)],
+                        ),
+                    ),
+                ],
+                concat_blocks(
+                    general_if_body_blocks(value, label_prefix, join_label),
+                    general_if_clause_blocks(rest, label_prefix, join_label, unreachable_label),
+                ),
+            )
+    }.
+
+general_if_phi_operands(values: List[GeneralIfClausePlan], label_prefix: String): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> general_if_phi_value(
+            value,
+            general_if_phi_operands(rest, label_prefix),
+            label_prefix,
+        )
+    }.
+
+general_if_phi_value(
+    value: GeneralIfClausePlan,
+    rest: List[String],
+    label_prefix: String,
+): List[String] ->
+    case value.embedded {
+        Some(embedded) -> [embedded.exit_label | [embedded.result | rest]];
+        None -> [
+            general_case_label(label_prefix, "body_", value.index)
+            | [value.body.result | rest]
+        ]
+    }.
+
+general_if_blocks(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    plans: List[GeneralIfClausePlan],
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    let join_label = embedded_label(label_prefix, "join");
+    let unreachable_label = embedded_label(label_prefix, "unreachable");
+    let result = register(node_id);
+    EmbeddedBranchPlan(
+        concat_blocks(
+            [
+                SemanticBlockPlan(
+                    entry_label,
+                    entry_instructions,
+                    SemanticTerminatorPlan(
+                        "jump",
+                        List.new[String](),
+                        [general_case_label(label_prefix, "condition_", 0)],
+                    ),
+                ),
+            ],
+            concat_blocks(
+                general_if_clause_blocks(plans, label_prefix, join_label, unreachable_label),
+                [
+                    SemanticBlockPlan(
+                        unreachable_label,
+                        List.new[SemanticInstructionPlan](),
+                        SemanticTerminatorPlan("unreachable", List.new[String](), List.new[String]()),
+                    ),
+                    SemanticBlockPlan(
+                        join_label,
+                        [
+                            SemanticInstructionPlan(
+                                "phi",
+                                some_string(result),
+                                general_if_phi_operands(plans, label_prefix),
+                                resolved_or_dynamic(expression_type(node, facts, parameters)),
+                            ),
+                        ],
+                        SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                    ),
+                ],
+            ),
+        ),
+        result,
+        join_label,
+    ).
+
+general_if_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.children {
+        [] -> None;
+        [_ | _] ->
+            let join_label = embedded_label(label_prefix, "join");
+            case general_if_clause_plans(
+                node.children,
+                0,
+                node_id + 1,
+                label_prefix,
+                join_label,
+                facts,
+                parameters,
+            ) {
+                Some(plans) -> Some(general_if_blocks(
+                    node,
+                    node_id,
+                    plans,
+                    entry_label,
+                    label_prefix,
+                    entry_instructions,
+                    join_target,
+                    facts,
+                    parameters,
+                ));
+                None -> None
+            }
+    }.
+
+general_if_continuation_or_linear(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): EmbeddedBranchPlan ->
+    case general_embedded_control_at(
+        node,
+        node_id,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> embedded;
+        None ->
+            let plan = lower_expression(node, node_id, facts, parameters);
+            EmbeddedBranchPlan(
+                [
+                    SemanticBlockPlan(
+                        entry_label,
+                        concat_instructions(entry_instructions, plan.instructions),
+                        SemanticTerminatorPlan("jump", List.new[String](), [join_target]),
+                    ),
+                ],
+                plan.result,
+                entry_label,
+            )
+    }.
+
+general_if_let_embedded_source(
+    source: EmbeddedBranchPlan,
+    source_plan: ExpressionPlan,
+    pattern: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    continuation_id: Int,
+    source_join_label: String,
+    label_prefix: String,
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let continuation_plan = general_if_continuation_or_linear(
+        continuation,
+        continuation_id,
+        source_join_label,
+        label_prefix,
+        linear_binding(pattern, source_plan),
+        join_target,
+        facts,
+        parameters,
+    );
+    Some(EmbeddedBranchPlan(
+        concat_blocks(source.blocks, continuation_plan.blocks),
+        continuation_plan.result,
+        continuation_plan.exit_label,
+    )).
+
+general_if_let_bound(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let source_id = node_id + 1 + node_size(pattern);
+    let continuation_id = source_id + node_size(source);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    let source_join_label = general_case_label(label_prefix, "let_source_join_", node_id);
+    case general_embedded_control_at(
+        source,
+        source_id,
+        entry_label,
+        general_case_label(label_prefix, "let_source_", node_id),
+        entry_instructions,
+        source_join_label,
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> general_if_let_embedded_source(
+            embedded,
+            source_plan,
+            pattern,
+            continuation,
+            continuation_id,
+            source_join_label,
+            label_prefix,
+            join_target,
+            facts,
+            parameters,
+        );
+        None -> Some(general_if_continuation_or_linear(
+            continuation,
+            continuation_id,
+            entry_label,
+            label_prefix,
+            concat_instructions(
+                entry_instructions,
+                concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+            ),
+            join_target,
+            facts,
+            parameters,
+        ))
+    }.
+
+general_if_let_parts(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true -> general_if_let_bound(
+            pattern,
+            source,
+            continuation,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        false -> None
+    }.
+
+general_if_let_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    general_if_let_values(
+        node.children,
+        node_id + 1,
+        entry_label,
+        label_prefix,
+        entry_instructions,
+        join_target,
+        facts,
+        parameters,
+    ).
+
+general_if_let_after_source(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case values {
+        [continuation] -> Some(general_if_continuation_or_linear(
+            continuation,
+            next_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ));
+        [_next | _rest] -> general_if_let_values(
+            values,
+            next_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [] -> None
+    }.
+
+general_if_let_chain_embedded_source(
+    source: EmbeddedBranchPlan,
+    source_plan: ExpressionPlan,
+    pattern: ProjectedExpressionNode,
+    remaining: List[ProjectedExpressionNode],
+    next_id: Int,
+    source_join_label: String,
+    label_prefix: String,
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case general_if_let_after_source(
+        remaining,
+        next_id,
+        source_join_label,
+        label_prefix,
+        linear_binding(pattern, source_plan),
+        join_target,
+        facts,
+        parameters,
+    ) {
+        Some(continuation) -> Some(EmbeddedBranchPlan(
+            concat_blocks(source.blocks, continuation.blocks),
+            continuation.result,
+            continuation.exit_label,
+        ));
+        None -> None
+    }.
+
+general_if_let_chain_bound(
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    remaining: List[ProjectedExpressionNode],
+    pattern_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let source_id = pattern_id + node_size(pattern);
+    let next_id = source_id + node_size(source);
+    let source_plan = lower_expression(source, source_id, facts, parameters);
+    let source_join_label = general_case_label(label_prefix, "let_source_join_", pattern_id);
+    case general_embedded_control_at(
+        source,
+        source_id,
+        entry_label,
+        general_case_label(label_prefix, "let_source_", pattern_id),
+        entry_instructions,
+        source_join_label,
+        facts,
+        parameters,
+    ) {
+        Some(embedded) -> general_if_let_chain_embedded_source(
+            embedded,
+            source_plan,
+            pattern,
+            remaining,
+            next_id,
+            source_join_label,
+            label_prefix,
+            join_target,
+            facts,
+            parameters,
+        );
+        None -> general_if_let_after_source(
+            remaining,
+            next_id,
+            entry_label,
+            label_prefix,
+            concat_instructions(
+                entry_instructions,
+                concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
+            ),
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+general_if_let_chain_supported(
+    valid: Bool,
+    pattern: ProjectedExpressionNode,
+    source: ProjectedExpressionNode,
+    remaining: List[ProjectedExpressionNode],
+    pattern_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true -> general_if_let_chain_bound(
+            pattern,
+            source,
+            remaining,
+            pattern_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        false -> None
+    }.
+
+general_if_let_values(
+    values: List[ProjectedExpressionNode],
+    pattern_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case values {
+        [pattern | rest] -> general_if_let_values_tail(
+            pattern,
+            rest,
+            pattern_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [] -> None
+    }.
+
+general_if_let_values_tail(
+    pattern: ProjectedExpressionNode,
+    values: List[ProjectedExpressionNode],
+    pattern_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case values {
+        [source | remaining] -> general_if_let_chain_supported(
+            pattern.kind == "binding-pattern",
+            pattern,
+            source,
+            remaining,
+            pattern_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [] -> None
+    }.
+
+/** Lowers embedded if expressions recursively, including let-bound control-flow sources. */
+pub embedded_if_any_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    if {
+        node.kind == "let" -> general_if_let_at(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        node.kind == "if" -> general_if_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        true -> None
+    }.
+
+struct RefutableLetParts {
+    bindings: List[ProjectedExpressionNode],
+    fallback: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    fallback_id: Int,
+    continuation_id: Int,
+}.
+
+constructor RefutableLetParts {
+    (
+        bindings: List[ProjectedExpressionNode],
+        fallback: ProjectedExpressionNode,
+        continuation: ProjectedExpressionNode,
+        fallback_id: Int,
+        continuation_id: Int,
+    ): RefutableLetParts -> RefutableLetParts {
+        bindings: bindings,
+        fallback: fallback,
+        continuation: continuation,
+        fallback_id: fallback_id,
+        continuation_id: continuation_id,
+    }
+}.
+
+refutable_let_tail(
+    valid: Bool,
+    fallback: ProjectedExpressionNode,
+    continuation: ProjectedExpressionNode,
+    fallback_id: Int,
+): Option[RefutableLetParts] ->
+    case valid {
+        true -> Some(RefutableLetParts(
+            List.new[ProjectedExpressionNode](),
+            fallback,
+            continuation,
+            fallback_id,
+            fallback_id + node_size(fallback),
+        ));
+        false -> None
+    }.
+
+refutable_let_prepend(
+    valid: Bool,
+    binding: ProjectedExpressionNode,
+    rest: Option[RefutableLetParts],
+): Option[RefutableLetParts] ->
+    case valid {
+        true ->
+            case rest {
+                Some(parts) -> Some(RefutableLetParts(
+                    [binding | parts.bindings],
+                    parts.fallback,
+                    parts.continuation,
+                    parts.fallback_id,
+                    parts.continuation_id,
+                ));
+                None -> None
+            };
+        false -> None
+    }.
+
+refutable_let_parts(
+    values: List[ProjectedExpressionNode],
+    child_id: Int,
+): Option[RefutableLetParts] ->
+    case values {
+        [fallback, continuation] -> refutable_let_tail(
+            fallback.kind == "fallback",
+            fallback,
+            continuation,
+            child_id,
+        );
+        [binding | rest] -> refutable_let_prepend(
+            binding.kind == "binding",
+            binding,
+            refutable_let_parts(rest, child_id + node_size(binding)),
+        );
+        [] -> None
+    }.
+
+refutable_success_control(
+    remaining: List[ProjectedExpressionNode],
+    next_binding_id: Int,
+    root: ProjectedExpressionNode,
+    parts: RefutableLetParts,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case remaining {
+        [] -> general_embedded_control_at(
+            parts.continuation,
+            parts.continuation_id,
+            entry_label,
+            embedded_label(label_prefix, "continuation_"),
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [_ | _] -> refutable_bindings_at(
+            remaining,
+            next_binding_id,
+            root,
+            parts,
+            entry_label,
+            general_case_label(label_prefix, "binding_", next_binding_id),
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        )
+    }.
+
+refutable_binding_pair(
+    pair: Option[ExpressionNodePair],
+    remaining: List[ProjectedExpressionNode],
+    binding: ProjectedExpressionNode,
+    binding_id: Int,
+    root: ProjectedExpressionNode,
+    parts: RefutableLetParts,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case pair {
+        Some(value) -> refutable_binding_supported(
+            shallow_pattern_supported(value.first),
+            value,
+            remaining,
+            binding,
+            binding_id,
+            root,
+            parts,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        None -> None
+    }.
+
+refutable_binding_supported(
+    valid: Bool,
+    pair: ExpressionNodePair,
+    remaining: List[ProjectedExpressionNode],
+    binding: ProjectedExpressionNode,
+    binding_id: Int,
+    root: ProjectedExpressionNode,
+    parts: RefutableLetParts,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case valid {
+        true -> refutable_binding_plans(
+            pair,
+            remaining,
+            binding,
+            binding_id,
+            root,
+            parts,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        false -> None
+    }.
+
+refutable_binding_plans(
+    pair: ExpressionNodePair,
+    remaining: List[ProjectedExpressionNode],
+    binding: ProjectedExpressionNode,
+    binding_id: Int,
+    root: ProjectedExpressionNode,
+    parts: RefutableLetParts,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    let source_id = binding_id + 1 + node_size(pair.first);
+    let next_binding_id = binding_id + node_size(binding);
+    let source = lower_expression(pair.second, source_id, facts, parameters);
+    let continuation = lower_expression(
+        parts.continuation,
+        parts.continuation_id,
+        facts,
+        parameters,
+    );
+    let join_label = embedded_label(label_prefix, "join");
+    let success_label = general_case_label(label_prefix, "body_", 0);
+    let environment = general_case_environment(label_prefix, 0);
+    let bindings = shallow_pattern_bindings(pair.first, environment);
+    let success = refutable_success_control(
+        remaining,
+        next_binding_id,
+        root,
+        parts,
+        success_label,
+        label_prefix,
+        bindings,
+        join_label,
+        facts,
+        parameters,
+    );
+    case general_case_clause_plans(
+        parts.fallback.children,
+        1,
+        parts.fallback_id + 1,
+        label_prefix,
+        join_label,
+        facts,
+        parameters,
+    ) {
+        Some(fallbacks) -> Some(general_case_blocks(
+            root,
+            binding_id,
+            source,
+            [
+                GeneralCaseClausePlan(0, pair.first, bindings, continuation, success)
+                | fallbacks
+            ],
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        ));
+        None -> None
+    }.
+
+refutable_bindings_at(
+    values: List[ProjectedExpressionNode],
+    binding_id: Int,
+    root: ProjectedExpressionNode,
+    parts: RefutableLetParts,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case values {
+        [binding | remaining] -> refutable_binding_pair(
+            expression_node_pair(binding.children),
+            remaining,
+            binding,
+            binding_id,
+            root,
+            parts,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        [] -> None
+    }.
+
+refutable_let_direct(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case refutable_let_parts(node.children, node_id + 1) {
+        Some(parts) -> refutable_bindings_at(
+            parts.bindings,
+            node_id + 1,
+            node,
+            parts,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        None -> None
+    }.
+
+/** Lowers a refutable let without re-evaluating failed binding sources. */
+pub embedded_refutable_let_at(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    entry_label: String,
+    label_prefix: String,
+    entry_instructions: List[SemanticInstructionPlan],
+    join_target: String,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[EmbeddedBranchPlan] ->
+    case node.kind == "let-refutable" {
+        true -> refutable_let_direct(
+            node,
+            node_id,
+            entry_label,
+            label_prefix,
+            entry_instructions,
+            join_target,
+            facts,
+            parameters,
+        );
+        false -> None
+    }.
+
+refutable_root_blocks(plan: Option[EmbeddedBranchPlan]): Option[List[SemanticBlockPlan]] ->
+    case plan {
+        Some(value) -> Some(concat_blocks(
+            value.blocks,
+            [
+                SemanticBlockPlan(
+                    "root_refutable_return",
+                    List.new[SemanticInstructionPlan](),
+                    SemanticTerminatorPlan("return", [value.result], List.new[String]()),
+                ),
+            ],
+        ));
+        None -> None
+    }.
+
+/** Lowers a function-root refutable let and returns its merged result. */
+pub root_refutable_let_blocks(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): Option[List[SemanticBlockPlan]] ->
+    refutable_root_blocks(embedded_refutable_let_at(
+        node,
+        0,
+        "entry",
+        "root_refutable_",
+        List.new[SemanticInstructionPlan](),
+        "root_refutable_return",
+        facts,
+        parameters,
+    )).

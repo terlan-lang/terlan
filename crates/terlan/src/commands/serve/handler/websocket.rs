@@ -77,7 +77,7 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
                     websocket.route
                 ));
             };
-            let live = crate::runtime::vm::websocket::VmWebSocketLiveSession::open(plan);
+            let live = terlan_http_native::websocket::session::Session::open(plan);
             AotWebSocketCallbackSession::open(vm, websocket.module.clone(), live)
                 .map(|session| VmWebSocketRouterAdmission::Upgrade(Box::new(session)))
                 .map(Some)

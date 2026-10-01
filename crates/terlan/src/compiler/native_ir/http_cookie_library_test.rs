@@ -3,6 +3,64 @@
 use super::source_constructor_test::check_sources;
 
 #[test]
+fn cookie_jar_construction_executes_source_under_both_module_names() {
+    let provider = include_str!("../../../../../std/http/Cookies.terl");
+    for module in ["std.http.Cookies", "app.SourceCookies"] {
+        // A changed constructor body must be observable, not replaced by ingress.
+        for pending in ["[]", "[\"source-owned\"]"] {
+            let provider = provider
+                .replace("module std.http.Cookies.", &format!("module {module}."))
+                .replace("#pending: []", &format!("#pending: {pending}"));
+            check_sources(&[&format!(
+                r#"{provider}
+pub check(): Bool ->
+    let incoming = Map({{"key", "before"}}, {{"empty", ""}});
+    let jar = from_map(incoming);
+    incoming.put("key", "after");
+    jar.get("key") == Some("before") and jar.get("empty") == Some("")
+        and jar.get("missing") == None and jar.headers() == {pending}
+        and from_map(Map.new[String, String]()).get("key") == None.
+"#
+            )]);
+        }
+    }
+}
+
+#[test]
+fn cookie_defaults_and_deletion_policy_execute_actual_source() {
+    let provider = include_str!("../../../../../std/http/Cookies.terl")
+        .replace("@compiler.native {std.http.cookies.set_header_with_options}\n", "")
+        .replace("    native.", r#"    if {
+        domain != "" or max_age != 0 or same_site != "" -> "unexpected options";
+        include_max_age and value == "" and not http_only and not secure -> name + ":" + path + ":" + expires;
+        not include_max_age and expires == "" -> name + ":" + value + ":" + path
+            + (if { http_only -> ":private"; true -> ":public" })
+            + (if { secure -> ":tls"; true -> ":plain" });
+        true -> "unexpected policy"
+    }."#);
+    assert!(!provider.contains("@compiler.native"));
+    for module in ["std.http.Cookies", "app.SourceCookies"] {
+        for expiry in [
+            "Thu, 01 Jan 1970 00:00:00 GMT",
+            "Wed, 21 Oct 2015 07:28:00 GMT",
+        ] {
+            let provider = provider
+                .replace("module std.http.Cookies.", &format!("module {module}."))
+                .replace("Thu, 01 Jan 1970 00:00:00 GMT", expiry);
+            check_sources(&[&format!(
+                r#"{provider}
+pub check(): Bool ->
+    set_header("sid", "value") == "sid:value:/:public:plain"
+        and set_header("sid", "value", "/private", true, true) == "sid:value:/private:private:tls"
+        and delete_header("sid") == "sid:/:{expiry}"
+        and delete_header("sid", "/private") == "sid:/private:{expiry}".
+"#
+            )]);
+        }
+    }
+}
+
+#[test]
 fn cookie_jar_methods_execute_the_provider_not_a_compiler_name_table() {
     let provider = r#"
 module std.http.Cookies.
@@ -73,39 +131,19 @@ pub check(): Bool ->
 }
 
 #[test]
-fn ordinary_cookie_calls_preserve_type_arguments_and_namespace_boundaries() {
-    use crate::terlan_typeck::{CoreExpr, CoreType};
-    let mut core = super::source_constructor_test::checked_provider(
-        "module cookie_types. import std.http.Cookies. pub check(): Bool -> true.",
-    );
-    let remote = CoreExpr::RemoteCall {
-        module: "std.http.Cookies".into(),
-        function: "source_policy".into(),
-        type_args: vec![CoreType::String],
-        args: vec![CoreExpr::Binary("\"value\"".into())],
-    };
-    let qualified = CoreExpr::Call {
-        function: "std.http.Cookies.source_policy".into(),
-        type_args: vec![CoreType::String],
-        args: vec![CoreExpr::Binary("\"value\"".into())],
-    };
-    let namesake = CoreExpr::Call {
-        function: "std.http.CookiesPolicy.source_policy".into(),
-        type_args: vec![CoreType::String],
-        args: Vec::new(),
-    };
-    for (input, expected) in [
-        (remote.clone(), remote.clone()),
-        (qualified.clone(), qualified),
-        (namesake.clone(), namesake),
-    ] {
-        core.functions[0].clauses[0].body.core_expr = Some(input);
-        super::http_values::lower_http_values(&mut core).unwrap();
-        assert_eq!(
-            core.functions[0].clauses[0].body.core_expr.as_ref(),
-            Some(&expected)
-        );
-    }
+fn generic_cookie_calls_and_namesakes_execute_declared_bodies() {
+    check_sources(&[
+        r#"module cookie_generics.
+import std.http.Cookies.
+import std.http.Cookies.{source_policy as alias}.
+import app.CookiesPolicy.
+pub check(): Bool ->
+    Cookies.source_policy[String]("value") == "value"
+    and alias[Int](42) == 42 and CookiesPolicy.source_policy[String]("value") == 19.
+"#,
+        "module std.http.Cookies. pub source_policy[T](value: T): T -> value.",
+        "module app.CookiesPolicy. pub source_policy[T](value: T): Int -> 19.",
+    ]);
 }
 
 #[test]

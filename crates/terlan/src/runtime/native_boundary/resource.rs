@@ -4,7 +4,7 @@
 //! owns those values behind generation-tagged handles so the runtime bridge can
 //! pass only stable opaque identifiers across process or language boundaries.
 
-use crate::terlan_native::{http, json, path, postgres, random, regex, vector};
+use crate::terlan_native::{json, path, postgres, random, regex, vector};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
 mod json_store;
@@ -20,8 +20,6 @@ pub enum ResourceKind {
     Json,
     /// `std.regex.Regex.Regex`.
     Regex,
-    /// `std.http.Response.Response`.
-    HttpResponse,
     /// `std.io.Path.Path`.
     Path,
     /// `std.db.Postgres.Pool`.
@@ -41,8 +39,6 @@ pub enum ResourceValue {
     Json(json::Json),
     /// Compiled regex resource owned by the Rust regex adapter.
     Regex(regex::Regex),
-    /// HTTP response resource owned by the Rust HTTP adapter.
-    HttpResponse(http::Response),
     /// Path resource owned by the Rust path adapter.
     Path(path::Path),
     /// Postgres pool resource owned by the Rust Postgres adapter.
@@ -69,7 +65,6 @@ impl ResourceValue {
             Self::RandomGenerator(_) => ResourceKind::RandomGenerator,
             Self::Json(_) => ResourceKind::Json,
             Self::Regex(_) => ResourceKind::Regex,
-            Self::HttpResponse(_) => ResourceKind::HttpResponse,
             Self::Path(_) => ResourceKind::Path,
             Self::PostgresPool(_) => ResourceKind::PostgresPool,
             Self::PostgresRow(_) => ResourceKind::PostgresRow,
@@ -166,28 +161,6 @@ impl ResourceStore {
         match self.get(handle)? {
             ResourceValue::Regex(value) => Ok(value),
             other => Err(kind_error(handle, ResourceKind::Regex, other.kind())),
-        }
-    }
-
-    /// Returns an HTTP response resource for a live handle.
-    ///
-    /// Inputs:
-    /// - `handle`: opaque handle expected to identify an HTTP response
-    ///   resource.
-    ///
-    /// Output:
-    /// - `Ok(&Response)` for a live HTTP response resource.
-    /// - `Err(ResourceError)` for stale handles or kind mismatches.
-    ///
-    /// Transformation:
-    /// - Validates liveness and resource kind before borrowing the value.
-    pub fn http_response(
-        &self,
-        handle: NativeBoundaryHandle,
-    ) -> Result<&http::Response, ResourceError> {
-        match self.get(handle)? {
-            ResourceValue::HttpResponse(value) => Ok(value),
-            other => Err(kind_error(handle, ResourceKind::HttpResponse, other.kind())),
         }
     }
 

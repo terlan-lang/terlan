@@ -1,7 +1,7 @@
 use super::*;
 use crate::terlan_native::{json, postgres};
 use crate::terlan_native_boundary::cancellation::NativeBoundaryCancellationToken;
-use crate::terlan_native_boundary::resource::{ResourceError, ResourceValue};
+use crate::terlan_native_boundary::resource::ResourceValue;
 
 #[test]
 fn retired_http_value_operations_reject_handles_without_changing_resources() {
@@ -287,31 +287,6 @@ fn runtime_executes_path_optional_handle_operations_through_terms() {
         parent,
         NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::OptionalHandle(Some(_)))
     ));
-}
-
-/// Verifies response extraction rejects non-response resource handles.
-///
-/// Inputs:
-/// - A JSON handle registered in the runtime.
-///
-/// Output:
-/// - Test passes when extracting it as a response returns `resource.kind`.
-///
-/// Transformation:
-/// - Exercises the server-side response handle validation failure path.
-#[test]
-fn runtime_rejects_non_response_handles_as_handler_results() {
-    let mut runtime = NativeBoundaryRuntime::new();
-    let json = runtime
-        .resources
-        .insert(ResourceValue::Json(json::null()))
-        .expect("non-response fixture");
-    let error = runtime
-        .http_response(json)
-        .err()
-        .unwrap_or_else(|| ResourceError::new("missing", "missing"));
-
-    assert_eq!(error.code(), "resource.kind");
 }
 
 /// Verifies an HTTP handler-shaped runtime flow can call Postgres and respond.

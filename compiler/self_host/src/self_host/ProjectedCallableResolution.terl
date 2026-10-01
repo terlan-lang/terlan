@@ -7,6 +7,7 @@ module self_host.ProjectedCallableResolution.
 
 import std.core.Option.{None, Option, Some}.
 import std.collections.List.
+import std.core.String.
 import self_host.ProjectedCallableSyntax.
 
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableDiagnostic, CallableResolution, CallableUse, ResolvedCallableUse}.
@@ -14,7 +15,7 @@ import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableDiagnosti
 module_matches(expected: Option[String], actual: String): Bool ->
     case expected {
         None -> true;
-        Some(name) -> name == actual
+        Some(name) -> name == actual or String.ends_with(actual, String.append(".", name))
     }.
 
 @pure

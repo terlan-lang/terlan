@@ -1,153 +1,4 @@
-//! Session imports cannot override source calls or unrelated receiver methods.
-
-use super::*;
-use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CoreType};
-
-pub(super) fn primitive(name: &str, arity: usize) -> CoreExpr {
-    CoreExpr::Intrinsic(CoreIntrinsicCall {
-        id: CoreIntrinsicId::NativeOperation {
-            operation: format!("std.http.session.{name}"),
-            parameter_types: vec![CoreType::String; arity],
-        },
-        args: (0..arity)
-            .map(|index| CoreExpr::Var(format!("arg{index}")))
-            .collect(),
-        return_type: match name {
-            "current" => CoreType::Tuple(vec![
-                crate::terlan_typeck::CoreTupleTypeElem::Type(CoreType::String),
-                crate::terlan_typeck::CoreTupleTypeElem::Type(CoreType::Bool),
-            ]),
-            "rotate" => CoreType::String,
-            "is_live" => CoreType::Bool,
-            "get" => CoreType::Apply {
-                constructor: "Option".into(),
-                args: vec![CoreType::String],
-            },
-            _ => CoreType::Named("Unit".into()),
-        },
-        effects: CoreEffectSet { effects: vec![] },
-        span: crate::terlan_syntax::span::Span::new(0, 0),
-    })
-}
-
-#[test]
-fn explicit_session_primitives_lower_without_import_or_provider_name_magic() {
-    for (name, arity) in [
-        ("current", 1),
-        ("get", 2),
-        ("set", 3),
-        ("delete", 2),
-        ("rotate", 1),
-        ("expire", 1),
-        ("is_live", 1),
-    ] {
-        let mut core = http_core();
-        core.imports.clear();
-        *body(&mut core) = primitive(name, arity);
-        let layouts = http_managed_layouts(&core).unwrap();
-        assert!(!layouts.is_empty(), "{name}");
-        assert_eq!(
-            layouts.len(),
-            3,
-            "session metadata must only install option and lookup-pair layouts"
-        );
-
-        lower_http_values(&mut core).unwrap();
-        assert_eq!(http_managed_layouts(&core).unwrap(), layouts);
-        let operation = body(&mut core);
-        assert!(
-            matches!(operation, CoreExpr::RemoteCall { module, function, args, .. }
-            if module == "$terlan.managed.http" && function == &format!("session_{name}") && args.len() == arity)
-        );
-        assert!(matches!(
-            lower_managed_http_operation(operation, |_| Ok(NativeExpr::Param(0))).unwrap(),
-            Some(NativeExpr::ManagedOperation { .. })
-        ));
-        for wrong in [0, arity + 1] {
-            *body(&mut core) = primitive(name, wrong);
-            assert!(lower_http_values(&mut core)
-                .unwrap_err()
-                .contains("http_session_arity"));
-        }
-    }
-}
-
-#[test]
-fn retired_session_response_operation_has_no_type_or_lowering() {
-    for function in [
-        "session_with_response",
-        "session_response_cookie",
-        "session_live_cookie",
-        "session_live_identity",
-    ] {
-        for arity in 0..4 {
-            let expression = CoreExpr::RemoteCall {
-                module: "$terlan.managed.http".into(),
-                function: function.into(),
-                type_args: vec![],
-                args: vec![CoreExpr::Int(0); arity],
-            };
-            assert_eq!(
-                super::super::http_values::managed_http_operation_type(&expression),
-                None
-            );
-            assert!(lower_managed_http_operation(&expression, |_| panic!(
-                "retired operation must not evaluate inputs"
-            ))
-            .unwrap()
-            .is_none());
-        }
-    }
-}
-
-#[test]
-fn ordinary_unit_primitives_keep_their_result_and_unknown_operations_are_untouched() {
-    for (name, arity) in [("set", 3), ("delete", 2), ("expire", 1)] {
-        let mut core = http_core();
-        core.imports.clear();
-        let mut expression = primitive(name, arity);
-        let CoreExpr::Intrinsic(call) = &mut expression else {
-            unreachable!();
-        };
-        call.return_type = CoreType::Named("Unit".into());
-        *body(&mut core) = expression;
-        lower_http_values(&mut core).unwrap();
-        assert!(
-            matches!(body(&mut core), CoreExpr::RemoteCall { function, .. }
-            if function == &format!("session_{name}"))
-        );
-    }
-    for name in [
-        "unknown",
-        "set_extra",
-        "",
-        "CURRENT",
-        "with_response",
-        "response_cookie",
-        "live_identity",
-    ] {
-        let mut core = http_core();
-        core.imports.clear();
-        let expression = primitive(name, 1);
-        *body(&mut core) = expression.clone();
-        assert!(http_managed_layouts(&core).unwrap().is_empty());
-
-        lower_http_values(&mut core).unwrap();
-        assert_eq!(body(&mut core), &expression);
-    }
-}
-
-#[test]
-fn importing_session_does_not_install_its_native_layouts() {
-    let mut core = http_core();
-    core.imports
-        .retain(|import| import.module == "std.http.Request");
-    core.imports.push(CoreImport {
-        module: "std.http.Session".into(),
-        kind: CoreImportKind::Module,
-    });
-    assert!(http_managed_layouts(&core).unwrap().is_empty());
-}
+//! Session source behavior and native declarations use the ordinary compiler path.
 
 #[test]
 fn session_provider_bodies_and_colliding_local_calls_execute_as_source() {
@@ -186,4 +37,119 @@ pub check(): Bool ->
         &caller.replace("std.http.Session", "app.Session"),
         &provider.replace("std.http.Session", "app.Session"),
     ]);
+}
+
+#[test]
+fn session_cookie_selection_normalization_and_pending_identity_follow_source_bodies() {
+    let request = r#"
+module std.http.Request.
+import std.core.Option.{None}.
+pub struct Request { value: Option[String] }.
+pub new(value: Option[String]): Request -> Request { value: value }.
+pub (request: Request) cookie(name: String): Option[String] ->
+    if { name == "terlan_session" -> request.value; true -> None }.
+"#;
+    let provider = include_str!("../../../../../std/http/Session.terl").replace(
+        "@compiler.native {std.http.session.current}\nlookup(identity: String): String ->\n    native.",
+        "lookup(identity: String): String -> if { identity == \"\" -> \"issued\"; true -> identity }.",
+    ) + r#"
+pub inspect(value: Option[String]): String ->
+    let session = current(Request.new(value));
+    session.#identity + ":" + session.#pending_identity.
+"#;
+    assert!(!provider.contains("@compiler.native {std.http.session.current}"));
+    let caller = r#"
+module session_cookie_source_policy.
+import std.http.Session.
+import std.core.Option.{Some, None}.
+pub check(): Int ->
+    if {
+        Session.inspect(None) != "issued:issued" -> 11;
+        Session.inspect(Some("")) != "issued:issued" -> 12;
+        Session.inspect(Some("id")) != "id:" -> 13;
+        Session.inspect(Some("  id  ")) != "id:" -> 14;
+        Session.inspect(Some("\u{2003}id\u{2003}")) != "id:" -> 15;
+        true -> 1
+    }.
+"#;
+    let option = include_str!("../../../../../std/core/Option.terl");
+    let string = include_str!("../../../../../std/core/String.terl");
+    for owner in ["std.http.Session", "app.Session"] {
+        let caller = caller.replace("std.http.Session", owner);
+        let provider = provider.replace("std.http.Session", owner);
+        eprintln!("session policy owner={owner} normalized");
+        super::super::source_constructor_test::check_sources(&[
+            &caller.replace("\\u{2003}", "\u{2003}"),
+            &provider,
+            request,
+            option,
+            string,
+        ]);
+        let untrimmed = caller
+            .replace(
+                "Some(\"  id  \")) != \"id:\"",
+                "Some(\"  id  \")) != \"  id  :\"",
+            )
+            .replace(
+                "Some(\"\\u{2003}id\\u{2003}\")) != \"id:\"",
+                "Some(\"\\u{2003}id\\u{2003}\")) != \"\\u{2003}id\\u{2003}:\"",
+            );
+        eprintln!("session policy owner={owner} exact");
+        super::super::source_constructor_test::check_sources(&[
+            &untrimmed.replace("\\u{2003}", "\u{2003}"),
+            &provider.replace("value.trim()", "value"),
+            request,
+            option,
+            string,
+        ]);
+    }
+}
+
+#[test]
+fn session_native_declarations_suspend_through_generic_capability_frames() {
+    use super::super::source_constructor_test::checked_provider;
+    use super::super::{NativeExpr, NativeModule, NativeTransitionOperation};
+
+    for owner in ["std.http.Session", "app.Session"] {
+        for (name, args, result) in [
+            ("current", "identity: String", "String"),
+            ("get", "identity: String, key: String", "Option[String]"),
+            (
+                "set",
+                "identity: String, key: String, value: String",
+                "Unit",
+            ),
+            ("delete", "identity: String, key: String", "Unit"),
+            ("rotate", "identity: String", "String"),
+            ("expire", "identity: String", "Unit"),
+            ("is_live", "identity: String", "Bool"),
+        ] {
+            for prefix in ["std.http.session", "app.storage"] {
+                let core = checked_provider(&format!(
+                    "module {owner}. import std.core.Option. @compiler.native {{{prefix}.{name}}}
+                     pub invoke({args}): {result} -> native."
+                ));
+                let modules = NativeModule::lower_application(&[&core]).unwrap();
+                let function = modules
+                    .iter()
+                    .flat_map(|m| &m.functions)
+                    .find(|f| f.name == "invoke")
+                    .unwrap();
+                assert!(
+                    matches!(&function.body, NativeExpr::Suspend {
+                    operation: NativeTransitionOperation::Capability,
+                    arguments, ..
+                } if matches!(arguments.first(), Some(NativeExpr::Int(7)))),
+                    "{owner} {prefix}.{name}: {:?}",
+                    function.body
+                );
+                let mut encodings = Vec::new();
+                function.body.collect_managed_encodings(&mut encodings);
+                assert!(encodings
+                    .iter()
+                    .all(|encoded| !encoded.starts_with(b"TVHS")));
+                super::super::emit_native_application_object(owner, &modules).unwrap();
+            }
+        }
+    }
 }

@@ -87,6 +87,10 @@ pub (uri: Uri) path(): String.
 @pure
 pub (uri: Uri) query(): Option[String].
 
+/// Decodes raw form-url-encoded query text in wire order, retaining duplicate keys.
+
+pub query_pairs(query: String): List[{String, String}].
+
 /// Returns the URI scheme.
 ///
 /// Input: one parsed `Uri`.

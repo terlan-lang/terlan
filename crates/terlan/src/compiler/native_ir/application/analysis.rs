@@ -2,50 +2,6 @@
 
 use super::*;
 
-pub(super) fn merge_managed_layouts(
-    layouts: &mut Vec<Arc<[u8]>>,
-    additions: Vec<Arc<[u8]>>,
-) -> Result<(), super::super::NativeIrError> {
-    for addition in additions {
-        let candidate = crate::runtime::native_image::managed::decode_aggregate_layout(&addition)
-            .map_err(|error| format!("error[native_ir.managed_layout]: {error}"))?;
-        let existing = layouts.iter().find_map(|encoded| {
-            let descriptor =
-                crate::runtime::native_image::managed::decode_aggregate_layout(encoded).ok()?;
-            (descriptor.managed().semantic_id() == candidate.managed().semantic_id()
-                && descriptor.kind() == candidate.kind()
-                && descriptor.variant_name() == candidate.variant_name()
-                && descriptor.discriminant() == candidate.discriminant())
-            .then_some(descriptor)
-        });
-        if let Some(existing) = existing {
-            let existing_fields = existing
-                .fields()
-                .iter()
-                .map(|field| field.field_type())
-                .collect::<Vec<_>>();
-            let candidate_fields = candidate
-                .fields()
-                .iter()
-                .map(|field| field.field_type())
-                .collect::<Vec<_>>();
-            if existing.variant_count() != candidate.variant_count()
-                || existing_fields != candidate_fields
-            {
-                return Err(format!(
-                    "error[native_ir.managed_layout_conflict]: semantic `{}` variant {:?} has incompatible physical layouts",
-                    candidate.canonical_type(),
-                    candidate.variant_name()
-                )
-                .into());
-            }
-            continue;
-        }
-        layouts.push(addition);
-    }
-    Ok(())
-}
-
 /// Adds layouts inferred from raw Core expressions without overriding an
 /// authoritative constructor/type layout already installed for the same
 /// semantic variant. Expression scans lack constructor-field context and can

@@ -12,6 +12,7 @@ pub use websocket::{
 /// SSE policy and stream failures shared by package codecs and host adapters.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SseError {
+    Codec(String),
     Closed,
     BackpressureExceeded,
     InvalidEventName,

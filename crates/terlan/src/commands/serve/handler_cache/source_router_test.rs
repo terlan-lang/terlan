@@ -4,6 +4,9 @@ use crate::commands::serve::handler_cache::handler_cache_test_support::compile_n
 use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
 use crate::runtime::vm::ReplValue;
 
+#[path = "source_pipeline_test.rs"]
+mod pipelines;
+
 fn request(path: &str) -> ReplValue {
     crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned(
         crate::runtime::native::http::Request::from_parts("GET", path, "").into_parts(),
@@ -327,9 +330,7 @@ pub router(): Router ->
     let plan = source_descriptor::router(&value, |callback, _| Ok(callback.clone())).unwrap();
     assert_eq!(plan.routes.len(), 20);
     for route in &plan.routes {
-        let expected = if route.path.starts_with("/api/nested") {
-            2
-        } else if route.path.starts_with("/api/") {
+        let expected = if route.path.starts_with("/api/") {
             1
         } else {
             0

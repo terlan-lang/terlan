@@ -4,6 +4,7 @@ module self_host.ModuleInterfaceSyntax.
 import self_host.Syntax.{DeclarationClass, SyntaxSpan}.
 
 import std.collections.List.
+import std.core.Option.{Option}.
 import std.core.{Int, String}.
 
 
@@ -11,15 +12,17 @@ pub struct ExportedSymbol {
     name: String,
     arity: Int,
     class: DeclarationClass,
+    return_type: Option[String],
     span: SyntaxSpan,
 }.
 
 pub constructor ExportedSymbol {
-    (name: String, arity: Int, class: DeclarationClass, span: SyntaxSpan): ExportedSymbol ->
+    (name: String, arity: Int, class: DeclarationClass, return_type: Option[String], span: SyntaxSpan): ExportedSymbol ->
         ExportedSymbol {
             name: name,
             arity: arity,
             class: class,
+            return_type: return_type,
             span: span,
         }
 }.
@@ -39,4 +42,3 @@ pub constructor ModuleInterface {
             symbols: symbols,
         }
 }.
-

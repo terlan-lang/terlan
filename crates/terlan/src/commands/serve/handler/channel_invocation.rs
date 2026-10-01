@@ -40,6 +40,7 @@ pub(in crate::commands::serve) struct AotChannelInvocation<Event> {
     router_module: String,
     pending: Option<AotHandlerInvocation>,
     pending_event: Option<Event>,
+    #[cfg(test)]
     completed_events: Vec<Event>,
 }
 
@@ -59,6 +60,7 @@ where
             router_module,
             pending: None,
             pending_event: None,
+            #[cfg(test)]
             completed_events: Vec::new(),
         }
     }
@@ -91,26 +93,53 @@ where
         callback: Option<&ReplValue>,
         args: Vec<ReplValue>,
     ) -> Result<AotChannelCallbackState, String> {
-        if self.pending.is_some() {
-            return Err(format!(
-                "error[serve.{}.callback_busy]: cannot dispatch {event:?} while {:?} is waiting",
-                self.channel, self.pending_event
-            ));
-        }
+        self.require_idle(event)?;
         let Some(callback) = callback else {
+            #[cfg(test)]
             self.completed_events.push(event);
             return Ok(AotChannelCallbackState::Complete(ReplValue::Unit));
         };
         let step = self
             .runtime
             .begin_callable_invocation(&self.router_module, callback, args)
-            .map_err(|error| {
-                format!(
-                    "error[serve.{}.callback]: {event:?} callback failed: {error}",
-                    self.channel
-                )
-            })?;
+            .map_err(|error| self.callback_error(event, error))?;
         self.finish_step(event, step)
+    }
+
+    /// Completes setup work through the existing protocol-owned worker pump.
+    /// The mutable borrow prevents another callback from entering while parked.
+    pub(in crate::commands::serve) async fn invoke_suspendable(
+        &mut self,
+        event: Event,
+        callback: &ReplValue,
+        args: Vec<ReplValue>,
+    ) -> Result<ReplValue, String> {
+        self.require_idle(event)?;
+        let value = self
+            .runtime
+            .execute_suspendable_callable(&self.router_module, callback, args)
+            .await
+            .map_err(|error| self.callback_error(event, error))?;
+        #[cfg(test)]
+        self.completed_events.push(event);
+        Ok(value)
+    }
+
+    fn callback_error(&self, event: Event, error: impl std::fmt::Display) -> String {
+        format!(
+            "error[serve.{}.callback]: {event:?} callback failed: {error}",
+            self.channel
+        )
+    }
+
+    fn require_idle(&self, event: Event) -> Result<(), String> {
+        if self.pending.is_some() {
+            return Err(format!(
+                "error[serve.{}.callback_busy]: cannot dispatch {event:?} while {:?} is waiting",
+                self.channel, self.pending_event
+            ));
+        }
+        Ok(())
     }
 
     /// Resumes the exact parked callback from one typed VM I/O wake.
@@ -170,6 +199,7 @@ where
         loop {
             step = match step {
                 AotHandlerInvocationStep::Complete(value) => {
+                    #[cfg(test)]
                     self.completed_events.push(event);
                     return Ok(AotChannelCallbackState::Complete(value));
                 }

@@ -114,18 +114,25 @@ pub struct NativeBinding {
 impl NativeBinding {
     /// Rejects wrong arity before argument conversion or package execution.
     pub fn validate_arity(&self, received: usize) -> Result<(), BoundaryError> {
-        if received == self.arity {
-            return Ok(());
-        }
-        Err(BoundaryError::message(
-            ErrorDomain::NativeBoundary,
-            "native package arguments",
-            format!(
-                "error[native_package.arguments]: operation `{}` expects {} arguments, received {received}",
-                self.operation, self.arity
-            ),
-        ))
+        validate_native_arity(self.operation, self.arity, received)
     }
+}
+
+pub(crate) fn validate_native_arity(
+    operation: &str,
+    expected: usize,
+    received: usize,
+) -> Result<(), BoundaryError> {
+    if received == expected {
+        return Ok(());
+    }
+    Err(BoundaryError::message(
+        ErrorDomain::NativeBoundary,
+        "native package arguments",
+        format!(
+            "error[native_package.arguments]: operation `{operation}` expects {expected} arguments, received {received}"
+        ),
+    ))
 }
 
 #[cfg(test)]

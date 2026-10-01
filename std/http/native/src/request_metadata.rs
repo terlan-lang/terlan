@@ -31,8 +31,8 @@ pub fn request_cookie_pairs(headers: &HeaderMap) -> Vec<(String, String)> {
 }
 
 impl RequestMetadata {
-    /// Decodes only source-observable metadata. Cookie-jar access requires
-    /// incoming cookies even when the direct cookie map is not observed.
+    /// Decodes only source-observable metadata. Direct cookie reads and
+    /// source-owned jar construction observe the same incoming cookie map.
     pub fn from_http(
         projection: Projection,
         params: &[(String, String)],
@@ -60,9 +60,7 @@ impl RequestMetadata {
             } else {
                 Vec::new()
             },
-            cookies: if projection.requires(Projection::COOKIES)
-                || projection.requires(Projection::COOKIE_JAR)
-            {
+            cookies: if projection.requires(Projection::COOKIES) {
                 request_cookie_pairs(headers)
             } else {
                 Vec::new()

@@ -197,7 +197,7 @@ pub(crate) struct VmHttpTcpServer {
     handler_deadlines: VmHttpHandlerDeadlines,
     pub(crate) last_completed_handlers: Vec<VmProcessId>,
     lifecycle: VmHttpLifecycleState,
-    lifecycle_hook: Option<Box<dyn VmHttpLifecycleHook>>,
+    lifecycle_hook: Option<Box<VmHttpLifecycleHook>>,
 }
 
 /// Snapshot of VM HTTP server scheduling and listener pressure.

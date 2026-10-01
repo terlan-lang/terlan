@@ -20,8 +20,7 @@ impl RequestFieldProjection {
     pub const QUERY: usize = 6;
     pub const HEADERS: usize = 7;
     pub const COOKIES: usize = 8;
-    pub const COOKIE_JAR: usize = 9;
-    pub const BODY_FILE_PATH: usize = 10;
+    pub const BODY_FILE_PATH: usize = 9;
 
     pub const fn empty() -> Self {
         Self::Fields(0)

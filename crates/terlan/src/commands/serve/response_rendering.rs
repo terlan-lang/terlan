@@ -282,7 +282,8 @@ pub(super) fn serve_vm_stream_websocket_upgrade_response(
         .get("sec-websocket-key")
         .and_then(|value| value.to_str().ok())
         .ok_or_else(|| "VM stream WebSocket upgrade is missing Sec-WebSocket-Key".to_string())?;
-    let upgrade = crate::runtime::vm::websocket::build_websocket_upgrade_response(key)?;
+    let upgrade = terlan_http_native::websocket::upgrade_response(key)
+        .map_err(|error| format!("error[vm_websocket]: {}", error.message()))?;
     let status = ::http::StatusCode::from_u16(upgrade.status)
         .map_err(|error| format!("VM stream WebSocket status is invalid: {error}"))?;
     let mut builder = ::http::Response::builder().status(status);
@@ -446,7 +447,10 @@ pub(super) fn request_file_path(web_root: &Path, request_path: &str) -> Option<P
 ///
 /// Transformation:
 /// - Rejects absolute paths, parent components, prefixes, Windows separators,
-///   and NUL bytes before joining accepted normal components.
+///   and NUL bytes before joining accepted normal components. Existing paths
+///   must resolve inside the canonical package root, including through symlinks.
+///   Served package trees must not be mutated by untrusted host processes during
+///   lookup/read; this is not a descriptor-relative, race-proof filesystem jail.
 pub(super) fn package_relative_path(web_root: &Path, relative: &str) -> Option<PathBuf> {
     if relative.contains('\\') || relative.contains('\0') {
         return None;
@@ -464,5 +468,16 @@ pub(super) fn package_relative_path(web_root: &Path, relative: &str) -> Option<P
             Component::ParentDir | Component::RootDir | Component::Prefix(_) => return None,
         }
     }
-    Some(output)
+    let root = web_root.canonicalize().ok()?;
+    match output.canonicalize() {
+        Ok(resolved) => resolved.starts_with(root).then_some(resolved),
+        // Callers retain their existing missing-file diagnostics. They must
+        // still check/open the file; absence is not authorization to create it.
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Some(output),
+        Err(_) => None,
+    }
 }
+
+#[cfg(test)]
+#[path = "response_rendering_path_test.rs"]
+mod path_tests;

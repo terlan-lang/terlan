@@ -7,13 +7,14 @@
  */
 module std.http.Request.
 
-import type std.core.{Option, Result}.
-import std.core.Error.
-import std.core.Result.{Ok, Err}.
-import std.core.Option.{None}.
-import std.data.Json.
 import std.collections.Map.
-import std.core.String.
+import std.core.Option.{None}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Error, String}.
+import std.data.Json.
+import std.http.Cookies.
+
+import type std.core.{Option, Result}.
 import type std.http.Cookies.Jar.
 
 type InvalidBody = Atom["http.body_json"].
@@ -34,7 +35,6 @@ pub struct Request {
     #query: Map[String, String],
     #headers: Map[String, String],
     #cookies: Map[String, String],
-    #cookie_jar: Jar,
     #body_file_path: String,
 }.
 
@@ -127,13 +127,13 @@ pub (request: Request) cookie(name: String): Option[String] ->
  * Returns the request-scoped cookie jar.
  *
  * Input: one `Request` receiver.
- * Output: a mutable-capable `Cookies.Jar` handle for reading incoming cookies
+ * Output: a fresh source-owned `Cookies.Jar` for reading incoming cookies
  * and recording response cookie mutations.
- * Transformation: asks the HTTP runtime for the request-owned cookie view
- * without exposing raw headers or response-header threading to handlers.
+ * Transformation: initializes an empty pending-header list in Terlan from the
+ * decoded incoming snapshot. Separate calls never share outgoing mutations.
  */
 pub (request: Request) cookies(): Jar ->
-    request.#cookie_jar.
+    Cookies.from_map(request.#cookies).
 
 /**
  * Returns the request body as text.

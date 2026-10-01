@@ -1,27 +1,29 @@
 use super::*;
+use std::future::{pending, ready};
+use std::task::{Context, Poll, Waker};
 
 #[test]
-fn http2_limits_bound_streams_flow_headers_frames_and_owner_tasks() {
-    assert_eq!(MAX_CONCURRENT_STREAMS, 256);
-    assert_eq!(MAX_PENDING_RESET_STREAMS, 64);
-    assert!(INITIAL_STREAM_WINDOW_BYTES < INITIAL_CONNECTION_WINDOW_BYTES);
-    assert_eq!(MAX_FRAME_BYTES, 16 * 1024);
-    assert_eq!(MAX_HEADER_LIST_BYTES, 64 * 1024);
-    assert_eq!(MAX_SEND_BUFFER_BYTES, 1024 * 1024);
-    assert!(MAX_OWNER_LOCAL_HTTP2_TASKS >= MAX_CONCURRENT_STREAMS as usize);
-}
+fn host_adapter_preserves_connection_and_capacity_diagnostics() {
+    let capacity = NonZeroUsize::new(1).unwrap();
+    let mut failed = Box::pin(drive_connection(capacity, |_| ready(Err("broken"))));
+    assert_eq!(
+        failed
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Ready(Err("Hyper HTTP/2 TLS connection failed: broken".into()))
+    );
 
-#[test]
-fn owner_local_http2_executor_fails_loudly_at_capacity() {
-    let tasks = Rc::new(RefCell::new(Vec::new()));
-    let overflowed = Rc::new(Cell::new(false));
-    let executor = VmHttp2Executor {
-        tasks: Rc::clone(&tasks),
-        overflowed: Rc::clone(&overflowed),
-    };
-    for _ in 0..=MAX_OWNER_LOCAL_HTTP2_TASKS {
-        executor.execute(async {});
-    }
-    assert_eq!(tasks.borrow().len(), MAX_OWNER_LOCAL_HTTP2_TASKS);
-    assert!(overflowed.get());
+    let mut overflowed = Box::pin(drive_connection(capacity, |spawner| {
+        spawner.spawn(Box::pin(pending())).unwrap();
+        assert!(spawner.spawn(Box::pin(pending())).is_err());
+        pending::<Result<(), String>>()
+    }));
+    assert_eq!(
+        overflowed
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop())),
+        Poll::Ready(Err(
+            "error[vm.http2.stream_pressure]: owner-local HTTP/2 task limit exceeded".into()
+        ))
+    );
 }

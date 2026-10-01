@@ -37,7 +37,7 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
-            "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
+            "std/http/native/src/acme/cache.rs",
             r#"
 AcmeCertificateCacheMetadata schema_version cache_format_version domains
 subject_alternative_names issuer account_id key_algorithm challenge_method
@@ -45,16 +45,16 @@ acme_mode not_before_unix_seconds not_after_unix_seconds
 issued_at_unix_seconds renew_after_unix_seconds issuing_worker_identity
 provenance_hash
 store_acme_certificate_cache load_acme_certificate_cache_metadata
-store_acme_certificate_cache_metadata write_cache_file_atomically rename_cache_file
+store_acme_certificate_cache_metadata write_cache_file_atomically persist_cache_file
 restrict_private_key_file_permissions validate_private_key_cache_permissions
 validate_acme_certificate_cache_mode
 validate_acme_certificate_cache_provenance_hash
 AcmeCacheSupportBundleRedaction redact_acme_cache_support_bundle
-AcmeKeyCustodyPolicy validate_acme_key_custody_policy
+validate_acme_cache_paths validate_acme_key_custody_policy
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "std/http/native/src/acme.rs",
             r#"
 load_acme_runtime_tls_cache validate_acme_certificate_cache_age
 validate_acme_certificate_cache_domains
@@ -66,10 +66,9 @@ validate_acme_provider_supported acme_runtime_plan
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/tls.rs",
+            "std/net/native/src/tls.rs",
             r#"
-load_certificate_chain load_private_key with_single_cert
-VM TLS manual encrypted private keys are not supported
+parse_certificate_chain parse_private_key with_single_cert
 "#,
         )?;
         self.write(
@@ -95,14 +94,14 @@ acme_cache_support_bundle_redaction_removes_sensitive_material
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/tls_test.rs",
+            "std/http/native/src/tls_material_test.rs",
             r#"
-vm_tls_runtime_reports_missing_manual_private_key_file
-vm_tls_runtime_reports_malformed_manual_private_key_file
-vm_tls_runtime_reports_manual_private_key_without_supported_key
-vm_tls_runtime_rejects_manual_encrypted_private_key_plan
+manual_propagates_file_and_material_errors_without_accepting_partial_configuration
+pem_failures_keep_file_context_and_never_accept_partial_chains
+manual_rejects_missing_fields_and_encrypted_key_options_before_io
 "#,
         )?;
+        self.write("std/http/native/src/acme/tests.rs", "acme_cache_support_bundle_redaction_removes_sensitive_material rejected_replacement_keeps_published_material_and_cleans_staging_files cache_paths_reject_parent_traversal_before_reads_or_writes")?;
         self.write("Makefile", COMPLETE_MAKEFILE)
     }
 }
@@ -117,6 +116,16 @@ const COMPLETE_MAKEFILE: &str = r#"
 vm-http-acme-cache-custody-check: vm-http-acme-worker-migration-check
 	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-http-acme-cache-custody
 "#;
+
+#[test]
+fn vm_http_acme_cache_custody_validates_the_actual_package_owned_repository() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    run_vm_http_acme_cache_custody(root).expect("actual package-owned cache custody gate");
+}
 
 #[test]
 fn vm_http_acme_cache_custody_writes_redacted_report_for_current_foundation() {
@@ -150,12 +159,10 @@ fn vm_http_acme_cache_custody_writes_redacted_report_for_current_foundation() {
 fn vm_http_acme_cache_custody_rejects_missing_atomic_write_anchor() {
     let repo = TestRepo::new("missing-atomic").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo
-        .root()
-        .join("crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs");
+    let path = repo.root().join("std/http/native/src/acme/cache.rs");
     let source = fs::read_to_string(&path).expect("cache source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
+        "std/http/native/src/acme/cache.rs",
         &source.replace("write_cache_file_atomically", ""),
     )
     .expect("rewrite cache source");

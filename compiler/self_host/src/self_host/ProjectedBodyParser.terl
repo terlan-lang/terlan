@@ -59,14 +59,34 @@ has_tagged_body_arrow(values: List[ProjectedCanonicalToken]): Bool ->
 after_body_arrow_at(values: List[ProjectedCanonicalToken], tagged: Bool): List[ProjectedCanonicalToken] ->
     case values {
         [] -> List.new[ProjectedCanonicalToken]();
-        [value | rest] where (tagged and value.terminal == "function-body-arrow")
-            or (not tagged and value.text == "->") -> rest;
+        [value | rest] where tagged and value.terminal == "function-body-arrow" -> rest;
         [_value | rest] -> after_body_arrow_at(rest, tagged)
     }.
 
 @pure
 after_body_arrow(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
-    after_body_arrow_at(values, has_tagged_body_arrow(values)).
+    if {
+        has_tagged_body_arrow(values) -> after_body_arrow_at(values, true);
+        true -> after_top_level_body_arrow_at(values, 0, 0, 0)
+    }.
+
+@pure
+after_top_level_body_arrow_at(
+    values: List[ProjectedCanonicalToken],
+    parens: Int,
+    brackets: Int,
+    braces: Int,
+): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] where value.text == "->" and parens == 0 and brackets == 0 and braces == 0 -> rest;
+        [value | rest] -> after_top_level_body_arrow_at(
+            rest,
+            depth_after(value.text, "(", ")", parens),
+            depth_after(value.text, "[", "]", brackets),
+            depth_after(value.text, "{", "}", braces),
+        )
+    }.
 
 @pure
 before_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->

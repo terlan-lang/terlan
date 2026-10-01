@@ -1,6 +1,7 @@
 # Std Net Internals
 
-This directory owns portable network data helpers and maintained native codecs.
+This directory owns portable network data helpers, maintained native codecs,
+and the nonblocking socket transport used by production HTTP serving.
 The current public Terlan surface is URI parsing/formatting support.
 
 ## Responsibilities
@@ -37,10 +38,10 @@ conveniences such as `host()` and `to_string()` remain ordinary Terlan methods.
 The macro is shared Rust binding machinery, not a new Terlan annotation or
 automatic discovery of every method exposed by an upstream crate.
 
-The internal native `query_pairs` helper delegates form-url-encoded query
+The `Uri.query_pairs` binding delegates form-url-encoded query
 decoding to `url::form_urlencoded`. HTTP request metadata and WebSocket identity
 restoration share this codec. It preserves wire order and duplicate keys;
-callers own lookup policy. This does not add a public Terlan URI operation.
+callers own lookup policy.
 
 Important invariants:
 
@@ -91,8 +92,44 @@ spawning background work. Socket readiness registration and wakeups remain the
 transport owner's responsibility. There is no package-created executor or timer.
 
 The VM production adapter now supplies its socket and deadline to this API.
-HTTP ALPN decisions and Hyper buffer adaptation live in `std/http/native`, not
+HTTP ALPN decisions and TLS Hyper buffer adaptation live in `std/http/native`, not
 this network codec. The older logical VM TLS plan/stream API still needs migration.
+
+## Native Socket Transport
+
+`native/src/tcp/ready.rs` supplies maintained Mio TCP listeners and connections
+through the runtime ABI's optional `poll-io` interfaces: `IncomingStreams` and
+`ReadinessStream`. The package owns nonblocking setup, acceptance, scalar and
+vectored I/O, write-half shutdown, and Mio source delegation. The VM executor
+accepts these generic interfaces, not a TCP listener or TCP stream.
+
+The shared ABI `ReadyStream` facade pairs the stream with the VM's
+`WriteInterest` implementation. Only a stalled write requests writable
+interest, preserving read interest and the owner's generation-qualified token.
+Successful registration happens once; a failed registration propagates its
+error and can retry later. Readiness wakes, cancellation, deadlines, and actor
+scheduling stay with the VM. The package creates no executor or worker thread.
+`native/src/transport.rs` re-exports this facade and supplies the TLS half-close
+trait adaptation. It does not duplicate the ABI implementation. Only initialized
+read buffers cross the safe extension boundary.
+
+`native/src/tcp.rs` owns address resolution and listener construction, including
+address-family selection, Unix reuse flags, nonblocking mode, and the existing
+1,024-connection listen backlog. It tries resolved addresses in order and
+preserves the established bind diagnostics. The serving host calls this package
+directly and supplies its listener adapter to the VM. The VM's old TCP convenience
+entrypoint remains only in test builds.
+
+This is an internal Rust package interface, not a new public Terlan TCP API.
+The legacy `std.vm.Tcp` API still lacks native lowering and needs migration.
+Session lifecycle policy also remains unfinished; moving
+socket mechanics does not establish source-owned actors.
+
+Transport tests cover partial/vectored transfers, EOF, interruption, repeated
+backpressure, failed readiness registration, and drop cleanup. A real TCP
+loopback test checks receive and half-close semantics; it requires an
+environment that permits opening sockets and must not silently pass when
+socket creation is denied.
 
 ## Types And Interfaces
 

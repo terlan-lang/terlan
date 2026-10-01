@@ -41,8 +41,10 @@ pub check(): Bool ->
 
 #[test]
 fn request_library_reads_its_own_fields_and_preserves_missing_and_empty_values() {
-    let request = include_str!("../../../../../std/http/Request.terl")
-        .replace("import type std.http.Cookies.Jar.", "import std.http.Cookies.\nimport type std.http.Cookies.Jar.\nimport std.core.Option.{Some}.");
+    let request = include_str!("../../../../../std/http/Request.terl").replace(
+        "import type std.http.Cookies.Jar.",
+        "import type std.http.Cookies.Jar.\nimport std.core.Option.{Some}.",
+    );
     let request = format!(
         "{request}\n{}",
         r#"
@@ -52,7 +54,7 @@ pub exercise(): Bool ->
         #params: Map({"id", "42"}), #body: "raw body",
         #query_string: "q=&q=last", #query: Map({"q", ""}),
         #headers: Map({"x-test", "header"}, {"key", "ascii"}), #cookies: Map({"session", "cookie"}),
-        #cookie_jar: Cookies.empty(), #body_file_path: "/tmp/body"
+        #body_file_path: "/tmp/body"
     };
     request.method() == "POST" and request.path() == "/source"
         and request.body_text() == "raw body"
@@ -73,6 +75,6 @@ pub exercise(): Bool ->
     check_sources(&[
         "module request_values. import std.http.Request. pub check(): Bool -> Request.exercise().",
         &request,
-        "module std.http.Cookies. pub struct Jar { marker: Int }. pub empty(): Jar -> Jar { marker: 41 }.",
+        "module std.http.Cookies. import type std.collections.Map. pub struct Jar { marker: Int }. pub from_map(incoming: Map[String, String]): Jar -> Jar { marker: 41 }.",
     ]);
 }

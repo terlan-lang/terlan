@@ -11,10 +11,12 @@ pub const NATIVE_MODULE: &str = "std_net_uri_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
+    ("query_pairs", 1),
     ("parse_parts", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
+    ("query_pairs", "std.net.uri.query_pairs", 1),
     ("parse_parts", "std.net.uri.parse_parts", 1),
 ];
 
@@ -143,6 +145,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
+                        "std.net.uri.query_pairs" => native_unimplemented_operation(operation),
                         "std.net.uri.parse_parts" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },

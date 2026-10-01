@@ -331,6 +331,7 @@ fn infer_syntax_call_with_arg_types(
                         &schemes,
                         arg_types,
                         &expr.arg_names,
+                        ctx.aliases,
                         subst,
                         errors,
                     ) {

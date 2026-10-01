@@ -658,6 +658,27 @@ pub(super) fn checked_provider(source: &str) -> crate::terlan_typeck::CoreModule
     lower_syntax_module_output_to_core(&syntax, &resolved)
 }
 
+#[test]
+fn loaded_primitive_providers_do_not_execute_receiver_placeholder_bodies() {
+    check_sources(&[
+        r#"
+module loaded_string_primitives.
+import std.core.String.
+import std.core.Option.{Some, None}.
+import type std.core.Option.
+clean(value: String): String -> value.trim().
+from_option(value: Option[String]): String ->
+    case value { Some(text) -> text.trim(); None -> "" }.
+pub check(): Bool ->
+    clean("  direct  ") == "direct"
+        and from_option(Some("  pattern  ")) == "pattern"
+        and from_option(None) == "".
+"#,
+        include_str!("../../../../../std/core/String.terl"),
+        include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
 pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     let syntaxes = sources
         .iter()

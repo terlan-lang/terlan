@@ -25,10 +25,6 @@ if [[ ! "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 mkdir -p "$OUTPUT"
-if [[ -n "$(find "$OUTPUT" -mindepth 1 -print -quit)" ]]; then
-    echo "bounded package output must be empty: $OUTPUT" >&2
-    exit 2
-fi
 mkdir -p "$OUTPUT/interfaces" "$OUTPUT/modules" "$OUTPUT/diagnostics"
 
 awk 'NF { count += 1; printf "%06d\t%s\n", count, $0 }' "$SOURCES" > "$OUTPUT/units.tsv"
@@ -43,6 +39,9 @@ xargs -d '\n' -P "$JOBS" -I '{}' bash -c '
     unit=${row%%$'"'"'\t'"'"'*}
     source=${row#*$'"'"'\t'"'"'}
     interface="$OUTPUT/interfaces/$unit.interface"
+    if [[ -s "$interface" ]]; then
+        exit 0
+    fi
     "$IMAGE" interface-unit "$source" "$interface"
     test -s "$interface"
 ' _ '{}' < "$OUTPUT/units.tsv"
@@ -54,6 +53,10 @@ xargs -d '\n' -P "$JOBS" -I '{}' bash -c '
     source=${row#*$'"'"'\t'"'"'}
     artifact="$OUTPUT/modules/$unit.abi1.json"
     diagnostics="$OUTPUT/diagnostics/$unit.txt"
+    if [[ -s "$artifact" && ! -s "$diagnostics" ]]; then
+        exit 0
+    fi
+    : > "$diagnostics"
     "$IMAGE" backend-unit "$source" "$INTERFACE_MANIFEST" "$artifact" "$diagnostics"
     test -s "$artifact"
     test ! -s "$diagnostics"

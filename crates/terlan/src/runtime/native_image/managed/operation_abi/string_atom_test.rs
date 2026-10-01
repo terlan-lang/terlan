@@ -36,10 +36,9 @@ fn atom_text_uses_the_current_image_table_and_managed_string_result() {
         let layouts = ManagedLayoutRegistry::from_image(&[], &[], &atoms).expect("atom table");
         for name in atoms {
             let index = layouts.atom_index(&name).expect("known atom");
-            let result = super::super::execute_managed_operation_with_context(
+            let result = super::super::execute_managed_operation(
                 &mut heap,
                 &layouts,
-                None,
                 &encoded,
                 &[i64::from(index.get())],
             )

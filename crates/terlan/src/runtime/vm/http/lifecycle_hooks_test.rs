@@ -1,12 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use super::{
-    VmHttpLifecycleEvent, VmHttpLifecycleHook, VmHttpRequestOutcome, VmHttpShutdownMode,
-    VmHttpTcpServer,
-};
+use super::{VmHttpLifecycleEvent, VmHttpRequestOutcome, VmHttpShutdownMode, VmHttpTcpServer};
 use crate::runtime::vm::{
-    process::{VmExitReason, VmProcessSource, VmProcessTable},
-    tcp::VmTcpRuntime,
+    process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessTable},
+    tcp::{VmTcpRuntime, VmTcpStream},
 };
 
 struct RecordingHook {
@@ -16,7 +13,9 @@ struct RecordingHook {
     reject_channel: bool,
 }
 
-impl VmHttpLifecycleHook for RecordingHook {
+impl terlan_http_native::lifecycle::LifecycleHook<VmProcessId, VmTcpStream, VmExitReason>
+    for RecordingHook
+{
     fn authorize(&mut self, event: &VmHttpLifecycleEvent) -> Result<(), String> {
         if self.reject_request && matches!(event, VmHttpLifecycleEvent::RequestStart { .. }) {
             return Err("request rejected by VM HTTP lifecycle policy".to_string());

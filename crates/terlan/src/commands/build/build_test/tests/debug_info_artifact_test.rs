@@ -1,6 +1,62 @@
 use super::*;
 use object::{Object, ObjectSection};
 
+#[test]
+fn debug_info_artifact_preserves_receiver_default_adapter_origins() {
+    let dir = make_temp_dir("receiver_defaults_debug");
+    let source_path = dir.join("receiver_defaults_debug.terl");
+    let out_dir = dir.join("build");
+    let source = r#"module receiver_defaults_debug.
+pub struct Counter { value: Int }.
+pub (counter: Counter) read(offset: Int = 2, extra: Int = 1): Int ->
+    counter.value + offset + extra.
+pub (mut counter: Counter) advance(offset: Int = 2, extra: Int = 1): Unit ->
+    Counter { value: counter.value + offset + extra }.
+pub main(): Int ->
+    let counter = Counter { value: 1 };
+    counter.advance(); counter.advance(4); counter.advance(5, 6);
+    counter.read() + counter.read(4) + counter.read(5, 6).
+"#;
+    fs::write(&source_path, source).unwrap();
+    assert_eq!(
+        run(
+            CliCommand {
+                verb: Some("build".into()),
+                args: vec![source_path.display().to_string()],
+            },
+            CliState {
+                out_dir: out_dir.clone(),
+                ..CliState::default()
+            }
+        ),
+        ExitCode::SUCCESS
+    );
+    let records = native_debug_records(&out_dir.join("vm/receiver_defaults_debug.tvm"));
+    for method in ["read", "advance"] {
+        let original = records
+            .iter()
+            .find(|record| record.function == method && record.arity == 3)
+            .unwrap();
+        assert_eq!(original.source_origin, "source");
+        for arity in [1, 2] {
+            let adapter = records
+                .iter()
+                .find(|record| record.function == method && record.arity == arity)
+                .unwrap();
+            assert_eq!(
+                adapter.source_origin,
+                format!("generated:receiver_defaults_debug.{method}/3")
+            );
+            assert_eq!(adapter.callable_id, original.callable_id);
+            assert_eq!(
+                (adapter.span_start, adapter.span_end),
+                (original.span_start, original.span_end)
+            );
+            assert_eq!(adapter.source_file, source_path.display().to_string());
+        }
+    }
+}
+
 /// Concrete trait bodies map to their own nested source declarations.
 #[test]
 fn debug_info_artifact_covers_concrete_trait_implementations() {

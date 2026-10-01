@@ -413,6 +413,7 @@ pub(super) fn handle_vm_stream_request(
     request: ::http::Request<String>,
     web_root: &Path,
     channel: &mut Option<VmHttpChannelTransport>,
+    live_sse_transport_available: bool,
 ) -> Result<::http::Response<Bytes>, String> {
     let (request, body) = request.into_parts();
     let body_file_path = request
@@ -712,7 +713,12 @@ pub(super) fn handle_vm_stream_request(
                             &request.headers,
                         ),
                     );
-                return match execute_sse_vm_router(web_root, &endpoint, &native_request) {
+                return match execute_sse_vm_router(
+                    web_root,
+                    &endpoint,
+                    &native_request,
+                    live_sse_transport_available,
+                ) {
                     Ok(VmSseRouterAdmission::Respond(response)) => {
                         serve_vm_stream_handler_response(response, method == "HEAD")
                     }

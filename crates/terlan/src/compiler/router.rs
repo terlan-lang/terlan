@@ -12,7 +12,6 @@ use std::collections::HashMap;
 #[cfg(test)]
 use terlan_http_native::channel_plan::{
     SseCallbacks, SseEndpointPlan, WebSocketCallbacks, WebSocketEndpointPlan, WebSocketPairing,
-    WebSocketRestoration,
 };
 
 #[cfg(test)]
@@ -330,68 +329,10 @@ fn websocket_endpoint(
                 | "restorable_stateful_paired_callbacks"
         ) {
             if function == "restorable_stateful_paired_callbacks" {
-                let [endpoint, waiting, peer_left, room_query, player_query, room_prefix, first_player, second_player, retention_ms, retained_room_capacity, matched, restored, inbound, cancellation] =
-                    args.as_slice()
-                else {
-                    return Err(format!(
-                        "error[native_ir.http_router]: unsupported WebSocket pairing builder `{function}/{}`",
-                        args.len()
-                    ));
-                };
-                let pairing = WebSocketPairing {
-                    waiting: String::new(),
-                    first_matched: String::new(),
-                    second_matched: String::new(),
-                    peer_left: String::new(),
-                    stateful: true,
-                    restoration: Some(WebSocketRestoration {
-                        waiting: channel_callback(
-                            core,
-                            waiting,
-                            "WebSocket",
-                            "paired waiting payload",
-                            0,
-                        )?,
-                        peer_left: channel_callback(
-                            core,
-                            peer_left,
-                            "WebSocket",
-                            "paired peer-left payload",
-                            0,
-                        )?,
-                        room_query: string_literal(room_query)?,
-                        player_query: string_literal(player_query)?,
-                        room_prefix: string_literal(room_prefix)?,
-                        first_player: string_literal(first_player)?,
-                        second_player: string_literal(second_player)?,
-                        retention_ms: positive_u64(retention_ms, "WebSocket room retention_ms")?,
-                        retained_room_capacity: positive_usize(
-                            retained_room_capacity,
-                            "WebSocket retained_room_capacity",
-                        )?,
-                        matched: channel_callback(core, matched, "WebSocket", "paired matched", 4)?,
-                        restored: channel_callback(
-                            core,
-                            restored,
-                            "WebSocket",
-                            "paired restored",
-                            5,
-                        )?,
-                    }),
-                    inbound: channel_callback(core, inbound, "WebSocket", "paired inbound", 5)?,
-                    cancellation: channel_callback(
-                        core,
-                        cancellation,
-                        "WebSocket",
-                        "paired cancellation",
-                        1,
-                    )?,
-                };
-                return websocket_endpoint(core, endpoint)?
-                    .with_pairing(pairing)
-                    .map_err(|error| {
-                        format!("error[native_ir.http_router]: invalid WebSocket pairing: {error}")
-                    });
+                return Err(
+                    "error[native_ir.http_router]: reconnect policy requires source execution"
+                        .into(),
+                );
             }
             let [endpoint, waiting, first_matched, second_matched, peer_left, inbound, cancellation] =
                 args.as_slice()

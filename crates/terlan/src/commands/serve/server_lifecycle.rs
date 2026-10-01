@@ -717,6 +717,7 @@ pub(super) fn execute_sse_vm_router(
     web_root: &Path,
     endpoint: &WebPackageSse,
     request: &crate::terlan_native::http::Request,
+    live_transport_available: bool,
 ) -> Result<VmSseRouterAdmission, String> {
     let handler = sse_router_handler(endpoint);
     let project_root = manifest::adjacent_project_root(web_root).ok_or_else(|| {
@@ -729,6 +730,7 @@ pub(super) fn execute_sse_vm_router(
         endpoint,
         request,
         web_root,
+        live_transport_available,
         &mut output,
     )
 }

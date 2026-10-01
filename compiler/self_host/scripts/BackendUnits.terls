@@ -1,0 +1,29 @@
+#!/usr/bin/env -S terlc run
+/** Runs multiple focused self-host backend units in one compiler process. */
+import self_host.ProjectedInterfaceCatalog.
+import std.core.Option.{None, Some}.
+import std.system.Arguments.
+
+run_units(index: Int, interface_manifest: String): Bool ->
+    case {
+        Arguments.get(index),
+        Arguments.get(index + 1),
+        Arguments.get(index + 2)
+    } {
+        {Some(input), Some(output), Some(diagnostics)} ->
+            let _completed = ProjectedInterfaceCatalog.write_backend(
+                input,
+                interface_manifest,
+                output,
+                diagnostics,
+            );
+            run_units(index + 3, interface_manifest);
+        {None, None, None} -> true;
+        _ -> false
+    }.
+
+case Arguments.get(0) {
+    Some(interface_manifest) -> assert(run_units(1, interface_manifest));
+    None -> assert(false)
+};
+Unit.

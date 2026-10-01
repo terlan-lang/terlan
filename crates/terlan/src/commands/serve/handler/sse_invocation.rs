@@ -2,16 +2,14 @@
 
 use std::sync::Arc;
 
+use terlan_http_native::channel_plan::SseEndpointPlan;
+use terlan_http_native::sse_session::{SseSession, SseStreamInfo};
+
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 #[cfg(test)]
 use crate::runtime::native_image::TvmBoundaryType;
 #[cfg(test)]
 use crate::runtime::vm::pure_native::PureNativeIoWake;
-#[cfg(test)]
-use crate::runtime::vm::sse::VmSseEvent;
-use crate::runtime::vm::sse::{
-    VmSseCallbackPlan, VmSseEndpointPlan, VmSseLiveSession, VmSseStreamInfo,
-};
 use crate::runtime::vm::ReplValue;
 
 use super::channel_invocation::{AotChannelCallbackState, AotChannelInvocation};
@@ -41,8 +39,7 @@ pub(in crate::commands::serve) type AotSseCallbackState = AotChannelCallbackStat
 /// One SSE stream bound to a native image generation and callback set.
 #[derive(Debug)]
 pub(in crate::commands::serve) struct AotSseCallbackSession {
-    live: VmSseLiveSession,
-    callbacks: Option<VmSseCallbackPlan>,
+    live: SseSession<ReplValue>,
     invocation: AotChannelInvocation<AotSseCallbackEvent>,
 }
 
@@ -51,31 +48,26 @@ impl AotSseCallbackSession {
     pub(in crate::commands::serve) fn open(
         runtime: Arc<AotHandlerRuntime>,
         module: String,
-        live: VmSseLiveSession,
+        live: SseSession<ReplValue>,
     ) -> Result<Self, String> {
-        let callbacks = live.plan().callbacks().cloned();
         let invocation = AotChannelInvocation::new("sse", runtime, module);
-        let mut session = Self {
-            live,
-            callbacks,
-            invocation,
-        };
+        let mut session = Self { live, invocation };
         session.invoke(AotSseCallbackEvent::Open, Vec::new())?;
         Ok(session)
     }
 
-    /// Returns whether the underlying VM-owned stream remains open.
+    /// Returns whether the package-owned stream remains open.
     pub(in crate::commands::serve) fn is_open(&self) -> bool {
         self.live.is_open()
     }
 
     /// Returns the immutable endpoint policy retained by the live stream.
-    pub(in crate::commands::serve) fn plan(&self) -> &VmSseEndpointPlan {
+    pub(in crate::commands::serve) fn plan(&self) -> &SseEndpointPlan<ReplValue> {
         self.live.plan()
     }
 
     /// Returns bounded queue state for transport admission checks.
-    pub(in crate::commands::serve) fn inspect(&self) -> VmSseStreamInfo {
+    pub(in crate::commands::serve) fn inspect(&self) -> SseStreamInfo {
         self.live.inspect()
     }
 
@@ -97,30 +89,29 @@ impl AotSseCallbackSession {
         &mut self,
         data: String,
     ) -> Result<AotSseCallbackState, String> {
-        self.live
-            .enqueue(VmSseEvent::data(data.clone()))
-            .map_err(|error| format!("error[serve.sse.queue]: {error:?}"))?;
-        if let Some(wait) = self.invocation.pending_wait()? {
+        let pending = self.invocation.pending_wait()?;
+        if let Some(wait) = &pending {
             if wait.boundary_type() != &TvmBoundaryType::String {
                 return Err(format!(
                     "error[serve.sse.wake_type]: event data cannot wake {:?}",
                     wait.boundary_type()
                 ));
             }
+        }
+        self.live
+            .enqueue(None, None, None, &data)
+            .map_err(|error| format!("error[serve.sse.queue]: {error:?}"))?;
+        if let Some(wait) = pending {
             self.resume(wait.wake(ReplValue::String(data)))
         } else {
             self.event_ready(data)
         }
     }
 
-    /// Encodes and removes the oldest event ready for HTTP stream transport.
+    /// Transfers the oldest encoded event to HTTP stream transport.
     #[cfg(test)]
-    pub(in crate::commands::serve) fn flush_next_event(
-        &mut self,
-    ) -> Result<Option<Vec<u8>>, String> {
-        self.live
-            .flush_next()
-            .map_err(|error| format!("error[serve.sse.queue]: {error:?}"))
+    pub(in crate::commands::serve) fn flush_next_event(&mut self) -> Option<Vec<u8>> {
+        self.live.flush_next()
     }
 
     /// Dispatches one ready application event through generated code.
@@ -189,7 +180,7 @@ impl AotSseCallbackSession {
 
     /// Selects the source callback assigned to one lifecycle event.
     fn callback(&self, event: AotSseCallbackEvent) -> Option<&ReplValue> {
-        let callbacks = self.callbacks.as_ref()?;
+        let callbacks = self.live.plan().callbacks()?;
         Some(match event {
             AotSseCallbackEvent::Open => &callbacks.open,
             #[cfg(test)]
@@ -206,5 +197,4 @@ impl AotSseCallbackSession {
 
 #[cfg(test)]
 #[path = "sse_invocation_test.rs"]
-#[cfg(test)]
 mod sse_invocation_test;

@@ -107,57 +107,6 @@ pub(super) fn acme_certificate_cache_metadata_records_typed_provenance_schema() 
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
-/// Verifies ACME cache support-bundle metadata is redacted.
-///
-/// Inputs:
-/// - Generated local certificate/key PEM used as issued-material fixture.
-/// - Auto TLS metadata containing an account id.
-/// - A diagnostic containing account id, worker identity, and private-key PEM
-///   marker text.
-///
-/// Output:
-/// - Test passes when support-bundle details include a stable provenance
-///   fingerprint but no account id, worker id, or private-key marker.
-///
-/// Transformation:
-/// - Locks the ACME cache custody rule that support-bundle replay must expose
-///   replayable provenance without leaking certificate private material.
-#[test]
-pub(super) fn acme_cache_support_bundle_redaction_removes_sensitive_material() {
-    let dir = temp_dir("auto_cert_support_bundle_redaction");
-    let tls = auto_tls_model(vec!["example.test"], Some("admin@example.test"), None, None);
-    let plan = acme_runtime_plan(&dir, &tls);
-    let generated =
-        generate_simple_self_signed(vec!["example.test".to_string()]).expect("generate cert");
-
-    store_acme_certificate_cache(
-        &plan,
-        &generated.cert.pem(),
-        &generated.key_pair.serialize_pem(),
-    )
-    .expect("store cert cache");
-    let metadata = load_acme_certificate_cache_metadata(&plan).expect("load metadata");
-    let diagnostic = format!(
-        "account={} worker={} key=-----BEGIN PRIVATE KEY-----",
-        metadata.account_id, metadata.issuing_worker_identity,
-    );
-
-    let redacted = redact_acme_cache_support_bundle(&plan, &metadata, &diagnostic);
-    let replay = format!("{redacted:?}");
-
-    assert_eq!(redacted.cache_dir, plan.cache_dir.display().to_string());
-    assert_eq!(redacted.provenance_fingerprint.len(), 16);
-    assert_eq!(
-        redacted.provenance_fingerprint,
-        redact_acme_cache_support_bundle(&plan, &metadata, "stable").provenance_fingerprint
-    );
-    assert!(replay.contains("redacted acme private key material"));
-    assert!(!replay.contains("admin@example.test"));
-    assert!(!replay.contains("vm-acme-worker"));
-    assert!(!replay.contains("BEGIN PRIVATE KEY"));
-    fs::remove_dir_all(dir).expect("cleanup");
-}
-
 /// Verifies auto TLS rejects unsafe private-key cache permissions.
 ///
 /// Inputs:
@@ -237,7 +186,7 @@ pub(super) fn acme_key_custody_policy_rejects_cache_path_escape() {
         .expect_err("escaped key path should fail custody policy");
 
     assert!(message.contains("ACME private key cache path"));
-    assert!(message.contains("escapes VM-owned cache directory"));
+    assert!(message.contains("escapes package-owned cache directory"));
     assert!(message.contains(".terlan"));
     fs::remove_dir_all(dir).expect("cleanup");
 }

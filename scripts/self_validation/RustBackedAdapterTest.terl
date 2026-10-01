@@ -7,7 +7,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.Console.{println}.
-import std.io.File.{read_text, read_text_many}.
+import std.io.File.{message, read_text, read_text_many}.
 import std.system.Environment.
 
 import type std.io.File.TextFile.
@@ -120,7 +120,14 @@ pub adapter(module_name: String): Adapter ->
                 implementation_paths = ["std/crypto/native/src/ed25519.rs"],
                 test_paths = ["std/crypto/native/src/ed25519_test.rs", "std/crypto/native/src/bindings_test.rs"],
             );
-        "std.crypto.Hash" -> single_native("std/crypto/Hash.terl", "sha2", "hash");
+        "std.crypto.Hash" ->
+            Adapter(
+                known = true,
+                source = "std/crypto/Hash.terl",
+                expected_crate = "sha2",
+                implementation_paths = ["std/crypto/native/src/hash.rs"],
+                test_paths = ["std/crypto/native/src/hash_test.rs", "std/crypto/native/src/hash_bindings_test.rs"],
+            );
         "std.data.Json" ->
             Adapter(
                 known = true,
@@ -185,14 +192,22 @@ pub adapter(module_name: String): Adapter ->
             Adapter(
                 known = true,
                 source = "std/http/Session.terl",
-                expected_crate = "terlan-vm",
+                expected_crate = "terlan-http-native",
                 implementation_paths = [
-                    vm_path("http_session/state/runtime.rs"),
-                    vm_path("http_session/state/commands.rs"),
+                    "std/http/native/src/session_bindings.rs",
+                    "std/http/native/src/session_registry.rs",
+                    "std/http/native/src/session_service.rs",
+                    "std/http/native/src/session_store.rs",
+                    vm_path("actor_state.rs"),
                 ],
                 test_paths = [
-                    vm_path("http_session_test/session_actor_fixtures.rs"),
-                    "crates/terlan/src/runtime/native_image/managed/operation_abi/session_cookie_test.rs",
+                    vm_path("actor_state_test.rs"),
+                    "std/http/native/src/session_bindings_test.rs",
+                    "std/http/native/src/session_registry_test.rs",
+                    "std/http/native/src/session_service_test.rs",
+                    "std/http/native/src/session_store_test.rs",
+                    vm_path("protocol_task_executor/maintenance_test.rs"),
+                    "crates/terlan/src/commands/serve/handler_cache/session_provider_test.rs",
                 ],
             );
         "std.http.Sse" ->
@@ -388,7 +403,9 @@ pub validate(root: String): Bool ->
 validate_rows(root: String, rows: List[AdapterRow]): Bool ->
     let paths = all_paths(root, rows);
     case read_text_many(paths) {
-        Err(_reason) -> false;
+        Err(reason) ->
+            let _reported = println(message(reason));
+            false;
         Ok(files) -> validate_loaded_rows(root, rows, files)
     }.
 
@@ -416,15 +433,17 @@ adapter_rows_hold(root: String, rows: List[AdapterRow], files: List[TextFile]): 
 @pure
 implementation_function(operation: String, function_name: String): String ->
     case operation {
+        "std.crypto.hash.sha256" -> "sha256_bytes";
         "std.http.sse.encode_event" -> "encode_event";
         "std.db.postgres.commit" -> "finish_transaction";
         "std.db.postgres.rollback" -> "finish_transaction";
-        "std.http.session.current" -> "current";
-        "std.http.session.get" -> "get";
-        "std.http.session.set" -> "set";
-        "std.http.session.delete" -> "delete";
-        "std.http.session.rotate" -> "rotate";
-        "std.http.session.expire" -> "expire";
+        "std.http.session.current" -> "bindings";
+        "std.http.session.get" -> "bindings";
+        "std.http.session.set" -> "bindings";
+        "std.http.session.delete" -> "bindings";
+        "std.http.session.rotate" -> "bindings";
+        "std.http.session.expire" -> "bindings";
+        "std.http.session.is_live" -> "bindings";
         "std.encoding.base64.decode_text" -> "decode";
         "std.encoding.base64.decode_url_text" -> "decode_url";
         "std.encoding.base64.decode_octets" -> "decode_bytes";
@@ -462,6 +481,18 @@ pub crate_visible_transaction_symbols_are_resolved_without_accepting_lookalikes(
         and not public_function_declared(source, "fake")
         and not public_function_declared(source, "beg")
         and implementation_function("app.commit", "commit") == "commit".
+
+@test
+pub package_owned_hash_and_session_adapters_retain_real_paths(): Bool ->
+    let hash = adapter("std.crypto.Hash");
+    let session = adapter("std.http.Session");
+    hash.known and hash.expected_crate == "sha2"
+        and hash.implementation_paths == ["std/crypto/native/src/hash.rs"]
+        and implementation_function("std.crypto.hash.sha256", "sha256") == "sha256_bytes"
+        and implementation_function("app.sha256", "sha256") == "sha256"
+        and session.known and session.expected_crate == "terlan-http-native"
+        and contains_string(session.implementation_paths, "std/http/native/src/session_bindings.rs")
+        and not adapter("app.Session").known.
 
 @test
 pub repository_adapters_and_tests_cover_manifest(): Bool ->

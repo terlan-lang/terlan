@@ -67,7 +67,7 @@ validate_project_compose_accepts_postgres_dev_service
             r#"
 Maximum order-state refresh attempts while waiting for ACME readiness
 challenge readiness Loads live TLS configuration for normal `terlc serve` startup
-acme_runtime_tls_config_for_serve issue_acme_certificate load_acme_runtime_tls_cache
+tls_runtime::load( issue_acme_certificate_cache_for_serve load_acme_runtime_tls_cache
 "#,
         )?;
         self.write(
@@ -155,6 +155,7 @@ requires_recovery retry_flush
 HotReload NodeDrain ServiceRestart VmOperatorPolicy audit_required
 "#,
         )?;
+        self.write("std/http/native/src/tls_runtime.rs", "pub fn load( validate_acme_provider_supported load_acme_runtime_tls_cache issuer(&plan)?")?;
         self.write("Makefile", COMPLETE_MAKEFILE)
     }
 }

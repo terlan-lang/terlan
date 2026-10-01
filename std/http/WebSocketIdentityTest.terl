@@ -1,0 +1,23 @@
+/**
+ * Executable reconnect policy checks through the maintained URI decoder.
+ */
+module std.http.WebSocketIdentityTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok, is_err}.
+import std.http.WebSocketIdentity.{resolve}.
+
+@test
+pub fresh_or_restored_identity_follows_source_policy(): Bool ->
+    resolve("/ws", "room", "player", "one", "two") == Ok(None)
+        and resolve("/ws?unrelated=1", "room", "player", "one", "two") == Ok(None)
+        and resolve("/ws?room=a%2Bb+c&player=one", "room", "player", "one", "two") == Ok(Some({"a+b c", 1}))
+        and resolve("/ws?room=r&player=two", "room", "player", "one", "two") == Ok(Some({"r", 2})).
+
+@test
+pub last_duplicate_value_wins_and_partial_identity_is_rejected(): Bool ->
+    resolve("/ws?room=old&room=new&player=wrong&player=two", "room", "player", "one", "two") == Ok(Some({"new", 2}))
+        and is_err(resolve("/ws?room=r", "room", "player", "one", "two"))
+        and is_err(resolve("/ws?player=one", "room", "player", "one", "two"))
+        and is_err(resolve("/ws?room=r&player=one&room=", "room", "player", "one", "two"))
+        and is_err(resolve("/ws?room=r&player=unknown", "room", "player", "one", "two")).

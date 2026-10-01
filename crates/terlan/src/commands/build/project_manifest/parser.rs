@@ -104,6 +104,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
     let mut scripts = Vec::new();
     let mut server_profile = None;
     let mut server_tls = ProjectServerTlsBuilder::default();
+    let mut server_tls_seen = false;
     let mut native_rust_crate = None;
     let mut native_rust_path = None;
     let mut native_rust_helper = None;
@@ -127,6 +128,7 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
             match section {
                 ProjectManifestSection::TargetWasm => wasm_target_seen = true,
                 ProjectManifestSection::TargetWasi => wasi_target_seen = true,
+                ProjectManifestSection::ServerTls => server_tls_seen = true,
                 ProjectManifestSection::Deploy => deployment.seen = true,
                 ProjectManifestSection::DeployHealth => deploy_health.seen = true,
                 ProjectManifestSection::DeployResources => deploy_resources.seen = true,
@@ -573,7 +575,10 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
         wasi_validation_engine,
     )?;
     let web_assets = web_assets.finish(path)?;
-    let server_tls = server_tls.finish(path)?;
+    let server_tls = server_tls_seen
+        .then(|| server_tls.validate())
+        .transpose()
+        .map_err(|error| format!("{}: {error}", path.display()))?;
     validate_server_profile_defaults(path, server_profile, server_tls.as_ref())?;
     let native_rust = finish_native_rust(
         path,

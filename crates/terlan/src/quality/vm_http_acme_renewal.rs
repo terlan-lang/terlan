@@ -11,24 +11,29 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
     (
         "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
         &[
+            "issue_acme_certificate_cache_for_serve",
+            "acme_runtime_tls_config_with_local_issuer",
+        ],
+    ),
+    (
+        "std/http/native/src/acme.rs",
+        &[
             "ACME_RENEWAL_INTERVAL",
             "ACME_METADATA_CLOCK_SKEW",
             "validate_acme_certificate_cache_age",
             "validate_acme_certificate_cache_mode",
             "load_acme_runtime_tls_cache",
-            "issue_acme_certificate_cache_for_serve",
-            "acme_runtime_tls_config_with_local_issuer",
             "rustls_server_config",
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
+        "std/http/native/src/acme/cache.rs",
         &[
             "AcmeCertificateCacheMetadata",
             "renew_after_unix_seconds",
             "store_acme_certificate_cache_metadata",
             "write_cache_file_atomically",
-            "rename_cache_file",
+            "persist_cache_file",
         ],
     ),
     (

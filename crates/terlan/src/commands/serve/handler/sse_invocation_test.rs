@@ -6,7 +6,6 @@ use std::sync::Arc;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
-use crate::runtime::vm::sse::{VmSseEndpointPlan, VmSseLiveSession};
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;
 use crate::{ColorChoice, DiagnosticFormat};
@@ -16,9 +15,11 @@ use super::*;
 const SOURCE: &str = r#"module app.SseCallbacks.
 
 import std.core.Unit.
-import std.http.{Router, Sse}.
+import std.http.{Router, Sse, Response}.
+import std.http.Router.{Respond, MiddlewareResult}.
 import std.vm.Process.
 import type std.http.Router.
+import type std.http.Request.
 
 pub opened(): Unit -> Unit.
 pub event_ready(_data: String): Unit ->
@@ -30,11 +31,25 @@ pub cancelled(_reason: String): Unit -> Unit.
 pub terminal_drained(): Unit ->
     let _wake = Process.receive_string();
     Unit.
+pub bytes_event(_data: String): Unit ->
+    let _wake = Process.receive_bytes();
+    Unit.
+pub waiting_open(): Unit ->
+    let _wake = Process.receive_string();
+    Unit.
+pub deny(_request: Request): MiddlewareResult -> Respond(Response.text("denied", 401)).
 pub router(): Router ->
     Router.new().sse(
         "/events",
         Sse.endpoint_with_keep_alive(4, 1024, 15000)
             .callbacks(opened, event_ready, keep_alive, drained, cancelled)
+    ).sse("/unsupported", Sse.endpoint().callbacks(
+        waiting_open, event_ready, keep_alive, drained, cancelled
+    )).group("/private", (child: Router) ->
+        child.use(deny)
+            .sse("/events", Sse.endpoint().callbacks(
+                waiting_open, event_ready, keep_alive, drained, cancelled
+            ))
     ).
 "#;
 
@@ -42,7 +57,7 @@ pub router(): Router ->
 fn runtime() -> (
     std::path::PathBuf,
     Arc<AotHandlerRuntime>,
-    VmSseEndpointPlan,
+    SseEndpointPlan<ReplValue>,
 ) {
     let root = test_fs::temp_path("serve", "aot_sse_callbacks");
     let web_root = root.join("_build/web");
@@ -96,7 +111,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let mut session = AotSseCallbackSession::open(
         Arc::clone(&runtime),
         "app.SseCallbacks".to_string(),
-        VmSseLiveSession::open(endpoint.clone()).expect("open SSE stream"),
+        SseSession::open(endpoint.clone()),
     )
     .expect("dispatch open callback");
     assert_eq!(session.completed_events(), &[AotSseCallbackEvent::Open]);
@@ -134,7 +149,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let mut cancelled = AotSseCallbackSession::open(
         Arc::clone(&runtime),
         "app.SseCallbacks".to_string(),
-        VmSseLiveSession::open(endpoint.clone()).expect("open cancelled SSE stream"),
+        SseSession::open(endpoint.clone()),
     )
     .expect("dispatch second open callback");
     assert!(matches!(
@@ -161,14 +176,14 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         arity: 0,
     }
     .into_value();
-    let terminal_plan = VmSseEndpointPlan::new(4, 1024)
+    let terminal_plan = SseEndpointPlan::new(4, 1024)
         .expect("terminal endpoint")
         .with_callbacks(callbacks)
         .expect("terminal callbacks");
     let mut terminal = AotSseCallbackSession::open(
         runtime,
         "app.SseCallbacks".to_string(),
-        VmSseLiveSession::open(terminal_plan).expect("open terminal stream"),
+        SseSession::open(terminal_plan),
     )
     .expect("open terminal callback session");
     let error = terminal
@@ -178,4 +193,103 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     assert!(!terminal.is_open());
 
     fs::remove_dir_all(root).expect("cleanup callback fixture");
+}
+
+#[test]
+fn incompatible_sse_wake_preserves_the_queue_and_pending_callback() {
+    let (root, runtime, endpoint) = runtime();
+    let mut callbacks = endpoint.callbacks().unwrap().clone();
+    callbacks.event_ready = crate::runtime::vm::native_callable::VmNativeCallableRef {
+        module: "app.SseCallbacks".into(),
+        function: "bytes_event".into(),
+        arity: 1,
+    }
+    .into_value();
+    let plan = SseEndpointPlan::new(4, 1024)
+        .unwrap()
+        .with_callbacks(callbacks)
+        .unwrap();
+    let mut session =
+        AotSseCallbackSession::open(runtime, "app.SseCallbacks".into(), SseSession::open(plan))
+            .unwrap();
+    let AotSseCallbackState::Waiting(wait) = session.enqueue_event("first".into()).unwrap() else {
+        panic!("bytes callback must park")
+    };
+    assert_eq!(wait.boundary_type(), &TvmBoundaryType::Bytes);
+    let before = session.inspect();
+    for _ in 0..8 {
+        let error = session.enqueue_event("rejected".into()).unwrap_err();
+        assert!(error.contains("serve.sse.wake_type"), "{error}");
+        assert_eq!(session.inspect(), before);
+        assert!(session.is_waiting());
+    }
+    completed(
+        session
+            .resume(wait.wake(ReplValue::Bytes([7].into())))
+            .unwrap(),
+    );
+    assert_eq!(session.flush_next_event().unwrap(), b"data: first\n\n");
+    assert!(session.flush_next_event().is_none());
+    completed(session.drain().unwrap());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn unsupported_sse_transport_preserves_middleware_without_opening_a_stream() {
+    use super::super::sse::{
+        execute_vm_router_sse_admission_with_package_root, VmSseRouterAdmission,
+    };
+    use super::super::types::{WebPackageSourceSpan, WebPackageSse};
+
+    let (root, runtime, _) = runtime();
+    let admit = |path: &str, available| {
+        let endpoint = WebPackageSse {
+            module: "app.SseCallbacks".into(),
+            route: path.into(),
+            source: WebPackageSourceSpan {
+                path: "src/app/SseCallbacks.terl".into(),
+                line: 1,
+                column: 1,
+            },
+        };
+        execute_vm_router_sse_admission_with_package_root(
+            Arc::clone(&runtime),
+            &endpoint,
+            &crate::terlan_native::http::Request::from_parts("GET", path, ""),
+            &root,
+            available,
+            &mut |_| {},
+        )
+    };
+    for (path, expected) in [
+        ("/events", 501),
+        ("/unsupported", 501),
+        ("/private/events", 401),
+    ] {
+        let VmSseRouterAdmission::Respond(response) = admit(path, false).unwrap() else {
+            panic!("unsupported transport must not allocate a stream")
+        };
+        assert_eq!(response.status, expected);
+        if expected == 401 {
+            assert_eq!(response.body.as_bytes(), b"denied");
+        } else {
+            assert!(String::from_utf8_lossy(response.body.as_bytes())
+                .contains("serve_http.upgrade_adapter_missing"));
+        }
+    }
+    // Available transports execute open and retain its actual typed wait.
+    let VmSseRouterAdmission::Stream(mut waiting) = admit("/unsupported", true).unwrap() else {
+        panic!("available transport should execute open")
+    };
+    assert!(waiting.is_waiting());
+    assert!(waiting.completed_events().is_empty());
+    completed(waiting.cancel("test completed".into()).unwrap());
+    let VmSseRouterAdmission::Stream(session) = admit("/events", true).unwrap() else {
+        panic!("available transport should admit the ordinary endpoint")
+    };
+    assert_eq!(session.completed_events(), &[AotSseCallbackEvent::Open]);
+    assert!(admit("/missing", false)
+        .unwrap_err()
+        .contains("did not match"));
+    fs::remove_dir_all(root).unwrap();
 }

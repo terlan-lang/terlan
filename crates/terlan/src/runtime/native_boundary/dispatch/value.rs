@@ -1,6 +1,6 @@
 //! Shared neutral and resource-handle values, independent of operation routing.
 
-use crate::terlan_native::{http, json, path, postgres, regex};
+use crate::terlan_native::{json, path, postgres, regex};
 use crate::terlan_native_boundary::handle::NativeBoundaryHandle;
 
 /// Neutral value shape accepted and returned by NativeBoundary adapter dispatch.
@@ -37,8 +37,6 @@ pub enum NativeBoundaryValue {
     Json(json::Json),
     /// Opaque compiled `std.regex.Regex.Regex`.
     Regex(regex::Regex),
-    /// Opaque `std.http.Response.Response`.
-    HttpResponse(http::Response),
     /// Opaque `std.io.Path.Path`.
     Path(path::Path),
     /// Opaque `std.db.Postgres.Config`.

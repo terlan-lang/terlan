@@ -170,6 +170,14 @@ class_from_name(value: String): DeclarationClass ->
     class_from_name_at(value, class_entries()).
 
 @pure
+rendered_return_type(value: Option[String]): String ->
+    case value { Some(name) -> name; None -> "_" }.
+
+@pure
+parsed_return_type(value: String): Option[String] ->
+    if { value == "_" -> None; true -> Some(value) }.
+
+@pure
 render_symbols(values: List[ExportedSymbol]): String ->
     case values {
         [] -> "";
@@ -180,6 +188,8 @@ render_symbols(values: List[ExportedSymbol]): String ->
             Int.to_string(value.arity),
             "\t",
             class_name(value.class),
+            "\t",
+            rendered_return_type(value.return_type),
             "\t",
             Int.to_string(value.span.start_byte),
             "\t",
@@ -193,7 +203,7 @@ render_symbols(values: List[ExportedSymbol]): String ->
 @pure
 pub render(value: ModuleInterface): String ->
     String.concat([
-        "interface\tterlan.self-host.interface-catalog/v1\t",
+        "interface\tterlan.self-host.interface-catalog/v2\t",
         value.module_name,
         "\n",
         render_symbols(value.symbols),
@@ -209,7 +219,7 @@ interface_message(module_name: String): String ->
 
 @pure
 finished_interface(module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    InterfaceParse(module_name != "", ModuleInterface("terlan.self-host.interface/v1", module_name, reverse(symbols)), interface_message(module_name)).
+    InterfaceParse(module_name != "", ModuleInterface("terlan.self-host.interface/v2", module_name, reverse(symbols)), interface_message(module_name)).
 
 @pure
 header_name(name: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -224,7 +234,7 @@ header_schema(schema: String, tail: List[String], rest: List[String], module_nam
 
 @pure
 header_schema_name(schema: String, name: String, remaining: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    if { schema == "terlan.self-host.interface-catalog/v1" -> header_name(name, remaining, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
+    if { schema == "terlan.self-host.interface-catalog/v2" -> header_name(name, remaining, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
 
 @pure
 header_parts(values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
@@ -234,41 +244,45 @@ header_parts(values: List[String], rest: List[String], module_name: String, symb
     }.
 
 @pure
-parsed_symbol_end(name: String, arity: Int, class_source: String, start_byte: Int, value: Option[Int], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_end(name: String, arity: Int, class_source: String, return_source: String, start_byte: Int, value: Option[Int], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol end");
-        Some(end_byte) -> parse_symbols(rest, module_name, [ExportedSymbol(name, arity, class_from_name(class_source), SyntaxSpan(start_byte, end_byte)) | symbols])
+        Some(end_byte) -> parse_symbols(rest, module_name, [ExportedSymbol(name, arity, class_from_name(class_source), parsed_return_type(return_source), SyntaxSpan(start_byte, end_byte)) | symbols])
     }.
 
 @pure
-parsed_symbol_start(name: String, arity: Int, class_source: String, value: Option[Int], end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_start(name: String, arity: Int, class_source: String, return_source: String, value: Option[Int], end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol start");
-        Some(start_byte) -> parsed_symbol_end(name, arity, class_source, start_byte, Int.from_string(end_source), rest, module_name, symbols)
+        Some(start_byte) -> parsed_symbol_end(name, arity, class_source, return_source, start_byte, Int.from_string(end_source), rest, module_name, symbols)
     }.
 
 @pure
-parsed_symbol_arity(name: String, value: Option[Int], class_source: String, start_source: String, end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+parsed_symbol_arity(name: String, value: Option[Int], class_source: String, return_source: String, start_source: String, end_source: String, rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
     case value {
         None -> invalid_interface("invalid interface symbol arity");
-        Some(arity) -> parsed_symbol_start(name, arity, class_source, Int.from_string(start_source), end_source, rest, module_name, symbols)
+        Some(arity) -> parsed_symbol_start(name, arity, class_source, return_source, Int.from_string(start_source), end_source, rest, module_name, symbols)
     }.
 
 @pure
-symbol_values(name: String, arity_source: String, class_source: String, start_source: String, end_source: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    if { tail == [] and module_name != "" and name != "" and known_class(class_source) -> parsed_symbol_arity(name, Int.from_string(arity_source), class_source, start_source, end_source, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
+symbol_values(name: String, arity_source: String, class_source: String, return_source: String, start_source: String, end_source: String, tail: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    if { tail == [] and module_name != "" and name != "" and known_class(class_source) -> parsed_symbol_arity(name, Int.from_string(arity_source), class_source, return_source, start_source, end_source, rest, module_name, symbols); true -> invalid_interface("invalid interface catalog record") }.
 
 @pure
-symbol_end_part(name: String, arity_source: String, class_source: String, start_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [end_source | tail] -> symbol_values(name, arity_source, class_source, start_source, end_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+symbol_end_part(name: String, arity_source: String, class_source: String, return_source: String, start_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [end_source | tail] -> symbol_values(name, arity_source, class_source, return_source, start_source, end_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
-symbol_start_part(name: String, arity_source: String, class_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [start_source | tail] -> symbol_end_part(name, arity_source, class_source, start_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+symbol_start_part(name: String, arity_source: String, class_source: String, return_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [start_source | tail] -> symbol_end_part(name, arity_source, class_source, return_source, start_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+
+@pure
+symbol_return_part(name: String, arity_source: String, class_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
+    case values { [return_source | tail] -> symbol_start_part(name, arity_source, class_source, return_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
 symbol_class_part(name: String, arity_source: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->
-    case values { [class_source | tail] -> symbol_start_part(name, arity_source, class_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
+    case values { [class_source | tail] -> symbol_return_part(name, arity_source, class_source, tail, rest, module_name, symbols); [] -> invalid_interface("invalid interface catalog record") }.
 
 @pure
 symbol_arity_part(name: String, values: List[String], rest: List[String], module_name: String, symbols: List[ExportedSymbol]): InterfaceParse ->

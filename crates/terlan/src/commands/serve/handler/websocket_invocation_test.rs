@@ -6,7 +6,6 @@ use std::sync::Arc;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
-use crate::runtime::vm::websocket::{VmWebSocketFrame, VmWebSocketLiveSession};
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;
 use crate::{ColorChoice, DiagnosticFormat};
@@ -40,7 +39,7 @@ pub router(): Router ->
 fn runtime() -> (
     std::path::PathBuf,
     Arc<AotHandlerRuntime>,
-    crate::runtime::vm::websocket::VmWebSocketEndpointPlan,
+    WebSocketEndpointPlan<ReplValue>,
 ) {
     let root = test_fs::temp_path("serve", "aot_websocket_callbacks");
     let web_root = root.join("_build/web");
@@ -94,7 +93,7 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let mut session = AotWebSocketCallbackSession::open(
         Arc::clone(&runtime),
         "app.SocketCallbacks".to_string(),
-        VmWebSocketLiveSession::open(endpoint.clone()),
+        Session::open(endpoint.clone()),
     )
     .expect("dispatch open callback");
     assert_eq!(
@@ -103,7 +102,7 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     );
 
     let waiting = session
-        .inbound(VmWebSocketFrame::Text("hello".to_string()))
+        .inbound("hello".to_string())
         .expect("dispatch inbound callback");
     let AotWebSocketCallbackState::Waiting(wait) = waiting else {
         panic!("inbound callback must park")
@@ -137,12 +136,12 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let mut cancelled = AotWebSocketCallbackSession::open(
         Arc::clone(&runtime),
         "app.SocketCallbacks".to_string(),
-        VmWebSocketLiveSession::open(endpoint.clone()),
+        Session::open(endpoint.clone()),
     )
     .expect("dispatch second open callback");
     assert!(matches!(
         cancelled
-            .inbound(VmWebSocketFrame::Text("pending".to_string()))
+            .inbound("pending".to_string())
             .expect("park second inbound callback"),
         AotWebSocketCallbackState::Waiting(_)
     ));
@@ -167,14 +166,14 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         arity: 1,
     }
     .into_value();
-    let terminal_plan = crate::runtime::vm::websocket::VmWebSocketEndpointPlan::new(4, 1024)
+    let terminal_plan = WebSocketEndpointPlan::new(4, 1024)
         .expect("terminal endpoint")
         .with_callbacks(callbacks)
         .expect("terminal callbacks");
     let mut terminal = AotWebSocketCallbackSession::open(
         runtime,
         "app.SocketCallbacks".to_string(),
-        VmWebSocketLiveSession::open(terminal_plan),
+        Session::open(terminal_plan),
     )
     .expect("open terminal callback session");
     let error = terminal

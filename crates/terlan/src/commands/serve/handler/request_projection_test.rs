@@ -76,7 +76,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
     };
     assert_eq!(name, "Request");
 
-    assert_eq!(fields.len(), 10);
+    assert_eq!(fields.len(), 9);
     assert_eq!(fields[0].1, ReplValue::String(String::new()));
     assert_eq!(fields[1].1, ReplValue::String(String::new()));
     assert_eq!(fields[2].1, ReplValue::Map(Vec::new()));
@@ -85,17 +85,7 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
     assert_eq!(fields[5].1, ReplValue::Map(Vec::new()));
     assert_eq!(fields[6].1, ReplValue::Map(Vec::new()));
     assert_eq!(fields[7].1, ReplValue::Map(Vec::new()));
-    assert_eq!(
-        fields[8].1,
-        ReplValue::Record {
-            name: "Jar".into(),
-            fields: vec![
-                ("incoming".into(), ReplValue::Map(Vec::new())),
-                ("pending".into(), ReplValue::List(Vec::new())),
-            ],
-        }
-    );
-    assert_eq!(fields[9].1, ReplValue::String(String::new()));
+    assert_eq!(fields[8].1, ReplValue::String(String::new()));
 }
 
 #[test]
@@ -134,7 +124,7 @@ fn complete_projection_preserves_every_request_field() {
         )])
     );
     assert_eq!(
-        fields[9].1,
+        fields[8].1,
         ReplValue::String("/tmp/terlan-upload".to_string())
     );
 }
@@ -151,13 +141,13 @@ fn file_body_projection_omits_text_and_preserves_only_runtime_path() {
     assert_eq!(name, "Request");
     assert_eq!(fields[3].1, ReplValue::String(String::new()));
     assert_eq!(
-        fields[9].1,
+        fields[8].1,
         ReplValue::String("/tmp/terlan-upload".to_string())
     );
 }
 
 #[test]
-fn repeated_projection_reuses_fixed_request_and_cookie_jar_vectors() {
+fn repeated_projection_reuses_fixed_request_vector_without_native_jar() {
     let projection = RequestFieldProjection::Fields(1 << RequestFieldProjection::BODY);
     let mut value = vm_request_descriptor_owned(request().into_parts(), projection);
     let ReplValue::Record { name, fields } = &value else {
@@ -165,10 +155,6 @@ fn repeated_projection_reuses_fixed_request_and_cookie_jar_vectors() {
     };
     assert_eq!(name, "Request");
     let request_storage = fields.as_ptr();
-    let ReplValue::Record { fields: jar, .. } = &fields[8].1 else {
-        panic!("cookie jar record");
-    };
-    let jar_storage = jar.as_ptr();
 
     let replacement = Request::from_parts("POST", "/items/8", "replacement");
     replace_vm_request_descriptor(&mut value, replacement.into_parts(), projection);
@@ -179,48 +165,30 @@ fn repeated_projection_reuses_fixed_request_and_cookie_jar_vectors() {
     assert_eq!(name, "Request");
     assert_eq!(fields.as_ptr(), request_storage);
     assert_eq!(fields[3].1, ReplValue::String("replacement".to_string()));
-    let ReplValue::Record { fields: jar, .. } = &fields[8].1 else {
-        panic!("cookie jar record");
-    };
-    assert_eq!(jar.as_ptr(), jar_storage);
+    assert_eq!(fields.len(), 9);
+    assert!(fields.iter().all(|(name, _)| name != "cookie_jar"));
 }
 
 #[test]
-fn replacing_request_clears_cookie_mutations_and_repairs_invalid_jar_shapes() {
+fn replacing_request_clears_incoming_cookies_and_repairs_invalid_map_shapes() {
     let mut value =
         vm_request_descriptor_owned(request().into_parts(), RequestFieldProjection::Complete);
     for replacement in [
-        ReplValue::Record {
-            name: "Jar".into(),
-            fields: vec![
-                ("incoming".into(), ReplValue::Map(Vec::new())),
-                (
-                    "pending".into(),
-                    ReplValue::List(vec![ReplValue::String("stale=1".into())]),
-                ),
-            ],
-        },
-        ReplValue::Record {
-            name: "Jar".into(),
-            fields: vec![
-                ("incoming".into(), ReplValue::String("invalid".into())),
-                ("pending".into(), ReplValue::String("invalid".into())),
-            ],
-        },
+        ReplValue::Map(vec![(
+            ReplValue::String("stale".into()),
+            ReplValue::String("1".into()),
+        )]),
+        ReplValue::String("invalid".into()),
         ReplValue::Record {
             name: "Other".into(),
             fields: Vec::new(),
-        },
-        ReplValue::Record {
-            name: "Jar".into(),
-            fields: vec![("pending".into(), ReplValue::List(Vec::new()))],
         },
         ReplValue::Tuple(Vec::new()),
     ] {
         let ReplValue::Record { fields, .. } = &mut value else {
             panic!("request")
         };
-        fields[8].1 = replacement;
+        fields[7].1 = replacement;
         replace_vm_request_descriptor(
             &mut value,
             Request::from_parts("GET", "/", "").into_parts(),
@@ -229,15 +197,6 @@ fn replacing_request_clears_cookie_mutations_and_repairs_invalid_jar_shapes() {
         let ReplValue::Record { fields, .. } = &value else {
             panic!("request")
         };
-        assert_eq!(
-            fields[8].1,
-            ReplValue::Record {
-                name: "Jar".into(),
-                fields: vec![
-                    ("incoming".into(), ReplValue::Map(Vec::new())),
-                    ("pending".into(), ReplValue::List(Vec::new())),
-                ]
-            }
-        );
+        assert_eq!(fields[7].1, ReplValue::Map(Vec::new()));
     }
 }

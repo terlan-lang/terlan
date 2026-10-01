@@ -1,5 +1,6 @@
 //! Supervisor handle for one fixed-scheduler protocol service.
 
+#[cfg(test)]
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::thread;
@@ -9,7 +10,7 @@ use super::{VmProtocolControl, VmProtocolControlPort};
 /// One ready protocol listener and all fixed scheduler threads that own it.
 pub(crate) struct VmProtocolTaskServer {
     #[cfg(test)]
-    address: SocketAddr,
+    pub(super) address: Option<SocketAddr>,
     controls: Vec<Arc<VmProtocolControlPort>>,
     threads: Vec<thread::JoinHandle<Result<(), String>>>,
     stopped: bool,
@@ -18,13 +19,12 @@ pub(crate) struct VmProtocolTaskServer {
 impl VmProtocolTaskServer {
     /// Creates a ready supervisor handle after every owner reports readiness.
     pub(super) fn new(
-        _address: SocketAddr,
         controls: Vec<Arc<VmProtocolControlPort>>,
         threads: Vec<thread::JoinHandle<Result<(), String>>>,
     ) -> Self {
         Self {
             #[cfg(test)]
-            address: _address,
+            address: None,
             controls,
             threads,
             stopped: false,
@@ -35,6 +35,7 @@ impl VmProtocolTaskServer {
     #[cfg(test)]
     pub(crate) const fn local_addr(&self) -> SocketAddr {
         self.address
+            .expect("TCP test helper supplied listener address")
     }
 
     /// Stops admission, drops connection futures, and joins every scheduler.

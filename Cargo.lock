@@ -4161,7 +4161,6 @@ dependencies = [
  "regex",
  "rustix 1.1.5",
  "rustls",
- "rustls-webpki",
  "semver",
  "serde",
  "serde_json",
@@ -4270,12 +4269,15 @@ dependencies = [
  "http-body-util",
  "httparse",
  "hyper",
+ "instant-acme",
  "mime_guess",
  "percent-encoding",
  "rcgen",
  "rustls",
+ "rustls-webpki",
  "serde",
  "serde_json",
+ "tempfile",
  "terlan-data-native",
  "terlan-net-native",
  "terlan-runtime-abi",
@@ -4298,8 +4300,10 @@ dependencies = [
 name = "terlan-net-native"
 version = "0.0.9"
 dependencies = [
+ "mio",
  "rcgen",
  "rustls",
+ "socket2",
  "terlan-runtime-abi",
  "url",
 ]
@@ -4317,6 +4321,9 @@ dependencies = [
 [[package]]
 name = "terlan-runtime-abi"
 version = "0.0.9"
+dependencies = [
+ "mio",
+]
 
 [[package]]
 name = "terlan-rust-boundary-audit"

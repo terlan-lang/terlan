@@ -397,7 +397,10 @@ fn remote_ingress_publishes_before_waking_a_parked_owner() {
     let (server, _) = listener.accept().expect("server connection");
 
     ingress
-        .admit(TcpStream::from_std(server), true)
+        .admit(
+            Box::new(terlan_net_native::tcp::TcpConnection::new(server).unwrap()),
+            true,
+        )
         .expect("remote admission");
 
     let mut events = Events::with_capacity(1);

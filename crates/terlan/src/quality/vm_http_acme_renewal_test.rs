@@ -38,6 +38,10 @@ impl TestRepo {
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
             "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "issue_acme_certificate_cache_for_serve acme_runtime_tls_config_with_local_issuer",
+        )?;
+        self.write(
+            "std/http/native/src/acme.rs",
             r#"
 ACME_RENEWAL_INTERVAL ACME_METADATA_CLOCK_SKEW
 validate_acme_certificate_cache_age validate_acme_certificate_cache_mode load_acme_runtime_tls_cache
@@ -46,10 +50,10 @@ rustls_server_config
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls/acme_runtime/cache.rs",
+            "std/http/native/src/acme/cache.rs",
             r#"
 AcmeCertificateCacheMetadata renew_after_unix_seconds
-store_acme_certificate_cache_metadata write_cache_file_atomically rename_cache_file
+store_acme_certificate_cache_metadata write_cache_file_atomically persist_cache_file
 "#,
         )?;
         self.write(
@@ -169,12 +173,10 @@ fn vm_http_acme_renewal_writes_report_for_current_foundation() {
 fn vm_http_acme_renewal_rejects_missing_renewal_interval_anchor() {
     let repo = TestRepo::new("missing-renewal-interval").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo
-        .root()
-        .join("crates/terlan/src/commands/serve/tls/acme_runtime.rs");
+    let path = repo.root().join("std/http/native/src/acme.rs");
     let source = fs::read_to_string(&path).expect("tls source");
     repo.write(
-        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+        "std/http/native/src/acme.rs",
         &source.replace("ACME_RENEWAL_INTERVAL", ""),
     )
     .expect("rewrite tls source");

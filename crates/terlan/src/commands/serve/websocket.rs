@@ -160,9 +160,7 @@ pub(super) fn websocket_upgrade_response<B>(request: &Request<B>) -> Response<Se
         .headers()
         .get("sec-websocket-key")
         .and_then(|value| value.to_str().ok())
-        .and_then(|value| {
-            crate::runtime::vm::websocket::build_websocket_upgrade_response(value).ok()
-        })
+        .and_then(|value| terlan_http_native::websocket::upgrade_response(value).ok())
     else {
         return Response::builder()
             .status(http::StatusCode::BAD_REQUEST)

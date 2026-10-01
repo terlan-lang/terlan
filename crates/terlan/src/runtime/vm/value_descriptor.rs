@@ -1,6 +1,6 @@
 //! Structural package inspection keeps callable execution in the host.
 use super::ReplValue;
-use terlan_runtime_abi::{DescriptorValue, DescriptorView};
+use terlan_runtime_abi::{DescriptorValue, DescriptorView, OwnedDescriptor};
 
 impl DescriptorValue for ReplValue {
     fn descriptor_view(&self) -> DescriptorView<'_, Self> {
@@ -17,4 +17,23 @@ impl DescriptorValue for ReplValue {
             _ => DescriptorView::Opaque,
         }
     }
+
+    fn into_descriptor(self) -> OwnedDescriptor<Self> {
+        match self {
+            Self::Int(value) => OwnedDescriptor::Int(value),
+            Self::String(value) => OwnedDescriptor::String(value),
+            Self::StringBytes(value) => std::str::from_utf8(&value)
+                .map(|text| OwnedDescriptor::String(text.to_owned()))
+                .unwrap_or(OwnedDescriptor::Opaque),
+            Self::Atom(value) => OwnedDescriptor::Atom(value),
+            Self::Record { name, fields } => OwnedDescriptor::Record(name, fields),
+            Self::Tuple(values) => OwnedDescriptor::Tuple(values),
+            Self::List(values) => OwnedDescriptor::List(values),
+            _ => OwnedDescriptor::Opaque,
+        }
+    }
 }
+
+#[cfg(test)]
+#[path = "value_descriptor_test.rs"]
+mod tests;

@@ -15,7 +15,6 @@ use crate::runtime::vm::execution_shard_epoch::{
 use crate::runtime::vm::execution_shard_protocol::VmSealedShardImage;
 use crate::runtime::vm::execution_shard_protocol::{VmExecutionShardId, VmShardEpoch};
 use crate::runtime::vm::execution_shard_supervisor::VmExecutionShardSupervisor;
-use crate::runtime::vm::http_session::VmHttpSessionService;
 use crate::runtime::vm::multicore_replay::{VmMulticoreEventKind, VmMulticoreReplayCapture};
 use crate::runtime::vm::native_image_diagnostics::VmNativeImageDiagnosticMetadata;
 use crate::runtime::vm::process::{VmExitReason, VmProcessId};
@@ -23,6 +22,7 @@ use crate::runtime::vm::scheduler::VmSchedulerClass;
 use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 use crate::runtime::vm::support_bundle::VmNativeSupportBundle;
 use crate::runtime::vm::ReplValue;
+use terlan_runtime_abi::NativeServices;
 
 use super::{
     PureNativeBoundary, PureNativeExecution, PureNativeExecutionContext,
@@ -125,13 +125,13 @@ impl PureNativeExecutionImage {
         })
     }
 
-    /// Loads an HTTP image with one shared VM-owned session actor runtime.
-    pub(crate) fn load_with_http_sessions(
+    /// Loads an image with explicit application-scoped native service grants.
+    pub(crate) fn load_with_native_services(
         path: &Path,
-        sessions: VmHttpSessionService,
+        services: NativeServices,
     ) -> Result<Self, String> {
         let (boundary, mut managed) = PureNativeBoundary::load_image(path)?;
-        managed.attach_http_sessions(sessions);
+        managed.attach_native_services(services);
         Ok(Self {
             boundary,
             execution: PureNativeExecutionRuntime::from_managed(managed),

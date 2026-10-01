@@ -156,19 +156,43 @@ pub(super) fn specialize_elements(
     functions: &FunctionTypes,
     module: &str,
 ) -> Option<CoreType> {
-    let mut witness = items.is_empty().then_some(CoreType::Never);
-    let mut incompatible = false;
+    let mut witness = Some(CoreType::Never);
     for item in items {
         let inferred = specialize_expr(item, variables, functions, module);
-        if let Some(inferred) = inferred.filter(|_| !incompatible) {
-            witness = match witness {
-                Some(prior) => super::super::structured_case::merge_control_types(prior, inferred),
-                None => Some(inferred),
-            };
-            incompatible = witness.is_none();
-        }
+        merge_witness(&mut witness, inferred);
     }
     witness
+}
+
+/// Missing evidence invalidates the whole join; later siblings cannot restore it.
+pub(super) fn merge_witness(witness: &mut Option<CoreType>, inferred: Option<CoreType>) {
+    *witness = witness
+        .take()
+        .zip(inferred)
+        .and_then(|(prior, next)| super::super::structured_case::merge_control_types(prior, next));
+}
+
+pub(super) fn specialize_lambda(
+    params: &[CorePattern],
+    parameter_types: &[Option<CoreType>],
+    body: &mut CoreExpr,
+    variables: &HashMap<String, CoreType>,
+    functions: &FunctionTypes,
+    module: &str,
+) -> Option<CoreType> {
+    let locals =
+        super::super::generic_specialization::lambda_type_scope(params, parameter_types, variables);
+    let result = specialize_expr(body, &locals, functions, module);
+    if params.len() != parameter_types.len() {
+        return None;
+    }
+    Some(CoreType::Arrow {
+        params: parameter_types
+            .iter()
+            .cloned()
+            .collect::<Option<Vec<_>>>()?,
+        return_type: Box::new(result?),
+    })
 }
 
 /// Intrinsics retain their result type but no parameter signature for metadata
@@ -260,18 +284,6 @@ pub(super) fn visit_children(
                 visit(&mut after.trigger);
                 visit(&mut after.body);
             }
-        }
-        CoreExpr::Lam {
-            params,
-            parameter_types,
-            body,
-        } => {
-            let locals = super::super::generic_specialization::lambda_type_scope(
-                params,
-                parameter_types,
-                variables,
-            );
-            specialize_expr(body, &locals, functions, module);
         }
         _ => {}
     }

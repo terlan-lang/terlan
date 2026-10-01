@@ -113,7 +113,7 @@ fn vm_tls_authenticates_the_client_before_http_dispatch() {
             let protocol = io
                 .negotiated_protocol()
                 .map_err(|error| error.to_string())?;
-            assert_eq!(protocol, tls_io::VmTlsHttpProtocol::Http1);
+            assert_eq!(protocol, tls_io::HttpProtocol::Http1);
             let service = service_fn(move |_request| {
                 observed.fetch_add(1, Ordering::SeqCst);
                 async {
@@ -122,8 +122,7 @@ fn vm_tls_authenticates_the_client_before_http_dispatch() {
                     ))))
                 }
             });
-            http1::Builder::new()
-                .serve_connection(io, service)
+            terlan_http_native::http1::serve_connection(io, service)
                 .await
                 .map_err(|error| error.to_string())
         })

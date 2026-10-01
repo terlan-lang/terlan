@@ -23,12 +23,9 @@ interpreter or application-dispatch worker.
 - `checksum`: VM-owned Adler-32 and CRC-32 helpers for copied byte slices.
 - `packet`: fixed-format packet length extraction for VM-owned byte streams.
 - `bitstring`: UTF-8 scalar emission helpers for VM-owned bitstring work.
-- `hyper_tls`: supplies VM-owned sockets and deadlines to the package-owned
-  TLS transport in `std/net/native` and Hyper adapter in `std/http/native`.
-  Authentication uses a bounded owner-local timer; raw socket truncation remains
-  an error, distinct from authenticated TLS shutdown. Client certificate checks
-  come from the supervisor-selected rustls configuration; transport authentication
-  alone does not authorize storage operations or prove replicated persistence.
+- `protocol_task_executor`: supplies protocol-agnostic socket readiness, task
+  ownership, and deadlines. The serving host wires those primitives to package
+  TLS and HTTP adapters; the VM no longer declares a Hyper/TLS facade.
 - `capability_worker`: bounded external adapter transport with VM-owned actor
   parking, deadlines, cancellation, and stale-reply suppression. Requests carry
   explicit capability and shard-epoch completion identity; replies and crashes

@@ -8,8 +8,11 @@
 module std.http.WebSocket.
 
 import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.http.WebSocketIdentity.
 
 import type std.collections.List.
+import type std.core.{Option, Result}.
 
 /**
  * TextFrame carries one outbound WebSocket text payload.
@@ -92,7 +95,20 @@ type Pairing =
           cancellation: (String) -> Unit
       }.
 
-type StatefulInbound = (String, Int, String, String, String) -> {String, String, String}.
+type StatefulInbound = (String, Int, String, String, String) -> {String, Option[String], Option[String]}.
+
+delivery(payload: String): Option[String] ->
+    case payload {
+        "" -> None;
+        _ -> Some(payload)
+    }.
+
+stateful_delivery(
+    inbound: (String, Int, String, String, String) -> {String, String, String},
+): StatefulInbound ->
+    (state: String, role: Int, frame: String, first: String, second: String) ->
+        let {next, first_payload, second_payload} = inbound(state, role, frame, first, second);
+        {next, delivery(first_payload), delivery(second_payload)}.
 
 type Matched = (String, Int, String, String) -> String.
 
@@ -114,11 +130,8 @@ type RestorablePairing =
           Atom["restorable_pairing"],
           waiting: () -> String,
           peer_left: () -> String,
-          room_query: String,
-          player_query: String,
+          identity: (String) -> Result[Option[{String, Int}], String],
           room_prefix: String,
-          first_player: String,
-          second_player: String,
           retention_ms: Int,
           retained_room_capacity: Int,
           matched: Matched,
@@ -183,6 +196,8 @@ pub (endpoint: Endpoint) paired_callbacks(
  * the previous state, the sender role (`1` or `2`), the inbound frame, and the
  * two original HTTP request targets. It returns the next state followed by
  * independently addressed payloads for the first and second peer.
+ * An empty payload suppresses delivery to that peer. This source adapter
+ * translates that convention into explicit optional transport payloads.
  */
 pub (endpoint: Endpoint) stateful_paired_callbacks(
     waiting: String,
@@ -194,7 +209,14 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(
 ): Endpoint ->
     append_policy(
         endpoint,
-        StatefulPairing(waiting, first_matched, second_matched, peer_left, inbound, cancellation),
+        StatefulPairing(
+            waiting,
+            first_matched,
+            second_matched,
+            peer_left,
+            stateful_delivery(inbound),
+            cancellation,
+        ),
     ).
 
 /**
@@ -228,16 +250,20 @@ pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(
         RestorablePairing(
             waiting,
             peer_left,
-            room_query,
-            player_query,
+            (target: String) ->
+                WebSocketIdentity.resolve(
+                    target,
+                    room_query,
+                    player_query,
+                    first_player,
+                    second_player,
+                ),
             room_prefix,
-            first_player,
-            second_player,
             retention_ms,
             retained_room_capacity,
             matched,
             restored,
-            inbound,
+            stateful_delivery(inbound),
             cancellation,
         ),
     ).

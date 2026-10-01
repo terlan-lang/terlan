@@ -191,6 +191,10 @@ fn execute_root(
                     Ok(wait) => wait,
                     Err(error) => return cancel_with_error(shard, owner, error),
                 };
+                if shard.has_native_service(&wait) {
+                    execution = Some(shard.resume_native_service_call(owner, *suspension, wait)?);
+                    continue;
+                }
                 let postgres_request = match helpers.postgres.prepare(
                     owner.as_u64(),
                     wait.request(),
@@ -268,6 +272,15 @@ fn service_resident_capability(
     let Some((owner, suspension, wait)) = shard.take_resident_capability_call()? else {
         return Ok(false);
     };
+    if shard.has_native_service(&wait) {
+        if shard
+            .resume_resident_native_service_call(owner, suspension, wait)
+            .map_err(|error| fail_resident_capability(shard, helpers, owner, error))?
+        {
+            helpers.close_owner(owner.as_u64());
+        }
+        return Ok(true);
+    }
     if let Some(request) = helpers
         .postgres
         .prepare(

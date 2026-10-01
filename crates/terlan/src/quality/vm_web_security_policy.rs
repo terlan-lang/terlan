@@ -41,27 +41,55 @@ const REQUIRED_RESPONSE_TEST_ANCHORS: &[&str] = &[
     "sample_redirect",
 ];
 
-const REQUIRED_SESSION_ANCHORS: &[&str] = &[
-    "set_header_with_options(",
-    "\"terlan_session\", identity, \"/\", \"\", 0, false, \"\", true, false, \"Lax\"",
-    "runtime.expire(session)",
-    "runtime.rotate(session)",
+const REQUIRED_SESSION_ANCHORS: &[(&str, &[&str])] = &[
+    (
+        "std/http/Session.terl",
+        &[
+            "set_header_with_options(",
+            "@compiler.native {std.http.session.rotate}",
+            "@compiler.native {std.http.session.expire}",
+        ],
+    ),
+    (
+        "std/http/native/src/session_store.rs",
+        &[
+            ".rotate(identity, &mut Resources(&mut self.resources))",
+            ".expire(identity, &mut Resources(&mut self.resources))",
+        ],
+    ),
+    (
+        "std/http/SessionTest.terl",
+        &[
+            "; HttpOnly; SameSite=Lax; Path=/",
+            "session_rotation_preserves_values_and_revokes_old_cookie",
+            "session_expiration_clears_state_and_threads_deletion_cookie",
+        ],
+    ),
 ];
 
 const REQUIRED_HANDLER_ANCHORS: &[&str] = &[
     "validate_response_header",
-    "Response.redirect expects String",
-    "unsupported cookie SameSite value",
-    "Set-Cookie",
-    "Location",
+    "with_header(\"Location\", location)",
+    "dispatch.http.cookie.invalid_same_site",
+    "header(\"Set-Cookie\", value)",
 ];
 
-const REQUIRED_HTTP_LIMIT_ANCHORS: &[&str] = &[
-    "VM HTTP request exceeded 64 KiB header limit",
-    "VM HTTP request exceeded 1 MiB body limit",
-    "VM HTTP response exceeded 64 KiB header limit",
-    "VM HTTP response exceeded 1 MiB body limit",
-    "httparse",
+const REQUIRED_HTTP_LIMIT_ANCHORS: &[(&str, &[&str])] = &[
+    (
+        "std/http/native/src/http1.rs",
+        &[
+            "VM HTTP request exceeded 64 KiB header limit",
+            "VM HTTP request exceeded 1 MiB body limit",
+            "httparse",
+        ],
+    ),
+    (
+        "crates/terlan/src/runtime/vm/http/protocol/exchange.rs",
+        &[
+            "VM HTTP response exceeded 64 KiB header limit",
+            "VM HTTP response exceeded 1 MiB body limit",
+        ],
+    ),
 ];
 
 const REQUIRED_TLS_ANCHORS: &[&str] = &[
@@ -69,7 +97,7 @@ const REQUIRED_TLS_ANCHORS: &[&str] = &[
     "ProjectServerTlsMode::Manual",
     "ProjectServerTlsMode::Internal",
     "ProjectServerTlsMode::Auto",
-    "instant_acme::LetsEncrypt::Production.url()",
+    "https://acme-v02.api.letsencrypt.org/directory",
     "is_acme_http01_token",
 ];
 
@@ -201,33 +229,38 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
         REQUIRED_RESPONSE_TEST_ANCHORS,
         "response security stdlib tests",
     )?);
+    for (path, terms) in REQUIRED_SESSION_ANCHORS {
+        diagnostics.extend(validate_required_terms(
+            root,
+            path,
+            terms,
+            "package session policy and source tests",
+        )?);
+    }
     diagnostics.extend(validate_required_terms_across(
         root,
         &[
-            "std/http/Session.terl",
-            "crates/terlan/src/runtime/vm/http_session/state.rs",
-            "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
+            "std/http/Response.terl",
+            "std/http/native/src/response_headers.rs",
+            "std/http/native/src/bindings.rs",
         ],
-        REQUIRED_SESSION_ANCHORS,
-        "VM session cookie policy",
-    )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "crates/terlan/src/commands/serve/handler/response_bridge.rs",
         REQUIRED_HANDLER_ANCHORS,
-        "VM handler response validation",
+        "package-owned response validation",
     )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "crates/terlan/src/runtime/vm/http/protocol/exchange.rs",
-        REQUIRED_HTTP_LIMIT_ANCHORS,
-        "VM HTTP parser and body limits",
-    )?);
+    for (path, terms) in REQUIRED_HTTP_LIMIT_ANCHORS {
+        diagnostics.extend(validate_required_terms(
+            root,
+            path,
+            terms,
+            "package request parser and test-client response limits",
+        )?);
+    }
     diagnostics.extend(validate_required_terms_across(
         root,
         &[
             "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
-            "crates/terlan/src/commands/serve/tls/acme_runtime/certificate_validation.rs",
+            "std/http/native/src/acme.rs",
+            "std/http/native/src/acme/certificate_validation.rs",
         ],
         REQUIRED_TLS_ANCHORS,
         "TLS and ACME policy boundary",
