@@ -1,4 +1,4 @@
-//! Compiler router metadata admission into the VM dispatch model.
+//! Test-only legacy metadata adapter; production admits source-composed callbacks.
 
 use crate::runtime::vm::aot_metadata::{AotRouterCallable, AotRouterPlan, AotRouterRouteTarget};
 use crate::runtime::vm::http_router::{
@@ -8,12 +8,12 @@ use crate::runtime::vm::ReplValue;
 
 pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, String> {
     let mut router = VmHttpRouter::new();
-    for middleware in plan.middleware {
-        router = router.use_middleware(callable_value(middleware));
-    }
-    for middleware in plan.response_middleware {
-        router = router.map_response(callable_value(middleware));
-    }
+    let middleware: Vec<_> = plan.middleware.into_iter().map(callable_value).collect();
+    let response_middleware: Vec<_> = plan
+        .response_middleware
+        .into_iter()
+        .map(callable_value)
+        .collect();
     for route in plan.routes {
         let method = VmHttpRouteMethod::from_name(&route.method).ok_or_else(|| {
             format!(
@@ -36,16 +36,24 @@ pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, St
             method,
             route.path,
             target,
-            route.middleware.into_iter().map(callable_value).collect(),
-            route
-                .response_middleware
-                .into_iter()
-                .map(callable_value)
+            middleware
+                .iter()
+                .cloned()
+                .chain(route.middleware.into_iter().map(callable_value))
+                .collect(),
+            response_middleware
+                .iter()
+                .cloned()
+                .chain(route.response_middleware.into_iter().map(callable_value))
                 .collect(),
         )?;
     }
     if let Some(fallback) = plan.fallback {
-        router = router.fallback(callable_value(fallback));
+        router = router.fallback_target(terlan_http_native::routing::Fallback {
+            handler: callable_value(fallback),
+            middleware,
+            response_middleware,
+        });
     }
     if let Some(error) = plan.error {
         router = router.error(callable_value(error));

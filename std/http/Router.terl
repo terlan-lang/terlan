@@ -4,12 +4,14 @@
  * `std.http.Router` defines the source-level route builder used by Terlan web
  * applications. Ordinary source functions build an immutable declaration
  * sequence without opening transports. Handlers accept `Request` and return
- * `Response`. Serving still extracts static metadata while descriptor-based
- * admission is being migrated.
+ * `Response`. Serving executes `router/0` once per admitted image generation;
+ * the HTTP package validates its returned declarations and callbacks.
  */
 module std.http.Router.
 
 import std.collections.List.
+import std.core.String.
+import std.http.Error.
 
 import type std.collections.List.
 import type std.http.Error.HttpError.
@@ -27,25 +29,53 @@ pub struct Router {
     #entries: List[Entry],
 }.
 
-type RouteEntry = {Atom["route"], method: String, path: String, handler: Handler}.
+type RouteEntry =
+      {
+          Atom["route"],
+          method: String,
+          path: String,
+          handler: Handler,
+          middleware: List[Middleware],
+          response_middleware: List[ResponseMiddleware]
+      }.
 
-type SseEntry = {Atom["sse"], path: String, endpoint: SseEndpoint}.
+type SseEntry =
+      {
+          Atom["sse"],
+          path: String,
+          endpoint: SseEndpoint,
+          middleware: List[Middleware],
+          response_middleware: List[ResponseMiddleware]
+      }.
 
-type WebSocketEntry = {Atom["websocket"], path: String, endpoint: WebSocketEndpoint}.
+type WebSocketEntry =
+      {
+          Atom["websocket"],
+          path: String,
+          endpoint: WebSocketEndpoint,
+          middleware: List[Middleware],
+          response_middleware: List[ResponseMiddleware]
+      }.
 
 type MiddlewareEntry = {Atom["middleware"], callback: Middleware}.
 
 type ResponseMiddlewareEntry = {Atom["response_middleware"], callback: ResponseMiddleware}.
 
-type FallbackEntry = {Atom["fallback"], callback: Handler}.
+type FallbackEntry =
+      {
+          Atom["fallback"],
+          callback: Handler,
+          middleware: List[Middleware],
+          response_middleware: List[ResponseMiddleware]
+      }.
 
-type ErrorEntry = {Atom["error"], callback: ErrorHandler}.
+type ErrorEntry = {Atom["error"], callback: (String) -> Response}.
 
 type OverloadEntry = {Atom["overload"], policy: OverloadPolicy, max_pending: Int}.
 
 type LifecycleEntry = {Atom["lifecycle"], callback: LifecycleMiddleware}.
 
-type GroupStartEntry = {Atom["group_start"], prefix: String}.
+type GroupStartEntry.
 
 type GroupEndEntry.
 
@@ -64,6 +94,18 @@ type Entry =
 
 append_entry(router: Router, entry: Entry): Router ->
     Router {#entries: List.concat(router.#entries, [entry])}.
+
+append_target(router: Router, entry: Entry): Router ->
+    append_entry(
+        router,
+        scope_entry(
+            entry,
+            group_middleware(router.#entries, 0),
+            group_response_middleware(router.#entries, 0),
+            0,
+            0,
+        ),
+    ).
 
 /**
  * OverloadPolicy selects the VM action when a router's pending-work bound is
@@ -287,7 +329,7 @@ pub new(): Router ->
  * router value.
  */
 pub (router: Router) get(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("GET", pattern, handler)).
+    append_target(router, RouteEntry("GET", pattern, handler, [], [])).
 
 /**
  * Adds a `POST` route.
@@ -298,7 +340,7 @@ pub (router: Router) get(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) post(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("POST", pattern, handler)).
+    append_target(router, RouteEntry("POST", pattern, handler, [], [])).
 
 /**
  * Adds a `PUT` route.
@@ -309,7 +351,7 @@ pub (router: Router) post(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) put(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("PUT", pattern, handler)).
+    append_target(router, RouteEntry("PUT", pattern, handler, [], [])).
 
 /**
  * Adds a `PATCH` route.
@@ -320,7 +362,7 @@ pub (router: Router) put(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) patch(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("PATCH", pattern, handler)).
+    append_target(router, RouteEntry("PATCH", pattern, handler, [], [])).
 
 /**
  * Adds a `DELETE` route.
@@ -331,7 +373,7 @@ pub (router: Router) patch(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) delete(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("DELETE", pattern, handler)).
+    append_target(router, RouteEntry("DELETE", pattern, handler, [], [])).
 
 /**
  * Adds a `HEAD` route.
@@ -342,7 +384,7 @@ pub (router: Router) delete(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) head(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("HEAD", pattern, handler)).
+    append_target(router, RouteEntry("HEAD", pattern, handler, [], [])).
 
 /**
  * Adds an `OPTIONS` route.
@@ -353,7 +395,7 @@ pub (router: Router) head(pattern: String, handler: Handler): Router ->
  * router value.
  */
 pub (router: Router) options(pattern: String, handler: Handler): Router ->
-    append_entry(router, RouteEntry("OPTIONS", pattern, handler)).
+    append_target(router, RouteEntry("OPTIONS", pattern, handler, [], [])).
 
 /**
  * Adds a WebSocket channel route.
@@ -365,7 +407,7 @@ pub (router: Router) options(pattern: String, handler: Handler): Router ->
  * owns upgrade, frame, and session state.
  */
 pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router ->
-    append_entry(router, WebSocketEntry(pattern, endpoint)).
+    append_target(router, WebSocketEntry(pattern, endpoint, [], [])).
 
 /**
  * Adds a server-sent event channel route.
@@ -376,7 +418,7 @@ pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Ro
  * owns event-stream state and scheduling.
  */
 pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router ->
-    append_entry(router, SseEntry(pattern, endpoint)).
+    append_target(router, SseEntry(pattern, endpoint, [], [])).
 
 /**
  * Adds middleware to a router scope.
@@ -387,7 +429,9 @@ pub (router: Router) sse(pattern: String, endpoint: SseEndpoint): Router ->
  * admission.
  */
 pub (router: Router) use(middleware: Middleware): Router ->
-    append_entry(router, MiddlewareEntry(middleware)).
+    let offset = List.length(group_middleware(router.#entries, 0));
+    let entries = [scope_entry(entry, [middleware], [], offset, 0) | entry <- router.#entries];
+    append_entry(Router {#entries: entries}, MiddlewareEntry(middleware)).
 
 /**
  * Adds response middleware to a router scope.
@@ -398,7 +442,9 @@ pub (router: Router) use(middleware: Middleware): Router ->
  * order after a handler or short-circuit response is produced.
  */
 pub (router: Router) map_response(middleware: ResponseMiddleware): Router ->
-    append_entry(router, ResponseMiddlewareEntry(middleware)).
+    let offset = List.length(group_response_middleware(router.#entries, 0));
+    let entries = [scope_entry(entry, [], [middleware], 0, offset) | entry <- router.#entries];
+    append_entry(Router {#entries: entries}, ResponseMiddlewareEntry(middleware)).
 
 /**
  * Adds a fallback route.
@@ -409,18 +455,23 @@ pub (router: Router) map_response(middleware: ResponseMiddleware): Router ->
  * route matches the request.
  */
 pub (router: Router) fallback(handler: Handler): Router ->
-    append_entry(router, FallbackEntry(handler)).
+    append_target(router, FallbackEntry(handler, [], [])).
 
 /**
  * Adds a router-level error handler.
  *
  * Input: one `Router` and one error handler.
  * Output: the updated `Router`.
- * Transformation: records the error callback used when handler execution or
- * bridge conversion fails and the server needs a source-visible response.
+ * Transformation: adapts host failure messages into the public HttpError in
+ * source, then invokes the user's recovery callback.
  */
 pub (router: Router) error(handler: ErrorHandler): Router ->
-    append_entry(router, ErrorEntry(handler)).
+    append_entry(
+        router,
+        ErrorEntry(
+            (message: String) -> handler(Error.new(Atom["router_execution_failed"], message, 500)),
+        ),
+    ).
 
 /**
  * Configures bounded pending HTTP work for this router.
@@ -454,7 +505,152 @@ pub (router: Router) lifecycle(middleware: LifecycleMiddleware): Router ->
  * router and retains its declarations under the supplied path prefix.
  */
 pub (router: Router) group(prefix: String, configure: GroupBuilder): Router ->
-    let opened = append_entry(router, GroupStartEntry(prefix));
     let child = configure(new());
-    let grouped = Router {#entries: List.concat(opened.#entries, child.#entries)};
-    append_entry(grouped, GroupEndEntry).
+    let opened = append_entry(router, GroupStartEntry);
+    let entries = prefix_entries(prefix, child.#entries);
+    let fallbacks = group_fallbacks(prefix, child.#entries, 0);
+    let middleware = group_middleware(router.#entries, 0);
+    let response_middleware = group_response_middleware(router.#entries, 0);
+    let scoped = [scope_entry(entry, middleware, response_middleware, 0, 0) | entry <- List.concat(entries, fallbacks)];
+    let grouped = Router {#entries: List.concat(opened.#entries, scoped)};
+    let closed = append_entry(grouped, GroupEndEntry);
+    let inherited =
+        case scope_error(router.#entries, 0) {
+            [] -> scope_error(child.#entries, 0);
+            _ -> []
+        };
+    Router {#entries: List.concat(closed.#entries, inherited)}.
+
+scope_error(entries: List[Entry], depth: Int): List[Entry] ->
+    case entries {
+        [] -> [];
+        [GroupStartEntry | rest] -> scope_error(rest, depth + 1);
+        [GroupEndEntry | rest] -> scope_error(rest, depth - 1);
+        [ErrorEntry(callback) | _] where depth == 0 -> [ErrorEntry(callback)];
+        [_ | rest] -> scope_error(rest, depth)
+    }.
+
+prefix_entries(prefix: String, entries: List[Entry]): List[Entry] ->
+    [prefix_entry(prefix, entry) | entry <- entries].
+
+prefix_entry(prefix: String, entry: Entry): Entry ->
+    case entry {
+        RouteEntry(method, path, handler, middleware, response_middleware) ->
+            RouteEntry(method, prefixed(prefix, path), handler, middleware, response_middleware);
+        SseEntry(path, endpoint, middleware, response_middleware) ->
+            SseEntry(prefixed(prefix, path), endpoint, middleware, response_middleware);
+        WebSocketEntry(path, endpoint, middleware, response_middleware) ->
+            WebSocketEntry(prefixed(prefix, path), endpoint, middleware, response_middleware);
+        _ -> entry
+    }.
+
+group_fallbacks(prefix: String, entries: List[Entry], depth: Int): List[Entry] ->
+    case entries {
+        [] -> [];
+        [GroupStartEntry | rest] -> group_fallbacks(prefix, rest, depth + 1);
+        [GroupEndEntry | rest] -> group_fallbacks(prefix, rest, depth - 1);
+        [FallbackEntry(handler, middleware, response_middleware) | rest] where depth == 0 ->
+            let methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+            let routes = [method_fallback_route(method, prefixed(prefix, "*"), handler, middleware, response_middleware) | method <- methods];
+            List.concat(routes, group_fallbacks(prefix, rest, depth));
+        [_ | rest] -> group_fallbacks(prefix, rest, depth)
+    }.
+
+method_fallback_route(
+    method: String,
+    path: String,
+    handler: Handler,
+    middleware: List[Middleware],
+    response_middleware: List[ResponseMiddleware],
+): Entry ->
+    RouteEntry(method, path, handler, middleware, response_middleware).
+
+group_middleware(entries: List[Entry], depth: Int): List[Middleware] ->
+    case entries {
+        [] -> [];
+        [GroupStartEntry | rest] -> group_middleware(rest, depth + 1);
+        [GroupEndEntry | rest] -> group_middleware(rest, depth - 1);
+        [MiddlewareEntry(callback) | rest] where depth == 0 ->
+            [callback | group_middleware(rest, depth)];
+        [_ | rest] -> group_middleware(rest, depth)
+    }.
+
+group_response_middleware(entries: List[Entry], depth: Int): List[ResponseMiddleware] ->
+    case entries {
+        [] -> [];
+        [GroupStartEntry | rest] -> group_response_middleware(rest, depth + 1);
+        [GroupEndEntry | rest] -> group_response_middleware(rest, depth - 1);
+        [ResponseMiddlewareEntry(callback) | rest] where depth == 0 ->
+            [callback | group_response_middleware(rest, depth)];
+        [_ | rest] -> group_response_middleware(rest, depth)
+    }.
+
+scope_entry(
+    entry: Entry,
+    middleware: List[Middleware],
+    response_middleware: List[ResponseMiddleware],
+    middleware_offset: Int,
+    response_offset: Int,
+): Entry ->
+    case entry {
+        RouteEntry(method, path, handler, scoped, scoped_response) ->
+            RouteEntry(
+                method,
+                path,
+                handler,
+                insert_callbacks(scoped, middleware_offset, middleware),
+                insert_callbacks(scoped_response, response_offset, response_middleware),
+            );
+        SseEntry(path, endpoint, scoped, scoped_response) ->
+            SseEntry(
+                path,
+                endpoint,
+                insert_callbacks(scoped, middleware_offset, middleware),
+                insert_callbacks(scoped_response, response_offset, response_middleware),
+            );
+        WebSocketEntry(path, endpoint, scoped, scoped_response) ->
+            WebSocketEntry(
+                path,
+                endpoint,
+                insert_callbacks(scoped, middleware_offset, middleware),
+                insert_callbacks(scoped_response, response_offset, response_middleware),
+            );
+        FallbackEntry(handler, scoped, scoped_response) ->
+            FallbackEntry(
+                handler,
+                insert_callbacks(scoped, middleware_offset, middleware),
+                insert_callbacks(scoped_response, response_offset, response_middleware),
+            );
+        _ -> entry
+    }.
+
+insert_callbacks[T](values: List[T], offset: Int, callbacks: List[T]): List[T] ->
+    case {callbacks, offset, values} {
+        {[], _, _} -> values;
+        {_, 0, _} -> List.concat(callbacks, values);
+        {_, _, [head | tail]} -> [head | insert_callbacks(tail, offset - 1, callbacks)];
+        _ -> callbacks
+    }.
+
+prefixed(prefix: String, path: String): String ->
+    let base = trim_group_end(prefix);
+    case path {
+        "/" ->
+            case base {
+                "" -> "/";
+                _ -> base
+            };
+        _ -> base + "/" + trim_group_start(path)
+    }.
+
+trim_group_end(value: String): String ->
+    case value.ends_with("/") {
+        true -> trim_group_end(value.utf8_slice(0, value.byte_size() - 1));
+        false -> value
+    }.
+
+trim_group_start(value: String): String ->
+    case value.starts_with("/") {
+        true -> trim_group_start(value.utf8_slice(1, value.byte_size() - 1));
+        false -> value
+    }.

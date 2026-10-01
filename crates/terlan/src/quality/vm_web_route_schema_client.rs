@@ -97,13 +97,15 @@ const REQUIRED_ROUTE_TEST_ANCHORS: &[&str] = &[
     "validate_route_pattern_rejects_non_binding_capture_names",
 ];
 
-const REQUIRED_GATE_TERMS: &[&str] = &[
-    "vm-web-route-schema-client-check: vm-web-deployment-profile-check",
-    "$(MAKE) api-schema-check",
-    "$(MAKE) web-profile-preflight",
-    "vm_web_route_schema_client_test",
-    "vm-web-route-schema-client",
-];
+// The consolidated suite owns Rust tests; these remain actual prerequisites,
+// not recursive Make invocations or an obsolete binary-test selector.
+const REQUIRED_GATE_TERMS: &[&str] = &[concat!(
+    "vm-web-route-schema-client-check: \\\n",
+    "\tvm-web-deployment-profile-check \\\n",
+    "\tapi-schema-check \\\n",
+    "\tweb-profile-preflight\n",
+    "\t$(TERLAN_QUALITY) vm-web-route-schema-client",
+)];
 
 const ROUTE_MANIFEST_HASH_CASES: &[&str] = &[
     "browser web manifest build_id is deterministic from route/static asset identity",
@@ -217,7 +219,7 @@ pub fn run_vm_web_route_schema_client(root: &Path) -> QualityResult<VmWebRouteSc
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/web_route_test.rs",
+        "std/http/native/src/route_pattern_test.rs",
         REQUIRED_ROUTE_TEST_ANCHORS,
         "typed route parameter tests",
     )?);

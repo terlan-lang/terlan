@@ -26,7 +26,7 @@ pub fn sse_endpoint<V: DescriptorValue, C>(
         _ => {
             let [interval] = record(keep_alive, "Some", ["value"])?;
             plan = plan
-                .with_keep_alive_ms(positive(interval)? as u64)
+                .with_keep_alive_ms(positive_u64(interval)?)
                 .map_err(error)?;
         }
     }
@@ -164,7 +164,7 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                     room_prefix: text(*room_prefix)?,
                     first_player: text(*first_player)?,
                     second_player: text(*second_player)?,
-                    retention_ms: positive(*retention)? as u64,
+                    retention_ms: positive_u64(*retention)?,
                     retained_room_capacity: positive(*capacity)?,
                     matched: callback(matched, 4)?,
                     restored: callback(restored, 5)?,

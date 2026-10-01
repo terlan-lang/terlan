@@ -2,8 +2,12 @@
 
 use std::collections::HashMap;
 
-use super::{walk_native_expr, ComposedCallProfile};
+use super::{walk_native_expr, ComposedCallProfile, DynamicCallProfiles, DynamicCallSignature};
 use crate::compiler::native_ir::NativeExpr;
+
+#[cfg(test)]
+#[path = "contract_closure_test.rs"]
+mod closure_tests;
 
 impl ComposedCallProfile {
     /// Merges another member's converged graph into one recursive component.
@@ -384,15 +388,16 @@ pub(in crate::compiler::native_ir) fn refresh_recursive_call_contract(
     }
 }
 
-/// Closes ordinary direct-call resume tables over final fixed-point profiles.
+/// Closes ordinary direct and indirect call resume tables over final fixed-point profiles.
 ///
 /// Every outward yield of an ordinary call resumes the same caller-owned
 /// completion frame. Profile discovery can add callee entries after a caller
 /// body was lowered; this final monotone pass adds those identities without
 /// rebuilding the already interned caller continuation.
-pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
+pub(in crate::compiler::native_ir) fn close_call_contracts(
     expr: &mut NativeExpr,
     profiles: &HashMap<usize, ComposedCallProfile>,
+    dynamic: &DynamicCallProfiles,
 ) {
     if let NativeExpr::CallThen {
         function,
@@ -438,29 +443,68 @@ pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
             }
         }
     }
+    if let NativeExpr::InvokeClosureThen {
+        parameter_types,
+        result_type,
+        resumes,
+        completion_continuation_id,
+        ..
+    } = expr
+    {
+        let signature = DynamicCallSignature {
+            parameters: parameter_types.clone(),
+            result: *result_type,
+        };
+        if let Some(targets) = dynamic.get(&signature) {
+            for target in targets {
+                for entry in &target.profile.entries {
+                    if resumes.iter().any(|resume| {
+                        resume.callee_export_id == target.export_id
+                            && resume.callee_continuation_id == *entry
+                    }) {
+                        continue;
+                    }
+                    if let Some(continuation) = target
+                        .profile
+                        .continuations
+                        .iter()
+                        .find(|continuation| continuation.id == *entry)
+                    {
+                        resumes.push(super::super::NativeDynamicCallResume {
+                            callee_export_id: target.export_id,
+                            callee_continuation_id: *entry,
+                            callee_capture_count: continuation.params.len(),
+                            continuation_id: *completion_continuation_id,
+                        });
+                    }
+                }
+            }
+            resumes.sort_by_key(|resume| (resume.callee_export_id, resume.callee_continuation_id));
+        }
+    }
     match expr {
         NativeExpr::ManagedOperation { args, .. }
         | NativeExpr::Call { args, .. }
         | NativeExpr::TailCall { args, .. }
         | NativeExpr::ContinuationTailCall { args, .. } => {
             for arg in args {
-                close_direct_call_contracts(arg, profiles);
+                close_call_contracts(arg, profiles, dynamic);
             }
         }
         NativeExpr::MakeClosure { captures, .. } => {
             for capture in captures {
-                close_direct_call_contracts(capture, profiles);
+                close_call_contracts(capture, profiles, dynamic);
             }
         }
         NativeExpr::Construct { fields, .. } => {
             for field in fields {
-                close_direct_call_contracts(field, profiles);
+                close_call_contracts(field, profiles, dynamic);
             }
         }
         NativeExpr::InvokeClosure { callee, args, .. } => {
-            close_direct_call_contracts(callee, profiles);
+            close_call_contracts(callee, profiles, dynamic);
             for arg in args {
-                close_direct_call_contracts(arg, profiles);
+                close_call_contracts(arg, profiles, dynamic);
             }
         }
         NativeExpr::InvokeClosureThen {
@@ -469,9 +513,9 @@ pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
             values,
             ..
         } => {
-            close_direct_call_contracts(callee, profiles);
+            close_call_contracts(callee, profiles, dynamic);
             for value in args.iter_mut().chain(values) {
-                close_direct_call_contracts(value, profiles);
+                close_call_contracts(value, profiles, dynamic);
             }
         }
         NativeExpr::CallThen { args, values, .. }
@@ -481,7 +525,7 @@ pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
             ..
         } => {
             for value in args.iter_mut().chain(values) {
-                close_direct_call_contracts(value, profiles);
+                close_call_contracts(value, profiles, dynamic);
             }
         }
         NativeExpr::Neg(value)
@@ -489,21 +533,21 @@ pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
         | NativeExpr::FloatFloor(value)
         | NativeExpr::FloatCeil(value)
         | NativeExpr::IntToFloat(value)
-        | NativeExpr::Not(value) => close_direct_call_contracts(value, profiles),
+        | NativeExpr::Not(value) => close_call_contracts(value, profiles, dynamic),
         NativeExpr::Binary { left, right, .. } => {
-            close_direct_call_contracts(left, profiles);
-            close_direct_call_contracts(right, profiles);
+            close_call_contracts(left, profiles, dynamic);
+            close_call_contracts(right, profiles, dynamic);
         }
         NativeExpr::Let { bindings, body } => {
             for binding in bindings {
-                close_direct_call_contracts(binding, profiles);
+                close_call_contracts(binding, profiles, dynamic);
             }
-            close_direct_call_contracts(body, profiles);
+            close_call_contracts(body, profiles, dynamic);
         }
         NativeExpr::If { clauses } => {
             for (condition, body) in clauses {
-                close_direct_call_contracts(condition, profiles);
-                close_direct_call_contracts(body, profiles);
+                close_call_contracts(condition, profiles, dynamic);
+                close_call_contracts(body, profiles, dynamic);
             }
         }
         NativeExpr::Try {
@@ -512,11 +556,11 @@ pub(in crate::compiler::native_ir) fn close_direct_call_contracts(
             failure,
             cleanup,
         } => {
-            close_direct_call_contracts(protected, profiles);
-            close_direct_call_contracts(success, profiles);
-            close_direct_call_contracts(failure, profiles);
+            close_call_contracts(protected, profiles, dynamic);
+            close_call_contracts(success, profiles, dynamic);
+            close_call_contracts(failure, profiles, dynamic);
             for value in cleanup {
-                close_direct_call_contracts(value, profiles);
+                close_call_contracts(value, profiles, dynamic);
             }
         }
         NativeExpr::Unit

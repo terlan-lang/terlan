@@ -25,6 +25,8 @@ mod route;
 mod sse;
 mod sse_invocation;
 mod suspendable;
+mod suspendable_router;
+pub(super) use suspendable_router::execute_suspendable_router;
 mod types;
 mod websocket;
 mod websocket_invocation;
@@ -205,7 +207,7 @@ fn execute_vm_router_with_package_root(
         }) {
             Ok(outcome) => outcome,
             Err(error) => {
-                let response = execute_router_recovery(vm, module, &router, error, output)?;
+                let response = execute_router_recovery(vm, module, &router, error.into(), output)?;
                 return finish_router_response(
                     RouterResponseRuntime::new(vm, module, request, package_root),
                     output,
@@ -371,18 +373,7 @@ pub(super) fn execute_router_recovery(
     let Some(handler) = router.error_handler() else {
         return Err(error);
     };
-    let http_error = ReplValue::Record {
-        name: "HttpError".to_string(),
-        fields: vec![
-            (
-                "code".to_string(),
-                ReplValue::Atom("router_execution_failed".to_string()),
-            ),
-            ("message".to_string(), ReplValue::String(error.clone())),
-            ("status".to_string(), ReplValue::Int(500)),
-        ],
-    };
-    vm.execute_callable(module, handler, vec![http_error], output)
+    vm.execute_callable(module, handler, vec![ReplValue::String(error.clone())], output)
         .map_err(|recovery| {
             format!(
                 "error[serve_router_recovery]: router failed with `{error}`; error handler failed with `{recovery}`"

@@ -58,13 +58,6 @@ pub(super) fn application_atom_identities(cores: &[&CoreModule]) -> Vec<String> 
                 atoms.extend(errors.iter().map(|atom| (*atom).to_string()));
             }
         }
-        if core
-            .imports
-            .iter()
-            .any(|import| import.module == "std.http.Router")
-        {
-            atoms.insert("router_execution_failed".to_string());
-        }
         for declaration in &core.types {
             if let Some(body) = &declaration.core_body {
                 collect_type(body, &mut atoms);

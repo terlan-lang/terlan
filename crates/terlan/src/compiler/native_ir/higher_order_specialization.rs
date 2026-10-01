@@ -263,6 +263,26 @@ impl HigherOrderSpecializer<'_> {
                     clauses: lowered,
                 })
             }
+            CoreExpr::Tuple(_)
+            | CoreExpr::List(_)
+            | CoreExpr::FixedArray(_)
+            | CoreExpr::ListCons { .. }
+            | CoreExpr::Map(_)
+            | CoreExpr::RecordConstruct { .. }
+            | CoreExpr::RecordUpdate { .. }
+            | CoreExpr::TemplateInstantiate { .. }
+            | CoreExpr::FieldAccess { .. }
+            | CoreExpr::RecordAccess { .. }
+            | CoreExpr::Index { .. } => {
+                let mut rebuilt = expr.clone();
+                let mut result = Ok(());
+                crate::terlan_typeck::visit_core_expr_children_mut(&mut rebuilt, &mut |child| {
+                    if result.is_ok() {
+                        result = self.rewrite(child).map(|rewritten| *child = rewritten);
+                    }
+                });
+                result.map(|()| rebuilt)
+            }
             _ => Ok(expr.clone()),
         }
     }
@@ -477,45 +497,15 @@ fn function_parameter_arity(parameter: &CoreParam) -> Option<usize> {
 
 /// Reports whether an expression still refers to a removed helper identity.
 fn mentions_helper(expr: &CoreExpr, helpers: &HashSet<FunctionIdentity>) -> bool {
-    match expr {
-        CoreExpr::Call { function, args, .. } => {
-            helpers.contains(&(function.clone(), args.len()))
-                || args.iter().any(|arg| mentions_helper(arg, helpers))
-        }
-        CoreExpr::Var(name) => helpers.iter().any(|(helper, _)| helper == name),
-        CoreExpr::RemoteCall { args, .. }
-        | CoreExpr::ConstructorCall { args, .. }
-        | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
-            args.iter().any(|arg| mentions_helper(arg, helpers))
-        }
-        CoreExpr::FunctionCall { callee, args } => {
-            mentions_helper(callee, helpers) || args.iter().any(|arg| mentions_helper(arg, helpers))
-        }
-        CoreExpr::Lam { body, .. }
-        | CoreExpr::UnaryOp { operand: body, .. }
-        | CoreExpr::Cast { expr: body, .. } => mentions_helper(body, helpers),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            mentions_helper(left, helpers) || mentions_helper(right, helpers)
-        }
-        CoreExpr::Let { bindings, body } => {
-            bindings
-                .iter()
-                .any(|binding| mentions_helper(&binding.value, helpers))
-                || mentions_helper(body, helpers)
-        }
-        CoreExpr::If { clauses } => clauses.iter().any(|clause| {
-            mentions_helper(&clause.condition, helpers) || mentions_helper(&clause.body, helpers)
-        }),
-        CoreExpr::Case { scrutinee, clauses } => {
-            mentions_helper(scrutinee, helpers)
-                || clauses.iter().any(|clause| {
-                    clause
-                        .guard
-                        .as_ref()
-                        .is_some_and(|guard| mentions_helper(guard, helpers))
-                        || mentions_helper(&clause.body, helpers)
-                })
-        }
-        _ => false,
-    }
+    let mut found = false;
+    super::application::dynamic_targets::walk_expressions(expr, &mut |expression| {
+        found |= match expression {
+            CoreExpr::Call { function, args, .. } => {
+                helpers.contains(&(function.clone(), args.len()))
+            }
+            CoreExpr::Var(name) => helpers.iter().any(|(helper, _)| helper == name),
+            _ => false,
+        };
+    });
+    found
 }

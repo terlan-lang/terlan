@@ -86,6 +86,7 @@ test("links the page table of contents to stable heading anchors", async ({ page
   await sectionLink.click();
   await expect(page).toHaveURL(/\/docs\/language\/#a-small-module$/);
   await expect(page.locator("#a-small-module")).toHaveAttribute("tabindex", "-1");
+  await expect(page.locator("#a-small-module")).toBeFocused();
 });
 
 test("renders generated blog archive, tag, and author collections", async ({ page }) => {

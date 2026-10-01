@@ -13,6 +13,10 @@ use super::native_debug::NativeDebugInput;
 use super::parallel_compile::compile_vm_modules;
 use super::{native_image, native_reuse, std_source};
 
+#[cfg(test)]
+#[path = "orchestration_test.rs"]
+mod tests;
+
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) struct CompiledServeApplication {
     pub(crate) core: CoreModule,
@@ -153,10 +157,17 @@ pub(crate) fn compile_serve_application(
         })
         .collect::<Vec<_>>();
     let module_stem = expected_module.replace('.', "_");
+    let roots = core
+        .functions
+        .iter()
+        .filter(|function| function.public)
+        .map(|function| (core.module.clone(), function.name.clone(), function.arity))
+        .collect::<Vec<_>>();
     let image = native_image::compile_serve_native_application_image_with_metadata(
         web_root,
         &module_stem,
         &cores,
+        &roots,
         &debug_inputs,
     )?
     .ok_or_else(|| {

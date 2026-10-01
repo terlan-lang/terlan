@@ -40,16 +40,19 @@ pub(super) fn http_session_lookup_creates_actor_and_sticky_metadata() {
         .lookup_or_create(None)
         .expect("missing cookie should create session");
 
-    assert_eq!(lookup.session.id, "s1");
+    assert_eq!(lookup.session.id.len(), 43);
     assert_eq!(lookup.route.node_id, "node-a");
-    assert_eq!(lookup.route.session_id, "s1");
+    assert_eq!(lookup.route.session_id, lookup.session.id);
     assert_eq!(lookup.route.actor_pid, 1);
-    assert_eq!(lookup.route.sticky_key, "node-a:s1");
-    assert_eq!(lookup.pending_identity, Some("s1".to_string()));
+    assert_eq!(
+        lookup.route.sticky_key,
+        format!("node-a:{}", lookup.session.id)
+    );
+    assert_eq!(lookup.pending_identity, Some(lookup.session.id.clone()));
 
     let snapshots = sessions.snapshots();
     assert_eq!(snapshots.len(), 1);
-    assert_eq!(snapshots[0].session_id, "s1");
+    assert_eq!(snapshots[0].session_id, lookup.session.id);
     assert_eq!(snapshots[0].actor_pid, 1);
     assert_eq!(snapshots[0].table_id, 1);
     assert_eq!(snapshots[0].table_len, 0);
@@ -57,7 +60,32 @@ pub(super) fn http_session_lookup_creates_actor_and_sticky_metadata() {
     assert_eq!(snapshots[0].actor_mailbox_len, 0);
     assert_eq!(snapshots[0].state_version, 0);
     assert_eq!(snapshots[0].expires_at_tick, 10);
-    assert_eq!(snapshots[0].sticky_key, "node-a:s1");
+    assert_eq!(
+        snapshots[0].sticky_key,
+        format!("node-a:{}", lookup.session.id)
+    );
+}
+
+#[test]
+fn http_session_issued_identity_is_not_shared_between_application_runtimes() {
+    let mut first = VmHttpSessionRuntime::new("same-node", 10).unwrap();
+    let mut second = VmHttpSessionRuntime::new("same-node", 10).unwrap();
+    let original = first.lookup_or_create(None).unwrap();
+    first
+        .write(&original.session, "private", ReplValue::Int(42))
+        .unwrap();
+    let other = second.lookup_or_create(Some(&original.session.id)).unwrap();
+    assert_ne!(other.session.id, original.session.id);
+    assert_eq!(second.read(&other.session, "private").unwrap(), None);
+    assert_eq!(
+        first.read(&original.session, "private").unwrap(),
+        Some(ReplValue::Int(42))
+    );
+    for guess in ["s1", "s2", "s3"] {
+        let guessed = first.lookup_or_create(Some(guess)).unwrap();
+        assert_ne!(guessed.session.id, guess);
+        assert_eq!(first.read(&guessed.session, "private").unwrap(), None);
+    }
 }
 
 #[test]
@@ -73,7 +101,7 @@ pub(super) fn http_session_adapter_functions_delegate_to_actor_runtime() {
     );
 
     let rotated = rotate(&mut sessions, &created.session).expect("rotate should succeed");
-    assert_eq!(rotated.session.id, "s2");
+    assert_ne!(rotated.session.id, created.session.id);
     delete(&mut sessions, &rotated.session, "user_id").expect("delete should work");
     assert_eq!(
         get(&mut sessions, &rotated.session, "user_id").expect("deleted get should read"),
@@ -83,7 +111,10 @@ pub(super) fn http_session_adapter_functions_delegate_to_actor_runtime() {
     let error =
         get(&mut sessions, &rotated.session, "user_id").expect_err("expired get should fail");
     assert_eq!(error.domain(), terlan_runtime_abi::ErrorDomain::VmRuntime);
-    assert_eq!(error.context(), "stale HTTP session `s2`");
+    assert_eq!(
+        error.context(),
+        format!("stale HTTP session `{}`", rotated.session.id)
+    );
 }
 
 #[test]
@@ -109,8 +140,8 @@ pub(super) fn http_session_blank_cookie_creates_replacement_session() {
 
     let lookup = current(&mut sessions, Some("   ")).expect("blank cookie should create session");
 
-    assert_eq!(lookup.session.id, "s1");
-    assert_eq!(lookup.pending_identity, Some("s1".to_string()));
+    assert_eq!(lookup.session.id.len(), 43);
+    assert_eq!(lookup.pending_identity, Some(lookup.session.id.clone()));
 }
 
 #[test]
@@ -123,8 +154,11 @@ pub(super) fn http_session_affinity_accepts_single_typed_key() {
         .lookup_or_create_with_affinity_keys(None, &affinity)
         .expect("single affinity key should allow session lookup");
 
-    assert_eq!(lookup.session.id, "s1");
-    assert_eq!(lookup.route.sticky_key, "node-a:s1");
+    assert_eq!(lookup.session.id.len(), 43);
+    assert_eq!(
+        lookup.route.sticky_key,
+        format!("node-a:{}", lookup.session.id)
+    );
     assert_eq!(
         resolve_http_session_affinity_key(&affinity).expect("affinity should resolve"),
         &affinity[0]
@@ -227,7 +261,11 @@ pub(super) fn http_session_delete_reports_stale_table_after_internal_cleanup() {
             ReplValue::String("ada".to_string()),
         )
         .expect("write should succeed");
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
     sessions.tables.cleanup_owner(actor);
 
     let error = sessions
@@ -268,7 +306,7 @@ pub(super) fn http_session_private_lookup_paths_report_stale_sessions() {
         sessions
             .live_record(&created.session.id)
             .expect_err("expired live record should clean itself up"),
-        "stale HTTP session `s1`"
+        format!("stale HTTP session `{}`", created.session.id)
     );
     assert!(sessions.sessions.is_empty());
 }
@@ -287,7 +325,7 @@ pub(super) fn http_session_reuses_actor_and_table_state_for_cookie_lookup() {
         )
         .expect("write should succeed");
     let reused = sessions
-        .lookup_or_create(Some("s1"))
+        .lookup_or_create(Some(&created.session.id))
         .expect("cookie should reuse session");
 
     assert_eq!(reused.session, created.session);
@@ -327,7 +365,11 @@ pub(super) fn http_session_actor_crash_during_request_cleans_state_and_replaces_
             ReplValue::String("book".to_string()),
         )
         .expect("write should succeed");
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
 
     sessions
         .actors
@@ -338,16 +380,19 @@ pub(super) fn http_session_actor_crash_during_request_cleans_state_and_replaces_
         sessions
             .read(&created.session, "cart")
             .expect_err("crashed session actor should fail current request"),
-        "HTTP session actor `s1` crashed during request: process 1 exited with error `handler panic`"
+        format!("HTTP session actor `{}` crashed during request: process 1 exited with error `handler panic`", created.session.id)
     );
     assert_eq!(sessions.snapshots(), Vec::new());
 
     let replacement = sessions
-        .lookup_or_create(Some("s1"))
+        .lookup_or_create(Some(&created.session.id))
         .expect("stale crashed cookie should create replacement");
-    assert_eq!(replacement.session.id, "s2");
+    assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
+    assert_eq!(
+        replacement.pending_identity,
+        Some(replacement.session.id.clone())
+    );
     assert_eq!(
         sessions
             .read(&replacement.session, "cart")
@@ -368,19 +413,26 @@ pub(super) fn http_session_reconnect_after_actor_crash_replaces_cookie_without_r
             ReplValue::String("old state".to_string()),
         )
         .expect("write should succeed");
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
 
     sessions
         .actors
         .exit_actor(actor, VmExitReason::Killed)
         .expect("crash should be recorded");
     let replacement = sessions
-        .lookup_or_create(Some("s1"))
+        .lookup_or_create(Some(&created.session.id))
         .expect("reconnect after crash should create replacement");
 
-    assert_eq!(replacement.session.id, "s2");
+    assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
+    assert_eq!(
+        replacement.pending_identity,
+        Some(replacement.session.id.clone())
+    );
     assert_eq!(
         sessions
             .read(&replacement.session, "draft")
@@ -389,7 +441,7 @@ pub(super) fn http_session_reconnect_after_actor_crash_replaces_cookie_without_r
     );
     let snapshots = sessions.snapshots();
     assert_eq!(snapshots.len(), 1);
-    assert_eq!(snapshots[0].session_id, "s2");
+    assert_eq!(snapshots[0].session_id, replacement.session.id);
     assert_eq!(snapshots[0].table_len, 0);
 }
 
@@ -660,7 +712,11 @@ pub(super) fn http_session_live_template_subscribers_are_cleaned_after_actor_exi
         "HTTP live-template subscriber transport cannot be empty"
     );
 
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
     sessions
         .actors
         .exit_actor(actor, VmExitReason::Killed)
@@ -670,14 +726,17 @@ pub(super) fn http_session_live_template_subscribers_are_cleaned_after_actor_exi
         sessions
             .live_template_subscribers(&created.session)
             .expect_err("crashed session should clean subscriber state"),
-        "HTTP session actor `s1` crashed during request: process 1 exited with killed"
+        format!(
+            "HTTP session actor `{}` crashed during request: process 1 exited with killed",
+            created.session.id
+        )
     );
     assert_eq!(sessions.snapshots(), Vec::new());
 
     let replacement = sessions
-        .lookup_or_create(Some("s1"))
+        .lookup_or_create(Some(&created.session.id))
         .expect("stale cookie should create replacement");
-    assert_eq!(replacement.session.id, "s2");
+    assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(
         sessions
             .live_template_subscribers(&replacement.session)

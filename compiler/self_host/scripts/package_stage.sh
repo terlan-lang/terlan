@@ -10,7 +10,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 OUTPUT=$1
 SEED=${2:-}
 TERLC=${TERLC:-target/debug/terlc}
-PROFILE=${TERLAN_SELF_HOST_PROFILE:-release}
+# Bootstrap stages prove compiler parity, not release-code optimization. The
+# development policy emits bounded, reusable module objects; release remains
+# available explicitly for final distribution validation.
+PROFILE=${TERLAN_SELF_HOST_PROFILE:-development}
 CACHE=${TERLAN_SELF_HOST_CACHE:-$ROOT/target/quality/self-host-build-cache}
 JOBS=${TERLAN_SELF_HOST_JOBS:-8}
 

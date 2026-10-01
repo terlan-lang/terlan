@@ -2,14 +2,14 @@
 
 use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::vm::protocol_task_executor::with_current_protocol_resource;
-use crate::runtime::vm::ReplValue;
+use crate::runtime::vm::{ReplValue, VmRuntimeResult};
 
 use super::invocation::AotHandlerInvocationStep;
 use super::{finish_immediate_step, AotHandlerRuntime, LocalImmediateShard};
 use crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned;
 
 impl AotHandlerRuntime {
-    /// Executes a compiler-proven suspendable HTTP export on its protocol owner.
+    /// Executes a source HTTP export through protocol-owned suspend/resume.
     pub(in crate::commands::serve) async fn execute_suspendable_http_response(
         &self,
         module: &str,
@@ -17,7 +17,25 @@ impl AotHandlerRuntime {
         args: Vec<ReplValue>,
     ) -> Result<ReplValue, String> {
         self.require_module(module)?;
-        let mut step = self.begin_request_invocation(module, function, args)?;
+        let step = self.begin_request_invocation(module, function, args)?;
+        Self::finish_suspendable_step(step)
+            .await
+            .map_err(Into::into)
+    }
+
+    pub(in crate::commands::serve) async fn execute_suspendable_callable(
+        &self,
+        module: &str,
+        callable: &ReplValue,
+        args: Vec<ReplValue>,
+    ) -> VmRuntimeResult<ReplValue> {
+        let step = self.begin_callable_invocation(module, callable, args)?;
+        Self::finish_suspendable_step(step).await
+    }
+
+    async fn finish_suspendable_step(
+        mut step: AotHandlerInvocationStep,
+    ) -> VmRuntimeResult<ReplValue> {
         loop {
             step = match step {
                 AotHandlerInvocationStep::Complete(value) => {
@@ -32,7 +50,7 @@ impl AotHandlerRuntime {
                         "error[serve.aot.http_io]: HTTP handler suspended on {boundary:?} without a protocol operation adapter"
                     );
                     invocation.cancel(reason.clone())?;
-                    return Err(reason);
+                    return Err(reason.into());
                 }
                 AotHandlerInvocationStep::CapabilityWaiting(invocation) => {
                     invocation.resume_from_worker().await?

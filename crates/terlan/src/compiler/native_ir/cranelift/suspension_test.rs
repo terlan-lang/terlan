@@ -18,6 +18,10 @@ fn call_then_reserves_the_direct_callee_transition_frame() {
     };
 
     assert_eq!(suspension_value_count(&body, &[0, 9, 4]), 9 + 1 + 2);
+    assert_eq!(
+        suspension_value_count(&body, &[0, TVM_COMPLETION_TRANSITION_WORD_CAPACITY, 4]),
+        TVM_COMPLETION_TRANSITION_WORD_CAPACITY,
+    );
 }
 
 #[test]

@@ -11,6 +11,7 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]",
         "terlc run <artifact.wasm> [--export <name>] [--arg <type:value>] [--host-return <module.name=type:value>] [--expect <type:value>] [--repeat <count>] [--timeout-ms <ms>]",
         "terlc scripts [project-dir]",
+        crate::commands::self_update::USAGE,
         "terlc package fetch [project-dir] [--target <triple>] [--artifact <archive.tar.zst>]...",
         "terlc package protocol --out-dir <dir>",
         "terlc package publish --dry-run [project-dir] --out-dir <dir>",
@@ -93,6 +94,12 @@ pub(super) fn print_command_usage(command: &str) -> bool {
             );
         }
         "scripts" => println!("terlc scripts [project-dir]"),
+        "self-update" => {
+            println!("{}", crate::commands::self_update::USAGE);
+            println!("Install the latest stable GitHub release by default, or select a version.");
+            println!("--list lists releases available for this platform without installing.");
+            println!("--interactive prompts for a release; Enter selects latest, q cancels.");
+        }
         "package" => println!(
             "terlc package fetch [project-dir] [--target <triple>] [--artifact <archive.tar.zst>]...\nterlc package protocol --out-dir <dir>\nterlc package publish --dry-run [project-dir] --out-dir <dir>\nterlc package publish --mirror <dir> [project-dir] --out-dir <dir>\nterlc package publish --registry <url> --publisher-key-id <id> --signing-seed-file <path> [project-dir] --out-dir <dir>\nterlc package add <name> <requirement> --registry <url> --trust-root <pin.json> [--offline] --out-dir <project-dir>\nterlc package remove <name> --registry <url> --trust-root <pin.json> [--offline] --out-dir <project-dir>\nterlc package resolve --registry <url> --trust-root <pin.json> [--package <name> --version <version>] [--offline] --out-dir <project-dir>\nterlc package update [package]... --registry <url> --trust-root <pin.json> [--offline] --out-dir <project-dir>\nterlc package tree --out-dir <project-dir>\nterlc package audit --out-dir <project-dir>\nterlc package yank --mirror <dir> --package <name> --version <version> [--reason-class <class>] [--message <text>] [--replacement <package>]"
         ),

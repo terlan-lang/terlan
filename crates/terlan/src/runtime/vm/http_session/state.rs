@@ -282,7 +282,6 @@ pub struct VmHttpSessionRuntime {
     pub(super) actors: VmActorRuntime,
     pub(super) tables: VmTableStore,
     pub(super) sessions: BTreeMap<String, VmHttpSessionRecord>,
-    next_session_id: u64,
     now_tick: u64,
     ttl_ticks: u64,
     node_id: String,

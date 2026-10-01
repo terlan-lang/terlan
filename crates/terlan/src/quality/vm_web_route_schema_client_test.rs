@@ -96,7 +96,7 @@ validate_discovered_web_routes duplicate or ambiguous
 "#,
         )?;
         self.write(
-            "crates/terlan/src/web_route_test.rs",
+            "std/http/native/src/route_pattern_test.rs",
             r#"
 route_param_types_extracts_defaults_and_typed_captures
 validate_route_pattern_rejects_unsupported_route_param_type
@@ -114,11 +114,11 @@ impl Drop for TestRepo {
 }
 
 const COMPLETE_MAKEFILE: &str = r#"
-vm-web-route-schema-client-check: vm-web-deployment-profile-check
-	$(MAKE) api-schema-check
-	$(MAKE) web-profile-preflight
-	$(RUST_TEST) --locked -p terlan --bin terlan-quality vm_web_route_schema_client_test
-	$(CARGO) run -p terlan --bin terlan-quality --quiet -- vm-web-route-schema-client
+vm-web-route-schema-client-check: \
+	vm-web-deployment-profile-check \
+	api-schema-check \
+	web-profile-preflight
+	$(TERLAN_QUALITY) vm-web-route-schema-client
 "#;
 
 #[test]
@@ -182,15 +182,19 @@ fn vm_web_route_schema_client_rejects_missing_source_span_anchor() {
 fn vm_web_route_schema_client_rejects_missing_make_gate_term() {
     let repo = TestRepo::new("missing-gate").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    repo.write(
-        "Makefile",
-        &COMPLETE_MAKEFILE.replace("$(MAKE) api-schema-check", ""),
-    )
-    .expect("rewrite makefile");
-
-    let error = run_vm_web_route_schema_client(repo.root()).expect_err("gate should fail");
-
-    assert!(error.contains("api-schema-check"));
+    for term in [
+        "vm-web-deployment-profile-check",
+        "api-schema-check",
+        "web-profile-preflight",
+        "$(TERLAN_QUALITY) vm-web-route-schema-client",
+    ] {
+        let changed = COMPLETE_MAKEFILE.replace(term, "");
+        // A detached reference elsewhere must not satisfy a missing prerequisite.
+        repo.write("Makefile", &format!("{changed}\n# {term}\n"))
+            .expect("rewrite makefile");
+        let error = run_vm_web_route_schema_client(repo.root()).expect_err("gate should fail");
+        assert!(error.contains(term));
+    }
 }
 
 #[test]

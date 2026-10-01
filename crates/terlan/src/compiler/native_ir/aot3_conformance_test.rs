@@ -10,7 +10,10 @@ use crate::runtime::native_image::dispatch_lookup::{tvm_dispatch_lookup_v1, TvmD
 use crate::runtime::native_image::managed::{
     decode_aggregate_layout, decode_collection_layout, ManagedExecutionRuntime,
 };
-use crate::runtime::native_image::{TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor};
+use crate::runtime::native_image::{
+    TvmManagedCollectionDescriptor, TvmManagedLayoutDescriptor,
+    TVM_INDIRECT_TRANSITION_WORD_CAPACITY,
+};
 use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
@@ -48,7 +51,7 @@ fn invoke(
     args: &[i64],
 ) -> (i32, i64, Vec<i64>) {
     let mut result = -1;
-    let mut transition = [0_i64; 128];
+    let mut transition = [0_i64; TVM_INDIRECT_TRANSITION_WORD_CAPACITY];
     let mut transition_len = 0_u64;
     // SAFETY: the admitted dispatch symbol receives live runtime callbacks and
     // buffers whose lengths exactly match the supplied ABI counts.

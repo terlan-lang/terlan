@@ -9,6 +9,11 @@ documentation; unchanged capabilities do not need a release recap.
 
 ## 0.0.9
 
+### Compiler updates
+
+- Add `terlc self-update` to install the latest stable GitHub release, list
+  available versions, or choose a version explicitly or interactively.
+
 ### Build and release reliability
 
 - Reuse unchanged compiler and validation artifacts, and resume interrupted

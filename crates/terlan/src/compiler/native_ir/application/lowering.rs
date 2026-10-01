@@ -1,3 +1,6 @@
+#[path = "lowering/profile_validation.rs"]
+mod profile_validation;
+
 use super::super::{call_composition::walk_native_expr, model::NativeExpr};
 use super::*;
 use std::time::Instant;
@@ -12,11 +15,18 @@ use module_assembly::{
 };
 use support::{callable_profile, profile_widths, trace_native_aot, widest_profile_labels};
 
+#[path = "lowering/profile_order.rs"]
+mod profile_order;
+use profile_order::profile_dependency_order;
+
 pub(super) fn lower_selected_application(
     cores: &[&CoreModule],
     candidates: &[Candidate<'_>],
     selected: &[bool],
     constructor_layouts: &HashMap<String, super::super::constructors::NativeConstructorLayouts>,
+    candidate_resolvers: &HashMap<String, HashMap<CallIdentity, usize>>,
+    application_suspending_candidates: &HashSet<usize>,
+    precomputed_composable_candidates: &HashSet<usize>,
 ) -> Result<Vec<NativeModule>, super::super::NativeIrError> {
     let started = Instant::now();
     let atoms = application_atom_identities(cores);
@@ -40,9 +50,8 @@ pub(super) fn lower_selected_application(
             )
         })
         .collect::<HashMap<_, _>>();
-    let candidate_resolvers = application_resolvers(cores, candidates, selected);
     let dynamic_parameter_targets =
-        dynamic_targets::candidate_parameter_targets(candidates, selected, &candidate_resolvers);
+        dynamic_targets::candidate_parameter_targets(candidates, selected, candidate_resolvers);
     let mut internally_called = HashSet::new();
     for (caller_index, caller) in candidates.iter().enumerate() {
         if !selected[caller_index] {
@@ -85,7 +94,8 @@ pub(super) fn lower_selected_application(
         })
         .map(|(index, _)| index)
         .collect::<HashSet<_>>();
-    let mut suspending = application_suspending(candidates, selected, &candidate_resolvers);
+    let mut suspending = application_suspending_candidates.clone();
+    let suspension_count = suspending.len();
     suspending.retain(|candidate| !opaque_dynamic_boundaries.contains(candidate));
     let suspending_native = suspending
         .iter()
@@ -102,8 +112,11 @@ pub(super) fn lower_selected_application(
             ))
         })
         .collect::<Vec<_>>();
-    let composable_candidates =
-        application_composable_candidates(candidates, selected, &candidate_resolvers, &suspending);
+    let composable_candidates = if suspending.len() == suspension_count {
+        precomputed_composable_candidates.clone()
+    } else {
+        application_composable_candidates(candidates, selected, candidate_resolvers, &suspending)
+    };
     trace_native_aot(
         started,
         "analysis",
@@ -114,16 +127,62 @@ pub(super) fn lower_selected_application(
             composable_candidates.len()
         ),
     );
+    let profile_order = profile_dependency_order(candidates, selected, candidate_resolvers);
+    trace_native_aot(
+        started,
+        "profile-order",
+        format_args!("candidates={}", profile_order.len()),
+    );
+    let module_lowering_environments = cores
+        .iter()
+        .map(|core| {
+            let resolver = &candidate_resolvers[&core.module];
+            let constructors = &constructor_layouts[&core.module];
+            (
+                core.module.as_str(),
+                (
+                    native_resolver(resolver, &candidate_to_native),
+                    native_function_types(resolver, &candidate_to_native, candidates, constructors),
+                    native_function_core_types(resolver, &candidate_to_native, candidates),
+                    native_callable_shapes(
+                        resolver,
+                        &candidate_to_native,
+                        candidates,
+                        constructors,
+                    ),
+                    resolved_names(resolver, &suspending),
+                ),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    trace_native_aot(
+        started,
+        "module-environments",
+        format_args!("modules={}", module_lowering_environments.len()),
+    );
+    let recursive_components = (0..candidates.len())
+        .map(|candidate_index| recursive_reduction_component(candidate_index, candidates, selected))
+        .collect::<Vec<_>>();
+    trace_native_aot(
+        started,
+        "recursive-components",
+        format_args!(
+            "members={}",
+            recursive_components
+                .iter()
+                .filter(|component| component.is_some())
+                .count()
+        ),
+    );
     let mut call_profiles = candidates
         .iter()
         .enumerate()
         .filter_map(|(candidate_index, candidate)| {
             let native_index = candidate_to_native.get(&candidate_index).copied()?;
             let profile = recursive_reduction_profile(
-                candidate_index,
                 candidate,
+                recursive_components[candidate_index].as_deref(),
                 candidates,
-                selected,
                 &composable_candidates,
                 &candidate_to_native,
                 constructor_layouts,
@@ -131,6 +190,11 @@ pub(super) fn lower_selected_application(
             Some((native_index, profile))
         })
         .collect::<HashMap<_, _>>();
+    trace_native_aot(
+        started,
+        "recursive-profile-seeds",
+        format_args!("profiles={}", call_profiles.len()),
+    );
     let recursive_seed_profiles = call_profiles.keys().copied().collect::<HashSet<_>>();
     let recursive_seed_call_profiles = call_profiles.clone();
     let mut call_profile_gaps = HashMap::new();
@@ -179,6 +243,11 @@ pub(super) fn lower_selected_application(
             ComposedCallProfile::pure(),
         )?;
     }
+    trace_native_aot(
+        started,
+        "dynamic-profile-seeds",
+        format_args!("signatures={}", dynamic_call_profiles.len()),
+    );
     let mut dynamic_profile_gaps = HashMap::new();
     let mut refined_recursive_profiles = HashSet::new();
     let mut profile_lowerings = HashMap::new();
@@ -198,10 +267,20 @@ pub(super) fn lower_selected_application(
         let mut phase_refreshed = HashSet::new();
         loop {
             let mut progress = false;
-            for (candidate_index, candidate) in candidates.iter().enumerate() {
+            for (position, candidate_index) in profile_order.iter().copied().enumerate() {
+                if position % 256 == 0 {
+                    trace_native_aot(
+                        started,
+                        "profile-progress",
+                        format_args!(
+                            "phase={phase} position={position} candidate={candidate_index}"
+                        ),
+                    );
+                }
                 if !selected[candidate_index] {
                     continue;
                 }
+                let candidate = &candidates[candidate_index];
                 let native_index = candidate_to_native[&candidate_index];
                 let recursive_seed = recursive_seed_profiles.contains(&native_index);
                 let skip = match phase {
@@ -218,11 +297,11 @@ pub(super) fn lower_selected_application(
                     continue;
                 }
                 let recursive_component_natives = recursive_seed
-                    .then(|| recursive_reduction_component(candidate_index, candidates, selected))
+                    .then(|| recursive_components[candidate_index].as_deref())
                     .flatten()
                     .into_iter()
                     .flatten()
-                    .filter_map(|member| candidate_to_native.get(&member).copied())
+                    .filter_map(|member| candidate_to_native.get(member).copied())
                     .collect::<Vec<_>>();
                 let recursive_profile_inputs = recursive_seed.then(|| {
                     let mut inputs = call_profiles.clone();
@@ -234,29 +313,13 @@ pub(super) fn lower_selected_application(
                     inputs
                 });
                 let profile_inputs = recursive_profile_inputs.as_ref().unwrap_or(&call_profiles);
-                let identities = native_resolver(
-                    &candidate_resolvers[&candidate.core.module],
-                    &candidate_to_native,
-                );
-                let function_types = native_function_types(
-                    &candidate_resolvers[&candidate.core.module],
-                    &candidate_to_native,
-                    candidates,
-                    &constructor_layouts[&candidate.core.module],
-                );
-                let function_core_types = native_function_core_types(
-                    &candidate_resolvers[&candidate.core.module],
-                    &candidate_to_native,
-                    candidates,
-                );
-                let callable_shapes = native_callable_shapes(
-                    &candidate_resolvers[&candidate.core.module],
-                    &candidate_to_native,
-                    candidates,
-                    &constructor_layouts[&candidate.core.module],
-                );
-                let suspending_names =
-                    resolved_names(&candidate_resolvers[&candidate.core.module], &suspending);
+                let (
+                    identities,
+                    function_types,
+                    function_core_types,
+                    callable_shapes,
+                    suspending_names,
+                ) = &module_lowering_environments[candidate.core.module.as_str()];
                 let mut profile_ids = HashSet::new();
                 let mut profile_lifted = Vec::new();
                 let candidate_dynamic_profiles = dynamic_targets::restrict_profiles(
@@ -267,12 +330,12 @@ pub(super) fn lower_selected_application(
                     &candidate.core.module,
                     candidate.function,
                     super::super::NativeFunctionLoweringEnvironment {
-                        identities: &identities,
-                        function_types: &function_types,
-                        function_core_types: &function_core_types,
-                        callable_shapes: &callable_shapes,
+                        identities,
+                        function_types,
+                        function_core_types,
+                        callable_shapes,
                         constructors: &constructor_layouts[&candidate.core.module],
-                        suspending_functions: &suspending_names,
+                        suspending_functions: suspending_names,
                         call_profiles: profile_inputs,
                         dynamic_call_profiles: &candidate_dynamic_profiles,
                     },
@@ -302,15 +365,28 @@ pub(super) fn lower_selected_application(
                     &mut profile_lifted,
                     &mut continuations,
                 );
+                let lifted_profiles = profile_lifted
+                    .iter()
+                    .map(|lifted| {
+                        callable_profile(
+                            &lifted.body,
+                            &continuations,
+                            profile_inputs,
+                            &candidate_dynamic_profiles,
+                            &suspending_native,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let native_profile = callable_profile(
+                    &native.body,
+                    &continuations,
+                    profile_inputs,
+                    &candidate_dynamic_profiles,
+                    &suspending_native,
+                );
+                drop(candidate_dynamic_profiles);
                 let mut dynamic_progress = false;
-                for lifted in &profile_lifted {
-                    let profile = callable_profile(
-                        &lifted.body,
-                        &continuations,
-                        profile_inputs,
-                        &candidate_dynamic_profiles,
-                        &suspending_native,
-                    );
+                for (lifted, profile) in profile_lifted.iter().zip(lifted_profiles) {
                     let profile = match profile {
                         Some(profile) => profile,
                         None => {
@@ -381,7 +457,7 @@ pub(super) fn lower_selected_application(
                         let admission_gap =
                             super::super::call_composition::composable_suspension_gap_reason(
                                 body.expect("selected native candidate has a checked body"),
-                                &suspending_names,
+                                suspending_names,
                                 &composable_names,
                             );
                         let native_operation = candidate.function.native_operation.is_some();
@@ -478,14 +554,7 @@ pub(super) fn lower_selected_application(
                     phase_refreshed.insert(native_index);
                     continue;
                 }
-                let profile = callable_profile(
-                    &native.body,
-                    &continuations,
-                    profile_inputs,
-                    &candidate_dynamic_profiles,
-                    &suspending_native,
-                );
-                if let Some(mut profile) = profile {
+                if let Some(mut profile) = native_profile {
                     call_profile_gaps.remove(&native_index);
                     if recursive_seed {
                         for member in &recursive_component_natives {
@@ -621,72 +690,28 @@ pub(super) fn lower_selected_application(
     let final_profiles = call_profiles.clone();
     for profile in call_profiles.values_mut() {
         for continuation in &mut profile.continuations {
-            super::super::call_composition::close_direct_call_contracts(
+            super::super::call_composition::close_call_contracts(
                 &mut continuation.body,
                 &final_profiles,
+                &dynamic_call_profiles,
             );
         }
     }
     for (native, continuations, _, _) in profile_lowerings.values_mut() {
-        super::super::call_composition::close_direct_call_contracts(
+        super::super::call_composition::close_call_contracts(
             &mut native.body,
             &final_profiles,
+            &dynamic_call_profiles,
         );
         for continuation in continuations {
-            super::super::call_composition::close_direct_call_contracts(
+            super::super::call_composition::close_call_contracts(
                 &mut continuation.body,
                 &final_profiles,
+                &dynamic_call_profiles,
             );
         }
     }
-    let mut profile_owners = call_profiles.keys().copied().collect::<Vec<_>>();
-    profile_owners.sort_unstable();
-    let profile_destination_capture_counts = call_profiles
-        .values()
-        .flat_map(|profile| {
-            profile
-                .continuations
-                .iter()
-                .map(|continuation| (continuation.id, continuation.params.len()))
-        })
-        .collect::<HashMap<_, _>>();
-    let mut validated_profile_continuations = HashSet::new();
-    trace_native_aot(
-        started,
-        "profile-contracts-start",
-        format_args!("profiles={}", profile_owners.len()),
-    );
-    for owner in profile_owners {
-        let profile = &call_profiles[&owner];
-        for continuation in &profile.continuations {
-            if !validated_profile_continuations.insert(continuation.id) {
-                continue;
-            }
-            super::super::call_composition::validate_call_then_contracts_with_destinations(
-                &continuation.body,
-                &call_profiles,
-                &native_function_labels,
-                &profile_destination_capture_counts,
-            )
-            .map_err(|error| {
-                let owner = native_function_labels
-                    .get(&owner)
-                    .map_or_else(|| owner.to_string(), Clone::clone);
-                format!(
-                    "error[native_ir.call_profile_contract]: {error}; in continuation {} of `{owner}`",
-                    continuation.id
-                )
-            })?;
-        }
-    }
-    trace_native_aot(
-        started,
-        "profile-contracts-complete",
-        format_args!(
-            "unique-continuations={}",
-            validated_profile_continuations.len()
-        ),
-    );
+    profile_validation::validate_profiles(started, &call_profiles, &native_function_labels)?;
     let mut export_ids = HashSet::new();
     let mut modules = Vec::new();
     let mut lifted_functions = Vec::new();
@@ -806,33 +831,7 @@ pub(super) fn lower_selected_application(
                             core.module, candidate.function.name, candidate.function.arity
                         )
                     })?;
-                    if &emitted != expected {
-                        let expected_ids = expected
-                            .continuations
-                            .iter()
-                            .map(|continuation| continuation.id)
-                            .collect::<HashSet<_>>();
-                        let emitted_ids = emitted
-                            .continuations
-                            .iter()
-                            .map(|continuation| continuation.id)
-                            .collect::<HashSet<_>>();
-                        let mut missing = expected_ids
-                            .difference(&emitted_ids)
-                            .copied()
-                            .collect::<Vec<_>>();
-                        let mut extra = emitted_ids
-                            .difference(&expected_ids)
-                            .copied()
-                            .collect::<Vec<_>>();
-                        missing.sort_unstable();
-                        extra.sort_unstable();
-                        return Err(format!(
-                            "error[native_ir.profile_emission]: final lowering for `{}.{}/{}` differs from its converged suspension profile; missing={missing:?}, extra={extra:?}",
-                            core.module, candidate.function.name, candidate.function.arity
-                        )
-                        .into());
-                    }
+                    profile_validation::validate_emitted(candidate, expected, &emitted)?;
                 }
             }
             functions.push(function);

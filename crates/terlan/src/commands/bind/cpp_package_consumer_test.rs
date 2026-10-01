@@ -547,6 +547,7 @@ fn valid_consumer_source() -> &'static str {
 
 import cpp_fixture.NativeBoundary.{Doubled, NativeSnapshot, Offset, Raw, add, bytes, dispose, label, live_count, mode, new, owned_snapshot, samples, snapshot, sum_floats, sum_integers, tripled_or_error, value}.
 import std.io.Console.{println}.
+import std.vm.Bytes.
 
 valid_lifecycle(): Bool ->
     let boundary = new([40]);

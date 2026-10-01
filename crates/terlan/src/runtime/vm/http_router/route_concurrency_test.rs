@@ -9,10 +9,16 @@ const REQUESTS_PER_WORKER: usize = 256;
 
 #[test]
 fn vm_http_router_middleware_bounded_concurrency_smoke() {
-    let mut router = VmHttpRouter::new().use_middleware(atom("trace"));
+    let mut router = VmHttpRouter::new();
     for route in 0..ROUTE_COUNT {
         router = router
-            .get(format!("/items/{route}"), ReplValue::Int(route as i64))
+            .scoped_target(
+                VmHttpRouteMethod::Get,
+                format!("/items/{route}"),
+                VmHttpRouteTarget::Handler(ReplValue::Int(route as i64)),
+                vec![atom("trace")],
+                vec![],
+            )
             .expect("register bounded smoke route");
     }
     let router = Arc::new(router);

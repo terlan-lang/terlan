@@ -5,7 +5,6 @@
 87fda32d09290439	equal-shape	distinct-invariant	http-benchmarks	Protocol and lifecycle scenario evidence occupy separate report fields whose nominal types prevent cross-category benchmark attribution.
 4825bfa7639b34e5	equal-shape	distinct-invariant	vm-observability	Call count memory and time keys select different test instrumentation tables and cannot be substituted across measurement dimensions.
 9cdd5493a0bc26f5	equal-shape	distinct-invariant	vm-observability	Local and meta tracing keys select different production instrumentation tables and cannot be substituted across trace ownership domains.
-9d69d1c171067b5e	equal-shape	distinct-invariant	domain-errors	Registry semantic versions and normalized web routes enforce unrelated validation invariants and must not be substituted across domain boundaries.
 9ff09c957f6d120c	equal-shape	boundary-conversion	native-bindings	C and C++ metadata producer identities belong to distinct generated manifest schemas and are converted only by package tooling.
 a1cd4aa53aeacab9	equal-shape	distinct-invariant	boundary-errors	Publication URLs, yank arguments, support bundles, and SQL capabilities expose separate failure contracts whose nominal wrappers prevent cross-domain error substitution.
 bf4b8c54ad685466	same-name	distinct-invariant	vm-memory	The managed-image A-CHAMP node owns actor-heap references while the VM map node owns persistent host-side entry indexes.
@@ -47,3 +46,7 @@ e13fd7c569b3d922	same-name	distinct-invariant	native-adapters	Database reply pro
 377ef871b822f7f4	same-name	distinct-invariant	http-channels	SSE wire records validate event limits and keep-alive intervals while WebSocket wire records validate frame limits, binary policy, and channel pairing.
 4ca5aa19d0fd4a90	same-name	distinct-invariant	native-transports	Database worker registries own PostgreSQL connection processes while generic resource worker registries enforce host-selected capability policies and package resource lifetimes.
 bd5abdd15ccb4ef0	same-name	distinct-invariant	websocket-hosts	The production WebSocket hub owns rooms and peer lifecycle state while the test-only shared unit handle cannot admit peers or represent production state.
+5050a5ba8472bb40	same-name	distinct-invariant	release-updates	Release discovery owns a bounded GitHub API client while WebSocket clients own transport connections and frame lifecycles.
+a1a9d22ce6f6cc06	same-name	boundary-conversion	http-routing	Source route descriptors retain evaluated fields before admission while routing records contain validated paths and ordered execution callbacks.
+cedf3e68d4ed8c19	same-name	boundary-conversion	http-routing	Source router descriptors describe evaluated declarations while admitted routers enforce unambiguous dispatch and executable middleware ordering.
+b20465a6f8fdb642	same-name	boundary-conversion	http-routing	Source route targets retain descriptor values while admitted targets carry validated channel plans or executable handler callbacks.

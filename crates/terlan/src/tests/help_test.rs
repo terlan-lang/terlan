@@ -269,8 +269,21 @@ fn run_cli_accepts_help_command_short_help() {
 #[test]
 fn run_cli_accepts_help_command_for_known_commands() {
     for command in [
-        "help", "init", "bind", "build", "run", "clean", "doctor", "static", "test", "doc", "db",
-        "debug", "repl", "lint",
+        "help",
+        "init",
+        "bind",
+        "build",
+        "run",
+        "clean",
+        "doctor",
+        "static",
+        "test",
+        "doc",
+        "db",
+        "debug",
+        "repl",
+        "lint",
+        "self-update",
     ] {
         assert_eq!(
             run_cli(vec!["help".to_string(), command.to_string()]),

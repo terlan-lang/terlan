@@ -66,13 +66,10 @@ first_body_error(values: List[ProjectedBody]): Option[NormalizedError] ->
 parameters_have_invalid_pattern(values: List[ProjectedParameterTree]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> parameter_has_invalid_pattern(value.pattern, rest)
-    }.
-
-parameter_has_invalid_pattern[T](value: Option[T], rest: List[ProjectedParameterTree]): Bool ->
-    case value {
-        None -> true;
-        Some(_pattern) -> parameters_have_invalid_pattern(rest)
+        [value | rest] -> case value.pattern {
+            None -> true;
+            Some(_pattern) -> parameters_have_invalid_pattern(rest)
+        }
     }.
 
 first_pattern_error(values: List[ProjectedCallableSignature]): Option[NormalizedError] ->

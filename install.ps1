@@ -84,6 +84,13 @@ if (-not $IsWindows -and $PSVersionTable.PSEdition -eq "Core") {
 }
 
 $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+if (-not [string]::IsNullOrWhiteSpace($env:TERLAN_INSTALL_ARCH)) {
+    switch ($env:TERLAN_INSTALL_ARCH) {
+        "x86_64" { $architecture = "X64" }
+        "aarch64" { $architecture = "Arm64" }
+        default { throw "unsupported installer architecture: $env:TERLAN_INSTALL_ARCH" }
+    }
+}
 switch ($architecture.ToString()) {
     "X64" {
         $terlanArch = "x86_64"
@@ -213,6 +220,16 @@ try {
 
     $prefix = Split-Path -Parent $InstallDir
     $shareDestination = Join-Path $prefix "share\terlan"
+    if (-not [string]::IsNullOrWhiteSpace($env:TERLAN_INSTALL_SHARE_DIR)) {
+        $shareDestination = [System.IO.Path]::GetFullPath($env:TERLAN_INSTALL_SHARE_DIR)
+    }
+    $shareRoot = [System.IO.Path]::GetPathRoot($shareDestination)
+    $sharePath = $shareDestination.TrimEnd('\', '/')
+    $binPath = $InstallDir.TrimEnd('\', '/')
+    if ($sharePath -eq $shareRoot.TrimEnd('\', '/') -or $sharePath -eq $binPath -or
+        $binPath.StartsWith($sharePath + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "share directory must be non-root and must not contain the installation directory"
+    }
     $compilerDestination = Join-Path $InstallDir "terlc.exe"
     $vmDestination = Join-Path $InstallDir "terlan-vm.exe"
     $nativeWorkerDestination = Join-Path $InstallDir "terlan-native-worker.exe"
@@ -244,10 +261,15 @@ try {
         }
 
         & $compilerDestination --version
+        if ($LASTEXITCODE -ne 0) { throw "installed compiler version check failed" }
         & $vmDestination --version
+        if ($LASTEXITCODE -ne 0) { throw "installed VM version check failed" }
         & $vmDestination validate-package $shareDestination
+        if ($LASTEXITCODE -ne 0) { throw "installed VM package validation failed" }
         & $nativeWorkerDestination --version
+        if ($LASTEXITCODE -ne 0) { throw "installed native worker version check failed" }
         & $lspDestination --help | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "installed language server check failed" }
     }
     catch {
         Remove-Item $compilerDestination, $vmDestination, $nativeWorkerDestination, $lspDestination -Force -ErrorAction SilentlyContinue

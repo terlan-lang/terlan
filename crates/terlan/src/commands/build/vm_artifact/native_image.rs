@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[cfg(target_os = "windows")]
 use crate::runtime::native_boundary::dispatch::capture_tool_command;
@@ -319,17 +319,35 @@ pub(super) fn compile_rooted_native_application_image(
     cores: &[&CoreModule],
     input: RootedNativeApplicationInput<'_>,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let trace_timings = std::env::var_os("TERLAN_NATIVE_AOT_TIMINGS").is_some();
+    let started = Instant::now();
+    let mut previous = started;
+    let mut mark = |phase: &str| {
+        if trace_timings {
+            let now = Instant::now();
+            eprintln!(
+                "terlc native-aot: rooted.{phase}: +{}ms total={}ms",
+                now.duration_since(previous).as_millis(),
+                now.duration_since(started).as_millis(),
+            );
+            previous = now;
+        }
+    };
     let RootedNativeApplicationInput {
         roots,
         debug_inputs,
         policy,
         incremental,
     } = input;
-    let mut rooted = cores.iter().map(|core| (*core).clone()).collect::<Vec<_>>();
+    let mut rooted = crate::compiler::native_ir::rooted_application_to_function_roots(cores, roots)
+        .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    mark("borrowed-root-pruning");
     crate::compiler::native_ir::resolve_typed_mutable_receiver_calls(&mut rooted)
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    mark("mutable-receivers");
     crate::compiler::native_ir::prune_application_to_function_roots(&mut rooted, roots)
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    mark("root-pruning");
     let rooted = rooted.iter().collect::<Vec<_>>();
     let application_identity = roots
         .first()
@@ -384,49 +402,10 @@ pub(crate) fn compile_repl_native_image(
     .map_err(build_error_message)
 }
 
-/// Compiles one live serve generation into its package-local native cache.
 #[cfg(test)]
-pub(crate) fn compile_serve_native_image(
-    web_root: &Path,
-    module_stem: &str,
-    core: &CoreModule,
-) -> Result<Option<PathBuf>, String> {
-    let workspace = web_root.join(".terlan").join("serve-aot");
-    let vm_dir = workspace.join("vm");
-    fs::create_dir_all(&vm_dir)
-        .map_err(|error| format!("cannot create serve AOT output directory: {error}"))?;
-    let native_cache_root = workspace.join("native-aot");
-    let state = crate::CliState {
-        native_policy: crate::validation::native_policy::NativePolicy::NativeBoundaryOptional,
-        ..crate::CliState::default()
-    };
-    let imported =
-        super::std_source::compile_imported_std_source_modules(&[core], web_root, &state)
-            .map_err(build_error_message)?;
-    let cores = std::iter::once(core)
-        .chain(imported.iter().map(|module| &module.compiled.core))
-        .collect::<Vec<_>>();
-    let roots = core
-        .functions
-        .iter()
-        .filter(|function| function.public)
-        .map(|function| (core.module.clone(), function.name.clone(), function.arity))
-        .collect::<Vec<_>>();
-    compile_rooted_native_application_image(
-        &vm_dir,
-        &native_cache_root,
-        module_stem,
-        &cores,
-        RootedNativeApplicationInput {
-            roots: &roots,
-            debug_inputs: &[],
-            policy: NativeCodegenPolicy::Serve,
-            incremental: true,
-        },
-    )
-    .map(|image| image.map(|image| image.cached_image_path))
-    .map_err(build_error_message)
-}
+mod serve_fixture;
+#[cfg(test)]
+pub(crate) use serve_fixture::compile_serve_native_image;
 
 /// Compiles a live-serve image from the complete application closure while
 /// retaining Request projection metadata for the route-owning module.
@@ -435,6 +414,7 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     web_root: &Path,
     module_stem: &str,
     cores: &[&CoreModule],
+    roots: &[(String, String, usize)],
     debug_inputs: &[NativeDebugInput<'_>],
 ) -> Result<Option<CompiledServeNativeImage>, String> {
     let workspace = web_root.join(".terlan").join("serve-aot");
@@ -442,14 +422,17 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create serve AOT output directory: {error}"))?;
     let native_cache_root = workspace.join("native-aot");
-    compile_native_application_image(
+    compile_rooted_native_application_image(
         &vm_dir,
         &native_cache_root,
         module_stem,
         cores,
-        debug_inputs,
-        NativeCodegenPolicy::Serve,
-        true,
+        RootedNativeApplicationInput {
+            roots,
+            debug_inputs,
+            policy: NativeCodegenPolicy::Serve,
+            incremental: true,
+        },
     )
     .map(|image| {
         image.map(|image| CompiledServeNativeImage {

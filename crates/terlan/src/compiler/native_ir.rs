@@ -410,7 +410,9 @@ pub(crate) use model::{
     NativeTransitionOperation, NativeType,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use open_std_pruning::prune_application_to_function_roots;
+pub(crate) use open_std_pruning::{
+    prune_application_to_function_roots, rooted_application_to_function_roots,
+};
 use transitions::is_process_transition;
 
 /// Typed internal failure for NativeIR analysis and lowering passes.

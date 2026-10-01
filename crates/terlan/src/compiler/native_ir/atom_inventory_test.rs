@@ -18,6 +18,9 @@ fn http_atoms_require_declared_types_or_linked_providers() {
     for (source, expected) in [
         ("module plain. pub value(): Int -> 1.", vec![]),
         ("module consumer. import std.http.Request. pub value(): Int -> 1.", vec![]),
+        ("module consumer. import std.http.Router. pub value(): Int -> 1.", vec![]),
+        ("module std.http.Router. pub value(): Int -> 1.", vec![]),
+        ("module app.Recovery. pub code(): Atom -> Atom[\"router_execution_failed\"].", vec!["router_execution_failed"]),
         ("module tuple_shape. pub value(input: {Atom[\"custom\"], Int}): Int -> 1.", vec!["custom"]),
         ("module request_shape. pub value(input: {Atom[\"request\"], Int}): Int -> 1.", vec!["request"]),
         ("module parser. type ParseFailure = Atom[\"json.parse\"]. pub value(): ParseFailure -> ParseFailure.", vec!["json.parse"]),

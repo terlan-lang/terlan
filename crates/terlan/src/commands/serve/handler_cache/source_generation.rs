@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 const SERVE_RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
 const COMPILER_DAEMON_ENV: &str = "TERLAN_SERVE_COMPILER_DAEMON";
 const COMPILER_DAEMON_PREFIX: &str = "TERLAN_GENERATION:";
-const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v6";
+const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v11";
 const ACTIVE_GENERATION_SCHEMA: &str = "terlan-serve-active-generation-v1";
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const RELOAD_REPORT_SCHEMA: &str = "terlan-aot-developer-hot-reload-v1";

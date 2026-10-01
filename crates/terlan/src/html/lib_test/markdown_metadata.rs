@@ -286,17 +286,23 @@ pub(super) fn renders_markdown_to_valid_html_nodes() {
     assert_eq!(document.raw_source, "# Hello\n\n- one\n- two\n");
     assert_eq!(
         document.rendered_html,
-        "<h1 id=\"hello\">Hello<a href=\"#hello\" aria-label=\"Link to heading 'Hello'\" data-heading-content=\"Hello\" class=\"anchor\"></a></h1>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n"
+        "<h1 id=\"hello\" tabindex=\"-1\">Hello<a href=\"#hello\" aria-label=\"Link to heading 'Hello'\" data-heading-content=\"Hello\" class=\"anchor\"></a></h1>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n"
     );
     assert_eq!(
         document.nodes,
         vec![
             HtmlNode::Element(HtmlElement {
                 name: "h1".to_owned(),
-                attrs: vec![HtmlAttr {
-                    name: "id".to_owned(),
-                    value: Some(HtmlAttrValue::Text("hello".to_owned())),
-                }],
+                attrs: vec![
+                    HtmlAttr {
+                        name: "id".to_owned(),
+                        value: Some(HtmlAttrValue::Text("hello".to_owned())),
+                    },
+                    HtmlAttr {
+                        name: "tabindex".to_owned(),
+                        value: Some(HtmlAttrValue::Text("-1".to_owned())),
+                    },
+                ],
                 children: vec![
                     HtmlNode::Text("Hello".to_owned()),
                     HtmlNode::Element(HtmlElement {
@@ -380,7 +386,7 @@ pub(super) fn renders_terlan_markdown_document_after_header() {
     assert_eq!(document.raw_source, "# Welcome\n");
     assert_eq!(
         document.rendered_html,
-        "<h1 id=\"welcome\">Welcome<a href=\"#welcome\" aria-label=\"Link to heading 'Welcome'\" data-heading-content=\"Welcome\" class=\"anchor\"></a></h1>\n"
+        "<h1 id=\"welcome\" tabindex=\"-1\">Welcome<a href=\"#welcome\" aria-label=\"Link to heading 'Welcome'\" data-heading-content=\"Welcome\" class=\"anchor\"></a></h1>\n"
     );
 }
 

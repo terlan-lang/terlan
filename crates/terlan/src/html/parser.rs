@@ -121,16 +121,12 @@ pub fn parse_markdown(
 }
 
 /// Returns the common Markdown renderer contract used by templates and pages.
-fn markdown_options() -> Options<'static> {
-    let mut options = Options::default();
-    options.extension.header_id_prefix = Some(String::new());
-    options.extension.header_id_prefix_in_href = true;
-    options
-}
+#[path = "markdown_render.rs"]
+mod markdown_render;
 
 /// Renders Markdown with stable fragment IDs and accessible heading links.
 fn render_markdown_html(source: &str) -> String {
-    markdown_to_html(source, &markdown_options())
+    markdown_render::render(source)
 }
 
 /// Extracts stable heading records from the parsed Markdown HTML tree.
