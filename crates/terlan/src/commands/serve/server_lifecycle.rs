@@ -517,9 +517,9 @@ pub(super) fn execute_dynamic_vm_handler_with_runtime(
     )
 }
 
-/// Diverts only compiler-proven suspendable direct handlers into the
-/// protocol-owner invocation state machine. Immediate handlers retain their
-/// typed response and scalar-ingress fast paths.
+/// Runs source routers and potentially suspendable direct handlers through the
+/// protocol-owner invocation state machine. Proven immediate direct handlers
+/// retain their typed response and scalar-ingress fast paths.
 pub(super) async fn handle_suspendable_vm_stream_request(
     request: &::http::Request<String>,
     web_root: &Path,
@@ -545,11 +545,15 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         return Ok(None);
     };
     let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
-    let suspending = runtime.vm().direct_request_handler_may_suspend(
-        &matched.handler.module,
-        &matched.handler.function,
-        matched.handler.arity,
-    );
+    let source_router = runtime
+        .vm()
+        .has_function(&matched.handler.module, "router", 0);
+    let suspending = source_router
+        || runtime.vm().direct_request_handler_may_suspend(
+            &matched.handler.module,
+            &matched.handler.function,
+            matched.handler.arity,
+        );
     SUSPENDABLE_ROUTE_DECISION.with(|decision| {
         *decision.borrow_mut() = Some(SuspendableRouteDecision {
             epoch,
@@ -562,23 +566,15 @@ pub(super) async fn handle_suspendable_vm_stream_request(
     if !suspending {
         return Ok(None);
     }
-    if !runtime.vm().direct_router_handler_is_safe(
-        method,
-        request_path,
-        &matched.handler.module,
-        &matched.handler.function,
-        matched.handler.arity,
-    ) {
-        return Err(
-            "error[serve.aot.async_router]: suspendable handlers with router middleware or recovery are not yet supported"
-                .into(),
-        );
-    }
-    let projection = runtime.vm().direct_request_projection(
-        &matched.handler.module,
-        &matched.handler.function,
-        matched.handler.arity,
-    );
+    let projection = if source_router {
+        crate::runtime::native::http::RequestFieldProjection::Complete
+    } else {
+        runtime.vm().direct_request_projection(
+            &matched.handler.module,
+            &matched.handler.function,
+            matched.handler.arity,
+        )
+    };
     let native_request = crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
         if projection.requires(crate::runtime::native::http::RequestFieldProjection::METHOD) {
             method.to_owned()
@@ -614,14 +610,19 @@ pub(super) async fn handle_suspendable_vm_stream_request(
             String::new()
         },
     );
-    let response = execute_suspendable_vm_handler_with_package_root_projected(
-        runtime.vm(),
-        &matched,
-        native_request,
-        projection,
-        web_root,
-    )
-    .await?;
+    let response = if source_router {
+        handler::execute_suspendable_router(runtime.vm(), &matched, native_request, web_root)
+            .await?
+    } else {
+        execute_suspendable_vm_handler_with_package_root_projected(
+            runtime.vm(),
+            &matched,
+            native_request,
+            projection,
+            web_root,
+        )
+        .await?
+    };
     serve_vm_stream_handler_response(response, method == "HEAD").map(Some)
 }
 

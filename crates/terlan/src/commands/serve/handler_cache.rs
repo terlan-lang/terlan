@@ -47,6 +47,8 @@ mod session_service;
 mod shard_owner;
 mod source_generation;
 mod source_router;
+#[cfg(test)]
+mod test_loading;
 pub(super) use cache_epoch::current as handler_cache_epoch;
 use cache_epoch::{advance as advance_cache_epoch, current as current_cache_epoch};
 use cache_storage::cache;
@@ -606,45 +608,6 @@ impl Drop for AotHandlerGeneration {
 }
 
 impl AotHandlerRuntime {
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn load(
-        module: String,
-        image: &Path,
-        router: Option<AotRouterPlan>,
-    ) -> Result<Self, String> {
-        let sessions = session_service::test_session_service()?;
-        Self {
-            module,
-            generation: Arc::new(AotHandlerGeneration::load(image, sessions)?),
-            router: router.map(materialize_router).transpose()?,
-            primary_request_projection: None,
-            request_projections: HashMap::new(),
-        }
-        .admit_source_router()
-    }
-
-    #[cfg(test)]
-    fn load_with_shard_count(
-        module: String,
-        image: &Path,
-        router: Option<AotRouterPlan>,
-        shard_count: usize,
-    ) -> Result<Self, String> {
-        let sessions = session_service::test_session_service()?;
-        Self {
-            module,
-            generation: Arc::new(AotHandlerGeneration::load_with_shard_count(
-                image,
-                sessions,
-                shard_count,
-            )?),
-            router: router.map(materialize_router).transpose()?,
-            primary_request_projection: None,
-            request_projections: HashMap::new(),
-        }
-        .admit_source_router()
-    }
-
     pub(super) fn has_function(&self, module: &str, function: &str, arity: usize) -> bool {
         if module != self.module {
             return false;

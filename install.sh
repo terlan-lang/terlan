@@ -88,7 +88,7 @@ if [ "${TERLAN_INSTALL_DRY_RUN:-0}" = "1" ]; then
 fi
 
 USE_SUDO=0
-if ! mkdir -p "$INSTALL_DIR" "$SHARE_DIR" 2>/dev/null; then
+if ! mkdir -p "$INSTALL_DIR" "$SHARE_DIR" 2>/dev/null || [ ! -w "$INSTALL_DIR" ] || [ ! -w "$SHARE_DIR" ]; then
   USE_SUDO=1
 fi
 as_root() {

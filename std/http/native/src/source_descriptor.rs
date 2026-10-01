@@ -3,8 +3,11 @@
 use terlan_runtime_abi::{DescriptorValue, DescriptorView, NativeAdapterError};
 
 mod channels;
+mod execution;
 mod router;
 pub use channels::{sse_endpoint, websocket_endpoint};
+pub(crate) use execution::middleware_result;
+pub use execution::HandlerPipeline;
 pub use router::{router, Route, RouteTarget, Router};
 
 #[cfg(test)]
@@ -61,10 +64,12 @@ fn text<V: DescriptorValue>(value: &V) -> Result<String> {
 }
 
 fn positive<V: DescriptorValue>(value: &V) -> Result<usize> {
+    usize::try_from(positive_u64(value)?).map_err(|_| error("limit exceeds platform capacity"))
+}
+
+fn positive_u64<V: DescriptorValue>(value: &V) -> Result<u64> {
     match value.descriptor_view() {
-        DescriptorView::Int(value) if value > 0 => {
-            usize::try_from(value).map_err(|_| error("limit exceeds platform capacity"))
-        }
+        DescriptorView::Int(value) if value > 0 => Ok(value as u64),
         _ => Err(error("expected positive Int limit")),
     }
 }

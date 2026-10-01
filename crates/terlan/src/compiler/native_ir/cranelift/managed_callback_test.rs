@@ -288,7 +288,7 @@ fn generated_closure_owns_captures_and_dispatches_lifted_target() {
 }
 
 #[test]
-fn owned_closure_forwards_a_suspending_target_transition() {
+fn owned_closure_forwards_wide_suspension_and_rejects_short_transition_buffers() {
     let callable = TvmCallableDescriptor {
         id: 301,
         parameters: vec![],
@@ -330,7 +330,7 @@ fn owned_closure_forwards_a_suspending_target_transition() {
                     operation: NativeTransitionOperation::Yield,
                     arguments: vec![],
                     continuation_id: 333,
-                    values: vec![],
+                    values: vec![NativeExpr::Int(42); 129],
                 },
             },
             NativeFunction {
@@ -392,6 +392,27 @@ fn owned_closure_forwards_a_suspending_target_transition() {
     let mut transitions =
         [0_i64; crate::runtime::native_image::TVM_INDIRECT_TRANSITION_WORD_CAPACITY];
     let mut transition_len = u64::MAX;
+    for capacity in [0, 128, transitions.len() - 1] {
+        transitions.fill(-17);
+        let status = runtime.with_dispatch(owner, |context, allocator, resolver| unsafe {
+            dispatch(
+                context,
+                allocator,
+                resolver,
+                tvm_dispatch_lookup_v1 as TvmDispatchLookup as *const c_void,
+                std::ptr::null(),
+                303,
+                [closure].as_ptr(),
+                1,
+                &mut result,
+                transitions.as_mut_ptr(),
+                capacity as u64,
+                &mut transition_len,
+            )
+        });
+        assert_eq!(status, super::super::status::TRANSITION_CAPACITY);
+        assert!(transitions.iter().all(|word| *word == -17));
+    }
     let status = runtime.with_dispatch(owner, |context, allocator, resolver| unsafe {
         dispatch(
             context,
@@ -410,7 +431,8 @@ fn owned_closure_forwards_a_suspending_target_transition() {
     });
     assert_eq!(status, super::super::status::YIELD);
     assert_eq!(result, 333);
-    assert_eq!(transition_len, 0);
+    assert_eq!(transition_len, 129);
+    assert!(transitions[..129].iter().all(|word| *word == 42));
     drop(library);
     fs::remove_dir_all(root).expect("remove suspending closure fixture");
 }

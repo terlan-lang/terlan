@@ -147,19 +147,21 @@ fn template_html_uses_its_declared_opaque_alias_representation() {
 }
 
 #[test]
-fn http_values_keep_managed_storage_without_exempting_package_namesakes() {
-    for (module, name, managed) in [
-        ("std.http.Request", "Request", true),
-        ("std.http.Response", "Response", false),
-        ("std.http.Cookies", "Jar", true),
-        ("std.http.Session", "Session", true),
-        ("app.Cookies", "Jar", false),
-        ("app.Session", "Session", false),
+fn opaque_http_names_follow_native_package_handle_declarations() {
+    for (module, name) in [
+        ("std.http.Request", "Request"),
+        ("std.http.Response", "Response"),
+        ("std.http.Cookies", "Jar"),
+        ("std.http.Session", "Session"),
+        ("app.Request", "Request"),
+        ("app.Response", "Response"),
+        ("app.Cookies", "Jar"),
+        ("app.Session", "Session"),
     ] {
         let syntax = parse_module_as_syntax_output(&format!(
             "module {module}.\n\npub opaque type {name}.\n"
         ))
-        .expect("parse HTTP facade or package namesake");
+        .expect("parse opaque package declaration");
         let resolved = resolve_syntax_module_output(&syntax).module;
         let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
         assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
@@ -167,12 +169,10 @@ fn http_values_keep_managed_storage_without_exempting_package_namesakes() {
         super::super::nominal_identity::qualify_local_nominal_types(&mut core);
 
         let aliases = native_package_aliases(std::slice::from_ref(&core));
-        assert_eq!(aliases.contains_key(&format!("{module}.{name}")), !managed);
+        assert!(aliases.contains_key(&format!("{module}.{name}")));
         assert_eq!(
-            native_handle_layouts(&core)
-                .expect("HTTP layouts")
-                .is_empty(),
-            managed,
+            native_handle_layouts(&core).expect("HTTP layouts").len(),
+            1,
             "wrong capability-handle layout for {module}.{name}"
         );
     }
@@ -204,16 +204,21 @@ fn collections_keep_managed_storage_without_exempting_package_namesakes() {
 }
 
 #[test]
-fn concrete_library_types_are_not_replaced_by_opaque_facade_exemptions() {
+fn concrete_http_types_follow_source_layouts_without_native_handles() {
     for (module, name) in [
         ("std.http.Request", "Request"),
         ("std.http.Response", "Response"),
         ("std.http.Cookies", "Jar"),
         ("std.http.Session", "Session"),
+        ("app.Request", "Request"),
+        ("app.Response", "Response"),
+        ("app.Cookies", "Jar"),
+        ("app.Session", "Session"),
     ] {
         for definition in [
             format!("pub struct {name} {{ #payload: String }}."),
             format!("pub type {name} = String."),
+            format!("pub opaque type {name} = String."),
         ] {
             let syntax = parse_module_as_syntax_output(&format!("module {module}. {definition}"))
                 .expect("parse concrete package type");
@@ -228,6 +233,10 @@ fn concrete_library_types_are_not_replaced_by_opaque_facade_exemptions() {
             assert_eq!(
                 Some(actual),
                 core.types[0].core_body.as_ref(),
+                "{canonical}"
+            );
+            assert!(
+                native_handle_layouts(&core).unwrap().is_empty(),
                 "{canonical}"
             );
         }

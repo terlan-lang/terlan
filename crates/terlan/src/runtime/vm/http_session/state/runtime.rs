@@ -37,7 +37,6 @@ impl VmHttpSessionRuntime {
             actors: VmActorRuntime::default(),
             tables: VmTableStore::default(),
             sessions: BTreeMap::new(),
-            next_session_id: 0,
             now_tick: 0,
             ttl_ticks,
             node_id,
@@ -217,7 +216,6 @@ impl VmHttpSessionRuntime {
                 )
                 .map(|_| ())?;
         }
-        self.advance_next_session_id_for(session_id);
         let record = VmHttpSessionRecord {
             id: session_id.to_string(),
             actor,
@@ -666,8 +664,9 @@ impl VmHttpSessionRuntime {
         session: &VmHttpSession,
     ) -> Result<VmHttpSessionLookup, String> {
         let mut record = self.live_record(&session.id)?;
+        let identity = self.allocate_session_id()?;
         self.sessions.remove(&session.id);
-        record.id = self.allocate_session_id();
+        record.id = identity;
         record.expires_at_tick = self.now_tick.saturating_add(self.ttl_ticks);
         self.sessions.insert(record.id.clone(), record.clone());
         Ok(self.lookup_for_record(record.clone(), Some(record.id.clone())))
@@ -736,7 +735,7 @@ impl VmHttpSessionRuntime {
     }
 
     fn create_session(&mut self) -> Result<VmHttpSessionLookup, String> {
-        let session_id = self.allocate_session_id();
+        let session_id = self.allocate_session_id()?;
         let actor = self
             .actors
             .spawn_root(VmProcessSource::new("std.http.Session", "actor", 0));
@@ -852,19 +851,9 @@ impl VmHttpSessionRuntime {
         Ok(())
     }
 
-    fn allocate_session_id(&mut self) -> String {
-        self.next_session_id = self.next_session_id.saturating_add(1);
-        format!("s{}", self.next_session_id)
-    }
-
-    #[cfg(test)]
-    fn advance_next_session_id_for(&mut self, session_id: &str) {
-        if let Some(value) = session_id
-            .strip_prefix('s')
-            .and_then(|suffix| suffix.parse::<u64>().ok())
-        {
-            self.next_session_id = self.next_session_id.max(value);
-        }
+    fn allocate_session_id(&self) -> Result<String, String> {
+        terlan_http_native::session_identity::issue(|identity| self.sessions.contains_key(identity))
+            .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))
     }
 
     fn sticky_key(&self, session_id: &str) -> String {

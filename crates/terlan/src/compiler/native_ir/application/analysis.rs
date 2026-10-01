@@ -251,15 +251,14 @@ pub(super) fn admit_recursive_reduction_components(
 }
 
 pub(super) fn recursive_reduction_profile(
-    candidate_index: usize,
     candidate: &Candidate<'_>,
+    component: Option<&[usize]>,
     candidates: &[Candidate<'_>],
-    selected: &[bool],
     composable: &HashSet<usize>,
     candidate_to_native: &HashMap<usize, usize>,
     constructor_layouts: &HashMap<String, super::super::constructors::NativeConstructorLayouts>,
 ) -> Option<ComposedCallProfile> {
-    let component = recursive_reduction_component(candidate_index, candidates, selected)?;
+    let component = component?;
     if component.iter().any(|member| !composable.contains(member)) {
         return None;
     }
@@ -430,12 +429,51 @@ pub(super) fn application_suspending(
     selected: &[bool],
     resolvers: &HashMap<String, HashMap<CallIdentity, usize>>,
 ) -> HashSet<usize> {
+    let call_graph = candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| {
+            if !selected[index] {
+                return Vec::new();
+            }
+            let mut calls = Vec::new();
+            if let Some(body) = candidate
+                .function
+                .clauses
+                .first()
+                .and_then(|clause| clause.body.core_expr.as_ref())
+            {
+                let resolver = &resolvers[&candidate.core.module];
+                super::dynamic_targets::walk_calls(body, &mut |function, args| {
+                    if let Some(target) = resolver.get(&(function.to_string(), args.len())) {
+                        calls.push(*target);
+                    }
+                });
+            }
+            calls.sort_unstable();
+            calls.dedup();
+            calls
+        })
+        .collect::<Vec<_>>();
+    let components = super::super::tail_position::strongly_connected_components(&call_graph);
+    let mut component_sizes = vec![0_usize; components.len()];
+    for component in &components {
+        component_sizes[*component] = component_sizes[*component].saturating_add(1);
+    }
+    let recursive = call_graph
+        .iter()
+        .enumerate()
+        .map(|(index, calls)| {
+            component_sizes[components[index]] > 1 || calls.binary_search(&index).is_ok()
+        })
+        .collect::<Vec<_>>();
     let mut suspending = candidates
         .iter()
         .enumerate()
         .filter(|(index, candidate)| {
             selected[*index]
-                && (candidate.function.native_operation.is_some()
+                && (recursive[*index]
+                    || candidate.function.native_operation.is_some()
                     || candidate
                         .function
                         .clauses

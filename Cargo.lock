@@ -4261,14 +4261,17 @@ name = "terlan-http-native"
 version = "0.0.9"
 dependencies = [
  "axum",
+ "base64",
  "bytes",
  "cookie",
  "futures-util",
+ "getrandom 0.4.3",
  "http",
  "http-body-util",
  "httparse",
  "hyper",
  "mime_guess",
+ "percent-encoding",
  "rcgen",
  "rustls",
  "serde",

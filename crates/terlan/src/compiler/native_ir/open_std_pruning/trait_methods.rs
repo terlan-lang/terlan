@@ -2,7 +2,9 @@
 
 use super::*;
 
-fn identities(cores: &[CoreModule]) -> impl Iterator<Item = (FunctionKey, FunctionKey)> + '_ {
+fn identities<'a>(
+    cores: &'a [&'a CoreModule],
+) -> impl Iterator<Item = (FunctionKey, FunctionKey)> + 'a {
     cores.iter().flat_map(|core| {
         core.functions.iter().flat_map(move |function| {
             function.trait_method.iter().flat_map(move |identity| {
@@ -35,14 +37,14 @@ fn identities(cores: &[CoreModule]) -> impl Iterator<Item = (FunctionKey, Functi
 }
 
 /// Includes dispatch nodes in exact qualified call resolution.
-pub(super) fn providers(cores: &[CoreModule]) -> impl Iterator<Item = FunctionKey> + '_ {
+pub(super) fn providers<'a>(cores: &'a [&'a CoreModule]) -> impl Iterator<Item = FunctionKey> + 'a {
     identities(cores).map(|(dispatch, _)| dispatch)
 }
 
 /// Retains all candidates for a reachable dispatch; selection still rejects
 /// ambiguous, inaccessible or incompatible implementations before native code.
 pub(super) fn add_edges(
-    cores: &[CoreModule],
+    cores: &[&CoreModule],
     edges: &mut HashMap<FunctionKey, HashSet<FunctionKey>>,
 ) {
     for (dispatch, implementation) in identities(cores) {

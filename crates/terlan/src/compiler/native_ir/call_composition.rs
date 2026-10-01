@@ -18,7 +18,7 @@ pub(super) use analysis::*;
 #[cfg(test)]
 pub(super) use contracts::validate_call_then_contracts;
 pub(super) use contracts::{
-    close_direct_call_contracts, refresh_recursive_call_contract,
+    close_call_contracts, refresh_recursive_call_contract,
     validate_call_then_contracts_with_destinations,
 };
 pub(super) use region::composed_call_region;
@@ -735,7 +735,9 @@ impl ComposedCallProfile {
             )
             .into());
         }
-        let initial_entries = profile_entry_ids(function_body, &tail_entries);
+        // A synchronous call can enter a completion that performs the first
+        // suspension. Start from all control edges, not just immediate yields.
+        let initial_entries = unique_profile_edges(function_body, &tail_entries);
         if initial_entries.is_empty() {
             return Err("function body exposes no initial suspension entry".into());
         }

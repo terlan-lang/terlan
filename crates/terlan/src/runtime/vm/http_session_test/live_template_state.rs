@@ -39,7 +39,7 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
             .bind_live_template_to_actor_state(&created.session, " dashboard.counter ", " count ")
             .expect("template should bind to actor state"),
         VmHttpSessionLiveTemplateActorBinding {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             actor_pid: 1,
             table_id: 1,
             template_id: "dashboard.counter".to_string(),
@@ -48,8 +48,7 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
             state_version: 1,
             live_template_subscriber_count: 2,
             diagnostic:
-                "HTTP live-template `dashboard.counter` bound to session `s1` actor 1 state `count`"
-                    .to_string(),
+                format!("HTTP live-template `dashboard.counter` bound to session `{}` actor 1 state `count`", created.session.id),
         }
     );
     assert_eq!(
@@ -57,7 +56,7 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
             .bind_live_template_to_actor_state(&created.session, "dashboard.missing", "missing")
             .expect("missing state should still bind with typed none"),
         VmHttpSessionLiveTemplateActorBinding {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             actor_pid: 1,
             table_id: 1,
             template_id: "dashboard.missing".to_string(),
@@ -66,8 +65,7 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
             state_version: 1,
             live_template_subscriber_count: 2,
             diagnostic:
-                "HTTP live-template `dashboard.missing` bound to session `s1` actor 1 state `missing`"
-                    .to_string(),
+                format!("HTTP live-template `dashboard.missing` bound to session `{}` actor 1 state `missing`", created.session.id),
         }
     );
     assert_eq!(
@@ -83,7 +81,11 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
         "HTTP live-template state key cannot be empty"
     );
 
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
     sessions
         .actors
         .exit_actor(actor, VmExitReason::Killed)
@@ -92,7 +94,10 @@ pub(super) fn http_session_binds_typed_live_template_to_actor_state() {
         sessions
             .bind_live_template_to_actor_state(&created.session, "dashboard.counter", "count")
             .expect_err("crashed actor must reject binding"),
-        "HTTP session actor `s1` crashed during request: process 1 exited with killed"
+        format!(
+            "HTTP session actor `{}` crashed during request: process 1 exited with killed",
+            created.session.id
+        )
     );
 }
 
@@ -126,7 +131,7 @@ pub(super) fn http_session_traces_live_template_subscription_source_map() {
             )
             .expect("subscription trace should be source-map aware"),
         VmHttpSessionLiveTemplateSubscriptionTrace {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             actor_pid: 1,
             subscriber_id: "summary".to_string(),
             transport: "sse".to_string(),
@@ -136,8 +141,7 @@ pub(super) fn http_session_traces_live_template_subscription_source_map() {
             source_column: 5,
             state_version: 1,
             diagnostic:
-                "HTTP live-template `dashboard.counter` subscriber `summary` on session `s1` traced to app.Dashboard:12:5"
-                    .to_string(),
+                format!("HTTP live-template `dashboard.counter` subscriber `summary` on session `{}` traced to app.Dashboard:12:5", created.session.id),
         }
     );
     assert_eq!(
@@ -219,7 +223,11 @@ pub(super) fn http_session_traces_live_template_subscription_source_map() {
         "HTTP live-template source column must be greater than 0"
     );
 
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
     sessions
         .actors
         .exit_actor(actor, VmExitReason::Killed)
@@ -235,7 +243,10 @@ pub(super) fn http_session_traces_live_template_subscription_source_map() {
                 5,
             )
             .expect_err("crashed actor must reject trace"),
-        "HTTP session actor `s1` crashed during request: process 1 exited with killed"
+        format!(
+            "HTTP session actor `{}` crashed during request: process 1 exited with killed",
+            created.session.id
+        )
     );
 }
 
@@ -271,14 +282,14 @@ pub(super) fn http_session_live_template_state_update_fans_out_to_all_subscriber
     assert_eq!(
         fanout,
         VmHttpSessionLiveTemplateStateFanout {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             state_version: 1,
             patch_event: "cart.patch".to_string(),
             subscriber_events: vec![
                 VmHttpSessionLiveTemplateFanoutEvent {
                     subscriber_id: "details".to_string(),
                     transport: "websocket".to_string(),
-                    event_id: "s1:1:details".to_string(),
+                    event_id: format!("{}:1:details", created.session.id),
                     event_name: "cart.patch".to_string(),
                     payload: ReplValue::Tuple(vec![
                         ReplValue::Atom("live_template_state_update".to_string()),
@@ -290,7 +301,7 @@ pub(super) fn http_session_live_template_state_update_fans_out_to_all_subscriber
                 VmHttpSessionLiveTemplateFanoutEvent {
                     subscriber_id: "summary".to_string(),
                     transport: "sse".to_string(),
-                    event_id: "s1:1:summary".to_string(),
+                    event_id: format!("{}:1:summary", created.session.id),
                     event_name: "cart.patch".to_string(),
                     payload: ReplValue::Tuple(vec![
                         ReplValue::Atom("live_template_state_update".to_string()),
@@ -319,7 +330,10 @@ pub(super) fn http_session_live_template_state_update_fans_out_to_all_subscriber
                 update,
             )
             .expect_err("stale writer should fail before fanout"),
-        "HTTP session `s1` state version conflict: expected 0, actual 1"
+        format!(
+            "HTTP session `{}` state version conflict: expected 0, actual 1",
+            created.session.id
+        )
     );
     assert_eq!(
         sessions
@@ -390,7 +404,10 @@ pub(super) fn http_session_state_update_rejects_stale_concurrent_writer() {
         sessions
             .apply_state_update(&created.session, observed_version, update)
             .expect_err("stale concurrent writer should fail"),
-        "HTTP session `s1` state version conflict: expected 0, actual 1"
+        format!(
+            "HTTP session `{}` state version conflict: expected 0, actual 1",
+            created.session.id
+        )
     );
     assert_eq!(
         sessions
@@ -463,10 +480,10 @@ pub(super) fn http_session_persistence_snapshot_replays_after_restart() {
         .replay_persistence_snapshot(snapshot.clone())
         .expect("snapshot should replay after restart");
 
-    assert_eq!(restored.session.id, "s1");
+    assert_eq!(restored.session.id, created.session.id);
     assert_eq!(restored.route.node_id, "node-b");
     assert_eq!(restored.route.actor_pid, 1);
-    assert_eq!(restored.pending_identity, Some("s1".to_string()));
+    assert_eq!(restored.pending_identity, Some(created.session.id.clone()));
     assert_eq!(
         restarted
             .read(&restored.session, "cart")
@@ -501,13 +518,16 @@ pub(super) fn http_session_persistence_snapshot_replays_after_restart() {
         restarted
             .replay_persistence_snapshot(snapshot.clone())
             .expect_err("duplicate replay should fail closed"),
-        "HTTP session persistence snapshot `s1` would overwrite live session"
+        format!(
+            "HTTP session persistence snapshot `{}` would overwrite live session",
+            created.session.id
+        )
     );
 
     let next = restarted
         .lookup_or_create(None)
         .expect("allocation should continue after replay");
-    assert_eq!(next.session.id, "s2");
+    assert_ne!(next.session.id, created.session.id);
 
     let mut expired =
         VmHttpSessionRuntime::new("node-c", 10).expect("expired runtime should create");
@@ -516,7 +536,10 @@ pub(super) fn http_session_persistence_snapshot_replays_after_restart() {
         expired
             .replay_persistence_snapshot(snapshot)
             .expect_err("expired snapshot should fail"),
-        "HTTP session persistence snapshot `s1` is expired"
+        format!(
+            "HTTP session persistence snapshot `{}` is expired",
+            created.session.id
+        )
     );
 }
 
@@ -544,13 +567,13 @@ pub(super) fn http_session_persistence_rejects_blank_ids_and_accepts_external_id
         .replay_persistence_snapshot(external)
         .expect("non-numeric session id should replay");
     assert_eq!(restored.session.id, "external-session");
-    assert_eq!(
+    assert_ne!(
         target
             .lookup_or_create(None)
-            .expect("numeric allocation should remain available")
+            .expect("fresh allocation after replay")
             .session
             .id,
-        "s1"
+        restored.session.id
     );
 }
 
@@ -559,7 +582,11 @@ pub(super) fn http_session_reports_normal_and_missing_actor_exit_reasons() {
     let mut sessions =
         VmHttpSessionRuntime::new("node-a", 10).expect("session runtime should create");
     let created = sessions.lookup_or_create(None).expect("create session");
-    let actor = sessions.sessions.get("s1").expect("session record").actor;
+    let actor = sessions
+        .sessions
+        .get(&created.session.id)
+        .expect("session record")
+        .actor;
 
     sessions
         .actors
@@ -569,7 +596,10 @@ pub(super) fn http_session_reports_normal_and_missing_actor_exit_reasons() {
         sessions
             .read(&created.session, "value")
             .expect_err("normal actor exit should invalidate the session"),
-        "HTTP session actor `s1` crashed during request: process 1 exited with normal exit"
+        format!(
+            "HTTP session actor `{}` crashed during request: process 1 exited with normal exit",
+            created.session.id
+        )
     );
 
     assert_eq!(
@@ -595,14 +625,13 @@ pub(super) fn http_session_actor_mailbox_backpressure_is_attributed() {
             .actor_mailbox_backpressure(&created.session, 2)
             .expect("empty mailbox should inspect"),
         VmHttpSessionMailboxBackpressure {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             actor_pid: 1,
             mailbox_len: 0,
             threshold: 2,
             saturated: false,
             attribution:
-                "HTTP session `s1` actor mailbox pressure is within threshold: 0 queued messages < threshold 2"
-                    .to_string(),
+                format!("HTTP session `{}` actor mailbox pressure is within threshold: 0 queued messages < threshold 2", created.session.id),
         }
     );
 
@@ -618,14 +647,15 @@ pub(super) fn http_session_actor_mailbox_backpressure_is_attributed() {
             .actor_mailbox_backpressure(&created.session, 2)
             .expect("saturated mailbox should inspect"),
         VmHttpSessionMailboxBackpressure {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             actor_pid: 1,
             mailbox_len: 2,
             threshold: 2,
             saturated: true,
-            attribution:
-                "HTTP session `s1` actor mailbox backpressure: 2 queued messages >= threshold 2"
-                    .to_string(),
+            attribution: format!(
+                "HTTP session `{}` actor mailbox backpressure: 2 queued messages >= threshold 2",
+                created.session.id
+            ),
         }
     );
     assert_eq!(sessions.snapshots()[0].actor_mailbox_len, 2);
@@ -659,13 +689,16 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
     let mut duplicate_destination =
         VmHttpSessionRuntime::new("node-c", 10).expect("duplicate destination should create");
     duplicate_destination
-        .lookup_or_create(None)
-        .expect("duplicate destination should already own s1");
+        .replay_persistence_snapshot(source.persistence_snapshot(&created.session).unwrap())
+        .expect("duplicate destination should already own the same identity");
     assert_eq!(
         source
             .migrate_to_worker(&created.session, &mut duplicate_destination)
             .expect_err("duplicate destination session should fail closed"),
-        "HTTP session persistence snapshot `s1` would overwrite live session"
+        format!(
+            "HTTP session persistence snapshot `{}` would overwrite live session",
+            created.session.id
+        )
     );
     assert_eq!(
         source
@@ -683,7 +716,7 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
     assert_eq!(
         migration,
         VmHttpSessionWorkerMigration {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             source_route: created.route.clone(),
             destination_route: destination.snapshots().into_iter().next().map_or_else(
                 || panic!("destination snapshot should exist"),
@@ -694,10 +727,11 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
                     sticky_key: snapshot.sticky_key,
                 },
             ),
-            pending_identity: Some("s1".to_string(),),
-            diagnostic:
-                "HTTP session `s1` migrated from worker `node-a` to worker `node-b` as actor 1"
-                    .to_string(),
+            pending_identity: Some(created.session.id.clone(),),
+            diagnostic: format!(
+                "HTTP session `{}` migrated from worker `node-a` to worker `node-b` as actor 1",
+                created.session.id
+            ),
         }
     );
     assert_eq!(source.snapshots(), Vec::new());
@@ -705,7 +739,7 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
         source
             .read(&created.session, "cart")
             .expect_err("source should no longer own migrated session"),
-        "stale HTTP session `s1`"
+        format!("stale HTTP session `{}`", created.session.id)
     );
     assert_eq!(
         destination
@@ -740,7 +774,10 @@ pub(super) fn http_session_migrates_durable_state_across_workers() {
         destination
             .migrate_to_worker(&created.session, &mut same_worker)
             .expect_err("same-worker migration should fail"),
-        "HTTP session `s1` migration target must be a different worker"
+        format!(
+            "HTTP session `{}` migration target must be a different worker",
+            created.session.id
+        )
     );
 }
 
@@ -776,7 +813,7 @@ pub(super) fn http_session_reports_hot_reload_migration_compatibility() {
             .hot_reload_migration_compatibility_report(&created.session, 1, 2)
             .expect("hot reload report should succeed"),
         VmHttpSessionHotReloadMigrationReport {
-            session_id: "s1".to_string(),
+            session_id: created.session.id.clone(),
             previous_generation: 1,
             active_generation: 2,
             compatible: true,
@@ -784,15 +821,17 @@ pub(super) fn http_session_reports_hot_reload_migration_compatibility() {
             durable_command_results: 1,
             transient_subscribers: 1,
             diagnostic:
-                "HTTP session `s1` is compatible with hot reload generation 1->2: 2 table entries and 1 command results remain durable; 1 live-template subscribers remain transient"
-                    .to_string(),
+                format!("HTTP session `{}` is compatible with hot reload generation 1->2: 2 table entries and 1 command results remain durable; 1 live-template subscribers remain transient", created.session.id),
         }
     );
     assert_eq!(
         sessions
             .hot_reload_migration_compatibility_report(&created.session, 2, 2)
             .expect_err("same generation should fail"),
-        "HTTP session `s1` hot reload report requires distinct generations"
+        format!(
+            "HTTP session `{}` hot reload report requires distinct generations",
+            created.session.id
+        )
     );
 
     sessions
@@ -802,7 +841,7 @@ pub(super) fn http_session_reports_hot_reload_migration_compatibility() {
         sessions
             .hot_reload_migration_compatibility_report(&created.session, 2, 3)
             .expect_err("expired session should fail"),
-        "stale HTTP session `s1`"
+        format!("stale HTTP session `{}`", created.session.id)
     );
 }
 
@@ -823,9 +862,9 @@ pub(super) fn http_session_rotate_changes_cookie_without_losing_actor_state() {
         .rotate(&created.session)
         .expect("rotation should succeed");
 
-    assert_eq!(rotated.session.id, "s2");
+    assert_ne!(rotated.session.id, created.session.id);
     assert_eq!(rotated.route.actor_pid, created.route.actor_pid);
-    assert_eq!(rotated.pending_identity, Some("s2".to_string()));
+    assert_eq!(rotated.pending_identity, Some(rotated.session.id.clone()));
     assert_eq!(
         sessions
             .read(&rotated.session, "role")
@@ -836,7 +875,7 @@ pub(super) fn http_session_rotate_changes_cookie_without_losing_actor_state() {
         sessions
             .read(&created.session, "role")
             .expect_err("old id should be stale after rotation"),
-        "stale HTTP session `s1`"
+        format!("stale HTTP session `{}`", created.session.id)
     );
 }
 
@@ -856,7 +895,7 @@ pub(super) fn http_session_expiration_cleans_actor_table_and_reports_stale() {
     sessions.advance_ticks(2);
     assert_eq!(
         sessions.expire_due().expect("expiration should succeed"),
-        vec!["s1".to_string()]
+        vec![created.session.id.clone()]
     );
 
     assert_eq!(sessions.snapshots(), Vec::new());
@@ -864,15 +903,18 @@ pub(super) fn http_session_expiration_cleans_actor_table_and_reports_stale() {
         sessions
             .read(&created.session, "user")
             .expect_err("expired session should be stale"),
-        "stale HTTP session `s1`"
+        format!("stale HTTP session `{}`", created.session.id)
     );
 
     let replacement = sessions
-        .lookup_or_create(Some("s1"))
+        .lookup_or_create(Some(&created.session.id))
         .expect("expired cookie should create replacement");
-    assert_eq!(replacement.session.id, "s2");
+    assert_ne!(replacement.session.id, created.session.id);
     assert_eq!(replacement.route.actor_pid, 2);
-    assert_eq!(replacement.pending_identity, Some("s2".to_string()));
+    assert_eq!(
+        replacement.pending_identity,
+        Some(replacement.session.id.clone())
+    );
 }
 
 #[test]
@@ -890,7 +932,10 @@ pub(super) fn http_session_recovery_policy_can_fail_closed_for_stale_cookie() {
         .lookup_or_create(Some(&created.session.id))
         .expect_err("expired cookie should fail closed");
 
-    assert_eq!(error, "stale HTTP session `s1`");
+    assert_eq!(
+        error,
+        format!("stale HTTP session `{}`", created.session.id)
+    );
     assert_eq!(sessions.snapshots(), Vec::new());
 }
 

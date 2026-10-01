@@ -297,5 +297,20 @@ pub(super) fn finalize_native_application(
     validate_composed_suspending_calls(&modules, suspending_native, suspending_targets)?;
     super::super::super::recursive_suspension::defer_recursive_calls(&mut modules)
         .map_err(|error| error.to_string())?;
+    let actual_suspending =
+        super::super::super::cranelift::application_suspending_functions(&modules)?;
+    let actual_targets = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .enumerate()
+        .filter(|(index, _)| actual_suspending.contains(index))
+        .map(|(index, function)| {
+            format!(
+                "{index}={}.{}:{}",
+                function.source_module, function.source_function, function.source_arity
+            )
+        })
+        .collect::<Vec<_>>();
+    validate_composed_suspending_calls(&modules, &actual_suspending, &actual_targets)?;
     Ok(modules)
 }

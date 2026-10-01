@@ -26,9 +26,10 @@ pub(crate) use sealed::{reject_tvm_image_sidecars, SealedTvmImage};
 
 /// Maximum transition words forwarded by one image-local indirect invocation.
 ///
-/// This bound is shared by generated code and the execution shard so a closure
-/// can call any admitted suspending target without retaining a native stack.
-pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize = 128;
+/// Indirect targets can themselves call suspending functions. They use the
+/// same caller-owned completion storage as direct calls, not a smaller frame.
+pub(crate) const TVM_INDIRECT_TRANSITION_WORD_CAPACITY: usize =
+    TVM_COMPLETION_TRANSITION_WORD_CAPACITY;
 
 /// Maximum words retained by a recursively composed native completion stack.
 ///

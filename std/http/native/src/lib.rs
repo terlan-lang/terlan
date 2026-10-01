@@ -25,6 +25,9 @@ mod response_chunks_test;
 mod response_headers;
 #[cfg(test)]
 mod response_metadata_test;
+pub mod route_pattern;
+pub mod routing;
+pub mod session_identity;
 pub mod source_descriptor;
 mod sse;
 pub mod tls;

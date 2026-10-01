@@ -169,7 +169,7 @@ fn http_handler_renders_actor_updated_live_template_state() {
         .subscribe_live_template(&created.session, "user-page", "sse")
         .expect("subscribe live template");
     let router = VmHttpRouter::new()
-        .get("/api/{id}", ReplValue::Atom("render_user_page".to_string()))
+        .get("/api/:id", ReplValue::Atom("render_user_page".to_string()))
         .expect("register parameterized route");
     let request = b"GET /api/42 HTTP/1.1\r\nHost: vm.local\r\nContent-Length: 0\r\n\r\n";
     let mut reader = Cursor::new(request.as_slice());
@@ -178,7 +178,7 @@ fn http_handler_renders_actor_updated_live_template_state() {
     let exchange = handle_http1_in_memory_exchange(&mut reader, &mut writer, false, |request| {
         let outcome = router.dispatch(VmHttpRouteMethod::Get, request.uri().path())?;
         let VmHttpRouterOutcome::Matched(dispatch) = outcome else {
-            return Err("expected /api/{id} route to match".to_string());
+            return Err("expected /api/:id route to match".to_string());
         };
         let user_id = dispatch
             .route_params

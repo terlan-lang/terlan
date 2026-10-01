@@ -93,7 +93,8 @@ pub(super) fn normalize_tail_component_profiles(
     Ok(())
 }
 
-/// Returns the largest transition frame required by one expression tree.
+/// Reserves transition storage up to the ABI completion-stack bound. Appending
+/// a completion still checks the actual live frame width at runtime.
 pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize]) -> usize {
     match body {
         NativeExpr::Suspend {
@@ -182,6 +183,7 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
         NativeExpr::Try { .. } => 0,
         _ => 0,
     }
+    .min(TVM_COMPLETION_TRANSITION_WORD_CAPACITY)
 }
 
 #[cfg(test)]

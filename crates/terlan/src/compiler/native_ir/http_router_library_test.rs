@@ -21,6 +21,7 @@ fn check_router_provider(provider: &str, body: &str, owner: &str) {
         include_str!("../../../../../std/http/Request.terl"),
         include_str!("../../../../../std/http/Sse.terl"),
         include_str!("../../../../../std/http/WebSocket.terl"),
+        include_str!("../../../../../std/http/Error.terl"),
     ]);
 }
 
@@ -35,12 +36,12 @@ pub check(): Bool ->
         .patch("/four", handler).delete("/five", handler)
         .head("/six", handler).options("/seven", handler);
     let unchanged = case empty.#entries { [] -> true; _ -> false };
-    let first_unchanged = case first.#entries { [RouteEntry("GET", "/one", _)] -> true; _ -> false };
+    let first_unchanged = case first.#entries { [RouteEntry("GET", "/one", _, [], [])] -> true; _ -> false };
     let ordered = case all.#entries {
-        [RouteEntry("GET", "/one", _), RouteEntry("POST", "/two", _),
-         RouteEntry("PUT", "/three", _), RouteEntry("PATCH", "/four", _),
-         RouteEntry("DELETE", "/five", _), RouteEntry("HEAD", "/six", _),
-         RouteEntry("OPTIONS", "/seven", _)] -> true;
+        [RouteEntry("GET", "/one", _, [], []), RouteEntry("POST", "/two", _, [], []),
+         RouteEntry("PUT", "/three", _, [], []), RouteEntry("PATCH", "/four", _, [], []),
+         RouteEntry("DELETE", "/five", _, [], []), RouteEntry("HEAD", "/six", _, [], []),
+         RouteEntry("OPTIONS", "/seven", _, [], [])] -> true;
         _ -> false
     };
     unchanged and first_unchanged and ordered.
@@ -48,8 +49,8 @@ pub check(): Bool ->
     check_router(body, "std.http.Router");
     check_router(body, "app.Routes");
     let changed = ROUTER.replace(
-        "RouteEntry(\"GET\", pattern, handler)",
-        "RouteEntry(\"SOURCE\", pattern, handler)",
+        "RouteEntry(\"GET\", pattern, handler, [], [])",
+        "RouteEntry(\"SOURCE\", pattern, handler, [], [])",
     );
     assert_ne!(changed, ROUTER);
     check_router_provider(
@@ -61,20 +62,34 @@ pub check(): Bool ->
 
 #[test]
 fn router_source_evaluates_group_callback_and_retains_scope() {
-    check_router(
-        r#"
+    let body = r#"
 handler(_request: Request): Response -> Response.text("source").
 leaf(scoped: Router): Router -> scoped.get("/leaf", handler).
 configure(scoped: Router): Router -> scoped.get("/child", handler).group("/inner", leaf).
 pub check(): Bool ->
     let router = new().group("/prefix", configure);
     case router.#entries {
-        [GroupStartEntry("/prefix"), RouteEntry("GET", "/child", _),
-         GroupStartEntry("/inner"), RouteEntry("GET", "/leaf", _),
+        [GroupStartEntry, RouteEntry("GET", "/prefix/child", _, [], []),
+         GroupStartEntry, RouteEntry("GET", "/prefix/inner/leaf", _, [], []),
          GroupEndEntry, GroupEndEntry] -> true;
         _ -> false
     }.
-"#,
+"#;
+    check_router(body, "std.http.Router");
+    check_router(body, "app.Routes");
+    let changed = ROUTER.replace(
+        "base + \"/\" + trim_group_start(path)",
+        "base + \"/changed/\" + trim_group_start(path)",
+    );
+    assert_ne!(changed, ROUTER);
+    check_router_provider(
+        &changed,
+        &body
+            .replace("\"/prefix/child\"", "\"/prefix/changed/child\"")
+            .replace(
+                "\"/prefix/inner/leaf\"",
+                "\"/prefix/changed/inner/changed/leaf\"",
+            ),
         "std.http.Router",
     );
 }
@@ -88,11 +103,146 @@ fn standard_router_test_executes_real_builders_and_imported_helpers() {
     check_sources(&[
         &root,
         ROUTER,
+        include_str!("../../../../../std/http/Error.terl"),
         include_str!("../../../../../std/http/Response.terl"),
         include_str!("../../../../../std/http/Request.terl"),
         include_str!("../../../../../std/http/Sse.terl"),
         include_str!("../../../../../std/http/WebSocket.terl"),
     ]);
+}
+
+#[test]
+fn router_group_middleware_is_composed_in_source_including_late_declarations() {
+    let body = r#"
+handler(_request: Request): Response -> Response.text("source").
+middleware(_request: Request): MiddlewareResult -> Continue.
+response_middleware(_request: Request, response: Response): Response -> response.
+scope_sizes(entries: List[Entry]): List[{Int, Int}] ->
+    case entries {
+        [] -> [];
+        [RouteEntry(_, _, _, middleware, response) | rest] ->
+            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+        [SseEntry(_, _, middleware, response) | rest] ->
+            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+        [WebSocketEntry(_, _, middleware, response) | rest] ->
+            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+        [FallbackEntry(_, middleware, response) | rest] ->
+            [{List.length(middleware), List.length(response)} | scope_sizes(rest)];
+        [_ | rest] -> scope_sizes(rest)
+    }.
+pub check(): Bool ->
+    let original = new().use(middleware).map_response(response_middleware).get("/outside", handler);
+    let router = original.group("/api", (outer: Router) ->
+        outer.use(middleware).map_response(response_middleware)
+            .group("/inner", (inner: Router) ->
+                inner.get("/one", handler)
+                    .sse("/events", std.http.Sse.endpoint(2, 256))
+                    .websocket("/socket", std.http.WebSocket.endpoint(2, 256))
+                    .use(middleware).map_response(response_middleware))
+            .get("/two", handler)
+            .use(middleware).map_response(response_middleware))
+        .fallback(handler).use(middleware).map_response(response_middleware).get("/after", handler);
+    scope_sizes(original.#entries) == [{1, 1}]
+        and scope_sizes(router.#entries) == [{2, 2}, {5, 5}, {5, 5}, {5, 5}, {4, 4}, {2, 2}, {2, 2}].
+"#;
+    check_router(body, "std.http.Router");
+    check_router(body, "app.Routes");
+    let changed = ROUTER.replace(
+        "insert_callbacks(scoped, middleware_offset, middleware)",
+        "scoped",
+    );
+    assert_ne!(changed, ROUTER);
+    check_router_provider(
+        &changed,
+        &body
+            .replace("{1, 1}", "{0, 1}")
+            .replace("{2, 2}", "{0, 2}")
+            .replace("{4, 4}", "{0, 4}")
+            .replace("{5, 5}", "{0, 5}"),
+        "std.http.Router",
+    );
+}
+
+#[test]
+fn router_group_error_inheritance_is_source_owned() {
+    let body = r#"
+recover(_error: HttpError): Response -> Response.text("child", 501).
+parent_recover(_error: HttpError): Response -> Response.text("parent", 502).
+callback_response(callback: (String) -> Response): Response -> callback("test").
+pub check(): Bool ->
+    let original = new();
+    let inherited = original.group("/outer", (outer: Router) ->
+        outer.group("/inner", (inner: Router) -> inner.error(recover)));
+    let promoted = case inherited.#entries {
+        [GroupStartEntry, GroupStartEntry, ErrorEntry(_), GroupEndEntry,
+         ErrorEntry(_), GroupEndEntry, ErrorEntry(callback)] -> callback_response(callback) == Response.text("child", 501);
+        _ -> false
+    };
+    let parent = new().error(parent_recover).group("/child", (child: Router) -> child.error(recover));
+    let preserved = case parent.#entries {
+        [ErrorEntry(callback), GroupStartEntry, ErrorEntry(_), GroupEndEntry] -> callback_response(callback) == Response.text("parent", 502);
+        _ -> false
+    };
+    let siblings = new().group("/first", (child: Router) -> child.error(recover))
+        .group("/second", (child: Router) -> child.error(parent_recover));
+    let first_wins = case siblings.#entries {
+        [GroupStartEntry, ErrorEntry(_), GroupEndEntry, ErrorEntry(callback),
+         GroupStartEntry, ErrorEntry(_), GroupEndEntry] -> callback_response(callback) == Response.text("child", 501);
+        _ -> false
+    };
+    let unchanged = case original.#entries { [] -> true; _ -> false };
+    promoted and preserved and first_wins and unchanged.
+"#;
+    check_router(body, "std.http.Router");
+    check_router(body, "app.Routes");
+    let changed = ROUTER
+        .replace("let inherited =", "let _inherited =")
+        .replace("List.concat(closed.#entries, inherited)", "closed.#entries");
+    assert_ne!(changed, ROUTER);
+    check_router_provider(
+        &changed,
+        r#"
+recover(_error: HttpError): Response -> Response.text("child").
+pub check(): Bool ->
+    let router = new().group("/child", (child: Router) -> child.error(recover));
+    case router.#entries {
+        [GroupStartEntry, ErrorEntry(_), GroupEndEntry] -> true;
+        _ -> false
+    }.
+"#,
+        "std.http.Router",
+    );
+}
+
+#[test]
+fn router_recovery_error_shape_is_source_owned() {
+    let body = r#"
+recover(error: HttpError): Response ->
+    if {
+        Error.code(error) == Atom["router_execution_failed"] and Error.status(error) == 500 -> Response.text(Error.message(error), 503);
+        true -> Response.text("wrong error", 400)
+    }.
+pub check(): Bool ->
+    let router = new().error(recover);
+    case router.#entries {
+        [ErrorEntry(callback)] -> callback("host failure") == Response.text("host failure", 503);
+        _ -> false
+    }.
+"#;
+    check_router(body, "std.http.Router");
+    check_router(body, "app.Recovery");
+    let changed = ROUTER.replace(
+        "Atom[\"router_execution_failed\"], message, 500",
+        "Atom[\"package_failure\"], message, 502",
+    );
+    assert_ne!(changed, ROUTER);
+    check_router_provider(
+        &changed,
+        &body
+            .replace("router_execution_failed", "package_failure")
+            .replace("== 500", "== 502"),
+        "app.Recovery",
+    );
 }
 
 #[test]
@@ -111,9 +261,9 @@ pub check(): Bool ->
         .sse("/events", std.http.Sse.endpoint(7, 256))
         .websocket("/socket", std.http.WebSocket.endpoint(9, 512));
     case router.#entries {
-        [MiddlewareEntry(_), ResponseMiddlewareEntry(_), FallbackEntry(_), ErrorEntry(_),
-         OverloadEntry(Atom["reject"], 41), LifecycleEntry(_), SseEntry("/events", sse),
-         WebSocketEntry("/socket", ws)] ->
+        [MiddlewareEntry(_), ResponseMiddlewareEntry(_), FallbackEntry(_, [_], [_]), ErrorEntry(_),
+         OverloadEntry(Atom["reject"], 41), LifecycleEntry(_), SseEntry("/events", sse, [_], [_]),
+         WebSocketEntry("/socket", ws, [_], [_])] ->
             sse.max_pending_events == 7 and sse.max_event_bytes == 256
                 and ws.max_pending_frames == 9 and ws.max_frame_bytes == 512;
         _ -> false

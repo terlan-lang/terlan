@@ -453,6 +453,7 @@ fn command_has_usage(command: &str) -> bool {
             | "build"
             | "run"
             | "scripts"
+            | "self-update"
             | "package"
             | "clean"
             | "doctor"

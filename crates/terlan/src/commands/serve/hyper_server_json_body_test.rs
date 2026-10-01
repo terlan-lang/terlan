@@ -3,6 +3,20 @@
 use super::*;
 
 fn with_source_handler(source: &str, check: impl FnOnce(&dyn Fn(&str) -> String)) {
+    with_source_requests(source, &["/json"], |send| {
+        check(&|body| {
+            send(&format!(
+                "POST /json HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len()
+            ))
+        });
+    });
+}
+
+fn with_source_requests(
+    source: &str,
+    routes: &[&str],
+    check: impl FnOnce(&dyn Fn(&str) -> String),
+) {
     let root = temp_web_root();
     let web = root.join("_build/web");
     std::fs::create_dir_all(root.join("src/app")).unwrap();
@@ -16,24 +30,235 @@ fn with_source_handler(source: &str, check: impl FnOnce(&dyn Fn(&str) -> String)
     std::fs::write(root.join("src/app/Api.terl"), source).unwrap();
     std::fs::write(
         web.join("manifest.json"),
-        r#"{
+        serde_json::to_vec(&serde_json::json!({
         "schema":"terlan-web-build-v1", "target_profile":"js.browser",
         "source_js_manifest":"../js/manifest.json", "index":"index.html", "assets":[],
-        "handlers":[{"method":"POST","route":"/json","module":"app.Api",
-            "function":"handle","arity":1,"source":{"path":"src/app/Api.terl","line":8,"column":5}}]
-    }"#,
+        "handlers": routes.iter().map(|route| serde_json::json!({"method":"POST","route":route,"module":"app.Api",
+            "function":"handle","arity":1,"source":{"path":"src/app/Api.terl","line":8,"column":5}})).collect::<Vec<_>>()
+    })).unwrap(),
     )
     .unwrap();
     crate::commands::serve::prewarm_dynamic_handler_sources(&web)
         .expect("compile source-owned library handler");
-    with_source_protocol_server(web, |send| {
-        check(&|body| {
-            send(&format!(
-            "POST /json HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len()
-        ))
-        });
-    });
+    with_source_protocol_server(web, check);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn vm_stream_source_router_matches_typed_captures_and_group_fallbacks_over_socket() {
+    with_source_requests(
+        r#"module app.Api.
+import std.core.Option.{Some, None}.
+import std.http.{Router, Response}.
+import std.http.Router.{Continue, Respond, MiddlewareResult}.
+import type std.http.Router.Router.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(_request: Request): Response -> Response.text("manifest handler must not run").
+pub inner_gate(request: Request): MiddlewareResult ->
+    if {
+        request.path().ends_with("/denied") -> Respond(Response.text("inner-denied").with_status(401));
+        true -> Continue
+    }.
+pub outer_gate(request: Request): MiddlewareResult ->
+    if {
+        request.path().ends_with("/blocked") -> Respond(Response.text("outer-denied").with_status(403));
+        true -> Continue
+    }.
+pub root_before(request: Request): MiddlewareResult ->
+    if {
+        request.path().ends_with("/root-blocked") -> Respond(Response.text("root-before-denied").with_status(402));
+        true -> Continue
+    }.
+pub root_after(request: Request): MiddlewareResult ->
+    if {
+        request.path() == "/api/nested/blocked" or request.path().ends_with("/root-blocked") ->
+            Respond(Response.text("root-after-denied").with_status(429));
+        true -> Continue
+    }.
+pub captured(request: Request): Response ->
+    case request.param("id") {
+        Some(id) -> Response.text("typed:" + id);
+        None -> Response.text("missing capture").with_status(500)
+    }.
+pub router(): Router ->
+    Router.new()
+        .use(root_before)
+        .map_response((_request: Request, response: Response) -> response.with_header("X-Scope", "root-before"))
+        .fallback((_request: Request) -> Response.text("root").with_status(404))
+        .group("/api", (child: Router) ->
+            child.use((_request: Request) -> Continue)
+                .map_response((_request: Request, response: Response) -> response.with_header("X-Scope", "outer-before"))
+                .fallback((_request: Request) -> Response.text("group").with_status(404))
+                .post("/{id:Int}", captured)
+                .post("/status", (_request: Request) -> Response.text("exact"))
+                .group("/nested", (nested: Router) ->
+                    nested.fallback((_request: Request) -> Response.text("nested").with_status(404))
+                        .use(inner_gate)
+                        .map_response((_request: Request, response: Response) -> response.with_header("X-Scope", "inner")))
+                .use(outer_gate)
+                .map_response((_request: Request, response: Response) -> response.with_header("X-Scope", "outer-after")))
+        .use(root_after)
+        .map_response((_request: Request, response: Response) ->
+            response.with_header("X-Router", "source").with_header("X-Scope", "root")).
+"#,
+        &[
+            "/api/{id:Int}",
+            "/api/status",
+            "/api/*",
+            "/api/nested/*",
+            "*",
+        ],
+        |send| {
+            for (path, status, body) in [
+                ("/api/%34%32", 200, "typed:42"),
+                ("/api/-7", 200, "typed:-7"),
+                ("/api/status", 200, "exact"),
+                ("/api/not-an-int", 404, "group"),
+                ("/api/9223372036854775808", 404, "group"),
+                ("/api", 404, "group"),
+                ("/api/deeper/missing", 404, "group"),
+                ("/api/nested/missing", 404, "nested"),
+                ("/api/nested/denied", 401, "inner-denied"),
+                ("/api/blocked", 403, "outer-denied"),
+                ("/api/nested/blocked", 429, "root-after-denied"),
+                ("/api/nested/root-blocked", 402, "root-before-denied"),
+                ("/root-blocked", 402, "root-before-denied"),
+                ("/api2/missing", 404, "root"),
+                ("/api/42", 200, "typed:42"),
+            ] {
+                let response = send(&format!("POST {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"));
+                assert!(
+                    response.starts_with(&format!("HTTP/1.1 {status} ")),
+                    "{path}: {response}"
+                );
+                assert!(
+                    response.contains("x-router: source\r\n"),
+                    "{path}: {response}"
+                );
+                let scope_headers: Vec<_> = response
+                    .split("\r\n")
+                    .filter_map(|line| line.strip_prefix("x-scope: "))
+                    .collect();
+                let expected = if path.starts_with("/api/nested/") {
+                    vec![
+                        "inner",
+                        "outer-after",
+                        "outer-before",
+                        "root",
+                        "root-before",
+                    ]
+                } else if path == "/api" || path.starts_with("/api/") {
+                    vec!["outer-after", "outer-before", "root", "root-before"]
+                } else {
+                    vec!["root", "root-before"]
+                };
+                assert_eq!(scope_headers, expected, "{path}: {response}");
+                assert!(
+                    response.ends_with(&format!("\r\n\r\n{body}")),
+                    "{path}: {response}"
+                );
+            }
+        },
+    );
+}
+
+#[test]
+fn vm_stream_source_router_executes_captured_handler_over_socket() {
+    with_source_handler(
+        r#"module app.Api.
+import std.http.{Router, Response}.
+import std.http.Router.{Continue}.
+import type std.http.Router.Router.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(_request: Request): Response -> Response.text("manifest fallback must not run").
+route_name(): String -> "json".
+pub router(): Router ->
+    let prefix = "source:";
+    Router.new()
+        .use((_request: Request) -> Continue)
+        .post("/" + route_name(), (request: Request) -> Response.text(prefix + request.body_text()))
+        .map_response((_request: Request, response: Response) -> response.with_status(202)).
+"#,
+        |request| {
+            for body in ["first", "second"] {
+                let response = request(body);
+                assert!(response.starts_with("HTTP/1.1 202 "), "{response}");
+                assert!(
+                    response.ends_with(&format!("\r\n\r\nsource:{body}")),
+                    "{response}"
+                );
+            }
+        },
+    );
+}
+
+#[test]
+fn vm_stream_source_router_middleware_awaits_package_worker_and_short_circuits() {
+    with_source_handler(
+        r#"module app.Api.
+import std.core.Result.{Ok, Err}.
+import std.net.Uri.
+import std.http.{Router, Response, Error}.
+import std.http.Router.{Continue, Respond, MiddlewareResult}.
+import type std.http.Error.HttpError.
+import type std.http.Router.Router.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(_request: Request): Response -> Response.text("manifest fallback must not run").
+pub gate(request: Request): MiddlewareResult ->
+    case Uri.parse(request.body_text()) {
+        Ok(_) -> Continue;
+        Err(_) -> Respond(Response.text("invalid URI").with_status(400))
+    }.
+pub router(): Router ->
+    Router.new()
+        .use(gate)
+        .post("/json", (request: Request) -> Response.text("accepted:" + request.body_text()))
+        .map_response((request: Request, response: Response) ->
+            if {
+                request.body_text() == "bad status" -> response.with_status(0);
+                true -> response.with_header("X-Router", "source")
+            })
+        .error((reason: HttpError) ->
+            if {
+                Error.code(reason) == Atom["router_execution_failed"] and Error.status(reason) == 500 -> Response.text("recovered").with_status(503);
+                true -> Response.text("invalid recovery").with_status(500)
+            }).
+"#,
+        |request| {
+            for (body, status, expected) in [
+                (
+                    "https://example.com/first",
+                    200,
+                    "accepted:https://example.com/first",
+                ),
+                ("not a URI", 400, "invalid URI"),
+                ("bad status", 503, "recovered"),
+                (
+                    "https://example.com/second",
+                    200,
+                    "accepted:https://example.com/second",
+                ),
+            ] {
+                let response = request(body);
+                assert!(
+                    response.starts_with(&format!("HTTP/1.1 {status} ")),
+                    "{response}"
+                );
+                assert_eq!(
+                    response.contains("x-router: source\r\n"),
+                    status != 503,
+                    "{response}"
+                );
+                assert!(
+                    response.ends_with(&format!("\r\n\r\n{expected}")),
+                    "{response}"
+                );
+            }
+        },
+    );
 }
 
 #[test]

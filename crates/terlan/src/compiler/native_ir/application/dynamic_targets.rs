@@ -1,5 +1,6 @@
 //! Closed-world callback target flow for call-site-specialized helpers.
 
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use crate::terlan_typeck::{CoreExpr, CoreType};
@@ -12,24 +13,26 @@ mod tests;
 
 type Parameter = (usize, usize);
 
-pub(super) fn restrict_profiles(
-    profiles: &super::super::call_composition::DynamicCallProfiles,
+pub(super) fn restrict_profiles<'a>(
+    profiles: &'a super::super::call_composition::DynamicCallProfiles,
     allowed: Option<&HashSet<u64>>,
-) -> super::super::call_composition::DynamicCallProfiles {
+) -> Cow<'a, super::super::call_composition::DynamicCallProfiles> {
     let Some(allowed) = allowed.filter(|allowed| !allowed.is_empty()) else {
-        return profiles.clone();
+        return Cow::Borrowed(profiles);
     };
-    profiles
-        .iter()
-        .filter_map(|(signature, targets)| {
-            let matching = targets
-                .iter()
-                .filter(|target| allowed.contains(&target.export_id))
-                .cloned()
-                .collect::<Vec<_>>();
-            (!matching.is_empty()).then(|| (signature.clone(), matching))
-        })
-        .collect()
+    Cow::Owned(
+        profiles
+            .iter()
+            .filter_map(|(signature, targets)| {
+                let matching = targets
+                    .iter()
+                    .filter(|target| allowed.contains(&target.export_id))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                (!matching.is_empty()).then(|| (signature.clone(), matching))
+            })
+            .collect(),
+    )
 }
 
 pub(super) fn validate_profiles(

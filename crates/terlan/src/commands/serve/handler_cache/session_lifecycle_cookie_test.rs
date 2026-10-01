@@ -38,6 +38,7 @@ pub handle(request: Request, rotate: Bool): Response ->
     )
     .unwrap();
     let mut helpers = VmPackageNativeHelpers::default();
+    let mut identities = std::collections::BTreeMap::<&str, String>::new();
     for (incoming, rotate, body, replacement) in [
         (Some("s1"), false, "new", Some("s1")),
         (Some("s1"), false, "kept", None),
@@ -57,7 +58,13 @@ pub handle(request: Request, rotate: Bool): Response ->
             "",
             RequestMetadata {
                 cookies: incoming
-                    .map(|value| vec![("terlan_session".into(), value.into())])
+                    .map(|value| {
+                        let actual = identities.get(value.trim()).map_or_else(
+                            || value.to_string(),
+                            |identity| value.replace(value.trim(), identity),
+                        );
+                        vec![("terlan_session".into(), actual)]
+                    })
                     .unwrap_or_default(),
                 ..Default::default()
             },
@@ -76,7 +83,7 @@ pub handle(request: Request, rotate: Bool): Response ->
             )
             .unwrap();
         let mut expected = Vec::new();
-        if let Some(identity) = replacement {
+        if let Some(label) = replacement {
             let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
                 panic!("new or rotated identity must suspend for source cookie encoding");
             };
@@ -88,10 +95,18 @@ pub handle(request: Request, rotate: Bool): Response ->
             let ReplValue::String(header) = helpers.call(1, request, &[]).unwrap() else {
                 panic!("cookie codec must return a string");
             };
+            let identity = terlan_http_native::parse_request_cookie_header(&header)
+                .into_iter()
+                .find(|(name, _)| name == "terlan_session")
+                .unwrap()
+                .1;
+            assert_eq!(identity.len(), 43);
+            assert!(!identities.values().any(|previous| previous == &identity));
             assert_eq!(
                 header,
                 format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Path=/")
             );
+            identities.insert(label, identity);
             expected.push(("Set-Cookie".into(), header.clone()));
             step = invocation
                 .resume(NativeBoundaryReplyTerm::Ok(NativeBoundaryTerm::Text(

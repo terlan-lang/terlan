@@ -690,47 +690,55 @@ pub expire_session(request: Request): Response ->
     super::super::hyper_server::hyper_server_test::with_source_protocol_server(
         web_root.clone(),
         |send| {
+            let cookie = |response: &str| {
+                let header = response
+                    .lines()
+                    .find_map(|line| line.strip_prefix("set-cookie: "))
+                    .expect("session response cookie");
+                let identity = terlan_http_native::parse_request_cookie_header(header)
+                    .into_iter()
+                    .find(|(name, _)| name == "terlan_session")
+                    .unwrap()
+                    .1;
+                assert_eq!(identity.len(), 43);
+                assert_eq!(
+                    header,
+                    format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Path=/")
+                );
+                identity
+            };
             let created =
                 send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
             assert!(created.ends_with("\r\n\r\ncreated"), "{created}");
-            assert!(
-                created
-                    .contains("set-cookie: terlan_session=s1; HttpOnly; SameSite=Lax; Path=/\r\n"),
-                "{created}"
-            );
+            let first = cookie(&created);
 
             // Code generations are disposable. VM-owned session actors must survive
             // watcher invalidation and reload of the handler image.
             clear_vm_handler_module_cache_for_test();
 
-            let stored = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s1\r\n\r\n");
+            let stored = send(&format!("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session={first}\r\n\r\n"));
             assert!(stored.ends_with("\r\n\r\nstored"), "{stored}");
             assert!(!stored.contains("set-cookie:"), "{stored}");
 
-            let rotated = send("GET /session/rotate HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s1\r\n\r\n");
-            assert!(
-                rotated
-                    .contains("set-cookie: terlan_session=s2; HttpOnly; SameSite=Lax; Path=/\r\n"),
-                "{rotated}"
-            );
+            let rotated = send(&format!("GET /session/rotate HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session={first}\r\n\r\n"));
+            let second = cookie(&rotated);
+            assert_ne!(first, second);
 
-            let rotated_state = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            let rotated_state = send(&format!("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session={second}\r\n\r\n"));
             assert!(rotated_state.ends_with("\r\n\r\nstored"), "{rotated_state}");
 
-            let expired = send("GET /session/expire HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            let expired = send(&format!("GET /session/expire HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session={second}\r\n\r\n"));
             assert!(
                 expired.contains("set-cookie: terlan_session=;"),
                 "{expired}"
             );
             assert!(expired.contains("Max-Age=0"), "{expired}");
 
-            let replacement = send("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session=s2\r\n\r\n");
+            let replacement = send(&format!("GET /session HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nCookie: terlan_session={second}\r\n\r\n"));
             assert!(replacement.ends_with("\r\n\r\ncreated"), "{replacement}");
-            assert!(
-                replacement
-                    .contains("set-cookie: terlan_session=s3; HttpOnly; SameSite=Lax; Path=/\r\n"),
-                "{replacement}"
-            );
+            let third = cookie(&replacement);
+            assert_ne!(third, first);
+            assert_ne!(third, second);
         },
     );
     fs::remove_dir_all(dir).expect("cleanup");

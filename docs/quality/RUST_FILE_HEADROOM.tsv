@@ -10,7 +10,6 @@ crates/terlan/src/commands/build/project_manifest/parser.rs	implementation	948	9
 crates/terlan/src/commands/doc/render.rs	implementation	996	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/doc/validation.rs	implementation	947	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/emit_js/direct_ast.rs	implementation	981	900	1000	commands-structure	0.0.9
-crates/terlan/src/commands/serve/handler_cache.rs	implementation	901	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner.rs	implementation	913	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/handler_cache/shard_owner/owner_loop.rs	implementation	950	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/serve/hyper_server.rs	implementation	926	900	1000	commands-structure	0.0.9
@@ -38,7 +37,6 @@ crates/terlan/src/runtime/vm/actor.rs	implementation	922	900	1000	runtime-struct
 crates/terlan/src/runtime/vm/actor_directory.rs	implementation	965	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/capability_worker.rs	implementation	907	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/code_server.rs	implementation	905	900	1000	runtime-structure	0.0.9
-crates/terlan/src/runtime/vm/http_session/state/runtime.rs	implementation	910	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/model_sync.rs	implementation	953	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/persistent_actor_telemetry.rs	implementation	984	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/postgres/libpq_worker.rs	implementation	958	900	1000	runtime-structure	0.0.9

@@ -7,36 +7,9 @@ use crate::runtime::vm::{
     tcp::{VmTcpListener, VmTcpRuntime},
 };
 
-/// Policy applied when the VM HTTP worker queue reaches its bound.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum VmHttpOverloadPolicy {
-    #[cfg(test)]
-    Queue,
-    #[cfg(test)]
-    Reject,
-    #[cfg(test)]
-    Spill,
-}
-
-/// Validated source-level overload configuration owned by the VM router.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct VmHttpOverloadConfig {
-    pub(crate) policy: VmHttpOverloadPolicy,
-    pub(crate) max_pending: usize,
-}
-
-impl VmHttpOverloadConfig {
-    /// Validates one bounded pending-work configuration.
-    pub(crate) fn new(policy: VmHttpOverloadPolicy, max_pending: usize) -> Result<Self, String> {
-        if max_pending == 0 {
-            return Err("max_pending must be greater than 0".to_string());
-        }
-        Ok(Self {
-            policy,
-            max_pending,
-        })
-    }
-}
+pub(crate) use terlan_http_native::routing::{
+    OverloadConfig as VmHttpOverloadConfig, OverloadPolicy as VmHttpOverloadPolicy,
+};
 
 impl VmHttpTcpServer {
     /// Creates server state from one validated materialized router.

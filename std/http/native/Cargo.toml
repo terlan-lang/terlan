@@ -12,6 +12,8 @@ workspace = true
 
 [dependencies]
 axum.workspace = true
+base64.workspace = true
+getrandom.workspace = true
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 http-body-util.workspace = true
 bytes.workspace = true
@@ -21,6 +23,7 @@ http.workspace = true
 hyper.workspace = true
 httparse.workspace = true
 mime_guess.workspace = true
+percent-encoding.workspace = true
 tungstenite.workspace = true
 terlan-data-native = { path = "../../data/native" }
 terlan-net-native = { path = "../../net/native" }

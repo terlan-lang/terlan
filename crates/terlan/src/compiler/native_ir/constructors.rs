@@ -8,8 +8,8 @@ use crate::runtime::native_image::managed::{
     encode_aggregate_scalar_field_operation, ManagedAggregateDescriptor, SemanticTypeId,
 };
 use crate::terlan_typeck::{
-    core_type_from_text, CoreConstructorDecl, CoreExpr, CoreRecordExprField, CoreTupleTypeElem,
-    CoreType,
+    core_type_from_text, CoreConstructorDecl, CoreExpr, CoreModule, CoreRecordExprField,
+    CoreTupleTypeElem, CoreType,
 };
 
 use super::{call_composition::rebase_callee_locals, native_type, NativeExpr, NativeType};
@@ -222,6 +222,64 @@ pub(super) fn native_constructor_layouts(
         }
     }
     Ok(layouts)
+}
+
+/// Builds qualified layouts once, then installs only consumer-local aliases.
+pub(super) fn native_application_constructor_layouts(
+    cores: &[CoreModule],
+) -> Result<HashMap<String, NativeConstructorLayouts>, String> {
+    let constructor_modules = cores
+        .iter()
+        .map(|core| (core.module.as_str(), core.constructors.as_slice()))
+        .collect::<Vec<_>>();
+    let type_modules = cores
+        .iter()
+        .map(|core| (core.module.as_str(), core.types.as_slice()))
+        .collect::<Vec<_>>();
+    let mut base = native_constructor_layouts(&constructor_modules, "")?;
+    install_struct_layouts(&type_modules, "", &mut base)?;
+    install_structural_type_layouts(
+        cores.iter().flat_map(|core| {
+            core.functions.iter().flat_map(|function| {
+                function
+                    .params
+                    .iter()
+                    .filter_map(|parameter| parameter.core_ty.as_ref())
+                    .chain(function.core_return_type.iter())
+            })
+        }),
+        &mut base,
+    )?;
+    Ok(cores
+        .iter()
+        .map(|core| {
+            let mut layouts = base.clone();
+            for declaration in &core.constructors {
+                let qualified = (
+                    format!("{}.{}", core.module, declaration.name),
+                    declaration.min_arity,
+                );
+                if let Some(layout) = base.get(&qualified) {
+                    layouts.insert(
+                        (declaration.name.clone(), declaration.min_arity),
+                        layout.clone(),
+                    );
+                }
+            }
+            for declaration in &core.types {
+                if !declaration.params.is_empty() {
+                    continue;
+                }
+                let Some(CoreType::Struct { name, fields }) = declaration.core_body.as_ref() else {
+                    continue;
+                };
+                if let Some(layout) = base.get(&(name.clone(), fields.len())) {
+                    layouts.insert((declaration.name.clone(), fields.len()), layout.clone());
+                }
+            }
+            (core.module.clone(), layouts)
+        })
+        .collect())
 }
 
 /// Resolves and lowers one checked fixed-constructor call.
@@ -804,72 +862,5 @@ fn ordered_record_fields(
         .collect()
 }
 
-/// Resolves one named field projection across every admitted physical variant.
-pub(super) fn managed_field_projection(
-    base: NativeType,
-    record_name: Option<&str>,
-    field: &str,
-    layouts: &NativeConstructorLayouts,
-) -> Result<(Arc<[u8]>, NativeType), String> {
-    let NativeType::ManagedRef(semantic) = base else {
-        return Err(format!(
-            "error[native_ir.field_base]: field `{field}` requires a managed aggregate"
-        ));
-    };
-    if let Some(record_name) = record_name {
-        let identifies_receiver = layouts
-            .iter()
-            .any(|((identity, _), layout)| identity == record_name && layout.result == base);
-        if !identifies_receiver {
-            return Err(format!(
-                "error[native_ir.record_identity]: `{record_name}` does not identify the receiver type"
-            ));
-        }
-    }
-    let mut seen = HashSet::<Arc<[u8]>>::new();
-    let mut projection = None;
-    let mut found_layout = false;
-    for layout in layouts.values().filter(|layout| layout.result == base) {
-        if !seen.insert(layout.encoded_layout.clone()) {
-            continue;
-        }
-        found_layout = true;
-        let (index, descriptor) = layout
-            .descriptor
-            .fields()
-            .iter()
-            .enumerate()
-            .find(|(_, descriptor)| descriptor.name() == Some(field))
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.field_missing]: field `{field}` is not present in every `{}` layout",
-                    layout.descriptor.canonical_type()
-                )
-            })?;
-        let field_type = native_field_type(descriptor.field_type())?;
-        match projection {
-            Some(expected) if expected != (index, field_type) => {
-                return Err(format!(
-                    "error[native_ir.field_ambiguous]: field `{field}` has incompatible physical layouts"
-                ));
-            }
-            None => projection = Some((index, field_type)),
-            _ => {}
-        }
-    }
-    if !found_layout {
-        return Err(format!(
-            "error[native_ir.field_layout]: managed field `{field}` has no admitted layout"
-        ));
-    }
-    let (index, field_type) = projection.ok_or_else(|| {
-        format!("error[native_ir.field_missing]: managed field `{field}` has no physical slot")
-    })?;
-    let encoded = if field_type.is_managed_reference() {
-        encode_aggregate_field_operation(semantic, index)
-    } else {
-        encode_aggregate_scalar_field_operation(semantic, index)
-    }
-    .map_err(|error| format!("error[native_ir.field_operation]: {error}"))?;
-    Ok((Arc::from(encoded), field_type))
-}
+mod projection;
+pub(super) use projection::managed_field_projection;

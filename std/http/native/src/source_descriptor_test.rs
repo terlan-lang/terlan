@@ -10,18 +10,41 @@ fn rec(name: &str, fields: &[(&str, V)]) -> V {
             .collect(),
     }
 }
-fn tag(name: &str, fields: Vec<V>) -> V {
+fn tag(name: &str, mut fields: Vec<V>) -> V {
+    if matches!(
+        (name, fields.len()),
+        ("route", 3) | ("sse" | "websocket", 2) | ("fallback", 1)
+    ) {
+        fields.extend([V::List(vec![]), V::List(vec![])]);
+    }
     let (constructor, names): (_, &[&str]) = match name {
-        "route" => ("Route", &["method", "path", "handler"]),
-        "sse" => ("Sse", &["path", "endpoint"]),
-        "websocket" => ("Websocket", &["path", "endpoint"]),
+        "route" => (
+            "Route",
+            &[
+                "method",
+                "path",
+                "handler",
+                "middleware",
+                "response_middleware",
+            ],
+        ),
+        "sse" => (
+            "Sse",
+            &["path", "endpoint", "middleware", "response_middleware"],
+        ),
+        "websocket" => (
+            "Websocket",
+            &["path", "endpoint", "middleware", "response_middleware"],
+        ),
         "middleware" => ("Middleware", &["callback"]),
         "response_middleware" => ("Response_middleware", &["callback"]),
-        "fallback" => ("Fallback", &["callback"]),
+        "fallback" => (
+            "Fallback",
+            &["callback", "middleware", "response_middleware"],
+        ),
         "error" => ("Err", &["callback"]),
         "lifecycle" => ("Lifecycle", &["callback"]),
         "overload" => ("Overload", &["policy", "max_pending"]),
-        "group_start" => ("Group_start", &["prefix"]),
         "callbacks" => (
             "Callbacks",
             &["open", "inbound", "writable", "close", "cancellation"],
@@ -154,6 +177,15 @@ fn executed_sse_records_preserve_limits_callback_order_and_optional_keep_alive()
     assert_eq!(plan.max_pending_events(), 4);
     assert_eq!(plan.max_event_bytes(), 1024);
     assert_eq!(plan.keep_alive_ms(), Some(50));
+    assert_eq!(
+        sse_endpoint(
+            &replace(&value, "keep_alive_ms", Some(i64::MAX).into()),
+            admit
+        )
+        .unwrap()
+        .keep_alive_ms(),
+        Some(i64::MAX as u64)
+    );
     let callbacks = plan.callbacks().unwrap();
     assert_eq!(
         [
@@ -352,10 +384,19 @@ fn router_groups_preserve_global_and_scoped_middleware_and_channel_targets() {
     let value = router_value(vec![
         tag("middleware", vec![cb(1, 1)]),
         tag("response_middleware", vec![cb(2, 2)]),
-        tag("group_start", vec!["/api".into()]),
+        V::Atom("group_start_entry".into()),
         tag("middleware", vec![cb(3, 1)]),
         tag("response_middleware", vec![cb(4, 2)]),
-        tag("route", vec!["GET".into(), "/users".into(), cb(5, 1)]),
+        tag(
+            "route",
+            vec![
+                "GET".into(),
+                "/api/users".into(),
+                cb(5, 1),
+                V::List(vec![cb(3, 1)]),
+                V::List(vec![cb(4, 2)]),
+            ],
+        ),
         tag("fallback", vec![cb(6, 1)]),
         tag("error", vec![cb(7, 1)]),
         V::Atom("group_end_entry".into()),
@@ -370,25 +411,93 @@ fn router_groups_preserve_global_and_scoped_middleware_and_channel_targets() {
         tag("fallback", vec![cb(8, 1)]),
     ]);
     let plan = router(&value, admit).unwrap();
-    assert_eq!(plan.middleware, [1]);
-    assert_eq!(plan.response_middleware, [2]);
-    assert_eq!(plan.routes.len(), 10);
+    assert_eq!(plan.routes.len(), 3);
     assert_eq!(plan.routes[0].path, "/api/users");
     assert_eq!(plan.routes[0].middleware, [3]);
     assert_eq!(plan.routes[0].response_middleware, [4]);
     assert!(matches!(plan.routes[0].target, RouteTarget::Handler(5)));
-    assert_eq!(plan.routes[1].path, "/api/*");
-    assert!(matches!(plan.routes[8].target, RouteTarget::Sse(_)));
-    assert!(matches!(plan.routes[9].target, RouteTarget::WebSocket(_)));
-    assert_eq!(plan.fallback, Some(8));
-    assert_eq!(plan.error, Some(7));
+    // Path, fallback, and scoped middleware composition are source behavior.
+    // Admission must neither invent routes nor prepend callbacks a second time.
+    assert!(matches!(plan.routes[1].target, RouteTarget::Sse(_)));
+    assert!(matches!(plan.routes[2].target, RouteTarget::WebSocket(_)));
+    let fallback = plan.fallback.unwrap();
+    assert_eq!(fallback.handler, 8);
+    assert!(
+        fallback.middleware.is_empty(),
+        "root policy is not synthesized"
+    );
+    assert!(fallback.response_middleware.is_empty());
+    assert_eq!(plan.error, None, "group recovery must be lifted by source");
+}
+
+#[test]
+fn fallback_callbacks_are_explicit_validated_source_values() {
+    let fallback = tag(
+        "fallback",
+        vec![
+            cb(1, 1),
+            V::List(vec![cb(3, 1), cb(2, 1)]),
+            V::List(vec![cb(4, 2)]),
+        ],
+    );
+    let plan = router(
+        &router_value(vec![
+            tag("middleware", vec![cb(99, 1)]),
+            tag("response_middleware", vec![cb(98, 2)]),
+            fallback.clone(),
+        ]),
+        admit,
+    )
+    .unwrap();
+    let admitted = plan.fallback.unwrap();
+    assert_eq!(admitted.handler, 1);
+    assert_eq!(admitted.middleware, [3, 2]);
+    assert_eq!(admitted.response_middleware, [4]);
+    for invalid in [
+        rec("Fallback", &[("callback", cb(1, 1))]),
+        replace(&fallback, "callback", cb(1, 2)),
+        replace(&fallback, "middleware", V::Unit),
+        replace(&fallback, "middleware", V::List(vec![cb(2, 2)])),
+        replace(&fallback, "response_middleware", V::Unit),
+        replace(&fallback, "response_middleware", V::List(vec![cb(4, 1)])),
+    ] {
+        assert!(router(&router_value(vec![invalid]), admit).is_err());
+    }
+}
+
+#[test]
+fn router_error_selection_is_explicit_and_scoped_errors_remain_validated() {
+    let group = vec![
+        V::Atom("group_start_entry".into()),
+        tag("error", vec![cb(7, 1)]),
+        V::Atom("group_end_entry".into()),
+    ];
+    for callback in [3, 7, 9] {
+        let mut entries = group.clone();
+        entries.push(tag("error", vec![cb(callback, 1)]));
+        assert_eq!(
+            router(&router_value(entries), admit).unwrap().error,
+            Some(callback)
+        );
+    }
+    let mut duplicate = group.clone();
+    duplicate.extend([tag("error", vec![cb(7, 1)]), tag("error", vec![cb(9, 1)])]);
+    assert!(router(&router_value(duplicate), admit).is_err());
+    for invalid in [cb(7, 2), V::Unit] {
+        let mut entries = group.clone();
+        entries[1] = tag("error", vec![invalid]);
+        assert!(router(&router_value(entries), admit).is_err());
+    }
+    let mut duplicate = group;
+    duplicate.insert(2, tag("error", vec![cb(8, 1)]));
+    assert!(router(&router_value(duplicate), admit).is_err());
 }
 
 #[test]
 fn invalid_router_shapes_scopes_and_duplicate_singletons_fail_closed() {
     for entries in [
         vec![V::Atom("group_end_entry".into())],
-        vec![tag("group_start", vec!["/x".into()])],
+        vec![V::Atom("group_start_entry".into())],
         vec![tag("route", vec![])],
         vec![V::Tuple(vec![])],
         vec![V::Unit],
@@ -420,15 +529,77 @@ fn invalid_router_shapes_scopes_and_duplicate_singletons_fail_closed() {
     .is_err());
     assert!(router(
         &router_value(vec![
-            tag("group_start", vec!["/x".into()]),
+            V::Atom("group_start_entry".into()),
             overload,
             V::Atom("group_end_entry".into())
         ]),
         admit
     )
     .is_err());
-    let nested = vec![tag("group_start", vec!["/x".into()]); 64];
+    let nested = vec![V::Atom("group_start_entry".into()); 64];
     assert!(router(&router_value(nested), admit).is_err());
+}
+
+#[test]
+fn scoped_route_callbacks_are_source_values_and_validated_for_every_target() {
+    let targets = [
+        tag("route", vec!["GET".into(), "/api/users".into(), cb(1, 1)]),
+        tag("sse", vec!["/api/events".into(), sse()]),
+        tag(
+            "websocket",
+            vec![
+                "/api/socket".into(),
+                replace(&websocket(V::Unit), "policies", V::List(vec![])),
+            ],
+        ),
+    ];
+    for target in targets {
+        let decode = |entry| {
+            router(
+                &router_value(vec![
+                    V::Atom("group_start_entry".into()),
+                    tag("middleware", vec![cb(99, 1)]),
+                    tag("response_middleware", vec![cb(98, 2)]),
+                    entry,
+                    V::Atom("group_end_entry".into()),
+                ]),
+                admit,
+            )
+        };
+        let plan = decode(target.clone()).unwrap();
+        assert!(
+            plan.routes[0].middleware.is_empty(),
+            "admission must not infer source policy"
+        );
+        assert!(plan.routes[0].response_middleware.is_empty());
+        let scoped = replace(
+            &replace(&target, "middleware", V::List(vec![cb(4, 1), cb(3, 1)])),
+            "response_middleware",
+            V::List(vec![cb(6, 2), cb(5, 2)]),
+        );
+        let plan = decode(scoped.clone()).unwrap();
+        assert_eq!(plan.routes[0].middleware, [4, 3]);
+        assert_eq!(plan.routes[0].response_middleware, [6, 5]);
+        for (key, wrong_arity) in [("middleware", 2), ("response_middleware", 1)] {
+            for value in [
+                V::Unit,
+                V::Tuple(vec![]),
+                V::List(vec![cb(1, wrong_arity)]),
+                V::List(vec![V::Unit]),
+            ] {
+                assert!(decode(replace(&scoped, key, value)).is_err(), "{key}");
+            }
+        }
+    }
+    let legacy = rec(
+        "Route",
+        &[
+            ("method", "GET".into()),
+            ("path", "/old".into()),
+            ("handler", cb(1, 1)),
+        ],
+    );
+    assert!(router(&router_value(vec![legacy]), admit).is_err());
 }
 
 #[test]
@@ -479,19 +650,21 @@ fn constructor_field_identity_is_checked_independently_of_storage_order() {
             cb(1, 1),
         ]),
         rec("Group_end_entry", &[("extra", V::Unit)]),
+        rec("Group_start_entry", &[("extra", V::Unit)]),
+        rec("Group_start", &[("prefix", "/legacy".into())]),
         V::Atom("group_end".into()),
     ] {
         assert!(router(&router_value(vec![invalid]), admit).is_err());
     }
     let nested = router_value(vec![
-        tag("group_start", vec!["/outer".into()]),
-        tag("group_start", vec!["/inner".into()]),
-        tag("route", vec!["GET".into(), "/".into(), cb(1, 1)]),
+        rec("Group_start_entry", &[]),
+        rec("Group_start_entry", &[]),
+        tag("route", vec!["GET".into(), "/source/path".into(), cb(1, 1)]),
         rec("Group_end_entry", &[]),
         rec("Group_end_entry", &[]),
     ]);
     assert_eq!(
         router(&nested, admit).unwrap().routes[0].path,
-        "/outer/inner"
+        "/source/path"
     );
 }

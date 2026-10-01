@@ -66,6 +66,22 @@ cargo install --path crates/terlan --bin terlc --force
 terlc --version
 ```
 
+Once installed, update the complete toolchain from GitHub:
+
+```sh
+terlc self-update                 # Install GitHub's latest stable release
+terlc self-update --list          # List versions available for this platform
+terlc self-update --interactive   # Select a version; Enter chooses latest
+terlc self-update 0.0.9           # Install a specific version (v0.0.9 also works)
+```
+
+`--version <version>` is also accepted. Prereleases require explicit selection.
+Updates preserve the executable's installation directory and use the bundled
+installer's checksum verification and rollback. On Windows the installer runs
+after `terlc` exits; the command prints a log path to check for completion or
+errors. Builds without `registry-network` cannot query GitHub releases.
+Older compilers without `self-update` need one update using the installer above.
+
 ## Hello World
 
 Create a project:

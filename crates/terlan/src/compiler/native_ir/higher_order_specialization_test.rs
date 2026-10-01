@@ -8,6 +8,43 @@ use crate::{
 
 use super::{higher_order_specialization::specialize_higher_order_helpers, NativeModule};
 
+#[test]
+fn private_helper_calls_in_collection_payloads_are_rewritten_before_removal() {
+    super::source_constructor_test::check_sources(&[r#"
+module higher_order_collections.
+import std.collections.List.
+import type std.collections.List.
+apply(value: Int, callback: (Int) -> Int): Int -> callback(value).
+pub check(): Bool ->
+    let offset = 10;
+    let values = [apply(1, (value: Int) -> value + offset), apply(2, (value: Int) -> value * 2)];
+    let pairs = [{apply(value, (item: Int) -> item + offset), value} | value <- [1, 2]];
+    values == [11, 4] and pairs == [{11, 1}, {12, 2}].
+"#]);
+}
+
+#[test]
+fn private_helper_value_hidden_in_a_collection_is_not_silently_removed() {
+    let mut core = core(
+        r#"
+module higher_order_escape.
+apply(value: Int, callback: (Int) -> Int): Int -> callback(value).
+pub answer(): Int -> 1.
+"#,
+    );
+    let answer = core
+        .functions
+        .iter_mut()
+        .find(|f| f.name == "answer")
+        .unwrap();
+    answer.clauses[0].body.core_expr = Some(crate::terlan_typeck::CoreExpr::List(vec![
+        crate::terlan_typeck::CoreExpr::Var("apply".into()),
+    ]));
+    let error = specialize_higher_order_helpers(&mut core).unwrap_err();
+    assert!(error.contains("higher_order_escape"), "{error}");
+    assert!(core.functions.iter().any(|f| f.name == "apply"));
+}
+
 /// Lowers canonical source into CoreIR for specialization tests.
 fn core(source: &str) -> CoreModule {
     let module = parse_module_as_syntax_output(source).expect("parse higher-order source");

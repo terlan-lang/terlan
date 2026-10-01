@@ -34,7 +34,9 @@ pub(super) fn callable_profile(
 }
 
 pub(super) fn trace_native_aot(started: Instant, phase: &str, detail: impl std::fmt::Display) {
-    if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
+    let verbose = std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some();
+    let profile = std::env::var_os("TERLAN_NATIVE_AOT_PROFILE_TRACE").is_some();
+    if verbose || (profile && phase != "profile-gap-uncomposed") {
         eprintln!(
             "terlc native-aot: {phase}: elapsed={}ms {detail}",
             started.elapsed().as_millis()

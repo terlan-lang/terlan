@@ -31,6 +31,7 @@ authors = ["Terlan contributors"]
 repository = "https://github.com/terlan-lang/terlan"
 
 [workspace.dependencies]
+percent-encoding = "2.3.2"
 axum = { version = "0.8.9", default-features = false }
 base64 = "0.22.1"
 bytes = "1"

@@ -166,7 +166,7 @@ libloading = "=0.9.0"
 notify = "8"
 object = { version = "=0.40.0", default-features = false, features = ["read", "write", "std"] }
 openapiv3 = "2.2.0"
-percent-encoding = "2.3.2"
+percent-encoding.workspace = true
 quick-xml = "0.42.0"
 rcgen.workspace = true
 rand = "0.9.4"

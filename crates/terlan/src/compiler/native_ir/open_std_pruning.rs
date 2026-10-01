@@ -25,9 +25,10 @@ mod open_std_pruning_test;
 /// visible to the frontend without becoming fake runtime dependencies.
 #[cfg(test)]
 pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&str]) {
-    let providers = providers(std::slice::from_ref(core));
+    let core_refs = [&*core];
+    let providers = providers(&core_refs);
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
-    add_constructor_edges(std::slice::from_ref(core), &mut edges);
+    add_constructor_edges(&core_refs, &mut edges);
     for function in &core.functions {
         let caller = (core.module.clone(), function.name.clone(), function.arity);
         let calls = collect_function_calls(function, core, &providers);
@@ -47,6 +48,7 @@ pub(crate) fn prune_module_to_function_roots(core: &mut CoreModule, roots: &[&st
             }
         }
     }
+    let _ = core_refs;
     core.functions.retain(|function| {
         reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
     });
@@ -68,6 +70,66 @@ pub(crate) fn prune_application_to_function_roots(
     cores: &mut [CoreModule],
     roots: &[(String, String, usize)],
 ) -> super::NativeIrResult<()> {
+    let core_refs = cores.iter().collect::<Vec<_>>();
+    let reachable = application_reachable_function_roots(&core_refs, roots)?;
+    drop(core_refs);
+    retain_application_function_roots(cores, &reachable);
+    Ok(())
+}
+
+/// Builds a rooted CoreIR closure without cloning dead function bodies.
+pub(crate) fn rooted_application_to_function_roots(
+    cores: &[&CoreModule],
+    roots: &[(String, String, usize)],
+) -> super::NativeIrResult<Vec<CoreModule>> {
+    let reachable = application_reachable_function_roots(cores, roots)?;
+    Ok(cores
+        .iter()
+        .map(|core| CoreModule {
+            schema: core.schema.clone(),
+            module: core.module.clone(),
+            source: core.source.clone(),
+            imports: core.imports.clone(),
+            selected_function_imports: core.selected_function_imports.clone(),
+            exports: core
+                .exports
+                .iter()
+                .filter(|export| {
+                    let CoreExportKind::Function { arity } = export.kind else {
+                        return true;
+                    };
+                    reachable.contains(&(core.module.clone(), export.name.clone(), arity))
+                })
+                .cloned()
+                .collect(),
+            types: core.types.clone(),
+            functions: core
+                .functions
+                .iter()
+                .filter(|function| {
+                    reachable.contains(&(
+                        core.module.clone(),
+                        function.name.clone(),
+                        function.arity,
+                    ))
+                })
+                .cloned()
+                .collect(),
+            constructors: core.constructors.clone(),
+            templates: core.templates.clone(),
+            trait_conformances: core.trait_conformances.clone(),
+            binding_identities: core.binding_identities.clone(),
+            termination: core.termination.clone(),
+            metadata: core.metadata.clone(),
+            interface: core.interface.clone(),
+        })
+        .collect())
+}
+
+fn application_reachable_function_roots(
+    cores: &[&CoreModule],
+    roots: &[(String, String, usize)],
+) -> super::NativeIrResult<HashSet<FunctionKey>> {
     let providers = providers(cores);
     for root in roots {
         if !providers.contains(root) {
@@ -96,6 +158,10 @@ pub(crate) fn prune_application_to_function_roots(
             }
         }
     }
+    Ok(reachable)
+}
+
+fn retain_application_function_roots(cores: &mut [CoreModule], reachable: &HashSet<FunctionKey>) {
     for core in cores {
         core.functions.retain(|function| {
             reachable.contains(&(core.module.clone(), function.name.clone(), function.arity))
@@ -107,7 +173,6 @@ pub(crate) fn prune_application_to_function_roots(
             reachable.contains(&(core.module.clone(), export.name.clone(), arity))
         });
     }
-    Ok(())
 }
 
 /// Removes `std.*` functions that have no path from an executable application
@@ -123,9 +188,10 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
                 .map(|function| (core.module.clone(), function.name.clone(), function.arity))
         })
         .collect::<HashSet<_>>();
-    let providers = providers(cores);
+    let core_refs = cores.iter().collect::<Vec<_>>();
+    let providers = providers(&core_refs);
     let mut edges = HashMap::<FunctionKey, HashSet<FunctionKey>>::new();
-    add_constructor_edges(cores, &mut edges);
+    add_constructor_edges(&core_refs, &mut edges);
     for core in cores.iter() {
         for function in &core.functions {
             let caller = (core.module.clone(), function.name.clone(), function.arity);
@@ -198,6 +264,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
         .difference(&reachable)
         .cloned()
         .collect::<HashSet<FunctionKey>>();
+    drop(core_refs);
     for core in cores {
         core.functions.retain(|function| {
             !pruned.contains(&(core.module.clone(), function.name.clone(), function.arity))
@@ -212,7 +279,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
 }
 
 /// Inventories every local and public imported provider used by call lookup.
-fn providers(cores: &[CoreModule]) -> Vec<FunctionKey> {
+fn providers(cores: &[&CoreModule]) -> Vec<FunctionKey> {
     cores
         .iter()
         .flat_map(|core| {
@@ -241,7 +308,7 @@ fn constructor_node(name: &str) -> String {
 }
 
 fn add_constructor_edges(
-    cores: &[CoreModule],
+    cores: &[&CoreModule],
     edges: &mut HashMap<FunctionKey, HashSet<FunctionKey>>,
 ) {
     trait_methods::add_edges(cores, edges);

@@ -85,9 +85,12 @@ pub application_router(): Router ->
     |> Router.error(recover_http_error).
 ```
 
-The VM prefixes group paths, preserves parameter captures, rejects ambiguous
-normalized route shapes, and dispatches root middleware before scoped
-middleware. Bounded SSE and WebSocket endpoint plans survive router
+Terlan source prefixes group paths, expands grouped fallback declarations into
+method-specific routes, composes complete middleware lists, and promotes a child's
+error handler when the parent has none. Package admission validates those lists
+without rebuilding them. Package dispatch preserves parameter captures and
+rejects ambiguous normalized route shapes; root-before-group ordering is already
+present in the source value. Bounded SSE and WebSocket endpoint plans survive router
 materialization and open live-session state with the source-declared queue and
 message limits. `LiveChannelTest.terl` is the executable nested-channel
 example; `RouterTest.terl` covers typed response short-circuit composition.
@@ -101,9 +104,22 @@ the compiler does not replace these functions or supply a private error layout.
 Terlan. Its body decoder composes `Json.parse` with the portable `Error`
 constructor. Request accessors no longer depend on compiler call substitution
 or native exports. The server adapter materializes the ordinary record.
+Request, cookie-jar, and session layouts follow their source declarations;
+their module names no longer exempt bodyless opaque declarations from the
+ordinary native-package handle representation.
 The legacy native Request accessor dispatch and opaque Request resource have
 been removed. Session storage, routing, and host transport integration still
 require migration and verification.
+
+Session cookie identities are issued by `native/src/session_identity` from 32
+OS-random bytes using `getrandom` and the maintained Base64 URL-safe codec. The
+VM no longer generates sequential identities. Issuance fails closed on entropy
+failure and bounds retries against occupied identities. Rotation obtains its
+replacement before removing the old identity. Tests consume actual issued
+identities and cover lifecycle, application isolation, reload, replay, and
+migration conflicts. This does not complete session ownership or establish a
+complete authentication system: session storage and lifetime policies still
+require migration out of the VM-specific implementation.
 
 `Session.terl` owns the session record, receiver threading, pending replacement
 identity, and cookie policy. Lookup returns an identity/created pair atomically;
@@ -303,19 +319,61 @@ Importing Router no longer installs compiler-defined `Continue`/`Respond`
 constructors, response layouts, or header collections, and a structurally
 similar application union is not coerced into a reserved middleware type.
 The compiled middleware tests cover both continuation and a response payload;
-provider tests also change tags, payload arity, and variant count. Router
-runtime admission and dispatch still require ownership migration.
+provider tests also change tags, payload arity, and variant count. Live channel
+scheduling still requires ownership migration.
 
 `Router.terl` implements route, middleware, fallback, admission-policy, and
 channel builders as ordinary source functions. Each returns a new declaration
 sequence without modifying earlier values. Groups invoke their configuration
-callback once and retain balanced nested scope markers. Router-returning helpers
+callback once, compose paths (including nested channel paths), expand only their
+own fallback across the seven supported methods, and retain balanced nested
+scope markers. New targets capture the current scope's middleware. Registering
+middleware later inserts it after earlier callbacks from the same scope and
+before nested callbacks on every existing target, including fallbacks and
+channels. Group composition prepends the parent's callbacks to the already
+composed child lists. Earlier router values remain unchanged. Native dispatch
+uses these complete lists directly; it no longer stores or merges a separate
+global middleware list. When the parent has no error handler, source
+also emits the child's selected error handler in the parent scope. The first
+group supplying recovery wins; an existing parent handler takes precedence.
+The stored recovery callback is a source closure accepting a failure message.
+It constructs `HttpError` through `Error.new` before calling the public
+`ErrorHandler`; the compiler does not inject its error atom and the host does
+not construct an HTTP-specific record. Renamed and modified provider tests
+verify that error codes and status values follow the source implementation.
+Explicit duplicate error registrations still fail admission, including a direct
+registration after an inherited handler. Native admission validates scopes, callback
+arities, and duplicate policies but does not synthesize paths, fallback routes,
+inherited middleware, or error-handler inheritance. Router-returning helpers
 follow ordinary application reachability; they are no longer discarded by a
 compiler rule. Source-execution tests cover all builders, renamed providers,
 changed provider bodies, nested groups, and the actual `RouterTest.terl` fixture.
-Production serving still consumes the compiler's statically extracted route
-plan, not these source declarations. That interpreter and its runtime adapter
-remain migration work; executable builders alone do not remove them.
+Production serving executes `router/0` once per admitted image generation.
+The HTTP package validates the returned declarations, nested scopes, endpoint
+limits, and callback arities. Computed paths and captured handlers are ordinary
+source values, not compiler-interpreted builder syntax. Static router plans are
+no longer persisted; loading a saved image executes its source router again.
+The old interpreter remains test-only during migration. The HTTP package now
+owns route-table admission and live route dispatch; the VM module only aliases
+package types to its callable representation. Session scheduling still requires
+ownership migration. Lifecycle and overload declarations are decoded but are
+not yet admitted for source routers.
+
+`native/src/route_pattern` supplies the same route grammar, ambiguity checks,
+precedence, and percent-decoded captures to manifest selection and live routing.
+Typed `Int` and `Bool` captures must validate before dispatch. Group fallbacks
+match their path prefix, including its root, without matching sibling prefixes;
+exact routes precede captures, which precede wildcards. Package tests cover
+adversarial captures and ambiguous registrations. A compiled Terlan router is
+also exercised over sockets with typed captures and nested group fallbacks.
+
+For dynamic HTTP requests, the package-owned callback chain orders request
+middleware, honors short-circuit responses, unwinds response middleware, and
+invokes recovery without replaying completed callbacks. The host supplies the
+generic callable suspend/resume mechanism, including native-worker completion
+and cancellation. Path matching is package-owned Rust, not Terlan source.
+Channel scheduling still requires ownership migration, and callback sequencing
+has not yet moved into Terlan source.
 
 The generic in-process value boundary preserves captured source functions in
 these declarations. Compiled tests return a router from one execution shard,
@@ -335,18 +393,19 @@ forms. Compiled-source tests invoke a captured `Handler` after its creator shard
 has been destroyed, exercise protocol-owner and dedicated-owner calls, and
 reject stale generations, unknown callables, malformed captures, and incorrect
 arguments. Immediate callback APIs cancel unsupported waits rather than blocking.
-This establishes callback execution, not source-router admission: production
-route discovery still uses the static compiler plan described above.
+Source-router admission uses this same callable boundary. Manifest route
+selection remains a separate serving input; executing source declarations does
+not yet replace the web-package manifest discovery mechanism.
 
 Live SSE and WebSocket plans also retain source function values, including
 captures in pairing and restoration callbacks. They enter the same serving
 callable path as HTTP handlers, with per-channel busy checks, receive/wake, and
-terminal cancellation. Persisted static plans remain named identities: package
-callback mapping transfers them into live plans without changing queue limits,
-keep-alive settings, or recovery policy. Live closure values are not persisted.
+terminal cancellation. Package admission consumes executed endpoint records
+without changing queue limits, keep-alive settings, or recovery policy. Live
+closure values are not persisted; each admitted image recreates its callbacks.
 Compiled-source tests cover producer teardown, both channel lifecycles, captured
 recovery payloads, stale callbacks, foreign modules, and terminal waits. This
-does not yet replace static channel discovery with source endpoint admission.
+does not yet migrate session scheduling into the package.
 
 The main flow is:
 
@@ -458,15 +517,17 @@ Important invariants:
   Registration also completes with callbacks that would suspend if invoked.
   Imported SSE and WebSocket providers coexist in the same application closure;
   receiver dispatch retains each module's distinct `Endpoint` identity.
-  Production live callback registration still uses specialized route discovery;
-  consuming these source declarations in package-owned admission remains work.
+  Production live callback registration consumes these executed source values
+  through package-owned descriptor validation.
 - `native/src/channel_plan` owns immutable SSE/WebSocket endpoint descriptors
   and their admission rules. Callback identities are generic, with no dependency
   on compiler or VM value types. Deserialization validates positive limits,
   keep-alive intervals, and exclusive callback/pairing modes before persisted
-  router metadata can reach a live session. VM adapters retain queue allocation
-  and consume the package descriptor's limits. This is not yet removal of the
-  compiler's specialized router interpreter or migration of session scheduling.
+  endpoint metadata can reach a live session. `native/src/source_descriptor`
+  validates executed source records using a generic borrowed value view; host
+  adapters retain callable execution authority. VM adapters retain queue
+  allocation and consume the package descriptor's limits. Session scheduling
+  is not yet package-owned.
 - `native/src/websocket.rs` owns maintained tungstenite protocol state, upgrade
   response construction, and transport-error classification. The live Hyper
   pump and the in-memory channel integration use this same package codec.
