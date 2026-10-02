@@ -14,6 +14,7 @@ pub(crate) struct State {
     pub(crate) outgoing: Vec<u8>,
     pub(crate) reads: usize,
     pub(crate) read_limit: Option<usize>,
+    pub(crate) read_error: Option<io::ErrorKind>,
     pub(crate) drops: usize,
     pub(crate) eof: bool,
     pub(crate) write_error: Option<io::ErrorKind>,
@@ -33,6 +34,9 @@ impl<const KIND: u8> Read for MemoryIo<KIND> {
     fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
         let mut state = self.0.lock().unwrap();
         state.reads += 1;
+        if let Some(error) = state.read_error {
+            return Err(error.into());
+        }
         if !buffer.is_empty() && state.incoming.is_empty() && !state.eof {
             return Err(io::ErrorKind::WouldBlock.into());
         }

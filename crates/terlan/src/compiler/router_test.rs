@@ -291,17 +291,15 @@ pub cancelled(_reason: String): Unit -> Unit.
     let interfaces = HashMap::from([(provider.name.clone(), provider.interface.clone())]);
     let router_source = r#"module app.Socket.
 
-import app.SocketHandlers.{cancelled, inbound, matched, peer_left, restored, waiting}.
+import app.SocketHandlers.{cancelled, inbound}.
 import std.http.{Router, WebSocket}.
 import type std.http.Router.
 
 pub router(): Router ->
     Router.new().websocket(
         "/paired",
-        WebSocket.endpoint(4, 1024).restorable_stateful_paired_callbacks(
-            waiting, peer_left, "room_id", "player_id", "room-",
-            "player-1", "player-2", 300000, 1024,
-            matched, restored, inbound, cancelled
+        WebSocket.endpoint(4, 1024).stateful_paired_callbacks(
+            "waiting", "first", "second", "left", inbound, cancelled
         )
     ).
 "#;
@@ -316,13 +314,11 @@ pub router(): Router ->
         panic!("expected WebSocket target")
     };
     let pairing = websocket.pairing().expect("pairing plan");
-    let restoration = pairing.restoration.as_ref().expect("restoration plan");
-
-    assert_eq!(restoration.waiting.module, "app.SocketHandlers");
-    assert_eq!(restoration.waiting.function, "waiting");
-    assert_eq!(restoration.waiting.arity, 0);
     assert_eq!(pairing.inbound.module, "app.SocketHandlers");
     assert_eq!(pairing.inbound.arity, 5);
+    assert_eq!(pairing.cancellation.module, "app.SocketHandlers");
+    assert_eq!(pairing.cancellation.function, "cancelled");
+    assert_eq!(pairing.cancellation.arity, 1);
 }
 
 /// Verifies SSE callback builders retain one complete static callback set.

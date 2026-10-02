@@ -1,12 +1,13 @@
-//! Production socket pumps for admitted HTTP channel sessions.
+//! In-memory channel integration harness; WebSocket dispatch uses the live package loop.
 
 use std::io::{Read, Write};
 use std::thread;
 use std::time::Duration;
 
-use terlan_http_native::websocket::{
-    Error as WebSocketError, ErrorKind, Message, Server as WebSocket,
-};
+use std::future::{pending, ready, Future};
+use std::sync::Arc;
+use std::task::{Context, Poll, Waker};
+use terlan_http_native::websocket::{connection, hub::WebSocketHub};
 
 use terlan_http_native::http1::{
     write_http1_stream_chunk, write_http1_stream_end, write_http1_stream_head,
@@ -58,104 +59,22 @@ fn pump_websocket<S>(
 where
     S: Read + Write,
 {
-    let mut socket = WebSocket::new(stream, session.plan().max_frame_bytes());
-    notify_websocket_writable(&mut session)?;
-    loop {
-        match socket.read() {
-            Ok(Message::Text(text)) => {
-                let result = session
-                    .enqueue_inbound(text)
-                    .and_then(|()| drain_websocket_inbound(&mut session));
-                if let Err(error) = result {
-                    close_websocket_after_error(&mut socket, &mut session, &error);
-                    return Err(error);
-                }
-            }
-            Ok(Message::Ping(_)) => {
-                socket.flush().map_err(render_websocket_transport_error)?;
-                notify_websocket_writable(&mut session)?;
-            }
-            Ok(Message::Pong(_)) => {}
-            Ok(Message::Close(_)) => {
-                let close = session.close().map(|_| ());
-                let flush = flush_websocket_close(&mut socket);
-                return close.and(flush);
-            }
-            Ok(Message::Binary(_)) => {
-                let error =
-                    "error[serve.websocket.binary]: endpoint rejects binary payloads".to_string();
-                close_websocket_after_error(&mut socket, &mut session, &error);
-                return Err(error);
-            }
-            Ok(Message::Frame(_)) => {
-                let error = "error[serve.websocket.frame]: raw frame escaped maintained decoding"
-                    .to_string();
-                close_websocket_after_error(&mut socket, &mut session, &error);
-                return Err(error);
-            }
-            Err(error) if error.kind() == ErrorKind::Closed => {
-                return session.close().map(|_| ());
-            }
-            Err(error) => {
-                let reason = render_websocket_transport_error(error);
-                session.cancel(reason.clone()).map(|_| ())?;
-                return Err(reason);
-            }
+    let hub = Arc::new(WebSocketHub::default());
+    let mut future = Box::pin(connection::serve(
+        ready(Ok(stream)),
+        &mut session,
+        &hub,
+        "/test".into(),
+        "/test".into(),
+        pending,
+    ));
+    let mut context = Context::from_waker(Waker::noop());
+    for _ in 0..1000 {
+        if let Poll::Ready(result) = future.as_mut().poll(&mut context) {
+            return Ok(result?);
         }
     }
-}
-
-/// Drains every admitted text frame through callback entry or typed wake delivery.
-#[cfg(test)]
-fn drain_websocket_inbound(
-    session: &mut super::handler::AotWebSocketCallbackSession,
-) -> Result<(), String> {
-    while session.dispatch_next_inbound()? {}
-    Ok(())
-}
-
-/// Notifies generated code when transport write capacity is available and idle.
-#[cfg(test)]
-fn notify_websocket_writable(
-    session: &mut super::handler::AotWebSocketCallbackSession,
-) -> Result<(), String> {
-    if !session.is_waiting() {
-        session.writable()?;
-    }
-    Ok(())
-}
-
-/// Cancels generated work and asks tungstenite to emit a policy close frame.
-#[cfg(test)]
-fn close_websocket_after_error<S>(
-    socket: &mut WebSocket<S>,
-    session: &mut super::handler::AotWebSocketCallbackSession,
-    reason: &str,
-) where
-    S: Read + Write,
-{
-    let _ = session.cancel(reason.to_string());
-    let _ = socket.close_unsupported();
-    let _ = socket.flush();
-}
-
-/// Renders one stable production WebSocket transport diagnostic.
-#[cfg(test)]
-fn render_websocket_transport_error(error: WebSocketError) -> String {
-    format!("error[serve.websocket.transport]: {error}")
-}
-
-/// Flushes a close reply while accepting tungstenite's terminal closed state.
-#[cfg(test)]
-fn flush_websocket_close<S>(socket: &mut WebSocket<S>) -> Result<(), String>
-where
-    S: Read + Write,
-{
-    match socket.flush() {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == ErrorKind::Closed => Ok(()),
-        Err(error) => Err(render_websocket_transport_error(error)),
-    }
+    Err("in-memory WebSocket connection did not complete".into())
 }
 
 /// Pumps chunked SSE frames and heartbeats until disconnect or graceful drain.

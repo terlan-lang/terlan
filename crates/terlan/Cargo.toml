@@ -149,7 +149,7 @@ cssparser = "0.37.0"
 html5ever = "0.39.0"
 mime_guess.workspace = true
 lalrpop-util = { version = "=0.23.1", default-features = false }
-mio = { version = "1.2.2", features = ["net", "os-poll"] }
+mio = { workspace = true, features = ["net", "os-poll"] }
 oxc_allocator = "0.134.0"
 oxc_ast = "0.134.0"
 oxc_codegen = "0.134.0"
@@ -177,7 +177,7 @@ serde_json = { workspace = true, features = ["unbounded_depth"] }
 serde_yaml = "0.9.34"
 sha2.workspace = true
 shell-words = { version = "1.1.1", optional = true }
-socket2 = { version = "0.6.1", features = ["all"] }
+socket2 = { workspace = true, features = ["all"] }
 smallvec = "1.15.2"
 spdx = "=0.13.5"
 sqlparser = "=0.63.0"
@@ -209,7 +209,7 @@ rustix = { version = "1.1.4", features = ["fs"] }
 rustix = { version = "1.1.4", features = ["process"] }
 
 [dev-dependencies]
-instant-acme = "0.7"
+instant-acme.workspace = true
 terlan-http-native = { path = "../../std/http/native", features = ["acme-issuer"] }
 tungstenite.workspace = true
 httparse.workspace = true

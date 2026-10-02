@@ -16,11 +16,11 @@ fn auto() -> Config {
 
 fn populate(plan: &AcmeRuntimePlan) -> Result<(), String> {
     let generated = generate_simple_self_signed(plan.domains.clone()).unwrap();
-    store_acme_certificate_cache(
+    Ok(store_acme_certificate_cache(
         plan,
         &generated.cert.pem(),
         &generated.key_pair.serialize_pem(),
-    )
+    )?)
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn startup_invokes_issuer_once_and_then_uses_the_validated_cache() {
     let runtime = load(directory.path(), &tls, |plan| {
         calls.set(calls.get() + 1);
         assert_eq!(plan.domains, tls.domains);
-        populate(plan)
+        Ok(populate(plan)?)
     })
     .unwrap();
     assert_eq!(calls.get(), 1);
@@ -51,16 +51,20 @@ fn cached_only_mode_never_issues_and_issuer_success_requires_valid_material() {
     let directory = tempfile::tempdir().unwrap();
     let tls = auto();
     let error = load_cached(directory.path(), &tls).err().unwrap();
-    assert!(error.contains("has no local certificate cache yet"));
-    assert!(error.contains("example.test"));
+    assert!(error
+        .to_string()
+        .contains("has no local certificate cache yet"));
+    assert!(error.to_string().contains("example.test"));
     assert!(load(directory.path(), &tls, |_| Ok(()))
         .err()
         .unwrap()
+        .to_string()
         .contains("without writing certificate cache"));
     assert_eq!(
         load(directory.path(), &tls, |_| Err("cancelled".into()))
             .err()
-            .unwrap(),
+            .unwrap()
+            .to_string(),
         "cancelled"
     );
     let result = load(directory.path(), &tls, |plan| {
@@ -68,7 +72,7 @@ fn cached_only_mode_never_issues_and_issuer_success_requires_valid_material() {
         fs::write(&plan.certificate_path, "not a certificate").unwrap();
         Ok(())
     });
-    assert!(result.err().unwrap().contains("incomplete"));
+    assert!(result.err().unwrap().to_string().contains("incomplete"));
 }
 
 #[test]
@@ -89,7 +93,7 @@ fn malformed_cache_and_unsupported_provider_never_trigger_issuance() {
     })
     .err()
     .unwrap();
-    assert!(error.contains("ZeroSSL"), "{error}");
+    assert!(error.to_string().contains("ZeroSSL"), "{error}");
 }
 
 #[test]

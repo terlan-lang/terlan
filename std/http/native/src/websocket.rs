@@ -9,6 +9,7 @@ use tungstenite::WebSocket;
 
 pub use tungstenite::{Message, Utf8Bytes};
 pub mod client;
+pub mod connection;
 pub mod hub;
 pub mod output;
 pub mod session;

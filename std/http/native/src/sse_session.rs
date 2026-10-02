@@ -43,7 +43,7 @@ impl<C> SseSession<C> {
         !self.closed
     }
 
-    /// Encodes once before admission; rejection leaves the queue and counters intact.
+    /// Encodes source-normalized data before admission; rejection is atomic.
     pub fn enqueue(
         &mut self,
         id: Option<&str>,

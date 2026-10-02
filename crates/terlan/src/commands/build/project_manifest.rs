@@ -18,9 +18,8 @@ use inline_table::{
 };
 pub(crate) use model::{
     ProjectArtifactKind, ProjectDependency, ProjectDependencyScope, ProjectDependencySource,
-    ProjectManifest, ProjectPackage, ProjectScript, ProjectServerProfile, ProjectServerTls,
-    ProjectServerTlsMode, ProjectServerTlsProvider, ProjectTarget, ProjectWasiProfile,
-    ProjectWasmProfile,
+    ProjectManifest, ProjectPackage, ProjectScript, ProjectServerTls, ProjectServerTlsMode,
+    ProjectServerTlsProvider, ProjectTarget, ProjectWasiProfile, ProjectWasmProfile,
 };
 #[cfg(test)]
 pub(crate) use model::{ProjectDeployHealth, ProjectDeployResources};

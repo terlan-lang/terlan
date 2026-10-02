@@ -2,7 +2,7 @@ use super::*;
 
 /// Binds a standard TCP listener for VM stream serving.
 pub(super) fn bind_std_listener(host: &str, port: u16) -> Result<std_net::TcpListener, String> {
-    terlan_net_native::tcp::bind_listener(host, port)
+    terlan_net_native::tcp::bind_listener(host, port).map_err(|error| error.to_string())
 }
 
 /// Serves one plain HTTP web package through VM-owned HTTP stream handling.

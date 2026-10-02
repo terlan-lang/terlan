@@ -4,12 +4,12 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "6f907313b4da57582544666f0de47e69a31a080fccf4716f6aaf6f109b28bb89",
+  "compilation_input_sha256": "fe25c297579ca8aa7c727c6aa32c5e63b7272325b47d362140eb6d736cd9ce25",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.9",
-    "non_optional_normal_dependencies": 58,
+    "non_optional_normal_dependencies": 56,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -155,7 +155,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 85,
+      "reference_sites": 80,
       "source_domains": [
         "commands",
         "compiler"
@@ -728,7 +728,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 64,
+      "reference_sites": 61,
       "to": "runtime"
     },
     {
@@ -743,7 +743,7 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 21,
+      "reference_sites": 19,
       "to": "runtime"
     },
     {
@@ -795,17 +795,17 @@
     },
     {
       "name": "commands",
-      "physical_lines": 142453,
-      "rust_files": 386
+      "physical_lines": 138337,
+      "rust_files": 384
     },
     {
       "name": "compiler",
-      "physical_lines": 174098,
-      "rust_files": 484
+      "physical_lines": 173757,
+      "rust_files": 479
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 664,
+      "physical_lines": 665,
       "rust_files": 4
     },
     {
@@ -835,13 +835,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50496,
+      "physical_lines": 50607,
       "rust_files": 153
     },
     {
       "name": "root:",
-      "physical_lines": 16349,
-      "rust_files": 95
+      "physical_lines": 26863,
+      "rust_files": 160
     },
     {
       "name": "root:accelerator_contract",
@@ -880,7 +880,7 @@
     },
     {
       "name": "root:self_host_ir",
-      "physical_lines": 557,
+      "physical_lines": 560,
       "rust_files": 1
     },
     {
@@ -900,13 +900,13 @@
     },
     {
       "name": "root:web_route",
-      "physical_lines": 5,
+      "physical_lines": 7,
       "rust_files": 1
     },
     {
       "name": "runtime",
-      "physical_lines": 141050,
-      "rust_files": 467
+      "physical_lines": 140940,
+      "rust_files": 469
     },
     {
       "name": "serve_runtime",
@@ -1205,7 +1205,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 52,
+      "reference_sites": 51,
       "to": "runtime"
     },
     {
@@ -1267,13 +1267,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 45740,
-      "rust_files": 204
+      "physical_lines": 46592,
+      "rust_files": 208
     },
     {
       "name": "compiler",
-      "physical_lines": 50134,
-      "rust_files": 223
+      "physical_lines": 49783,
+      "rust_files": 224
     },
     {
       "name": "formal_pipeline",
@@ -1302,7 +1302,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 28808,
+      "physical_lines": 29045,
       "rust_files": 129
     },
     {
@@ -1332,8 +1332,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 80421,
-      "rust_files": 352
+      "physical_lines": 81622,
+      "rust_files": 362
     },
     {
       "name": "support",
@@ -1417,6 +1417,13 @@
           "optional": false
         },
         {
+          "default_features": true,
+          "features": [],
+          "kind": "dev",
+          "name": "instant-acme",
+          "optional": false
+        },
+        {
           "default_features": false,
           "features": [
             "std"
@@ -1446,6 +1453,15 @@
           "features": [],
           "kind": "dev",
           "name": "tempfile",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "acme-issuer"
+          ],
+          "kind": "dev",
+          "name": "terlan-http-native",
           "optional": false
         },
         {
@@ -1624,13 +1640,6 @@
           "optional": true
         },
         {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "instant-acme",
-          "optional": false
-        },
-        {
           "default_features": false,
           "features": [],
           "kind": "normal",
@@ -1783,13 +1792,6 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
-          "name": "rustls-webpki",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
           "name": "semver",
           "optional": false
         },
@@ -1920,7 +1922,9 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "poll-io"
+          ],
           "kind": "normal",
           "name": "terlan-runtime-abi",
           "optional": false
@@ -2214,21 +2218,21 @@
     {
       "dependencies": [
         {
-          "default_features": true,
-          "features": [],
+          "default_features": false,
+          "features": [
+            "client",
+            "http1",
+            "http2"
+          ],
           "kind": "dev",
-          "name": "rcgen",
+          "name": "hyper",
           "optional": false
         },
         {
-          "default_features": false,
-          "features": [
-            "ring",
-            "std",
-            "tls12"
-          ],
+          "default_features": true,
+          "features": [],
           "kind": "dev",
-          "name": "rustls",
+          "name": "instant-acme",
           "optional": false
         },
         {
@@ -2305,10 +2309,20 @@
         },
         {
           "default_features": false,
-          "features": [],
+          "features": [
+            "http2",
+            "server"
+          ],
           "kind": "normal",
           "name": "hyper",
           "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "instant-acme",
+          "optional": true
         },
         {
           "default_features": true,
@@ -2326,11 +2340,50 @@
         },
         {
           "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rcgen",
+          "optional": false
+        },
+        {
+          "default_features": false,
+          "features": [
+            "ring",
+            "std",
+            "tls12"
+          ],
+          "kind": "normal",
+          "name": "rustls",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "rustls-webpki",
+          "optional": false
+        },
+        {
+          "default_features": true,
           "features": [
             "derive"
           ],
           "kind": "normal",
           "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "tempfile",
           "optional": false
         },
         {
@@ -2424,6 +2477,16 @@
           "optional": false
         },
         {
+          "default_features": true,
+          "features": [
+            "net",
+            "os-poll"
+          ],
+          "kind": "normal",
+          "name": "mio",
+          "optional": false
+        },
+        {
           "default_features": false,
           "features": [
             "ring",
@@ -2436,7 +2499,18 @@
         },
         {
           "default_features": true,
-          "features": [],
+          "features": [
+            "all"
+          ],
+          "kind": "normal",
+          "name": "socket2",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [
+            "poll-io"
+          ],
           "kind": "normal",
           "name": "terlan-runtime-abi",
           "optional": false
@@ -2489,7 +2563,17 @@
       "package": "terlan-process-owner"
     },
     {
-      "dependencies": [],
+      "dependencies": [
+        {
+          "default_features": true,
+          "features": [
+            "os-poll"
+          ],
+          "kind": "normal",
+          "name": "mio",
+          "optional": true
+        }
+      ],
       "package": "terlan-runtime-abi"
     },
     {

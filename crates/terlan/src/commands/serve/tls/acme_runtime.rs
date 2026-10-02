@@ -33,12 +33,16 @@ pub(in crate::commands::serve) fn runtime_tls_config_for_serve(
     let Some((project_root, tls)) = web_package_tls_config(web_root)? else {
         return Ok(None);
     };
-    tls_runtime::load(&project_root, &tls, issue_acme_certificate_cache_for_serve).map(Some)
+    tls_runtime::load(&project_root, &tls, issue_acme_certificate_cache_for_serve)
+        .map(Some)
+        .map_err(String::from)
 }
 
 /// Temporary executor adapter until the maintained client's transport uses VM I/O.
 #[cfg(feature = "acme-live")]
-fn issue_acme_certificate_cache_for_serve(plan: &AcmeRuntimePlan) -> Result<(), String> {
+fn issue_acme_certificate_cache_for_serve(
+    plan: &AcmeRuntimePlan,
+) -> Result<(), terlan_http_native::ServiceError> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -54,10 +58,12 @@ fn issue_acme_certificate_cache_for_serve(plan: &AcmeRuntimePlan) -> Result<(), 
 }
 
 #[cfg(not(feature = "acme-live"))]
-fn issue_acme_certificate_cache_for_serve(_plan: &AcmeRuntimePlan) -> Result<(), String> {
+fn issue_acme_certificate_cache_for_serve(
+    _plan: &AcmeRuntimePlan,
+) -> Result<(), terlan_http_native::ServiceError> {
     Err(
         "error[serve_tls]: live ACME issuance requires a compiler build with the `acme-live` feature."
-            .to_string(),
+            .into(),
     )
 }
 
@@ -74,6 +80,7 @@ pub(in crate::commands::serve) fn acme_http01_challenge(
         project.as_ref().map(|(root, tls)| (root.as_path(), tls)),
         request_path,
     )
+    .map_err(String::from)
 }
 
 #[cfg(test)]
@@ -81,7 +88,7 @@ fn runtime_tls_config(web_root: &Path) -> Result<Option<RuntimeTlsConfig>, Strin
     let Some((root, tls)) = web_package_tls_config(web_root)? else {
         return Ok(None);
     };
-    tls_runtime::load_cached(&root, &tls).map(Some)
+    Ok(tls_runtime::load_cached(&root, &tls).map(Some)?)
 }
 
 #[cfg(test)]
@@ -90,10 +97,11 @@ fn acme_runtime_tls_config_with_local_issuer(
     tls: &ProjectServerTls,
     issuer: impl FnOnce(&AcmeRuntimePlan) -> Result<(), String>,
 ) -> Result<RuntimeTlsConfig, String> {
-    tls_runtime::load(project_root, tls, issuer)
+    tls_runtime::load(project_root, tls, |plan| issuer(plan).map_err(Into::into))
+        .map_err(String::from)
 }
 
 #[cfg(test)]
 fn issue_acme_certificate_cache_preflight(plan: &AcmeRuntimePlan) -> Result<(), String> {
-    validate_acme_provider_supported(plan)
+    Ok(validate_acme_provider_supported(plan)?)
 }

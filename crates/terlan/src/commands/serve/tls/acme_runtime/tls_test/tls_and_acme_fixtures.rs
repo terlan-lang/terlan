@@ -395,14 +395,14 @@ pub(super) fn acme_domain_identifiers_preserve_dns_names() {
 pub(super) fn acme_domain_identifiers_reject_empty_domains() {
     let message = acme_domain_identifiers(&[]).expect_err("empty domains should fail");
     assert_eq!(
-        message,
+        message.to_string(),
         "error[serve_tls]: automatic ACME TLS requires at least one domain"
     );
 
     let message =
         acme_domain_identifiers(&["  ".to_string()]).expect_err("blank domain should fail");
     assert_eq!(
-        message,
+        message.to_string(),
         "error[serve_tls]: automatic ACME TLS domain cannot be empty"
     );
 }
@@ -559,7 +559,7 @@ pub(super) fn pending_http01_challenges_reject_missing_http01() {
     };
 
     assert_eq!(
-        message,
+        message.to_string(),
         "error[serve_tls]: ACME authorization for `www.example.org` did not offer HTTP-01"
     );
 }
@@ -744,8 +744,10 @@ pub(super) fn acme_account_credentials_cache_reports_invalid_json() {
         Err(message) => message,
     };
 
-    assert!(message.starts_with("error[serve_tls]: failed to parse ACME account credentials"));
-    assert!(message.contains("account.json"));
+    assert!(message
+        .to_string()
+        .starts_with("error[serve_tls]: failed to parse ACME account credentials"));
+    assert!(message.to_string().contains("account.json"));
 
     fs::remove_dir_all(dir).expect("cleanup");
 }
@@ -798,6 +800,8 @@ pub(super) fn acme_http01_challenge_cache_rejects_invalid_token() {
     let message = store_acme_http01_challenge(&plan, "bad.token", "value")
         .expect_err("invalid token should fail");
 
-    assert!(message.contains("ACME HTTP-01 token `bad.token` is invalid"));
+    assert!(message
+        .to_string()
+        .contains("ACME HTTP-01 token `bad.token` is invalid"));
     assert!(!plan.http01_challenge_dir.exists());
 }

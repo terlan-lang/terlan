@@ -10,6 +10,7 @@ module std.http.Sse.
 
 import std.collections.List.
 import std.core.Option.{None, Some}.
+import std.core.String.
 import std.http.Response.
 
 import type std.collections.List.
@@ -133,16 +134,23 @@ pub (event: Event) with_retry_ms(retry_ms: Int): Event ->
  * Input: a list of typed `Event` values and an optional HTTP status code.
  * Output: a `Response` with `text/event-stream` semantics.
  * Transformation: gives handlers a deterministic queued response path while
- * live stream mutation remains VM-owned runtime work.
+ * live stream mutation remains VM-owned runtime work. CRLF is collapsed before
+ * CR normalization, preserving one logical newline before maintained framing.
  */
 pub response(events: List[Event], status: Int = 200): Response ->
     Response.stream(
-        [encode(event.id, event.event, event.retry_ms, event.data) | event <- events],
+        [encode(event.id, event.event, event.retry_ms, normalize_data(event.data)) | event <- events],
         status,
         "text/event-stream; charset=utf-8",
         16384,
         128,
     ).
+
+normalize_data(data: String): String ->
+    case data.contains("\r") {
+        true -> data.replace("\r\n", "\n").replace("\r", "\n");
+        false -> data
+    }.
 
 @compiler.native {std.http.sse.encode_event}
 encode(id: Option[String], event: Option[String], retry_ms: Option[Int], data: String): String ->

@@ -65,7 +65,7 @@ jobs:
     name: release AOT (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
     needs: release-validation-identity
-    timeout-minutes: 90
+    timeout-minutes: ${{ matrix.target == 'macos-x86_64' && 150 || 90 }}
     # LLVM's optimized Terlan codegen can exhaust rustc's default worker stack
     # on the Intel macOS runner. Keep one explicit envelope for validation and
     # the subsequent archive build so they exercise the same compiler setup.

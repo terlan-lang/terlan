@@ -1,0 +1,50 @@
+#!/usr/bin/env -S terlc run
+/** Writes normalized projected-expression evidence for one callable body. */
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+import std.system.Arguments.
+import self_host.CanonicalLexer.
+import self_host.ProjectedBodyEvidence.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionEvidence.
+import self_host.ProjectedFrontend.
+
+body_named(name: String, values: List[ProjectedBody]): Option[ProjectedBody] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.declaration_head == name -> Some(value);
+            true -> body_named(name, rest)
+        }
+    }.
+
+write_body(source: String, name: String, output: String): Bool ->
+    let lexical = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexical.tokens);
+    case body_named(name, frontend.bodies.values) {
+        Some(body) ->
+            case File.write_text(output, ProjectedExpressionEvidence.document(body.expression)) {
+                Ok(_unit) -> true;
+                Err(_reason) -> false
+            };
+        None ->
+            case File.write_text(output, ProjectedBodyEvidence.document(frontend.bodies)) {
+                Ok(_unit) -> true;
+                Err(_reason) -> false
+            }
+    }.
+
+write_source(input: String, name: String, output: String): Bool ->
+    case File.read_text(input) {
+        Ok(source) -> write_body(source, name, output);
+        Err(_reason) -> false
+    }.
+
+case {Arguments.get(0), Arguments.get(1), Arguments.get(2)} {
+    {Some(input), Some(name), Some(output)} -> assert(write_source(input, name, output));
+    _ -> assert(false)
+};
+Unit.

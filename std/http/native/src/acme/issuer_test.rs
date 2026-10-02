@@ -78,7 +78,7 @@ fn authorization_failure_and_transport_failure_do_not_publish_certificates() {
             |_| ready(()),
         ))
         .unwrap_err();
-        assert!(error.contains(message), "{error}");
+        assert!(error.to_string().contains(message), "{error}");
         assert!(!plan.certificate_path.exists());
         assert!(!ca.requests().iter().any(|path| path == "/finalize"));
     }
@@ -112,7 +112,7 @@ fn order_and_certificate_polling_have_bounded_nonblocking_backoff() {
             },
         ))
         .unwrap_err();
-        assert!(error.contains(message), "{error}");
+        assert!(error.to_string().contains(message), "{error}");
         assert_eq!(delays, expected);
         assert_eq!(
             ca.requests()
@@ -153,7 +153,7 @@ fn client_errors_preserve_the_failed_stage_without_publishing() {
             |_| ready(()),
         ))
         .unwrap_err();
-        assert!(error.contains(context), "{error}");
+        assert!(error.to_string().contains(context), "{error}");
         assert_eq!(ca.requests().last().unwrap(), path);
         assert!(!plan.certificate_path.exists());
     }
@@ -171,7 +171,10 @@ fn refreshed_terminal_order_states_are_honored_even_at_the_poll_limit() {
         |_| ready(()),
     ))
     .unwrap_err();
-    assert!(error.contains("order became invalid"), "{error}");
+    assert!(
+        error.to_string().contains("order became invalid"),
+        "{error}"
+    );
     assert_eq!(
         ca.requests()
             .iter()
@@ -189,7 +192,7 @@ fn refreshed_terminal_order_states_are_honored_even_at_the_poll_limit() {
         |_| ready(()),
     ))
     .unwrap_err();
-    assert!(error.contains("finalize ACME order"), "{error}");
+    assert!(error.to_string().contains("finalize ACME order"), "{error}");
     assert_eq!(
         ca.requests()
             .iter()
@@ -234,7 +237,8 @@ fn observer_failure_prevents_challenge_submission_and_finalization() {
             |_| Err("owner exited".into()),
             |_| ready(()),
         ))
-        .unwrap_err(),
+        .unwrap_err()
+        .to_string(),
         "owner exited"
     );
     assert!(!ca
@@ -257,7 +261,7 @@ fn maintained_authorization_types_cover_valid_and_terminal_states() {
         if state == "valid" {
             assert!(result.unwrap().is_empty());
         } else {
-            assert!(result.err().unwrap().contains("not usable"));
+            assert!(result.err().unwrap().to_string().contains("not usable"));
         }
     }
     assert!(serde_json::from_value::<Authorization>(serde_json::json!({
@@ -338,7 +342,7 @@ fn observer_can_reject_publication_after_certificate_arrives() {
         },
         |_| ready(()),
     ));
-    assert_eq!(result.unwrap_err(), "cancelled");
+    assert_eq!(result.unwrap_err().to_string(), "cancelled");
     assert!(ca.requests().iter().any(|path| path == "/certificate"));
     assert!(!plan.certificate_path.exists());
     assert!(!plan.private_key_path.exists());

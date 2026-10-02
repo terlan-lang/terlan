@@ -50,11 +50,11 @@ pub fn acme_runtime_plan(project_root: &Path, tls: &ProjectServerTls) -> AcmeRun
 /// - Applies provider policy before either cached certificate loading or live
 ///   issuance so unsupported providers cannot be activated through stale local
 ///   state.
-pub fn validate_acme_provider_supported(plan: &AcmeRuntimePlan) -> Result<(), String> {
+pub fn validate_acme_provider_supported(plan: &AcmeRuntimePlan) -> Result<(), crate::ServiceError> {
     if plan.primary_provider == ProjectServerTlsProvider::ZeroSsl {
         return Err(
             "error[serve_tls]: ZeroSSL automatic issuance requires external account binding support"
-                .to_string(),
+                .to_string().into(),
         );
     }
     Ok(())
@@ -78,7 +78,7 @@ pub fn validate_acme_provider_supported(plan: &AcmeRuntimePlan) -> Result<(), St
 pub fn validate_acme_certificate_cache_age(
     plan: &AcmeRuntimePlan,
     now: SystemTime,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let metadata = cache::load_acme_certificate_cache_metadata(plan)?;
     cache::validate_acme_certificate_cache_mode(plan, &metadata)?;
     let now = unix_seconds(now)?;
@@ -86,14 +86,15 @@ pub fn validate_acme_certificate_cache_age(
         return Err(format!(
             "error[serve_tls]: ACME certificate cache metadata `{}` is dated in the future",
             plan.renewal_metadata_path.display()
-        ));
+        )
+        .into());
     }
     if now >= metadata.renew_after_unix_seconds {
         return Err(format!(
             "error[serve_tls]: automatic ACME TLS cache for domains [{}] requires renewal; renew_after={} now={now}",
             plan.domains.join(", "),
             metadata.renew_after_unix_seconds
-        ));
+        ).into());
     }
     cache::validate_acme_certificate_cache_provenance_hash(plan, &metadata)?;
     Ok(())
@@ -116,7 +117,7 @@ pub fn validate_acme_certificate_cache_age(
 pub fn validate_acme_certificate_cache_domains(
     plan: &AcmeRuntimePlan,
     certificates: &[CertificateDer<'static>],
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let leaf = certificates.first().ok_or_else(|| {
         format!(
             "error[serve_tls]: automatic ACME TLS cache for domains [{}] has no leaf certificate",
@@ -167,7 +168,7 @@ pub fn validate_acme_certificate_cache_validity_window(
     plan: &AcmeRuntimePlan,
     certificates: &[CertificateDer<'static>],
     now: SystemTime,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let leaf = certificates.first().ok_or_else(|| {
         format!(
             "error[serve_tls]: automatic ACME TLS cache for domains [{}] has no leaf certificate",
@@ -201,22 +202,24 @@ pub fn validate_acme_certificate_cache_validity_window(
         ) => Err(format!(
             "error[serve_tls]: cached ACME certificate `{}` failed validity-window validation: {err}",
             plan.certificate_path.display()
-        )),
+        ).into()),
         Err(_) => Ok(()),
     }
 }
 
-pub fn webpki_unix_time(time: SystemTime) -> Result<UnixTime, String> {
-    time.duration_since(UNIX_EPOCH)
+pub fn webpki_unix_time(time: SystemTime) -> Result<UnixTime, crate::ServiceError> {
+    Ok(time
+        .duration_since(UNIX_EPOCH)
         .map(UnixTime::since_unix_epoch)
-        .map_err(|err| format!("error[serve_tls]: system clock is before Unix epoch: {err}"))
+        .map_err(|err| format!("error[serve_tls]: system clock is before Unix epoch: {err}"))?)
 }
 
 /// Returns Unix seconds for a system clock value.
-pub fn unix_seconds(time: SystemTime) -> Result<u64, String> {
-    time.duration_since(UNIX_EPOCH)
+pub fn unix_seconds(time: SystemTime) -> Result<u64, crate::ServiceError> {
+    Ok(time
+        .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
-        .map_err(|err| format!("error[serve_tls]: system clock is before Unix epoch: {err}"))
+        .map_err(|err| format!("error[serve_tls]: system clock is before Unix epoch: {err}"))?)
 }
 
 /// Returns the ACME directory URL for a provider.

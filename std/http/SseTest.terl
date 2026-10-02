@@ -2,9 +2,11 @@ module std.http.SseTest.
 
 import std.core.Option.{None, Some}.
 import std.http.{Response, Sse}.
+import std.test.Test.{each, row}.
 
 import type std.http.Response.
 import type std.http.Sse.{Endpoint, Event}.
+import type std.test.Test.Row.
 
 pub accepts_event(value: Event): Event ->
     value.
@@ -100,3 +102,27 @@ pub sse_response_encodes_in_order_with_source_owned_stream_defaults(): Bool ->
 @test
 pub sse_empty_response_retains_default_status_and_empty_stream(): Bool ->
     Sse.response([]) == Response.stream([], 200, "text/event-stream; charset=utf-8", 16384, 128).
+
+@test
+pub sse_newline_policy_preserves_logical_lines_and_event_values(): Bool ->
+    each(
+        [
+            row("empty", "", "\n"),
+            row("unchanged", "ready", "data: ready\n\n"),
+            row("lf", "a\nb", "data: a\ndata: b\n\n"),
+            row("crlf", "a\r\nb", "data: a\ndata: b\n\n"),
+            row("cr", "a\rb", "data: a\ndata: b\n\n"),
+            row("mixed", "a\r\nb\rc\n", "data: a\ndata: b\ndata: c\ndata: \n\n"),
+            row("adjacent", "\r\r\n", "data: \ndata: \ndata: \n\n"),
+            row("injection", "\r\nid: injected", "data: \ndata: id: injected\n\n"),
+        ],
+        newline_policy_holds,
+    ).
+
+newline_policy_holds(value: Row[String, String]): Bool ->
+    case value {
+        {_name, input, expected} ->
+            let event = Sse.data(input);
+            Sse.response([event]) == Response.stream([expected], 200, "text/event-stream; charset=utf-8", 16384, 128)
+                and event.data == input
+    }.

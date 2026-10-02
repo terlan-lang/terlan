@@ -35,7 +35,7 @@ fn session_retains_source_policy_and_callbacks_without_invoking_them() {
 fn maintained_frames_drain_in_order_after_close_without_reencoding() {
     let mut session = SseSession::open(SseEndpointPlan::<()>::new(2, 128).unwrap());
     session
-        .enqueue(Some("1"), Some("update"), Some(25), "a\r\nb")
+        .enqueue(Some("1"), Some("update"), Some(25), "a\nb")
         .unwrap();
     session.enqueue(None, None, None, "\u{e9}\n").unwrap();
     let first_pointer = session.pending.front().unwrap().as_ptr();
@@ -74,6 +74,14 @@ fn byte_limits_include_framing_and_failures_do_not_consume_capacity() {
         Err(SseError::EventTooLarge)
     );
     assert_eq!(session.inspect(), before);
+    for data in ["\r", "secret\r\npayload"] {
+        let Err(SseError::Codec(error)) = session.enqueue(None, None, None, data) else {
+            panic!("unnormalized data must fail before queue admission");
+        };
+        assert!(error.contains("http.sse.unnormalized_data"));
+        assert!(!error.contains("secret"));
+        assert_eq!(session.inspect(), before);
+    }
     for (id, event, retry) in [
         (Some("secret\n"), None, None),
         (None, Some("bad\0"), None),

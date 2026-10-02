@@ -162,7 +162,7 @@ fn http_fixture_is_unavailable_to_application_helpers() {
         panic!("source-owned request record");
     };
     assert_eq!(name, "Request");
-    assert_eq!(fields.len(), 10);
+    assert_eq!(fields.len(), 9);
     assert_eq!(fields[7].0, "cookies");
     assert_eq!(
         fields[7].1,

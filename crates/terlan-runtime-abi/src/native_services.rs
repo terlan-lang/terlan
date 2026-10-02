@@ -80,6 +80,7 @@ impl NativeServices {
         crate::native_value::validate_native_arity(operation, binding.arity, received)
     }
 
+    /// Invokes a granted service after validating its argument count.
     pub fn call(
         &self,
         operation: &str,

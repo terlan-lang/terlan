@@ -156,6 +156,7 @@ fn internal_certificate_names_are_verified_without_installing_trust() {
     assert!(internal(&config)
         .err()
         .unwrap()
+        .to_string()
         .contains("failed to generate internal certificate"));
 }
 
@@ -166,16 +167,19 @@ fn manual_rejects_missing_fields_and_encrypted_key_options_before_io() {
     assert!(manual(root, &config)
         .err()
         .unwrap()
+        .to_string()
         .contains("requires a certificate path"));
     config.cert = Some("cert.pem".into());
     assert!(manual(root, &config)
         .err()
         .unwrap()
+        .to_string()
         .contains("requires a key path"));
     config.passphrase_env = Some("NO_SECRET_LOOKUP".into());
     assert!(manual(root, &config)
         .err()
         .unwrap()
+        .to_string()
         .contains("encrypted manual TLS keys"));
 }
 
@@ -186,11 +190,11 @@ fn manual_propagates_file_and_material_errors_without_accepting_partial_configur
     config.cert = Some("cert.pem".into());
     config.key = Some("key.pem".into());
     let error = manual(directory.path(), &config).err().unwrap();
-    assert!(error.contains("failed to open TLS certificate"));
+    assert!(error.to_string().contains("failed to open TLS certificate"));
     let generated = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     fs::write(directory.path().join("cert.pem"), generated.cert.pem()).unwrap();
     let error = manual(directory.path(), &config).err().unwrap();
-    assert!(error.contains("failed to open TLS private key"));
+    assert!(error.to_string().contains("failed to open TLS private key"));
     let other = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
     fs::write(
         directory.path().join("key.pem"),
@@ -198,7 +202,9 @@ fn manual_propagates_file_and_material_errors_without_accepting_partial_configur
     )
     .unwrap();
     let error = manual(directory.path(), &config).err().unwrap();
-    assert!(error.contains("failed to build TLS server config"));
+    assert!(error
+        .to_string()
+        .contains("failed to build TLS server config"));
 }
 
 #[test]
@@ -207,9 +213,11 @@ fn pem_failures_keep_file_context_and_never_accept_partial_chains() {
     let path = directory.path().join("material.pem");
     assert!(load_certificate_chain(&path)
         .unwrap_err()
+        .to_string()
         .contains("failed to open TLS certificate"));
     assert!(load_private_key(&path)
         .unwrap_err()
+        .to_string()
         .contains("failed to open TLS private key"));
     for bytes in [
         "",
@@ -219,9 +227,11 @@ fn pem_failures_keep_file_context_and_never_accept_partial_chains() {
         fs::write(&path, bytes).unwrap();
         assert!(load_certificate_chain(&path)
             .unwrap_err()
+            .to_string()
             .contains("did not contain any PEM certificates"));
         assert!(load_private_key(&path)
             .unwrap_err()
+            .to_string()
             .contains("did not contain a supported unencrypted PEM key"));
     }
     let generated = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
@@ -232,16 +242,20 @@ fn pem_failures_keep_file_context_and_never_accept_partial_chains() {
     )
     .unwrap();
     let error = load_certificate_chain(&path).unwrap_err();
-    assert!(error.contains("failed to parse TLS certificate"));
-    assert!(error.contains(path.to_str().unwrap()));
+    assert!(error
+        .to_string()
+        .contains("failed to parse TLS certificate"));
+    assert!(error.to_string().contains(path.to_str().unwrap()));
     fs::write(
         &path,
         "-----BEGIN PRIVATE KEY-----\n!\n-----END PRIVATE KEY-----\n",
     )
     .unwrap();
     let error = load_private_key(&path).unwrap_err();
-    assert!(error.contains("failed to parse TLS private key"));
-    assert!(error.contains(path.to_str().unwrap()));
+    assert!(error
+        .to_string()
+        .contains("failed to parse TLS private key"));
+    assert!(error.to_string().contains(path.to_str().unwrap()));
     fs::write(
         &path,
         format!("{}{}", generated.cert.pem(), generated.cert.pem()),
@@ -267,7 +281,9 @@ fn rustls_rejects_mismatched_keys_and_invalid_der_without_plaintext_fallback() {
                 .unwrap();
         let error = rustls_server_config(certificates, key).unwrap_err();
         assert!(
-            error.contains("failed to build TLS server config"),
+            error
+                .to_string()
+                .contains("failed to build TLS server config"),
             "{error}"
         );
     }

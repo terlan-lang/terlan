@@ -7,6 +7,7 @@ module release_promotion.PreparationLocalReportsTest.
 import release_promotion.{OwnerStorage, PreparationCandidateTest, PreparationGraph, PreparationMulticoreTest, PrepareLocalReports}.
 import std.core.Option.{Some}.
 import std.core.Result.{Ok}.
+import std.data.Json.
 import std.io.{Console, Directory, File}.
 import std.vcs.Git.
 

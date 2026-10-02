@@ -65,7 +65,7 @@ pub(super) struct AcmeCacheSupportBundleRedaction {
 ///   private fields.
 pub fn load_acme_account_credentials<T: DeserializeOwned>(
     plan: &AcmeRuntimePlan,
-) -> Result<Option<T>, String> {
+) -> Result<Option<T>, crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     let contents = match fs::read_to_string(&plan.account_credentials_path) {
         Ok(contents) => contents,
@@ -74,17 +74,18 @@ pub fn load_acme_account_credentials<T: DeserializeOwned>(
             return Err(format!(
                 "error[serve_tls]: failed to read ACME account credentials `{}`: {err}",
                 plan.account_credentials_path.display()
-            ));
+            )
+            .into());
         }
     };
-    serde_json::from_str::<T>(&contents)
+    Ok(serde_json::from_str::<T>(&contents)
         .map(Some)
         .map_err(|err| {
             format!(
                 "error[serve_tls]: failed to parse ACME account credentials `{}`: {err}",
                 plan.account_credentials_path.display()
             )
-        })
+        })?)
 }
 
 /// Stores ACME account credentials.
@@ -103,7 +104,7 @@ pub fn load_acme_account_credentials<T: DeserializeOwned>(
 pub fn store_acme_account_credentials<T: Serialize>(
     plan: &AcmeRuntimePlan,
     credentials: &T,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     let contents = serde_json::to_string_pretty(credentials).map_err(|err| {
         format!("error[serve_tls]: failed to serialize ACME account credentials: {err}")
@@ -130,12 +131,10 @@ pub fn store_acme_http01_challenge(
     plan: &AcmeRuntimePlan,
     token: &str,
     key_authorization: &str,
-) -> Result<PathBuf, String> {
+) -> Result<PathBuf, crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     if !is_acme_http01_token(token) {
-        return Err(format!(
-            "error[serve_tls]: ACME HTTP-01 token `{token}` is invalid"
-        ));
+        return Err(format!("error[serve_tls]: ACME HTTP-01 token `{token}` is invalid").into());
     }
     let path = plan.http01_challenge_dir.join(token);
     write_cache_file_atomically(&path, key_authorization.as_bytes())?;
@@ -161,7 +160,7 @@ pub fn store_acme_certificate_cache(
     plan: &AcmeRuntimePlan,
     certificate_pem: &str,
     private_key_pem: &str,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     let cert_temp = write_temporary_cache_file(&plan.certificate_path, certificate_pem.as_bytes())?;
     let key_temp = write_temporary_cache_file(&plan.private_key_path, private_key_pem.as_bytes())?;
@@ -177,7 +176,7 @@ pub fn store_acme_certificate_cache(
 pub fn validate_acme_certificate_cache_mode(
     plan: &AcmeRuntimePlan,
     metadata: &AcmeCertificateCacheMetadata,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let expected = acme_metadata_mode(plan);
     if metadata.acme_mode == expected {
         Ok(())
@@ -186,7 +185,7 @@ pub fn validate_acme_certificate_cache_mode(
             "error[serve_tls]: ACME certificate cache metadata `{}` was issued for mode `{}` but runtime requires `{expected}`",
             plan.renewal_metadata_path.display(),
             metadata.acme_mode
-        ))
+        ).into())
     }
 }
 
@@ -194,7 +193,7 @@ pub fn validate_acme_certificate_cache_mode(
 pub fn validate_acme_certificate_cache_provenance_hash(
     plan: &AcmeRuntimePlan,
     metadata: &AcmeCertificateCacheMetadata,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let expected = acme_cache_provenance_fingerprint(metadata);
     if metadata.provenance_hash == expected {
         Ok(())
@@ -202,12 +201,12 @@ pub fn validate_acme_certificate_cache_provenance_hash(
         Err(format!(
             "error[serve_tls]: ACME certificate cache metadata `{}` failed provenance hash validation",
             plan.renewal_metadata_path.display()
-        ))
+        ).into())
     }
 }
 
 /// Validates package-owned ACME cache custody before TLS startup.
-pub fn validate_acme_key_custody_policy(plan: &AcmeRuntimePlan) -> Result<(), String> {
+pub fn validate_acme_key_custody_policy(plan: &AcmeRuntimePlan) -> Result<(), crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     validate_private_key_cache_permissions(&plan.private_key_path)
 }
@@ -241,12 +240,12 @@ pub(super) fn redact_acme_cache_support_bundle(
 }
 
 /// Restricts a private key cache file to owner-only access where supported.
-pub fn restrict_private_key_file_permissions(path: &Path) -> Result<(), String> {
+pub fn restrict_private_key_file_permissions(path: &Path) -> Result<(), crate::ServiceError> {
     restrict_private_key_file_permissions_impl(path)
 }
 
 #[cfg(unix)]
-fn restrict_private_key_file_permissions_impl(path: &Path) -> Result<(), String> {
+fn restrict_private_key_file_permissions_impl(path: &Path) -> Result<(), crate::ServiceError> {
     let mut permissions = fs::metadata(path)
         .map_err(|err| {
             format!(
@@ -256,26 +255,26 @@ fn restrict_private_key_file_permissions_impl(path: &Path) -> Result<(), String>
         })?
         .permissions();
     permissions.set_mode(0o600);
-    fs::set_permissions(path, permissions).map_err(|err| {
+    Ok(fs::set_permissions(path, permissions).map_err(|err| {
         format!(
             "error[serve_tls]: failed to restrict ACME private key cache `{}`: {err}",
             path.display()
         )
-    })
+    })?)
 }
 
 #[cfg(not(unix))]
-fn restrict_private_key_file_permissions_impl(_path: &Path) -> Result<(), String> {
+fn restrict_private_key_file_permissions_impl(_path: &Path) -> Result<(), crate::ServiceError> {
     Ok(())
 }
 
 /// Validates a private key cache file is not group/world accessible.
-pub fn validate_private_key_cache_permissions(path: &Path) -> Result<(), String> {
+pub fn validate_private_key_cache_permissions(path: &Path) -> Result<(), crate::ServiceError> {
     validate_private_key_cache_permissions_impl(path)
 }
 
 #[cfg(unix)]
-fn validate_private_key_cache_permissions_impl(path: &Path) -> Result<(), String> {
+fn validate_private_key_cache_permissions_impl(path: &Path) -> Result<(), crate::ServiceError> {
     let mode = fs::metadata(path)
         .map_err(|err| {
             format!(
@@ -293,12 +292,12 @@ fn validate_private_key_cache_permissions_impl(path: &Path) -> Result<(), String
             "error[serve_tls]: ACME private key cache `{}` must not be group/world accessible; mode {:03o}",
             path.display(),
             mode
-        ))
+        ).into())
     }
 }
 
 #[cfg(not(unix))]
-fn validate_private_key_cache_permissions_impl(_path: &Path) -> Result<(), String> {
+fn validate_private_key_cache_permissions_impl(_path: &Path) -> Result<(), crate::ServiceError> {
     Ok(())
 }
 
@@ -316,7 +315,7 @@ fn validate_private_key_cache_permissions_impl(_path: &Path) -> Result<(), Strin
 ///   beside the issued certificate material.
 pub fn load_acme_certificate_cache_metadata(
     plan: &AcmeRuntimePlan,
-) -> Result<AcmeCertificateCacheMetadata, String> {
+) -> Result<AcmeCertificateCacheMetadata, crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     let contents = fs::read_to_string(&plan.renewal_metadata_path).map_err(|err| {
         format!(
@@ -324,12 +323,12 @@ pub fn load_acme_certificate_cache_metadata(
             plan.renewal_metadata_path.display()
         )
     })?;
-    serde_json::from_str(&contents).map_err(|err| {
+    Ok(serde_json::from_str(&contents).map_err(|err| {
         format!(
             "error[serve_tls]: failed to parse ACME certificate cache metadata `{}`: {err}",
             plan.renewal_metadata_path.display()
         )
-    })
+    })?)
 }
 
 /// Stores ACME certificate cache renewal metadata.
@@ -348,7 +347,7 @@ pub fn load_acme_certificate_cache_metadata(
 pub fn store_acme_certificate_cache_metadata(
     plan: &AcmeRuntimePlan,
     issued_at: SystemTime,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     validate_acme_cache_paths(plan)?;
     let issued_at_unix_seconds = unix_seconds(issued_at)?;
     let mut metadata = AcmeCertificateCacheMetadata {
@@ -422,7 +421,7 @@ fn contains_private_key_material(text: &str) -> bool {
     .any(|marker| text.contains(marker))
 }
 
-pub(crate) fn validate_acme_cache_paths(plan: &AcmeRuntimePlan) -> Result<(), String> {
+pub(crate) fn validate_acme_cache_paths(plan: &AcmeRuntimePlan) -> Result<(), crate::ServiceError> {
     for (label, path) in [
         ("certificate", &plan.certificate_path),
         ("private key", &plan.private_key_path),
@@ -441,7 +440,7 @@ pub(crate) fn validate_acme_cache_path(
     label: &str,
     cache_dir: &Path,
     path: &Path,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let escaped = || {
         format!(
         "error[serve_tls]: ACME {label} cache path `{}` escapes package-owned cache directory `{}`",
@@ -454,7 +453,7 @@ pub(crate) fn validate_acme_cache_path(
             .components()
             .any(|part| !matches!(part, std::path::Component::Normal(_)))
     {
-        return Err(escaped());
+        return Err(escaped().into());
     }
     if cache_dir.exists() {
         let root = fs::canonicalize(cache_dir).map_err(|err| {
@@ -470,7 +469,7 @@ pub(crate) fn validate_acme_cache_path(
                         "error[serve_tls]: failed to resolve ACME {label} cache path `{}`: {err}", ancestor.display()
                     ))?;
                     if !resolved.starts_with(&root) {
-                        return Err(escaped());
+                        return Err(escaped().into());
                     }
                     break;
                 }
@@ -479,7 +478,8 @@ pub(crate) fn validate_acme_cache_path(
                     return Err(format!(
                         "error[serve_tls]: failed to inspect ACME {label} cache path `{}`: {err}",
                         ancestor.display()
-                    ))
+                    )
+                    .into())
                 }
             }
         }
@@ -523,7 +523,7 @@ fn acme_cache_provenance_fields(metadata: &AcmeCertificateCacheMetadata) -> Vec<
 fn write_temporary_cache_file(
     path: &Path,
     contents: &[u8],
-) -> Result<tempfile::NamedTempFile, String> {
+) -> Result<tempfile::NamedTempFile, crate::ServiceError> {
     use std::io::Write;
     let parent = path.parent().ok_or_else(|| {
         format!(
@@ -555,15 +555,18 @@ fn write_temporary_cache_file(
 }
 
 /// Publishes one complete file; failed writes/persistence discard the temporary file.
-fn persist_cache_file(file: tempfile::NamedTempFile, path: &Path) -> Result<(), String> {
-    file.persist(path).map(|_| ()).map_err(|err| {
+fn persist_cache_file(
+    file: tempfile::NamedTempFile,
+    path: &Path,
+) -> Result<(), crate::ServiceError> {
+    Ok(file.persist(path).map(|_| ()).map_err(|err| {
         format!(
             "error[serve_tls]: failed to move ACME cache file to `{}`: {err}",
             path.display()
         )
-    })
+    })?)
 }
 
-fn write_cache_file_atomically(path: &Path, contents: &[u8]) -> Result<(), String> {
+fn write_cache_file_atomically(path: &Path, contents: &[u8]) -> Result<(), crate::ServiceError> {
     persist_cache_file(write_temporary_cache_file(path, contents)?, path)
 }
