@@ -305,6 +305,10 @@ jobs:
 
       - name: Validate AOT cutover
         run: make release-candidate-check
+        env:
+          # The serialized compiler library suite exceeds thirty minutes on
+          # hosted runners; retain a bounded deadline without skipping tests.
+          TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "3600"
 
       - name: Upload completed compiler coverage
         id: coverage
