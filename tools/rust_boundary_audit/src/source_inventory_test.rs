@@ -20,7 +20,8 @@ fn std_package_implementations_are_audited_without_build_outputs() {
         "std/data/native/src/lib.rs",
         "std/net/native/src/lib.rs",
         "std/http/native/src/request.rs",
-        "std/http/native/src/response.rs",
+        "std/http/native/src/response_builder.rs",
+        "std/http/native/src/source_descriptor/response.rs",
         "std/http/native/src/conversion_test.rs",
         "std/native/libpq/generated/native/rust/src/lib.rs",
     ] {
