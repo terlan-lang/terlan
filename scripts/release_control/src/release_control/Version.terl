@@ -1,0 +1,22 @@
+/**
+ * Canonical release-version arguments, separate from source metadata admission.
+ */
+module release_control.Version.
+
+import std.core.Option.{Some}.
+import std.core.{Int, String}.
+
+number(value: String): Bool ->
+    case Int.from_string(value) {
+        Some(parsed) -> parsed >= 0 and Int.to_string(parsed) == value;
+        _ -> false
+    }.
+
+/**
+ * Accepts the stable major.minor.patch versions supported by publication.
+ */
+pub valid(value: String): Bool ->
+    case String.split(value, ".") {
+        [major, minor, patch] -> number(major) and number(minor) and number(patch);
+        _ -> false
+    }.

@@ -1,0 +1,298 @@
+/**
+ * Continuous release control around the existing verified preparation and publisher.
+ */
+module release_control.Main.
+
+import release_control.{Acceptance, Fixtures, Status, Support, Tests, Version}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.{Arguments, Environment}.
+import std.time.Clock.
+
+import type std.core.Result.
+import type std.data.Json.
+
+argument(index: Int, fallback: String): String ->
+    case Arguments.get(index) {
+        Some(value) -> value;
+        None -> fallback
+    }.
+
+wait_seconds(): Result[Int, String] ->
+    case Environment.get("TERLAN_RELEASE_WAIT_SECONDS") {
+        None -> Ok(21600);
+        Some(value) ->
+            case Int.from_string(value) {
+                Some(seconds) ->
+                    if {
+                        seconds >= 1 and seconds <= 21600 -> Ok(seconds);
+                        true -> Err("TERLAN_RELEASE_WAIT_SECONDS must be between 1 and 21600")
+                    };
+                _ -> Err("TERLAN_RELEASE_WAIT_SECONDS must be an integer")
+            }
+    }.
+
+/**
+ * Pins clean, already-pushed main before every consequential release step.
+ */
+pub guard(revision: String): Result[Unit, String] ->
+    let {
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
+        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000);
+        Ok(remote) <- Support.run("git", ["ls-remote", "origin", "refs/heads/main"], 60000)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        branch != "main" -> Err("release control requires main");
+        head != revision -> Err("candidate revision changed; restart release control explicitly");
+        changes != "" -> Err("candidate source changed; commit it before restarting release control");
+        remote != String.concat([revision, "\trefs/heads/main"]) -> Err("candidate must equal origin/main; push or reconcile it first");
+        true -> Ok(Unit)
+    }.
+
+save(document: Json): Result[Unit, String] ->
+    let pending =
+        String.concat(
+            ["target/quality/release-status.", Int.to_string(Clock.unix_time_ns()), ".pending"],
+        );
+    case Support.render(document) {
+        Err(reason) -> Err(reason);
+        Ok(source) ->
+            case Directory.create_all("target/quality") {
+                Err(reason) -> Err(Directory.message(reason));
+                Ok(_unit) ->
+                    case File.write_text(pending, String.append(source, "\n")) {
+                        Ok(_unit) ->
+                            case Support.run(
+                                "mv",
+                                ["--", pending, "target/quality/release-status.json"],
+                                30000,
+                            ) {
+                                Ok(_output) -> Ok(Unit);
+                                Err(reason) -> Err(reason)
+                            };
+                        Err(reason) -> Err(File.message(reason))
+                    }
+            }
+    }.
+
+announce(document: Json): Result[Unit, String] ->
+    let Ok(_saved) <- save(document) else {
+        Err(reason) -> Err(reason)
+    };
+    (let _shown =
+    println(
+        String.concat(
+            [
+                "[release] ",
+                Support.text(document, "state"),
+                " ",
+                Support.text(document, "revision"),
+                ": ",
+                Support.text(document, "next_action"),
+                " (target/quality/release-status.json)",
+            ],
+        ),
+    );
+Ok(Unit)).
+
+dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
+    if {
+        index >= 2 -> Ok(Unit);
+        true -> case document.get("checks") {
+            Err(_reason) -> Err("status has no workflow checks");
+            Ok(checks) ->
+                case checks.at(index) {
+                    Err(_reason) -> Err("status has no workflow row");
+                    Ok(row) ->
+                        let result =
+                            if {
+                                Support.text(row, "state") == "missing" -> Support.run(
+                                    "gh",
+                                    [
+                                        "workflow",
+                                        "run",
+                                        Support.text(row, "workflow"),
+                                        "--ref",
+                                        "main",
+                                    ],
+                                    60000,
+                                );
+                                true -> Ok("")
+                            };
+                        case result {
+                            Err(reason) -> Err(reason);
+                            Ok(_output) -> dispatch_missing(document, index + 1)
+                        }
+                }
+        }
+    }.
+
+wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
+    let {
+        Ok(_guarded) <- guard(revision);
+        Ok(document) <- Status.collect(revision, version);
+        Ok(_announced) <- announce(document)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    case Support.text(document, "state") {
+        "ready" -> Ok(document);
+        "published" -> Ok(document);
+        "failed" ->
+            Err("a required workflow failed; see the release-status report for job names and URLs");
+        _ ->
+            if {
+                Clock.monotonic_time_ns() >= deadline -> Err("release validation wait deadline reached; rerun the same command to resume");
+                true -> case Support.run("sleep", ["30"], 35000) {
+                    Err(reason) -> Err(reason);
+                    Ok(_output) -> wait(revision, version, deadline)
+                }
+            }
+    }.
+
+stage(
+    document: Json,
+    name: String,
+    next: String,
+    target: String,
+    version: String,
+): Result[Json, String] ->
+    let revision = Support.text(document, "revision");
+    let current = document.put("state", Json.string(name)).put("next_action", Json.string(next));
+    let {
+        Ok(_guarded) <- guard(revision);
+        Ok(_announced) <- announce(current)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    case Support.run(
+        "make",
+        ["--no-print-directory", target, String.append("VERSION=", version)],
+        3600000,
+    ) {
+        Err(reason) ->
+            let _saved =
+                announce(
+                    current
+                        .put("state", Json.string("failed"))
+                        .put("next_action", Json.string(reason)),
+                );
+            Err(reason);
+        Ok(output) ->
+            let _printed = println(output);
+            Ok(current)
+    }.
+
+publish(document: Json, version: String): Result[Unit, String] ->
+    if {
+        Support.text(document, "state") == "published" -> Ok(Unit);
+        true -> let {
+            Ok(prepared) <-
+                stage(
+                    document,
+                    "preparing",
+                    "verify downloaded artifacts and prepare the candidate",
+                    "publish-prepare",
+                    version,
+                );
+            Ok(_published) <-
+                stage(
+                    prepared,
+                    "publishing",
+                    "verify, tag, and upload the prepared candidate",
+                    "publish",
+                    version,
+                );
+            Ok(release) <- Status.collect(Support.text(document, "revision"), version)
+        } else {
+            Err(reason) -> Err(reason)
+        };
+        if {
+            Support.text(release, "state") == "published" -> announce(release);
+            true -> Err("publisher completed but the exact public release could not be observed")
+        }
+    }.
+
+run(command: String, version: String): Result[Unit, String] ->
+    let true <- Version.valid(version) else {
+        _ -> Err("version must contain three canonical nonnegative numbers, without a leading v")
+    };
+    (let Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30000) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    command == "status" -> case Status.collect(revision, version) {
+        Err(reason) -> Err(reason);
+        Ok(document) ->
+            let {
+                Ok(_saved) <- save(document);
+                Ok(source) <- Support.render(document)
+            } else {
+                Err(reason) -> Err(reason)
+            };
+            (let _printed = println(source); Ok(Unit))
+    };
+    command == "publish" or command == "wait" -> let {
+        Ok(seconds) <- wait_seconds();
+        Ok(_guarded) <- guard(revision);
+        Ok(initial) <- Status.collect(revision, version);
+        Ok(_reported) <- announce(initial);
+        Ok(_admitted) <-
+            if {
+                Support.text(initial, "state") == "failed" -> Err(Support.text(initial, "next_action"));
+                true -> Ok(Unit)
+            };
+        Ok(_dispatched) <-
+            if {
+                Support.text(initial, "state") == "published" -> Ok(Unit);
+                true -> dispatch_missing(initial, 0)
+            };
+        Ok(ready) <- wait(revision, version, Clock.monotonic_time_ns() + seconds * 1000000000)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        command == "publish" -> publish(ready, version);
+        true -> Ok(Unit)
+    };
+    true -> Err("usage: Release.terls status|wait|publish <version> (or self-test)")
+}).
+
+/**
+ * Runs release control; failures are explicit and never continue to publication.
+ */
+pub entry(): Bool ->
+    let command = argument(0, "status");
+    if {
+        command == "self-test" -> Tests.run();
+        command == "acceptance-test" -> Acceptance.run(argument(1, ""), argument(2, ""));
+        command == "fixture" -> Fixtures.entry();
+        true -> case run(command, argument(1, "")) {
+            Ok(_unit) -> true;
+            Err(reason) ->
+                let document =
+                    (let {
+    Ok(source) <- File.read_text("target/quality/release-status.json");
+    Ok(value) <- Json.parse(source)
+} else {
+    _ -> Json.object()
+};
+value);
+                let _saved =
+                    save(
+                        document
+                            .put("state", Json.string("failed"))
+                            .put("next_action", Json.string(reason)),
+                    );
+                let _shown = eprintln(String.append("[release] ", reason));
+                false
+        }
+    }.

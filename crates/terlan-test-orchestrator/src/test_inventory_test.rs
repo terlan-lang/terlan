@@ -12,6 +12,37 @@ fn normal_phases() -> Vec<TestPhase> {
 }
 
 #[test]
+fn library_partitions_cover_every_namespace_once_including_future_modules() {
+    let all = names(&[
+        "commands::serve::probe",
+        "commands::build::probe",
+        "compiler::native_ir::probe",
+        "compiler::typeck::probe",
+        "compiler::new_module::probe",
+        "runtime::vm::probe",
+        "new_top_level::probe",
+        "quality::probe",
+        "compiler::comprehension::probe",
+    ]);
+    let mut phases = crate::phase_plan::terlan_library_partitions();
+    phases.push(terlan_integration_phase());
+    let expected = validate(&all, &BTreeSet::new(), &phases, false, TIER_INVENTORY).unwrap();
+    assert_eq!(
+        expected
+            .values()
+            .map(|selection| selection.passed.len())
+            .sum::<usize>(),
+        all.len()
+    );
+    assert_eq!(
+        expected["Terlan library remainder"].passed,
+        names(&["new_top_level::probe"])
+    );
+    phases[1].args.push("commands::");
+    assert!(validate(&all, &BTreeSet::new(), &phases, false, TIER_INVENTORY).is_err());
+}
+
+#[test]
 fn inventory_parser_rejects_malformed_or_duplicate_records() {
     for output in [
         b"probe: test\nprobe: test\n".as_slice(),

@@ -1,0 +1,59 @@
+/**
+ * Observes existing publication without mistaking a tag or draft for a release.
+ */
+module release_control.Publication.
+
+import release_control.Support.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+find(releases: Json, tag: String, index: Int, count: Int): Json ->
+    if {
+        index >= count -> Json.null();
+        true -> case releases.at(index) {
+            Ok(row) ->
+                if {
+                    Support.text(row, "tag_name") == tag -> row;
+                    true -> find(releases, tag, index + 1, count)
+                };
+            _ -> Json.null()
+        }
+    }.
+
+/**
+ * Distinguishes an exact annotated, public release from absent or draft publication.
+ */
+pub observe(revision: String, version: String): Result[Json, String] ->
+    let tag = String.append("v", version);
+    let Ok(releases) <- Support.github(["api", "repos/{owner}/{repo}/releases?per_page=100"]) else {
+        Err(reason) -> Err(reason)
+    };
+    case releases.length() {
+        Err(_reason) -> Err("invalid GitHub releases response");
+        Ok(count) ->
+            let row = find(releases, tag, 0, count);
+            let {
+                Ok(value) <- row.get("draft");
+                Ok(false) <- value.as_bool()
+            } else {
+                _ -> Ok(Json.null())
+            };
+            case Support.run(
+                "git",
+                ["ls-remote", "origin", String.concat(["refs/tags/", tag, "^{}"])],
+                60000,
+            ) {
+                Err(reason) -> Err(reason);
+                Ok(remote) ->
+                    if {
+                        remote == String.concat([revision, "\trefs/tags/", tag, "^{}"]) -> Ok(row);
+                        true -> Err(
+                            "this release version already belongs to a different or unannotated tag",
+                        )
+                    }
+            }
+    }.

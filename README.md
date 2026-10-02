@@ -296,14 +296,23 @@ inputs.
 
 ### Publication
 
-From a clean `main` commit with successful Compiler CI and Release validation:
+From a clean, pushed `main` commit:
 
 ```sh
-make publish-prepare
-make publish
+make release
 ```
 
-The version comes from the workspace. Publication requires authenticated GitHub
+The version comes from the workspace. `make release` waits for Compiler CI and
+Release validation on that exact commit, prepares the verified artifacts, and
+publishes them. It stops on failed checks or source changes. Missing workflow
+runs are dispatched once; existing failed runs are reported for investigation.
+Use `make release-status` for the unified JSON report, also saved at
+`target/quality/release-status.json`, or `make release-wait` to stop before
+preparation. Waiting defaults to six hours; `TERLAN_RELEASE_WAIT_SECONDS` accepts
+1–21600 seconds. Rerunning the command resumes through the existing verified
+preparation and upload checkpoints.
+
+Publication requires authenticated GitHub
 CLI access and a Linux x86_64 environment capable of running the hosted artifact
 (Ubuntu 24.04-compatible userspace). Preparation needs Node 24/npm for installed
 JavaScript examples and JDK 21 for editor packaging, in addition to the build
@@ -318,6 +327,8 @@ runs and attempts; they still check live CI status and validate local bytes.
 it rejects a missing or stale prepared candidate. Retry `make publish` after an
 interrupted upload: matching assets are reused, and mismatches keep the release
 unpublished. Rerun preparation only when the candidate's inputs change.
+The separate `make publish-prepare` and `make publish` commands remain available
+for inspecting a prepared candidate and retrying only its upload.
 
 ## Documentation
 

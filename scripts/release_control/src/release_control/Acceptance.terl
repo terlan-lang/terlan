@@ -1,0 +1,167 @@
+/**
+ * Executes the real controller against isolated fake GitHub, Git, and publication commands.
+ */
+module release_control.Acceptance.
+
+import release_control.Support.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+import std.time.Clock.
+
+shell_quoted(value: String): String ->
+    String.concat(["'", String.replace(value, "'", "'\"'\"'"), "'"]).
+
+path(root: String, name: String): String ->
+    String.concat([root, "/", name]).
+
+wrapper(root: String, tool: String, vm: String, image: String): Bool ->
+    let output = path(root, String.append("bin/", tool));
+    let {
+        Ok(_unit) <-
+            File.write_text(
+                output,
+                String.concat(
+                    [
+                        "#!/bin/sh\nexec ",
+                        shell_quoted(vm),
+                        " run ",
+                        shell_quoted(image),
+                        " --script-eval -- fixture ",
+                        tool,
+                        " \"$@\"\n",
+                    ],
+                ),
+            );
+        Ok(_value) <- Support.run("chmod", ["700", output], 30000)
+    } else {
+        _ -> false
+    };
+    true.
+
+read(path: String): String ->
+    case File.read_text(path) {
+        Ok(value) -> value;
+        _ -> ""
+    }.
+
+scenario(
+    base: String,
+    mode: String,
+    success: Bool,
+    operations: String,
+    vm: String,
+    image: String,
+): Bool ->
+    let root = path(base, mode);
+    let previous_path =
+        case Environment.get("PATH") {
+            Some(value) -> value;
+            _ -> "/usr/bin:/bin"
+        };
+    let {
+        Ok(_created) <- Directory.create_all(path(root, "bin"));
+        true <- wrapper(root, "git", vm, image);
+        true <- wrapper(root, "gh", vm, image);
+        true <- wrapper(root, "make", vm, image);
+        true <- wrapper(root, "sleep", vm, image)
+    } else {
+        _ -> false
+    };
+    (let command =
+    Process.with_environment(
+        Process.with_working_directory(
+            Process.with_timeout_ms(
+                Process.with_arguments(
+                    Process.command(vm),
+                    ["run", image, "--script-eval", "--", "publish", "0.0.9"],
+                ),
+                60000,
+            ),
+            root,
+        ),
+        [
+            Process.environment_entry(
+                "PATH",
+                String.concat([path(root, "bin"), ":", previous_path]),
+            ),
+            Process.environment_entry("TERLAN_RELEASE_FIXTURE_MODE", mode),
+            Process.environment_entry(
+                "TERLAN_RELEASE_WAIT_SECONDS",
+                if {
+                    mode == "timeout" -> "1";
+                    true -> "60"
+                },
+            ),
+        ],
+    );
+case Process.run(command) {
+    Err(reason) ->
+        let _shown = eprintln(Process.error_message(reason));
+        false;
+    Ok(output) ->
+        let actual = read(path(root, "operations"));
+        let passed =
+            Process.status(output) == 0 == success
+                and if {
+    mode == "timeout" -> not String.contains(actual, "publish");
+    true -> actual == operations
+};
+        let _shown =
+            if {
+                passed -> println(String.append("[release-control-test] passed ", mode));
+                true -> eprintln(
+                    String.concat(
+                        [
+                            "[release-control-test] failed ",
+                            mode,
+                            "\n",
+                            actual,
+                            "\n",
+                            Process.stderr(output),
+                            "\n",
+                            Process.stdout(output),
+                        ],
+                    ),
+                )
+            };
+        passed
+}).
+
+/**
+ * Proves waiting, exact-revision failure, failed preparation, and idempotent publication.
+ */
+pub run(vm: String, image: String): Bool ->
+    let root =
+        path(
+            Environment.current_directory(),
+            String.append("target/release-control-tests/", Int.to_string(Clock.unix_time_ns())),
+        );
+    let passed =
+        scenario(root, "ready", true, "publish-prepare\npublish\n", vm, image)
+            and scenario(root, "pending", true, "sleep\npublish-prepare\npublish\n", vm, image)
+            and scenario(root, "failed", false, "", vm, image)
+            and scenario(root, "failed-missing", false, "", vm, image)
+            and scenario(root, "cancelled", false, "", vm, image)
+            and scenario(root, "dirty", false, "", vm, image)
+            and scenario(root, "remote-changed", false, "", vm, image)
+            and scenario(root, "wrong-revision", false, "", vm, image)
+            and scenario(root, "expired", false, "", vm, image)
+            and scenario(root, "api-failed", false, "", vm, image)
+            and scenario(
+    root,
+    "missing",
+    true,
+    "dispatch ci.yml\ndispatch release.yml\npublish-prepare\npublish\n",
+    vm,
+    image,
+)
+            and scenario(root, "drift", false, "sleep\n", vm, image)
+            and scenario(root, "prepare-failed", false, "publish-prepare\n", vm, image)
+            and scenario(root, "published", true, "", vm, image)
+            and scenario(root, "timeout", false, "", vm, image);
+    let _removed = Directory.remove_all(root);
+    passed.

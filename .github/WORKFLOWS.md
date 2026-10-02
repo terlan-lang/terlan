@@ -41,6 +41,12 @@ same Chromium archive again.
 
 ## Compiler CI
 
+Both compiler and release workflows first call `source-preflight.yml`. Rust
+formatting, source-inventory regression tests, test-runner ownership tests, and
+actionlint must pass before expensive compiler, sanitizer, or platform builds.
+This catches stale source paths and workflow errors without waiting for the
+compiler library suite.
+
 `ci.yml` runs on pull requests, `main` pushes, and dedicated `agent/aot-*`
 branch pushes when compiler-facing sources change. It can also be dispatched
 manually against an exact revision so the native matrix can validate a release
@@ -296,6 +302,31 @@ executed phase under one of six tiers. Host-sensitive performance measurements
 remain manual diagnostics outside validation; concurrency correctness retains
 its named Make owner. All orchestrated children receive closed stdin and a
 phase timeout.
+
+The normal library inventory is partitioned into commands, native IR, type
+checking, the remaining compiler modules, runtime, and a remainder that owns new
+top-level modules. These use the same compiled harness. Inventory admission
+rejects omissions, overlaps, and empty owners before execution. Each partition
+remains serial because tests change process-wide compiler paths and environment;
+the partitions run sequentially until shared external resources are proven
+safe for concurrent execution. Each partition has its own deadline and timing.
+
+Suite phase records include `wall_time_ms`, `timeout_seconds`, `near_deadline`
+(at least 80% of the limit), and `recommended_timeout_seconds`. Recommendations
+are twice the observed duration, rounded up to minutes and bounded between one
+minute and two hours. They are diagnostics, never substitute test evidence, and
+do not automatically raise limits. Review completed-run measurements and timed
+out lower bounds before updating CI deadlines. The existing one-hour hosted
+phase limit follows the observed 30-minute serialized-suite timeout; the Intel
+macOS compiler-build limit follows its observed 30-minute optimized-build timeout.
+Both retain outer workflow deadlines.
+
+`make release-status` combines the exact candidate revision, source cleanliness,
+both canonical workflows and their jobs, retained artifact metadata, publication
+state, and the next action in `target/quality/release-status.json`. `make release`
+uses the same state machine to wait, prepare, and publish under one local lease.
+It never transfers green evidence between commits. Existing attestation,
+checksum, candidate, annotated-tag, and upload verification remain authoritative.
 
 The direct-AOT cache identity binds the dependency lock, profile, enabled Cargo
 features, target, codegen policy, and bytes of the resolved linker. Set

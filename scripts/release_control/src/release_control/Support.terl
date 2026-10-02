@@ -1,0 +1,83 @@
+/**
+ * Bounded child processes and JSON access for release control.
+ */
+module release_control.Support.
+
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.system.Process.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Runs a child with closed stdin and bounded captured output.
+ */
+pub run(program: String, arguments: List[String], timeout: Int): Result[String, String] ->
+    let command =
+        Process.with_output_limit_bytes(
+            Process.with_timeout_ms(
+                Process.with_arguments(Process.command(program), arguments),
+                timeout,
+            ),
+            8388608,
+        );
+    case Process.run(command) {
+        Err(reason) -> Err(Process.error_message(reason));
+        Ok(output) ->
+            if {
+                Process.status(output) == 0 -> Ok(String.trim(Process.stdout(output)));
+                true -> Err(
+                    String.concat(
+                        [program, " failed: ", Process.stderr(output), "\n", Process.stdout(output)],
+                    ),
+                )
+            }
+    }.
+
+/**
+ * Parses a successful GitHub CLI response as JSON.
+ */
+pub github(arguments: List[String]): Result[Json, String] ->
+    case run("gh", arguments, 60000) {
+        Err(reason) -> Err(reason);
+        Ok(source) ->
+            case Json.parse(source) {
+                Ok(document) -> Ok(document);
+                Err(reason) -> Err(Json.error_message(reason))
+            }
+    }.
+
+/**
+ * Reads a string field; absent or malformed fields remain visibly empty.
+ */
+pub text(document: Json, key: String): String ->
+    let {
+        Ok(value) <- document.get(key);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> ""
+    };
+    text.
+
+/**
+ * Reads an integer field; invalid values cannot become valid workflow identifiers.
+ */
+pub number(document: Json, key: String): Int ->
+    let {
+        Ok(value) <- document.get(key);
+        Ok(number) <- value.as_int()
+    } else {
+        _ -> -1
+    };
+    number.
+
+/**
+ * Formats one stable machine-readable document.
+ */
+pub render(document: Json): Result[String, String] ->
+    case Json.stringify_pretty(document) {
+        Ok(source) -> Ok(source);
+        Err(reason) -> Err(Json.error_message(reason))
+    }.
