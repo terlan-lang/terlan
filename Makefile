@@ -403,7 +403,7 @@ VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
 HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 
-ifneq ($(filter publish publish-preflight publish-prepare,$(MAKECMDGOALS)),)
+ifneq ($(filter release release-wait release-status publish publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -411,6 +411,7 @@ endif
 endif
 
 CHECK_GATES := \
+	release-control-check \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
 	terlan-format-check \
@@ -993,7 +994,7 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_REPOSITORY_VALIDATION_IMAGE)
 endif
 
-terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap terlan-proof-release-bootstrap
+terlan-self-validation-bootstrap: terlan-compiler-bootstrap terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap terlan-proof-release-bootstrap terlan-release-control-bootstrap
 
 # Proof consumers need this image, not the entire validator fleet. The aggregate
 # still shares this producer with focused consumers in the same Make invocation.
@@ -5378,6 +5379,33 @@ publish-evidence-refresh-plan-check:
 		exit 1; \
 	fi; \
 	echo "[publish-evidence-refresh-plan] cargo=$$cargo_count exact-isolated=$$exact_count duplicate-builds=0"
+
+TERLAN_RELEASE_CONTROL_IMAGE := target/release-control/vm/scripts_Release.tvm
+TERLAN_RELEASE_CONTROL := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE) --script-eval --
+
+.PHONY: release release-wait release-status release-control-check terlan-release-control-bootstrap
+terlan-release-control-bootstrap: terlan-typed-validator-fingerprint
+ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	test -s $(TERLAN_RELEASE_CONTROL_IMAGE)
+else
+	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_RELEASE_CONTROL_IMAGE) \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/release_control -- \
+		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) scripts/release_control/scripts/Release.terls --target terlan-vm --out-dir target/release-control
+endif
+
+release-status: | terlan-release-control-bootstrap
+	$(TERLAN_RELEASE_CONTROL) status "$(VERSION)"
+
+release release-wait: publish-source-preflight
+	$(MAKE) --no-print-directory terlan-release-control-bootstrap
+	@test ! -L target && test ! -L target/quality && test ! -L target/quality/release-control.lock
+	@mkdir -p target/quality
+	flock --nonblock target/quality/release-control.lock \
+		$(TERLAN_RELEASE_CONTROL) $(if $(filter release,$@),publish,wait) "$(VERSION)"
+
+release-control-check: | terlan-release-control-bootstrap
+	$(TERLAN_RELEASE_CONTROL) self-test
+	$(TERLAN_RELEASE_CONTROL) acceptance-test "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
 
 publish:
 	timeout --kill-after=10s 1800s bash scripts/publish_release_from_dist.sh "$(VERSION)" --promote </dev/null

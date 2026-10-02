@@ -1,0 +1,234 @@
+/**
+ * Deterministic fake external commands for offline controller acceptance tests.
+ */
+module release_control.Fixtures.
+
+import release_control.Support.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+import std.io.Console.{println}.
+import std.io.File.
+import std.system.{Arguments, Environment}.
+
+import type std.data.Json.
+
+/**
+ * Uses the same exact candidate in every mocked external observation.
+ */
+pub revision(): String -> "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".
+
+arg(index: Int): String ->
+    case Arguments.get(index) {
+        Some(value) -> value;
+        _ -> ""
+    }.
+
+mode(): String ->
+    case Environment.get("TERLAN_RELEASE_FIXTURE_MODE") {
+        Some(value) -> value;
+        _ -> ""
+    }.
+
+read(path: String): String ->
+    case File.read_text(path) {
+        Ok(value) -> value;
+        _ -> ""
+    }.
+
+write(path: String, value: String): Bool ->
+    case File.write_text(path, value) {
+        Ok(_unit) -> true;
+        _ -> false
+    }.
+
+log(value: String): Bool ->
+    write("operations", String.concat([read("operations"), value, "\n"])).
+
+show(value: String): Bool ->
+    let _shown = println(value);
+    true.
+
+json(value: Json): Bool ->
+    case Support.render(value) {
+        Ok(source) -> show(source);
+        _ -> false
+    }.
+
+head(): String ->
+    case File.exists("drifted") {
+        true -> "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        false -> revision()
+    }.
+
+git(): Bool ->
+    case arg(2) {
+        "branch" -> show("main");
+        "rev-parse" -> show(head());
+        "status" ->
+            show(
+                if {
+                    mode() == "dirty" -> " M source.terl";
+                    true -> ""
+                },
+            );
+        "ls-remote" ->
+            show(
+                String.concat(
+                    [
+                        if {
+                            mode() == "remote-changed" -> "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+                            true -> revision()
+                        },
+                        "\t",
+                        arg(4),
+                    ],
+                ),
+            );
+        _ -> false
+    }.
+
+workflow(): Bool ->
+    if {
+        mode() == "failed-missing" and arg(9) == "release.yml" -> json(Json.array());
+        mode() == "missing" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
+        true -> workflow_row()
+    }.
+
+workflow_row(): Bool ->
+    let ticks =
+        case Int.from_string(read("ticks")) {
+            Some(value) -> value;
+            _ -> 0
+        };
+    let compiler = arg(9) == "ci.yml";
+    let _written =
+        if {
+            compiler -> write("ticks", Int.to_string(ticks + 1));
+            true -> true
+        };
+    let waiting = compiler and (mode() == "pending" and ticks < 2 or mode() == "timeout" or mode() == "drift");
+    let conclusion =
+        if {
+            compiler and (mode() == "failed" or mode() == "failed-missing") -> "failure";
+            compiler and mode() == "cancelled" -> "cancelled";
+            waiting -> "";
+            true -> "success"
+        };
+    json(
+        Json.array()
+            .push(
+                Json.object()
+                    .put(
+                        "databaseId",
+                        Json.int(
+                            if {
+                                compiler -> 17;
+                                true -> 18
+                            },
+                        ),
+                    )
+                    .put(
+                        "headSha",
+                        Json.string(
+                            if {
+                                mode() == "wrong-revision" -> "stale";
+                                true -> revision()
+                            },
+                        ),
+                    )
+                    .put(
+                        "url",
+                        Json.string("https://github.com/terlan-lang/terlan/actions/runs/17"),
+                    )
+                    .put(
+                        "status",
+                        Json.string(
+                            if {
+                                waiting -> "in_progress";
+                                true -> "completed"
+                            },
+                        ),
+                    )
+                    .put("conclusion", Json.string(conclusion)),
+            ),
+    ).
+
+release_rows(): Json ->
+    let published = File.exists("published");
+    if {
+        published == true or mode() == "published" -> Json.array()
+            .push(
+                Json.object()
+                    .put("tag_name", Json.string("v0.0.9"))
+                    .put("draft", Json.bool(false))
+                    .put(
+                        "html_url",
+                        Json.string("https://github.com/terlan-lang/terlan/releases/tag/v0.0.9"),
+                    ),
+            );
+        true -> Json.array()
+    }.
+
+artifact_rows(): Json ->
+    Json.object()
+        .put("total_count", Json.int(2))
+        .put(
+            "artifacts",
+            Json.array()
+                .push(
+                    Json.object()
+                        .put("name", Json.string("release-distribution"))
+                        .put("expired", Json.bool(mode() == "expired")),
+                )
+                .push(
+                    Json.object()
+                        .put("name", Json.string("release-hosted-validation-evidence"))
+                        .put("expired", Json.bool(false)),
+                ),
+        ).
+
+api(path: String): Bool ->
+    let artifact_request = String.contains(path, "/artifacts");
+    let release_request = String.contains(path, "/releases?");
+    if {
+        artifact_request == true -> json(artifact_rows());
+        release_request == true -> json(release_rows());
+        true -> false
+    }.
+
+github(): Bool ->
+    case {arg(2), arg(3)} {
+        {"run", "list"} -> workflow();
+        {"run", "view"} ->
+            json(Json.object().put("headSha", Json.string(revision())).put("jobs", Json.array()));
+        {"workflow", "run"} ->
+            log(String.append("dispatch ", arg(4)))
+                and write(String.append("dispatched-", arg(4)), "1");
+        {"api", path} -> mode() != "api-failed" and api(path);
+        _ -> false
+    }.
+
+/**
+ * Dispatches only the commands used by isolated offline tests.
+ */
+pub entry(): Bool ->
+    case arg(1) {
+        "git" -> git();
+        "gh" -> github();
+        "sleep" ->
+            log("sleep")
+                and if {
+    mode() == "drift" -> write("drifted", "1");
+    true -> true
+};
+        "make" ->
+            log(arg(3))
+                and if {
+    mode() == "prepare-failed" -> false;
+    arg(3) == "publish" -> write("published", "1");
+    true -> arg(3) == "publish-prepare"
+};
+        _ -> false
+    }.

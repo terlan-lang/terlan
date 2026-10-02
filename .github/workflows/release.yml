@@ -15,10 +15,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  source-preflight:
+    uses: ./.github/workflows/source-preflight.yml
+
   release-validation-identity:
     name: publish release validation identity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    needs: source-preflight
     permissions:
       contents: read
       statuses: write

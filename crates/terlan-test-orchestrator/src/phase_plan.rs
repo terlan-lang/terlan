@@ -17,7 +17,7 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
         epmd_bootstrap_phase(),
     ];
     if !coverage_owns_terlc {
-        phases.insert(0, terlan_library_phase());
+        phases.splice(0..0, terlan_library_partitions());
     }
     #[cfg(target_os = "linux")]
     {
@@ -25,6 +25,39 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
         phases.push(public_storage_phase());
     }
     phases
+}
+
+/// Splits the shared harness into bounded, independently observed serial owners.
+/// Keep each process serial: compiler fixtures change process-wide environment.
+pub(super) fn terlan_library_partitions() -> Vec<TestPhase> {
+    let groups: [(&str, &[&str], &[&str]); 6] = [
+        ("Terlan commands", &["commands::"], &[]),
+        ("Terlan native IR", &["compiler::native_ir::"], &[]),
+        ("Terlan type checker", &["compiler::typeck::"], &[]),
+        (
+            "Terlan compiler",
+            &["compiler::"],
+            &["compiler::native_ir::", "compiler::typeck::"],
+        ),
+        ("Terlan runtime", &["runtime::"], &[]),
+        (
+            "Terlan library remainder",
+            &[],
+            &["commands::", "compiler::", "runtime::"],
+        ),
+    ];
+    groups
+        .into_iter()
+        .map(|(name, filters, skipped)| {
+            let mut phase = terlan_library_phase();
+            phase.name = name;
+            phase.args.extend_from_slice(filters);
+            for filter in skipped {
+                phase.args.extend(["--skip", filter]);
+            }
+            phase
+        })
+        .collect()
 }
 
 /// Selects the normal library partition of the shared Terlan harness.

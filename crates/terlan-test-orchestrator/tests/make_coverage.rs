@@ -53,7 +53,9 @@ fn test_module(names: &[String], prefix: &str) -> String {
             modules.entry(module).or_default().push(remaining.into());
         } else {
             let qualified = format!("{prefix}{name}");
-            let ignored = if matches!(qualified.as_str(), "normal" | "quality::integration") {
+            let ignored = if matches!(qualified.as_str(), "normal" | "quality::integration")
+                || qualified.ends_with("::partition_probe")
+            {
                 ""
             } else {
                 "#[ignore]"
@@ -97,6 +99,16 @@ fn fixture() -> Fixture {
     );
     write(root, "terlan/Cargo.toml", "[package]\nname=\"terlan\"\nversion=\"0.0.0\"\nedition=\"2021\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\nserve-runtime-bin=[]\n");
     let mut names = vec!["normal".to_owned(), "quality::integration".to_owned()];
+    names.extend(
+        [
+            "commands::partition_probe",
+            "compiler::native_ir::partition_probe",
+            "compiler::typeck::partition_probe",
+            "compiler::partition_probe",
+            "runtime::partition_probe",
+        ]
+        .map(String::from),
+    );
     names.extend(
         include_str!("../../../docs/quality/RUST_VALIDATION_TIERS.tsv")
             .lines()
@@ -264,7 +276,7 @@ fn make_reuses_live_coverage_and_rejects_uncovered_or_changed_requests() {
     let bodies = fs::read(root.join("target/bodies.txt")).unwrap();
     assert_eq!(
         String::from_utf8_lossy(&bodies).lines().count(),
-        15 + 2 * usize::from(cfg!(target_os = "linux"))
+        20 + 2 * usize::from(cfg!(target_os = "linux"))
     );
     let positive = coverage(root, "gates");
     assert_eq!(positive["decision"], "gates-covered");
@@ -499,7 +511,7 @@ hosted-change-source: normal
             .unwrap()
             .lines()
             .count(),
-        15 + 2 * usize::from(cfg!(target_os = "linux"))
+        20 + 2 * usize::from(cfg!(target_os = "linux"))
     );
     assert_eq!(
         fs::read_to_string(root.join("target/gate-entries")).unwrap(),

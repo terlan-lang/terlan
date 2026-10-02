@@ -45,6 +45,7 @@ mod make_environment;
 mod native_coverage;
 mod owned_command;
 mod phase_plan;
+mod phase_timings;
 mod report_file;
 mod rust_toolchain;
 mod rustdoc_owner;
@@ -565,7 +566,7 @@ fn write_report(
         .iter()
         .map(|result| {
             format!(
-                "    {{\"name\":\"{}\",\"tier\":\"{}\",\"executor\":\"{}\",\"outcome\":\"{}\",\"wall_time_ms\":{},\"child_pid\":{},\"test_execution\":{}}}",
+                "    {{\"name\":\"{}\",\"tier\":\"{}\",\"executor\":\"{}\",\"outcome\":\"{}\",\"wall_time_ms\":{},\"child_pid\":{},\"test_execution\":{},\"timeout_seconds\":{},\"near_deadline\":{},\"recommended_timeout_seconds\":{}}}",
                 result.name,
                 result.tier.as_str(),
                 result.executor,
@@ -573,6 +574,9 @@ fn write_report(
                 result.wall_time_ms,
                 serde_json::json!(result.child_pid),
                 serde_json::json!(result.test_execution),
+                phase_timeout.as_secs(),
+                result.wall_time_ms >= phase_timeout.as_millis().saturating_mul(4) / 5,
+                phase_timings::recommended_seconds(result.wall_time_ms),
             )
         })
         .collect::<Vec<_>>()

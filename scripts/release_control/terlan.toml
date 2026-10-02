@@ -1,0 +1,7 @@
+[package]
+name = "release-control"
+version = "0.0.9"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

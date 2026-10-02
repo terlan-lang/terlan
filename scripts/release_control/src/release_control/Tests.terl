@@ -1,0 +1,77 @@
+/**
+ * Offline release state-machine regressions.
+ */
+module release_control.Tests.
+
+import release_control.{Status, Support, Version}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.data.Json.
+
+row(revision: String, status: String, conclusion: String): Json ->
+    Json.array()
+        .push(
+            Json.object()
+                .put("headSha", Json.string(revision))
+                .put("databaseId", Json.int(17))
+                .put("url", Json.string("https://github.com/terlan-lang/terlan/actions/runs/17"))
+                .put("status", Json.string(status))
+                .put("conclusion", Json.string(conclusion)),
+        ).
+
+state(status: String, conclusion: String): Json ->
+    case Status.workflow(row("candidate", status, conclusion), "candidate", "ci.yml") {
+        Ok(value) -> value;
+        Err(_reason) -> Json.null()
+    }.
+
+/**
+ * Covers pending, missing, failed, malformed, stale, and complete workflow evidence.
+ */
+pub run(): Bool ->
+    let success = state("completed", "success");
+    let pending = state("in_progress", "");
+    let failed = state("completed", "failure");
+    let cancelled = state("completed", "cancelled");
+    Version.valid("0.0.9")
+        and Version.valid("1.20.3")
+        and not Version.valid("v0.0.9")
+        and not Version.valid("0.0.09")
+        and not Version.valid("0.-1.9")
+        and not Version.valid("0.0")
+        and not Status.assets_available(Json.array())
+        and not Status.assets_available(
+    Json.array()
+        .push(
+            Json.object()
+                .put("name", Json.string("release-distribution"))
+                .put("expired", Json.bool(true)),
+        )
+        .push(
+            Json.object()
+                .put("name", Json.string("release-hosted-validation-evidence"))
+                .put("expired", Json.bool(false)),
+        ),
+)
+        and Status.decision(success, pending) == "waiting"
+        and Status.decision(pending, success) == "waiting"
+        and Status.decision(success, failed) == "failed"
+        and Status.decision(cancelled, success) == "failed"
+        and Status.decision(success, success) == "ready"
+        and case Status.workflow(Json.array(), "candidate", "ci.yml") {
+    Ok(value) -> Support.text(value, "state") == "missing";
+    _ -> false
+}
+        and case Status.workflow(row("stale", "completed", "success"), "candidate", "ci.yml") {
+    Err(_reason) -> true;
+    _ -> false
+}
+        and case Status.workflow(Json.object(), "candidate", "ci.yml") {
+    Err(_reason) -> true;
+    _ -> false
+}
+        and case Status.workflow(row("candidate", "unexpected", "success"), "candidate", "ci.yml") {
+    Err(_reason) -> true;
+    _ -> false
+}.

@@ -1,0 +1,8 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Observes one release candidate or waits, prepares, and publishes it.
+ */
+import release_control.Main.
+
+assert(Main.entry());
+Unit.

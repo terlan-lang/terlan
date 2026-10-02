@@ -1,0 +1,224 @@
+/**
+ * A single release view bound to one exact source revision.
+ */
+module release_control.Status.
+
+import release_control.{Publication, Support}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Classifies the latest workflow attempt without accepting missing or foreign evidence.
+ */
+pub workflow(runs: Json, revision: String, name: String): Result[Json, String] ->
+    case runs.length() {
+        Ok(0) ->
+            Ok(
+                Json.object()
+                    .put("workflow", Json.string(name))
+                    .put("state", Json.string("missing")),
+            );
+        Ok(1) ->
+            case runs.at(0) {
+                Err(_reason) -> Err("missing workflow row");
+                Ok(row) ->
+                    let status = Support.text(row, "status");
+                    let conclusion = Support.text(row, "conclusion");
+                    if {
+                        Support.text(row, "headSha") != revision -> Err("workflow belongs to a different source revision");
+                        Support.number(row, "databaseId") <= 0 -> Err("workflow identifier is invalid");
+                        not String.starts_with(Support.text(row, "url"), "https://github.com/") -> Err("workflow URL is invalid");
+                        status != "completed"
+                            and status != "in_progress"
+                            and status != "queued"
+                            and status != "pending"
+                            and status != "waiting"
+                            and status != "requested" -> Err("unknown workflow status");
+                        true -> Ok(
+                            row
+                                .put("workflow", Json.string(name))
+                                .put(
+                                    "state",
+                                    Json.string(
+                                        if {
+                                            status != "completed" -> "waiting";
+                                            conclusion == "success" -> "success";
+                                            true -> "failed"
+                                        },
+                                    ),
+                                ),
+                        )
+                    }
+            };
+        _ -> Err("expected an array containing at most one latest workflow attempt")
+    }.
+
+/**
+ * Requires both independent canonical workflows; a green artifact build alone is insufficient.
+ */
+pub decision(compiler: Json, release: Json): String ->
+    let compiler_state = Support.text(compiler, "state");
+    let release_state = Support.text(release, "state");
+    if {
+        compiler_state == "failed" or release_state == "failed" -> "failed";
+        compiler_state == "success" and release_state == "success" -> "ready";
+        true -> "waiting"
+    }.
+
+load(revision: String, name: String): Result[Json, String] ->
+    case Support.github(
+        [
+            "run",
+            "list",
+            "--branch",
+            "main",
+            "--commit",
+            revision,
+            "--workflow",
+            name,
+            "--limit",
+            "1",
+            "--json",
+            "databaseId,headSha,status,conclusion,url,workflowName",
+        ],
+    ) {
+        Err(reason) -> Err(reason);
+        Ok(runs) -> workflow(runs, revision, name)
+    }.
+
+details(row: Json, revision: String): Result[Json, String] ->
+    if {
+        Support.text(row, "state") == "missing" -> Ok(row);
+        true -> case Support.github(
+            [
+                "run",
+                "view",
+                Int.to_string(Support.number(row, "databaseId")),
+                "--json",
+                "headSha,jobs",
+            ],
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(document) ->
+                if {
+                    Support.text(document, "headSha") != revision -> Err("workflow details changed revision");
+                    true -> case document.get("jobs") {
+                        Ok(jobs) -> Ok(row.put("jobs", jobs));
+                        _ -> Err("workflow details contain no jobs")
+                    }
+                }
+        }
+    }.
+
+artifacts(row: Json): Result[Json, String] ->
+    if {
+        Support.text(row, "state") != "success" -> Ok(Json.array());
+        true -> case Support.github(
+            [
+                "api",
+                String.concat(
+                    [
+                        "repos/{owner}/{repo}/actions/runs/",
+                        Int.to_string(Support.number(row, "databaseId")),
+                        "/artifacts?per_page=100",
+                    ],
+                ),
+            ],
+        ) {
+            Err(reason) -> Err(reason);
+            Ok(document) ->
+                case document.get("artifacts") {
+                    Ok(values) ->
+                        if {
+                            Support.number(document, "total_count") > 100 -> Err("artifact inventory exceeds the supported page size");
+                            true -> Ok(values)
+                        };
+                    _ -> Err("artifact inventory is missing")
+                }
+        }
+    }.
+
+available(values: Json, name: String, index: Int, count: Int): Bool ->
+    if {
+        index >= count -> false;
+        true -> case values.at(index) {
+            Ok(row) ->
+                if {
+                    Support.text(row, "name") == name -> let {
+                        Ok(value) <- row.get("expired");
+                        Ok(false) <- value.as_bool()
+                    } else {
+                        _ -> false
+                    };
+                    true;
+                    true -> available(values, name, index + 1, count)
+                };
+            _ -> false
+        }
+    }.
+
+/**
+ * Requires retained distribution and hosted evidence before reporting readiness.
+ */
+pub assets_available(values: Json): Bool ->
+    case values.length() {
+        Ok(count) ->
+            available(values, "release-distribution", 0, count)
+                and available(values, "release-hosted-validation-evidence", 0, count);
+        _ -> false
+    }.
+
+/**
+ * Collects current jobs and artifact metadata; publication still verifies attestations and checksums.
+ */
+pub collect(revision: String, version: String): Result[Json, String] ->
+    let {
+        Ok(compiler_row) <- load(revision, "ci.yml");
+        Ok(release_row) <- load(revision, "release.yml");
+        Ok(compiler) <- details(compiler_row, revision);
+        Ok(release) <- details(release_row, revision);
+        Ok(assets) <- artifacts(release);
+        Ok(publication) <- Publication.observe(revision, version);
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (let published = Support.text(publication, "html_url") != "";
+let missing_assets = Support.text(release, "state") == "success" and not assets_available(assets);
+let source_changed = changes != "" or branch != "main";
+let state =
+    if {
+        published -> "published";
+        source_changed or missing_assets -> "failed";
+        true -> decision(compiler, release)
+    };
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.release-status.v1"))
+        .put("revision", Json.string(revision))
+        .put("version", Json.string(version))
+        .put("branch", Json.string(branch))
+        .put("working_tree_clean", Json.bool(changes == ""))
+        .put("state", Json.string(state))
+        .put("checks", Json.array().push(compiler).push(release))
+        .put("artifacts", assets)
+        .put("publication", publication)
+        .put(
+            "next_action",
+            Json.string(
+                if {
+                    published -> Support.text(publication, "html_url");
+                    source_changed -> "commit the intended source on main, push it, and restart release control";
+                    missing_assets -> "rerun release validation to regenerate missing or expired artifacts";
+                    state == "ready" -> "prepare and verify this candidate, then publish";
+                    state == "failed" -> "inspect the failed workflow; fix or rerun it before publication";
+                    true -> "wait for both canonical workflows on this revision"
+                },
+            ),
+        ),
+)).

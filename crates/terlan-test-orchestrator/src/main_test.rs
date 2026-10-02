@@ -15,7 +15,7 @@ fn orchestrator_runs_shared_runtime_tests_in_the_library_harness() {
     let phases = test_phases(false);
     let library = phases.first().expect("Terlan library phase");
 
-    assert_eq!(library.name, "Terlan library");
+    assert_eq!(library.name, "Terlan commands");
     assert_eq!(library.executor, PhaseExecutor::TerlanHarness);
     for filter in INTEGRATION_FILTERS {
         assert!(library
@@ -63,7 +63,7 @@ fn orchestrator_partitions_one_union_feature_harness_without_test_replay() {
         .filter(|phase| phase.executor == PhaseExecutor::TerlanHarness);
     assert_eq!(
         terlan_library_phases.count(),
-        9 + 2 * usize::from(cfg!(target_os = "linux"))
+        14 + 2 * usize::from(cfg!(target_os = "linux"))
     );
 }
 
@@ -268,7 +268,7 @@ fn every_orchestrated_phase_has_one_known_tier() {
             .iter()
             .filter(|phase| phase.tier == ValidationTier::FastUnit)
             .count(),
-        1
+        6
     );
     assert_eq!(
         phases
