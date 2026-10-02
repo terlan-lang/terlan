@@ -108,7 +108,7 @@ pub enum AcmeHttp01Challenge {
 ///   issuer-handoff tests without opening the ACME network.
 pub fn load_acme_runtime_tls_cache(
     plan: &AcmeRuntimePlan,
-) -> Result<Option<RuntimeTlsConfig>, String> {
+) -> Result<Option<RuntimeTlsConfig>, crate::ServiceError> {
     cache::validate_acme_cache_paths(plan)?;
     let certificate_exists = plan.certificate_path.is_file();
     let private_key_exists = plan.private_key_path.is_file();
@@ -132,7 +132,7 @@ pub fn load_acme_runtime_tls_cache(
             acme_domain_list(plan),
             plan.certificate_path.display(),
             plan.private_key_path.display()
-        )),
+        ).into()),
     }
 }
 
@@ -160,7 +160,7 @@ fn acme_domain_list(plan: &AcmeRuntimePlan) -> String {
 pub fn acme_http01_challenge(
     project: Option<(&Path, &ProjectServerTls)>,
     request_path: &str,
-) -> Result<AcmeHttp01Challenge, String> {
+) -> Result<AcmeHttp01Challenge, crate::ServiceError> {
     let Some(token) = request_path.strip_prefix(ACME_HTTP01_PATH_PREFIX) else {
         return Ok(AcmeHttp01Challenge::NotMatched);
     };
@@ -184,7 +184,8 @@ pub fn acme_http01_challenge(
         Err(err) => Err(format!(
             "error[serve_tls]: failed to read ACME HTTP-01 challenge `{}`: {err}",
             challenge_path.display()
-        )),
+        )
+        .into()),
     }
 }
 

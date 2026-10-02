@@ -23,7 +23,7 @@ pub const ENCODE_EVENT: NativeBinding = NativeBinding {
     },
 };
 
-/// Encodes one event, rejecting metadata that could inject a second wire field.
+/// Encodes one event with source-normalized data, rejecting metadata injection.
 pub fn encode_event(
     id: Option<&str>,
     event: Option<&str>,
@@ -58,13 +58,13 @@ pub fn encode_event(
             })?;
         encoded = encoded.retry(Duration::from_millis(millis));
     }
-    // Normalize CRLF before Axum sees individual delimiters, preserving one
-    // logical newline rather than producing two data lines for Windows text.
-    encoded = if data.contains('\r') {
-        encoded.data(data.replace("\r\n", "\n").replace('\r', "\n"))
-    } else {
-        encoded.data(data)
-    };
+    if data.contains('\r') {
+        return Err(failure(
+            "http.sse.unnormalized_data",
+            "event data must use LF line endings",
+        ));
+    }
+    encoded = encoded.data(data);
     // A finite iterator is always ready. Poll once; never start an executor or
     // block an actor. Framing is obtained through Axum's public Body interface.
     let body = Sse::new(stream::iter([Ok::<_, Infallible>(encoded)]))

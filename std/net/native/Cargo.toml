@@ -12,9 +12,9 @@ workspace = true
 
 [dependencies]
 rustls = { workspace = true, features = ["ring", "std", "tls12"] }
-socket2 = { version = "0.6.1", features = ["all"] }
+socket2 = { workspace = true, features = ["all"] }
 terlan-runtime-abi = { workspace = true, features = ["poll-io"] }
-mio = { version = "1.2.2", features = ["net", "os-poll"] }
+mio = { workspace = true, features = ["net", "os-poll"] }
 url.workspace = true
 
 [dev-dependencies]

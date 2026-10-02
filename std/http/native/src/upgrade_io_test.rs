@@ -107,8 +107,9 @@ fn cancelling_before_read_ahead_is_consumed_releases_transport() {
 fn foreign_transport_is_rejected_and_released() {
     let (upgraded, state) = upgrade::<3>(b"unread");
     let error = Adapter::from_upgraded(upgraded).err().unwrap();
+    assert_eq!(error.code(), "serve.websocket.upgrade");
     assert_eq!(
-        error,
+        error.to_string(),
         "error[serve.websocket.upgrade]: Hyper returned an unexpected transport type"
     );
     assert_eq!(state.lock().unwrap().drops, 1);

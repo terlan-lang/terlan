@@ -32,7 +32,7 @@ fn checks_each_manual_field_and_leaves_non_manual_modes_alone() {
                 _ => invalid_tls.ca = Some(invalid.into()),
             }
             let error = validate_manual_tls_file_references(dir.path(), &invalid_tls).unwrap_err();
-            assert!(error.contains(field), "{error}");
+            assert!(error.to_string().contains(field), "{error}");
         }
     }
     tls.cert = Some("/outside.pem".into());
@@ -62,7 +62,10 @@ fn symlinks_cannot_bypass_project_containment_for_checks_or_startup() {
             _ => tls.ca = Some("outside/outside.pem".into()),
         }
         let error = validate_manual_tls_file_references(root.path(), &tls).unwrap_err();
-        assert!(error.contains("stay inside the project"), "{error}");
+        assert!(
+            error.to_string().contains("stay inside the project"),
+            "{error}"
+        );
         assert!(crate::tls_runtime::load(root.path(), &tls, |_| panic!("manual mode")).is_err());
     }
     fs::remove_file(root.path().join("cert.pem")).unwrap();

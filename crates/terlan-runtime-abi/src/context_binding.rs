@@ -26,10 +26,12 @@ impl<C: ?Sized> NativeContextBinding<C> {
         }
     }
 
+    /// Checks the argument count without invoking the callback.
     pub fn validate_arity(&self, received: usize) -> Result<(), BoundaryError> {
         crate::native_value::validate_native_arity(self.operation, self.arity, received)
     }
 
+    /// Returns the number of arguments required by the callback.
     pub const fn arity(&self) -> usize {
         self.arity
     }

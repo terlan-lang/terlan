@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use super::model::{
-    ProjectServerProfile, ProjectServerTlsMode, ProjectServerTlsProvider, ProjectWebAssets,
+    ProjectServerProfile, ProjectServerTls, ProjectServerTlsMode, ProjectServerTlsProvider,
+    ProjectWebAssets,
 };
 use super::strings::parse_string;
 
@@ -85,6 +86,26 @@ impl ProjectWebAssetsBuilder {
 }
 
 pub(super) use terlan_http_native::tls_config::Settings as ProjectServerTlsBuilder;
+
+/// Rejects development-only TLS configuration for a production server profile.
+pub(super) fn validate_server_profile_defaults(
+    path: &Path,
+    server_profile: Option<ProjectServerProfile>,
+    server_tls: Option<&ProjectServerTls>,
+) -> Result<(), String> {
+    if matches!(server_profile, Some(ProjectServerProfile::Production))
+        && matches!(
+            server_tls.map(|tls| tls.mode),
+            Some(ProjectServerTlsMode::Internal)
+        )
+    {
+        return Err(format!(
+            "{}: project manifest [server] profile production cannot use [server.tls] mode internal",
+            path.display()
+        ));
+    }
+    Ok(())
+}
 
 /// Parses a supported server TLS mode.
 ///

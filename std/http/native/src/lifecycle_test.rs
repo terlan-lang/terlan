@@ -115,7 +115,7 @@ fn hook_and_handler_failure_matrix_preserves_order_and_cleanup() {
             _ => unreachable!(),
         };
         if let Some(error) = expected {
-            assert_eq!(result.unwrap_err(), error);
+            assert_eq!(result.unwrap_err().to_string(), error);
         } else {
             assert_eq!(result.unwrap().body(), &[1, 2]);
         }
@@ -233,7 +233,7 @@ fn failed_admission_never_observes_start_or_consumes_another_request() {
         |error| format!("{error:?}"),
     );
     assert_eq!(
-        result.unwrap_err(),
+        result.unwrap_err().to_string(),
         format!("AlreadyActive {{ owner: 1, request_id: {id} }}")
     );
     assert_eq!(events.borrow().len(), 1);

@@ -2,15 +2,15 @@ use super::*;
 use serde_json::{json, Value};
 
 fn validate(value: Value) -> Result<Config, String> {
-    serde_json::from_value::<Settings>(value)
+    Ok(serde_json::from_value::<Settings>(value)
         .map_err(|error| error.to_string())?
-        .validate()
+        .validate()?)
 }
 
 #[test]
 fn defaults_and_valid_modes_preserve_exact_settings_without_io() {
     assert_eq!(
-        Settings::default().validate().unwrap_err(),
+        Settings::default().validate().unwrap_err().to_string(),
         "project manifest [server.tls] requires mode"
     );
     let internal = validate(json!({"mode": "internal"})).unwrap();

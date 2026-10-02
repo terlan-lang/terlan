@@ -8,6 +8,7 @@ import release_promotion.{EvidenceReports, OwnerStorage, OwnerTools, Preparation
 import std.core.Option.Some.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
+import std.data.Json.
 import std.io.{Console, File}.
 import std.system.Process.
 

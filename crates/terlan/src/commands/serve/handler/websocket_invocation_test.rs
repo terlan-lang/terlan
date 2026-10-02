@@ -22,6 +22,9 @@ pub opened(): Unit -> Unit.
 pub inbound(_frame: String): Unit ->
     let _wake = Process.receive_string();
     Unit.
+pub bytes_inbound(_frame: String): Unit ->
+    let _wake = Process.receive_bytes();
+    Unit.
 pub writable(): Unit -> Unit.
 pub closed(): Unit -> Unit.
 pub cancelled(_reason: String): Unit -> Unit.
@@ -186,4 +189,133 @@ fn websocket_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     assert!(!terminal.is_open());
 
     fs::remove_dir_all(root).expect("cleanup callback fixture");
+}
+
+#[test]
+fn websocket_incompatible_wakes_preserve_queued_frames_and_callback_owner() {
+    let (root, runtime, endpoint) = runtime();
+    let mut callbacks = endpoint.callbacks().unwrap().clone();
+    callbacks.inbound = crate::runtime::vm::native_callable::VmNativeCallableRef {
+        module: "app.SocketCallbacks".into(),
+        function: "bytes_inbound".into(),
+        arity: 1,
+    }
+    .into_value();
+    let plan = WebSocketEndpointPlan::new(4, 1024)
+        .unwrap()
+        .with_callbacks(callbacks)
+        .unwrap();
+    let mut session = AotWebSocketCallbackSession::open(
+        runtime,
+        "app.SocketCallbacks".into(),
+        Session::open(plan),
+    )
+    .unwrap();
+    session.enqueue_inbound("first".into()).unwrap();
+    session.enqueue_inbound("second".into()).unwrap();
+    let AotWebSocketCallbackState::Waiting(wait) = session.inbound("park".into()).unwrap() else {
+        panic!("bytes callback must park");
+    };
+    let before = session.inspect();
+    for _ in 0..8 {
+        for error in [
+            session.enqueue_inbound("rejected".into()).unwrap_err(),
+            session.dispatch_next_inbound_output().unwrap_err(),
+            session
+                .dispatch_next_stateful_inbound_output(
+                    "state".into(),
+                    1,
+                    "first".into(),
+                    "second".into(),
+                )
+                .unwrap_err(),
+        ] {
+            assert!(error.contains("serve.websocket.wake_type"), "{error}");
+            assert_eq!(session.inspect(), before);
+            assert!(session.is_waiting());
+        }
+    }
+    completed(
+        session
+            .resume(wait.wake(ReplValue::Bytes([7].into())))
+            .unwrap(),
+    );
+    assert_eq!(session.live.next_inbound().unwrap().as_str(), "first");
+    assert_eq!(session.live.next_inbound().unwrap().as_str(), "second");
+    completed(session.close().unwrap());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn package_websocket_connection_executes_compiled_source_and_cancels_parked_code() {
+    use std::future::{pending, Future};
+    use std::io::Cursor;
+    use std::task::{Context, Poll, Waker};
+    use terlan_http_native::websocket::{connection, hub::WebSocketHub, Message};
+    use tungstenite::protocol::{Role, WebSocket};
+
+    let (root, runtime, endpoint) = runtime();
+    for failure in [false, true] {
+        let mut session = AotWebSocketCallbackSession::open(
+            Arc::clone(&runtime),
+            "app.SocketCallbacks".into(),
+            Session::open(endpoint.clone()),
+        )
+        .unwrap();
+        let mut client = WebSocket::from_raw_socket(Cursor::new(Vec::new()), Role::Client, None);
+        client.send(Message::text("start source callback")).unwrap();
+        if failure {
+            client.send(Message::binary(vec![1])).unwrap();
+        } else {
+            client
+                .send(Message::text("wake parked source callback"))
+                .unwrap();
+            client.close(None).unwrap();
+        }
+        let hub = Arc::new(WebSocketHub::default());
+        let io = Cursor::new(client.into_inner().into_inner());
+        let mut future = Box::pin(connection::serve(
+            std::future::ready(Ok(io)),
+            &mut session,
+            &hub,
+            "/socket".into(),
+            "/socket".into(),
+            pending,
+        ));
+        let Poll::Ready(result) = future
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+        else {
+            panic!("complete input must not park transport");
+        };
+        drop(future);
+        if failure {
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("serve.websocket.binary"));
+            assert_eq!(
+                session.completed_events(),
+                &[
+                    AotWebSocketCallbackEvent::Open,
+                    AotWebSocketCallbackEvent::Writable,
+                    AotWebSocketCallbackEvent::Cancellation
+                ]
+            );
+        } else {
+            result.unwrap();
+            assert_eq!(
+                session.completed_events(),
+                &[
+                    AotWebSocketCallbackEvent::Open,
+                    AotWebSocketCallbackEvent::Writable,
+                    AotWebSocketCallbackEvent::Inbound,
+                    AotWebSocketCallbackEvent::Close
+                ]
+            );
+        }
+        assert!(!session.is_open());
+        assert!(!session.is_waiting());
+    }
+    fs::remove_dir_all(root).unwrap();
 }

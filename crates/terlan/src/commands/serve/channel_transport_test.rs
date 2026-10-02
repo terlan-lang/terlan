@@ -256,7 +256,10 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
         pressure.contains("pending frame queue is full"),
         "{pressure}"
     );
-    drain_websocket_inbound(session).expect("dispatch queued frame and typed wake");
+    while session
+        .dispatch_next_inbound()
+        .expect("dispatch queued frame and typed wake")
+    {}
     assert_eq!(session.inspect().pending_frames, 0);
     assert!(!session.is_waiting());
 

@@ -24,8 +24,6 @@ fn maintained_encoder_frames_empty_multiline_and_unicode_data() {
         ("", "\n"),
         ("hello", "data: hello\n\n"),
         ("a\nb", "data: a\ndata: b\n\n"),
-        ("a\r\nb", "data: a\ndata: b\n\n"),
-        ("a\rb", "data: a\ndata: b\n\n"),
         ("a\n", "data: a\ndata: \n\n"),
         ("\n\nid: injected", "data: \ndata: \ndata: id: injected\n\n"),
         ("\u{e9}\u{1f642}\0", "data: \u{e9}\u{1f642}\0\n\n"),
@@ -44,6 +42,23 @@ fn maintained_encoder_frames_empty_multiline_and_unicode_data() {
         encode_event(Some(""), Some(""), Some(i64::MAX), "").unwrap(),
         format!("id: \nevent: \nretry: {}\n\n", i64::MAX)
     );
+}
+
+#[test]
+fn codec_rejects_unnormalized_data_without_rewriting_or_exposing_it() {
+    let none = NativeValue::from(None::<String>);
+    for data in [
+        "\r",
+        "\r\n",
+        "secret\r\npayload",
+        "secret\rpayload",
+        "\n\r\n",
+    ] {
+        let args = [none.clone(), none.clone(), none.clone(), data.into()];
+        let error = (ENCODE_EVENT.invoke)(&args).unwrap_err().to_string();
+        assert!(error.contains("http.sse.unnormalized_data"));
+        assert!(!error.contains("secret"));
+    }
 }
 
 #[test]

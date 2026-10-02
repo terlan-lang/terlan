@@ -42,6 +42,7 @@ pub struct ReadyStream<S, I> {
 }
 
 impl<S, I> ReadyStream<S, I> {
+    /// Wraps a stream with a host controller for lazy write-interest registration.
     pub fn new(stream: S, interest: I) -> Self {
         Self {
             stream,
@@ -66,6 +67,7 @@ impl<S, I: WriteInterest<S>> ReadyStream<S, I> {
 }
 
 impl<S: ReadinessStream, I> ReadyStream<S, I> {
+    /// Shuts down the stream's write half while preserving its read half.
     pub fn shutdown_write(&self) -> io::Result<()> {
         self.stream.shutdown_write()
     }

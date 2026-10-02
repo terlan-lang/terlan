@@ -5,7 +5,7 @@ fn join(
     pairing: &WebSocketPairing<()>,
     capacity: usize,
 ) -> Result<WebSocketHubLease, String> {
-    hub.join("/ws".into(), "/request".into(), capacity, pairing, None)
+    Ok(hub.join("/ws".into(), "/request".into(), capacity, pairing, None)?)
 }
 
 #[test]
@@ -96,13 +96,17 @@ fn panicking_transition_poison_is_reported_without_further_callback_execution() 
     .is_err());
     for error in [
         join(&hub, &pairing, 4).err().unwrap(),
-        hub.deliver(first.id, "value".into()).unwrap_err(),
+        hub.deliver(first.id, "value".into())
+            .unwrap_err()
+            .to_string(),
         hub.complete_match(first.id, "first".into(), "second".into())
-            .unwrap_err(),
-        first.broadcast("value".into()).unwrap_err(),
+            .unwrap_err()
+            .to_string(),
+        first.broadcast("value".into()).unwrap_err().to_string(),
         first
             .transition(|_, _, _, _| panic!("poison must reject before invocation"))
-            .unwrap_err(),
+            .unwrap_err()
+            .to_string(),
     ] {
         assert!(error.contains("lock poisoned"), "{error}");
     }
@@ -195,7 +199,10 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
         ..Callbacks::default()
     };
     assert_eq!(
-        second.dispatch_admission(&mut callbacks).unwrap_err(),
+        second
+            .dispatch_admission(&mut callbacks)
+            .unwrap_err()
+            .to_string(),
         "source callback rejected"
     );
     assert!(first.outbound.try_recv().is_err());
@@ -203,7 +210,8 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
     assert_eq!(
         first
             .transition(|_, _, _, _| Err("rejected".into()))
-            .unwrap_err(),
+            .unwrap_err()
+            .to_string(),
         "rejected"
     );
     first
@@ -303,6 +311,7 @@ fn optional_transition_deliveries_preserve_empty_frames_and_state() {
     assert!(second
         .transition(|state, _, _, _| Ok((state, None, Some(String::new()))))
         .unwrap_err()
+        .to_string()
         .contains("queue is full"));
     assert_eq!(first.outbound.try_recv().unwrap(), "");
     assert_eq!(second.outbound.try_recv().unwrap(), "");
@@ -530,7 +539,7 @@ fn websocket_hub_expires_fully_disconnected_room() {
         )
         .err()
         .expect("expired room must reject restoration");
-    assert!(error.contains("room not found"));
+    assert!(error.to_string().contains("room not found"));
 }
 
 #[test]
@@ -548,7 +557,7 @@ fn websocket_hub_requires_valid_source_identity_and_keeps_room_isolation() {
             )
             .err()
             .unwrap();
-        assert!(error.contains("invalid resolved identity"));
+        assert!(error.to_string().contains("invalid resolved identity"));
     }
     let first = hub
         .join("/ws".into(), "/ws".into(), 4, &pairing, None)
@@ -566,6 +575,7 @@ fn websocket_hub_requires_valid_source_identity_and_keeps_room_isolation() {
         )
         .err()
         .unwrap()
+        .to_string()
         .contains("already connected"));
     drop(first);
     drop(second);
@@ -579,6 +589,7 @@ fn websocket_hub_requires_valid_source_identity_and_keeps_room_isolation() {
         )
         .err()
         .unwrap()
+        .to_string()
         .contains("room not found"));
     // The hub accepts resolved identity, not query syntax or query-key policy.
     let restored = hub
@@ -602,6 +613,7 @@ fn websocket_hub_requires_valid_source_identity_and_keeps_room_isolation() {
         )
         .err()
         .unwrap()
+        .to_string()
         .contains("invalid resolved identity"));
 }
 
@@ -642,7 +654,7 @@ fn websocket_hub_evicts_oldest_fully_disconnected_room_at_capacity() {
         )
         .err()
         .expect("oldest retained room must be evicted");
-    assert!(oldest_error.contains("room not found"));
+    assert!(oldest_error.to_string().contains("room not found"));
     hub.join(
         "/ws".into(),
         "/ws?room_id=room-2&player_id=player-1".into(),

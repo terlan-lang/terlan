@@ -8,7 +8,7 @@ use terlan_http_native::websocket::Utf8Bytes;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::pure_native::PureNativeIoWake;
+use crate::runtime::vm::pure_native::{PureNativeIoWait, PureNativeIoWake};
 use crate::runtime::vm::ReplValue;
 
 use super::channel_invocation::{AotChannelCallbackState, AotChannelInvocation};
@@ -92,6 +92,7 @@ impl AotWebSocketCallbackSession {
         &mut self,
         text: Utf8Bytes,
     ) -> Result<(), String> {
+        self.inbound_wait()?;
         self.live
             .enqueue_inbound(text)
             .map_err(|error| error.to_string())
@@ -108,17 +109,10 @@ impl AotWebSocketCallbackSession {
     pub(in crate::commands::serve) fn dispatch_next_inbound_output(
         &mut self,
     ) -> Result<(bool, Option<ReplValue>), String> {
-        let Some(text) = self.live.next_inbound() else {
+        let Some((value, wait)) = self.next_inbound_frame()? else {
             return Ok((false, None));
         };
-        let value = text.to_string();
-        if let Some(wait) = self.invocation.pending_wait()? {
-            if wait.boundary_type() != &TvmBoundaryType::String {
-                return Err(format!(
-                    "error[serve.websocket.wake_type]: inbound text cannot wake {:?}",
-                    wait.boundary_type()
-                ));
-            }
+        if let Some(wait) = wait {
             let state = self.resume(wait.wake(ReplValue::String(value)))?;
             Ok((true, completed_value(state)))
         } else {
@@ -135,17 +129,10 @@ impl AotWebSocketCallbackSession {
         first_request: String,
         second_request: String,
     ) -> Result<(bool, Option<ReplValue>), String> {
-        let Some(text) = self.live.next_inbound() else {
+        let Some((value, wait)) = self.next_inbound_frame()? else {
             return Ok((false, None));
         };
-        let value = text.to_string();
-        if let Some(wait) = self.invocation.pending_wait()? {
-            if wait.boundary_type() != &TvmBoundaryType::String {
-                return Err(format!(
-                    "error[serve.websocket.wake_type]: inbound text cannot wake {:?}",
-                    wait.boundary_type()
-                ));
-            }
+        if let Some(wait) = wait {
             let state = self.resume(wait.wake(ReplValue::String(value)))?;
             Ok((true, completed_value(state)))
         } else {
@@ -161,6 +148,30 @@ impl AotWebSocketCallbackSession {
             )?;
             Ok((true, completed_value(state)))
         }
+    }
+
+    fn inbound_wait(&self) -> Result<Option<PureNativeIoWait>, String> {
+        let wait = self.invocation.pending_wait()?;
+        if let Some(wait) = &wait {
+            if wait.boundary_type() != &TvmBoundaryType::String {
+                return Err(format!(
+                    "error[serve.websocket.wake_type]: inbound text cannot wake {:?}",
+                    wait.boundary_type()
+                ));
+            }
+        }
+        Ok(wait)
+    }
+
+    fn next_inbound_frame(&mut self) -> Result<Option<(String, Option<PureNativeIoWait>)>, String> {
+        if self.live.inspect().pending_frames == 0 {
+            return Ok(None);
+        }
+        let wait = self.inbound_wait()?;
+        Ok(self
+            .live
+            .next_inbound()
+            .map(|text| (text.to_string(), wait)))
     }
 
     /// Resolves reconnect identity using the admitted source callback.

@@ -35,11 +35,13 @@ fn cache_roundtrip_reuses_http_tls_setup_and_rejects_partial_or_stale_material()
     assert!(load_acme_runtime_tls_cache(&plan)
         .err()
         .unwrap()
+        .to_string()
         .contains("requires renewal"));
     fs::remove_file(&plan.private_key_path).unwrap();
     assert!(load_acme_runtime_tls_cache(&plan)
         .err()
         .unwrap()
+        .to_string()
         .contains("incomplete"));
 }
 
@@ -124,6 +126,7 @@ fn http01_lookup_preserves_mode_admission_and_rejects_unsafe_tokens() {
     fs::create_dir(plan.http01_challenge_dir.join("directory")).unwrap();
     assert!(acme_http01_challenge(project, &route("directory"))
         .unwrap_err()
+        .to_string()
         .contains("failed to read ACME HTTP-01"));
 }
 
@@ -144,6 +147,7 @@ fn cache_paths_reject_parent_traversal_before_reads_or_writes() {
         assert!(load_acme_runtime_tls_cache(&invalid)
             .err()
             .unwrap()
+            .to_string()
             .contains("escapes package-owned"));
         assert!(
             store_acme_account_credentials(&invalid, &serde_json::json!({"key": "secret"}))
@@ -175,6 +179,7 @@ fn cache_custody_rejects_symlink_escapes_and_writes_secrets_owner_only() {
     assert!(load_acme_runtime_tls_cache(&plan)
         .err()
         .unwrap()
+        .to_string()
         .contains("escapes package-owned"));
     fs::remove_file(&plan.private_key_path).unwrap();
     fs::create_dir(&plan.http01_challenge_dir).unwrap();
@@ -184,8 +189,8 @@ fn cache_custody_rejects_symlink_escapes_and_writes_secrets_owner_only() {
         &format!("{ACME_HTTP01_PATH_PREFIX}safe"),
     )
     .unwrap_err();
-    assert!(error.contains("escapes package-owned"));
-    assert!(!error.contains("do not disclose"));
+    assert!(error.to_string().contains("escapes package-owned"));
+    assert!(!error.to_string().contains("do not disclose"));
 }
 
 #[test]
@@ -204,11 +209,13 @@ fn account_storage_roundtrips_opaque_serde_payloads_and_rejects_malformed_files(
     fs::write(&plan.account_credentials_path, "{").unwrap();
     assert!(load_acme_account_credentials::<serde_json::Value>(&plan)
         .unwrap_err()
+        .to_string()
         .contains("failed to parse"));
     fs::remove_file(&plan.account_credentials_path).unwrap();
     fs::create_dir(&plan.account_credentials_path).unwrap();
     assert!(load_acme_account_credentials::<serde_json::Value>(&plan)
         .unwrap_err()
+        .to_string()
         .contains("failed to read"));
 }
 

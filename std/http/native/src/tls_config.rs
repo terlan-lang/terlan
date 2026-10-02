@@ -97,7 +97,7 @@ pub struct Settings {
 
 impl Settings {
     /// Validate an explicitly present section without materializing TLS resources.
-    pub fn validate(self) -> Result<Config, String> {
+    pub fn validate(self) -> Result<Config, crate::ServiceError> {
         for (field, value) in [
             ("email", self.email.as_deref()),
             ("cert", self.cert.as_deref()),
@@ -107,9 +107,9 @@ impl Settings {
             ("server_name", self.server_name.as_deref()),
         ] {
             if value.is_some_and(|value| value.trim().is_empty()) {
-                return Err(format!(
-                    "project manifest [server.tls] {field} cannot be empty"
-                ));
+                return Err(
+                    format!("project manifest [server.tls] {field} cannot be empty").into(),
+                );
             }
         }
         if self

@@ -74,7 +74,7 @@ impl WebSocketHub {
         capacity: usize,
         pairing: &WebSocketPairing<C>,
         identity: Option<(String, i64)>,
-    ) -> Result<WebSocketHubLease, String> {
+    ) -> Result<WebSocketHubLease, crate::ServiceError> {
         self.join_at(
             route,
             request_target,
@@ -93,7 +93,7 @@ impl WebSocketHub {
         pairing: &WebSocketPairing<C>,
         identity: Option<(String, i64)>,
         now: Instant,
-    ) -> Result<WebSocketHubLease, String> {
+    ) -> Result<WebSocketHubLease, crate::ServiceError> {
         if capacity == 0 {
             return Err(
                 "error[serve.websocket.backpressure]: outbound capacity must be positive".into(),
@@ -279,7 +279,7 @@ impl WebSocketHub {
         })
     }
 
-    fn deliver(&self, id: u64, payload: String) -> Result<(), String> {
+    fn deliver(&self, id: u64, payload: String) -> Result<(), crate::ServiceError> {
         let sender = self
             .state
             .lock()
@@ -293,7 +293,12 @@ impl WebSocketHub {
         send_hub_payload(&sender, payload)
     }
 
-    fn complete_match(&self, pair_id: u64, first: String, second: String) -> Result<(), String> {
+    fn complete_match(
+        &self,
+        pair_id: u64,
+        first: String,
+        second: String,
+    ) -> Result<(), crate::ServiceError> {
         let senders = {
             let state = self.state.lock().map_err(|_| {
                 "error[serve.websocket.hub]: pairing state lock poisoned".to_string()
@@ -314,14 +319,14 @@ impl WebSocketHub {
         Ok(())
     }
 
-    fn broadcast_pair(&self, id: u64, payload: String) -> Result<(), String> {
+    fn broadcast_pair(&self, id: u64, payload: String) -> Result<(), crate::ServiceError> {
         for sender in self.pair_senders(id)? {
             send_hub_payload(&sender, payload.clone())?;
         }
         Ok(())
     }
 
-    fn pair_senders(&self, id: u64) -> Result<Vec<SyncSender<String>>, String> {
+    fn pair_senders(&self, id: u64) -> Result<Vec<SyncSender<String>>, crate::ServiceError> {
         let state = self
             .state
             .lock()
@@ -343,7 +348,7 @@ impl WebSocketHub {
             .collect())
     }
 
-    fn transition_pair<F>(&self, id: u64, transition: F) -> Result<(), String>
+    fn transition_pair<F>(&self, id: u64, transition: F) -> Result<(), crate::ServiceError>
     where
         F: FnOnce(
             String,
@@ -492,7 +497,7 @@ impl WebSocketHubLease {
     pub fn dispatch_admission(
         &mut self,
         session: &mut impl AdmissionCallbacks,
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::ServiceError> {
         match self.admission.take() {
             Some(WebSocketHubAdmission::Matched {
                 pair_id,
@@ -524,11 +529,11 @@ impl WebSocketHubLease {
         }
     }
 
-    pub fn broadcast(&self, payload: String) -> Result<(), String> {
+    pub fn broadcast(&self, payload: String) -> Result<(), crate::ServiceError> {
         self.hub.broadcast_pair(self.id, payload)
     }
 
-    pub fn transition<F>(&self, transition: F) -> Result<(), String>
+    pub fn transition<F>(&self, transition: F) -> Result<(), crate::ServiceError>
     where
         F: FnOnce(
             String,
@@ -547,15 +552,18 @@ impl Drop for WebSocketHubLease {
     }
 }
 
-fn send_hub_payload(sender: &SyncSender<String>, payload: String) -> Result<(), String> {
-    sender.try_send(payload).map_err(|error| match error {
+fn send_hub_payload(
+    sender: &SyncSender<String>,
+    payload: String,
+) -> Result<(), crate::ServiceError> {
+    Ok(sender.try_send(payload).map_err(|error| match error {
         TrySendError::Full(_) => {
             "error[serve.websocket.backpressure]: outbound session queue is full".to_string()
         }
         TrySendError::Disconnected(_) => {
             "error[serve.websocket.transport]: outbound session is disconnected".to_string()
         }
-    })
+    })?)
 }
 
 /// Callback execution stays with the embedding runtime; the registry owns no VM values.

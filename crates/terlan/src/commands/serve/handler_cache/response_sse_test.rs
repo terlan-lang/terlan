@@ -31,12 +31,36 @@ pub empty(): Response -> Sse.response([]).
         AotHandlerRuntime::load_with_shard_count("app.Events".into(), &fixture.image, None, 1)
             .unwrap();
     let mut helpers = VmPackageNativeHelpers::default();
-    for (function, input) in [
-        ("empty", ""),
-        ("handle", "one\r\ntwo"),
-        ("handle", "\n\nevent: injected"),
-        ("handle", "\u{e9}\u{1f642}"),
-        ("handle", ""),
+    for (function, input, normalized, expected_data) in [
+        ("empty", "", "", ""),
+        ("handle", "one\r\ntwo", "one\ntwo", "data: one\ndata: two\n"),
+        ("handle", "one\rtwo", "one\ntwo", "data: one\ndata: two\n"),
+        ("handle", "\r\r\n", "\n\n", "data: \ndata: \ndata: \n"),
+        (
+            "handle",
+            "a\r\nb\rc\n",
+            "a\nb\nc\n",
+            "data: a\ndata: b\ndata: c\ndata: \n",
+        ),
+        (
+            "handle",
+            "\r\nevent: injected",
+            "\nevent: injected",
+            "data: \ndata: event: injected\n",
+        ),
+        (
+            "handle",
+            "\n\nevent: injected",
+            "\n\nevent: injected",
+            "data: \ndata: \ndata: event: injected\n",
+        ),
+        (
+            "handle",
+            "\u{e9}\u{1f642}\r\n\0",
+            "\u{e9}\u{1f642}\n\0",
+            "data: \u{e9}\u{1f642}\ndata: \0\n",
+        ),
+        ("handle", "", "", ""),
     ] {
         let empty = function == "empty";
         let args = if empty {
@@ -47,12 +71,19 @@ pub empty(): Response -> Sse.response([]).
         let mut step = runtime
             .begin_request_invocation("app.Events", function, args)
             .unwrap();
-        for _ in 0..if empty { 0 } else { 2 } {
+        for index in 0..if empty { 0 } else { 2 } {
             let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {
                 panic!("event framing must reach the package boundary");
             };
             let request = invocation.request().unwrap();
             assert_eq!(request.operation, "std.http.sse.encode_event");
+            let arguments = request.package_arguments.as_ref().unwrap();
+            assert_eq!(arguments.len(), 4);
+            assert_eq!(
+                arguments[3],
+                ReplValue::String(if index == 0 { normalized } else { "end" }.into()),
+                "newline policy must execute in source before the codec: {input:?}"
+            );
             let value = helpers.call(1, request, &[]).unwrap();
             step = invocation
                 .resume(NativeBoundaryReplyTerm::Ok(
@@ -80,9 +111,7 @@ pub empty(): Response -> Sse.response([]).
         if !empty {
             assert_eq!(
                 stream.next_chunk().unwrap().as_ref(),
-                terlan_http_native::encode_event(Some("42"), Some("update"), Some(1500), input)
-                    .unwrap()
-                    .as_bytes()
+                format!("id: 42\nevent: update\nretry: 1500\n{expected_data}\n").as_bytes()
             );
             assert_eq!(stream.next_chunk().unwrap().as_ref(), b"data: end\n\n");
         }

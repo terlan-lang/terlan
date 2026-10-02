@@ -48,9 +48,9 @@ pub struct PendingHttp01Challenge<'a> {
 pub async fn issue_certificate_cache<F: Future<Output = ()>>(
     plan: &AcmeRuntimePlan,
     http: Option<Box<dyn instant_acme::HttpClient>>,
-    mut observe: impl FnMut(IssuanceEvent<'_>) -> Result<(), String>,
+    mut observe: impl FnMut(IssuanceEvent<'_>) -> Result<(), crate::ServiceError>,
     mut delay_for: impl FnMut(Duration) -> F,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     validate_acme_provider_supported(plan)?;
     let identifiers = acme_domain_identifiers(&plan.domains)?;
     super::cache::validate_acme_cache_paths(plan)?;
@@ -112,13 +112,13 @@ pub async fn issue_certificate_cache<F: Future<Output = ()>>(
 async fn load_or_create_acme_account(
     plan: &AcmeRuntimePlan,
     http: Option<Box<dyn instant_acme::HttpClient>>,
-) -> Result<Account, String> {
+) -> Result<Account, crate::ServiceError> {
     if let Some(credentials) = load_acme_account_credentials(plan)? {
-        return match http {
+        return Ok(match http {
             Some(http) => Account::from_credentials_and_http(credentials, http).await,
             None => Account::from_credentials(credentials).await,
         }
-        .map_err(acme_error("failed to restore ACME account"));
+        .map_err(acme_error("failed to restore ACME account"))?);
     }
     let contact_strings = acme_contact_strings(plan.email.as_deref());
     let contact_refs: Vec<&str> = contact_strings.iter().map(String::as_str).collect();
@@ -149,10 +149,12 @@ async fn load_or_create_acme_account(
 /// Transformation:
 /// - Rejects empty or whitespace-only names before they reach the ACME client
 ///   and otherwise preserves domain spelling for the CA.
-pub fn acme_domain_identifiers(domains: &[String]) -> Result<Vec<Identifier>, String> {
+pub fn acme_domain_identifiers(domains: &[String]) -> Result<Vec<Identifier>, crate::ServiceError> {
     if domains.is_empty() {
         return Err(
-            "error[serve_tls]: automatic ACME TLS requires at least one domain".to_string(),
+            "error[serve_tls]: automatic ACME TLS requires at least one domain"
+                .to_string()
+                .into(),
         );
     }
     domains
@@ -160,7 +162,7 @@ pub fn acme_domain_identifiers(domains: &[String]) -> Result<Vec<Identifier>, St
         .map(|domain| {
             let domain = domain.trim();
             if domain.is_empty() {
-                Err("error[serve_tls]: automatic ACME TLS domain cannot be empty".to_string())
+                Err("error[serve_tls]: automatic ACME TLS domain cannot be empty".into())
             } else {
                 Ok(Identifier::Dns(domain.to_string()))
             }
@@ -203,7 +205,7 @@ pub fn acme_contact_strings(email: Option<&str>) -> Vec<String> {
 ///   to the challenge route it knows how to serve.
 pub fn pending_http01_challenges(
     authorizations: &[Authorization],
-) -> Result<Vec<PendingHttp01Challenge<'_>>, String> {
+) -> Result<Vec<PendingHttp01Challenge<'_>>, crate::ServiceError> {
     let mut selected = Vec::new();
     for authorization in authorizations {
         let Identifier::Dns(identifier) = &authorization.identifier;
@@ -224,7 +226,7 @@ pub fn pending_http01_challenges(
             status => {
                 return Err(format!(
                     "error[serve_tls]: ACME authorization for `{identifier}` is not usable: {status:?}"
-                ));
+                ).into());
             }
         }
     }
@@ -242,7 +244,7 @@ pub fn pending_http01_challenges(
 /// Transformation:
 /// - Delegates certificate request and key generation to `rcgen`, using the
 ///   same subject alternative names as the ACME order identifiers.
-pub fn generate_acme_csr(domains: &[String]) -> Result<(Vec<u8>, String), String> {
+pub fn generate_acme_csr(domains: &[String]) -> Result<(Vec<u8>, String), crate::ServiceError> {
     let mut params = CertificateParams::new(domains.to_vec())
         .map_err(|err| format!("error[serve_tls]: failed to create ACME CSR parameters: {err}"))?;
     params.distinguished_name = DistinguishedName::new();
@@ -268,14 +270,16 @@ pub fn generate_acme_csr(domains: &[String]) -> Result<(Vec<u8>, String), String
 async fn wait_for_acme_order_ready<F: Future<Output = ()>>(
     order: &mut instant_acme::Order,
     delay_for: &mut impl FnMut(Duration) -> F,
-) -> Result<(), String> {
+) -> Result<(), crate::ServiceError> {
     let mut delay = ACME_READY_INITIAL_DELAY;
     let mut polls = 0;
     loop {
         match order.state().status {
             OrderStatus::Ready => return Ok(()),
             OrderStatus::Invalid => {
-                return Err("error[serve_tls]: ACME order became invalid".to_string());
+                return Err("error[serve_tls]: ACME order became invalid"
+                    .to_string()
+                    .into());
             }
             _ => {}
         }
@@ -283,7 +287,7 @@ async fn wait_for_acme_order_ready<F: Future<Output = ()>>(
             return Err(format!(
                 "error[serve_tls]: ACME order did not become ready after {} polls; last status: {:?}",
                 ACME_READY_MAX_POLLS, order.state().status
-            ));
+            ).into());
         }
         delay_for(delay).await;
         order
@@ -309,7 +313,7 @@ async fn wait_for_acme_order_ready<F: Future<Output = ()>>(
 async fn wait_for_acme_certificate<F: Future<Output = ()>>(
     order: &mut instant_acme::Order,
     delay_for: &mut impl FnMut(Duration) -> F,
-) -> Result<String, String> {
+) -> Result<String, crate::ServiceError> {
     for attempt in 0..ACME_CERTIFICATE_MAX_POLLS {
         match order
             .certificate()
@@ -326,7 +330,8 @@ async fn wait_for_acme_certificate<F: Future<Output = ()>>(
     Err(format!(
         "error[serve_tls]: ACME certificate was not available after {} polls",
         ACME_CERTIFICATE_MAX_POLLS
-    ))
+    )
+    .into())
 }
 
 /// Converts an `instant-acme` error into a stable TLS diagnostic closure.

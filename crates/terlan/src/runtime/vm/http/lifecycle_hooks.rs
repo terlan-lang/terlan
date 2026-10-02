@@ -22,14 +22,14 @@ pub(super) fn dispatch_http_handler(
     request: ::http::Request<String>,
     handler: &mut impl FnMut(::http::Request<String>) -> Result<::http::Response<String>, String>,
 ) -> Result<::http::Response<String>, String> {
-    terlan_http_native::lifecycle::dispatch_handler(
+    Ok(terlan_http_native::lifecycle::dispatch_handler(
         &mut resources.inner,
         lifecycle_hook,
         process,
         request,
         handler,
         super::request_resources::resource_error,
-    )
+    )?)
 }
 
 impl VmHttpTcpServer {

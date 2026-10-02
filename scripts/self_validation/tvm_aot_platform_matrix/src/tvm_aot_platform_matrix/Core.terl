@@ -364,14 +364,16 @@ pub provenance(source_revision: String, input: ProvenanceInput): Option[Json] ->
         )
     }.
 
-configured(root: String, program: String, arguments: List[String]): std.system.Process.Command ->
+configured(root: String, stage: String, program: String, arguments: List[String]): std.system.Process.Command ->
     Process.with_output_limit_bytes(
         Process.with_timeout_ms(
             Process.with_working_directory(
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            1800000,
+            // Optimized compiler codegen exceeded thirty minutes on Intel macOS.
+            // Keep test/consumer commands bounded independently of the cold build.
+            if { stage == "release compiler build" -> 3600000; true -> 1800000 },
         ),
         8388608,
     ).
@@ -383,7 +385,7 @@ run_command(
     arguments: List[String],
 ): Option[Output] ->
     let _started = println(String.append("[aot-platform] starting ", stage));
-    case Process.run(configured(root, program, arguments)) {
+    case Process.run(configured(root, stage, program, arguments)) {
         Err(error) -> output_failure("process", Process.error_message(error));
         Ok(output) ->
             if {

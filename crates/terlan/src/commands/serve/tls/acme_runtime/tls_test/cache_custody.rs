@@ -185,9 +185,11 @@ pub(super) fn acme_key_custody_policy_rejects_cache_path_escape() {
     let message = validate_acme_key_custody_policy(&plan)
         .expect_err("escaped key path should fail custody policy");
 
-    assert!(message.contains("ACME private key cache path"));
-    assert!(message.contains("escapes package-owned cache directory"));
-    assert!(message.contains(".terlan"));
+    assert!(message.to_string().contains("ACME private key cache path"));
+    assert!(message
+        .to_string()
+        .contains("escapes package-owned cache directory"));
+    assert!(message.to_string().contains(".terlan"));
     fs::remove_dir_all(dir).expect("cleanup");
 }
 
@@ -548,11 +550,11 @@ email = "admin@example.test""#,
             generate_simple_self_signed(vec!["example.test".to_string()]).map_err(|err| {
                 format!("error[serve_tls]: failed to generate mock ACME certificate: {err}")
             })?;
-        store_acme_certificate_cache(
+        Ok(store_acme_certificate_cache(
             plan,
             &generated.cert.pem(),
             &generated.key_pair.serialize_pem(),
-        )
+        )?)
     })
     .expect("local issuer should populate cache");
 

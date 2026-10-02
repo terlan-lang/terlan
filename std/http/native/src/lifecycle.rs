@@ -65,7 +65,7 @@ pub fn dispatch_handler<O: Copy + Ord, S, R, B>(
     request: http::Request<String>,
     handler: &mut impl FnMut(http::Request<String>) -> Result<http::Response<B>, String>,
     resource_error: impl Fn(RequestResourceError<O>) -> String,
-) -> Result<http::Response<B>, String> {
+) -> Result<http::Response<B>, crate::ServiceError> {
     let method = request.method().as_str().to_owned();
     let path = request.uri().path().to_owned();
     let start = LifecycleEvent::RequestStart {
@@ -110,10 +110,10 @@ pub fn dispatch_handler<O: Copy + Ord, S, R, B>(
     };
     match (result, observed) {
         (Ok(response), Ok(())) => Ok(response),
-        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
-        (Err(handler), Err(hook)) => Err(format!(
-            "{handler}; lifecycle observation failed after cleanup: {hook}"
-        )),
+        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error.into()),
+        (Err(handler), Err(hook)) => {
+            Err(format!("{handler}; lifecycle observation failed after cleanup: {hook}").into())
+        }
     }
 }
 

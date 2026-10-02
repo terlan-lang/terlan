@@ -23,7 +23,9 @@ where
 {
     let mut wait = || -> Pin<Box<dyn Future<Output = ()>>> { Box::pin(wait()) };
     let wait: &mut dyn FnMut() -> Pin<Box<dyn Future<Output = ()>>> = &mut wait;
-    super::drain(socket, receiver, wait).await
+    super::drain(socket, receiver, wait)
+        .await
+        .map_err(String::from)
 }
 
 fn socket() -> (Server<MemoryIo<0>>, Arc<Mutex<State>>) {

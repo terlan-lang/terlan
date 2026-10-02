@@ -813,8 +813,23 @@ Important invariants:
   stop draining, and interrupted I/O suspends instead of spinning. Tests use the
   maintained codec with fragmented writes, saturated queues, injected failures,
   cancellation, and an observed scheduler wake. The host still supplies the
-  existing VM timer wait, executes callbacks, and owns the receive loop. This
-  does not establish readiness-only scheduling or source-owned room actors.
+  existing VM timer wait and executes callbacks. This does not establish
+  readiness-only scheduling or source-owned room actors.
+- `native/src/websocket/connection` owns the receive loop, bounded receive turns,
+  pairing/restoration admission, and graceful-close versus cancellation dispatch.
+  Its callback interface carries opaque source functions and ordinary Rust
+  payloads, not compiler or VM values. The host implements invocation and value
+  conversion; it no longer matches wire messages or orchestrates room delivery.
+  Failed upgrades, source errors, queue failures, and protocol errors cancel the
+  admitted source session once. Dropping a polled connection future releases
+  its transport/room lease and attempts source cancellation; errors from that
+  drop-time callback cannot be returned. Close callback failure still flushes
+  the maintained close reply and does not invoke a second terminal callback.
+  Compiled Terlan tests exercise source callback parking, resumption, and error
+  cancellation through this package loop. Incompatible typed wakes preserve
+  queued frames and the parked callback instead of consuming input first.
+  Room state is still native package state, not a source actor, and stateful
+  callbacks still run under the registry lock. Those ownership gaps remain.
 - `native/src/websocket/session` owns bounded text-channel admission and queue
   accounting. Production serving transfers tungstenite UTF-8 buffers directly
   into this package queue, without a separate VM frame representation or an
@@ -858,7 +873,10 @@ Important invariants:
 - Queued `Sse.response` executes in Terlan and composes `Response.stream` with
   the package's event encoder. Axum supplies SSE framing with default features
   disabled: no Tokio executor, server, or scheduler is used by the codec.
-  CRLF and CR normalize to LF before framing. Empty data omits the data field,
+  Terlan source normalizes CRLF and CR to LF before entering the native codec;
+  the codec rejects unnormalized CR data rather than rewriting application data.
+  Native queue callers must supply source-normalized data; rejected data does not
+  consume queue capacity. Empty data omits the data field,
   matching the previous behavior; metadata containing CR, LF, or NUL and
   nonpositive retry delays are rejected at encoding.
   Tests execute the compiled handler through generic package replies and the

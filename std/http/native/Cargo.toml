@@ -11,7 +11,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-instant-acme = { version = "0.7", optional = true }
+instant-acme = { workspace = true, optional = true }
 axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
@@ -37,7 +37,7 @@ terlan-runtime-abi.workspace = true
 tempfile.workspace = true
 
 [dev-dependencies]
-instant-acme = "0.7"
+instant-acme.workspace = true
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
 serde_json.workspace = true
 

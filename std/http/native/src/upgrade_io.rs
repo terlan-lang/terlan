@@ -23,7 +23,7 @@ where
     T: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
 {
     /// Rejects foreign transports instead of losing bytes or changing I/O owners.
-    pub fn from_upgraded(upgraded: hyper::upgrade::Upgraded) -> Result<Self, String> {
+    pub fn from_upgraded(upgraded: hyper::upgrade::Upgraded) -> Result<Self, crate::ServiceError> {
         let (prefix, stream) = match upgraded.downcast::<P>() {
             Ok(parts) => (parts.read_buf, Transport::Plain(parts.io)),
             Err(upgraded) => {

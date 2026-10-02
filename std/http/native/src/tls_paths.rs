@@ -6,7 +6,10 @@ use std::path::{Component, Path};
 /// Checks existing manual cert/key/CA paths, including symlink containment.
 /// These are admission checks, not a race-free directory capability: the project
 /// directory must remain host-controlled between validation and material loading.
-pub fn validate_manual_tls_file_references(root: &Path, tls: &Config) -> Result<(), String> {
+pub fn validate_manual_tls_file_references(
+    root: &Path,
+    tls: &Config,
+) -> Result<(), crate::ServiceError> {
     if tls.mode != Mode::Manual {
         return Ok(());
     }
@@ -22,7 +25,11 @@ pub fn validate_manual_tls_file_references(root: &Path, tls: &Config) -> Result<
     Ok(())
 }
 
-fn validate_manual_tls_file_reference(root: &Path, field: &str, value: &str) -> Result<(), String> {
+fn validate_manual_tls_file_reference(
+    root: &Path,
+    field: &str,
+    value: &str,
+) -> Result<(), crate::ServiceError> {
     let relative = Path::new(value);
     let escaped = || {
         format!(
@@ -37,14 +44,15 @@ fn validate_manual_tls_file_reference(root: &Path, field: &str, value: &str) -> 
             )
         })
     {
-        return Err(escaped());
+        return Err(escaped().into());
     }
     let full_path = root.join(relative);
     if !full_path.is_file() {
         return Err(format!(
             "error[serve_package]: [server.tls] manual {field} file `{}` does not exist",
             full_path.display()
-        ));
+        )
+        .into());
     }
     let resolve = |path: &Path| {
         path.canonicalize().map_err(|err| {
@@ -55,7 +63,7 @@ fn validate_manual_tls_file_reference(root: &Path, field: &str, value: &str) -> 
         })
     };
     if !resolve(&full_path)?.starts_with(resolve(root)?) {
-        return Err(escaped());
+        return Err(escaped().into());
     }
     Ok(())
 }

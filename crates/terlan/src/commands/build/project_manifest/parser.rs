@@ -1,3 +1,4 @@
+use super::config::validate_server_profile_defaults;
 use super::*;
 
 /// Reads and parses a Terlan project manifest file.
@@ -660,39 +661,6 @@ fn validate_package_links(links: &[String], path: &Path, line_no: usize) -> Resu
                 line_no
             ));
         }
-    }
-    Ok(())
-}
-
-/// Validates profile-specific server defaults.
-///
-/// Inputs:
-/// - `path`: manifest path used in diagnostics.
-/// - `server_profile`: optional typed deployment profile.
-/// - `server_tls`: optional parsed TLS configuration.
-///
-/// Output:
-/// - `Ok(())` when profile-specific defaults are safe.
-/// - `Err(String)` when a production profile uses development-only defaults.
-///
-/// Transformation:
-/// - Rejects internal TLS under production before runtime startup can inherit a
-///   local-development certificate policy.
-fn validate_server_profile_defaults(
-    path: &Path,
-    server_profile: Option<ProjectServerProfile>,
-    server_tls: Option<&ProjectServerTls>,
-) -> Result<(), String> {
-    if matches!(server_profile, Some(ProjectServerProfile::Production))
-        && matches!(
-            server_tls.map(|tls| tls.mode),
-            Some(ProjectServerTlsMode::Internal)
-        )
-    {
-        return Err(format!(
-            "{}: project manifest [server] profile production cannot use [server.tls] mode internal",
-            path.display()
-        ));
     }
     Ok(())
 }

@@ -17,7 +17,7 @@ use terlan_http_native::request_body::{
     collect_bounded_body, declared_body_exceeds_limit, spool_bounded_body_to_root, BodyReadError,
     TemporaryBodyFile,
 };
-use terlan_http_native::websocket::{output, ErrorKind, Message, Server as WebSocket};
+use terlan_http_native::websocket::connection;
 
 use super::handle_vm_stream_request;
 use super::handler::VmHttpChannelTransport;
@@ -29,7 +29,6 @@ use super::{channel_transport, handle_vm_stream_http1_exchange};
 use crate::runtime::vm::protocol_task_executor::{
     protocol_sleep_until, serve_protocol_tasks, VmProtocolTaskFactory, VmReadyStream,
 };
-use crate::runtime::vm::ReplValue;
 
 mod http2;
 mod tls_io;
@@ -358,144 +357,22 @@ async fn pump_hyper_websocket(
     mut pending: PendingHyperUpgrade,
     hub: Arc<WebSocketHub>,
 ) -> Result<(), String> {
-    let upgraded = pending.on_upgrade.await.map_err(|error| {
-        format!("error[serve.websocket.upgrade]: Hyper upgrade failed: {error}")
-    })?;
-    let io = HyperWebSocketIo::from_upgraded(upgraded)?;
-    let mut socket = WebSocket::new(io, pending.session.plan().max_frame_bytes());
-    let mut pairing = pending.session.plan().pairing().cloned();
-    let mut identity = None;
-    if let Some(pairing) = &mut pairing {
-        if pairing.restoration.is_some() {
-            identity = pending
-                .session
-                .dispatch_pair_identity_output(pending.request_target.clone())
-                .await?;
-            pairing.waiting = pending.session.dispatch_pair_waiting_output()?;
-            pairing.peer_left = pending.session.dispatch_pair_peer_left_output()?;
-        }
-    }
-    let mut lease = pairing
-        .as_ref()
-        .map(|pairing| {
-            hub.join(
-                pending.route.clone(),
-                pending.request_target.clone(),
-                pending.session.inspect().max_pending_frames,
-                pairing,
-                identity,
-            )
-        })
-        .transpose()?;
-    if let Some(lease) = &mut lease {
-        lease.dispatch_admission(&mut pending.session)?;
-    }
-    notify_websocket_writable(&mut pending.session)?;
-
-    loop {
-        if let Some(lease) = &lease {
-            if !output::drain(&mut socket, &lease.outbound, websocket_transport_wait).await? {
-                return pending.session.close().map(|_| ());
-            }
-        }
-        match socket.read() {
-            Ok(Message::Text(text)) => {
-                let result = pending.session.enqueue_inbound(text);
-                match result {
-                    Ok(()) => {
-                        if let Some(lease) = &lease {
-                            if pairing.as_ref().is_some_and(|pairing| pairing.stateful) {
-                                websocket_hub::drain_stateful_inbound(lease, &mut pending.session)?;
-                            } else {
-                                for payload in drain_websocket_inbound(&mut pending.session)? {
-                                    lease.broadcast(payload)?;
-                                }
-                            }
-                        } else {
-                            let _ = drain_websocket_inbound(&mut pending.session)?;
-                        }
-                    }
-                    Err(error) => {
-                        let _ = pending.session.cancel(error.clone());
-                        return Err(error);
-                    }
-                }
-            }
-            Ok(Message::Ping(_)) => {
-                if !output::flush(&mut socket, websocket_transport_wait).await? {
-                    return pending.session.close().map(|_| ());
-                }
-                notify_websocket_writable(&mut pending.session)?;
-            }
-            Ok(Message::Pong(_)) => {}
-            Ok(Message::Close(_)) => {
-                let callback = pending.session.close().map(|_| ());
-                let flush = output::flush(&mut socket, websocket_transport_wait)
-                    .await
-                    .map(|_| ());
-                return callback.and(flush);
-            }
-            Ok(Message::Binary(_)) => {
-                let error =
-                    "error[serve.websocket.binary]: endpoint rejects binary payloads".to_string();
-                let _ = pending.session.cancel(error.clone());
-                return Err(error);
-            }
-            Ok(Message::Frame(_)) => {
-                let error = "error[serve.websocket.frame]: raw frame escaped maintained decoding"
-                    .to_string();
-                let _ = pending.session.cancel(error.clone());
-                return Err(error);
-            }
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                websocket_transport_wait().await;
-            }
-            Err(error) if error.kind() == ErrorKind::Interrupted => {
-                websocket_transport_wait().await;
-            }
-            Err(error) if error.kind() == ErrorKind::Disconnected => {
-                return pending.session.close().map(|_| ());
-            }
-            Err(error) if error.kind() == ErrorKind::Closed => {
-                return pending.session.close().map(|_| ());
-            }
-            Err(error) => {
-                let reason = format!("error[serve.websocket.transport]: {error}");
-                pending.session.cancel(reason.clone()).map(|_| ())?;
-                return Err(reason);
-            }
-        }
-    }
-}
-
-fn drain_websocket_inbound(
-    session: &mut super::handler::AotWebSocketCallbackSession,
-) -> Result<Vec<String>, String> {
-    let mut payloads = Vec::new();
-    loop {
-        let (dispatched, output) = session.dispatch_next_inbound_output()?;
-        if !dispatched {
-            return Ok(payloads);
-        }
-        match output {
-            Some(ReplValue::String(payload)) => payloads.push(payload),
-            Some(ReplValue::Unit) | None => {}
-            Some(value) => {
-                return Err(format!(
-                    "error[serve.websocket.callback_result]: inbound callback returned {value:?}, expected String or Unit"
-                ))
-            }
-        }
-    }
-}
-
-fn notify_websocket_writable(
-    session: &mut super::handler::AotWebSocketCallbackSession,
-) -> Result<(), String> {
-    if !session.is_waiting() {
-        session.writable()?;
-    }
-    Ok(())
+    let io = async {
+        let upgraded = pending.on_upgrade.await.map_err(|error| {
+            format!("error[serve.websocket.upgrade]: Hyper upgrade failed: {error}")
+        })?;
+        HyperWebSocketIo::from_upgraded(upgraded).map_err(String::from)
+    };
+    connection::serve(
+        io,
+        &mut pending.session,
+        &hub,
+        pending.route,
+        pending.request_target,
+        websocket_transport_wait,
+    )
+    .await
+    .map_err(String::from)
 }
 
 async fn websocket_transport_wait() {

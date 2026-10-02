@@ -147,7 +147,7 @@ required_markers(): List[String] ->
         "fn should_reload_for_event",
         "use terlan_http_native::response_body::ResponseBody",
         "terlan_http_native::upgrade_io::UpgradeIo<",
-        "output::drain(&mut socket, &lease.outbound, websocket_transport_wait)",
+        "connection::serve(",
         "terlan_http_native::tls::TlsIo<VmReadyStream>",
         "tls_runtime::load(",
         "terlan_http_native::acme::issuer::issue_certificate_cache(",
@@ -176,7 +176,7 @@ forbidden_patterns(): List[String] ->
         "\\bfn\\s+validate_manual_tls_file_references?\\b",
         "\\bhyper::server::conn::http1\\b",
         "\\bhttp1::Builder\\b",
-        "\\bfn\\s+(flush_websocket_nonblocking|drain_hub_outbound)\\b",
+        "\\bfn\\s+(flush_websocket_nonblocking|drain_hub_outbound|drain_websocket_inbound|drain_stateful_inbound|notify_websocket_writable)\\b",
     ].
 
 @test
@@ -224,6 +224,7 @@ pub websocket_protocol_stays_in_the_http_package(): Bool ->
     not source_rejects_no_patterns("use tungstenite::protocol::WebSocket;", forbidden_patterns())
         and not source_rejects_no_patterns("async fn drain_hub_outbound() {}", forbidden_patterns())
         and not source_rejects_no_patterns("async fn flush_websocket_nonblocking() {}", forbidden_patterns())
+        and not source_rejects_no_patterns("fn drain_stateful_inbound() {}", forbidden_patterns())
         and source_rejects_no_patterns("use terlan_http_native::websocket::Server;", forbidden_patterns()).
 
 @test

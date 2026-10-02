@@ -9,10 +9,13 @@ mod ready;
 pub use ready::{TcpConnection, TcpIncoming};
 
 /// Binds a reusable nonblocking listener using the established serving defaults.
-pub fn bind_listener(host: &str, port: u16) -> Result<std_net::TcpListener, String> {
-    let addresses = (host, port)
-        .to_socket_addrs()
-        .map_err(|error| format!("error[vm.protocol_bind]: resolve {host}:{port}: {error}"))?;
+pub fn bind_listener(host: &str, port: u16) -> io::Result<std_net::TcpListener> {
+    let addresses = (host, port).to_socket_addrs().map_err(|error| {
+        io::Error::new(
+            error.kind(),
+            format!("error[vm.protocol_bind]: resolve {host}:{port}: {error}"),
+        )
+    })?;
     bind_addresses(host, port, addresses, bind_address)
 }
 
@@ -21,7 +24,7 @@ fn bind_addresses(
     port: u16,
     addresses: impl IntoIterator<Item = SocketAddr>,
     mut bind: impl FnMut(SocketAddr) -> io::Result<std_net::TcpListener>,
-) -> Result<std_net::TcpListener, String> {
+) -> io::Result<std_net::TcpListener> {
     let mut last_error = None;
     for address in addresses {
         match bind(address) {
@@ -29,11 +32,16 @@ fn bind_addresses(
             Err(error) => last_error = Some(error),
         }
     }
-    Err(format!(
-        "error[vm.protocol_bind]: bind {host}:{port}: {}",
+    Err(io::Error::new(
         last_error
-            .map(|error| error.to_string())
-            .unwrap_or_else(|| "host resolved to no addresses".to_string())
+            .as_ref()
+            .map_or(io::ErrorKind::AddrNotAvailable, io::Error::kind),
+        format!(
+            "error[vm.protocol_bind]: bind {host}:{port}: {}",
+            last_error
+                .map(|error| error.to_string())
+                .unwrap_or_else(|| "host resolved to no addresses".to_string())
+        ),
     ))
 }
 

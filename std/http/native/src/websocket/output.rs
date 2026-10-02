@@ -11,7 +11,10 @@ const MAX_MESSAGES_PER_TURN: usize = 32;
 
 /// Flush accepted output without resubmitting it. False means the peer is closed.
 /// `wait` must suspend on transport pressure; it owns readiness/timer policy.
-pub async fn flush<S, W, F>(socket: &mut Server<S>, mut wait: W) -> Result<bool, String>
+pub async fn flush<S, W, F>(
+    socket: &mut Server<S>,
+    mut wait: W,
+) -> Result<bool, crate::ServiceError>
 where
     S: Read + Write,
     W: FnMut() -> F,
@@ -24,7 +27,7 @@ where
                 ErrorKind::Closed | ErrorKind::Disconnected => return Ok(false),
                 ErrorKind::WouldBlock | ErrorKind::Interrupted => wait().await,
                 ErrorKind::Failed => {
-                    return Err(format!("error[serve.websocket.transport]: {error}"));
+                    return Err(format!("error[serve.websocket.transport]: {error}").into());
                 }
             },
         }
@@ -39,7 +42,7 @@ pub async fn drain<S, W, F>(
     socket: &mut Server<S>,
     outbound: &Receiver<String>,
     mut wait: W,
-) -> Result<bool, String>
+) -> Result<bool, crate::ServiceError>
 where
     S: Read + Write,
     W: FnMut() -> F,
@@ -62,7 +65,7 @@ where
                 ErrorKind::WouldBlock | ErrorKind::Interrupted => {}
                 ErrorKind::Closed | ErrorKind::Disconnected => return Ok(false),
                 ErrorKind::Failed => {
-                    return Err(format!("error[serve.websocket.transport]: {error}"));
+                    return Err(format!("error[serve.websocket.transport]: {error}").into());
                 }
             }
         }
@@ -70,6 +73,11 @@ where
             return Ok(false);
         }
     }
+    yield_turn().await;
+    Ok(true)
+}
+
+pub(super) async fn yield_turn() {
     let mut yielded = false;
     poll_fn(|context| {
         if yielded {
@@ -81,7 +89,6 @@ where
         }
     })
     .await;
-    Ok(true)
 }
 
 #[cfg(test)]
