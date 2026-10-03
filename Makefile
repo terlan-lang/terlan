@@ -2656,7 +2656,7 @@ tvm-aot-http-typed-metadata-check: tvm-aot-http-response-mutation-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_source_reload_resumes_package_cookie_codec -- --exact
 
 tvm-aot-http-router-callable-check: tvm-aot-http-typed-metadata-check
-	$(RUST_TEST) -p terlan --lib compiler::router::router_test
+	$(RUST_TEST) -p terlan --lib commands::serve::handler_cache::source_router::tests
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::case_lowering_test::string_case_patterns_lower_to_managed_value_equality -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_equal_operation_is_value_based_and_checked -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::operation_abi_test::string_append_operation_concatenates_validated_values -- --exact
@@ -2703,7 +2703,6 @@ tvm-aot-http-managed-boundary-check: tvm-aot-http-session-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::retired_http_calls_have_no_inferred_type_or_executable_lowering -- --exact
 
 tvm-aot-http-channel-plan-check: tvm-aot-http-managed-boundary-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::router::router_test::aot_router_plan_materializes_canonical_channel_targets -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::http_values_test::option_authority_test::map_lookup_patterns_support_literals_guards_and_source_option_defaults -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_sse_route_activates_materialized_router_middleware -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::serve_test::upgrades_and_acme::vm_stream_websocket_upgrade_activates_materialized_router_middleware -- --exact
@@ -2758,11 +2757,9 @@ tvm-http-paired-performance-check: terlan-benchmark-release-bootstrap terlan-ser
 tvm-aot-http-native-invocation-check: tvm-aot-http-persistent-shard-check
 
 tvm-aot-http-websocket-invocation-check: tvm-aot-http-native-invocation-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::router::router_test::aot_router_plan_materializes_websocket_callbacks -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::websocket_invocation::websocket_invocation_test::websocket_callbacks_share_native_invocation_entry_resume_and_cancellation -- --exact
 
 tvm-aot-http-sse-invocation-check: tvm-aot-http-websocket-invocation-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::router::router_test::aot_router_plan_materializes_sse_callbacks -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::serve::handler::sse_invocation::sse_invocation_test::sse_callbacks_share_native_invocation_entry_resume_and_cancellation -- --exact
 
 tvm-aot-http-generation-lifetime-check: tvm-aot-http-sse-invocation-check
