@@ -217,6 +217,9 @@ fn command(root: &Path, program: impl AsRef<std::ffi::OsStr>) -> Command {
         .env_remove("MFLAGS")
         .env_remove("CARGO_MAKEFLAGS")
         .env_remove("TERLAN_RUST_COVERAGE_CONTEXT")
+        // The fixture checks graph deadlines against its own phase deadline,
+        // independent of the enclosing CI suite's timeout override.
+        .env("TERLAN_TEST_PHASE_TIMEOUT_SECONDS", "1800")
         .env("TERLAN_FIXTURE_DRIVER", root.join("target/driver"))
         .env("TERLAN_FIXTURE_RECORD", root.join("target/bodies.txt"))
         .env(
