@@ -16,9 +16,14 @@ fn library_partitions_cover_every_namespace_once_including_future_modules() {
     let all = names(&[
         "commands::serve::probe",
         "commands::build::probe",
+        "commands::emit_js::template_runtime::template_runtime_test::generated_js_template_runtime_matches_vm_shared_fixture_corpus",
+        "commands::compiler::native_ir::probe",
         "compiler::native_ir::probe",
+        "compiler::native_ir::compiler::typeck::probe",
         "compiler::typeck::probe",
+        "compiler::typeck::runtime::probe",
         "compiler::new_module::probe",
+        "compiler::template_runtime::probe",
         "runtime::vm::probe",
         "new_top_level::probe",
         "quality::probe",
@@ -38,7 +43,15 @@ fn library_partitions_cover_every_namespace_once_including_future_modules() {
         expected["Terlan library remainder"].passed,
         names(&["new_top_level::probe"])
     );
-    phases[1].args.push("commands::");
+    assert_eq!(expected["Terlan commands"].passed.len(), 4);
+    assert_eq!(expected["Terlan native IR"].passed.len(), 2);
+    assert_eq!(expected["Terlan type checker"].passed.len(), 2);
+    assert_eq!(expected["Terlan compiler"].passed.len(), 2);
+    assert_eq!(
+        expected["Terlan runtime"].passed,
+        names(&["runtime::vm::probe"])
+    );
+    phases[0].args.push("runtime::");
     assert!(validate(&all, &BTreeSet::new(), &phases, false, TIER_INVENTORY).is_err());
 }
 

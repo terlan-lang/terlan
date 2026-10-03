@@ -29,32 +29,27 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
 
 /// Splits the shared harness into bounded, independently observed serial owners.
 /// Keep each process serial: compiler fixtures change process-wide environment.
+/// Libtest filters are substrings, so each owner excludes every earlier selector.
 pub(super) fn terlan_library_partitions() -> Vec<TestPhase> {
-    let groups: [(&str, &[&str], &[&str]); 6] = [
-        ("Terlan commands", &["commands::"], &[]),
-        ("Terlan native IR", &["compiler::native_ir::"], &[]),
-        ("Terlan type checker", &["compiler::typeck::"], &[]),
-        (
-            "Terlan compiler",
-            &["compiler::"],
-            &["compiler::native_ir::", "compiler::typeck::"],
-        ),
-        ("Terlan runtime", &["runtime::"], &[]),
-        (
-            "Terlan library remainder",
-            &[],
-            &["commands::", "compiler::", "runtime::"],
-        ),
+    let groups: [(&str, &[&str]); 6] = [
+        ("Terlan commands", &["commands::"]),
+        ("Terlan native IR", &["compiler::native_ir::"]),
+        ("Terlan type checker", &["compiler::typeck::"]),
+        ("Terlan compiler", &["compiler::"]),
+        ("Terlan runtime", &["runtime::"]),
+        ("Terlan library remainder", &[]),
     ];
+    let mut previous_filters = Vec::new();
     groups
         .into_iter()
-        .map(|(name, filters, skipped)| {
+        .map(|(name, filters)| {
             let mut phase = terlan_library_phase();
             phase.name = name;
             phase.args.extend_from_slice(filters);
-            for filter in skipped {
+            for &filter in &previous_filters {
                 phase.args.extend(["--skip", filter]);
             }
+            previous_filters.extend_from_slice(filters);
             phase
         })
         .collect()
