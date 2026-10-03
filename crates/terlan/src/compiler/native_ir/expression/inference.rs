@@ -275,17 +275,23 @@ pub(super) fn infer_native_type_impl(
         CoreExpr::Cast { expr, target_type } => {
             let target = native_type(Some(target_type), &target_type.contract_text());
             if let (Some(target), Some(constructors)) = (target, constructors) {
-                if super::super::constructors::zero_field_managed_variant_layout(
+                match super::super::constructors::zero_field_managed_variant_layout(
                     expr,
                     target,
                     constructors,
-                )
-                .ok()
-                .flatten()
-                .is_some()
-                {
-                    return Some(target);
+                ) {
+                    Ok(Some(_)) => return Some(target),
+                    Err(_) => return None,
+                    Ok(None) => {}
                 }
+            }
+            // Option's nullary value can use a collection layout without an
+            // entry in the application constructor inventory. Match lowering's
+            // typed None handling instead of requiring an atom-to-atom cast.
+            if matches!(expr.as_ref(), CoreExpr::Atom(_))
+                && super::super::collection_values::is_none_option_value(expr, target_type)
+            {
+                return target;
             }
             if matches!(expr.as_ref(), CoreExpr::RecordConstruct { .. }) {
                 return super::super::native_type_with_constructors(
