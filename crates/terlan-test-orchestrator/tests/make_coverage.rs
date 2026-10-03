@@ -101,7 +101,7 @@ fn fixture() -> Fixture {
     let mut names = vec!["normal".to_owned(), "quality::integration".to_owned()];
     names.extend(
         [
-            "commands::partition_probe",
+            "commands::emit_js::template_runtime::partition_probe",
             "compiler::native_ir::partition_probe",
             "compiler::typeck::partition_probe",
             "compiler::partition_probe",
