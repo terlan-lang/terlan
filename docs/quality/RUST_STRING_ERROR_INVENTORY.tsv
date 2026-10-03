@@ -261,7 +261,6 @@ crates/terlan/src/compiler/native_ir/tail_position.rs	2	internal-helper	compiler
 crates/terlan/src/compiler/native_ir/template_values.rs	9	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/template_values/render.rs	16	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/try_lowering.rs	2	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/router.rs	11	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/binding_identity.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/constructors.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/core_ir/termination.rs	2	internal-helper	compiler-errors	0.0.9

@@ -4,6 +4,8 @@ use crate::commands::serve::handler_cache::handler_cache_test_support::compile_n
 use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
 use crate::runtime::vm::ReplValue;
 
+#[path = "source_channel_router_test.rs"]
+mod channels;
 #[path = "source_pipeline_test.rs"]
 mod pipelines;
 
@@ -26,6 +28,7 @@ import std.http.{Router, Response, Sse, WebSocket, Error}.
 import std.http.Router.{Continue}.
 import type std.http.Router.Router.
 import type std.http.Request.Request.
+import type std.http.Response.Response.
 import type std.http.Error.HttpError.
 
 pub idle(): Unit -> Unit.
@@ -33,6 +36,8 @@ pub event(_value: String): Unit -> Unit.
 pub router(): Router ->
     let part = "computed";
     Router.new()
+        .map_response((_request: Request, response: Response) ->
+            response.with_header("X-Source", part))
         .group("/api", (child: Router) ->
             child.use((_request: Request) -> Continue)
                 .get("/" + part, (_request: Request) -> Response.text(part, 202))
@@ -44,7 +49,8 @@ pub router(): Router ->
         .sse("/events", Sse.endpoint_with_keep_alive(4, 1024, 50)
             .callbacks(idle, event, idle, idle, event))
         .websocket("/socket", WebSocket.endpoint(3, 512)
-            .callbacks(idle, event, idle, idle, event)).
+            .callbacks(idle, event, idle, idle, event))
+        .fallback((_request: Request) -> Response.text(part + ":missing", 404)).
 "#,
     );
     assert!(fixture.router.is_none(), "no static compiler plan");
@@ -78,10 +84,55 @@ pub router(): Router ->
             &mut |_| {},
         )
         .unwrap();
+    let [after] = route.response_middleware.as_slice() else {
+        panic!("source-composed response stage");
+    };
+    let response = runtime
+        .execute_callable(
+            "app.SourceRouter",
+            after,
+            vec![request("/api/computed"), response],
+            &mut |_| {},
+        )
+        .unwrap();
     let response =
         HandlerResponse::from_owned_vm_response_with_package_root(response, &fixture.root).unwrap();
     assert_eq!(response.status, 202);
     assert_eq!(response.body.as_bytes(), b"computed");
+    assert_eq!(response.headers, [("X-Source".into(), "computed".into())]);
+    let VmHttpRouterOutcome::Matched(fallback) = router
+        .dispatch(VmHttpRouteMethod::Post, "/missing")
+        .unwrap()
+    else {
+        panic!("source root fallback");
+    };
+    let VmHttpRouteTarget::Handler(handler) = fallback.target else {
+        panic!("fallback handler");
+    };
+    let response = runtime
+        .execute_callable(
+            "app.SourceRouter",
+            &handler,
+            vec![request("/missing")],
+            &mut |_| {},
+        )
+        .unwrap();
+    let [after] = fallback.response_middleware.as_slice() else {
+        panic!("fallback retains response stage");
+    };
+    let response = runtime
+        .execute_callable(
+            "app.SourceRouter",
+            after,
+            vec![request("/missing"), response],
+            &mut |_| {},
+        )
+        .unwrap();
+    let response =
+        HandlerResponse::from_owned_vm_response_with_package_root(response, &fixture.root).unwrap();
+    assert_eq!(response.status, 404);
+    assert_eq!(response.body.as_bytes(), b"computed:missing");
+    assert_eq!(response.headers, [("X-Source".into(), "computed".into())]);
     let recovery = router
         .error_handler()
         .expect("source-lifted group recovery");

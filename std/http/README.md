@@ -648,6 +648,13 @@ Compiled-source tests cover producer teardown, both channel lifecycles, captured
 recovery payloads, stale callbacks, foreign modules, and terminal waits. This
 does not yet migrate session scheduling into the package.
 
+The retired test-only compiler router interpreter is removed. Router gates now
+execute ordinary package builders and imported callbacks, including computed
+channel paths and restorable pairing. Grouping, fallback expansion, middleware,
+and recovery tests exercise the same source path; no test interpreter removes
+`router/0` or substitutes a static plan. API/browser syntax inspection and legacy
+static-plan transport fixtures remain separate migration work.
+
 The main flow is:
 
 1. The packaged web manifest matches a request to a static asset or handler.
