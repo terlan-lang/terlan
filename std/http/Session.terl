@@ -9,8 +9,7 @@
 module std.http.Session.
 
 import std.core.Option.{None, Some}.
-import std.core.String.
-import std.core.Unit.
+import std.core.{String, Unit}.
 import std.http.Cookies.{delete_header, set_header_with_options}.
 import std.http.{Request, Response}.
 

@@ -10,7 +10,8 @@ module std.time.Clock.
  * wall-clock adjustments may move it forwards or backwards.
  */
 @compiler.native {std.time.clock.unix_time_ns}
-pub unix_time_ns(): Int -> native.
+pub unix_time_ns(): Int ->
+    native.
 
 /**
  * Returns nanoseconds from a process-local monotonic origin.
@@ -20,4 +21,5 @@ pub unix_time_ns(): Int -> native.
  * and timeout accounting.
  */
 @compiler.native {std.time.clock.monotonic_time_ns}
-pub monotonic_time_ns(): Int -> native.
+pub monotonic_time_ns(): Int ->
+    native.

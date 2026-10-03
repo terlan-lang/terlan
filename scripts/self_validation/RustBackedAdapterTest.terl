@@ -126,7 +126,10 @@ pub adapter(module_name: String): Adapter ->
                 source = "std/crypto/Hash.terl",
                 expected_crate = "sha2",
                 implementation_paths = ["std/crypto/native/src/hash.rs"],
-                test_paths = ["std/crypto/native/src/hash_test.rs", "std/crypto/native/src/hash_bindings_test.rs"],
+                test_paths = [
+                    "std/crypto/native/src/hash_test.rs",
+                    "std/crypto/native/src/hash_bindings_test.rs",
+                ],
             );
         "std.data.Json" ->
             Adapter(
@@ -147,7 +150,10 @@ pub adapter(module_name: String): Adapter ->
                 source = "std/encoding/Base64.terl",
                 expected_crate = "base64",
                 implementation_paths = ["std/encoding/native/src/base64.rs", "std/encoding/native/src/bindings.rs"],
-                test_paths = ["std/encoding/native/src/base64_test.rs", "std/encoding/native/src/bindings_test.rs"],
+                test_paths = [
+                    "std/encoding/native/src/base64_test.rs",
+                    "std/encoding/native/src/bindings_test.rs",
+                ],
             );
         "std.encoding.Md5" ->
             Adapter(
@@ -486,11 +492,13 @@ pub crate_visible_transaction_symbols_are_resolved_without_accepting_lookalikes(
 pub package_owned_hash_and_session_adapters_retain_real_paths(): Bool ->
     let hash = adapter("std.crypto.Hash");
     let session = adapter("std.http.Session");
-    hash.known and hash.expected_crate == "sha2"
+    hash.known
+        and hash.expected_crate == "sha2"
         and hash.implementation_paths == ["std/crypto/native/src/hash.rs"]
         and implementation_function("std.crypto.hash.sha256", "sha256") == "sha256_bytes"
         and implementation_function("app.sha256", "sha256") == "sha256"
-        and session.known and session.expected_crate == "terlan-http-native"
+        and session.known
+        and session.expected_crate == "terlan-http-native"
         and contains_string(session.implementation_paths, "std/http/native/src/session_bindings.rs")
         and not adapter("app.Session").known.
 

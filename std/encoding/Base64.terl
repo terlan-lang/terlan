@@ -8,32 +8,42 @@
  */
 module std.encoding.Base64.
 
+import std.core.Result.{Err, Ok}.
+
 import type std.core.{Error, Result}.
 import type std.vm.Bytes.
-import std.core.Result.{Ok, Err}.
 
 type DecodeFailure = Atom["base64.decode"].
+
 type Utf8Failure = Atom["base64.utf8"].
 
 decode_result[T](result: Result[T, {Bool, String}]): Result[T, Base64Error] ->
     case result {
         Ok(value) -> Ok(value);
         Err({utf8, message}) ->
-            let code = case utf8 { true -> Utf8Failure; false -> DecodeFailure };
+            let code =
+                case utf8 {
+                    true -> Utf8Failure;
+                    false -> DecodeFailure
+                };
             Err(Base64Error(code = code, message = message, offset = 0))
     }.
 
 @compiler.native {std.encoding.base64.decode_text}
-decode_text(text: String): Result[String, {Bool, String}] -> native.
+decode_text(text: String): Result[String, {Bool, String}] ->
+    native.
 
 @compiler.native {std.encoding.base64.decode_url_text}
-decode_url_text(text: String): Result[String, {Bool, String}] -> native.
+decode_url_text(text: String): Result[String, {Bool, String}] ->
+    native.
 
 @compiler.native {std.encoding.base64.decode_octets}
-decode_octets(text: String): Result[Bytes, {Bool, String}] -> native.
+decode_octets(text: String): Result[Bytes, {Bool, String}] ->
+    native.
 
 @compiler.native {std.encoding.base64.decode_url_octets}
-decode_url_octets(text: String): Result[Bytes, {Bool, String}] -> native.
+decode_url_octets(text: String): Result[Bytes, {Bool, String}] ->
+    native.
 
 /**
  * Base64Error is the portable error returned by Base64 decoding operations.

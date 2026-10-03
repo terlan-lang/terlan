@@ -364,16 +364,26 @@ pub provenance(source_revision: String, input: ProvenanceInput): Option[Json] ->
         )
     }.
 
-configured(root: String, stage: String, program: String, arguments: List[String]): std.system.Process.Command ->
+/**
+ * Optimized compiler codegen exceeded thirty minutes on Intel macOS.
+ * Keep test/consumer commands bounded independently of the cold build.
+ */
+configured(
+    root: String,
+    stage: String,
+    program: String,
+    arguments: List[String],
+): std.system.Process.Command ->
     Process.with_output_limit_bytes(
         Process.with_timeout_ms(
             Process.with_working_directory(
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            // Optimized compiler codegen exceeded thirty minutes on Intel macOS.
-            // Keep test/consumer commands bounded independently of the cold build.
-            if { stage == "release compiler build" -> 3600000; true -> 1800000 },
+            if {
+                stage == "release compiler build" -> 3600000;
+                true -> 1800000
+            },
         ),
         8388608,
     ).
