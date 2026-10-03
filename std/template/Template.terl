@@ -8,8 +8,9 @@
  */
 module std.template.Template.
 
-import type std.collections.List.
 import std.core.String.{join as join_strings}.
+
+import type std.collections.List.
 
 /**
  * Html represents a trusted HTML fragment.
@@ -29,7 +30,8 @@ pub opaque type Html = String.
  * Transformation: marks the string as trusted HTML without escaping it. This is
  * an explicit escape hatch and should be rare in ordinary application code.
  */
-pub trusted(value: String): Html -> Html(value).
+pub trusted(value: String): Html ->
+    Html(value).
 
 /**
  * Creates an empty trusted HTML fragment.
@@ -39,7 +41,8 @@ pub trusted(value: String): Html -> Html(value).
  * Transformation: gives generated templates and helper code a typed empty
  * fragment without using an untyped empty string.
  */
-pub empty(): Html -> Html("").
+pub empty(): Html ->
+    Html("").
 
 /**
  * Joins trusted HTML fragments in source order.
@@ -60,4 +63,5 @@ pub join(fragments: List[Html]): Html ->
  * Transformation: exposes the package-owned representation without granting
  * trust to any new content.
  */
-pub to_string(fragment: Html): String -> fragment.
+pub to_string(fragment: Html): String ->
+    fragment.
