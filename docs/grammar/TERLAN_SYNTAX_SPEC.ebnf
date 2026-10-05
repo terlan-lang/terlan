@@ -1,4 +1,5 @@
-SyntaxSpec ::= Program | Script .
+SyntaxSpec ::= ( Program | Script ) EOF .
+EOF ::= ? end of input after optional whitespace and comments ? .
 
 Program ::= { Declaration } .
 
@@ -112,7 +113,7 @@ TraitImplDecl ::= [ "pub" ] "impl" TraitImplRef "for" TypeExpr "{" { TraitImplMe
 TraitImplMember ::= TraitImplMethod | TraitImplConst .
 TraitImplConst ::= "const" ConstName [ ":" TypeExpr ] "=" Expr "." .
 TraitImplRef ::= TypeRef [ "[" TraitImplArg { "," TraitImplArg } "]" ] .
-TraitImplArg ::= TypeExpr | TypeParam .
+TraitImplArg ::= TypeExpr | TypeVar ImplicationConstraint .
 
 MethodDecl ::= [ "pub" ] Receiver MethodFunction .
 Receiver ::= "(" [ "mut" ] LowerIdent ":" ReceiverType ")" .
@@ -221,17 +222,17 @@ StructuralParameterPattern
 TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
 ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr } .
 PatternList ::= Pattern { "," Pattern } [ "," ] .
-PatternList1 ::= Pattern { "," Pattern } [ "," ] .
 TraitMethodDecl ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr [ "->" Expr ] .
 TraitImplMethod ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
-TraitRef ::= TypeRef [ TypeArgs ] .
+TraitRef ::= AppliedTypeRef .
+AppliedTypeRef ::= TypeRef [ TypeArgs ] .
 TypeVar ::= UpperIdent .
 
 TypeExpr ::= TypeUnion .
 TypeUnion ::= TypeArrow { "|" TypeArrow } .
 TypeArrow ::= TypePrimary | "(" [ TypeExprList ] ")" "->" TypeExpr .
 TypeExprList ::= TypeExpr { "," TypeExpr } .
-TypePrimary ::= ExistentialType | AtomTypeLiteral | TypePlaceholder | TypeRef [ TypeArgs ] | TypeTuple | TypeList | TypeKeyedContainer | TypeLiteral | "(" TypeExpr ")" .
+TypePrimary ::= ExistentialType | AtomTypeLiteral | TypePlaceholder | AppliedTypeRef | TypeTuple | TypeList | TypeKeyedContainer | TypeLiteral | "(" TypeExpr ")" .
 ExistentialType ::= "exists" TypeVar { "," TypeVar } "." TypeExpr .
 TypeArgs ::= "[" TypeExprList "]" .
 TypePlaceholder ::= "_" .
@@ -315,7 +316,7 @@ TupleExpr ::= "{" Expr "," Expr { "," Expr } [ "," ] "}" .
 ListExpr ::= "[" [ Expr { "," Expr } [ "," ] ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
 FixedArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
-ListGeneratorExpr ::= "[" Expr "|" ComprehensionQualifier { "," ComprehensionQualifier } "]" .
+ListGeneratorExpr ::= "[" Expr "|" Generator { "," ComprehensionQualifier } "]" .
 ComprehensionQualifier ::= Generator | ComprehensionFilter .
 Generator ::= Pattern "<-" Expr .
 ComprehensionFilter ::= Expr .
@@ -326,7 +327,8 @@ NominalKeyedExpr ::= TypeName "{" [ KeyedField { "," KeyedField } [ "," ] ] "}" 
 
 StructPatternFieldName ::= LowerIdent | "#" LowerIdent .
 RecordFieldName ::= LowerIdent | "#" LowerIdent .
-ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr .
+ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr | RemoteCallExpr .
+RemoteCallExpr ::= NameRef ":" NameRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 TraitTargetCallExpr ::= TraitRef "." LowerIdent [ TypeArgs ] "(" [ CallArgList ] ")" .
 QualifiedCallExpr ::= QualifiedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 ScopedCallExpr ::= ScopedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
@@ -357,7 +359,7 @@ PrimaryPattern
    .
 QualifiedConstantPattern ::= NameRef { "." NameRef } "." ConstName .
 TuplePattern ::= "{" Pattern "," Pattern { "," Pattern } [ "," ] "}" .
-ConstructorPattern ::= ConstructorAtom [ "(" [ PatternList1 ] ")" ] .
+ConstructorPattern ::= ConstructorAtom [ "(" [ PatternList ] ")" ] .
 KeyedContainerPattern ::= "{" [ PatternKeyedField { "," PatternKeyedField } [ "," ] ] "}" .
 PatternKeyedField ::= KeyedFieldName ":" Pattern .
 StructPattern ::= TypeName "{" [ StructPatternField { "," StructPatternField } [ "," ] ] "}" .

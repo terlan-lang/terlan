@@ -1,13 +1,13 @@
 {
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 234,
+  "rule_count": 236,
   "key_rules": [
     {
       "name": "SyntaxSpec",
       "id": "rule:SyntaxSpec",
       "expr_id": "rule:SyntaxSpec/expr",
-      "kind": "alternation"
+      "kind": "sequence"
     },
     {
       "name": "Declaration",

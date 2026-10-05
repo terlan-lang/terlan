@@ -90,6 +90,18 @@ mod tests {
     }
 
     #[test]
+    fn generated_comparisons_and_casts_nest_left_to_right() {
+        let comparison = parse_lalrpop_expression("a < b < c").unwrap();
+        assert_eq!(comparison.root.text.as_deref(), Some("<"));
+        assert_eq!(comparison.root.children[0].text.as_deref(), Some("<"));
+
+        let cast = parse_lalrpop_expression("value as Foo as Bar").unwrap();
+        assert_eq!(cast.root.kind, LalrpopSyntaxNodeKind::Cast);
+        assert_eq!(cast.root.children[0].kind, LalrpopSyntaxNodeKind::Cast);
+        assert_eq!(cast.root.children[1].text.as_deref(), Some("Bar"));
+    }
+
+    #[test]
     fn generated_expression_validation_rejects_plain_assignment() {
         let source = "value = value + 1";
         let error = parse_lalrpop_expression(source).expect_err("plain assignment must fail");

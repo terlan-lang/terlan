@@ -24,6 +24,9 @@ module.exports = grammar({
     [$.expression, $.raw_macro_expression],
     [$.expression, $._name_ref],
     [$.expression, $.pattern],
+    [$.remote_call_expression, $._type_name_ref],
+    [$.expression, $.remote_call_expression, $._name_ref],
+    [$.expression, $.remote_call_expression],
     [$.constructor_pattern, $._name_ref],
     [$.list_expression, $.list_pattern],
     [$.shape_pattern, $.tuple_pattern],
@@ -390,6 +393,7 @@ module.exports = grammar({
         $.lambda_expression,
         $.binary_layout_expression,
         $.list_expression,
+        $.remote_call_expression,
         $.method_call_expression,
         $.call_expression,
         $.field_expression,
@@ -476,7 +480,7 @@ module.exports = grammar({
     list_expression: ($) =>
       seq(
         "[",
-        optional(choice($.list_comprehension_body, commaSep1($.expression))),
+        optional(choice($.list_comprehension_body, $.list_cons_body, commaSep1($.expression))),
         "]"
       ),
 
@@ -484,8 +488,12 @@ module.exports = grammar({
       seq(
         field("yield", $.expression),
         "|",
-        commaSepNoTrailing($.comprehension_clause)
+        $.comprehension_generator,
+        repeat(seq(",", $.comprehension_clause))
       ),
+
+    list_cons_body: ($) =>
+      seq(field("head", $.expression), "|", field("tail", $.expression)),
 
     comprehension_clause: ($) =>
       choice($.comprehension_generator, $.comprehension_filter),
@@ -496,6 +504,15 @@ module.exports = grammar({
     comprehension_filter: ($) => field("filter", $.expression),
 
     call_expression: ($) => seq($._name_ref, $.arguments),
+
+    remote_call_expression: ($) =>
+      seq(
+        field("module", choice($.identifier, $.type_identifier)),
+        ":",
+        field("function", choice($.identifier, $.type_identifier)),
+        optional(seq("[", commaSepNoTrailing($.type_expression), "]")),
+        $.arguments
+      ),
 
     method_call_expression: ($) =>
       prec.left(5, seq($.expression, $._field_selector, $.arguments)),

@@ -680,12 +680,11 @@ pub visible(values: List[Int]): List[Int] ->
         (list_comprehension_body
           (expression
             (identifier))
-          (comprehension_clause
-            (comprehension_generator
-              (pattern
-                (identifier))
-              (expression
-                (identifier))))
+          (comprehension_generator
+            (pattern
+              (identifier))
+            (expression
+              (identifier)))
           (comprehension_clause
             (comprehension_filter
               (expression

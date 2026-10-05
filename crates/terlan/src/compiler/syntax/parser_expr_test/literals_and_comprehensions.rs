@@ -84,6 +84,36 @@ pub(super) fn formal_cons_list_expr_is_distinct_from_generator_expr() {
     assert!(matches!(generator, Expr::ListComprehension { .. }));
 }
 
+#[test]
+fn formal_list_qualifiers_require_a_leading_generator() {
+    for source in ["[x | true, false]", "[x | x > 0, x <- xs]"] {
+        assert!(parse_terlan_expr(source).is_err(), "accepted {source}");
+    }
+    for source in ["[x | x <- xs, x > 0]", "[x | x <- xs, y <- ys]"] {
+        assert!(matches!(
+            parse_terlan_expr(source).expect(source),
+            Expr::ListComprehension { .. }
+        ));
+    }
+    assert!(matches!(
+        parse_terlan_expr("[x | true]").unwrap(),
+        Expr::ListCons(_, _)
+    ));
+}
+
+#[test]
+fn formal_complete_input_rejects_a_valid_prefix_with_trailing_tokens() {
+    assert!(parse_terlan_expr("io_lib:format(\"~p\", []) unexpected").is_err());
+    assert!(parse_module("module demo. unexpected").is_err());
+    assert!(parse_module("module demo. // trailing comment\n").is_ok());
+}
+
+#[test]
+fn formal_trait_impl_arguments_are_not_parameter_declarations() {
+    assert!(parse_module("module demo. impl Foo[const N: Int] for Bar {}.").is_err());
+    assert!(parse_module("module demo. impl Foo[T => { name: String }] for Bar {}.").is_ok());
+}
+
 /// Verifies canonical atom literals are expression syntax.
 ///
 /// Inputs:

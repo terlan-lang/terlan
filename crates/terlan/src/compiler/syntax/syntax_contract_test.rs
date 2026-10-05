@@ -1,6 +1,38 @@
 use super::*;
 
 #[test]
+fn canonical_contract_disambiguates_lists_and_covers_remote_calls() {
+    let contract = canonical_terlan_syntax_contract().expect("canonical contract");
+    let EbnfGrammarExprKind::Sequence { items } =
+        &contract.rule("ListGeneratorExpr").unwrap().expr.kind
+    else {
+        panic!("comprehension must be a sequence");
+    };
+    assert!(matches!(
+        &items[3].kind,
+        EbnfGrammarExprKind::Nonterminal { name } if name == "Generator"
+    ));
+    let EbnfGrammarExprKind::Alternation { items } =
+        &contract.rule("ReferenceCallExpr").unwrap().expr.kind
+    else {
+        panic!("reference calls must include remote calls");
+    };
+    assert!(items.iter().any(|item| matches!(
+        &item.kind,
+        EbnfGrammarExprKind::Nonterminal { name } if name == "RemoteCallExpr"
+    )));
+    assert!(contract.rule("PatternList1").is_none());
+    let EbnfGrammarExprKind::Sequence { items } = &contract.rule("SyntaxSpec").unwrap().expr.kind
+    else {
+        panic!("complete source requires EOF");
+    };
+    assert!(matches!(
+        &items.last().unwrap().kind,
+        EbnfGrammarExprKind::Nonterminal { name } if name == "EOF"
+    ));
+}
+
+#[test]
 fn canonical_contract_compiles_from_embedded_ebnf() {
     let contract = canonical_terlan_syntax_contract().expect("compile canonical syntax contract");
 

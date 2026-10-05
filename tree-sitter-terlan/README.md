@@ -1,8 +1,9 @@
 # Tree-Sitter Terlan
 
 This directory owns the editor-facing Tree-sitter grammar scaffold for Terlan.
-The compiler grammar remains the source of truth; this grammar exists for
-syntax highlighting, editor navigation, and mixed template-region support.
+The [canonical EBNF and contextual rules](../docs/grammar/README.md) define
+source syntax. This grammar supports syntax highlighting, editor navigation,
+and mixed template regions; the compiler owns validation and diagnostics.
 
 ## Responsibilities
 
@@ -24,6 +25,8 @@ syntax highlighting, editor navigation, and mixed template-region support.
 - `test/corpus/basic.txt`: initial parser corpus.
 - `test/corpus/binary_layouts.txt`: binary constructor and shared pattern-position
   corpus.
+- `test/corpus/list_and_remote_calls.txt`: cons/comprehension classification and
+  colon-qualified calls, including explicit type arguments and pipe composition.
 - `test/package_smoke_test.js`: dependency-free package, script, corpus, and
   highlight query coverage smoke.
 - `test/pack_dry_run_test.js`: npm dry-run archive validator for the actual
@@ -47,5 +50,5 @@ syntax highlighting, editor navigation, and mixed template-region support.
   `npm pack --dry-run` archive payload without publishing a package.
 - Run `npm test` from this directory once `tree-sitter-cli` is installed to
   execute the full Tree-sitter corpus parser test.
-- Do not commit generated parser artifacts unless they become selected release
-  artifacts.
+- Regenerate the tracked `src` parser artifacts when changing `grammar.js`, and
+  review corpus trees before accepting updated expectations.

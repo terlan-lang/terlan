@@ -1,0 +1,144 @@
+==================
+list cons remains distinct from a comprehension
+==================
+
+module app.Lists.
+cons(head: Int, tail: List[Int]): List[Int] -> [head | tail].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))
+    (expression
+      (list_expression
+        (list_cons_body
+          (expression
+            (identifier))
+          (expression
+            (identifier)))))))
+
+==================
+generator precedes comprehension filters
+==================
+
+module app.Lists.
+positive(xs: List[Int]): List[Int] -> [x | x <- xs, x > 0].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))
+    (expression
+      (list_expression
+        (list_comprehension_body
+          (expression
+            (identifier))
+          (comprehension_generator
+            (pattern
+              (identifier))
+            (expression
+              (identifier)))
+          (comprehension_clause
+            (comprehension_filter
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (number)))))))))))
+
+==================
+remote calls compose with pipes
+==================
+
+module app.Remote.
+format(): String -> io_lib:format("~p", []) |> inspect().
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_expression
+        (expression
+          (remote_call_expression
+            (identifier)
+            (identifier)
+            (arguments
+              (argument
+                (expression
+                  (string)))
+              (argument
+                (expression
+                  (list_expression))))))
+        (expression
+          (call_expression
+            (identifier)
+            (arguments)))))))
+
+==================
+generic remote call retains type arguments
+==================
+
+module app.Remote.
+fetch(): Int -> Store:fetch[Int]().
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (remote_call_expression
+        (type_identifier)
+        (identifier)
+        (type_expression
+          (type_identifier))
+        (arguments)))))

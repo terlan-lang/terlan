@@ -764,6 +764,10 @@
           "named": true
         },
         {
+          "type": "remote_call_expression",
+          "named": true
+        },
+        {
           "type": "string",
           "named": true
         },
@@ -1345,8 +1349,38 @@
         {
           "type": "comprehension_clause",
           "named": true
+        },
+        {
+          "type": "comprehension_generator",
+          "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "list_cons_body",
+    "named": true,
+    "fields": {
+      "head": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
+      "tail": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1363,6 +1397,10 @@
         },
         {
           "type": "list_comprehension_body",
+          "named": true
+        },
+        {
+          "type": "list_cons_body",
           "named": true
         }
       ]
@@ -1776,6 +1814,54 @@
       "types": [
         {
           "type": "case_arm",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "remote_call_expression",
+    "named": true,
+    "fields": {
+      "function": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "type_identifier",
+            "named": true
+          }
+        ]
+      },
+      "module": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "type_identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "type_expression",
           "named": true
         }
       ]

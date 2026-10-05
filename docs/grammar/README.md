@@ -6,6 +6,49 @@ commentary so grammar validation and diffs stay focused on productions.
 This README owns the explanatory material: source conventions, semantic notes,
 examples, and design rationale.
 
+## Contract And Contextual Rules
+
+The EBNF and the contextual restrictions documented here define canonical
+source syntax. The production recognizer is the generated LALRPOP parser;
+validation and AST lowering follow recognition. Tree-sitter is an editor
+grammar with recovery support, not a second compiler validator. A disagreement
+with this contract is a specification or implementation bug to resolve with
+tests, not an alternative language definition.
+
+`SyntaxSpec` consumes the complete input. `EOF` is an end-of-input condition,
+not a source token; trailing whitespace and comments are permitted.
+
+- A comprehension starts with a generator: `[x | x <- xs, x > 0]`.
+  `[head | tail]` is list construction. A filter cannot precede the first
+  generator, and a comma-separated sequence of filters alone is invalid.
+- Positional call arguments precede named arguments. `f(1, value = 2)` is valid;
+  `f(value = 2, 1)` is rejected during lowering. The compact `CallArgList`
+  production intentionally leaves this ordering to contextual validation.
+- Colon calls such as `io_lib:format("~p", [])` are remote calls, distinct from
+  dotted qualified references. Both operands of the colon are identifier names;
+  explicit type arguments and ordinary call arguments follow the function name.
+- `TypeName`, `TypeVar`, `ConstName`, and `ConstructorAtom` name semantic roles
+  of the same lexical `UpperIdent` class. Resolution determines their meaning.
+- `AppliedTypeRef` denotes nominal type application. `TraitImplRef` additionally
+  admits arguments such as `T => { name: String }` that bind structural evidence.
+  It does not introduce a general type-parameter declaration list: arguments
+  such as `const N: Int` are not accepted in an impl trait reference.
+- Comparisons and casts associate to the left. `a < b < c` parses as
+  `(a < b) < c`, not a Python-style comparison chain; ordinary type checking
+  still applies. `value as Foo as Bar` likewise nests left to right.
+- Comma and semicolon policies are production-specific. Value and pattern
+  lists and call arguments permit trailing commas; type arguments, type
+  parameters, and constraint lists currently do not. Universal trailing
+  commas would require a coordinated language change, not an EBNF-only edit.
+- Ordinary expression assignment targets indexed locations. Plain `x = y`
+  is not general expression assignment; script bindings and named arguments
+  have separate rules. `mut` receiver behavior is described under Methods.
+
+The EBNF contract tests check production structure and reachability. Parser
+regressions check acceptance, rejection, and AST classification; the Tree-sitter
+corpus checks editor trees. These checks complement each other but do not yet
+constitute an independent executable recognizer for every EBNF production.
+
 ## Keyed Containers
 
 Terlan uses one field language for anonymous keyed values, nominal keyed values,
