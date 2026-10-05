@@ -214,7 +214,7 @@
       "slice_id": "Slice 20"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -229,7 +229,7 @@
       "slice_id": "Slice 22"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -244,7 +244,7 @@
       "slice_id": "Slice 23"
     },
     {
-      "blocker_expiry": "exception:vm_runtime@2026-09-30",
+      "blocker_expiry": "exception:vm_runtime@2026-10-19",
       "blocker_hash": "sha256:7937b585761e193f053eaffab67a2c2b66d8caf13d6f7abc616b6894a3af5948",
       "blocker_reason": "SemanticChain and Concurrency prove small expression and list-mailbox models, not the AOT scheduler, heaps, continuations, or complete VM execution; Rust and Terlan tests are not a refinement proof.",
       "coverage_status": "slice_blocked",
@@ -259,7 +259,7 @@
       "slice_id": "Slice 24"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -274,7 +274,7 @@
       "slice_id": "Slice 25"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -289,7 +289,7 @@
       "slice_id": "Slice 26"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
@@ -304,7 +304,7 @@
       "slice_id": "Slice 27"
     },
     {
-      "blocker_expiry": "exception:coreir@2026-09-30",
+      "blocker_expiry": "exception:coreir@2026-10-19",
       "blocker_hash": "sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0",
       "blocker_reason": "Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved.",
       "coverage_status": "slice_blocked",
