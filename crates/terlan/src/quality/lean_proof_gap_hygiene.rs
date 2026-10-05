@@ -60,7 +60,11 @@ pub(crate) fn run_lean_proof_gap_hygiene(root: &Path) -> QualityResult<LeanProof
         &transitions,
         current_utc_date(),
     ));
-    diagnostics.extend(validate_gap_toml_mirror(root, &gaps, current_utc_date())?);
+    diagnostics.extend(validate_gap_toml_mirror(
+        root,
+        &gaps,
+        &policy.release_version,
+    )?);
     if !diagnostics.is_empty() {
         return Err(render_failure(&diagnostics));
     }

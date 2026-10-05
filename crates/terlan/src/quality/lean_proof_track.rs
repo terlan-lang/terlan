@@ -195,7 +195,11 @@ pub fn run_lean_proof_track(root: &Path) -> QualityResult<LeanProofTrackSummary>
     diagnostics.extend(validate_inventory(&inventory_rows, &lean_files));
     diagnostics.extend(validate_gaps(&gap_rows, &make_check_targets));
     diagnostics.extend(validate_gap_lifecycle(&gap_rows, &gap_policy, today));
-    diagnostics.extend(validate_gap_toml_mirror(root, &gap_rows, today)?);
+    diagnostics.extend(validate_gap_toml_mirror(
+        root,
+        &gap_rows,
+        &gap_policy.release_version,
+    )?);
     diagnostics.extend(validate_gap_manifest_paths(root, &gap_rows));
     diagnostics.extend(validate_lean_files(root, &lean_files));
     diagnostics.extend(validate_artifacts(root, &artifact_rows, &inventory_rows));

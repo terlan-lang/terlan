@@ -6,7 +6,7 @@ use time::{Date, Month};
 
 fn policy() -> GapPolicy {
     basic_toml::from_str(
-        "schema = \"terlan.lean-proof-gap-policy.v1\"\nmax_blocker_age_days = 30\n",
+        "schema = \"terlan.lean-proof-gap-policy.v2\"\napproval_scope = \"release\"\n",
     )
     .expect("valid gap policy")
 }
@@ -132,7 +132,7 @@ fn lean_proof_gap_hygiene_rejects_non_executable_follow_up_gate() {
 }
 
 #[test]
-fn lean_proof_gap_hygiene_rejects_expired_blocker() {
+fn lean_proof_gap_hygiene_does_not_expire_unchanged_blocker_by_age() {
     let diagnostics = validate_gap_hygiene(
         &[gap("2026-06-16", "core-typing-spec-check")],
         &[],
@@ -143,7 +143,16 @@ fn lean_proof_gap_hygiene_rejects_expired_blocker() {
         today(),
     );
 
-    assert!(diagnostics.iter().any(|item| item.contains("31 days old")));
+    let fresh_diagnostics = validate_gap_hygiene(
+        &[gap("2026-07-16", "core-typing-spec-check")],
+        &[],
+        &[],
+        &[],
+        &BTreeSet::from(["core-typing-spec-check".to_string()]),
+        &policy(),
+        today(),
+    );
+    assert_eq!(diagnostics, fresh_diagnostics);
 }
 
 #[test]

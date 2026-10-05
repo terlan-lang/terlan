@@ -64,9 +64,12 @@ struct LeanProofGapFile {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct GapPolicy {
     schema: String,
-    max_blocker_age_days: i64,
+    approval_scope: String,
+    #[serde(skip)]
+    pub(crate) release_version: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -123,7 +126,7 @@ pub(crate) fn parse_gap_manifest(text: &str) -> QualityResult<Vec<LeanProofGap>>
 pub(crate) fn validate_gap_toml_mirror(
     root: &Path,
     indexed_gaps: &[LeanProofGap],
-    today: Date,
+    release_version: &str,
 ) -> QualityResult<Vec<String>> {
     let directory = root.join(GAP_TOML_DIR);
     let entries = fs::read_dir(&directory).map_err(|error| {
@@ -193,7 +196,7 @@ pub(crate) fn validate_gap_toml_mirror(
         diagnostics.extend(validate_lane_exception(
             &relative,
             &record.deadline_or_exception,
-            today,
+            release_version,
             record.lifecycle_status != "closed",
         ));
         let gap = LeanProofGap {
@@ -233,19 +236,30 @@ pub(crate) fn read_gap_policy(root: &Path) -> QualityResult<GapPolicy> {
     let path = root.join(GAP_POLICY_PATH);
     let text = fs::read_to_string(&path)
         .map_err(|err| format!("{}: failed to read gap policy: {err}", path.display()))?;
-    let policy = basic_toml::from_str::<GapPolicy>(&text)
+    let mut policy = basic_toml::from_str::<GapPolicy>(&text)
         .map_err(|err| format!("{}: invalid gap policy TOML: {err}", path.display()))?;
-    if policy.schema != "terlan.lean-proof-gap-policy.v1" {
+    if policy.schema != "terlan.lean-proof-gap-policy.v2" {
         return Err(format!(
             "{GAP_POLICY_PATH}: unsupported schema `{}`",
             policy.schema
         ));
     }
-    if !(1..=365).contains(&policy.max_blocker_age_days) {
+    if policy.approval_scope != "release" {
         return Err(format!(
-            "{GAP_POLICY_PATH}: max_blocker_age_days must be between 1 and 365"
+            "{GAP_POLICY_PATH}: approval_scope must be `release`"
         ));
     }
+    let manifest = fs::read_to_string(root.join("Cargo.toml"))
+        .map_err(|error| format!("Cargo.toml: failed to read release version: {error}"))?;
+    let manifest: Value = basic_toml::from_str(&manifest)
+        .map_err(|error| format!("Cargo.toml: invalid workspace manifest: {error}"))?;
+    policy.release_version = manifest["workspace"]["package"]["version"]
+        .as_str()
+        .filter(|version| !version.is_empty())
+        .ok_or("Cargo.toml: workspace.package.version must be a nonempty string")?
+        .to_owned();
+    semver::Version::parse(&policy.release_version)
+        .map_err(|error| format!("Cargo.toml: invalid workspace release version: {error}"))?;
     Ok(policy)
 }
 
@@ -255,7 +269,7 @@ pub(crate) fn current_utc_date() -> Date {
 
 pub(crate) fn validate_gap_lifecycle(
     gaps: &[LeanProofGap],
-    policy: &GapPolicy,
+    _policy: &GapPolicy,
     today: Date,
 ) -> Vec<String> {
     let mut diagnostics = Vec::new();
@@ -291,11 +305,6 @@ pub(crate) fn validate_gap_lifecycle(
                     diagnostics.push(format!(
                         "`{GAP_PATH}` row `{}` blocker timestamp `{}` is in the future",
                         gap.feature, gap.blocker_updated_at
-                    ));
-                } else if gap.lifecycle_status != "closed" && age > policy.max_blocker_age_days {
-                    diagnostics.push(format!(
-                        "`{GAP_PATH}` row `{}` blocker is {age} days old, exceeding the {} day TTL",
-                        gap.feature, policy.max_blocker_age_days
                     ));
                 }
             }
@@ -376,7 +385,8 @@ pub(crate) fn gap_metrics(
 
     Ok(json!({
         "policy": {
-            "max_blocker_age_days": policy.max_blocker_age_days,
+            "approval_scope": policy.approval_scope,
+            "release_version": policy.release_version,
         },
         "gap_count": metrics.len(),
         "gap_staleness_days": max_staleness,
@@ -426,28 +436,33 @@ fn has_deadline_or_exception(value: &str) -> bool {
 fn validate_lane_exception(
     path: &str,
     value: &str,
-    today: Date,
-    enforce_expiry: bool,
+    release_version: &str,
+    unresolved: bool,
 ) -> Vec<String> {
     let Some(exception) = value.strip_prefix("exception:") else {
         return vec![format!(
-            "`{path}` must carry an owner-approved `exception:<lane>@YYYY-MM-DD` window"
+            "`{path}` must carry an owner-approved `exception:<lane>@release-<version>` approval"
         )];
     };
-    let Some((lane, expiry)) = exception.split_once('@') else {
+    let Some((lane, approval)) = exception.split_once('@') else {
         return vec![format!(
-            "`{path}` exception must use `exception:<lane>@YYYY-MM-DD`"
+            "`{path}` exception must use `exception:<lane>@release-<version>`"
         )];
     };
     let mut diagnostics = Vec::new();
     if !PROOF_LANES.contains(&lane) {
         diagnostics.push(format!("`{path}` exception names unknown lane `{lane}`"));
     }
-    match parse_date(expiry) {
-        Ok(expiry) if !enforce_expiry || expiry >= today => {}
-        Ok(_) => diagnostics.push(format!("`{path}` exception expired on `{expiry}`")),
-        Err(error) => diagnostics.push(format!(
-            "`{path}` exception expiry `{expiry}` is invalid: {error}"
+    if !unresolved && parse_date(approval).is_ok() {
+        return diagnostics;
+    }
+    match approval.strip_prefix("release-") {
+        Some(version) if semver::Version::parse(version).is_ok() && (!unresolved || version == release_version) => {}
+        Some(version) => diagnostics.push(format!(
+            "`{path}` exception approval is for release `{version}`; release `{release_version}` requires owner approval"
+        )),
+        None => diagnostics.push(format!(
+            "`{path}` exception must use `exception:<lane>@release-<version>`; calendar approvals are historical only"
         )),
     }
     diagnostics

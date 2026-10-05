@@ -81,14 +81,16 @@ non-ignored test: a successful process with zero matching tests is not evidence.
 - A blocked obligation may append a `blocked -> blocked` review without
   rewriting its earlier history. It must have a later date, changed evidence,
   and a non-empty `Review:` rationale; the latest review date must match the
-  blocker update date. Review is not remediation or closure and does not extend
-  an exception's expiry or the 30-day review policy.
-- A released exception uses `exception:<lane>@YYYY-MM-DD`, must name a fixed
+  blocker update date. Review is not remediation or closure and does not approve
+  an exception for another release.
+- A released exception uses `exception:<lane>@release-<version>`, must name a fixed
   proof lane, must be approved by the remediation owner in the TOML record,
-  and fails after its expiry while the gap is unresolved. The blocker update date
-  is ISO `YYYY-MM-DD`; unresolved blockers cannot exceed the TTL in
-  `lean_proof_gap_policy.toml`, while closed rows retain their historical closure
-  date. The blocker hash is SHA-256
+  and must match `workspace.package.version` in the source `Cargo.toml` while
+  the gap is unresolved. A version change requires fresh owner approval.
+  Approvals do not expire with calendar time, and blocker age is informational.
+  `lean_proof_gap_policy.toml` requires release-scoped approval. Closed rows may
+  retain their historical dated exceptions. The blocker update date is ISO
+  `YYYY-MM-DD`. The blocker hash is SHA-256
   over the UTF-8 feature, category, reason, and update date fields, each
   terminated by a zero byte. Editing the blocker or refreshing its timestamp
   without renewing the hash therefore fails the gate.
@@ -101,7 +103,7 @@ non-ignored test: a successful process with zero matching tests is not evidence.
   owner must be one of the accepted proof-track owner groups.
 - `make lean-proof-track-gap-hygiene-check` rejects exact feature overlap
   between active gap rows and current proof inventory rows, non-executable
-  planned gates, blockers that exceed the policy TTL, and closure notes that do
+  planned gates, approvals for a different release, and closure notes that do
   not resolve to a current executable proof digest.
 - Every current language/CoreIR/protocol proof-status manifest must be linked
   from an accepted proof gap until the matching Lean artifact is restored.
