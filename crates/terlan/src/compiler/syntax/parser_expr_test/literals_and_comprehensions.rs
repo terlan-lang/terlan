@@ -103,7 +103,7 @@ fn formal_list_qualifiers_require_a_leading_generator() {
 
 #[test]
 fn formal_complete_input_rejects_a_valid_prefix_with_trailing_tokens() {
-    assert!(parse_terlan_expr("io_lib:format(\"~p\", []) unexpected").is_err());
+    assert!(parse_terlan_expr("Format.format(\"~p\", []) unexpected").is_err());
     assert!(parse_module("module demo. unexpected").is_err());
     assert!(parse_module("module demo. // trailing comment\n").is_ok());
 }
@@ -876,9 +876,9 @@ pub(super) fn formal_unary_expr_preserves_precedence() {
 }
 
 #[test]
-pub(super) fn formal_remote_call_expr_parses_colon_syntax() {
-    let expr = parse_terlan_expr("io_lib:format(\"~p\", []) |> inspect()")
-        .expect("parse colon remote call in pipe");
+pub(super) fn formal_remote_call_expr_parses_dotted_syntax() {
+    let expr = parse_terlan_expr("Format.format(\"~p\", []) |> inspect()")
+        .expect("parse dotted remote call in pipe");
 
     let Expr::BinaryOp { op, left, .. } = expr else {
         panic!("expected pipe expression");
@@ -897,7 +897,7 @@ pub(super) fn formal_remote_call_expr_parses_colon_syntax() {
     else {
         panic!("expected remote call expression as pipe left side");
     };
-    assert_eq!(remote.as_deref(), Some("io_lib"));
+    assert_eq!(remote.as_deref(), Some("Format"));
     assert!(matches!(callee.as_ref(), Expr::Atom(name) if name == "format"));
     assert_eq!(args.len(), 2);
 }

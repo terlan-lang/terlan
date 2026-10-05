@@ -17,6 +17,8 @@ mod parser_contract;
 mod raw_shape;
 pub mod span;
 pub(crate) mod sql_regions;
+#[cfg(test)]
+mod syntax_conformance_test;
 pub mod syntax_contract;
 pub mod syntax_output;
 pub mod token;

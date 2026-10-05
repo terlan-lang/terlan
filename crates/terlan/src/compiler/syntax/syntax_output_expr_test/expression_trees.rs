@@ -460,16 +460,16 @@ pub(super) fn syntax_output_rejects_remote_fun_ref_source_syntax() {
 }
 
 #[test]
-pub(super) fn syntax_output_includes_colon_remote_call_trees() {
+pub(super) fn syntax_output_includes_dotted_remote_call_trees() {
     let output = parse_module_as_syntax_output(
         r#"
         module remote_call_tree.
 
         demo(): Dynamic ->
-            io_lib:format("~p", []).
+            Format.format("~p", []).
         "#,
     )
-    .expect("syntax output colon remote call");
+    .expect("syntax output dotted remote call");
 
     let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload else {
         panic!("expected function declaration");
@@ -477,7 +477,7 @@ pub(super) fn syntax_output_includes_colon_remote_call_trees() {
 
     let body = &clauses[0].body;
     assert_eq!(body.kind, SyntaxExprKind::Call);
-    assert_eq!(body.remote.as_deref(), Some("io_lib"));
+    assert_eq!(body.remote.as_deref(), Some("Format"));
     assert_eq!(body.children[0].kind, SyntaxExprKind::Atom);
     assert_eq!(body.children[0].text.as_deref(), Some("format"));
     assert_eq!(body.children.len(), 3);

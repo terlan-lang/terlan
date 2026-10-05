@@ -327,8 +327,7 @@ NominalKeyedExpr ::= TypeName "{" [ KeyedField { "," KeyedField } [ "," ] ] "}" 
 
 StructPatternFieldName ::= LowerIdent | "#" LowerIdent .
 RecordFieldName ::= LowerIdent | "#" LowerIdent .
-ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr | RemoteCallExpr .
-RemoteCallExpr ::= NameRef ":" NameRef [ TypeArgs ] "(" [ CallArgList ] ")" .
+ReferenceCallExpr ::= TraitTargetCallExpr | QualifiedCallExpr | ScopedCallExpr .
 TraitTargetCallExpr ::= TraitRef "." LowerIdent [ TypeArgs ] "(" [ CallArgList ] ")" .
 QualifiedCallExpr ::= QualifiedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 ScopedCallExpr ::= ScopedValueRef [ TypeArgs ] "(" [ CallArgList ] ")" .

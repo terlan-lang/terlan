@@ -494,40 +494,6 @@ pub(super) fn is_generic_call_open(tokens: &[Token], index: usize) -> bool {
     false
 }
 
-/// Reports whether a colon separates the module and function of a remote call.
-pub(super) fn is_remote_call_colon(tokens: &[Token], index: usize) -> bool {
-    if tokens
-        .get(index)
-        .is_none_or(|token| token.kind != TokenKind::Colon)
-    {
-        return false;
-    }
-    let previous = tokens[..index]
-        .iter()
-        .rev()
-        .find(|token| !is_trivia(&token.kind));
-    let mut following = tokens[index + 1..]
-        .iter()
-        .enumerate()
-        .filter(|(_, token)| !is_trivia(&token.kind));
-    let Some((_function_offset, function)) = following.next() else {
-        return false;
-    };
-    if previous.is_none_or(|token| !matches!(token.kind, TokenKind::Atom | TokenKind::Var))
-        || !matches!(function.kind, TokenKind::Atom | TokenKind::Var)
-        || previous.is_none_or(|token| token.end != tokens[index].start)
-        || tokens[index].end != function.start
-    {
-        return false;
-    }
-    let Some((next_offset, next)) = following.next() else {
-        return false;
-    };
-    next.kind == TokenKind::LParen
-        || (next.kind == TokenKind::LBracket
-            && is_generic_call_open(tokens, index + 1 + next_offset))
-}
-
 fn call_is_followed_by_signature(tokens: &[Token], opening: usize) -> bool {
     let mut depth = 0usize;
     for (offset, token) in tokens[opening..].iter().enumerate() {

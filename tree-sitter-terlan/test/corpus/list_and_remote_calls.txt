@@ -88,7 +88,7 @@ remote calls compose with pipes
 ==================
 
 module app.Remote.
-format(): String -> io_lib:format("~p", []) |> inspect().
+format(): String -> Format.format("~p", []) |> inspect().
 
 ---
 
@@ -103,9 +103,8 @@ format(): String -> io_lib:format("~p", []) |> inspect().
     (expression
       (binary_expression
         (expression
-          (remote_call_expression
-            (identifier)
-            (identifier)
+          (call_expression
+            (qualified_identifier)
             (arguments
               (argument
                 (expression
@@ -119,11 +118,11 @@ format(): String -> io_lib:format("~p", []) |> inspect().
             (arguments)))))))
 
 ==================
-generic remote call retains type arguments
+dotted module call
 ==================
 
 module app.Remote.
-fetch(): Int -> Store:fetch[Int]().
+fetch(): Int -> Store.fetch().
 
 ---
 
@@ -136,9 +135,6 @@ fetch(): Int -> Store:fetch[Int]().
     (type_expression
       (type_identifier))
     (expression
-      (remote_call_expression
-        (type_identifier)
-        (identifier)
-        (type_expression
-          (type_identifier))
+      (call_expression
+        (qualified_identifier)
         (arguments)))))

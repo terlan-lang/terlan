@@ -200,7 +200,7 @@ fn parses_remote_call_expression() {
 module remote.
 
 pub add(): Int ->
-    io_lib:format("~p", []).
+    Format.format("~p", []).
 "#;
 
     let module = parse_module(source).expect("parse");
@@ -213,7 +213,7 @@ pub add(): Int ->
         Expr::Call {
             remote: Some(module),
             ..
-        } => assert_eq!(module, "io_lib"),
+        } => assert_eq!(module, "Format"),
         _ => panic!("expected remote call"),
     }
 }

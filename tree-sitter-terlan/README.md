@@ -26,7 +26,11 @@ and mixed template regions; the compiler owns validation and diagnostics.
 - `test/corpus/binary_layouts.txt`: binary constructor and shared pattern-position
   corpus.
 - `test/corpus/list_and_remote_calls.txt`: cons/comprehension classification and
-  colon-qualified calls, including explicit type arguments and pipe composition.
+  dotted module calls and pipe composition.
+- `test/corpus/syntax_contract.txt`: shared language-contract sources and exact
+  editor trees, also consumed by compiler conformance tests. Expectations and
+  explicit editor differences are in
+  `docs/grammar/fixtures/contract/syntax_conformance.json` at the repository root.
 - `test/package_smoke_test.js`: dependency-free package, script, corpus, and
   highlight query coverage smoke.
 - `test/pack_dry_run_test.js`: npm dry-run archive validator for the actual

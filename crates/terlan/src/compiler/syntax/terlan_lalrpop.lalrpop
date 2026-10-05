@@ -1,4 +1,4 @@
-// canonical-ebnf-sha256: 6588bc445297e0278847cf71098e1b884719ca318f31a3eb25da4fd268eb6ebc
+// canonical-ebnf-sha256: f7ea7d7dc714d15191c0bd095b3b035ddbd23ed5770c34ce7a00e353e49d2f17
 //
 // This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
 // canonical EBNF edit therefore requires an explicit generated-grammar audit.
@@ -1887,35 +1887,6 @@ RecordUpdateSeparator: () = {
 };
 
 PrimaryExpression: LalrpopSyntaxNode = {
-    <start:@L> <remote_start:@L> NameToken <remote_end:@R> "remote-call-colon"
-        <function_start:@L> NameToken <function_end:@R>
-        <type_args:CallTypeArguments?>
-        "(" <args:Comma<AssignmentExpression>> ")" <end:@R> => {
-            let type_args = type_args.unwrap_or_default();
-            let type_arg_count = type_args.len();
-            let callee = LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Binding,
-                function_start,
-                function_end,
-                Some(source_index.text(source, function_start, function_end).to_string()),
-                Vec::new(),
-            );
-            let mut children = Vec::with_capacity(1 + type_arg_count + args.len());
-            children.push(callee);
-            children.extend(type_args);
-            children.extend(args);
-            LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Call,
-                start,
-                end,
-                Some(format!(
-                    "remote:{};generic:{}",
-                    source_index.text(source, remote_start, remote_end),
-                    type_arg_count,
-                )),
-                children,
-            )
-        },
     <start:@L> "case" <value:AssignmentExpression>
         "{" <clauses:Semicolon<CaseClause>> "}" <end:@R>
         => {
@@ -2066,10 +2037,6 @@ PrimaryExpression: LalrpopSyntaxNode = {
             None,
             items,
         ),
-};
-
-CallTypeArguments: Vec<LalrpopSyntaxNode> = {
-    "generic-call-[" <items:NonEmptyComma<TypeExpression>> "]" => items,
 };
 
 ExpressionListBody: (LalrpopSyntaxNodeKind, Vec<LalrpopSyntaxNode>) = {
@@ -2671,7 +2638,6 @@ extern {
 
     enum LalrpopToken {
         "tight-dot" => LalrpopToken::TightDot,
-        "remote-call-colon" => LalrpopToken::RemoteCallColon,
         "function-body-arrow" => LalrpopToken::FunctionBodyArrow,
         "lambda-(" => LalrpopToken::LambdaLParen,
         "typed-lambda-pattern" => LalrpopToken::TypedLambdaPattern,

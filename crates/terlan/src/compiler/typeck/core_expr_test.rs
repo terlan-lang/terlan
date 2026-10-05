@@ -9,7 +9,7 @@ fn syntax_output_lowering_to_core_marks_remote_call_proof_model_required() {
 module core_remote_call_boundary.\n\
 \n\
 pub call_remote(): Int ->\n\
-    math:inc(1).\n",
+    Math.inc(1).\n",
     )
     .unwrap_or_else(|err| panic!("failed to parse syntax output fixture: {:?}", err));
     let resolved = resolve_syntax_module_output(&module).module;
@@ -25,7 +25,7 @@ pub call_remote(): Int ->\n\
         function.clauses[0].body.core_expr,
         Some(CoreExpr::RemoteCall {
             type_args: Vec::new(),
-            module: "math".to_string(),
+            module: "Math".to_string(),
             function: "inc".to_string(),
             args: vec![CoreExpr::Int(1)],
         })
@@ -47,7 +47,7 @@ pub call_remote(): Int ->\n\
     assert_eq!(core.metadata.checked_preservation_pattern_count, 0);
     assert!(
             core.contract_text().contains(
-                "Call:core=RemoteCall(math:inc;Int(1)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=RemoteCall(math:inc;Int(1))):proof=proof-model-required:remote=math"
+                "Call:core=RemoteCall(Math:inc;Int(1)):preservation=structural-core-expr(freshness=no-runtime-bindings;target=RemoteCall(Math:inc;Int(1))):proof=proof-model-required:remote=Math"
             ),
             "contract text: {}",
             core.contract_text()

@@ -9,7 +9,7 @@ use super::{
         config_raw_declaration_end, expression_raw_macro_end, function_body_arrow_indices,
         head_constraint_list_end, html_raw_block_end, if_clause_semicolon_indices,
         is_binary_layout_open, is_function_clause_open, is_generic_call_open,
-        is_nominal_keyed_open, is_remote_call_colon, is_trivia, lambda_opening_indices,
+        is_nominal_keyed_open, is_trivia, lambda_opening_indices,
         lambda_sequence_semicolon_indices, native_raw_declaration_end,
     },
     lalrpop_syntax::{
@@ -89,8 +89,6 @@ pub enum LalrpopToken {
     Contextual(LalrpopContextualKeyword),
     /// A dot immediately adjacent to a following module-path segment.
     TightDot,
-    /// A colon separating a remote-call module and function name.
-    RemoteCallColon,
     /// An arrow separating a callable return type from its expression body.
     FunctionBodyArrow,
     /// An opening parenthesis whose balanced close is followed by `->`.
@@ -308,8 +306,6 @@ fn projected_tokens(
             LalrpopToken::GenericCallLBracket
         } else if classify_lambda_delimiters && is_cast_type_open(&tokens, index) {
             LalrpopToken::CastTypeLBracket
-        } else if classify_lambda_delimiters && is_remote_call_colon(&tokens, index) {
-            LalrpopToken::RemoteCallColon
         } else if classify_lambda_delimiters
             && token.kind == TokenKind::Dot
             && next_significant().is_some_and(|next| next.kind == TokenKind::LBrace)

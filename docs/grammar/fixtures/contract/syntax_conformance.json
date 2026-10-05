@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "cases": [
+    {"id":"cons", "rule":"ConsListExpr", "compiler":"accept", "shape":"cons(name(head),name(tail))", "editor":"accept"},
+    {"id":"comprehension-filter", "rule":"ListGeneratorExpr", "compiler":"accept", "shape":"comprehension(1,1)", "editor":"accept"},
+    {"id":"comprehension-generators", "rule":"ListGeneratorExpr", "compiler":"accept", "shape":"comprehension(2,0)", "editor":"accept"},
+    {"id":"filters-without-generator", "rule":"ListGeneratorExpr", "compiler":"reject", "editor":"recover"},
+    {"id":"filter-before-generator", "rule":"ListGeneratorExpr", "compiler":"reject", "editor":"recover"},
+    {"id":"dotted-module-call", "rule":"ScopedCallExpr", "compiler":"accept", "shape":"call(Console.println,0,1,0)", "editor":"accept"},
+    {"id":"qualified-module-call", "rule":"QualifiedCallExpr", "compiler":"accept", "shape":"call(std.io.Console.println,0,1,0)", "editor":"accept"},
+    {"id":"incomplete-call", "rule":"CallExpr", "compiler":"reject", "editor":"recover"},
+    {"id":"positional-then-named", "rule":"CallArgList", "compiler":"accept", "shape":"call(f,0,2,1)", "editor":"accept"},
+    {"id":"named-only", "rule":"CallArgList", "compiler":"accept", "shape":"call(f,0,1,1)", "editor":"accept"},
+    {"id":"positional-after-named", "rule":"CallArgList", "compiler":"reject", "editor":"accept", "diagnostic":"positional arguments must come before named arguments", "divergence":"Argument ordering is checked during compiler lowering; the editor preserves the argument tree."},
+    {"id":"impl-applied-type", "rule":"TraitImplArg", "compiler":"accept", "shape":"impl", "editor":"accept"},
+    {"id":"impl-structural-evidence", "rule":"TraitImplArg", "compiler":"accept", "shape":"impl", "editor":"accept"},
+    {"id":"impl-parameter-declaration", "rule":"TraitImplArg", "compiler":"reject", "editor":"recover"},
+    {"id":"list-trailing-comma", "rule":"ListExpr", "compiler":"accept", "shape":"list(2)", "editor":"accept"},
+    {"id":"call-trailing-comma", "rule":"CallArgList", "compiler":"accept", "shape":"call(f,0,1,0)", "editor":"accept"},
+    {"id":"type-argument", "rule":"TypeArgs", "compiler":"accept", "shape":"type", "editor":"accept"},
+    {"id":"type-parameter", "rule":"TypeParams", "compiler":"accept", "shape":"type", "editor":"accept"},
+    {"id":"type-argument-trailing-comma", "rule":"TypeArgs", "compiler":"reject", "editor":"accept", "divergence":"The editor accepts trailing commas in generic types; the compiler's TypeArgs production does not."},
+    {"id":"type-parameter-trailing-comma", "rule":"TypeParams", "compiler":"reject", "editor":"accept", "divergence":"The editor accepts trailing commas in type parameter lists; the compiler's TypeParams production does not."},
+    {"id":"comparison-associativity", "rule":"CmpExpr", "compiler":"accept", "shape":"Lt(Lt(name(a),name(b)),name(c))", "editor":"accept"},
+    {"id":"cast-associativity", "rule":"CastExpr", "compiler":"accept", "shape":"cast(cast(name(value),Foo),Bar)", "editor":"accept"},
+    {"id":"complete-module", "rule":"EOF", "compiler":"accept", "shape":"module", "editor":"accept"},
+    {"id":"trailing-comment", "rule":"EOF", "compiler":"accept", "shape":"module", "editor":"accept"},
+    {"id":"trailing-token", "rule":"EOF", "compiler":"reject", "editor":"recover"}
+  ]
+}

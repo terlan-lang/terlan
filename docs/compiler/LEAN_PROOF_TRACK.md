@@ -134,5 +134,5 @@ hygiene gate requires exactly one entry for every `closed` gap, verifies the
 digest against the current proof artifact inventory, and rejects entries for
 gaps that are not closed.
 
-- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:ad388d3a64e787f7a3179126c6e465a698a5e02a17b3c31543942afd2eca3f61`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary. The grammar precision audit replayed the updated artifact and synchronized this closure reference with the proof inventory.
+- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:35e9f724b0a1266f8c8f53b3fb548fc2d733f6444f9af07600bcea458ab6dda3`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary. The grammar precision audit replayed the updated artifact and synchronized this closure reference with the proof inventory.
 - Proof-gap closure: `native-boundary contracts` restored by `sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2`: executable theorems cover typed callsites, handle ownership and linearity, async policy, side-effect denial, and fail-closed usage, with row-level generated-manifest binding and VM runtime oracles.

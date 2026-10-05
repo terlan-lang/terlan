@@ -19,7 +19,7 @@ fn canonical_contract_disambiguates_lists_and_covers_remote_calls() {
     };
     assert!(items.iter().any(|item| matches!(
         &item.kind,
-        EbnfGrammarExprKind::Nonterminal { name } if name == "RemoteCallExpr"
+        EbnfGrammarExprKind::Nonterminal { name } if name == "QualifiedCallExpr"
     )));
     assert!(contract.rule("PatternList1").is_none());
     let EbnfGrammarExprKind::Sequence { items } = &contract.rule("SyntaxSpec").unwrap().expr.kind

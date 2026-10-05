@@ -24,9 +24,7 @@ not a source token; trailing whitespace and comments are permitted.
 - Positional call arguments precede named arguments. `f(1, value = 2)` is valid;
   `f(value = 2, 1)` is rejected during lowering. The compact `CallArgList`
   production intentionally leaves this ordering to contextual validation.
-- Colon calls such as `io_lib:format("~p", [])` are remote calls, distinct from
-  dotted qualified references. Both operands of the colon are identifier names;
-  explicit type arguments and ordinary call arguments follow the function name.
+- Module calls use dotted imported namespaces, such as `Console.println(value)`.
 - `TypeName`, `TypeVar`, `ConstName`, and `ConstructorAtom` name semantic roles
   of the same lexical `UpperIdent` class. Resolution determines their meaning.
 - `AppliedTypeRef` denotes nominal type application. `TraitImplRef` additionally
@@ -48,6 +46,40 @@ The EBNF contract tests check production structure and reachability. Parser
 regressions check acceptance, rejection, and AST classification; the Tree-sitter
 corpus checks editor trees. These checks complement each other but do not yet
 constitute an independent executable recognizer for every EBNF production.
+
+## Shared Syntax Conformance Corpus
+
+[`syntax_conformance.json`](fixtures/contract/syntax_conformance.json) maps each
+named case to an EBNF production, compiler acceptance or rejection, and a compact
+AST shape for accepted input. Contextual rejections can also pin a diagnostic.
+The source examples and exact editor trees live in
+[`syntax_contract.txt`](../../tree-sitter-terlan/test/corpus/syntax_contract.txt).
+The Rust conformance test reads that same file; there are no copied compiler
+fixtures to synchronize.
+
+Tree-sitter checks every expected tree, including `ERROR` and `MISSING` nodes
+for recovery cases. The manifest distinguishes editor recovery from ordinary
+acceptance and requires a reason whenever editor and compiler acceptance differ.
+It currently records the editor's permissive named-argument ordering and type
+list trailing commas. These are visible conformance differences, not compiler
+syntax extensions. All examples are syntax tests; names and declared return
+types need not form a well-typed program.
+
+Run `make syntax-contract-check` for the combined gate. The compiler cases also
+run in the ordinary Rust suite and `lalrpop-parser-parity-check`; editor cases
+run through `npm run check:cli` in `tree-sitter-terlan`.
+
+Changes to accepted syntax or tree interpretation must update the relevant
+production or contextual rule and its positive/negative examples in the same
+change. Review editor tree updates before accepting them. Do not change an
+expected rejection merely to make a parser regression pass. New editor gaps
+require an explicit reason in the manifest. Renamed or missing rules, duplicate
+case IDs, unlisted source cases, missing AST expectations, unexplained divergence,
+and compiler/editor outcome drift fail the gate.
+
+This corpus covers the initial high-risk rules rather than the whole language.
+The EBNF compiler still checks structure and references, not membership of
+source programs. An independent EBNF recognizer remains a separate milestone.
 
 ## Keyed Containers
 

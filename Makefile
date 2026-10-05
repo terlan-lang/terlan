@@ -1953,6 +1953,7 @@ shape-synonyms-check: shape-implications-check tree-sitter-package-check tree-si
 	$(TERLC) test tests/pattern/ShapeSynonymTest.terl
 
 syntax-contract-check: validate-ebnf tree-sitter-package-check tree-sitter-cli-check
+	$(TERLC_EXACT_TEST) compiler::syntax::syntax_conformance_test::shared_syntax_conformance_corpus_matches_contract -- --exact
 	grep -F 'ImplicationConstraint ::= "=>" StructuralEvidenceShape .' docs/grammar/TERLAN_SYNTAX_SPEC.ebnf
 	grep -F 'The implication arrow is accepted only as generic-parameter shorthand' docs/grammar/README.md
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::trait_declarations::parses_structural_implication_in_function_generic_parameter -- --exact

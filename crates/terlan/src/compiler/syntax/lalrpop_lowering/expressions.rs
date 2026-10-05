@@ -202,19 +202,10 @@ fn lower_call(
             args.push(lower_expression(context, argument)?);
         }
     }
-    let explicit_remote = metadata
-        .split(';')
-        .find_map(|part| part.strip_prefix("remote:"))
-        .map(str::to_string);
     let grouped_callee = callee.kind == LalrpopSyntaxNodeKind::Group;
     let lowered_callee = lower_expression(context, callee)?;
-    let (callee, remote, is_fun_value) = if let Some(remote) = explicit_remote {
-        let function = match lowered_callee {
-            Expr::Var(function) | Expr::Atom(function) => function,
-            _ => return Err(context.error(node, "remote call has an invalid function name")),
-        };
-        (Expr::Atom(function), Some(remote), false)
-    } else if let Expr::FieldAccess { value, field } = lowered_callee {
+    let (callee, remote, is_fun_value) = if let Expr::FieldAccess { value, field } = lowered_callee
+    {
         let remote_path = expression_path(&value).filter(|path| {
             path.rsplit('.')
                 .next()

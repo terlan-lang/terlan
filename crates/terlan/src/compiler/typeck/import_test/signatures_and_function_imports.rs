@@ -470,16 +470,17 @@ pub make(value: Dynamic): Dynamic ->\n\
 }
 
 #[test]
-fn syntax_output_colon_remote_calls_are_checked_against_interfaces_on_formal_path() {
+fn syntax_output_dotted_remote_calls_are_checked_against_interfaces_on_formal_path() {
     let interface_source = "\
-module math.\n\
+module lib.Math.\n\
 pub inc(value: Int): Int.\n\
 ";
     let diagnostics = check_syntax_output_with_interface(
         "\
 module math_consumer.\n\
+import lib.Math.\n\
 pub demo(): Int ->\n\
-    math:inc(1).\n\
+    Math.inc(1).\n\
 ",
         interface_source,
     );
@@ -491,16 +492,17 @@ pub demo(): Int ->\n\
 }
 
 #[test]
-fn syntax_output_colon_remote_calls_report_argument_mismatches_on_formal_path() {
+fn syntax_output_dotted_remote_calls_report_argument_mismatches_on_formal_path() {
     let interface_source = "\
-module math.\n\
+module lib.Math.\n\
 pub inc(value: Int): Int.\n\
 ";
     let diagnostics = check_syntax_output_with_interface(
         "\
 module math_consumer.\n\
+import lib.Math.\n\
 pub demo(): Int ->\n\
-    math:inc(\"bad\").\n\
+    Math.inc(\"bad\").\n\
 ",
         interface_source,
     );

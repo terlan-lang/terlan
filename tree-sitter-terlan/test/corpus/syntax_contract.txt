@@ -1,0 +1,607 @@
+==================
+cons
+==================
+
+module contract.Cases.
+probe(): Int -> [head | tail].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (list_cons_body
+          (expression
+            (identifier))
+          (expression
+            (identifier)))))))
+
+==================
+comprehension-filter
+==================
+
+module contract.Cases.
+probe(): Int -> [x | x <- xs, x > 0].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (list_comprehension_body
+          (expression
+            (identifier))
+          (comprehension_generator
+            (pattern
+              (identifier))
+            (expression
+              (identifier)))
+          (comprehension_clause
+            (comprehension_filter
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (number)))))))))))
+
+==================
+comprehension-generators
+==================
+
+module contract.Cases.
+probe(): Int -> [x | x <- xs, y <- ys].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (list_comprehension_body
+          (expression
+            (identifier))
+          (comprehension_generator
+            (pattern
+              (identifier))
+            (expression
+              (identifier)))
+          (comprehension_clause
+            (comprehension_generator
+              (pattern
+                (identifier))
+              (expression
+                (identifier)))))))))
+
+==================
+filters-without-generator
+==================
+
+module contract.Cases.
+probe(): Int -> [x | true, false].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (list_cons_body
+          (expression
+            (identifier))
+          (ERROR
+            (expression
+              (identifier)))
+          (expression
+            (identifier)))))))
+
+==================
+filter-before-generator
+==================
+
+module contract.Cases.
+probe(): Int -> [x | x > 0, x <- xs].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (list_comprehension_body
+          (expression
+            (identifier))
+          (ERROR
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (number)))))
+          (comprehension_generator
+            (pattern
+              (identifier))
+            (expression
+              (identifier))))))))
+
+==================
+dotted-module-call
+==================
+
+module contract.Cases.
+probe(): Int -> Console.println(1).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (qualified_identifier)
+        (arguments
+          (argument
+            (expression
+              (number))))))))
+
+==================
+qualified-module-call
+==================
+
+module contract.Cases.
+probe(): Int -> std.io.Console.println(1).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (qualified_identifier)
+        (arguments
+          (argument
+            (expression
+              (number))))))))
+
+==================
+incomplete-call
+==================
+
+module contract.Cases.
+probe(): Int -> f(1.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (expression
+              (number)))
+          (MISSING ")"))))))
+
+==================
+positional-then-named
+==================
+
+module contract.Cases.
+probe(): Int -> f(1, value = 2).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (expression
+              (number)))
+          (argument
+            (identifier)
+            (expression
+              (number))))))))
+
+==================
+named-only
+==================
+
+module contract.Cases.
+probe(): Int -> f(value = 2).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (identifier)
+            (expression
+              (number))))))))
+
+==================
+positional-after-named
+==================
+
+module contract.Cases.
+probe(): Int -> f(value = 2, 1).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (identifier)
+            (expression
+              (number)))
+          (argument
+            (expression
+              (number))))))))
+
+==================
+impl-applied-type
+==================
+
+module contract.Cases.
+impl Show[Int] for Item {}.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (impl_declaration
+    (impl_trait_ref
+      (type_identifier)
+      (type_expression
+        (type_identifier)))
+    (type_expression
+      (type_identifier))))
+
+==================
+impl-structural-evidence
+==================
+
+module contract.Cases.
+impl Show[T => { name: String }] for Item {}.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (impl_declaration
+    (impl_trait_ref
+      (type_identifier)
+      (implication_type_parameter
+        (type_identifier)
+        (structural_evidence_shape
+          (implication_field
+            (identifier)
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (type_identifier))))
+
+==================
+impl-parameter-declaration
+==================
+
+module contract.Cases.
+impl Show[const N: Int] for Item {}.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (ERROR
+    (type_identifier)
+    (type_identifier)
+    (ERROR
+      (type_expression
+        (type_identifier))
+      (type_expression
+        (type_identifier)))
+    (type_expression
+      (tuple_type))))
+
+==================
+list-trailing-comma
+==================
+
+module contract.Cases.
+probe(): Int -> [1, 2,].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (list_expression
+        (expression
+          (number))
+        (expression
+          (number))))))
+
+==================
+call-trailing-comma
+==================
+
+module contract.Cases.
+probe(): Int -> f(1,).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (expression
+              (number))))))))
+
+==================
+type-argument-trailing-comma
+==================
+
+module contract.Cases.
+type Items = List[Int,].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (type_declaration
+    (type_identifier)
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+type-argument
+==================
+
+module contract.Cases.
+type Items = List[Int].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (type_declaration
+    (type_identifier)
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+type-parameter
+==================
+
+module contract.Cases.
+type Box[T] = T.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (type_declaration
+    (type_identifier)
+    (type_parameters
+      (type_identifier))
+    (type_expression
+      (type_identifier))))
+
+==================
+type-parameter-trailing-comma
+==================
+
+module contract.Cases.
+type Box[T,] = T.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (type_declaration
+    (type_identifier)
+    (type_parameters
+      (type_identifier))
+    (type_expression
+      (type_identifier))))
+
+==================
+comparison-associativity
+==================
+
+module contract.Cases.
+probe(): Int -> a < b < c.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_expression
+        (expression
+          (binary_expression
+            (expression
+              (identifier))
+            (expression
+              (identifier))))
+        (expression
+          (identifier))))))
+
+==================
+cast-associativity
+==================
+
+module contract.Cases.
+probe(): Int -> value as Foo as Bar.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (cast_expression
+        (expression
+          (cast_expression
+            (expression
+              (identifier))
+            (type_expression
+              (type_identifier))))
+        (type_expression
+          (type_identifier))))))
+
+==================
+complete-module
+==================
+
+module contract.Cases.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier)))
+
+==================
+trailing-comment
+==================
+
+module contract.Cases. // trailing comment
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (line_comment))
+
+==================
+trailing-token
+==================
+
+module contract.Cases. unexpected
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (ERROR
+    (identifier)))
