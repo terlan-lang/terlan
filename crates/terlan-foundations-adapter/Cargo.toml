@@ -11,7 +11,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-foundations = { version = "=5.10.2", default-features = false, features = ["logging", "metrics", "testing"] }
+foundations = { version = "=5.10.3", default-features = false, features = ["logging", "metrics", "testing"] }
 serde_json.workspace = true
 terlan-service-foundation.workspace = true
 
