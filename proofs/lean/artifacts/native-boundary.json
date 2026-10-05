@@ -33,7 +33,7 @@
     "crates/terlan/src/runtime/native_boundary/runtime.rs": "sha256:407b1104c8705b62fba317632a7426848e605f1300774ee1dd459389e7eafe54",
     "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d",
     "proofs/lean/native_boundary/promotion-policy.json": "sha256:475f6bbafe0c5749b919cfb196b6d0ba05026429cf58374adb67c5aacdfb45f8",
-    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:cc066c014e84a290f8f875a98747e42e66ab4abed0dac82836153785fc3b84d4",
+    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:9da9ef3a93c518ec61d937e806188a1f57be2da6d251403bd6e7b61542795186",
     "std/summaries/std.crypto.Ed25519.native_boundary.json": "sha256:22d0ea6f3e889065c297675b80315160d1efb024e74ab2cc4cd97ee2636e4ff6",
     "std/summaries/std.crypto.Hash.native_boundary.json": "sha256:b498f88f056831522d90524edb38baf2172777081e37e7341844c93c03ee4f3e",
     "std/summaries/std.data.Json.native_boundary.json": "sha256:f7a0f326187ae9b346df7115c55b3b3ec2589fe682c336fa120f49b79020d54b",
@@ -58,7 +58,7 @@
     "std/summaries/std.system.Environment.native_boundary.json": "sha256:5b571bd57dd72cace3924ea121fe4503029cfce8f18b04fa5f14fb8aa441abed",
     "std/summaries/std.system.Platform.native_boundary.json": "sha256:7f89b4490e2199caf68cee17bc41f6c518317b18fd04fa9279cc76f722ed4c96",
     "std/summaries/terlan_libpq.Driver.native_boundary.json": "sha256:dfac5564c98683a9e3e4d1d7f8c4930d1760530358b00391217e92e59e7edcc7",
-    "scripts/self_validation/LeanProofNativeBoundaryTest.terl": "sha256:237af6ddc20e4f7bd34a8d8c8629dbdb66ceb08753e517fcfd4d61897c29cad8"
+    "scripts/self_validation/LeanProofNativeBoundaryTest.terl": "sha256:27d712ad76581a16dd6898e4c7f94d3c13c663b2912fb32df50231a658fac35e"
   },
   "dependency_files": [
     "proofs/lean/lake-manifest.json",

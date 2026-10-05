@@ -491,7 +491,7 @@ parse_functions(
                 or name == ""
                 or operation == ""
                 or arity < 0
-                or identity_exists(reversed, name, arity) -> None;
+                or identity_exists(reversed, name, operation, arity) -> None;
             true -> parse_functions(
                 functions,
                 index + 1,
@@ -502,12 +502,17 @@ parse_functions(
     }.
 
 @pure
-identity_exists(rows: List[FunctionRow], name: String, arity: Int): Bool ->
+identity_exists(rows: List[FunctionRow], name: String, operation: String, arity: Int): Bool ->
     case rows {
         [] -> false;
         [row | rest] ->
-            row.name == name and row.arity == arity or identity_exists(rest, name, arity)
+            row.name == name and row.operation == operation and row.arity == arity
+                or identity_exists(rest, name, operation, arity)
     }.
+
+@pure
+function_identity(function: FunctionRow): String ->
+    String.concat([function.name, "@", function.operation, "/", Int.to_string(function.arity)]).
 
 source_manifests(files: List[TextFile]): Option[List[SourceManifest]] ->
     source_manifests_at(files, []).
@@ -588,21 +593,7 @@ typed_row(
                     },
                 ),
             )
-            .put(
-                "identity",
-                Json.string(
-                    String.append(
-                        source_module,
-                        String.append(
-                            ".",
-                            String.append(
-                                function.name,
-                                String.append("/", Int.to_string(function.arity)),
-                            ),
-                        ),
-                    ),
-                ),
-            )
+            .put("identity", Json.string(function_identity(function)))
             .put("name", Json.string(function.name))
             .put("operation", Json.string(function.operation))
             .put("return_type", Json.string("Result<NativeBoundaryTerm, NativeBoundaryError>"));
@@ -1262,6 +1253,39 @@ pub malformed_security_row_is_rejected(): Bool ->
     case security_rows(String.append(security_header(), "\nstd.data.Json\tjson\n")) {
         None -> true;
         Some(_rows) -> false
+    }.
+
+@test
+pub receiver_overloads_have_distinct_operation_identities(): Bool ->
+    let source = "[{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"},{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.adapter_policy_available\"}]";
+    let Ok(rows) <- Json.parse(source) else {
+        _ -> false
+    };
+    case parse_functions(rows, 0, 2, []) {
+        Some([first, second]) -> function_identity(first) != function_identity(second);
+        _ -> false
+    }.
+
+@test
+pub duplicate_export_identity_is_rejected(): Bool ->
+    let source = "[{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"},{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"}]";
+    let Ok(rows) <- Json.parse(source) else {
+        _ -> false
+    };
+    case parse_functions(rows, 0, 2, []) {
+        None -> true;
+        Some(_functions) -> false
+    }.
+
+@test
+pub operation_aliases_keep_distinct_export_identities(): Bool ->
+    let source = "[{\"arity\":1,\"name\":\"length\",\"operation\":\"std.native.collections.vector.length\"},{\"arity\":1,\"name\":\"len\",\"operation\":\"std.native.collections.vector.length\"}]";
+    let Ok(rows) <- Json.parse(source) else {
+        _ -> false
+    };
+    case parse_functions(rows, 0, 2, []) {
+        Some([first, second]) -> function_identity(first) != function_identity(second);
+        _ -> false
     }.
 
 @test
