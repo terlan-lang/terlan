@@ -3,8 +3,8 @@
 //! `std.http.Router` defines the source-level route builder used by Terlan web
 //! applications. Ordinary source functions build an immutable declaration
 //! sequence without opening transports. Handlers accept `Request` and return
-//! `Response`. Serving still extracts static metadata while descriptor-based
-//! admission is being migrated.
+//! `Response`. Serving executes `router/0` once per admitted image generation;
+//! the HTTP package validates its returned declarations and callbacks.
 
 module std.http.Router.
 
@@ -236,8 +236,8 @@ pub (router: Router) delete(pattern: String, handler: Handler): Router.
 ///
 /// Input: one `Router` and one error handler.
 /// Output: the updated `Router`.
-/// Transformation: records the error callback used when handler execution or
-/// bridge conversion fails and the server needs a source-visible response.
+/// Transformation: adapts host failure messages into the public HttpError in
+/// source, then invokes the user's recovery callback.
 
 pub (router: Router) error(handler: ErrorHandler): Router.
 
@@ -379,4 +379,4 @@ pub (router: Router) use(middleware: Middleware): Router.
 
 pub (router: Router) websocket(pattern: String, endpoint: WebSocketEndpoint): Router.
 
-export type Entry, ErrorEntry, FallbackEntry, GroupEndEntry, GroupStartEntry, LifecycleEntry, MiddlewareEntry, OverloadEntry, ResponseMiddlewareEntry, RouteEntry, SseEntry, WebSocketEntry.
+export type Entry, ErrorEntry, FallbackEntry, GroupEndEntry, GroupStartEntry, LifecycleEntry, MiddlewareEntry, OverloadEntry, RequestPipeline, ResponseMiddlewareEntry, ResponsePipeline, RouteEntry, SseEntry, WebSocketEntry.

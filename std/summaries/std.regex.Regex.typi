@@ -28,6 +28,8 @@ pub opaque type Regex.
 /// shape without exposing target-specific exception values.
 
 pub struct RegexError {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 

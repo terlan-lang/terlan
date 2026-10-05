@@ -5,6 +5,8 @@ module std.vcs.Git.
 /// Stable failure returned when a repository cannot be identified.
 
 pub struct GitError {
+    code: Atom,
+    message: String
 }.
 
 /// One full revision and the exact tracked/untracked source-tree digest.

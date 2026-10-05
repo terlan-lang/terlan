@@ -10,6 +10,8 @@ module std.data.Toml.
 /// Stable portable TOML parser error.
 
 pub struct TomlError {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 

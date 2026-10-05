@@ -3,6 +3,6 @@ syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
 syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
 source_hash=12522140999362679946
-interface_hash=14590629785044530210
+interface_hash=3744025282366377561
 interface_doc_hash=12597917246255574839
 deps=0

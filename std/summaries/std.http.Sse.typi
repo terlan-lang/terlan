@@ -37,7 +37,7 @@ pub struct Event {
 
 /// Installs the complete generated callback set for an endpoint.
 ///
-/// Input: one endpoint and static callbacks for open, event-ready, keep-alive,
+/// Input: one endpoint and source callbacks for open, event-ready, keep-alive,
 /// graceful drain, and cancellation lifecycle events.
 /// Output: the endpoint with one callback set attached.
 /// Transformation: retains callbacks as ordinary source values. Repeated sets
@@ -79,7 +79,8 @@ pub endpoint_with_keep_alive(max_pending_events: Int = 128, max_event_bytes: Int
 /// Input: a list of typed `Event` values and an optional HTTP status code.
 /// Output: a `Response` with `text/event-stream` semantics.
 /// Transformation: gives handlers a deterministic queued response path while
-/// live stream mutation remains VM-owned runtime work.
+/// live stream mutation remains VM-owned runtime work. CRLF is collapsed before
+/// CR normalization, preserving one logical newline before maintained framing.
 
 pub response(events: List[Event], status: Int = 200): Response.
 

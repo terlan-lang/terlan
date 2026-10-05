@@ -32,6 +32,8 @@ pub struct PublishRequestProjection {
 /// Stable failure returned for malformed or inadmissible signed metadata.
 
 pub struct RegistryProtocolError {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 

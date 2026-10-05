@@ -23,6 +23,8 @@ pub struct CopyPlan {
 /// instead of exposing backend-specific error atoms directly.
 
 pub struct FileError {
+    code: Atom,
+    message: String,
     path: String
 }.
 

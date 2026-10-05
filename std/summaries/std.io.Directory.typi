@@ -6,6 +6,8 @@
 module std.io.Directory.
 
 pub struct DirectoryError {
+    code: Atom,
+    message: String,
     path: String
 }.
 

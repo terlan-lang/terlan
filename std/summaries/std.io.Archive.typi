@@ -5,6 +5,8 @@ module std.io.Archive.
 /// Portable archive failure retaining both input and destination paths.
 
 pub struct ArchiveError {
+    code: Atom,
+    message: String,
     archive: String,
     destination: String
 }.

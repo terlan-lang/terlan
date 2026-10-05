@@ -27,6 +27,8 @@ pub opaque type Generator.
 /// Transformation: maps invalid random API inputs into stable typed errors.
 
 pub struct RandomError {
+    code: Atom,
+    message: String,
     offset: Int
 }.
 
