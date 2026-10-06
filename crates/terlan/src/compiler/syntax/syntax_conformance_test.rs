@@ -38,6 +38,8 @@ struct Case {
     id: String,
     rule: String,
     compiler: Compiler,
+    ebnf: Compiler,
+    contextual: Option<String>,
     editor: Editor,
     shape: Option<String>,
     diagnostic: Option<String>,
@@ -70,9 +72,10 @@ fn corpus_cases() -> BTreeMap<&'static str, (&'static str, &'static str)> {
 #[test]
 fn shared_syntax_conformance_corpus_matches_contract() {
     let manifest: Manifest = serde_json::from_str(MANIFEST).expect("strict conformance manifest");
-    assert_eq!(manifest.schema, 1);
+    assert_eq!(manifest.schema, 2);
     assert!(!manifest.cases.is_empty());
     let grammar = canonical_terlan_syntax_contract().expect("canonical EBNF");
+    let recognizer = super::ebnf_recognizer::Recognizer::new(&grammar).expect("executable EBNF");
     let mut corpus = corpus_cases();
     let mut failures = Vec::new();
     for case in manifest.cases {
@@ -85,6 +88,21 @@ fn shared_syntax_conformance_corpus_matches_contract() {
         let (source, tree) = corpus
             .remove(case.id.as_str())
             .expect("unique manifest ID with a source case");
+        assert_eq!(
+            case.ebnf != case.compiler,
+            case.contextual
+                .as_ref()
+                .is_some_and(|reason| !reason.trim().is_empty()),
+            "{}: explain every grammar/contextual difference",
+            case.id
+        );
+        match recognizer.recognizes("SyntaxSpec", source) {
+            Ok(accepted) if accepted == (case.ebnf == Compiler::Accept) => {}
+            actual => failures.push(format!(
+                "{} [{}]: EBNF expected {:?}, found {actual:?}",
+                case.id, case.rule, case.ebnf
+            )),
+        }
         let editor_recovers = tree.contains("(ERROR") || tree.contains("(MISSING");
         assert_eq!(
             editor_recovers,

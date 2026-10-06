@@ -50,12 +50,25 @@ constitute an independent executable recognizer for every EBNF production.
 ## Shared Syntax Conformance Corpus
 
 [`syntax_conformance.json`](fixtures/contract/syntax_conformance.json) maps each
-named case to an EBNF production, compiler acceptance or rejection, and a compact
-AST shape for accepted input. Contextual rejections can also pin a diagnostic.
+named case to an EBNF production, independent EBNF acceptance, compiler acceptance
+or rejection, and a compact AST shape for accepted input. Contextual rejections
+can also pin a diagnostic.
 The source examples and exact editor trees live in
 [`syntax_contract.txt`](../../tree-sitter-terlan/test/corpus/syntax_contract.txt).
 The Rust conformance test reads that same file; there are no copied compiler
-fixtures to synchronize.
+fixtures to synchronize. Manifest schema 2 requires an `ebnf` outcome for every
+case and a `contextual` explanation whenever grammar and compiler acceptance
+differ. For example, the EBNF accepts positional arguments after named ones;
+the documented static syntactic constraint rejects them.
+
+The test-only reference recognizer lowers the EBNF contract into productions
+and uses an Earley chart to check complete `SyntaxSpec` membership. It shares
+the EBNF reader, but does not call Terlan's lexer, parser, or AST lowering.
+Identifier, binding, number, and string patterns come from the EBNF and match
+whole lexemes. Its independent lexical boundary policy handles global reserved
+words, longest punctuation, whitespace, line comments, and block comments.
+Reserved words must be kept consistent with the language's lexical policy;
+contextual keywords remain available as identifiers.
 
 Tree-sitter checks every expected tree, including `ERROR` and `MISSING` nodes
 for recovery cases. The manifest distinguishes editor recovery from ordinary
@@ -75,11 +88,17 @@ change. Review editor tree updates before accepting them. Do not change an
 expected rejection merely to make a parser regression pass. New editor gaps
 require an explicit reason in the manifest. Renamed or missing rules, duplicate
 case IDs, unlisted source cases, missing AST expectations, unexplained divergence,
-and compiler/editor outcome drift fail the gate.
+and EBNF/compiler/editor outcome drift fail the gate.
 
 This corpus covers the initial high-risk rules rather than the whole language.
-The EBNF compiler still checks structure and references, not membership of
-source programs. An independent EBNF recognizer remains a separate milestone.
+The reference recognizer is a bounded test oracle, not the production parser.
+It supports the EOF and string-character predicates used by these cases;
+opaque raw-block predicates and character classes are not implemented. If an
+otherwise unsuccessful recognition encounters an unsupported predicate, it
+reports an error instead of treating the input as rejected. State-budget and
+input-size exhaustion also fail the test. This corpus does not establish
+whole-language equivalence, embedded-language coverage, or AST semantics for
+the EBNF. Extend the corpus and lexical/predicate coverage together.
 
 ## Keyed Containers
 

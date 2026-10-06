@@ -1,5 +1,7 @@
 pub mod ebnf;
 mod ebnf_lexer;
+#[cfg(test)]
+mod ebnf_recognizer;
 pub mod formatter;
 mod html_syntax;
 pub mod lalrpop_boundary;
