@@ -176,6 +176,17 @@ fn expression_shape(expr: &Expr) -> String {
     match expr {
         Expr::Var(name) | Expr::Atom(name) => format!("name({name})"),
         Expr::List(items) => format!("list({})", items.len()),
+        Expr::RawMacro {
+            name,
+            type_args,
+            interpolations,
+            raw,
+        } => format!(
+            "raw({name},{},{},{raw:?})",
+            type_args.len(),
+            interpolations.len()
+        ),
+        Expr::HtmlBlock(html) => format!("html({:?})", html.raw),
         Expr::ListCons(head, tail) => format!(
             "cons({},{})",
             expression_shape(head),

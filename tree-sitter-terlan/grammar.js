@@ -538,7 +538,21 @@ module.exports = grammar({
         )
       ),
 
-    raw_macro_expression: ($) => seq($.identifier, "{", repeat(/[^}]/), "}"),
+    raw_macro_expression: ($) => seq($.identifier, $._raw_block),
+
+    _raw_block: ($) =>
+      seq(
+        "{",
+        repeat(choice(
+          $._raw_block,
+          token(seq('"', repeat(choice(/[^"\\]/, /\\[\s\S]/)), '"')),
+          token(seq("'", repeat(choice(/[^'\\]/, /\\[\s\S]/)), "'")),
+          token(/\\[\s\S]/),
+          token(prec(-1, /[^{}"'\\/]+/)),
+          token(prec(-1, "/"))
+        )),
+        "}"
+      ),
 
     arguments: ($) => seq("(", optional(commaSep1($.argument)), ")"),
 

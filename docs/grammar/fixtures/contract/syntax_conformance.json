@@ -25,6 +25,15 @@
     {"id":"cast-associativity", "rule":"CastExpr", "ebnf":"accept", "compiler":"accept", "shape":"cast(cast(name(value),Foo),Bar)", "editor":"accept"},
     {"id":"complete-module", "rule":"EOF", "ebnf":"accept", "compiler":"accept", "shape":"module", "editor":"accept"},
     {"id":"trailing-comment", "rule":"EOF", "ebnf":"accept", "compiler":"accept", "shape":"module", "editor":"accept"},
-    {"id":"trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"}
+    {"id":"trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"raw-empty", "rule":"RawMacroExpr", "ebnf":"accept", "compiler":"accept", "shape":"raw(markup,0,0,\"\")", "editor":"accept"},
+    {"id":"raw-nested", "rule":"BalancedRawBlock", "ebnf":"accept", "compiler":"accept", "shape":"raw(markup,0,0,\"outer {inner} end\")", "editor":"accept"},
+    {"id":"raw-quoted-braces", "rule":"RawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(markup,0,0,\"\\\"}\\\" '{' \\\"世界\\\"\")", "editor":"accept"},
+    {"id":"raw-comment-braces", "rule":"RawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(markup,0,0,\"/* } { */ body // }\\n done\")", "editor":"accept"},
+    {"id":"raw-unterminated", "rule":"BalancedRawBlock", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"raw-unterminated-quote", "rule":"RawText", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"raw-trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"raw-spaced", "rule":"RawMacroExpr", "ebnf":"accept", "compiler":"reject", "contextual":"Custom raw macro names must be immediately adjacent to their opening brace.", "editor":"accept", "divergence":"The editor tolerates whitespace between custom macro names and their raw blocks."},
+    {"id":"html-spaced", "rule":"HtmlBlockExpr", "ebnf":"accept", "compiler":"accept", "shape":"html(\" <p>Hello</p> \")", "editor":"accept"}
   ]
 }

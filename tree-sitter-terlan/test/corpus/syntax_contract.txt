@@ -605,3 +605,179 @@ module contract.Cases. unexpected
     (qualified_identifier))
   (ERROR
     (identifier)))
+
+==================
+raw-empty
+==================
+module contract.Cases.
+probe(): Int -> markup{}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))
+
+==================
+raw-nested
+==================
+module contract.Cases.
+probe(): Int -> markup{outer {inner} end}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))
+
+==================
+raw-quoted-braces
+==================
+module contract.Cases.
+probe(): Int -> markup{"}" '{' "世界"}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))
+
+==================
+raw-comment-braces
+==================
+module contract.Cases.
+probe(): Int -> markup{/* } { */ body // }
+ done}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (block_comment)
+        (line_comment)))))
+
+==================
+raw-unterminated
+==================
+module contract.Cases.
+probe(): Int -> markup{outer {inner}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (ERROR
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (identifier)))
+
+==================
+raw-unterminated-quote
+==================
+module contract.Cases.
+probe(): Int -> markup{"unterminated }.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (ERROR
+          (identifier))))))
+
+==================
+raw-trailing-token
+==================
+module contract.Cases.
+probe(): Int -> markup{body} extra.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))
+    (ERROR
+      (identifier))))
+
+==================
+raw-spaced
+==================
+module contract.Cases.
+probe(): Int -> markup {body}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))
+
+==================
+html-spaced
+==================
+module contract.Cases.
+probe(): Int -> html { <p>Hello</p> }.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))

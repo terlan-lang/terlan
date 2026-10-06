@@ -56,6 +56,7 @@ const RESERVED: &[&str] = &[
 ];
 const EOF_PREDICATE: &str = "end of input after optional whitespace and comments";
 const STRING_PREDICATE: &str = "any source character except unescaped terminator";
+const RAW_PREDICATE: &str = "opaque source text whose unescaped braces are balanced";
 
 #[derive(Clone)]
 enum Symbol {
@@ -63,6 +64,7 @@ enum Symbol {
     Literal(String),
     Lexical(String, Regex),
     End,
+    RawText,
     Unsupported(String),
 }
 
@@ -159,6 +161,7 @@ impl Recognizer {
                 return Ok(Symbol::Literal(value.clone()));
             }
             Kind::Special { text } if text.trim() == EOF_PREDICATE => return Ok(Symbol::End),
+            Kind::Special { text } if text.trim() == RAW_PREDICATE => return Ok(Symbol::RawText),
             Kind::Special { text } => return Ok(Symbol::Unsupported(text.clone())),
             Kind::CharacterClass { chars } => {
                 return Ok(Symbol::Unsupported(format!("character class {chars}")))
@@ -319,6 +322,11 @@ impl Recognizer {
         source: &str,
         position: usize,
     ) -> Result<Option<usize>, String> {
+        // Raw payloads include their leading whitespace and comments. The
+        // closing brace belongs to BalancedRawBlock, not to this predicate.
+        if matches!(symbol, Symbol::RawText) {
+            return Ok(raw_text_end(source, position));
+        }
         let start = skip_trivia(source, position)?;
         let rest = &source[start..];
         let length = match symbol {
@@ -355,6 +363,48 @@ impl Recognizer {
         };
         Ok(Some(start + length))
     }
+}
+
+fn raw_text_end(source: &str, start: usize) -> Option<usize> {
+    let mut characters = source[start..].char_indices().peekable();
+    let mut depth = 0usize;
+    while let Some((offset, character)) = characters.next() {
+        match character {
+            '\\' => {
+                characters.next()?;
+            }
+            '"' | '\'' => loop {
+                let (_, next) = characters.next()?;
+                if next == '\\' {
+                    characters.next()?;
+                } else if next == character {
+                    break;
+                }
+            },
+            '/' if characters.peek().is_some_and(|(_, next)| *next == '/') => {
+                for (_, next) in characters.by_ref() {
+                    if next == '\n' {
+                        break;
+                    }
+                }
+            }
+            '/' if characters.peek().is_some_and(|(_, next)| *next == '*') => {
+                characters.next();
+                loop {
+                    let (_, next) = characters.next()?;
+                    if next == '*' && characters.peek().is_some_and(|(_, next)| *next == '/') {
+                        characters.next();
+                        break;
+                    }
+                }
+            }
+            '{' => depth += 1,
+            '}' if depth == 0 => return Some(start + offset),
+            '}' => depth -= 1,
+            _ => {}
+        }
+    }
+    None
 }
 
 fn ident_continue(c: char) -> bool {

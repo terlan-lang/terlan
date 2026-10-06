@@ -96,10 +96,37 @@ fn lexical_roots_use_the_grammar_and_preserve_token_boundaries() {
 }
 
 #[test]
-fn unknown_raw_predicates_never_silently_reject_input() {
+fn raw_blocks_balance_delimiters_without_interpreting_payloads() {
     let grammar = Recognizer::new(&canonical_terlan_syntax_contract().unwrap()).unwrap();
-    assert!(grammar
-        .recognizes("RawBlock", "{ anything }")
-        .unwrap_err()
-        .contains("unsupported"));
+    for source in [
+        "{}",
+        "{ outer { inner } }",
+        r#"{ "}" '{' }"#,
+        "{/* } */ body // {\n done}",
+        r"{ \{ \} }",
+        "{ 世界 }",
+        r#"{ "escaped \" } quote" }"#,
+    ] {
+        assert_eq!(grammar.recognizes("RawBlock", source), Ok(true), "{source}");
+    }
+    for source in [
+        "{",
+        "{{}",
+        "{}}",
+        r#"{ "unterminated }"#,
+        "{/* unterminated }",
+        "{// no closing brace }",
+        r"{ \}",
+        "{} trailing",
+    ] {
+        assert_eq!(
+            grammar.recognizes("RawBlock", source),
+            Ok(false),
+            "{source}"
+        );
+    }
+    let source = "{ /* leading */ 世界 { nested }  } trailing";
+    let end = raw_text_end(source, 1).unwrap();
+    assert_eq!(&source[1..end], " /* leading */ 世界 { nested }  ");
+    assert_eq!(&source[end..], "} trailing");
 }

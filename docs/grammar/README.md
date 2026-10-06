@@ -73,8 +73,9 @@ contextual keywords remain available as identifiers.
 Tree-sitter checks every expected tree, including `ERROR` and `MISSING` nodes
 for recovery cases. The manifest distinguishes editor recovery from ordinary
 acceptance and requires a reason whenever editor and compiler acceptance differ.
-It currently records the editor's permissive named-argument ordering and type
-list trailing commas. These are visible conformance differences, not compiler
+It currently records the editor's permissive named-argument ordering, type
+list trailing commas, and spacing before custom raw blocks. These are visible
+conformance differences, not compiler
 syntax extensions. All examples are syntax tests; names and declared return
 types need not form a well-typed program.
 
@@ -92,12 +93,12 @@ and EBNF/compiler/editor outcome drift fail the gate.
 
 This corpus covers the initial high-risk rules rather than the whole language.
 The reference recognizer is a bounded test oracle, not the production parser.
-It supports the EOF and string-character predicates used by these cases;
-opaque raw-block predicates and character classes are not implemented. If an
+It supports the EOF, string-character, and balanced raw-text predicates used by
+these cases. Character classes and unknown predicates are not implemented. If an
 otherwise unsuccessful recognition encounters an unsupported predicate, it
 reports an error instead of treating the input as rejected. State-budget and
 input-size exhaustion also fail the test. This corpus does not establish
-whole-language equivalence, embedded-language coverage, or AST semantics for
+whole-language equivalence, embedded-language validation, or AST semantics for
 the EBNF. Extend the corpus and lexical/predicate coverage together.
 
 ## Keyed Containers
@@ -277,6 +278,21 @@ canonical.
 Raw macro names are user-defined except for reserved built-in raw forms. The
 parser accepts any non-reserved lower-case identifier followed immediately by a
 raw block as a raw macro expression.
+
+Raw payload delimiters nest. Quoted text (single or double quotes) and `//` or
+`/* ... */` comments shield their braces from delimiter balancing. Backslashes
+escape the next character in quoted text. Block comments end at the first `*/`.
+The raw payload retains its original whitespace, comments, and Unicode text;
+these characters are not ordinary Terlan expression tokens. The shared corpus
+checks this preservation, nesting, malformed delimiters and quotes, and complete
+input consumption. Tree-sitter balances nested payloads while retaining raw
+contents as opaque text.
+
+The reference EBNF scanner also implements escaped braces outside quotes as
+specified by `RawText`. Compiler parity for those escapes remains incomplete:
+the production lexer currently rejects an unquoted backslash before raw macro
+projection. Typed SQL and its interpolation rules also need separate contract
+coverage. The shared raw-block cases do not claim parity for these forms.
 
 Built-in forms such as `html { ... }` are reserved and parse as dedicated source
 constructs, not user-defined raw macros. Macro existence, visibility, imports,
