@@ -42,6 +42,9 @@ plan="${changes%.txt}.plan"
 while IFS= read -r lane; do
   echo "pre-commit: $lane"
   case "$lane" in
+    clippy)
+      make --no-print-directory rust-clippy-check
+      ;;
     shell)
       while IFS= read -r path; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi

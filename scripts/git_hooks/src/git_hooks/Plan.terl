@@ -74,6 +74,13 @@ pub terlan(paths: List[String]): Bool ->
 pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
+pub clippy(paths: List[String]): Bool ->
+    workspace(paths) or compiler(paths) or syntax(paths)
+        or affected(paths, "", ".rs")
+        or affected(paths, "", "clippy.toml")
+        or affected(paths, "", "Makefile")
+        or affected(paths, "mk/", "").
+
 pub lanes(paths: List[String]): List[String] ->
     let rust = if {
         workspace(paths) -> ["workspace"];
@@ -85,7 +92,8 @@ pub lanes(paths: List[String]): List[String] ->
     let workflows = if { workflow(paths) -> ["workflow"]; true -> List.new[String]() };
     let sources = if { terlan(paths) -> ["terlan" | workflows]; true -> workflows };
     let tooling = if { editor(paths) -> ["editor" | sources]; true -> sources };
-    append(["shell" | rust], tooling).
+    let checked_rust = if { clippy(paths) -> ["clippy" | rust]; true -> rust };
+    append(["shell" | checked_rust], tooling).
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {

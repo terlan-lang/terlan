@@ -423,9 +423,7 @@ fn raw_block_kind(tokens: &[Token], opening: usize) -> Option<RawBlockKind> {
                 | TokenKind::ModuleDocComment
         )
     });
-    let Some(last) = preceding.next() else {
-        return None;
-    };
+    let last = preceding.next()?;
     if last.kind == TokenKind::Atom {
         return (last.end == opening || last.text == "html").then_some(RawBlockKind::Generic);
     }

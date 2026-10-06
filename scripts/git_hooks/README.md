@@ -15,12 +15,13 @@ that alter tracked snapshot files also fail; fixes must be reviewed and staged.
 
 Every nonempty commit checks Rust formatting, builds the staged compiler and VM,
 and tests the hook policy and snapshot isolation. This requires Git, Bash, the
-pinned Rust toolchain with rustfmt, and the compiler's native build dependencies.
+pinned Rust toolchain with rustfmt and Clippy, Make, and the compiler's native build dependencies.
 The first run compiles a fresh cache and can take several minutes. Later runs
 reuse it. The Terlan planner selects additional checks:
 
 | Staged changes | Local checks |
 | --- | --- |
+| Rust source, compiler/grammar inputs, Cargo/toolchain/config, Make recipes | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
 | Other compiler source | Compiler suite and phase-contract goldens |
 | Phase-contract fixtures alone | Exact phase-contract golden test |
