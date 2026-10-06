@@ -45,6 +45,9 @@ while IFS= read -r lane; do
     clippy)
       make --no-print-directory rust-clippy-check
       ;;
+    rust-reports)
+      bash scripts/git_hooks/rust_reports.sh
+      ;;
     shell)
       while IFS= read -r path; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi

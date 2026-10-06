@@ -81,6 +81,11 @@ pub clippy(paths: List[String]): Bool ->
         or affected(paths, "", "Makefile")
         or affected(paths, "mk/", "").
 
+pub reports(paths: List[String]): Bool ->
+    clippy(paths) or affected(paths, "docs/quality/", "")
+        or affected(paths, "scripts/self_validation/rust_quality/", "")
+        or affected(paths, "scripts/git_hooks/rust_reports.sh", "").
+
 pub lanes(paths: List[String]): List[String] ->
     let rust = if {
         workspace(paths) -> ["workspace"];
@@ -92,7 +97,8 @@ pub lanes(paths: List[String]): List[String] ->
     let workflows = if { workflow(paths) -> ["workflow"]; true -> List.new[String]() };
     let sources = if { terlan(paths) -> ["terlan" | workflows]; true -> workflows };
     let tooling = if { editor(paths) -> ["editor" | sources]; true -> sources };
-    let checked_rust = if { clippy(paths) -> ["clippy" | rust]; true -> rust };
+    let reported_rust = if { reports(paths) -> ["rust-reports" | rust]; true -> rust };
+    let checked_rust = if { clippy(paths) -> ["clippy" | reported_rust]; true -> reported_rust };
     append(["shell" | checked_rust], tooling).
 
 append(left: List[String], right: List[String]): List[String] ->

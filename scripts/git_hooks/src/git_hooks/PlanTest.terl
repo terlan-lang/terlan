@@ -5,25 +5,25 @@ import git_hooks.Plan.
 @test
 pub grammar_requires_phase_goldens(): Bool ->
     Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"])
-        == ["shell", "clippy", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
 
 @test
 pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"])
-        == ["shell", "clippy", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"])
-        == ["shell", "clippy", "compiler", "phase"].
+        == ["shell", "clippy", "rust-reports", "compiler", "phase"].
 
 @test
 pub runtime_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "workspace"].
+    Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "rust-reports", "workspace"].
 
 @test
 pub lockfile_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["Cargo.lock"]) == ["shell", "clippy", "workspace"].
+    Plan.lanes(["Cargo.lock"]) == ["shell", "clippy", "rust-reports", "workspace"].
 
 @test
 pub fixture_only_changes_are_tested(): Bool ->
@@ -33,7 +33,7 @@ pub fixture_only_changes_are_tested(): Bool ->
 @test
 pub renamed_old_paths_still_trigger_checks(): Bool ->
     Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"])
-        == ["shell", "clippy", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
 
 @test
 pub terlan_changes_are_checked(): Bool ->
@@ -54,7 +54,7 @@ pub negative_phase_sources_use_their_owning_test(): Bool ->
 
 @test
 pub other_negative_fixtures_use_workspace_tests(): Bool ->
-    Plan.lanes(["tests/fixtures/example/invalid.terl"]) == ["shell", "clippy", "workspace"].
+    Plan.lanes(["tests/fixtures/example/invalid.terl"]) == ["shell", "clippy", "rust-reports", "workspace"].
 
 @test
 pub interface_changes_are_checked(): Bool ->
@@ -62,17 +62,37 @@ pub interface_changes_are_checked(): Bool ->
 
 @test
 pub rust_build_scripts_require_clippy(): Bool ->
-    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "workspace"].
+    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "rust-reports", "workspace"].
 
 @test
 pub clippy_configuration_changes_are_checked(): Bool ->
-    Plan.lanes([".clippy.toml"]) == ["shell", "clippy"].
+    Plan.lanes([".clippy.toml"]) == ["shell", "clippy", "rust-reports"].
 
 @test
 pub make_quality_changes_require_clippy(): Bool ->
-    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "clippy"].
+    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "clippy", "rust-reports"].
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->
     Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"])
-        == ["shell", "clippy", "workspace", "editor"].
+        == ["shell", "clippy", "rust-reports", "workspace", "editor"].
+
+@test
+pub inventory_updates_require_source_report_validation(): Bool ->
+    Plan.lanes(["docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"])
+        == ["shell", "rust-reports"].
+
+@test
+pub dependency_updates_require_source_report_validation(): Bool ->
+    Plan.lanes(["docs/quality/RUST_DEPENDENCY_IMPACT.json"])
+        == ["shell", "rust-reports"].
+
+@test
+pub report_validator_changes_check_their_reports(): Bool ->
+    Plan.lanes(["scripts/self_validation/rust_quality/src/rust_quality/ApiBoundary.terl"])
+        == ["shell", "rust-reports", "terlan"].
+
+@test
+pub report_runner_changes_execute_report_checks(): Bool ->
+    Plan.lanes(["scripts/git_hooks/rust_reports.sh"])
+        == ["shell", "rust-reports"].
