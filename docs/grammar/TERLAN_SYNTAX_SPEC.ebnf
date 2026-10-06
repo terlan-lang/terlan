@@ -184,7 +184,8 @@ ConfigList ::= "[" [ ConfigValue { "," ConfigValue } ] "]" .
 ConfigMap ::= "{" [ ConfigMapEntry { "," ConfigMapEntry } ] "}" .
 ConfigMapEntry ::= ConfigKey ":" ConfigValue .
 
-RawMacroExpr ::= RawMacroName RawBlock .
+RawMacroExpr ::= RawMacroName RawBlock | TypedSqlExpr .
+TypedSqlExpr ::= "sql" "[" TypeExpr "]" RawBlock .
 RawMacroName ::= LowerIdent .
 HtmlBlockExpr ::= "html" RawBlock .
 

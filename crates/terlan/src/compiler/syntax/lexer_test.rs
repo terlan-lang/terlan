@@ -154,3 +154,35 @@ fn small_float_parity_malformed_scientific_exponents_remain_trailing_source() {
         assert_ne!(tokens[0].text, source);
     }
 }
+
+#[test]
+fn raw_escapes_preserve_bytes_and_do_not_close_the_block() {
+    for source in [
+        r"markup{\} nested {\{} \世}",
+        r"sql[List[Row]] {\} select 1}",
+        r"html {\{text\}}",
+    ] {
+        let tokens = lex(source).expect(source);
+        let escapes: Vec<_> = tokens
+            .iter()
+            .filter(|token| token.kind == TokenKind::RawEscape)
+            .collect();
+        assert!(!escapes.is_empty());
+        for token in escapes {
+            assert_eq!(&source[token.start..token.end], token.text);
+        }
+        assert_eq!(tokens[tokens.len() - 2].kind, TokenKind::RBrace);
+    }
+    for source in [
+        r"\}",
+        r"markup {\}}",
+        r"{\}}",
+        r"markup{} \}",
+        r"markup{x}\{",
+    ] {
+        assert!(lex(source).is_err(), "raw mode leaked: {source}");
+    }
+    assert!(lex("markup{\\").unwrap_err()[0]
+        .message
+        .contains("unterminated raw escape"));
+}

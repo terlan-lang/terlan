@@ -281,18 +281,28 @@ raw block as a raw macro expression.
 
 Raw payload delimiters nest. Quoted text (single or double quotes) and `//` or
 `/* ... */` comments shield their braces from delimiter balancing. Backslashes
-escape the next character in quoted text. Block comments end at the first `*/`.
+escape the next character both inside and outside quotes; escaped braces do not
+change nesting depth. The backslash and escaped character remain in the payload.
+Block comments end at the first `*/`.
 The raw payload retains its original whitespace, comments, and Unicode text;
 these characters are not ordinary Terlan expression tokens. The shared corpus
 checks this preservation, nesting, malformed delimiters and quotes, and complete
 input consumption. Tree-sitter balances nested payloads while retaining raw
 contents as opaque text.
 
-The reference EBNF scanner also implements escaped braces outside quotes as
-specified by `RawText`. Compiler parity for those escapes remains incomplete:
-the production lexer currently rejects an unquoted backslash before raw macro
-projection. Typed SQL and its interpolation rules also need separate contract
-coverage. The shared raw-block cases do not claim parity for these forms.
+`sql[Row] { ... }` is the typed SQL form. Its result annotation is exactly one
+complete `TypeExpr`, including applied types such as `List[Row]`. Unlike custom
+untyped macros, typed SQL permits whitespace before the payload. The shared
+corpus checks result types, escaped braces, and interpolation boundaries.
+`sql` remains an ordinary identifier in function calls, declarations, values,
+and named arguments.
+
+The compact EBNF treats the SQL payload as raw text. During lowering, each
+`${...}` outside SQL quoted text or comments must contain a nonempty, complete
+Terlan expression. These are contextual checks; the editor retains the SQL
+payload without validating its interpolation expressions. SQL statement validity
+and result typing belong to later compiler stages. Dollar-quoted SQL, nested SQL
+comments, and additional embedded-language cases still need shared corpus coverage.
 
 Built-in forms such as `html { ... }` are reserved and parse as dedicated source
 constructs, not user-defined raw macros. Macro existence, visibility, imports,

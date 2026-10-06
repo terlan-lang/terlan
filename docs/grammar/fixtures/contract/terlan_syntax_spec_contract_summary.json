@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 235,
+  "rule_count": 236,
   "key_rules": [
     {
       "name": "SyntaxSpec",
@@ -133,7 +133,7 @@
       "name": "RawMacroExpr",
       "id": "rule:RawMacroExpr",
       "expr_id": "rule:RawMacroExpr/expr",
-      "kind": "sequence"
+      "kind": "alternation"
     },
     {
       "name": "ConfigDecl",

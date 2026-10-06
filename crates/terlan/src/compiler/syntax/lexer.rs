@@ -40,12 +40,31 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
     let mut i = 0usize;
+    let mut raw_depth = 0usize;
 
     while i < chars.len() {
         let ch = chars[i];
 
         if ch.is_whitespace() {
             i += 1;
+            continue;
+        }
+
+        if ch == '\\' && raw_depth > 0 {
+            if i + 1 == chars.len() {
+                errors.push(LexError {
+                    message: "unterminated raw escape".to_string(),
+                    span: byte_span(&byte_offsets, i, chars.len()),
+                });
+                break;
+            }
+            tokens.push(Token::new(
+                TokenKind::RawEscape,
+                chars[i..i + 2].iter().collect::<String>(),
+                byte_offsets[i],
+                byte_offsets[i + 2],
+            ));
+            i += 2;
             continue;
         }
 
@@ -332,6 +351,13 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             }
         };
 
+        if kind == TokenKind::LBrace
+            && (raw_depth > 0 || starts_raw_block(&tokens, byte_offsets[i]))
+        {
+            raw_depth += 1;
+        } else if kind == TokenKind::RBrace {
+            raw_depth = raw_depth.saturating_sub(1);
+        }
         tokens.push(Token::new(kind, text, byte_offsets[i], byte_offsets[end]));
         i = end;
     }
@@ -347,6 +373,44 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
 
 fn byte_span(byte_offsets: &[usize], start: usize, end: usize) -> Span {
     Span::new(byte_offsets[start], byte_offsets[end])
+}
+
+/// Recognizes the lexical raw introducers without changing ordinary brace tokens.
+fn starts_raw_block(tokens: &[Token], opening: usize) -> bool {
+    let mut preceding = tokens.iter().rev().filter(|token| {
+        !matches!(
+            token.kind,
+            TokenKind::Comment
+                | TokenKind::DocComment
+                | TokenKind::DocBlockComment
+                | TokenKind::ModuleDocComment
+        )
+    });
+    let Some(last) = preceding.next() else {
+        return false;
+    };
+    if last.kind == TokenKind::Atom {
+        return last.end == opening || last.text == "html";
+    }
+    if last.kind != TokenKind::RBracket {
+        return false;
+    }
+    let mut depth = 1usize;
+    while let Some(token) = preceding.next() {
+        match token.kind {
+            TokenKind::RBracket => depth += 1,
+            TokenKind::LBracket => {
+                depth -= 1;
+                if depth == 0 {
+                    return preceding
+                        .next()
+                        .is_some_and(|name| name.kind == TokenKind::Atom && name.text == "sql");
+                }
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 /// Lexes one numeric literal token from a digit-starting source position.

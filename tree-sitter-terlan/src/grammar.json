@@ -1,6 +1,6 @@
 {
   "name": "terlan",
-  "word": "identifier",
+  "word": "_identifier_word",
   "rules": {
     "source_file": {
       "type": "REPEAT",
@@ -3463,15 +3463,50 @@
       }
     },
     "raw_macro_expression": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "identifier"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_raw_block"
+            }
+          ]
         },
         {
-          "type": "SYMBOL",
-          "name": "_raw_block"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "STRING",
+                "value": "sql"
+              },
+              "named": true,
+              "value": "identifier"
+            },
+            {
+              "type": "STRING",
+              "value": "["
+            },
+            {
+              "type": "SYMBOL",
+              "name": "type_expression"
+            },
+            {
+              "type": "STRING",
+              "value": "]"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_raw_block"
+            }
+          ]
         }
       ]
     },
@@ -3510,8 +3545,26 @@
                             "value": "[^\"\\\\]"
                           },
                           {
-                            "type": "PATTERN",
-                            "value": "\\\\[\\s\\S]"
+                            "type": "SEQ",
+                            "members": [
+                              {
+                                "type": "STRING",
+                                "value": "\\"
+                              },
+                              {
+                                "type": "CHOICE",
+                                "members": [
+                                  {
+                                    "type": "PATTERN",
+                                    "value": "[^\\n]"
+                                  },
+                                  {
+                                    "type": "STRING",
+                                    "value": "\n"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3542,8 +3595,26 @@
                             "value": "[^'\\\\]"
                           },
                           {
-                            "type": "PATTERN",
-                            "value": "\\\\[\\s\\S]"
+                            "type": "SEQ",
+                            "members": [
+                              {
+                                "type": "STRING",
+                                "value": "\\"
+                              },
+                              {
+                                "type": "CHOICE",
+                                "members": [
+                                  {
+                                    "type": "PATTERN",
+                                    "value": "[^\\n]"
+                                  },
+                                  {
+                                    "type": "STRING",
+                                    "value": "\n"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3558,8 +3629,26 @@
               {
                 "type": "TOKEN",
                 "content": {
-                  "type": "PATTERN",
-                  "value": "\\\\[\\s\\S]"
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": "\\"
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "PATTERN",
+                          "value": "[^\\n]"
+                        },
+                        {
+                          "type": "STRING",
+                          "value": "\n"
+                        }
+                      ]
+                    }
+                  ]
                 }
               },
               {
@@ -4725,6 +4814,19 @@
       }
     },
     "identifier": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_identifier_word"
+        },
+        {
+          "type": "STRING",
+          "value": "sql"
+        }
+      ]
+    },
+    "_identifier_word": {
       "type": "TOKEN",
       "content": {
         "type": "PREC",
@@ -4812,6 +4914,10 @@
     ],
     [
       "expression",
+      "raw_macro_expression"
+    ],
+    [
+      "identifier",
       "raw_macro_expression"
     ],
     [

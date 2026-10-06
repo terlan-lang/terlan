@@ -1,4 +1,4 @@
-// canonical-ebnf-sha256: f7ea7d7dc714d15191c0bd095b3b035ddbd23ed5770c34ce7a00e353e49d2f17
+// canonical-ebnf-sha256: b1e29a1a7f19cf53a738f3189090c13a8df7913c62dc4f7109b1811028053be9
 //
 // This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
 // canonical EBNF edit therefore requires an explicit generated-grammar audit.
@@ -2535,6 +2535,7 @@ Terminal: &'static str = {
     "float" => "float",
     "string" => "string",
     "raw-quoted-text" => "raw-quoted-text",
+    "raw-escape" => "raw-escape",
     "binary" => "binary",
     "(" => "(",
     ")" => ")",
@@ -2733,6 +2734,7 @@ extern {
         "float" => LalrpopToken::Canonical(super::TokenKind::Float),
         "string" => LalrpopToken::Canonical(super::TokenKind::String),
         "raw-quoted-text" => LalrpopToken::RawQuotedText,
+        "raw-escape" => LalrpopToken::Canonical(super::TokenKind::RawEscape),
         "binary" => LalrpopToken::Canonical(super::TokenKind::Binary),
         "(" => LalrpopToken::Canonical(super::TokenKind::LParen),
         ")" => LalrpopToken::Canonical(super::TokenKind::RParen),

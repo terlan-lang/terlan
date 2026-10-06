@@ -1,7 +1,7 @@
 use super::{
     super::{
         html_syntax::parse_html_nodes,
-        lalrpop_boundary::parse_lalrpop_expression,
+        lalrpop_boundary::{parse_lalrpop_expression, parse_lalrpop_type},
         parse_tree::{BuiltinBlockMacro, Expr, HtmlBlockExpr, TypeExpr},
         span::Span,
         sql_regions::{sql_interpolation_source, sql_opaque_region_end},
@@ -74,6 +74,14 @@ fn parse_head(
                 span: node.span,
             });
         }
+        parse_lalrpop_type(type_source).map_err(|error| {
+            let start = node.span.start + opening + 1 + head[opening + 1..closing].len()
+                - head[opening + 1..closing].trim_start().len();
+            LalrpopLoweringError {
+                message: format!("invalid SQL result type: {}", error.message),
+                span: Span::new(start + error.span.start, start + error.span.end),
+            }
+        })?;
         return Ok((
             name,
             vec![TypeExpr {

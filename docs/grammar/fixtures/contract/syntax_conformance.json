@@ -34,6 +34,19 @@
     {"id":"raw-unterminated-quote", "rule":"RawText", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
     {"id":"raw-trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
     {"id":"raw-spaced", "rule":"RawMacroExpr", "ebnf":"accept", "compiler":"reject", "contextual":"Custom raw macro names must be immediately adjacent to their opening brace.", "editor":"accept", "divergence":"The editor tolerates whitespace between custom macro names and their raw blocks."},
-    {"id":"html-spaced", "rule":"HtmlBlockExpr", "ebnf":"accept", "compiler":"accept", "shape":"html(\" <p>Hello</p> \")", "editor":"accept"}
+    {"id":"html-spaced", "rule":"HtmlBlockExpr", "ebnf":"accept", "compiler":"accept", "shape":"html(\" <p>Hello</p> \")", "editor":"accept"},
+    {"id":"raw-escaped-braces", "rule":"RawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(markup,0,0,\"\\\\} \\\\{\")", "editor":"accept"},
+    {"id":"raw-escape-outside-block", "rule":"Expr", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"typed-sql-result", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,0,\"select 1\")", "editor":"accept"},
+    {"id":"typed-sql-nested-result", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,0,\"select 1\")", "editor":"accept"},
+    {"id":"typed-sql-interpolation", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select * from users where id = ${user.id}\")", "editor":"accept"},
+    {"id":"typed-sql-quoted-interpolation", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select '${ignored}' where id = ${user.id}\")", "editor":"accept"},
+    {"id":"typed-sql-empty-interpolation", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"reject", "editor":"accept", "contextual":"SQL interpolation bodies must be nonempty Terlan expressions.", "diagnostic":"empty SQL interpolation expression", "divergence":"The editor preserves opaque SQL text without validating interpolation expressions."},
+    {"id":"typed-sql-invalid-interpolation", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"reject", "editor":"accept", "contextual":"SQL interpolation bodies must parse as complete Terlan expressions.", "divergence":"The editor preserves opaque SQL text without validating interpolation expressions."},
+    {"id":"typed-sql-invalid-result", "rule":"TypedSqlExpr", "ebnf":"reject", "compiler":"reject", "editor":"recover", "diagnostic":"invalid SQL result type"},
+    {"id":"sql-ordinary-call", "rule":"CallExpr", "ebnf":"accept", "compiler":"accept", "shape":"call(sql,0,1,0)", "editor":"accept"},
+    {"id":"sql-named-argument", "rule":"CallArgList", "ebnf":"accept", "compiler":"accept", "shape":"call(f,0,1,1)", "editor":"accept"},
+    {"id":"sql-function-name", "rule":"LowerIdent", "ebnf":"accept", "compiler":"accept", "shape":"name(value)", "editor":"accept"},
+    {"id":"sql-value-name", "rule":"LowerIdent", "ebnf":"accept", "compiler":"accept", "shape":"name(sql)", "editor":"accept"}
   ]
 }

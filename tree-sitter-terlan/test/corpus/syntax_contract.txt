@@ -115,11 +115,9 @@ probe(): Int -> [x | true, false].
         (list_cons_body
           (expression
             (identifier))
-          (ERROR
-            (expression
-              (identifier)))
           (expression
-            (identifier)))))))
+            (identifier)))
+        (ERROR)))))
 
 ==================
 filter-before-generator
@@ -720,8 +718,7 @@ probe(): Int -> markup{"unterminated }.
     (expression
       (raw_macro_expression
         (identifier)
-        (ERROR
-          (identifier))))))
+        (ERROR)))))
 
 ==================
 raw-trailing-token
@@ -741,8 +738,7 @@ probe(): Int -> markup{body} extra.
     (expression
       (raw_macro_expression
         (identifier)))
-    (ERROR
-      (identifier))))
+    (ERROR)))
 
 ==================
 raw-spaced
@@ -781,3 +777,278 @@ probe(): Int -> html { <p>Hello</p> }.
     (expression
       (raw_macro_expression
         (identifier)))))
+
+==================
+raw-escaped-braces
+==================
+module contract.Cases.
+probe(): Int -> markup{\} \{}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)))))
+
+==================
+raw-escape-outside-block
+==================
+module contract.Cases.
+probe(): Int -> \}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (ERROR
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))))
+
+==================
+typed-sql-result
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select 1}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+typed-sql-nested-result
+==================
+module contract.Cases.
+probe(): Int -> sql[List[Row]] {select 1}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))))))))
+
+==================
+typed-sql-interpolation
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select * from users where id = ${user.id}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+typed-sql-quoted-interpolation
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select '${ignored}' where id = ${user.id}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+typed-sql-empty-interpolation
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select ${}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+typed-sql-invalid-interpolation
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select ${user +}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+typed-sql-invalid-result
+==================
+module contract.Cases.
+probe(): Int -> sql[Row, Other] {select 1}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (ERROR
+          (type_expression
+            (type_identifier)))
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-ordinary-call
+==================
+module contract.Cases.
+probe(): Int -> sql(1).
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (expression
+              (number))))))))
+
+==================
+sql-named-argument
+==================
+module contract.Cases.
+probe(): Int -> f(sql = 1).
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (call_expression
+        (identifier)
+        (arguments
+          (argument
+            (identifier)
+            (expression
+              (number))))))))
+
+==================
+sql-function-name
+==================
+module contract.Cases.
+sql(value: Int): Int -> value.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier))))
+
+==================
+sql-value-name
+==================
+module contract.Cases.
+probe(): Int -> sql.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier))))

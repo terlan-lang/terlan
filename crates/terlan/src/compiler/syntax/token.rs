@@ -53,6 +53,8 @@ pub enum TokenKind {
     Float,
     String,
     Binary,
+    /// An escaped character inside a raw block, preserved without interpretation.
+    RawEscape,
 
     LParen,
     RParen,

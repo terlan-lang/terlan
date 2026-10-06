@@ -17,11 +17,12 @@ module.exports = grammar({
 
   extras: ($) => [/\s/, $.line_comment, $.block_comment],
 
-  word: ($) => $.identifier,
+  word: ($) => $._identifier_word,
 
   conflicts: ($) => [
     [$._top_level_item, $.function_declaration],
     [$.expression, $.raw_macro_expression],
+    [$.identifier, $.raw_macro_expression],
     [$.expression, $._name_ref],
     [$.expression, $.pattern],
     [$.constructor_pattern, $._name_ref],
@@ -538,16 +539,19 @@ module.exports = grammar({
         )
       ),
 
-    raw_macro_expression: ($) => seq($.identifier, $._raw_block),
+    raw_macro_expression: ($) => choice(
+      seq($.identifier, $._raw_block),
+      seq(alias("sql", $.identifier), "[", $.type_expression, "]", $._raw_block)
+    ),
 
     _raw_block: ($) =>
       seq(
         "{",
         repeat(choice(
           $._raw_block,
-          token(seq('"', repeat(choice(/[^"\\]/, /\\[\s\S]/)), '"')),
-          token(seq("'", repeat(choice(/[^'\\]/, /\\[\s\S]/)), "'")),
-          token(/\\[\s\S]/),
+          token(seq('"', repeat(choice(/[^"\\]/, seq("\\", choice(/[^\n]/, "\n")))), '"')),
+          token(seq("'", repeat(choice(/[^'\\]/, seq("\\", choice(/[^\n]/, "\n")))), "'")),
+          token(seq("\\", choice(/[^\n]/, "\n"))),
           token(prec(-1, /[^{}"'\\/]+/)),
           token(prec(-1, "/"))
         )),
@@ -738,7 +742,9 @@ module.exports = grammar({
 
     pub_keyword: () => token(prec(1, "pub")),
 
-    identifier: () => token(prec(-1, /[a-z_][A-Za-z0-9_]*/)),
+    identifier: ($) => choice($._identifier_word, "sql"),
+
+    _identifier_word: () => token(prec(-1, /[a-z_][A-Za-z0-9_]*/)),
 
     type_identifier: () => /[A-Z][A-Za-z0-9_]*/,
 
