@@ -1,0 +1,13 @@
+#!/usr/bin/env -S terlc run
+import git_hooks.Plan.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.
+import std.system.Arguments.
+
+let Some(path) = Arguments.get(0);
+let Ok(source) = File.read_text(path);
+println(String.join(Plan.lanes(String.split(source, "\n")), "\n"));
+Unit.

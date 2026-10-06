@@ -267,6 +267,22 @@ methods, and generated standard-library declarations.
 
 ## Development Checks
 
+Install the repository's pre-commit hook once per checkout:
+
+```sh
+bash scripts/git_hooks.sh install
+```
+
+Run it manually with `bash scripts/git_hooks.sh check`. It validates the staged
+Git tree in `target/git-hooks/source`, preserving unstaged and untracked work.
+It checks Rust formatting, builds the staged compiler, and uses a tested Terlan
+policy to select suites. Grammar and compiler changes include phase-contract
+goldens; broader Rust or dependency changes run workspace tests. Terlan source
+changes build their owning packages and run adjacent `*Test.terl` suites; editor/workflow changes
+run their tooling checks. See [local hook checks](scripts/git_hooks/README.md)
+for prerequisites, scope, and troubleshooting. Full CI remains required before
+release publication.
+
 Useful focused checks:
 
 ```sh

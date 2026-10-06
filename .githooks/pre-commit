@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Use the staged driver, including when its working copy is only partly staged.
+driver=$(mktemp "$(git rev-parse --git-path pre-commit).XXXXXX")
+trap 'rm -f "$driver"' EXIT
+git show :scripts/git_hooks.sh > "$driver"
+bash "$driver" check

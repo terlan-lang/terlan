@@ -302,6 +302,9 @@ jobs:
           # hosted runners; retain a bounded deadline without skipping tests.
           TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "3600"
 
+      - name: Test local commit policy
+        run: target/debug/terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl
+
       - name: Upload completed compiler coverage
         id: coverage
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
