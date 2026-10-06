@@ -20,6 +20,11 @@ and mixed template regions; the compiler owns validation and diagnostics.
 ## Public Surface
 
 - `grammar.js`: Tree-sitter grammar scaffold.
+- `src/scanner.c`: stateless typed SQL payload scanner. It balances braces around
+  SQL quoted text, dollar quotes, nested comments, and interpolation islands.
+  Interpolation expression validation remains compiler-owned.
+- `src/sql_identifier_ranges.h`: Unicode alphanumeric ranges matching the Rust
+  compiler's SQL dollar-quote boundaries, checked exhaustively by the Rust suite.
 - `queries/highlights.scm`: highlight query rules.
 - `queries/injections.scm`: template expression-island injection rules.
 - `test/corpus/basic.txt`: initial parser corpus.
@@ -56,3 +61,6 @@ and mixed template regions; the compiler owns validation and diagnostics.
   execute the full Tree-sitter corpus parser test.
 - Regenerate the tracked `src` parser artifacts when changing `grammar.js`, and
   review corpus trees before accepting updated expectations.
+- When updating Rust's Unicode version, regenerate the SQL identifier table with
+  the commands in `scripts/sql_identifier_ranges.rs`. The npm package includes
+  the scanner and its headers so consumers can generate and compile the parser.

@@ -93,10 +93,11 @@ and EBNF/compiler/editor outcome drift fail the gate.
 
 This corpus covers the initial high-risk rules rather than the whole language.
 The reference recognizer is a bounded test oracle, not the production parser.
-It supports the EOF, string-character, and balanced raw-text predicates used by
-these cases. Character classes and unknown predicates are not implemented. If an
-otherwise unsuccessful recognition encounters an unsupported predicate, it
-reports an error instead of treating the input as rejected. State-budget and
+It supports the EOF, string-character, balanced raw-text, and SQL payload
+predicates used by these cases. Character classes and unknown predicates are
+not implemented. If an otherwise unsuccessful recognition encounters an
+unsupported predicate, it reports an error instead of treating the input as
+rejected. State-budget and
 input-size exhaustion also fail the test. This corpus does not establish
 whole-language equivalence, embedded-language validation, or AST semantics for
 the EBNF. Extend the corpus and lexical/predicate coverage together.
@@ -297,12 +298,18 @@ corpus checks result types, escaped braces, and interpolation boundaries.
 `sql` remains an ordinary identifier in function calls, declarations, values,
 and named arguments.
 
-The compact EBNF treats the SQL payload as raw text. During lowering, each
-`${...}` outside SQL quoted text or comments must contain a nonempty, complete
-Terlan expression. These are contextual checks; the editor retains the SQL
+Typed SQL uses the `SqlRawBlock` / `SqlRawText` lexical mode. SQL single and
+double quotes (including doubled quote escapes), case-sensitive dollar-quoted
+strings, `--` line comments, and nested `/* ... */` comments shield braces and
+`${...}` from Terlan parsing. Dollar tags are empty or ASCII identifiers; a
+dollar quote cannot start immediately after an alphanumeric character, `_`, or
+`$`. Unterminated quoted regions, comments, or payloads are rejected. The shared
+corpus checks these boundaries, including Unicode and adjacent dollar tokens.
+
+During lowering, each `${...}` outside SQL quoted text or comments must contain a
+nonempty, complete Terlan expression. These are contextual checks; the editor retains the SQL
 payload without validating its interpolation expressions. SQL statement validity
-and result typing belong to later compiler stages. Dollar-quoted SQL, nested SQL
-comments, and additional embedded-language cases still need shared corpus coverage.
+and result typing belong to later compiler stages.
 
 Built-in forms such as `html { ... }` are reserved and parse as dedicated source
 constructs, not user-defined raw macros. Macro existence, visibility, imports,

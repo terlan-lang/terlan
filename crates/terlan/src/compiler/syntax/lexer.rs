@@ -44,6 +44,40 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
 
     while i < chars.len() {
         let ch = chars[i];
+        let raw_kind = if ch == '{' && raw_depth == 0 {
+            raw_block_kind(&tokens, byte_offsets[i])
+        } else {
+            None
+        };
+        if matches!(raw_kind, Some(RawBlockKind::Sql)) {
+            let Some(close) = super::sql_regions::sql_raw_block_end(&chars, i + 1) else {
+                errors.push(LexError {
+                    message: "unterminated typed SQL payload".to_string(),
+                    span: byte_span(&byte_offsets, i, chars.len()),
+                });
+                break;
+            };
+            tokens.push(Token::new(
+                TokenKind::LBrace,
+                "{",
+                byte_offsets[i],
+                byte_offsets[i + 1],
+            ));
+            tokens.push(Token::new(
+                TokenKind::SqlRawText,
+                chars[i + 1..close].iter().collect::<String>(),
+                byte_offsets[i + 1],
+                byte_offsets[close],
+            ));
+            tokens.push(Token::new(
+                TokenKind::RBrace,
+                "}",
+                byte_offsets[close],
+                byte_offsets[close + 1],
+            ));
+            i = close + 1;
+            continue;
+        }
 
         if ch.is_whitespace() {
             i += 1;
@@ -351,9 +385,7 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             }
         };
 
-        if kind == TokenKind::LBrace
-            && (raw_depth > 0 || starts_raw_block(&tokens, byte_offsets[i]))
-        {
+        if kind == TokenKind::LBrace && (raw_depth > 0 || raw_kind.is_some()) {
             raw_depth += 1;
         } else if kind == TokenKind::RBrace {
             raw_depth = raw_depth.saturating_sub(1);
@@ -375,8 +407,13 @@ fn byte_span(byte_offsets: &[usize], start: usize, end: usize) -> Span {
     Span::new(byte_offsets[start], byte_offsets[end])
 }
 
+enum RawBlockKind {
+    Generic,
+    Sql,
+}
+
 /// Recognizes the lexical raw introducers without changing ordinary brace tokens.
-fn starts_raw_block(tokens: &[Token], opening: usize) -> bool {
+fn raw_block_kind(tokens: &[Token], opening: usize) -> Option<RawBlockKind> {
     let mut preceding = tokens.iter().rev().filter(|token| {
         !matches!(
             token.kind,
@@ -387,13 +424,13 @@ fn starts_raw_block(tokens: &[Token], opening: usize) -> bool {
         )
     });
     let Some(last) = preceding.next() else {
-        return false;
+        return None;
     };
     if last.kind == TokenKind::Atom {
-        return last.end == opening || last.text == "html";
+        return (last.end == opening || last.text == "html").then_some(RawBlockKind::Generic);
     }
     if last.kind != TokenKind::RBracket {
-        return false;
+        return None;
     }
     let mut depth = 1usize;
     while let Some(token) = preceding.next() {
@@ -404,13 +441,14 @@ fn starts_raw_block(tokens: &[Token], opening: usize) -> bool {
                 if depth == 0 {
                     return preceding
                         .next()
-                        .is_some_and(|name| name.kind == TokenKind::Atom && name.text == "sql");
+                        .filter(|name| name.kind == TokenKind::Atom && name.text == "sql")
+                        .map(|_| RawBlockKind::Sql);
                 }
             }
             _ => {}
         }
     }
-    false
+    None
 }
 
 /// Lexes one numeric literal token from a digit-starting source position.

@@ -18,6 +18,7 @@ module.exports = grammar({
   extras: ($) => [/\s/, $.line_comment, $.block_comment],
 
   word: ($) => $._identifier_word,
+  externals: ($) => [$._sql_raw_block],
 
   conflicts: ($) => [
     [$._top_level_item, $.function_declaration],
@@ -541,7 +542,7 @@ module.exports = grammar({
 
     raw_macro_expression: ($) => choice(
       seq($.identifier, $._raw_block),
-      seq(alias("sql", $.identifier), "[", $.type_expression, "]", $._raw_block)
+      seq(alias("sql", $.identifier), "[", $.type_expression, "]", $._sql_raw_block)
     ),
 
     _raw_block: ($) =>

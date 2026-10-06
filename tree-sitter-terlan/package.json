@@ -6,6 +6,9 @@
   "files": [
     "README.md",
     "grammar.js",
+    "src/scanner.c",
+    "src/sql_identifier_ranges.h",
+    "src/tree_sitter/parser.h",
     "queries",
     "test/corpus"
   ],

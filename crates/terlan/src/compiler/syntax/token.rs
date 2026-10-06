@@ -55,6 +55,8 @@ pub enum TokenKind {
     Binary,
     /// An escaped character inside a raw block, preserved without interpretation.
     RawEscape,
+    /// Opaque typed-SQL payload between its outer braces.
+    SqlRawText,
 
     LParen,
     RParen,

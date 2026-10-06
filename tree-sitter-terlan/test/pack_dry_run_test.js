@@ -77,6 +77,9 @@ function assertRequiredRuntimeFiles(fileSet) {
     "package.json",
     "README.md",
     "grammar.js",
+    "src/scanner.c",
+    "src/sql_identifier_ranges.h",
+    "src/tree_sitter/parser.h",
     "queries/highlights.scm",
     "queries/injections.scm",
     "test/corpus/basic.txt"
@@ -108,7 +111,7 @@ function assertNoDevelopmentFiles(fileSet) {
       !filePath.endsWith("pack_dry_run_test.js"),
       `archive includes archive smoke test ${filePath}`
     );
-    assert.ok(!filePath.startsWith("src/"), `archive includes generated parser ${filePath}`);
+    assert.ok(!filePath.startsWith("src/") || ["src/scanner.c", "src/sql_identifier_ranges.h", "src/tree_sitter/parser.h"].includes(filePath), `archive includes generated parser ${filePath}`);
     assert.ok(!filePath.startsWith("bindings/"), `archive includes generated binding ${filePath}`);
     assert.ok(!filePath.endsWith(".tgz"), `archive includes npm package artifact ${filePath}`);
   }

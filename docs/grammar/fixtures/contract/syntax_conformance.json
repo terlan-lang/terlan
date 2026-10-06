@@ -47,6 +47,22 @@
     {"id":"sql-ordinary-call", "rule":"CallExpr", "ebnf":"accept", "compiler":"accept", "shape":"call(sql,0,1,0)", "editor":"accept"},
     {"id":"sql-named-argument", "rule":"CallArgList", "ebnf":"accept", "compiler":"accept", "shape":"call(f,0,1,1)", "editor":"accept"},
     {"id":"sql-function-name", "rule":"LowerIdent", "ebnf":"accept", "compiler":"accept", "shape":"name(value)", "editor":"accept"},
-    {"id":"sql-value-name", "rule":"LowerIdent", "ebnf":"accept", "compiler":"accept", "shape":"name(sql)", "editor":"accept"}
+    {"id":"sql-value-name", "rule":"LowerIdent", "ebnf":"accept", "compiler":"accept", "shape":"name(sql)", "editor":"accept"},
+    {"id":"sql-dollar-anonymous", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $$ } ${ignored} 世界 $$, ${value}\")", "editor":"accept"},
+    {"id":"sql-dollar-tag", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $body$ { ' /* ${ignored} $other$ $body$, ${value}\")", "editor":"accept"},
+    {"id":"sql-dollar-case", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $Tag$ } $tag$ ${ignored} $Tag$, ${value}\")", "editor":"accept"},
+    {"id":"sql-nested-comment", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select /* outer /* ${ignored} } */ } ' outer */ ${value}\")", "editor":"accept"},
+    {"id":"sql-line-comment", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select -- } ${ignored}\\n ${value}\")", "editor":"accept"},
+    {"id":"sql-dollar-identifier", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select name$tag$, ${value}\")", "editor":"accept"},
+    {"id":"sql-dollar-unterminated", "rule":"SqlRawBlock", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"sql-comment-unterminated", "rule":"SqlRawBlock", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"sql-dollar-trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
+    {"id":"sql-dollar-pipe", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"PipeForward(raw(sql,1,0,\"select $$}$$\"),call(inspect,0,0,0))", "editor":"accept"},
+    {"id":"sql-quote-doubling", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select 'it''s } ${ignored}', ${value}\")", "editor":"accept"},
+    {"id":"sql-partial-dollar-tag", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $name, ${value}\")", "editor":"accept"},
+    {"id":"sql-long-dollar-tag", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $abcdefghijklmnopqrstuvwxyz_0123456789$ } ${ignored} $abcdefghijklmnopqrstuvwxyz_0123456789$, ${value}\")", "editor":"accept"},
+    {"id":"sql-unicode-identifier", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select 名$tag$, ${value}\")", "editor":"accept"},
+    {"id":"sql-unicode-dollar-boundary", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select ✓$tag$ } ${ignored} $tag$, ${value}\")", "editor":"accept"},
+    {"id":"sql-adjacent-dollar-boundary", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $$x$$$tag$, ${value}\")", "editor":"accept"}
   ]
 }

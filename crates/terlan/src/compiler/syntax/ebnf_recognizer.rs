@@ -57,6 +57,7 @@ const RESERVED: &[&str] = &[
 const EOF_PREDICATE: &str = "end of input after optional whitespace and comments";
 const STRING_PREDICATE: &str = "any source character except unescaped terminator";
 const RAW_PREDICATE: &str = "opaque source text whose unescaped braces are balanced";
+const SQL_PREDICATE: &str = "SQL payload with balanced braces and interpolation islands outside quoted text and nested comments";
 
 #[derive(Clone)]
 enum Symbol {
@@ -65,6 +66,7 @@ enum Symbol {
     Lexical(String, Regex),
     End,
     RawText,
+    SqlRawText,
     Unsupported(String),
 }
 
@@ -162,6 +164,9 @@ impl Recognizer {
             }
             Kind::Special { text } if text.trim() == EOF_PREDICATE => return Ok(Symbol::End),
             Kind::Special { text } if text.trim() == RAW_PREDICATE => return Ok(Symbol::RawText),
+            Kind::Special { text } if text.trim() == SQL_PREDICATE => {
+                return Ok(Symbol::SqlRawText)
+            }
             Kind::Special { text } => return Ok(Symbol::Unsupported(text.clone())),
             Kind::CharacterClass { chars } => {
                 return Ok(Symbol::Unsupported(format!("character class {chars}")))
@@ -327,6 +332,9 @@ impl Recognizer {
         if matches!(symbol, Symbol::RawText) {
             return Ok(raw_text_end(source, position));
         }
+        if matches!(symbol, Symbol::SqlRawText) {
+            return Ok(sql_raw_text_end(source, position));
+        }
         let start = skip_trivia(source, position)?;
         let rest = &source[start..];
         let length = match symbol {
@@ -402,6 +410,104 @@ fn raw_text_end(source: &str, start: usize) -> Option<usize> {
             '}' if depth == 0 => return Some(start + offset),
             '}' => depth -= 1,
             _ => {}
+        }
+    }
+    None
+}
+
+// Independently implements the SQL lexical predicate; no compiler SQL helpers.
+fn sql_raw_text_end(source: &str, mut index: usize) -> Option<usize> {
+    let tag = Regex::new(r"^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$").expect("SQL delimiter pattern");
+    let mut depth = 0usize;
+    while index < source.len() {
+        let rest = &source[index..];
+        if rest.starts_with("--") {
+            index += rest.find('\n').unwrap_or(rest.len());
+            continue;
+        }
+        if rest.starts_with("/*") {
+            index += 2;
+            let mut comments = 1usize;
+            while comments > 0 {
+                let tail = &source[index..];
+                if tail.starts_with("/*") {
+                    comments += 1;
+                    index += 2;
+                } else if tail.starts_with("*/") {
+                    comments -= 1;
+                    index += 2;
+                } else {
+                    index += tail.chars().next()?.len_utf8();
+                }
+            }
+            continue;
+        }
+        let character = rest.chars().next()?;
+        if matches!(character, '\'' | '"') {
+            index += 1;
+            loop {
+                let next = source[index..].chars().next()?;
+                index += next.len_utf8();
+                if next == character {
+                    if source[index..].starts_with(character) {
+                        index += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+        if rest.starts_with("${") {
+            index = sql_interpolation_end(source, index + 2)?;
+            continue;
+        }
+        if character == '$'
+            && source[..index].chars().next_back().is_none_or(|previous| {
+                !previous.is_alphanumeric() && previous != '_' && previous != '$'
+            })
+        {
+            if let Some(delimiter) = tag.find(rest) {
+                let tail = &rest[delimiter.end()..];
+                index += delimiter.end() + tail.find(delimiter.as_str())? + delimiter.end();
+                continue;
+            }
+        }
+        match character {
+            '\\' => index += source[index + 1..].chars().next()?.len_utf8(),
+            '{' => depth += 1,
+            '}' if depth == 0 => return Some(index),
+            '}' => depth -= 1,
+            _ => {}
+        }
+        index += character.len_utf8();
+    }
+    None
+}
+
+fn sql_interpolation_end(source: &str, mut index: usize) -> Option<usize> {
+    let mut depth = 1usize;
+    let mut quote = None;
+    while let Some(character) = source[index..].chars().next() {
+        index += character.len_utf8();
+        if let Some(delimiter) = quote {
+            if delimiter == '"' && character == '\\' {
+                index += source[index..].chars().next()?.len_utf8();
+            } else if character == delimiter {
+                quote = None;
+            }
+        } else {
+            match character {
+                '\'' | '"' => quote = Some(character),
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(index);
+                    }
+                }
+                _ => {}
+            }
         }
     }
     None

@@ -1,3 +1,29 @@
+/// Finds the closing brace of a typed SQL payload without interpreting SQL data
+/// as Terlan delimiters. `start` is immediately after the opening brace.
+pub(super) fn sql_raw_block_end(chars: &[char], start: usize) -> Option<usize> {
+    let mut index = start;
+    let mut depth = 0usize;
+    while index < chars.len() {
+        if let Some(end) = sql_opaque_region_end(chars, index) {
+            index = end;
+            continue;
+        }
+        if chars[index] == '$' && chars.get(index + 1) == Some(&'{') {
+            index = sql_interpolation_source(chars, index + 2)?.1;
+            continue;
+        }
+        match chars[index] {
+            '\\' => index += 1,
+            '{' => depth += 1,
+            '}' if depth == 0 => return Some(index),
+            '}' => depth -= 1,
+            _ => {}
+        }
+        index += 1;
+    }
+    None
+}
+
 /// Returns the cursor after an opaque SQL region beginning at `start`.
 ///
 /// Inputs:

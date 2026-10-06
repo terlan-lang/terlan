@@ -174,6 +174,9 @@ function testPackageFileSelection() {
     "package.json",
     "README.md",
     "grammar.js",
+    "src/scanner.c",
+    "src/sql_identifier_ranges.h",
+    "src/tree_sitter/parser.h",
     "queries/injections.scm",
     "queries/highlights.scm",
     "test/corpus/basic.txt"
@@ -188,7 +191,7 @@ function testPackageFileSelection() {
       !filePath.endsWith("package_smoke_test.js"),
       `smoke test packaged: ${filePath}`
     );
-    assert.ok(!filePath.startsWith("src/"), `generated parser packaged: ${filePath}`);
+    assert.ok(!filePath.startsWith("src/") || ["src/scanner.c", "src/sql_identifier_ranges.h", "src/tree_sitter/parser.h"].includes(filePath), `generated parser packaged: ${filePath}`);
     assert.ok(!filePath.startsWith("bindings/"), `generated binding packaged: ${filePath}`);
   }
 }

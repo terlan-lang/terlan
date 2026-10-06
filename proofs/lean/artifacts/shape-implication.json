@@ -17,7 +17,7 @@
   ],
   "manifest_fingerprints": {
     "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:88cab32207008497f794ea61331b54c640e7a14cbc6c87c80cd573e26c330e7a",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:b1e29a1a7f19cf53a738f3189090c13a8df7913c62dc4f7109b1811028053be9"
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:db0ce14cc80a9652b3de2a35e9834e75ac24295405918db12800720f1379f12f"
   },
   "dependency_files": [
     "proofs/lean/lake-manifest.json",

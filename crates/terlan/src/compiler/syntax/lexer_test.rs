@@ -157,11 +157,7 @@ fn small_float_parity_malformed_scientific_exponents_remain_trailing_source() {
 
 #[test]
 fn raw_escapes_preserve_bytes_and_do_not_close_the_block() {
-    for source in [
-        r"markup{\} nested {\{} \世}",
-        r"sql[List[Row]] {\} select 1}",
-        r"html {\{text\}}",
-    ] {
+    for source in [r"markup{\} nested {\{} \世}", r"html {\{text\}}"] {
         let tokens = lex(source).expect(source);
         let escapes: Vec<_> = tokens
             .iter()
@@ -185,4 +181,74 @@ fn raw_escapes_preserve_bytes_and_do_not_close_the_block() {
     assert!(lex("markup{\\").unwrap_err()[0]
         .message
         .contains("unterminated raw escape"));
+}
+
+#[test]
+fn typed_sql_payload_is_opaque_and_preserves_unicode_spans() {
+    let source = "sql[List[Row]] { $tag$ } 世界 ${ignored} $tag$ /* outer /* } */ } */ ${value} }";
+    let tokens = lex(source).unwrap();
+    let payloads: Vec<_> = tokens
+        .iter()
+        .filter(|token| token.kind == TokenKind::SqlRawText)
+        .collect();
+    assert_eq!(payloads.len(), 1);
+    let payload = payloads[0];
+    assert_eq!(&source[payload.start..payload.end], payload.text);
+    assert_eq!(
+        payload.text,
+        " $tag$ } 世界 ${ignored} $tag$ /* outer /* } */ } */ ${value} "
+    );
+    assert_eq!(
+        tokens
+            .iter()
+            .filter(|token| token.kind == TokenKind::LBrace)
+            .count(),
+        1
+    );
+    assert_eq!(
+        tokens
+            .iter()
+            .filter(|token| token.kind == TokenKind::RBrace)
+            .count(),
+        1
+    );
+    for bad in [
+        "sql[Row] {$tag$ } $other$}",
+        "sql[Row] { /* outer /* inner */ }",
+        "sql[Row] { -- }",
+        "sql[Row] { 'unterminated }",
+    ] {
+        assert!(lex(bad).unwrap_err()[0]
+            .message
+            .contains("unterminated typed SQL payload"));
+    }
+}
+#[test]
+fn editor_sql_identifier_ranges_match_compiler_unicode() {
+    let header = include_str!("../../../../../tree-sitter-terlan/src/sql_identifier_ranges.h");
+    let ranges = header
+        .lines()
+        .filter_map(|line| {
+            let pair = line.trim().strip_prefix('{')?.strip_suffix("},")?;
+            let (first, last) = pair.split_once(", ")?;
+            Some((
+                u32::from_str_radix(first.strip_prefix("0x")?, 16).unwrap(),
+                u32::from_str_radix(last.strip_prefix("0x")?, 16).unwrap(),
+            ))
+        })
+        .collect::<Vec<_>>();
+    assert!(!ranges.is_empty());
+    assert!(ranges.windows(2).all(|pair| pair[0].1 < pair[1].0));
+    let mut range = 0;
+    for value in 0x80..=0x10ffff {
+        while range < ranges.len() && value > ranges[range].1 {
+            range += 1;
+        }
+        let editor = range < ranges.len() && value >= ranges[range].0;
+        assert_eq!(
+            editor,
+            char::from_u32(value).is_some_and(char::is_alphanumeric),
+            "SQL identifier boundary at U+{value:04X}; regenerate sql_identifier_ranges.h"
+        );
+    }
 }

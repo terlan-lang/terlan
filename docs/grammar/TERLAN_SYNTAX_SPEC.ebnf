@@ -185,7 +185,9 @@ ConfigMap ::= "{" [ ConfigMapEntry { "," ConfigMapEntry } ] "}" .
 ConfigMapEntry ::= ConfigKey ":" ConfigValue .
 
 RawMacroExpr ::= RawMacroName RawBlock | TypedSqlExpr .
-TypedSqlExpr ::= "sql" "[" TypeExpr "]" RawBlock .
+TypedSqlExpr ::= "sql" "[" TypeExpr "]" SqlRawBlock .
+SqlRawBlock ::= "{" SqlRawText "}" .
+SqlRawText ::= ? SQL payload with balanced braces and interpolation islands outside quoted text and nested comments ? .
 RawMacroName ::= LowerIdent .
 HtmlBlockExpr ::= "html" RawBlock .
 

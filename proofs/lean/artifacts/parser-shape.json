@@ -22,8 +22,8 @@
   ],
   "manifest_fingerprints": {
     "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:31fe0a147bc825b7fd43b9393a1e9d45d67401bdd2785582609f06b5c84aebea",
-    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:ba0beb0031a01f94debb4bbffb7a92f7847be4fa48584dbea24292b6a37b77ca",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:b1e29a1a7f19cf53a738f3189090c13a8df7913c62dc4f7109b1811028053be9"
+    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:65901938733dcbfff0ff92da84f12dca09604de402798121f887a1c986ee9f56",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:db0ce14cc80a9652b3de2a35e9834e75ac24295405918db12800720f1379f12f"
   },
   "dependency_files": [
     "proofs/lean/lake-manifest.json",
@@ -31,7 +31,7 @@
     "proofs/lean/lean-toolchain"
   ],
   "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "source_digest": "sha256:a638ee20b62795a47fb2a70a101e1ea51756b5175b39aef0f5d02029498db797",
+  "source_digest": "sha256:869c0ba8a14a13cf2a94ddebad7a2b6f9776cba52e31f50824604882646df35c",
   "execution_command": [
     "lake",
     "env",

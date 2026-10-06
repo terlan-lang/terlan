@@ -1052,3 +1052,341 @@ probe(): Int -> sql.
       (type_identifier))
     (expression
       (identifier))))
+
+==================
+sql-dollar-anonymous
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $$ } ${ignored} 世界 $$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-dollar-tag
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $body$ { ' /* ${ignored} $other$ $body$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-dollar-case
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $Tag$ } $tag$ ${ignored} $Tag$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-nested-comment
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select /* outer /* ${ignored} } */ } ' outer */ ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-line-comment
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select -- } ${ignored}
+ ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-dollar-identifier
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select name$tag$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-dollar-unterminated
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $open$ } $wrong$}.
+---
+
+(source_file
+  (module_declaration (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression (type_identifier))
+    (expression (identifier))
+    (ERROR
+      (type_expression (type_identifier))
+      (UNEXPECTED 'o')
+      (UNEXPECTED ' ')
+      (UNEXPECTED 'w')
+      (UNEXPECTED '}'))))
+
+==================
+sql-comment-unterminated
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select /* outer /* inner */ }.
+---
+
+(source_file
+  (module_declaration (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression (type_identifier))
+    (expression (identifier))
+    (ERROR
+      (type_expression (type_identifier))
+      (block_comment))))
+
+==================
+sql-dollar-trailing-token
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $$}$$} unexpected.
+---
+
+(source_file
+  (module_declaration (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression (type_identifier))))
+    (ERROR)))
+
+==================
+sql-dollar-pipe
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $$}$$} |> inspect().
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_expression
+        (expression
+          (raw_macro_expression
+            (identifier)
+            (type_expression
+              (type_identifier))))
+        (expression
+          (call_expression
+            (identifier)
+            (arguments)))))))
+
+==================
+sql-quote-doubling
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select 'it''s } ${ignored}', ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-partial-dollar-tag
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $name, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-long-dollar-tag
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $abcdefghijklmnopqrstuvwxyz_0123456789$ } ${ignored} $abcdefghijklmnopqrstuvwxyz_0123456789$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-unicode-identifier
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select 名$tag$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-unicode-dollar-boundary
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select ✓$tag$ } ${ignored} $tag$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))
+
+==================
+sql-adjacent-dollar-boundary
+==================
+module contract.Cases.
+probe(): Int -> sql[Row] {select $$x$$$tag$, ${value}}.
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (raw_macro_expression
+        (identifier)
+        (type_expression
+          (type_identifier))))))

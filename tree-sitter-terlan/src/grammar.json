@@ -3504,7 +3504,7 @@
             },
             {
               "type": "SYMBOL",
-              "name": "_raw_block"
+              "name": "_sql_raw_block"
             }
           ]
         }
@@ -4958,7 +4958,12 @@
     ]
   ],
   "precedences": [],
-  "externals": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "_sql_raw_block"
+    }
+  ],
   "inline": [],
   "supertypes": []
 }
