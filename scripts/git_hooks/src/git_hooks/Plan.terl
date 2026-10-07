@@ -86,6 +86,16 @@ pub reports(paths: List[String]): Bool ->
         or affected(paths, "scripts/self_validation/rust_quality/", "")
         or affected(paths, "scripts/git_hooks/rust_reports.sh", "").
 
+pub summaries(paths: List[String]): Bool ->
+    workspace(paths) or compiler(paths) or syntax(paths)
+        or affected(paths, "std/", ".terl") or affected(paths, "std/", ".terli")
+        or affected(paths, "std/summaries/", "")
+        or affected(paths, "std/js/manifests/", "")
+        or affected(paths, "scripts/self_validation/BuildInterfacesTest.terl", "")
+        or affected(paths, "scripts/self_validation/SummaryDriftTest.terl", "")
+        or affected(paths, "scripts/self_validation/JsBindingsDriftTest.terl", "")
+        or affected(paths, "scripts/git_hooks/stdlib_summaries.sh", "").
+
 pub lanes(paths: List[String]): List[String] ->
     let rust = if {
         workspace(paths) -> ["workspace"];
@@ -97,7 +107,8 @@ pub lanes(paths: List[String]): List[String] ->
     let workflows = if { workflow(paths) -> ["workflow"]; true -> List.new[String]() };
     let sources = if { terlan(paths) -> ["terlan" | workflows]; true -> workflows };
     let tooling = if { editor(paths) -> ["editor" | sources]; true -> sources };
-    let reported_rust = if { reports(paths) -> ["rust-reports" | rust]; true -> rust };
+    let summarized_rust = if { summaries(paths) -> ["summaries" | rust]; true -> rust };
+    let reported_rust = if { reports(paths) -> ["rust-reports" | summarized_rust]; true -> summarized_rust };
     let checked_rust = if { clippy(paths) -> ["clippy" | reported_rust]; true -> reported_rust };
     append(["shell" | checked_rust], tooling).
 

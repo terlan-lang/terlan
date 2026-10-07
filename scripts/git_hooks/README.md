@@ -23,6 +23,7 @@ reuse it. The Terlan planner selects additional checks:
 | --- | --- |
 | Rust source, compiler/grammar inputs, Cargo/toolchain/config, Make recipes | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
 | The above inputs, checked Rust quality reports, or their validators | Regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |
+| Rust/compiler/grammar inputs, stdlib sources and summaries, or summary generators | Check native and JavaScript/DOM summaries against temporary regenerated output; requires Node/npm |
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
 | Other compiler source | Compiler suite and phase-contract goldens |
 | Phase-contract fixtures alone | Exact phase-contract golden test |

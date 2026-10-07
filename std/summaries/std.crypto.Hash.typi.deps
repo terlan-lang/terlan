@@ -1,7 +1,7 @@
 module=std.crypto.Hash
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=10242770746830984662
 interface_hash=4912041604872690519
 interface_doc_hash=170516344473288294

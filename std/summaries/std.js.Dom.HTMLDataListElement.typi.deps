@@ -1,7 +1,7 @@
 module=std.js.Dom.HTMLDataListElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=8190426299188418471
 interface_hash=5611219829428406480
 interface_doc_hash=5611219829428406480

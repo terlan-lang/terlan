@@ -5,25 +5,25 @@ import git_hooks.Plan.
 @test
 pub grammar_requires_phase_goldens(): Bool ->
     Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"])
-        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
 
 @test
 pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"])
-        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"])
-        == ["shell", "clippy", "rust-reports", "compiler", "phase"].
+        == ["shell", "clippy", "rust-reports", "summaries", "compiler", "phase"].
 
 @test
 pub runtime_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "rust-reports", "workspace"].
+    Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub lockfile_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["Cargo.lock"]) == ["shell", "clippy", "rust-reports", "workspace"].
+    Plan.lanes(["Cargo.lock"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub fixture_only_changes_are_tested(): Bool ->
@@ -33,11 +33,11 @@ pub fixture_only_changes_are_tested(): Bool ->
 @test
 pub renamed_old_paths_still_trigger_checks(): Bool ->
     Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"])
-        == ["shell", "clippy", "rust-reports", "syntax", "phase", "editor"].
+        == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
 
 @test
 pub terlan_changes_are_checked(): Bool ->
-    Plan.lanes(["std/http/Request.terl"]) == ["shell", "terlan"].
+    Plan.lanes(["std/http/Request.terl"]) == ["shell", "summaries", "terlan"].
 
 @test
 pub ordinary_docs_avoid_test_suites(): Bool ->
@@ -54,15 +54,15 @@ pub negative_phase_sources_use_their_owning_test(): Bool ->
 
 @test
 pub other_negative_fixtures_use_workspace_tests(): Bool ->
-    Plan.lanes(["tests/fixtures/example/invalid.terl"]) == ["shell", "clippy", "rust-reports", "workspace"].
+    Plan.lanes(["tests/fixtures/example/invalid.terl"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub interface_changes_are_checked(): Bool ->
-    Plan.lanes(["std/example/Api.terli"]) == ["shell", "terlan"].
+    Plan.lanes(["std/example/Api.terli"]) == ["shell", "summaries", "terlan"].
 
 @test
 pub rust_build_scripts_require_clippy(): Bool ->
-    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "rust-reports", "workspace"].
+    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub clippy_configuration_changes_are_checked(): Bool ->
@@ -75,7 +75,7 @@ pub make_quality_changes_require_clippy(): Bool ->
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->
     Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"])
-        == ["shell", "clippy", "rust-reports", "workspace", "editor"].
+        == ["shell", "clippy", "rust-reports", "summaries", "workspace", "editor"].
 
 @test
 pub inventory_updates_require_source_report_validation(): Bool ->
@@ -96,3 +96,23 @@ pub report_validator_changes_check_their_reports(): Bool ->
 pub report_runner_changes_execute_report_checks(): Bool ->
     Plan.lanes(["scripts/git_hooks/rust_reports.sh"])
         == ["shell", "rust-reports"].
+
+@test
+pub summary_metadata_changes_check_both_generators(): Bool ->
+    Plan.lanes(["std/summaries/std.core.Int.typi.deps"])
+        == ["shell", "summaries"].
+
+@test
+pub javascript_manifests_check_generated_summaries(): Bool ->
+    Plan.lanes(["std/js/manifests/std_js_dom_inputs.json"])
+        == ["shell", "summaries"].
+
+@test
+pub summary_generator_changes_run_drift_checks(): Bool ->
+    Plan.lanes(["scripts/self_validation/BuildInterfacesTest.terl"])
+        == ["shell", "summaries", "terlan"].
+
+@test
+pub summary_runner_changes_execute_drift_checks(): Bool ->
+    Plan.lanes(["scripts/git_hooks/stdlib_summaries.sh"])
+        == ["shell", "summaries"].

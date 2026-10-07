@@ -1,7 +1,7 @@
 module=std.js.Dom.GLsizeiptr
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=5266591155501902049
 interface_hash=10504750892505663423
 interface_doc_hash=10504750892505663423

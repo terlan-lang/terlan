@@ -1,7 +1,7 @@
 module=std.js.Dom.EcdhKeyDeriveParams
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=9018607717815872225
 interface_hash=10713728440048252026
 interface_doc_hash=10713728440048252026

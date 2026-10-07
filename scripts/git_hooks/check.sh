@@ -48,6 +48,9 @@ while IFS= read -r lane; do
     rust-reports)
       bash scripts/git_hooks/rust_reports.sh
       ;;
+    summaries)
+      bash scripts/git_hooks/stdlib_summaries.sh
+      ;;
     shell)
       while IFS= read -r path; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi

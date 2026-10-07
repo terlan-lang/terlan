@@ -1,7 +1,7 @@
 module=std.js.Dom.FocusOptions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=15986147309014391386
 interface_hash=10130200066352453028
 interface_doc_hash=10130200066352453028

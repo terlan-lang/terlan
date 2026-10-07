@@ -1,7 +1,7 @@
 module=std.http.Response
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=13796420596998331802
 interface_hash=14363109622440693970
 interface_doc_hash=14193470147319768063

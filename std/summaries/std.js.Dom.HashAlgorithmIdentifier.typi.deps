@@ -1,7 +1,7 @@
 module=std.js.Dom.HashAlgorithmIdentifier
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:190c9d9d9202b1d7
+syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
 source_hash=8726779565280665444
 interface_hash=6871052363547707302
 interface_doc_hash=6871052363547707302
