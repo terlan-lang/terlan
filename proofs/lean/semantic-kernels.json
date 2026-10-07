@@ -108,8 +108,8 @@
         "Terlan.StdPackages.earlyTimerRejected"
       ],
       "runtime": [
-        "cargo", "test", "--locked", "-p", "terlan", "--lib",
-        "runtime::native::json::json_test::parse_and_stringify_round_trip_json_text",
+        "cargo", "test", "--locked", "-p", "terlan-data-native", "--lib",
+        "json_test::parse_and_stringify_round_trip_json_text",
         "--", "--exact"
       ]
     }
