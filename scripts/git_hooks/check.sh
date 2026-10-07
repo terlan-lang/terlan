@@ -42,6 +42,13 @@ plan="${changes%.txt}.plan"
 while IFS= read -r lane; do
   echo "pre-commit: $lane"
   case "$lane" in
+    bootstrap)
+      if [[ $(uname -s) == Linux ]]; then
+        cargo test --locked -p terlan-build-cache --test support_bootstrap_make
+      else
+        echo 'pre-commit: Linux bootstrap integration tests require a Linux host'
+      fi
+      ;;
     clippy)
       make --no-print-directory rust-clippy-check
       ;;

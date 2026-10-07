@@ -28,6 +28,7 @@ reuse it. The Terlan planner selects additional checks:
 | Other compiler source | Compiler suite and phase-contract goldens |
 | Phase-contract fixtures alone | Exact phase-contract golden test |
 | Other Rust source, Cargo manifests/lockfile, Rust toolchain/config | Workspace tests, including binary and integration targets |
+| Root Makefile, isolated bootstrap Makefile, or hook runner | On Linux, run the real sandbox bootstrap integration suite; requires Bubblewrap and working user namespaces |
 | Other `tests/fixtures/` inputs | Workspace tests; negative fixtures are validated by their owning tests |
 | Terlan source and manifests | Build affected packages with their configured source roots; check standalone files; run changed or adjacent `*Test.terl` files |
 | Editor source | Tree-sitter package, generation, and corpus checks; requires Node/npm |
@@ -39,6 +40,13 @@ focused suites do not prove all dependency impacts, all editor packages, every
 Terlan consumer, cross-platform behavior, sanitizers, Lean proofs, or release
 readiness. CI and the release gates remain authoritative. Hooks can be bypassed
 by Git options, so they are local feedback rather than a publication attestation.
+
+Before pushing a release candidate, run `make release-candidate-check` against
+the candidate source on a supported local host, plus the applicable native and
+sanitizer checks. A missing dependency, network failure, or sandbox restriction
+is a blocked check, not a pass. Complete available local validation before
+starting GitHub Actions; hosted platform jobs cover environments unavailable
+locally.
 
 `scripts/git_hooks_test.sh` tests Git isolation with small temporary repositories
 under `target/`; CI runs it in source preflight. The planner tests run with

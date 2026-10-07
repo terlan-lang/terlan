@@ -22,6 +22,8 @@ hermetic-support-root:
 
 # Keep the pre-tool mechanism limited to Git, archive/hash utilities, and the
 # OS sandbox. The native receipt owner takes over as soon as it exists.
+# The cleared environment excludes .cargo/config.toml. Pin its transport
+# settings below without admitting host compiler flags or registry overrides.
 define TERLAN_HERMETIC_SUPPORT_ROOT
 root="$$(pwd -P)"; \
 scratch="$$root/target/quality/hermetic-support.pending"; \
@@ -100,6 +102,9 @@ timeout --kill-after=10s "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)s" \
 	--setenv PATH /toolchain/bin:/usr/bin:/bin --setenv HOME /work --setenv CARGO_HOME /cargo \
 	--setenv RUSTC /toolchain/bin/rustc --setenv RUSTDOC /toolchain/bin/rustdoc --setenv CARGO_BUILD_JOBS 1 \
 	--setenv CARGO_INCREMENTAL 0 \
+	--setenv CARGO_NET_RETRY 10 --setenv CARGO_NET_GIT_FETCH_WITH_CLI true \
+	--setenv CARGO_HTTP_TIMEOUT 120 --setenv CARGO_HTTP_LOW_SPEED_LIMIT 10 \
+	--setenv CARGO_HTTP_MULTIPLEXING false \
 	--setenv RUSTFLAGS "-C linker=$$native_cc" --setenv CC "$$native_cc" \
 	--setenv LANG C.UTF-8 --setenv TERLAN_SUPPORT_INPUT "$$input" \
 	--setenv TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \

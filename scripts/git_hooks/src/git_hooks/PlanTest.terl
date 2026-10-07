@@ -70,7 +70,20 @@ pub clippy_configuration_changes_are_checked(): Bool ->
 
 @test
 pub make_quality_changes_require_clippy(): Bool ->
-    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "clippy", "rust-reports"].
+    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "bootstrap", "clippy", "rust-reports"].
+
+@test
+pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
+    Plan.lanes(["mk/hermetic-support.mk"]) == ["shell", "bootstrap", "clippy", "rust-reports"].
+
+@test
+pub bootstrap_runner_changes_test_the_lane(): Bool ->
+    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "bootstrap"].
+
+@test
+pub workspace_tests_already_cover_bootstrap(): Bool ->
+    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"])
+        == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->

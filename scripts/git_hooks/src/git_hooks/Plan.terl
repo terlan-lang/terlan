@@ -74,6 +74,12 @@ pub terlan(paths: List[String]): Bool ->
 pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
+pub bootstrap(paths: List[String]): Bool ->
+    not workspace(paths)
+        and (affected(paths, "mk/hermetic-support.mk", "")
+            or affected(paths, "Makefile", "")
+            or affected(paths, "scripts/git_hooks/check.sh", "")).
+
 pub clippy(paths: List[String]): Bool ->
     workspace(paths) or compiler(paths) or syntax(paths)
         or affected(paths, "", ".rs")
@@ -110,7 +116,8 @@ pub lanes(paths: List[String]): List[String] ->
     let summarized_rust = if { summaries(paths) -> ["summaries" | rust]; true -> rust };
     let reported_rust = if { reports(paths) -> ["rust-reports" | summarized_rust]; true -> summarized_rust };
     let checked_rust = if { clippy(paths) -> ["clippy" | reported_rust]; true -> reported_rust };
-    append(["shell" | checked_rust], tooling).
+    let bootstrapped = if { bootstrap(paths) -> ["bootstrap" | checked_rust]; true -> checked_rust };
+    append(["shell" | bootstrapped], tooling).
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {
