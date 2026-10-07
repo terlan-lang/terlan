@@ -273,7 +273,9 @@ jobs:
     name: Compiler check and test
     runs-on: ubuntu-24.04
     if: ${{ github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/') }}
-    timeout-minutes: 120
+    # Cold hosted runs need about 114 minutes before the remaining stdlib,
+    # proof, runtime, and package gates; allow the complete validation to finish.
+    timeout-minutes: 180
     outputs:
       coverage-artifact-id: ${{ steps.coverage.outputs.artifact-id }}
 
