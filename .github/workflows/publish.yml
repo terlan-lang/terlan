@@ -1,0 +1,80 @@
+name: Publish tagged release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish the validated tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      checks: read
+      attestations: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+      TERLAN_RELEASE_WAIT_SECONDS: "14400"
+      TERLAN_TAG_PUBLICATION: "1"
+    steps:
+      - name: Checkout the tagged commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require an annotated version tag
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$(git rev-parse HEAD)"
+          git merge-base --is-ancestor HEAD origin/main
+          printf 'VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+          gh auth setup-git --hostname github.com
+
+      - name: Install release dependencies
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
+          lean: "true"
+
+      - name: Install pinned Lean toolchain
+        run: elan toolchain install "$(cat proofs/lean/lean-toolchain)"
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/setup-rust
+
+      - name: Install Node for distribution verification
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Install JDK for editor packaging
+        run: |
+          sudo apt-get install --yes openjdk-21-jdk
+          echo 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> "$GITHUB_ENV"
+          echo '/usr/lib/jvm/java-21-openjdk-amd64/bin' >> "$GITHUB_PATH"
+
+      - name: Validate and publish the existing tag
+        run: make release-tag VERSION="$VERSION"
+
+      - name: Upload publication evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: publication-${{ github.ref_name }}-${{ github.run_attempt }}
+          path: target/quality
+          if-no-files-found: ignore
+          retention-days: 90

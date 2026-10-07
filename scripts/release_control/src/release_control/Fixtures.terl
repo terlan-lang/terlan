@@ -64,28 +64,48 @@ head(): String ->
 
 git(): Bool ->
     case arg(2) {
-        "branch" -> show("main");
+        "branch" ->
+            show(
+                if {
+                    String.starts_with(mode(), "tag-") -> "";
+                    true -> "main"
+                },
+            );
+        "cat-file" ->
+            show(
+                if {
+                    mode() == "tag-lightweight" -> "commit";
+                    true -> "tag"
+                },
+            );
+        "fetch" -> true;
+        "merge-base" -> mode() != "tag-not-main";
         "rev-parse" -> show(head());
         "status" ->
             show(
                 if {
-                    mode() == "dirty" -> " M source.terl";
+                    mode() == "dirty" or mode() == "tag-dirty" -> " M source.terl";
                     true -> ""
                 },
             );
         "ls-remote" ->
-            show(
-                String.concat(
-                    [
-                        if {
-                            mode() == "remote-changed" -> "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-                            true -> revision()
-                        },
-                        "\t",
-                        arg(4),
-                    ],
-                ),
-            );
+            if {
+                mode() == "tag-missing" -> show("");
+                mode() == "tag-moved" -> show("changed tag");
+                String.starts_with(mode(), "tag-") and arg(5) != "" -> show(String.concat([revision(), "\t", arg(4), "\n", revision(), "\t", arg(5)]));
+                true -> show(
+                    String.concat(
+                        [
+                            if {
+                                mode() == "remote-changed" -> "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+                                true -> revision()
+                            },
+                            "\t",
+                            arg(4),
+                        ],
+                    ),
+                )
+            };
         _ -> false
     }.
 
@@ -111,7 +131,8 @@ workflow_row(): Bool ->
     let waiting = compiler and (mode() == "pending" and ticks < 2 or mode() == "timeout" or mode() == "drift");
     let conclusion =
         if {
-            compiler and (mode() == "failed" or mode() == "failed-missing") -> "failure";
+            compiler
+                and (mode() == "failed" or mode() == "failed-missing" or mode() == "tag-failed") -> "failure";
             compiler and mode() == "cancelled" -> "cancelled";
             waiting -> "";
             true -> "success"
@@ -227,7 +248,7 @@ pub entry(): Bool ->
             log(arg(3))
                 and if {
     mode() == "prepare-failed" -> false;
-    arg(3) == "publish" -> write("published", "1");
+    arg(3) == "publish" or arg(3) == "publish-tag" -> write("published", "1");
     true -> arg(3) == "publish-prepare"
 };
         _ -> false

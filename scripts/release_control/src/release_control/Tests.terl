@@ -3,7 +3,7 @@
  */
 module release_control.Tests.
 
-import release_control.{Status, Support, Version}.
+import release_control.{Status, Support, Tag, Version}.
 import std.core.Result.{Err, Ok}.
 import std.data.Json.
 
@@ -35,6 +35,10 @@ pub run(): Bool ->
     let failed = state("completed", "failure");
     let cancelled = state("completed", "cancelled");
     Version.valid("0.0.9")
+        and Tag.version_matches("[workspace.package]\nversion = \"0.0.9\"\n", "0.0.9")
+        and not Tag.version_matches("[workspace.package]\nversion = \"0.0.8\"\n", "0.0.9")
+        and not Tag.version_matches("[package]\nversion = \"0.0.9\"\n", "0.0.9")
+        and not Tag.version_matches("[workspace.package]\n[package]\nversion = \"0.0.9\"\n", "0.0.9")
         and Version.valid("1.20.3")
         and not Version.valid("v0.0.9")
         and not Version.valid("0.0.09")

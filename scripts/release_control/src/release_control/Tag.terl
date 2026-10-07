@@ -1,0 +1,66 @@
+/**
+ * Validates the immutable release tag independently of later main commits.
+ */
+module release_control.Tag.
+
+import release_control.{Support, Version}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.File.
+
+import type std.core.Result.
+
+/**
+ * Reads the version only from the workspace package table.
+ */
+pub version_matches(source: String, version: String): Bool ->
+    Version.valid(version) and version_lines(String.split(source, "\n"), version, false).
+
+version_lines(lines: List[String], version: String, inside: Bool): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] ->
+            let value = String.trim(line);
+            if {
+                value == "[workspace.package]" -> version_lines(rest, version, true);
+                inside and String.starts_with(value, "[") -> false;
+                inside and value == String.concat(["version = \"", version, "\""]) -> true;
+                true -> version_lines(rest, version, inside)
+            }
+    }.
+
+/**
+ * Requires matching local/remote annotated tags on a clean main-history commit.
+ */
+pub guard(revision: String, version: String): Result[Unit, String] ->
+    let reference = String.append("refs/tags/v", version);
+    let {
+        Ok(source) <- File.read_text("Cargo.toml");
+        true <- version_matches(source, version)
+    } else {
+        _ -> Err("tag version must equal workspace.package.version")
+    };
+    (let {
+    Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
+    Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000);
+    Ok(kind) <- Support.run("git", ["cat-file", "-t", reference], 30000);
+    Ok(object) <- Support.run("git", ["rev-parse", reference], 30000);
+    Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30000);
+    Ok(remote) <-
+        Support.run(
+            "git",
+            ["ls-remote", "origin", reference, String.append(reference, "^{}")],
+            60000,
+        );
+    Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60000);
+    Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", revision, "origin/main"], 30000)
+} else {
+    Err(reason) -> Err(reason)
+};
+if {
+    head != revision or commit != revision -> Err("release tag or candidate revision changed");
+    changes != "" -> Err("tagged release source must be clean");
+    kind != "tag" -> Err("release tag must be annotated");
+    remote != String.concat([object, "\t", reference, "\n", revision, "\t", reference, "^{}"]) -> Err("remote annotated tag differs from the release candidate");
+    true -> Ok(Unit)
+}).

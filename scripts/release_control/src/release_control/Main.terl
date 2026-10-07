@@ -3,7 +3,7 @@
  */
 module release_control.Main.
 
-import release_control.{Acceptance, Fixtures, Status, Support, Tests, Version}.
+import release_control.{Acceptance, Fixtures, Status, Support, Tag, Tests, Version}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -41,6 +41,18 @@ wait_seconds(): Result[Int, String] ->
  * Pins clean, already-pushed main before every consequential release step.
  */
 pub guard(revision: String): Result[Unit, String] ->
+    if {
+        argument(0, "") == "publish-tag" -> Tag.guard(revision, argument(1, ""));
+        true -> guard_main(revision)
+    }.
+
+observe(revision: String, version: String): Result[Json, String] ->
+    if {
+        argument(0, "") == "publish-tag" -> Status.collect_tag(revision, version);
+        true -> Status.collect(revision, version)
+    }.
+
+guard_main(revision: String): Result[Unit, String] ->
     let {
         Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
         Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
@@ -138,7 +150,7 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
 wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
     let {
         Ok(_guarded) <- guard(revision);
-        Ok(document) <- Status.collect(revision, version);
+        Ok(document) <- observe(revision, version);
         Ok(_announced) <- announce(document)
     } else {
         Err(reason) -> Err(reason)
@@ -207,11 +219,14 @@ publish(document: Json, version: String): Result[Unit, String] ->
                 stage(
                     prepared,
                     "publishing",
-                    "verify, tag, and upload the prepared candidate",
-                    "publish",
+                    "verify and upload the prepared candidate",
+                    if {
+                        argument(0, "") == "publish-tag" -> "publish-tag";
+                        true -> "publish"
+                    },
                     version,
                 );
-            Ok(release) <- Status.collect(Support.text(document, "revision"), version)
+            Ok(release) <- observe(Support.text(document, "revision"), version)
         } else {
             Err(reason) -> Err(reason)
         };
@@ -240,10 +255,10 @@ if {
             };
             (let _printed = println(source); Ok(Unit))
     };
-    command == "publish" or command == "wait" -> let {
+    command == "publish" or command == "wait" or command == "publish-tag" -> let {
         Ok(seconds) <- wait_seconds();
         Ok(_guarded) <- guard(revision);
-        Ok(initial) <- Status.collect(revision, version);
+        Ok(initial) <- observe(revision, version);
         Ok(_reported) <- announce(initial);
         Ok(_admitted) <-
             if {
@@ -252,7 +267,7 @@ if {
             };
         Ok(_dispatched) <-
             if {
-                Support.text(initial, "state") == "published" -> Ok(Unit);
+                Support.text(initial, "state") == "published" or command == "publish-tag" -> Ok(Unit);
                 true -> dispatch_missing(initial, 0)
             };
         Ok(ready) <- wait(revision, version, Clock.monotonic_time_ns() + seconds * 1000000000)
@@ -260,10 +275,10 @@ if {
         Err(reason) -> Err(reason)
     };
     if {
-        command == "publish" -> publish(ready, version);
+        command == "publish" or command == "publish-tag" -> publish(ready, version);
         true -> Ok(Unit)
     };
-    true -> Err("usage: Release.terls status|wait|publish <version> (or self-test)")
+    true -> Err("usage: Release.terls status|wait|publish|publish-tag <version> (or self-test)")
 }).
 
 /**

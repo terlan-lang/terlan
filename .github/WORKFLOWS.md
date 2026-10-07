@@ -5,6 +5,29 @@ documentation checks return early while compiler-facing source changes are
 checked continuously. Compiler package publication remains outside the website
 deployment contract.
 
+## Tagged releases
+
+Push an annotated `vMAJOR.MINOR.PATCH` tag on a committed, pushed `main`
+revision to start `publish.yml`. For example:
+
+```sh
+git tag -a v0.0.9 -m "Terlan v0.0.9"
+git push origin v0.0.9
+```
+
+The tag must match `workspace.package.version`. Publication checks the existing
+remote tag and waits for successful Compiler CI and Release validation for its
+exact commit. It then verifies the attested six-platform artifacts, prepares
+proof and runtime evidence, and publishes the release with the existing verified
+uploader. No workstation publication command is required. Main may advance while
+the tagged release is being prepared; the tag and candidate must remain fixed.
+
+The tag workflow never creates or moves tags and never pushes `main`. Failed
+checks prevent publication. Retry a failed workflow on the same tag after fixing
+an infrastructure issue; source changes require a new reviewed candidate and
+tag. Only the publication job receives release-write permission, and concurrent
+runs for the same tag are serialized without cancelling an active publisher.
+
 ## Docs CI
 
 `docs.yml` runs on pull requests and `main` pushes when documentation-facing
@@ -323,8 +346,8 @@ Both retain outer workflow deadlines.
 
 `make release-status` combines the exact candidate revision, source cleanliness,
 both canonical workflows and their jobs, retained artifact metadata, publication
-state, and the next action in `target/quality/release-status.json`. `make release`
-uses the same state machine to wait, prepare, and publish under one local lease.
+state, and the next action in `target/quality/release-status.json`. The tag
+workflow runs `make release-tag` to wait, prepare, and publish under one lease.
 It never transfers green evidence between commits. Existing attestation,
 checksum, candidate, annotated-tag, and upload verification remain authoritative.
 
@@ -411,15 +434,15 @@ no publication and is not an AOT completion dependency.
 
 ## Publication
 
-Publication is an explicit local promotion after the exact commit has passed
-the hosted `release-validation/run` status. From a clean `main` checkout:
+Publication starts from a pushed annotated tag after committing the workflow
+and release contents to `main`:
 
 ```sh
-make publish-prepare
-make publish
+git tag -a v0.0.9 -m "Terlan v0.0.9"
+git push origin v0.0.9
 ```
 
-The preflight rejects a non-fast-forward `main`, mismatched local or remote
+The preflight rejects tags outside `main` history, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation
 status. It requires both the exhaustive compiler check and release validation
 to be successful for the exact candidate commit. Candidate validation happens
@@ -431,7 +454,7 @@ status-bearing run, verifies its workflow identity, archive checksums, and
 Sigstore-backed GitHub build-provenance attestations. It also downloads the
 hosted platform and sanitizer evidence. If candidate-bound local evidence is
 missing or stale, preparation builds the required tools and seals multicore and
-AOT closeout. `make publish` only verifies that evidence; it never launches
+AOT closeout. The workflow's `make publish-tag` only verifies that evidence; it never launches
 preparation or downloads the archives. Missing or stale evidence is a loud error
 with an explicit preparation command, so an interrupted upload cannot trigger
 compilation or tests. Preparation checks host tools before expensive work. No
@@ -450,7 +473,7 @@ These local caches are not independently signed evidence and never replace the
 candidate seal or final distribution checks. They retain full payloads on disk;
 retire obsolete checkpoints after publication when reclaiming disk space.
 
-The publisher then creates an annotated release tag
+The publisher uses the existing annotated release tag
 and uploads every archive, detached checksum, and the sealed candidate manifest
 to a draft release. One verified publication plan supplies the asset inventory,
 sizes, hashes, and candidate seal. Draft asset lookup uses the numeric release

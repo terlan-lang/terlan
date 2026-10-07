@@ -176,6 +176,15 @@ pub assets_available(values: Json): Bool ->
  * Collects current jobs and artifact metadata; publication still verifies attestations and checksums.
  */
 pub collect(revision: String, version: String): Result[Json, String] ->
+    collect_source(revision, version, false).
+
+/**
+ * The tag guard owns source identity while the checkout is detached.
+ */
+pub collect_tag(revision: String, version: String): Result[Json, String] ->
+    collect_source(revision, version, true).
+
+collect_source(revision: String, version: String, tagged: Bool): Result[Json, String] ->
     let {
         Ok(compiler_row) <- load(revision, "ci.yml");
         Ok(release_row) <- load(revision, "release.yml");
@@ -190,7 +199,7 @@ pub collect(revision: String, version: String): Result[Json, String] ->
     };
     (let published = Support.text(publication, "html_url") != "";
 let missing_assets = Support.text(release, "state") == "success" and not assets_available(assets);
-let source_changed = changes != "" or branch != "main";
+let source_changed = changes != "" or not tagged and branch != "main";
 let state =
     if {
         published -> "published";

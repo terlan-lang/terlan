@@ -312,39 +312,32 @@ inputs.
 
 ### Publication
 
-From a clean, pushed `main` commit:
+Push an annotated version tag on the intended, pushed `main` commit:
 
 ```sh
-make release
+git tag -a v0.0.9 -m "Terlan v0.0.9"
+git push origin v0.0.9
 ```
 
-The version comes from the workspace. `make release` waits for Compiler CI and
-Release validation on that exact commit, prepares the verified artifacts, and
-publishes them. It stops on failed checks or source changes. Missing workflow
-runs are dispatched once; existing failed runs are reported for investigation.
-Use `make release-status` for the unified JSON report, also saved at
-`target/quality/release-status.json`, or `make release-wait` to stop before
-preparation. Waiting defaults to six hours; `TERLAN_RELEASE_WAIT_SECONDS` accepts
-1–21600 seconds. Rerunning the command resumes through the existing verified
-preparation and upload checkpoints.
+The tag version must match `workspace.package.version`. GitHub Actions runs
+`publish.yml`, waits for Compiler CI and Release validation on that exact commit,
+prepares the verified artifacts, and publishes them. Failed checks, changed tags,
+or mismatched evidence stop publication. Retry the workflow on the existing tag
+after an infrastructure failure; it reuses verified preparation and upload
+checkpoints. The tagged commit stays fixed even if `main` advances.
 
-Publication requires authenticated GitHub
-CLI access and a Linux x86_64 environment capable of running the hosted artifact
-(Ubuntu 24.04-compatible userspace). Preparation needs Node 24/npm for installed
-JavaScript examples and JDK 21 for editor packaging, in addition to the build
-toolchains. An older Linux host can use a compatible container; CPU quietness and
-a self-hosted GitHub runner are not prerequisites.
+The publication job supplies GitHub authentication and an Ubuntu 24.04 runner
+with Rust, Lean, Node 24/npm, and JDK 21. No workstation publisher or Docker
+container is needed. `make release-status` remains available for inspecting
+validation from a clean `main` checkout.
 
 Preparation retains the verified hosted archives while refreshing stale local
 evidence, then restores those exact bytes before sealing the candidate.
 Retries reuse a checksummed download checkpoint for the same successful workflow
 runs and attempts; they still check live CI status and validate local bytes.
-`make publish` never builds, tests, downloads archives, or refreshes evidence;
-it rejects a missing or stale prepared candidate. Retry `make publish` after an
-interrupted upload: matching assets are reused, and mismatches keep the release
-unpublished. Rerun preparation only when the candidate's inputs change.
-The separate `make publish-prepare` and `make publish` commands remain available
-for inspecting a prepared candidate and retrying only its upload.
+The workflow's `publish-tag` step only verifies and uploads the prepared
+candidate; it never creates or pushes tags. Matching assets are reused after an
+interruption, and mismatches keep the release unpublished.
 
 ## Documentation
 

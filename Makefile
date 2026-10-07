@@ -403,7 +403,7 @@ VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
 HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 
-ifneq ($(filter release release-wait release-status publish publish-preflight publish-prepare,$(MAKECMDGOALS)),)
+ifneq ($(filter release release-wait release-tag release-status publish publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -4527,7 +4527,8 @@ native-binding-generator-contract-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools native_binding_generator_contract_test
 	$(TERLAN_QUALITY) native-binding-generator-contract
 
-cpp-binding-generator-check cpp-package-consumer-check: export RUSTFLAGS := -D warnings
+# Rust warnings are denied by rust-clippy-check. Keep these test requests in
+# the canonical suite environment so coverage can be verified without replay.
 
 cpp-binding-generator-check: native-binding-generator-contract-check cpp-binding-metadata-extractor-check cpp-package-consumer-check
 	$(RUST_TEST) -p terlan --lib cpp_binding_generator
@@ -5035,12 +5036,14 @@ publish-remote-preflight: publish-source-preflight
 		exit 1; \
 	}
 	@branch=$$(git branch --show-current); \
-	if [ "$$branch" != "main" ]; then \
+	if [ "$(TERLAN_TAG_PUBLICATION)" != 1 ] && [ "$$branch" != "main" ]; then \
 		echo "publication must run from main; current branch is $$branch"; \
 		exit 1; \
 	fi
 	@git fetch --quiet origin main || exit $$?; \
-	if ! git merge-base --is-ancestor origin/main HEAD; then \
+	if [ "$(TERLAN_TAG_PUBLICATION)" = 1 ]; then \
+		git merge-base --is-ancestor HEAD origin/main || { echo 'release tag must belong to main history' >&2; exit 1; }; \
+	elif ! git merge-base --is-ancestor origin/main HEAD; then \
 		echo "origin/main is not an ancestor of HEAD; publication would require a non-fast-forward push"; \
 		exit 1; \
 	fi
@@ -5051,6 +5054,9 @@ publish-remote-preflight: publish-source-preflight
 	fi; \
 	remote_tag_object_sha=$$(printf '%s\n' "$$remote_tags" | awk -v ref="$$tag_ref" '$$2 == ref { print $$1 }'); \
 	remote_tag_sha=$$(printf '%s\n' "$$remote_tags" | awk -v ref="$$tag_ref^{}" '$$2 == ref { print $$1 }'); \
+	if [ "$(TERLAN_TAG_PUBLICATION)" = 1 ] && [ -z "$$remote_tags" ]; then \
+		echo 'tag publication requires an existing remote annotated tag' >&2; exit 1; \
+	fi; \
 	if [ -n "$$remote_tags" ] && { [ -z "$$remote_tag_object_sha" ] || [ -z "$$remote_tag_sha" ]; }; then \
 		echo "remote tag v$(VERSION) must be annotated with a resolvable commit" >&2; \
 		exit 1; \
@@ -5381,7 +5387,7 @@ publish-evidence-refresh-plan-check:
 TERLAN_RELEASE_CONTROL_IMAGE := target/release-control/vm/scripts_Release.tvm
 TERLAN_RELEASE_CONTROL := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE) --script-eval --
 
-.PHONY: release release-wait release-status release-control-check terlan-release-control-bootstrap
+.PHONY: release release-wait release-tag publish-tag release-status release-control-check terlan-release-control-bootstrap
 terlan-release-control-bootstrap: terlan-typed-validator-fingerprint
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RELEASE_CONTROL_IMAGE)
@@ -5400,6 +5406,17 @@ release release-wait: publish-source-preflight
 	@mkdir -p target/quality
 	flock --nonblock target/quality/release-control.lock \
 		$(TERLAN_RELEASE_CONTROL) $(if $(filter release,$@),publish,wait) "$(VERSION)"
+
+release-tag: publish-source-preflight
+	$(MAKE) --no-print-directory terlan-release-control-bootstrap
+	@test ! -L target && test ! -L target/quality && test ! -L target/quality/release-control.lock
+	@mkdir -p target/quality
+	flock --nonblock target/quality/release-control.lock \
+		$(TERLAN_RELEASE_CONTROL) publish-tag "$(VERSION)"
+
+publish-tag: export TERLAN_TAG_PUBLICATION=1
+publish-tag: publish-preflight
+	timeout --kill-after=10s 900s bash scripts/publish_release_from_dist.sh "$(VERSION)" </dev/null
 
 release-control-check: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) self-test
