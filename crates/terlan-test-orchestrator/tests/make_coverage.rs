@@ -439,6 +439,10 @@ RELEASE_VERSION := fixture
 RELEASE_EVIDENCE_GATES := normal release-only release-generated-artifacts-check rust-test-suite
 .PHONY: check-gates release-only check release-evidence-refresh release-evidence-compose rust-test-suite terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-self-validation-bootstrap terlan-release-closeout-image-bootstrap
 terlan-compiler-bootstrap:
+rust-artifact-retention-check:
+	@test -z "$(TERLAN_RUST_COVERAGE_CONTEXT)"
+	@test ! -s target/bodies.txt
+	@echo retention >> target/bootstraps
 terlan-quality-tools-bootstrap:
 	@echo quality >> target/bootstraps
 terlan-self-validation-bootstrap:
@@ -526,7 +530,10 @@ hosted-change-source: normal
         .map(String::from)
         .collect::<Vec<_>>();
     bootstraps.sort();
-    assert_eq!(bootstraps, ["quality", "release", "validators"]);
+    assert_eq!(
+        bootstraps,
+        ["quality", "release", "retention", "validators"]
+    );
     let suite: Value = serde_json::from_slice(
         &fs::read(root.join("target/quality/rust-test-suite-report.json")).unwrap(),
     )

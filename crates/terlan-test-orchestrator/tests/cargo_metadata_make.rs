@@ -58,7 +58,7 @@ fn fixture() -> Fixture {
         .unwrap();
     // Exercise the production prerequisite declaration with a bounded stand-in
     // consumer. Actual typed SBOM admission is covered by its AOT rehearsal.
-    fs::write(fixture.0.join("Makefile"), format!("SHELL := /bin/bash\ninclude {}\n.PHONY: first second terlan-compiler-bootstrap terlan-release-closeout-bootstrap\nfirst: rust-cargo-metadata-report\nsecond: rust-cargo-metadata-report\n{supply_chain}\n\tcp target/quality/rust-cargo-metadata.json target/sbom-input.json\n\techo consumed >> target/sbom-calls\n{rust_suite}\n\tcp target/quality/rust-cargo-metadata.json target/suite-input.json\n\techo consumed >> target/suite-calls\n", recipe.display())).unwrap();
+    fs::write(fixture.0.join("Makefile"), format!("SHELL := /bin/bash\ninclude {}\n.PHONY: first second terlan-compiler-bootstrap terlan-release-closeout-bootstrap\nfirst: rust-cargo-metadata-report\nsecond: rust-cargo-metadata-report\nrust-artifact-retention-check:\n\t@:\n{supply_chain}\n\tcp target/quality/rust-cargo-metadata.json target/sbom-input.json\n\techo consumed >> target/sbom-calls\n{rust_suite}\n\tcp target/quality/rust-cargo-metadata.json target/suite-input.json\n\techo consumed >> target/suite-calls\n", recipe.display())).unwrap();
     fs::create_dir(fixture.0.join("target")).unwrap();
     fs::create_dir(fixture.0.join("target/cargo-home")).unwrap();
     fixture

@@ -243,10 +243,6 @@ build-artifact-budget-self-test: terlan-artifact-measurement-bootstrap
 build-artifact-budget-check: rust-build-graph-boundary-check package-build-artifact-isolation-check terlan-self-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE)
-	TERLAN_CARGO_ARTIFACT_RETENTION_MODE=clean-check \
-	TERLAN_CARGO_ARTIFACT_RETENTION_TARGET="$(CURDIR)/target" \
-	TERLAN_CARGO_ARTIFACT_RETENTION_REPORT="$(CURDIR)/target/quality/cargo-artifact-retention.json" \
-		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
 
 rust-canonical-type-ownership-check: rust-build-graph-boundary-check
 	@echo "[rust-canonical-type-ownership] canonical AST ownership passed"

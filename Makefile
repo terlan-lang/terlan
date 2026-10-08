@@ -1162,7 +1162,8 @@ ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
 rust-test-suite:
 	$(TERLAN_RUST_ORCHESTRATOR) --coverage-request --whole-suite
 else
-rust-test-suite: rust-cargo-metadata-report
+# Retention may delete old harnesses; finish it before recording test identities.
+rust-test-suite: rust-cargo-metadata-report rust-artifact-retention-check
 	@set -eu; \
 	for binary in terlc terlan-vm terlan-native-worker; do \
 		test -x "target/debug/$$binary"; \

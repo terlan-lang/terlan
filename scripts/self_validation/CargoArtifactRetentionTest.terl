@@ -888,6 +888,9 @@ repository_gate(): Bool ->
             child(target_root, "quality/cargo-artifact-retention.json"),
         );
     if {
+        (mode == "clean-check" or mode == "clean-shared-debug")
+            and String.trim(environment_or("TERLAN_RUST_COVERAGE_CONTEXT", "")) != "" -> let _rejected = println("Cargo artifact cleanup must run before Rust test coverage ownership begins");
+        false;
         mode == "self-test" -> run_self_test_mode();
         mode == "clean-check" -> clean_and_check(target_root, report_path);
         mode == "clean-shared-debug" -> clean_shared_debug(target_root);
