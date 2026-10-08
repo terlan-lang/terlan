@@ -1,11 +1,10 @@
 //! Source middleware unions reach dispatch without compiler-owned constructors.
 
 use super::compile_native_handler_fixture;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::invocation::AotHandlerInvocationStep;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::runtime::vm::http_router::VmHttpMiddlewareResult;
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::routing::MiddlewareResult;
 
 #[test]
 fn compiled_middleware_preserves_continuation_and_response_payload() {
@@ -37,18 +36,22 @@ pub handle(blocked: Bool, message: String): MiddlewareResult ->
         let AotHandlerInvocationStep::Complete(value) = step else {
             panic!("ordinary middleware construction must complete without a capability");
         };
-        match VmHttpMiddlewareResult::from_value(value).unwrap() {
-            VmHttpMiddlewareResult::Continue => assert!(!blocked),
-            VmHttpMiddlewareResult::Respond(response) => {
+        match MiddlewareResult::from_value(value).unwrap() {
+            MiddlewareResult::Continue => assert!(!blocked),
+            MiddlewareResult::Respond(response) => {
                 assert!(blocked);
-                let response = HandlerResponse::from_owned_vm_response_with_package_root(
-                    response,
-                    &fixture.root,
-                )
-                .unwrap();
+                let response =
+                    crate::commands::serve::handler::decode_owned_response(response, &fixture.root)
+                        .unwrap();
                 assert_eq!(response.status, 403);
-                assert_eq!(response.body.as_bytes(), b"denied");
-                assert_eq!(response.headers, vec![("X-Policy".into(), "source".into())]);
+                assert_eq!(
+                    response.body.as_bytes().expect("finite response"),
+                    b"denied"
+                );
+                assert_eq!(
+                    response.headers[2..],
+                    vec![("X-Policy".into(), "source".into())]
+                );
             }
         }
     }

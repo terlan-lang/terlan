@@ -8,6 +8,10 @@ pub(super) use crate::validation::target_profile::TargetProfile;
 #[cfg(test)]
 #[path = "js_browser_test/asset_and_response_manifests.rs"]
 mod asset_and_response_manifests;
+#[path = "js_browser_test/callback_source_execution.rs"]
+mod callback_source_execution;
+#[path = "js_browser_test/response_source_execution.rs"]
+mod response_source_execution;
 #[cfg(test)]
 #[path = "js_browser_test/route_fixtures.rs"]
 mod route_fixtures;

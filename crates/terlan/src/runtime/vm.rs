@@ -3,6 +3,7 @@ pub(crate) mod accelerator_operation;
 pub(crate) mod acme_worker;
 pub(crate) mod actor;
 pub(crate) mod actor_state;
+#[cfg(test)]
 pub(crate) mod aot_metadata;
 pub(crate) mod bitstring;
 #[cfg(test)]
@@ -52,7 +53,6 @@ pub(crate) mod framing;
 pub(crate) mod http;
 #[cfg(test)]
 pub(crate) mod http_metrics;
-pub(crate) mod http_router;
 #[cfg(test)]
 pub(crate) mod http_session;
 #[cfg(test)]

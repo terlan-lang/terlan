@@ -1,15 +1,16 @@
 module std.http.CookiesTest.
 
-import std.collections.Map.
+import std.collections.{List, Map}.
 import std.core.Option.{None, Some}.
 import std.core.Unit.
 import std.http.Cookies.{Lax, None as CrossSite, Options, Strict, delete_header, set_header, set_header_options, set_header_with_options}.
 import std.http.{Cookies, Response}.
-import std.test.Test.{assert_equal}.
+import std.test.Test.{assert_equal, each, row}.
 
 import type std.core.Option.
 import type std.http.Cookies.{Jar, Options, SameSite}.
 import type std.http.Request.
+import type std.test.Test.Row.
 
 pub accepts_same_site(value: SameSite): SameSite ->
     value.
@@ -87,6 +88,42 @@ pub cookie_full_options_header_serializes_attributes(): Bool ->
     ).
 
 @test
+pub source_cookie_policy_normalizes_case_and_preserves_age_omission(): Bool ->
+    each(
+        [
+            row("omitted age ignores supplied value", {"", 42, false}, "sid=value; Path=/"),
+            row("explicit zero", {"LaX", 0, true}, "sid=value; SameSite=Lax; Path=/; Max-Age=0"),
+            row(
+                "negative age",
+                {"STRICT", -1, true},
+                "sid=value; SameSite=Strict; Path=/; Max-Age=-1",
+            ),
+            row(
+                "cross-site codec security",
+                {"NoNe", 42, false},
+                "sid=value; SameSite=None; Secure; Path=/",
+            ),
+        ],
+        (sample: Row[{String, Int, Bool}, String]) ->
+            let {_name, {policy, age, include_age}, expected} = sample;
+            assert_equal(
+                expected,
+                set_header_with_options(
+                    "sid",
+                    "value",
+                    "/",
+                    "",
+                    age,
+                    include_age,
+                    "",
+                    false,
+                    false,
+                    policy,
+                ),
+            ),
+    ).
+
+@test
 pub cookie_jar_get_reads_present_and_missing_values(): Bool ->
     let jar = sample_jar();
     assert_equal("abc123", option_string_or_empty(jar.get("session")))
@@ -102,6 +139,30 @@ pub source_jar_construction_preserves_empty_values_and_map_snapshots(): Bool ->
         and assert_equal(None, jar.get("missing"))
         and assert_equal([], jar.headers())
         and assert_equal(None, Cookies.from_map(Map.new[String, String]()).get("session")).
+
+@test
+pub decoded_pairs_keep_first_values_without_sharing_pending_headers(): Bool ->
+    let pairs = [{"sid", "first"}, {"empty", ""}, {"sid", "second"}, {"SID", "upper"}, {"empty", "later"}];
+    let jar = Cookies.from_pairs(pairs);
+    assert_equal(Some("first"), jar.get("sid"))
+        and assert_equal(Some("upper"), jar.get("SID"))
+        and assert_equal(Some(""), jar.get("empty"))
+        and assert_equal(None, jar.get("missing"))
+        and assert_equal([], jar.headers())
+        and assert_equal(None, Cookies.from_pairs([]).get("sid"))
+        and assert_equal(5, pairs.length()).
+
+@test
+pub duplicate_wire_cookie_values_agree_between_request_and_jar(): Bool ->
+    let request = request_fixture("sid=first; empty=; sid=second; SID=upper; empty=later");
+    let jar = request.cookies();
+    assert_equal(Some("first"), request.cookie("sid"))
+        and assert_equal(Some(""), request.cookie("empty"))
+        and assert_equal(Some("upper"), request.cookie("SID"))
+        and assert_equal(None, request.cookie("absent"))
+        and assert_equal(request.cookie("sid"), jar.get("sid"))
+        and assert_equal(request.cookie("empty"), jar.get("empty"))
+        and assert_equal(request.cookie("SID"), jar.get("SID")).
 
 @test
 pub request_cookie_views_do_not_share_pending_mutations(): Bool ->

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+#[path = "aggregate_projection_call_test.rs"]
+mod call_test;
 #[path = "aggregate_projection_source_test.rs"]
 mod source_test;
 

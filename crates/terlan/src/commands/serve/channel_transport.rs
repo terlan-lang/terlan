@@ -127,6 +127,7 @@ where
         }
         if !session.is_waiting() {
             if let Err(error) = session.keep_alive() {
+                let error = error.to_string();
                 session.cancel(error.clone()).map(|_| ())?;
                 return Err(error);
             }
@@ -159,7 +160,7 @@ fn cancel_sse_disconnect(
     session: &mut super::handler::AotSseCallbackSession,
     reason: String,
 ) -> Result<(), String> {
-    session.cancel(reason).map(|_| ())
+    session.cancel(reason).map(|_| ()).map_err(String::from)
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use http::{header, HeaderName, HeaderValue};
 
-use crate::{build_http_response, validate_response_header};
+use crate::{build_http_response, build_server_response, validate_response_header};
 
 #[test]
 fn handler_header_names_follow_the_maintained_parser_for_every_ascii_byte() {
@@ -103,7 +103,7 @@ fn response_defaults_and_repeated_application_headers_are_preserved() {
         "application/custom",
     ] {
         let response =
-            build_http_response(200, content_type, &[], String::new(), false, false).unwrap();
+            build_server_response(200, content_type, &[], String::new(), false, false).unwrap();
         assert_eq!(response.headers()[header::CONTENT_TYPE], content_type);
         assert_eq!(response.headers()[header::CACHE_CONTROL], "no-cache");
         assert_eq!(response.headers()["x-content-type-options"], "nosniff");
@@ -117,7 +117,7 @@ fn response_defaults_and_repeated_application_headers_are_preserved() {
         ),
     ];
     let response =
-        build_http_response(218, "text/plain", &headers, String::new(), false, false).unwrap();
+        build_server_response(218, "text/plain", &headers, String::new(), false, false).unwrap();
     assert_eq!(
         response
             .headers()
@@ -170,4 +170,85 @@ fn invalid_response_metadata_returns_typed_errors() {
         .unwrap_err();
         assert_eq!(error.code(), "http.response.invalid_header");
     }
+}
+
+#[test]
+fn source_wire_builder_never_invents_policy_headers() {
+    for head in [false, true] {
+        let response =
+            build_http_response(200, "text/plain", &[], "body".to_string(), head, false).unwrap();
+        assert!(!response.headers().contains_key("cache-control"));
+        assert!(!response.headers().contains_key("x-content-type-options"));
+        let headers = vec![
+            ("Cache-Control".into(), "no-cache".into()),
+            ("CACHE-CONTROL".into(), "private".into()),
+            ("X-Content-Type-Options".into(), "package-value".into()),
+        ];
+        let response =
+            build_http_response(200, "text/plain", &headers, "body".to_string(), head, false)
+                .unwrap();
+        assert_eq!(
+            response
+                .headers()
+                .get_all("cache-control")
+                .iter()
+                .map(|v| v.to_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["no-cache", "private"]
+        );
+        assert_eq!(
+            response.headers()["x-content-type-options"],
+            "package-value"
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get_all("x-content-type-options")
+                .iter()
+                .count(),
+            1
+        );
+        let server =
+            build_server_response(200, "text/plain", &headers, String::new(), head, false).unwrap();
+        assert_eq!(
+            server
+                .headers()
+                .get_all("x-content-type-options")
+                .iter()
+                .map(|v| v.to_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["nosniff", "package-value"]
+        );
+    }
+    assert!(build_server_response(99, "text/plain", &[], String::new(), false, false).is_err());
+}
+
+#[test]
+fn every_owned_body_representation_obeys_head_close_and_metadata_validation() {
+    fn check<B: AsRef<[u8]> + Default + Clone>(body: B) {
+        let headers = vec![("X-Source".into(), "kept".into())];
+        for head in [false, true] {
+            for close in [false, true] {
+                let response =
+                    build_http_response(200, "text/plain", &headers, body.clone(), head, close)
+                        .unwrap();
+                assert_eq!(
+                    response.body().as_ref(),
+                    if head { b"" } else { body.as_ref() }
+                );
+                assert_eq!(
+                    response.headers()["content-length"],
+                    body.as_ref().len().to_string()
+                );
+                assert_eq!(response.headers()["x-source"], "kept");
+                assert_eq!(response.headers().contains_key("connection"), close);
+                assert!(!response.headers().contains_key("cache-control"));
+                assert!(!response.headers().contains_key("x-content-type-options"));
+            }
+        }
+        assert!(build_http_response(99, "text/plain", &headers, body, false, false).is_err());
+    }
+    check("body".to_string());
+    check(b"body".to_vec());
+    check(bytes::Bytes::from_static(b"body"));
 }

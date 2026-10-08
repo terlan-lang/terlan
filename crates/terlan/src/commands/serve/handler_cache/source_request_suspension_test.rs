@@ -2,8 +2,8 @@
 
 use super::super::handler_cache_test_support::compile_native_handler_fixture;
 use super::super::{AdmittedRequestProjection, AotHandlerRuntime, PrimaryRequestProjection};
-use crate::runtime::native::http::RequestFieldProjection;
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
+use terlan_http_native::RequestFieldProjection;
 
 #[test]
 fn unproven_handlers_suspend_and_synchronous_entry_rejects_external_waits() {

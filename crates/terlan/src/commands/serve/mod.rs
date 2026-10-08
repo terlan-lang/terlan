@@ -17,6 +17,7 @@ mod watch;
 mod websocket;
 
 use std::cell::RefCell;
+#[cfg(test)]
 use std::fs;
 use std::net as std_net;
 use std::path::{Component, Path, PathBuf};
@@ -132,7 +133,6 @@ fn runtime_artifact_directory(web_root: &Path) -> ServeResult<PathBuf> {
     Ok(root.join("build/artifacts"))
 }
 
-use crate::terlan_native::http::content_type_for_path;
 #[cfg(test)]
 use handler::handler_log_identity;
 use handler::{
@@ -170,11 +170,9 @@ use manifest::manifest_static_file_for_request;
 pub(crate) use manifest::validate_web_package;
 #[cfg(test)]
 use response::build_http_response;
-use response::{
-    build_http_response_for_stream, build_http_response_owned_for_stream,
-    build_http_shared_response_owned_for_stream, build_http_text_response_owned_for_stream,
-    inject_reload_script,
-};
+use response::{build_http_response_for_stream, inject_reload_script};
+#[cfg(test)]
+use terlan_http_native::content_type_for_path;
 use tls::{
     acme_http01_challenge, runtime_tls_config_for_serve, AcmeHttp01Challenge, RuntimeTlsConfig,
 };
@@ -185,7 +183,6 @@ use watch::{spawn_reload_watcher, ReloadWatchBackend};
 use websocket::manifest_websocket_for_path;
 #[cfg(test)]
 use websocket::{websocket_hub, websocket_upgrade_response, WebSocketHub};
-use websocket::{websocket_upgrade_state, WebSocketUpgradeState};
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use args::parse_serve_args;
@@ -195,6 +192,8 @@ mod request_dispatch;
 mod response_rendering;
 mod server_lifecycle;
 
+#[cfg(test)]
+pub(crate) use request_dispatch::handle_vm_stream_http1_request;
 use request_dispatch::handle_vm_stream_request;
 #[cfg(test)]
 use request_dispatch::{handle_vm_stream_http1_exchange, VmStreamHttp1Exchange};

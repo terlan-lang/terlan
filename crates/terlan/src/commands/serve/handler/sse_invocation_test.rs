@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::TvmBoundaryType;
-use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
 use crate::runtime::vm::ReplValue;
 use crate::support::test_fs;
 use crate::{ColorChoice, DiagnosticFormat};
+use terlan_http_native::routing::{RouteMethod, RouteTarget, RouterOutcome};
 
 use super::*;
 
@@ -85,12 +85,11 @@ fn runtime() -> (
     let router = runtime
         .execute_http_router("app.SseCallbacks", "router", &mut |_| {})
         .unwrap();
-    let VmHttpRouterOutcome::Matched(route) =
-        router.dispatch(VmHttpRouteMethod::Get, "/events").unwrap()
+    let RouterOutcome::Matched(route) = router.dispatch(RouteMethod::Get, "/events").unwrap()
     else {
         panic!("expected SSE route");
     };
-    let VmHttpRouteTarget::SseEndpoint(endpoint) = route.target else {
+    let RouteTarget::SseEndpoint(endpoint) = route.target else {
         panic!("SSE endpoint")
     };
     (root, Arc::new(runtime), endpoint)
@@ -108,13 +107,16 @@ fn completed(state: AotSseCallbackState) {
 #[test]
 fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let (root, runtime, endpoint) = runtime();
-    let mut session = AotSseCallbackSession::open(
+    let mut session = crate::commands::serve::handler::sse_invocation::open(
         Arc::clone(&runtime),
         "app.SseCallbacks".to_string(),
         SseSession::open(endpoint.clone()),
     )
     .expect("dispatch open callback");
-    assert_eq!(session.completed_events(), &[AotSseCallbackEvent::Open]);
+    assert_eq!(
+        session.executor().completed_events(),
+        &[AotSseCallbackEvent::Open]
+    );
     assert_eq!(session.plan().keep_alive_ms(), Some(15000));
 
     let waiting = session
@@ -127,7 +129,10 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let error = session
         .keep_alive()
         .expect_err("parallel callback must be rejected");
-    assert!(error.contains("error[serve.sse.callback_busy]"), "{error}");
+    assert!(
+        error.to_string().contains("error[serve.sse.callback_busy]"),
+        "{error}"
+    );
     completed(
         session
             .resume(wait.wake(ReplValue::String("ready".to_string())))
@@ -137,7 +142,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     completed(session.drain().expect("dispatch drain callback"));
     assert!(!session.is_open());
     assert_eq!(
-        session.completed_events(),
+        session.executor().completed_events(),
         &[
             AotSseCallbackEvent::Open,
             AotSseCallbackEvent::EventReady,
@@ -146,7 +151,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         ]
     );
 
-    let mut cancelled = AotSseCallbackSession::open(
+    let mut cancelled = crate::commands::serve::handler::sse_invocation::open(
         Arc::clone(&runtime),
         "app.SseCallbacks".to_string(),
         SseSession::open(endpoint.clone()),
@@ -165,7 +170,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     );
     assert!(!cancelled.is_open());
     assert_eq!(
-        cancelled.completed_events(),
+        cancelled.executor().completed_events(),
         &[AotSseCallbackEvent::Open, AotSseCallbackEvent::Cancellation,]
     );
 
@@ -180,7 +185,7 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
         .expect("terminal endpoint")
         .with_callbacks(callbacks)
         .expect("terminal callbacks");
-    let mut terminal = AotSseCallbackSession::open(
+    let mut terminal = crate::commands::serve::handler::sse_invocation::open(
         runtime,
         "app.SseCallbacks".to_string(),
         SseSession::open(terminal_plan),
@@ -189,7 +194,10 @@ fn sse_callbacks_share_native_invocation_entry_resume_and_cancellation() {
     let error = terminal
         .drain()
         .expect_err("terminal callback suspension must be cancelled");
-    assert!(error.contains("error[serve.sse.terminal_wait]"), "{error}");
+    assert!(
+        error.to_string().contains("error[serve.sse.terminal_wait]"),
+        "{error}"
+    );
     assert!(!terminal.is_open());
 
     fs::remove_dir_all(root).expect("cleanup callback fixture");
@@ -209,9 +217,12 @@ fn incompatible_sse_wake_preserves_the_queue_and_pending_callback() {
         .unwrap()
         .with_callbacks(callbacks)
         .unwrap();
-    let mut session =
-        AotSseCallbackSession::open(runtime, "app.SseCallbacks".into(), SseSession::open(plan))
-            .unwrap();
+    let mut session = crate::commands::serve::handler::sse_invocation::open(
+        runtime,
+        "app.SseCallbacks".into(),
+        SseSession::open(plan),
+    )
+    .unwrap();
     let AotSseCallbackState::Waiting(wait) = session.enqueue_event("first".into()).unwrap() else {
         panic!("bytes callback must park")
     };
@@ -219,7 +230,7 @@ fn incompatible_sse_wake_preserves_the_queue_and_pending_callback() {
     let before = session.inspect();
     for _ in 0..8 {
         let error = session.enqueue_event("rejected".into()).unwrap_err();
-        assert!(error.contains("serve.sse.wake_type"), "{error}");
+        assert!(error.to_string().contains("serve.sse.wake_type"), "{error}");
         assert_eq!(session.inspect(), before);
         assert!(session.is_waiting());
     }
@@ -255,7 +266,7 @@ fn unsupported_sse_transport_preserves_middleware_without_opening_a_stream() {
         execute_vm_router_sse_admission_with_package_root(
             Arc::clone(&runtime),
             &endpoint,
-            &crate::terlan_native::http::Request::from_parts("GET", path, ""),
+            &terlan_http_native::Request::from_parts("GET", path, ""),
             &root,
             available,
             &mut |_| {},
@@ -271,10 +282,15 @@ fn unsupported_sse_transport_preserves_middleware_without_opening_a_stream() {
         };
         assert_eq!(response.status, expected);
         if expected == 401 {
-            assert_eq!(response.body.as_bytes(), b"denied");
+            assert_eq!(
+                response.body.as_bytes().expect("finite response"),
+                b"denied"
+            );
         } else {
-            assert!(String::from_utf8_lossy(response.body.as_bytes())
-                .contains("serve_http.upgrade_adapter_missing"));
+            assert!(
+                String::from_utf8_lossy(response.body.as_bytes().expect("finite response"))
+                    .contains("serve_http.upgrade_adapter_missing")
+            );
         }
     }
     // Available transports execute open and retain its actual typed wait.
@@ -282,12 +298,15 @@ fn unsupported_sse_transport_preserves_middleware_without_opening_a_stream() {
         panic!("available transport should execute open")
     };
     assert!(waiting.is_waiting());
-    assert!(waiting.completed_events().is_empty());
+    assert!(waiting.executor().completed_events().is_empty());
     completed(waiting.cancel("test completed".into()).unwrap());
     let VmSseRouterAdmission::Stream(session) = admit("/events", true).unwrap() else {
         panic!("available transport should admit the ordinary endpoint")
     };
-    assert_eq!(session.completed_events(), &[AotSseCallbackEvent::Open]);
+    assert_eq!(
+        session.executor().completed_events(),
+        &[AotSseCallbackEvent::Open]
+    );
     assert!(admit("/missing", false)
         .unwrap_err()
         .contains("did not match"));

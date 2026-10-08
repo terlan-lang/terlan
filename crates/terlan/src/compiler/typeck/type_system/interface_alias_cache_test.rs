@@ -42,6 +42,14 @@ fn edited_interfaces_and_caller_mutations_do_not_reuse_stale_types() {
     assert_eq!(aliases(&interface)["Value"].params, vec![0]);
     interface.type_params.clear();
     assert!(aliases(&interface)["Value"].params.is_empty());
+    assert_eq!(
+        aliases(&interface)["Value"].body,
+        Type::Named {
+            module: None,
+            name: "T".into(),
+            args: vec![],
+        }
+    );
 
     interface.opaque_types.insert("Value".to_owned());
     assert!(!aliases(&interface).contains_key("Value"));
@@ -65,7 +73,15 @@ fn edited_interfaces_and_caller_mutations_do_not_reuse_stale_types() {
     let before = aliases(&interface)["Value"].body.clone();
     interface.public_types.insert("Other".to_owned());
     let after = aliases(&interface)["Value"].body.clone();
-    assert_ne!(before, after);
+    assert_eq!(
+        before, after,
+        "dependency names are never implicit type parameters"
+    );
+    CACHE.with_borrow(|entries| {
+        assert!(entries
+            .back()
+            .is_some_and(|entry| entry.matches(&interface)));
+    });
     assert_eq!(
         after,
         Type::Named {

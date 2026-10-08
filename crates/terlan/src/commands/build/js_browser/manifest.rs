@@ -76,6 +76,32 @@ fn write_web_manifest(
     incremental: bool,
 ) -> Result<(), String> {
     validate_unique_web_asset_paths(&assets)?;
+    // Build and serve admit the same package-owned records.
+    for handler in &routes.handlers {
+        terlan_http_native::manifest::validate_handler(handler)?;
+    }
+    for websocket in &routes.websockets {
+        terlan_http_native::manifest::validate_websocket(websocket)?;
+    }
+    for endpoint in &routes.sse {
+        terlan_http_native::manifest::validate_sse(endpoint)?;
+    }
+    for response in &routes.static_responses {
+        terlan_http_native::manifest::validate_static_response(response)?;
+    }
+    for response in &routes.file_responses {
+        terlan_http_native::manifest::validate_file_response(response)?;
+    }
+    if let Some(handler) = &error_handler {
+        terlan_http_native::manifest::validate_error_handler(handler)?;
+    }
+    terlan_http_native::manifest::validate_route_namespace(
+        &routes.handlers,
+        &routes.websockets,
+        &routes.sse,
+        &routes.static_responses,
+        &routes.file_responses,
+    )?;
     let build_id = web_build_id(
         target_profile,
         source_js_manifest,
@@ -316,162 +342,9 @@ pub(super) struct WebAssetArtifact {
     pub(super) integrity: String,
 }
 
-/// Browser dynamic handler manifest entry.
-///
-/// Inputs:
-/// - Route metadata generated from supported Terlan `std.http.Router` builder
-///   calls.
-///
-/// Output:
-/// - Serializable handler entry inside the browser package manifest.
-///
-/// Transformation:
-/// - Preserves route identity, VM callback identity, and optional source
-///   metadata for dynamic routes that cannot be served as static responses.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebHandlerArtifact {
-    pub(super) method: String,
-    pub(super) route: String,
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) source: Option<WebSourceSpanArtifact>,
-}
-
-/// Browser WebSocket route manifest entry.
-///
-/// Inputs:
-/// - Generated from source-visible WebSocket route metadata.
-///
-/// Output:
-/// - Serializable WebSocket entry inside the browser package manifest.
-///
-/// Transformation:
-/// - Preserves the source module, route, runtime protocol identity, and
-///   optional source location while `terlc serve` owns the upgrade and
-///   connection lifecycle.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebSocketArtifact {
-    pub(super) module: String,
-    pub(super) route: String,
-    pub(super) protocol: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) source: Option<WebSourceSpanArtifact>,
-}
-
-/// Browser SSE route manifest entry discovered from a source router graph.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebSseArtifact {
-    pub(super) module: String,
-    pub(super) route: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) source: Option<WebSourceSpanArtifact>,
-}
-
-/// Browser route-handler source span manifest entry.
-///
-/// Inputs:
-/// - Generated from route source metadata and syntax-output spans.
-///
-/// Output:
-/// - Serializable source coordinate attached to dynamic handler rows.
-///
-/// Transformation:
-/// - Stores a package-safe relative path and one-based line/column so local
-///   dev errors and logs can point back at Terlan source.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebSourceSpanArtifact {
-    pub(super) path: String,
-    pub(super) line: usize,
-    pub(super) column: usize,
-}
-
-/// Browser static response manifest entry.
-///
-/// Inputs:
-/// - Generated from source handlers with constant `std.http.Response` bodies.
-///
-/// Output:
-/// - Serializable response row inside the browser package manifest.
-///
-/// Transformation:
-/// - Stores cacheable route responses directly in the manifest while retaining
-///   source ownership so VM router middleware can activate when available.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebStaticResponseArtifact {
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
-    pub(super) method: String,
-    pub(super) route: String,
-    pub(super) status: u16,
-    pub(super) content_type: String,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub(super) headers: Vec<WebResponseHeaderArtifact>,
-    pub(super) body: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) source: Option<WebSourceSpanArtifact>,
-}
-
-/// Browser response header manifest entry.
-///
-/// Inputs:
-/// - Generated from source-level constant response builders.
-///
-/// Output:
-/// - Serializable header name/value pair inside a static response row.
-///
-/// Transformation:
-/// - Keeps cacheable response metadata explicit in JSON so redirects and later
-///   simple static responses can be served without dynamic handler execution.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebResponseHeaderArtifact {
-    pub(super) name: String,
-    pub(super) value: String,
-}
-
-/// Browser file response manifest entry.
-///
-/// Inputs:
-/// - Generated from source handlers with constant `Response.file` bodies.
-///
-/// Output:
-/// - Serializable file response row inside the browser package manifest.
-///
-/// Transformation:
-/// - Stores a route-backed package-relative file response so local and release
-///   servers can stream the file through the Rust HTTP path without invoking
-///   VM handlers.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebFileResponseArtifact {
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
-    pub(super) method: String,
-    pub(super) route: String,
-    pub(super) path: String,
-    pub(super) status: u16,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) content_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) source: Option<WebSourceSpanArtifact>,
-}
-
-/// Browser router-level error handler manifest entry.
-///
-/// Inputs:
-/// - Generated from source `std.http.Router.error` builder calls.
-///
-/// Output:
-/// - Serializable error-handler entry inside the browser package manifest.
-///
-/// Transformation:
-/// - Preserves only source-visible module/function identity and arity so
-///   runtime error dispatch can be implemented without reparsing source.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(super) struct WebErrorHandlerArtifact {
-    pub(super) module: String,
-    pub(super) function: String,
-    pub(super) arity: usize,
-}
+pub(super) use terlan_http_native::manifest::{
+    ErrorHandler as WebErrorHandlerArtifact, FileResponse as WebFileResponseArtifact,
+    HandlerRoute as WebHandlerArtifact, SourceSpan as WebSourceSpanArtifact,
+    SseRoute as WebSseArtifact, StaticResponse as WebStaticResponseArtifact,
+    WebSocketRoute as WebSocketArtifact,
+};

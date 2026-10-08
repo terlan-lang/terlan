@@ -35,7 +35,6 @@ fn pairing() -> WebSocketPairing<Callback> {
         first_matched: "first".into(),
         second_matched: "second".into(),
         peer_left: "left".into(),
-        stateful: false,
         restoration: None,
         inbound: callback(),
         cancellation: callback(),
@@ -130,12 +129,11 @@ fn websocket_policy_validates_limits_and_exclusive_callback_modes() {
 #[test]
 fn paired_restoration_roundtrips_without_a_vm_callback_type() {
     let mut pair = pairing();
-    pair.stateful = true;
     pair.restoration = Some(WebSocketRestoration {
         waiting: callback(),
         peer_left: callback(),
         identity: callback(),
-        room_prefix: "session".into(),
+        room_identity: callback(),
         retention_ms: 5000,
         retained_room_capacity: 16,
         matched: callback(),
@@ -146,6 +144,13 @@ fn paired_restoration_roundtrips_without_a_vm_callback_type() {
         .with_pairing(pair)
         .unwrap();
     roundtrip(&plan);
+    let mut legacy_naming = serde_json::to_value(&plan).unwrap();
+    let restoration = legacy_naming["pairing"]["restoration"]
+        .as_object_mut()
+        .unwrap();
+    restoration.remove("room_identity");
+    restoration.insert("room_prefix".into(), json!("room-"));
+    reject::<WebSocketEndpointPlan<Callback>>(legacy_naming);
     let mut legacy = serde_json::to_value(plan).unwrap();
     let restoration = legacy["pairing"]["restoration"].as_object_mut().unwrap();
     restoration.remove("identity");
@@ -228,12 +233,20 @@ fn optional_fields_preserve_legacy_wire_defaults() {
     .unwrap();
     assert_eq!(plan, WebSocketEndpointPlan::new(1, 1024).unwrap());
     let mut pair = serde_json::to_value(pairing()).unwrap();
-    pair.as_object_mut().unwrap().remove("stateful");
     pair.as_object_mut().unwrap().remove("restoration");
     assert_eq!(
         serde_json::from_value::<WebSocketPairing<Callback>>(pair).unwrap(),
         pairing()
     );
+}
+
+#[test]
+fn pairing_rejects_obsolete_native_broadcast_switch() {
+    for stateful in [false, true] {
+        let mut pair = serde_json::to_value(pairing()).unwrap();
+        pair["stateful"] = json!(stateful);
+        reject::<WebSocketPairing<Callback>>(pair);
+    }
 }
 
 #[test]

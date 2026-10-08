@@ -37,7 +37,7 @@ fn consuming_descriptor_preserves_vm_allocations_and_generic_shapes() {
     assert_eq!(fields.as_ptr(), pointer);
     assert!(matches!(
         ReplValue::Unit.into_descriptor(),
-        OwnedDescriptor::Opaque
+        OwnedDescriptor::Unit
     ));
 }
 

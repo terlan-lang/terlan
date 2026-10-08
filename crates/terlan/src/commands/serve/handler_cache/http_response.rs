@@ -1,8 +1,8 @@
 //! Typed fixed-owner HTTP response calls with generic fallback.
 
-use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::vm::protocol_task_executor::with_current_protocol_resource;
 use crate::runtime::vm::{ReplValue, VmRuntimeResult};
+use terlan_http_native::{RequestFieldProjection, RequestParts};
 
 use super::invocation::AotHandlerInvocationStep;
 use super::{finish_immediate_step, AotHandlerRuntime, LocalImmediateShard};
@@ -194,6 +194,7 @@ fn scalar_request_argument(request: RequestParts, field: usize) -> Result<ReplVa
         RequestFieldProjection::PATH => request.path,
         RequestFieldProjection::BODY => request.body,
         RequestFieldProjection::QUERY_STRING => request.query_string,
+        RequestFieldProjection::BODY_FILE_PATH => request.body_file_path,
         _ => {
             return Err(format!(
                 "error[serve.aot.scalar_request_ingress]: field {field} is not a scalar string"

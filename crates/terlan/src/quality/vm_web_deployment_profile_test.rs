@@ -147,9 +147,9 @@ pub fn upgrade_response tungstenite::handshake::derive_accept_key
             "pub struct Session<C> pub fn enqueue_inbound( pub fn next_inbound(",
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/websocket.rs",
+            "std/http/native/src/websocket/handshake.rs",
             r#"
-websocket_upgrade_state WebSocketUpgradeState
+pub fn opening_handshake tungstenite::handshake::server::create_response_with_body
 "#,
         )?;
         self.write(

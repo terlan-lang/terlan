@@ -125,13 +125,14 @@ fn idle_owner_expires_real_package_sessions_without_requests_or_manual_ticks() {
         session_registry::RecoveryPolicy, session_service::SessionService,
         session_store::SessionStore,
     };
-    let service = SessionService::new(
-        SessionStore::new(VmActorStateStore::default(), 1, RecoveryPolicy::FailClosed).unwrap(),
-    );
+    let service = SessionService::new(SessionStore::new(
+        VmActorStateStore::default(),
+        RecoveryPolicy::FailClosed,
+    ));
     service.start_clock().unwrap();
     let image = service.native_services().unwrap();
     let identity = image
-        .call("std.http.session.current", &["".into()])
+        .call("std.http.session.create", &["".into(), 1_i64.into()])
         .unwrap();
     image
         .call(

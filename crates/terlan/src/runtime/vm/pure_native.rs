@@ -435,6 +435,23 @@ impl PureNativeBoundary {
         })
     }
 
+    /// Borrows the admitted parameter types of one exactly qualified export.
+    pub(crate) fn export_parameters(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> Option<&[TvmBoundaryType]> {
+        self.artifact
+            .as_ref()?
+            .exports
+            .iter()
+            .find(|export| {
+                export.module == module && export.function == function && export.arity == arity
+            })
+            .map(|export| export.parameters.as_slice())
+    }
+
     /// Returns whether this boundary owns an exact typed export.
     pub(crate) fn has_export(&self, function: &str, arity: usize) -> bool {
         self.artifact.as_ref().is_some_and(|artifact| {

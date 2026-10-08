@@ -4261,6 +4261,7 @@ version = "0.0.9"
 dependencies = [
  "axum",
  "base64",
+ "basic-toml",
  "bytes",
  "cookie",
  "futures-util",
@@ -4277,6 +4278,7 @@ dependencies = [
  "rustls-webpki",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "terlan-data-native",
  "terlan-net-native",

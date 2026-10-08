@@ -253,7 +253,7 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
         .enqueue_inbound("overflow".into())
         .expect_err("bounded WebSocket queue must reject overflow");
     assert!(
-        pressure.contains("pending frame queue is full"),
+        pressure.to_string().contains("pending frame queue is full"),
         "{pressure}"
     );
     while session
@@ -321,7 +321,10 @@ fn production_channel_pumps_preserve_vm_lifecycle_and_pressure_contracts() {
     let pressure = session
         .enqueue_event("overflow".to_string())
         .expect_err("bounded SSE queue must reject overflow");
-    assert!(pressure.contains("BackpressureExceeded"), "{pressure}");
+    assert!(
+        pressure.to_string().contains("BackpressureExceeded"),
+        "{pressure}"
+    );
     session.drain().expect("begin graceful SSE drain");
 
     let mut sse_stream = MemoryDuplex::new(Vec::new());

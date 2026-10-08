@@ -13,7 +13,6 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
 use crate::runtime::vm::scheduler_topology::{VmSchedulerHostSnapshot, VmSchedulerTopology};
 use crate::runtime::vm::ReplValue;
 
@@ -353,10 +352,7 @@ fn measure_scheduler_width(
     width: usize,
     samples: usize,
 ) -> Result<SchedulerWidthMeasurement, String> {
-    let sessions = VmHttpSessionService::new(VmHttpSessionRuntime::new(
-        "terlc-multicore-benchmark",
-        86_400,
-    )?);
+    let sessions = super::session_service::new_session_service();
     let generation = AotHandlerGeneration::load_with_shard_count(image, sessions, width)?;
     let topology = VmSchedulerTopology::new(width)?;
     let mut durations = Vec::with_capacity(samples);

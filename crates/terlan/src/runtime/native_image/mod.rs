@@ -1,5 +1,6 @@
 //! Canonical TVM native executable-image admission.
 
+pub(crate) mod aggregate_projection;
 mod boundary_type;
 pub mod control;
 pub(crate) mod debug;

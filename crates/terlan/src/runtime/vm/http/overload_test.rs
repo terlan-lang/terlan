@@ -3,10 +3,10 @@ use super::{
     VmHttpQueue, VmHttpTcpServer,
 };
 use crate::runtime::vm::{
-    http_router::VmHttpRouter,
     process::{VmExitReason, VmProcessSource, VmProcessTable},
     tcp::VmTcpRuntime,
 };
+use terlan_http_native::routing::Router;
 
 fn server_with_policy(
     tcp: &mut VmTcpRuntime,
@@ -25,7 +25,7 @@ fn server_with_policy_bound(
     let listener = tcp.listen(address).expect("listener should bind");
     let overload =
         VmHttpOverloadConfig::new(policy, max_pending).expect("overload should validate");
-    let router = VmHttpRouter::new()
+    let router = Router::new()
         .overload(overload)
         .expect("router overload should install");
     VmHttpTcpServer::from_router(

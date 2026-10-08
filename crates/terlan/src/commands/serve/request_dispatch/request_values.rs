@@ -19,7 +19,7 @@ use super::*;
 /// - Connects an in-memory VM TCP client to a VM HTTP listener, dispatches the
 ///   request through the serve route graph, and reads the response from the
 ///   VM-managed stream without binding host sockets or entering Hyper.
-pub(in crate::commands::serve) fn handle_vm_stream_http1_request(
+pub(crate) fn handle_vm_stream_http1_request(
     web_root: &Path,
     raw_request: &[u8],
 ) -> Result<Vec<u8>, String> {

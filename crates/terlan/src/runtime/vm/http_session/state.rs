@@ -257,6 +257,7 @@ pub struct VmHttpSessionRuntime {
     pub(super) tables: VmTableStore,
     pub(super) sessions: SessionRegistry<VmHttpSessionResource>,
     node_id: String,
+    ttl_ticks: u64,
     #[cfg(test)]
     pub(crate) live_template_protocol: VmLiveTemplateProtocolManifest,
 }

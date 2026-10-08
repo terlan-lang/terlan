@@ -85,6 +85,60 @@ fn source_tuple_preserves_the_public_pattern_head_order() {
 }
 
 #[test]
+fn records_preserve_duplicate_cookies_while_tuple_maps_keep_first_values() {
+    let cookies = vec![
+        ("sid".into(), "first".into()),
+        ("empty".into(), "".into()),
+        ("sid".into(), "shadowed".into()),
+        ("SID".into(), "upper".into()),
+        ("empty".into(), "later".into()),
+    ];
+    let expected: NativeValue = cookies.clone().into();
+    let mut input = request();
+    input.cookies = cookies.clone();
+    let NativeValue::Record { fields, .. } = request_descriptor(input, Projection::Complete) else {
+        panic!("request record")
+    };
+    assert_eq!(fields[7].1, expected);
+    let mut input = request();
+    input.cookies = cookies;
+    let NativeValue::Tuple(fields) = source_request_tuple(input) else {
+        panic!("request tuple")
+    };
+    assert_eq!(
+        fields[8],
+        string_map(vec![
+            ("sid".into(), "first".into()),
+            ("empty".into(), "".into()),
+            ("SID".into(), "upper".into()),
+        ])
+    );
+    assert_eq!(first_cookie_map(vec![]), NativeValue::Map(vec![]));
+}
+
+#[test]
+fn all_record_metadata_preserves_order_duplicates_and_empty_values() {
+    let pairs = vec![
+        ("key".into(), "first".into()),
+        ("key".into(), "".into()),
+        ("KEY".into(), "different".into()),
+        ("key".into(), "last".into()),
+    ];
+    let mut input = request();
+    input.params = pairs.clone();
+    input.query = pairs.clone();
+    input.headers = pairs.clone();
+    input.cookies = pairs.clone();
+    let expected: NativeValue = pairs.into();
+    let NativeValue::Record { fields, .. } = request_descriptor(input, Projection::Complete) else {
+        panic!("request record")
+    };
+    for index in [2, 5, 6, 7] {
+        assert_eq!(fields[index].1, expected);
+    }
+}
+
+#[test]
 fn projection_overflow_fails_closed_including_large_machine_word_indexes() {
     for field in [16, 32, usize::MAX] {
         let mut projection = Projection::empty();

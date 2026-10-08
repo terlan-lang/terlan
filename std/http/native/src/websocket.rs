@@ -8,11 +8,16 @@ use tungstenite::protocol::{frame::coding::CloseCode, CloseFrame, Role, WebSocke
 use tungstenite::WebSocket;
 
 pub use tungstenite::{Message, Utf8Bytes};
+pub mod callbacks;
 pub mod client;
 pub mod connection;
+pub mod handshake;
 pub mod hub;
 pub mod output;
 pub mod session;
+pub mod upgrade;
+#[cfg(test)]
+pub(crate) mod upgrade_test_support;
 
 /// Opening-handshake response metadata, independent of socket and actor state.
 #[derive(Clone, Debug, Eq, PartialEq)]

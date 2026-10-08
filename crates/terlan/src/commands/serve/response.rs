@@ -58,7 +58,7 @@ pub(super) fn build_http_response(
     body: &[u8],
     head_only: bool,
 ) -> Result<http::Response<Vec<u8>>, String> {
-    build_http_response_owned_with_connection(
+    terlan_http_native::build_server_response(
         status,
         content_type,
         extra_headers,
@@ -66,6 +66,7 @@ pub(super) fn build_http_response(
         head_only,
         true,
     )
+    .map_err(|error| error.message().to_owned())
 }
 
 /// Builds a VM-stream response whose protocol adapter owns connection policy.
@@ -76,88 +77,13 @@ pub(super) fn build_http_response_for_stream(
     body: &[u8],
     head_only: bool,
 ) -> Result<http::Response<Vec<u8>>, String> {
-    build_http_response_owned_with_connection(
+    terlan_http_native::build_server_response(
         status,
         content_type,
         extra_headers,
         body.to_vec(),
         head_only,
         false,
-    )
-}
-
-/// Consumes one handler body without inserting and removing a connection header.
-pub(super) fn build_http_response_owned_for_stream(
-    status: u16,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: Vec<u8>,
-    head_only: bool,
-) -> Result<http::Response<Vec<u8>>, String> {
-    build_http_response_owned_with_connection(
-        status,
-        content_type,
-        extra_headers,
-        body,
-        head_only,
-        false,
-    )
-}
-
-/// Preserves a managed text payload as text through the Hyper body boundary.
-pub(super) fn build_http_text_response_owned_for_stream(
-    status: u16,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: String,
-    head_only: bool,
-) -> Result<http::Response<String>, String> {
-    build_http_response_owned_with_connection(
-        status,
-        content_type,
-        extra_headers,
-        body,
-        head_only,
-        false,
-    )
-}
-
-/// Transfers an immutable managed payload directly to the protocol adapter.
-pub(super) fn build_http_shared_response_owned_for_stream(
-    status: u16,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: bytes::Bytes,
-    head_only: bool,
-) -> Result<http::Response<bytes::Bytes>, String> {
-    build_http_response_owned_with_connection(
-        status,
-        content_type,
-        extra_headers,
-        body,
-        head_only,
-        false,
-    )
-}
-
-fn build_http_response_owned_with_connection<B>(
-    status: u16,
-    content_type: &str,
-    extra_headers: &[(String, String)],
-    body: B,
-    head_only: bool,
-    connection_close: bool,
-) -> Result<http::Response<B>, String>
-where
-    B: AsRef<[u8]> + Default,
-{
-    terlan_http_native::build_http_response(
-        status,
-        content_type,
-        extra_headers,
-        body,
-        head_only,
-        connection_close,
     )
     .map_err(|error| error.message().to_owned())
 }

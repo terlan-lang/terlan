@@ -37,13 +37,17 @@ impl TestRepo {
 
     fn write_complete_fixture(&self) -> io::Result<()> {
         self.write(
-            "crates/terlan/src/compiler/api_contract.rs",
+            "std/http/native/src/api_contract.rs",
             r#"
-API_CONTRACT_SCHEMA OPENAPI_VERSION pub(crate) struct ApiContract
-pub(crate) struct ApiRoute method: String path: String handler: String
-from_router_source to_openapi routes_from_syntax_module openapi_path
+API_CONTRACT_SCHEMA OPENAPI_VERSION pub struct ApiContract
+pub struct ApiRoute method: String path: String handler: String
+from_routes to_openapi openapi_path
 openapi_operation_id
 "#,
+        )?;
+        self.write(
+            "crates/terlan/src/commands/api/source_contract.rs",
+            "from_router_source routes_from_syntax_module ApiContract::from_routes",
         )?;
         self.write(
             "crates/terlan/src/commands/api/mod.rs",
@@ -55,7 +59,7 @@ terlan-api-import-skips-v1
 "#,
         )?;
         self.write(
-            "crates/terlan/src/compiler/api_contract_test.rs",
+            "crates/terlan/src/commands/api/source_contract_test.rs",
             r#"
 router_source_contract_extracts_routes
 router_source_contract_projects_to_openapi_paths
@@ -75,7 +79,7 @@ api_import_records_unsupported_operation_skips
             r#"
 WebBuildManifest WebHandlerArtifact WebSocketArtifact WebStaticResponseArtifact
 WebFileResponseArtifact WebErrorHandlerArtifact WebSourceSpanArtifact
-build_id web_build_id source: Option<WebSourceSpanArtifact>
+build_id web_build_id pub(super) use terlan_http_native::manifest
 "#,
         )?;
         self.write(
@@ -83,16 +87,15 @@ build_id web_build_id source: Option<WebSourceSpanArtifact>
             r#"
 WebRouteManifestRows discover_web_route_manifest_from_sources
 route_source_context source_span_for_expr validate_discovered_web_routes
-validate_router_handler_rows validate_router_middleware
-validate_router_error_handler route_param_types
+validate_router_handler_rows
+route_param_types
 "#,
         )?;
         self.write(
             "crates/terlan/src/commands/build/js_browser/routes/validation.rs",
             r#"
 validate_router_handler_rows validate_route_handler_param_types
-validate_router_middleware validate_router_error_handler
-validate_discovered_web_routes duplicate or ambiguous
+validate_discovered_web_routes terlan_http_native::manifest::validate_route_namespace
 "#,
         )?;
         self.write(
@@ -144,12 +147,10 @@ fn vm_web_route_schema_client_writes_report_for_complete_gate() {
 fn vm_web_route_schema_client_rejects_missing_api_contract_anchor() {
     let repo = TestRepo::new("missing-api-contract").expect("fixture");
     repo.write_complete_fixture().expect("write fixture");
-    let path = repo
-        .root()
-        .join("crates/terlan/src/compiler/api_contract.rs");
+    let path = repo.root().join("std/http/native/src/api_contract.rs");
     let source = fs::read_to_string(&path).expect("api contract source");
     repo.write(
-        "crates/terlan/src/compiler/api_contract.rs",
+        "std/http/native/src/api_contract.rs",
         &source.replace("openapi_operation_id", ""),
     )
     .expect("rewrite API contract source");

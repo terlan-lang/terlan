@@ -1,7 +1,8 @@
 //! Admitted source callbacks at the serving boundary.
 
-use crate::runtime::vm::http_router::{VmHttpCompiledCallableRef, VmHttpRouter};
+use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::runtime::vm::{ReplValue, VmRuntimeResult};
+use terlan_http_native::routing::Router;
 
 use super::invocation::AotHandlerInvocationStep;
 use super::{finish_immediate_step, AotHandlerRuntime};
@@ -47,7 +48,7 @@ impl AotHandlerRuntime {
         module: &str,
         callable: &ReplValue,
         arity: usize,
-    ) -> VmRuntimeResult<Option<VmHttpCompiledCallableRef>> {
+    ) -> VmRuntimeResult<Option<VmNativeCallableRef>> {
         if module != self.module {
             return Err(
                 "error[serve.aot.callable]: callback belongs to a different module image".into(),
@@ -59,7 +60,7 @@ impl AotHandlerRuntime {
             }
             return Ok(None);
         }
-        let named = VmHttpCompiledCallableRef::from_value(callable)
+        let named = VmNativeCallableRef::from_value(callable)
             .ok_or("error[serve.aot.callable]: router value is not an admitted native callback")?;
         if named.module != module || named.arity != arity {
             return Err(format!(
@@ -74,7 +75,7 @@ impl AotHandlerRuntime {
         if let ReplValue::Closure(value) = callable {
             return Some(value.descriptor.parameters().len());
         }
-        VmHttpCompiledCallableRef::from_value(callable).map(|callable| callable.arity)
+        VmNativeCallableRef::from_value(callable).map(|callable| callable.arity)
     }
 
     pub(in crate::commands::serve) fn execute_http_router(
@@ -82,7 +83,7 @@ impl AotHandlerRuntime {
         module: &str,
         function: &str,
         _output: &mut dyn FnMut(&str),
-    ) -> VmRuntimeResult<VmHttpRouter> {
+    ) -> VmRuntimeResult<Router<ReplValue>> {
         if module != self.module || function != "router" {
             return Err(format!(
                 "error[serve.aot.router]: native router `{module}.{function}/0` is not loaded"

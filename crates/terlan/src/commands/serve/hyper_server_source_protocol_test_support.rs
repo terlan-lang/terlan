@@ -2,6 +2,39 @@
 
 use super::*;
 
+/// Compiles one source project shared by immediate and socket transports.
+pub(in crate::commands::serve) fn with_source_handler_project(
+    source: &str,
+    handlers: &[(&str, &str, usize)],
+    check: impl FnOnce(&Path),
+) {
+    let root = temp_web_root();
+    let web = root.join("_build/web");
+    std::fs::create_dir_all(root.join("src/app")).unwrap();
+    std::fs::create_dir_all(&web).unwrap();
+    std::fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"json_body_test\"\nversion = \"0.0.9\"\nnamespace = \"app\"\n",
+    )
+    .unwrap();
+    std::fs::write(web.join("index.html"), "").unwrap();
+    std::fs::write(root.join("src/app/Api.terl"), source).unwrap();
+    std::fs::write(
+        web.join("manifest.json"),
+        serde_json::to_vec(&serde_json::json!({
+        "schema":"terlan-web-build-v1", "target_profile":"js.browser",
+        "source_js_manifest":"../js/manifest.json", "index":"index.html", "assets":[],
+        "handlers": handlers.iter().map(|(route, function, arity)| serde_json::json!({"method":"POST","route":route,"module":"app.Api",
+            "function":function,"arity":arity,"source":{"path":"src/app/Api.terl","line":8,"column":5}})).collect::<Vec<_>>()
+    })).unwrap(),
+    )
+    .unwrap();
+    crate::commands::serve::prewarm_dynamic_handler_sources(&web)
+        .expect("compile source-owned library handler");
+    check(&web);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// Runs raw HTTP/1 requests through TLS, VM protocol actors and default workers.
 pub(in crate::commands::serve) fn with_source_protocol_server(
     web: PathBuf,

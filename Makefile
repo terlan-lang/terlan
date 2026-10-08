@@ -3361,9 +3361,10 @@ vm-http-in-memory-transport-check:
 	$(RUST_TEST) -p terlan --lib runtime::vm::http::http_test
 
 vm-http-router-middleware-check:
-	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::http_router::route_concurrency_test::vm_http_router_middleware_bounded_concurrency_smoke -- --exact
+	$(EXACT_CARGO_TEST) -p terlan-http-native --lib routing::concurrency_test::router_middleware_bounded_concurrency_smoke -- --exact
 	$(RUST_TEST) -p terlan --lib discover_web_handlers_rejects_ -- --quiet
-	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package_serializes_constant_handlers_as_static_responses -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package_preserves_response_handlers_as_source_calls -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::js_browser::js_browser_test::response_source_execution::generated_response_routes_execute_shadowed_providers_over_http1 -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::js_browser::js_browser_test::route_fixtures::discover_web_handlers_from_modules_extracts_grouped_router_builder_calls -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_prefers_dynamic_handler_over_file_fallback_without_hyper -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::serve_test::route_dispatch::vm_stream_request_prefers_dynamic_handler_over_static_response_fallback_without_hyper -- --exact

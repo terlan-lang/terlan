@@ -7,25 +7,9 @@ use std::collections::BTreeSet;
 
 use super::{NativeExpr, NativeFunction, NativeModule, NativeType};
 
-/// Exact observed fields, or a fail-closed escape of the complete value.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum AggregateFieldProjection {
-    Complete,
-    Fields(BTreeSet<usize>),
-}
-
-/// Export-specific aggregate observations independent of library domain.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct NativeAggregateProjection {
-    pub(crate) module: String,
-    pub(crate) function: String,
-    pub(crate) arity: usize,
-    pub(crate) semantic: SemanticTypeId,
-    pub(crate) fields: AggregateFieldProjection,
-    pub(crate) scalar_entry: Option<String>,
-    pub(crate) scalar_field: Option<usize>,
-    pub(crate) suspending: bool,
-}
+pub(crate) use crate::runtime::native_image::aggregate_projection::{
+    AggregateFieldProjection, NativeAggregateProjection,
+};
 
 const SCALAR_AGGREGATE_INGRESS_PREFIX: &str = "__terlan_aggregate_scalar_ingress_";
 
@@ -35,6 +19,11 @@ pub(crate) fn native_aggregate_projections(
     modules: &[NativeModule],
 ) -> Vec<NativeAggregateProjection> {
     let suspending = application_suspension_profile(modules);
+    let functions: Vec<_> = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .collect();
+    let functions = functions.as_slice();
     modules
         .iter()
         .zip(suspending)
@@ -48,7 +37,7 @@ pub(crate) fn native_aggregate_projections(
                     else {
                         return None;
                     };
-                    analyze_function(function, aggregate_semantic).map(|fields| {
+                    analyze_function(function, aggregate_semantic, functions).map(|fields| {
                         NativeAggregateProjection {
                             semantic: aggregate_semantic,
                             module: module.name.clone(),
@@ -400,6 +389,7 @@ fn rewrite_expressions(
 fn analyze_function(
     function: &NativeFunction,
     aggregate_semantic: SemanticTypeId,
+    functions: &[&NativeFunction],
 ) -> Option<AggregateFieldProjection> {
     if !function.public
         || !function.callable_captures.is_empty()
@@ -411,6 +401,9 @@ fn analyze_function(
         aggregate_semantic,
         fields: BTreeSet::new(),
         escaped: false,
+        functions,
+        calls: BTreeSet::new(),
+        call_budget: 128,
     };
     let mut origins = vec![Origin::Aggregate];
     origins.extend(function.params.iter().skip(1).map(|_| Origin::Other));
@@ -430,13 +423,45 @@ enum Origin {
     Aggregate,
 }
 
-struct Analysis {
+struct Analysis<'a> {
     aggregate_semantic: SemanticTypeId,
     fields: BTreeSet<usize>,
     escaped: bool,
+    functions: &'a [&'a NativeFunction],
+    calls: BTreeSet<usize>,
+    call_budget: usize,
 }
 
-impl Analysis {
+impl Analysis<'_> {
+    /// Follow ordinary source accessors without recognizing library names.
+    /// Unknown targets, recursion and exhausted analysis budgets fail closed.
+    fn call(&mut self, target: usize, args: &[NativeExpr], origins: &mut Vec<Origin>) -> Origin {
+        let mut arguments = self.expressions(args, origins);
+        if !arguments.contains(&Origin::Aggregate) {
+            return Origin::Other;
+        }
+        let Some(function) = self.functions.get(target).copied() else {
+            self.escaped = true;
+            return Origin::Other;
+        };
+        if self.call_budget == 0
+            || !function.callable_captures.is_empty()
+            || function.params.len() != arguments.len()
+            || function.params.iter().zip(&arguments).any(|(ty, origin)| {
+                *origin == Origin::Aggregate
+                    && *ty != NativeType::ManagedRef(self.aggregate_semantic)
+            })
+            || !self.calls.insert(target)
+        {
+            self.escaped = true;
+            return Origin::Other;
+        }
+        self.call_budget -= 1;
+        let result = self.expr(&function.body, &mut arguments);
+        self.calls.remove(&target);
+        result
+    }
+
     fn expr(&mut self, expr: &NativeExpr, origins: &mut Vec<Origin>) -> Origin {
         match expr {
             NativeExpr::Param(index) => origins.get(*index).copied().unwrap_or_else(|| {
@@ -515,12 +540,13 @@ impl Analysis {
                 self.reject_aggregate_use(&uses);
                 Origin::Other
             }
+            NativeExpr::Call { function, args } | NativeExpr::TailCall { function, args, .. } => {
+                self.call(*function, args, origins)
+            }
             NativeExpr::Construct { fields, .. }
             | NativeExpr::MakeClosure {
                 captures: fields, ..
             }
-            | NativeExpr::Call { args: fields, .. }
-            | NativeExpr::TailCall { args: fields, .. }
             | NativeExpr::ContinuationTailCall { args: fields, .. } => {
                 let uses = self.expressions(fields, origins);
                 self.reject_aggregate_use(&uses);

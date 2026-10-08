@@ -3,7 +3,7 @@
 pub static VALUE_BINDINGS: &[terlan_runtime_abi::NativeBinding] = &[
     terlan_net_native::PARSE,
     terlan_net_native::QUERY_PAIRS,
-    terlan_http_native::SET_HEADER_WITH_OPTIONS,
+    terlan_http_native::ENCODE_COOKIE,
     terlan_http_native::ENCODE_EVENT,
     terlan_encoding_native::ENCODE,
     terlan_encoding_native::ENCODE_URL,

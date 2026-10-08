@@ -19,20 +19,11 @@ impl<R: ActorStateStore<String>> SessionStore<R> {
         self.registry.entries().is_empty()
     }
 
-    pub fn new(
-        resources: R,
-        ttl_seconds: u64,
-        recovery: RecoveryPolicy,
-    ) -> Result<Self, SessionError> {
-        Ok(Self {
-            registry: SessionRegistry::new(ttl_seconds, recovery)?,
+    pub fn new(resources: R, recovery: RecoveryPolicy) -> Self {
+        Self {
+            registry: SessionRegistry::new(recovery),
             resources,
-        })
-    }
-
-    /// Preserve the one-day lifetime and local replacement policy for serving.
-    pub fn with_defaults(resources: R) -> Result<Self, SessionError> {
-        Self::new(resources, 86_400, RecoveryPolicy::CreateLocalReplacement)
+        }
     }
 
     fn live(&mut self, identity: &str) -> Result<R::Handle, BoundaryError> {
@@ -58,9 +49,24 @@ impl<R: ActorStateStore<String>> SessionHost for SessionStore<R> {
 }
 
 impl<R: ActorStateStore<String>> SessionStorage for SessionStore<R> {
-    fn current(&mut self, identity: &str) -> Result<String, BoundaryError> {
+    fn lookup(&mut self, identity: &str) -> Result<Option<String>, BoundaryError> {
         self.registry
-            .acquire(Some(identity), &mut Resources(&mut self.resources))
+            .lookup(identity, &mut Resources(&mut self.resources))
+            .map(|entry| entry.map(|entry| entry.id))
+            .map_err(session_error)
+    }
+
+    fn create(
+        &mut self,
+        excluded_identity: &str,
+        ttl_seconds: u64,
+    ) -> Result<String, BoundaryError> {
+        self.registry
+            .create(
+                excluded_identity,
+                ttl_seconds,
+                &mut Resources(&mut self.resources),
+            )
             .map(|entry| entry.id)
             .map_err(session_error)
     }
@@ -80,9 +86,9 @@ impl<R: ActorStateStore<String>> SessionStorage for SessionStore<R> {
         self.resources.delete(&handle, key)
     }
 
-    fn rotate(&mut self, identity: &str) -> Result<String, BoundaryError> {
+    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
         self.registry
-            .rotate(identity, &mut Resources(&mut self.resources))
+            .rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))
             .map(|entry| entry.id)
             .map_err(session_error)
     }

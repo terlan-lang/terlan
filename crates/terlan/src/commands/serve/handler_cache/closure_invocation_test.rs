@@ -4,7 +4,6 @@ use std::process::ExitCode;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use crate::runtime::native::http::{Request, RequestFieldProjection};
 use crate::runtime::native_image::managed::{
     ManagedClosureDescriptor, ManagedClosureImageGeneration,
 };
@@ -16,6 +15,7 @@ use crate::runtime::vm::scheduler_topology::VmSchedulerId;
 use crate::runtime::vm::{NativeClosureValue, ReplValue};
 use crate::support::test_fs::TestDirectory;
 use crate::{CliCommand, CliState};
+use terlan_http_native::{Request, RequestFieldProjection};
 
 use super::invocation::AotHandlerInvocationStep;
 use super::AotHandlerRuntime;

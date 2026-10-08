@@ -80,17 +80,6 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                 &["open", "inbound", "writable", "close", "cancellation"],
             ),
             (
-                "Pairing",
-                &[
-                    "waiting",
-                    "first_matched",
-                    "second_matched",
-                    "peer_left",
-                    "inbound",
-                    "cancellation",
-                ],
-            ),
-            (
                 "Stateful_pairing",
                 &[
                     "waiting",
@@ -107,7 +96,7 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                     "waiting",
                     "peer_left",
                     "identity",
-                    "room_prefix",
+                    "room_identity",
                     "retention_ms",
                     "retained_room_capacity",
                     "matched",
@@ -128,42 +117,37 @@ pub fn websocket_endpoint<V: DescriptorValue, C>(
                 cancellation: callback(cancellation, 1)?,
             })
             .map_err(|cause| error(cause.to_string())),
-        (
-            "Pairing" | "Stateful_pairing",
-            [waiting, first, second, peer_left, inbound, cancellation],
-        ) => plan
+        ("Stateful_pairing", [waiting, first, second, peer_left, inbound, cancellation]) => plan
             .with_pairing(WebSocketPairing {
                 waiting: text(*waiting)?,
                 first_matched: text(*first)?,
                 second_matched: text(*second)?,
                 peer_left: text(*peer_left)?,
-                stateful: tag == "Stateful_pairing",
                 restoration: None,
-                inbound: callback(inbound, if tag == "Stateful_pairing" { 5 } else { 1 })?,
+                inbound: callback(inbound, 2)?,
                 cancellation: callback(cancellation, 1)?,
             })
             .map_err(|cause| error(cause.to_string())),
         (
             "Restorable_pairing",
-            [waiting, peer_left, identity, room_prefix, retention, capacity, matched, restored, inbound, cancellation],
+            [waiting, peer_left, identity, room_identity, retention, capacity, matched, restored, inbound, cancellation],
         ) => plan
             .with_pairing(WebSocketPairing {
                 waiting: String::new(),
                 first_matched: String::new(),
                 second_matched: String::new(),
                 peer_left: String::new(),
-                stateful: true,
                 restoration: Some(WebSocketRestoration {
                     waiting: callback(waiting, 0)?,
                     peer_left: callback(peer_left, 0)?,
                     identity: callback(identity, 1)?,
-                    room_prefix: text(*room_prefix)?,
+                    room_identity: callback(room_identity, 1)?,
                     retention_ms: positive_u64(*retention)?,
                     retained_room_capacity: positive(*capacity)?,
-                    matched: callback(matched, 4)?,
+                    matched: callback(matched, 3)?,
                     restored: callback(restored, 5)?,
                 }),
-                inbound: callback(inbound, 5)?,
+                inbound: callback(inbound, 2)?,
                 cancellation: callback(cancellation, 1)?,
             })
             .map_err(|cause| error(cause.to_string())),

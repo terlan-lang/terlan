@@ -87,7 +87,7 @@ fn tag(name: &str, mut fields: Vec<V>) -> V {
                 "waiting",
                 "peer_left",
                 "identity",
-                "room_prefix",
+                "room_identity",
                 "retention_ms",
                 "retained_room_capacity",
                 "matched",
@@ -309,7 +309,13 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
     assert_eq!(plan.max_pending_frames(), 3);
     assert_eq!(plan.max_frame_bytes(), 512);
     assert_eq!(plan.callbacks().unwrap().inbound, 2);
-    for (name, arity) in [("pairing", 1), ("stateful_pairing", 5)] {
+    for (name, arity) in [
+        ("pairing", 1),
+        ("stateful_pairing", 0),
+        ("stateful_pairing", 1),
+        ("stateful_pairing", 2),
+        ("stateful_pairing", 5),
+    ] {
         let policy = tag(
             name,
             vec![
@@ -321,9 +327,12 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
                 cb(7, 1),
             ],
         );
+        if name == "pairing" || arity != 2 {
+            assert!(websocket_endpoint(&websocket(policy), admit).is_err());
+            continue;
+        }
         let plan = websocket_endpoint(&websocket(policy), admit).unwrap();
         let pairing = plan.pairing().unwrap();
-        assert_eq!(pairing.stateful, arity == 5);
         assert_eq!(pairing.waiting, "waiting");
         assert_eq!(pairing.first_matched, "first");
         assert_eq!(pairing.second_matched, "second");
@@ -337,18 +346,17 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
             cb(1, 0),
             cb(2, 0),
             cb(7, 1),
-            "room-".into(),
+            cb(8, 1),
             1000i64.into(),
             4i64.into(),
-            cb(3, 4),
+            cb(3, 3),
             cb(4, 5),
-            cb(5, 5),
+            cb(5, 2),
             cb(6, 1),
         ],
     );
     let plan = websocket_endpoint(&websocket(restoration.clone()), admit).unwrap();
     let pairing = plan.pairing().unwrap();
-    assert!(pairing.stateful);
     let recovery = pairing.restoration.as_ref().unwrap();
     assert_eq!(
         (
@@ -360,6 +368,13 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
         (1, 2, 3, 4)
     );
     assert_eq!(recovery.identity, 7);
+    for arity in [0, 1, 3, 5] {
+        assert!(websocket_endpoint(
+            &websocket(replace(&restoration, "inbound", cb(5, arity))),
+            admit
+        )
+        .is_err());
+    }
     for arity in [0, 2] {
         assert!(websocket_endpoint(
             &websocket(replace(&restoration, "identity", cb(7, arity))),
@@ -367,7 +382,21 @@ fn websocket_policy_variants_preserve_callbacks_and_recovery_values() {
         )
         .is_err());
     }
-    assert_eq!(recovery.room_prefix, "room-");
+    assert_eq!(recovery.room_identity, 8);
+    for arity in [0, 2, 4, 5] {
+        assert!(websocket_endpoint(
+            &websocket(replace(&restoration, "matched", cb(3, arity))),
+            admit
+        )
+        .is_err());
+    }
+    for arity in [0, 2] {
+        assert!(websocket_endpoint(
+            &websocket(replace(&restoration, "room_identity", cb(8, arity))),
+            admit
+        )
+        .is_err());
+    }
     assert_eq!(
         (recovery.retention_ms, recovery.retained_room_capacity),
         (1000, 4)

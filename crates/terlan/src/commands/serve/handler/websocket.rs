@@ -2,15 +2,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
-use crate::terlan_native::http as native_http;
+use terlan_http_native as native_http;
+use terlan_http_native::channel_admission::{self, Admission};
 
 use super::websocket_invocation::AotWebSocketCallbackSession;
 
 use super::{
-    finish_router_response, validate_handler_module, validate_handler_route, validate_source_span,
-    vm_request_descriptor, HandlerResponse, RouterResponseRuntime, WebPackageHandler,
-    WebPackageWebSocket,
+    finish_router_response, vm_request_descriptor, HandlerResponse, RouterResponseRuntime,
+    WebPackageHandler, WebPackageWebSocket,
 };
 
 /// Result of source-router admission for one WebSocket upgrade.
@@ -37,8 +36,9 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
 
     let router = vm.execute_http_router(&websocket.module, ROUTER_FUNCTION, output)?;
     let middleware_request = vm_request_descriptor(request, &[]);
-    let outcome = router.dispatch_with_typed_middleware(
-        VmHttpRouteMethod::Get,
+    let outcome = channel_admission::websocket(
+        &router,
+        &websocket.route,
         request.path(),
         |middleware, _| {
             vm.execute_callable(
@@ -51,7 +51,7 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
         },
     )?;
     match outcome {
-        VmHttpRouterOutcome::ShortCircuited(short) => finish_router_response(
+        Admission::Respond(short) => finish_router_response(
             RouterResponseRuntime::new(&vm, &websocket.module, request, package_root),
             output,
             short.response,
@@ -60,63 +60,17 @@ pub(in crate::commands::serve) fn execute_vm_router_websocket_admission_with_pac
         )
         .map(VmWebSocketRouterAdmission::Respond)
         .map(Some),
-        VmHttpRouterOutcome::Matched(dispatch) => {
-            if dispatch.method != VmHttpRouteMethod::Get
-                || dispatch.route_pattern != websocket.route
-            {
-                return Err(format!(
-                    "error[serve_router]: websocket route `GET` `{}` does not match materialized route `{}` `{}`",
-                    websocket.route,
-                    dispatch.method.as_str(),
-                    dispatch.route_pattern
-                ));
-            }
-            let VmHttpRouteTarget::WebSocketEndpoint(plan) = dispatch.target else {
-                return Err(format!(
-                    "error[serve_router]: websocket route `GET` `{}` did not resolve to a WebSocket endpoint",
-                    websocket.route
-                ));
-            };
+        Admission::Open(plan) => {
             let live = terlan_http_native::websocket::session::Session::open(plan);
-            AotWebSocketCallbackSession::open(vm, websocket.module.clone(), live)
-                .map(|session| VmWebSocketRouterAdmission::Upgrade(Box::new(session)))
-                .map(Some)
-        }
-        VmHttpRouterOutcome::NotFound => Err(format!(
-            "error[serve_router]: materialized router did not match websocket GET {}",
-            request.path()
-        )),
-    }
-}
-
-/// Validates one WebSocket manifest route and its optional source owner.
-pub(in crate::commands::serve) fn validate_websocket(
-    websocket: &WebPackageWebSocket,
-) -> Result<(), String> {
-    validate_handler_route(&websocket.route)?;
-    if !websocket.module.is_empty() {
-        validate_handler_module(&websocket.module)?;
-        if websocket.source.is_none() {
-            return Err(format!(
-                "error[serve_package]: websocket `{}` router owner `{}` is missing source metadata",
-                websocket.route, websocket.module
-            ));
+            crate::commands::serve::handler::websocket_invocation::open(
+                vm,
+                websocket.module.clone(),
+                live,
+            )
+            .map(|session| VmWebSocketRouterAdmission::Upgrade(Box::new(session)))
+            .map(Some)
         }
     }
-    if websocket.protocol.trim().is_empty() || websocket.protocol.contains(char::is_whitespace) {
-        return Err(format!(
-            "error[serve_package]: websocket `{}` has invalid protocol `{}`",
-            websocket.route, websocket.protocol
-        ));
-    }
-    if let Some(source) = &websocket.source {
-        validate_source_span(
-            "websocket",
-            &format!("{} {}", websocket.protocol, websocket.route),
-            source,
-        )?;
-    }
-    Ok(())
 }
 
 /// Projects a source-owned WebSocket route into the shared VM module loader.

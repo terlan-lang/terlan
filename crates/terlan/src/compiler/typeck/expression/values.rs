@@ -9,7 +9,7 @@ use super::*;
 ///
 /// Output:
 /// - The resolved local, alias, intrinsic value, function-value, import, or
-///   `Dynamic` type.
+///   type, or `None` for an unresolved name.
 ///
 /// Transformation:
 /// - Tries local bindings first, then singleton aliases, built-ins, unique
@@ -18,10 +18,10 @@ pub(super) fn infer_syntax_var(
     name: &str,
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext,
-) -> Type {
+) -> Option<Type> {
     // Syntax output represents canonical Boolean literals as variable-like names.
     if matches!(name, "true" | "false") {
-        return Type::Bool;
+        return Some(Type::Bool);
     }
     locals
         .get(name)
@@ -39,7 +39,6 @@ pub(super) fn infer_syntax_var(
                 args: Vec::new(),
             })
         })
-        .unwrap_or(Type::Dynamic)
 }
 
 /// Infers a selected imported function name used as a first-class value.

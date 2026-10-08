@@ -215,13 +215,58 @@ fn cookie_delete_header_serializes_expiring_cookie() {
 ///   crate-backed jar is introduced.
 #[test]
 fn cookie_set_header_rejects_invalid_names() {
-    for name in ["", "$Version", "bad name", "bad;name"] {
+    for name in ["", "$Version", "a$b", "trailing$", "bad name", "bad;name"] {
         let error = set_header_with_options(name, "abc", &default_options())
             .expect_err("invalid cookie name");
 
         assert_eq!(error.code(), "http.cookie.invalid_name");
         assert_eq!(error.status(), 400);
     }
+}
+
+#[test]
+fn cookie_name_token_parser_preserves_the_existing_ascii_domain_and_case() {
+    // Fixed domain, independent of the maintained parser under test.
+    let accepted = b"!#%&'*+-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz|~";
+    for byte in 0..=255 {
+        let token = char::from(byte);
+        for name in [token.to_string(), format!("prefix{token}Suffix")] {
+            let result = set_header_with_options(&name, "value", &default_options());
+            if accepted.contains(&byte) {
+                assert_eq!(result.unwrap(), format!("{name}=value; Path=/"));
+            } else {
+                let error = result.unwrap_err();
+                assert_eq!(error.code(), "http.cookie.invalid_name", "byte {byte}");
+                assert_eq!(error.status(), 400);
+            }
+        }
+    }
+    for name in [
+        "\u{80}",
+        "\u{e9}",
+        "\u{212a}",
+        "name\u{2028}suffix",
+        "\u{1f600}",
+    ] {
+        assert_eq!(
+            set_header_with_options(name, "value", &default_options())
+                .unwrap_err()
+                .code(),
+            "http.cookie.invalid_name",
+        );
+    }
+}
+
+#[test]
+fn cookie_name_length_is_bounded_by_the_maintained_http_parser() {
+    let longest = "A".repeat(65_535);
+    assert_eq!(
+        set_header_with_options(&longest, "v", &default_options()).unwrap(),
+        format!("{longest}=v; Path=/"),
+    );
+    let error = set_header_with_options(&(longest + "A"), "v", &default_options()).unwrap_err();
+    assert_eq!(error.code(), "http.cookie.invalid_name");
+    assert_eq!(error.status(), 400);
 }
 
 /// Verifies invalid cookie values and paths are rejected.

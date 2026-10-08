@@ -1,8 +1,10 @@
 //! Package-owned channel descriptors. They allocate no sockets, tasks, or queues.
 
+mod callbacks;
 mod sse;
 mod websocket;
 
+pub use callbacks::{SseEvent, WebSocketEvent};
 pub use sse::{SseCallbacks, SseEndpointPlan};
 pub use websocket::{
     BinaryPayloadPolicy, WebSocketCallbacks, WebSocketEndpointPlan, WebSocketPairing,

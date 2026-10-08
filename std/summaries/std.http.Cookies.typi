@@ -104,6 +104,13 @@ pub delete_header(name: String, path: String = "/"): String.
 @pure
 pub from_map(incoming: Map[String, String]): Jar.
 
+/// Creates a jar from ordered, decoded cookie pairs.
+///
+/// The first value for each case-sensitive name wins, including empty values.
+/// Source owns this precedence; the maintained parser preserves all pairs.
+
+pub from_pairs(incoming: List[{String, String}]): Jar.
+
 /// Returns an incoming cookie value.
 ///
 /// Input: one cookie jar receiver and one cookie name.

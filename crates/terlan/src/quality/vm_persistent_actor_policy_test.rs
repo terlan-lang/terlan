@@ -58,9 +58,9 @@ VmDistributedStoragePolicy can_cluster_replicate Unsupported StorageUnavailable
 "#,
         )?;
         self.write(
-            "crates/terlan/src/runtime/vm/http_router.rs",
+            "std/http/native/src/routing.rs",
             r#"
-dispatch_with_middleware_policy
+dispatch_with_typed_middleware
 "#,
         )?;
         self.write(

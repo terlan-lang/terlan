@@ -334,21 +334,26 @@ fn write_project_web_profile_builds_js_browser_manifest() {
         .expect("handlers")
         .iter()
         .any(|handler| handler["route"] == "/" && handler["function"] == "home"));
+    let handlers = manifest["handlers"].as_array().expect("handlers");
+    assert!(handlers.iter().any(|handler| {
+        handler["method"] == "GET"
+            && handler["route"] == "/users/:id"
+            && handler["function"] == "show_user"
+    }));
+    for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] {
+        assert!(
+            handlers.iter().any(|handler| {
+                handler["method"] == method
+                    && handler["route"] == "*"
+                    && handler["function"] == "not_found"
+            }),
+            "missing {method} fallback handler"
+        );
+    }
     assert!(manifest["static_responses"]
         .as_array()
         .expect("static responses")
-        .iter()
-        .any(|response| response["route"] == "/users/:id" && response["body"] == "user route"));
-    assert!(manifest["static_responses"]
-        .as_array()
-        .expect("static responses")
-        .iter()
-        .any(|response| response["route"] == "*" && response["body"] == "not found"));
-    assert!(manifest["static_responses"]
-        .as_array()
-        .expect("static responses")
-        .iter()
-        .any(|response| response["method"] == "OPTIONS" && response["route"] == "*"));
+        .is_empty());
     fs::remove_dir_all(dir).expect("cleanup");
 }
 

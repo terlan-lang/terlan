@@ -73,14 +73,12 @@ pub struct WebSocketCallbacks<C> {
 
 /// Source-owned payload and callback policy for a two-peer WebSocket session.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-#[serde(bound(deserialize = "C: serde::Deserialize<'de>"))]
+#[serde(bound(deserialize = "C: serde::Deserialize<'de>"), deny_unknown_fields)]
 pub struct WebSocketPairing<C> {
     pub waiting: String,
     pub first_matched: String,
     pub second_matched: String,
     pub peer_left: String,
-    #[serde(default)]
-    pub stateful: bool,
     #[serde(default)]
     pub restoration: Option<WebSocketRestoration<C>>,
     pub inbound: C,
@@ -93,9 +91,10 @@ pub struct WebSocketRestoration<C> {
     pub waiting: C,
     pub peer_left: C,
     pub identity: C,
-    pub room_prefix: String,
+    pub room_identity: C,
     pub retention_ms: u64,
     pub retained_room_capacity: usize,
+    /// Source adapter returning both match payloads in one invocation.
     pub matched: C,
     pub restored: C,
 }
@@ -203,12 +202,11 @@ impl<C> WebSocketPairing<C> {
             first_matched: self.first_matched,
             second_matched: self.second_matched,
             peer_left: self.peer_left,
-            stateful: self.stateful,
             restoration: self.restoration.map(|restoration| WebSocketRestoration {
                 waiting: map(restoration.waiting),
                 peer_left: map(restoration.peer_left),
                 identity: map(restoration.identity),
-                room_prefix: restoration.room_prefix,
+                room_identity: map(restoration.room_identity),
                 retention_ms: restoration.retention_ms,
                 retained_room_capacity: restoration.retained_room_capacity,
                 matched: map(restoration.matched),

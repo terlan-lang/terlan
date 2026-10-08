@@ -5,6 +5,38 @@ use crate::terlan_typeck::{
     CoreRecordExprField, CoreStructTypeField, CoreType,
 };
 
+#[test]
+fn lexical_callback_return_type_shadows_unrelated_function_signatures() {
+    use super::collection_intrinsic_specialization::{specialize_expr, FunctionSignature};
+    let functions = HashMap::from([(
+        ("other".into(), "callback".into(), 1),
+        FunctionSignature {
+            generic_params: Vec::new(),
+            params: vec![CoreType::Int],
+            result: CoreType::String,
+        },
+    )]);
+    for local_type in [
+        CoreType::Arrow {
+            params: vec![CoreType::Int],
+            return_type: Box::new(CoreType::Bool),
+        },
+        CoreType::Int,
+    ] {
+        let mut expression = CoreExpr::Call {
+            function: "callback".into(),
+            type_args: Vec::new(),
+            args: vec![CoreExpr::Int(1)],
+        };
+        let variables = HashMap::from([("callback".into(), local_type.clone())]);
+        let inferred = specialize_expr(&mut expression, &variables, &functions, "consumer");
+        assert_eq!(
+            inferred,
+            matches!(local_type, CoreType::Arrow { .. }).then_some(CoreType::Bool)
+        );
+    }
+}
+
 /// Collection receivers retain their type and method identity through callback specialization.
 #[test]
 fn contextual_collection_receivers_execute_without_unqualified_method_fallback() {

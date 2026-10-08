@@ -139,6 +139,16 @@ impl PureNativeExecutionImage {
         })
     }
 
+    /// Borrows parameter types from this image's sealed export descriptor.
+    pub(crate) fn export_parameters(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> Option<&[super::TvmBoundaryType]> {
+        self.boundary.export_parameters(module, function, arity)
+    }
+
     /// Returns whether the admitted image owns one exact export.
     pub(crate) fn has_export(&self, function: &str, arity: usize) -> bool {
         self.boundary.has_export(function, arity)

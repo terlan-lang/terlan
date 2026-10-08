@@ -1,8 +1,7 @@
 use super::*;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::handler_cache_test_support::compile_native_handler_fixture;
-use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::routing::{RouteMethod, RouteTarget, RouterOutcome};
 
 #[path = "source_channel_router_test.rs"]
 mod channels;
@@ -11,8 +10,8 @@ mod pipelines;
 
 fn request(path: &str) -> ReplValue {
     crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned(
-        crate::runtime::native::http::Request::from_parts("GET", path, "").into_parts(),
-        crate::runtime::native::http::RequestFieldProjection::Complete,
+        terlan_http_native::Request::from_parts("GET", path, "").into_parts(),
+        terlan_http_native::RequestFieldProjection::Complete,
     )
 }
 
@@ -65,14 +64,12 @@ pub router(): Router ->
     let router = runtime
         .execute_http_router("app.SourceRouter", "router", &mut |_| {})
         .unwrap();
-    let VmHttpRouterOutcome::Matched(route) = router
-        .dispatch(VmHttpRouteMethod::Get, "/api/computed")
-        .unwrap()
+    let RouterOutcome::Matched(route) = router.dispatch(RouteMethod::Get, "/api/computed").unwrap()
     else {
         panic!("computed grouped route was not admitted");
     };
     assert_eq!(route.middleware.len(), 1);
-    let VmHttpRouteTarget::Handler(handler) = route.target else {
+    let RouteTarget::Handler(handler) = route.target else {
         panic!("handler")
     };
     assert!(matches!(handler, ReplValue::Closure(_)));
@@ -96,17 +93,21 @@ pub router(): Router ->
         )
         .unwrap();
     let response =
-        HandlerResponse::from_owned_vm_response_with_package_root(response, &fixture.root).unwrap();
+        crate::commands::serve::handler::decode_owned_response(response, &fixture.root).unwrap();
     assert_eq!(response.status, 202);
-    assert_eq!(response.body.as_bytes(), b"computed");
-    assert_eq!(response.headers, [("X-Source".into(), "computed".into())]);
-    let VmHttpRouterOutcome::Matched(fallback) = router
-        .dispatch(VmHttpRouteMethod::Post, "/missing")
-        .unwrap()
+    assert_eq!(
+        response.body.as_bytes().expect("finite response"),
+        b"computed"
+    );
+    assert_eq!(
+        response.headers[2..],
+        [("X-Source".into(), "computed".into())]
+    );
+    let RouterOutcome::Matched(fallback) = router.dispatch(RouteMethod::Post, "/missing").unwrap()
     else {
         panic!("source root fallback");
     };
-    let VmHttpRouteTarget::Handler(handler) = fallback.target else {
+    let RouteTarget::Handler(handler) = fallback.target else {
         panic!("fallback handler");
     };
     let response = runtime
@@ -129,10 +130,16 @@ pub router(): Router ->
         )
         .unwrap();
     let response =
-        HandlerResponse::from_owned_vm_response_with_package_root(response, &fixture.root).unwrap();
+        crate::commands::serve::handler::decode_owned_response(response, &fixture.root).unwrap();
     assert_eq!(response.status, 404);
-    assert_eq!(response.body.as_bytes(), b"computed:missing");
-    assert_eq!(response.headers, [("X-Source".into(), "computed".into())]);
+    assert_eq!(
+        response.body.as_bytes().expect("finite response"),
+        b"computed:missing"
+    );
+    assert_eq!(
+        response.headers[2..],
+        [("X-Source".into(), "computed".into())]
+    );
     let recovery = router
         .error_handler()
         .expect("source-lifted group recovery");
@@ -141,10 +148,12 @@ pub router(): Router ->
         .execute_callable("app.SourceRouter", recovery, vec![cause], &mut |_| {})
         .unwrap();
     let recovered =
-        HandlerResponse::from_owned_vm_response_with_package_root(recovered, &fixture.root)
-            .unwrap();
+        crate::commands::serve::handler::decode_owned_response(recovered, &fixture.root).unwrap();
     assert_eq!(recovered.status, 503);
-    assert_eq!(recovered.body.as_bytes(), b"computed:failure");
+    assert_eq!(
+        recovered.body.as_bytes().expect("finite response"),
+        b"computed:failure"
+    );
     let recovered = crate::commands::serve::handler::execute_router_recovery(
         &runtime,
         "app.SourceRouter",
@@ -154,23 +163,23 @@ pub router(): Router ->
     )
     .unwrap();
     let recovered =
-        HandlerResponse::from_owned_vm_response_with_package_root(recovered, &fixture.root)
-            .unwrap();
+        crate::commands::serve::handler::decode_owned_response(recovered, &fixture.root).unwrap();
     assert_eq!(recovered.status, 503);
-    assert_eq!(recovered.body.as_bytes(), b"computed:host failure");
+    assert_eq!(
+        recovered.body.as_bytes().expect("finite response"),
+        b"computed:host failure"
+    );
     for path in ["/events", "/socket"] {
-        let VmHttpRouterOutcome::Matched(route) =
-            router.dispatch(VmHttpRouteMethod::Get, path).unwrap()
-        else {
+        let RouterOutcome::Matched(route) = router.dispatch(RouteMethod::Get, path).unwrap() else {
             panic!("channel route")
         };
         let open = match route.target {
-            VmHttpRouteTarget::SseEndpoint(plan) => {
+            RouteTarget::SseEndpoint(plan) => {
                 assert_eq!(plan.keep_alive_ms(), Some(50));
                 assert_eq!(plan.max_pending_events(), 4);
                 plan.callbacks().unwrap().open.clone()
             }
-            VmHttpRouteTarget::WebSocketEndpoint(plan) => {
+            RouteTarget::WebSocketEndpoint(plan) => {
                 assert_eq!(plan.max_pending_frames(), 3);
                 plan.callbacks().unwrap().open.clone()
             }
@@ -217,13 +226,13 @@ pub router(): Router ->
         let router = runtime
             .execute_http_router(MODULE, "router", &mut |_| {})
             .unwrap();
-        let VmHttpRouterOutcome::Matched(route) = router
-            .dispatch(VmHttpRouteMethod::Get, &format!("/{marker}"))
+        let RouterOutcome::Matched(route) = router
+            .dispatch(RouteMethod::Get, &format!("/{marker}"))
             .unwrap()
         else {
             panic!("source route missing")
         };
-        let VmHttpRouteTarget::Handler(handler) = route.target else {
+        let RouteTarget::Handler(handler) = route.target else {
             panic!("handler")
         };
         let value = runtime
@@ -235,8 +244,11 @@ pub router(): Router ->
             )
             .unwrap();
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &root).unwrap();
-        assert_eq!(response.body.as_bytes(), marker.as_bytes());
+            crate::commands::serve::handler::decode_owned_response(value, &root).unwrap();
+        assert_eq!(
+            response.body.as_bytes().expect("finite response"),
+            marker.as_bytes()
+        );
     };
     fs::write(&source_path, source("first")).unwrap();
     let first = cached_source_entry(&web_root, &source_path, MODULE).unwrap();

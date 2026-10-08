@@ -41,26 +41,23 @@ pub check(): Bool ->
 
 #[test]
 fn request_library_reads_its_own_fields_and_preserves_missing_and_empty_values() {
-    let request = include_str!("../../../../../std/http/Request.terl").replace(
-        "import type std.http.Cookies.Jar.",
-        "import type std.http.Cookies.Jar.\nimport std.core.Option.{Some}.",
-    );
+    let request = include_str!("../../../../../std/http/Request.terl");
     let request = format!(
         "{request}\n{}",
         r#"
 pub exercise(): Bool ->
     let request = Request {
         #method: "POST", #path: "/source",
-        #params: Map({"id", "42"}), #body: "raw body",
-        #query_string: "q=&q=last", #query: Map({"q", ""}),
-        #headers: Map({"x-test", "header"}, {"key", "ascii"}), #cookies: Map({"session", "cookie"}),
+        #params: [{"id", "42"}], #body: "raw body",
+        #query_string: "q=&q=last", #query: [{"q", ""}],
+        #headers: [{"x-test", "header"}, {"key", "ascii"}], #cookies: [{"session", "cookie"}],
         #body_file_path: "/tmp/body"
     };
     request.method() == "POST" and request.path() == "/source"
         and request.body_text() == "raw body"
         and request.query_string() == "q=&q=last"
         and request.body_file_path() == "/tmp/body"
-        and request.cookies().marker == 41
+        and request.cookies().headers() == []
         and (case request.param("id") { Some(value) -> value == "42"; None -> false })
         and (case request.param("missing") { None -> true; _ -> false })
         and (case request.query("q") { Some(value) -> value == ""; None -> false })
@@ -75,6 +72,94 @@ pub exercise(): Bool ->
     check_sources(&[
         "module request_values. import std.http.Request. pub check(): Bool -> Request.exercise().",
         &request,
-        "module std.http.Cookies. import type std.collections.Map. pub struct Jar { marker: Int }. pub from_map(incoming: Map[String, String]): Jar -> Jar { marker: 41 }.",
+        include_str!("../../../../../std/http/Cookies.terl"),
+        include_str!("../../../../../std/collections/Enumerable.terl"),
+        include_str!("../../../../../std/collections/List.terl"),
+        include_str!("../../../../../std/collections/Iterator.terl"),
+        include_str!("../../../../../std/core/Option.terl"),
     ]);
+}
+
+#[test]
+fn metadata_duplicate_precedence_is_executed_from_source() {
+    for (predicate, expected) in [("key == name", "Some(\"last\")"), ("false", "None")] {
+        let request =
+            include_str!("../../../../../std/http/Request.terl").replace("key == name", predicate);
+        let provider = format!(
+            r#"{request}
+pub check(): Bool ->
+    let pairs = [{{"key", "first"}}, {{"key", ""}}, {{"KEY", "other"}}, {{"key", "last"}}];
+    let request = Request {{
+        #method: "GET", #path: "/", #params: pairs, #body: "",
+        #query_string: "", #query: pairs, #headers: pairs, #cookies: [], #body_file_path: ""
+    }};
+    request.param("key") == {expected}
+        and request.query("key") == {expected}
+        and request.header("KEY") == {expected}.
+"#,
+        );
+        for source in [
+            provider.clone(),
+            provider.replace("module std.http.Request.", "module app.SourceRequest."),
+        ] {
+            check_sources(&[
+                &source,
+                include_str!("../../../../../std/collections/Enumerable.terl"),
+                include_str!("../../../../../std/collections/List.terl"),
+                include_str!("../../../../../std/collections/Iterator.terl"),
+                include_str!("../../../../../std/core/Option.terl"),
+            ]);
+        }
+    }
+}
+
+#[test]
+fn native_lookup_scenarios_execute_in_source_with_distinct_metadata_policies() {
+    let provider = format!(
+        "{}\n{}",
+        include_str!("../../../../../std/http/Request.terl"),
+        r#"
+pub check(): Bool ->
+    let pairs = [
+        {"sid", "first"}, {"empty", ""}, {"sid", "second"},
+        {"SID", "upper"}, {"empty", "later"}, {"last_empty", "before"},
+        {"last_empty", ""}, {"binary_to_atom", "text"}, {"list_to_atom", "text"}
+    ];
+    let request = Request {
+        #method: "GET", #path: "/", #params: pairs, #body: "",
+        #query_string: "", #query: pairs, #headers: pairs,
+        #cookies: pairs, #body_file_path: ""
+    };
+    request.param("sid") == Some("second")
+        and request.query("sid") == Some("second")
+        and request.header("sId") == Some("second")
+        and request.cookie("sid") == Some("first")
+        and request.cookie("SID") == Some("upper")
+        and request.cookie("empty") == Some("")
+        and request.param("empty") == Some("later")
+        and request.query("last_empty") == Some("")
+        and request.header("LAST_EMPTY") == Some("")
+        and request.cookie("absent") == None
+        and request.param("absent") == None
+        and request.query("absent") == None
+        and request.header("absent") == None
+        and request.param("binary_to_atom") == Some("text")
+        and request.query("list_to_atom") == Some("text")
+        and request.header("BINARY_TO_ATOM") == Some("text")
+        and request.cookie("list_to_atom") == Some("text").
+"#,
+    );
+    for source in [
+        provider.clone(),
+        provider.replace("module std.http.Request.", "module app.RequestSnapshot."),
+    ] {
+        check_sources(&[
+            &source,
+            include_str!("../../../../../std/http/Cookies.terl"),
+            include_str!("../../../../../std/collections/Enumerable.terl"),
+            include_str!("../../../../../std/collections/List.terl"),
+            include_str!("../../../../../std/collections/Iterator.terl"),
+            include_str!("../../../../../std/core/Option.terl"),
+        ]);
+    }
 }

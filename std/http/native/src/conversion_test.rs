@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn cookie_projection_preserves_first_lookup_without_changing_parser_output() {
+fn cookie_storage_preserves_all_pairs_for_source_precedence() {
     let cookies =
         parse_request_cookie_header("sid=first; empty=; sid=second; SID=upper; empty=later");
     let request = Request::from_parts_with_raw_query_metadata(
@@ -14,20 +14,19 @@ fn cookie_projection_preserves_first_lookup_without_changing_parser_output() {
         },
     );
     assert_eq!(request.cookie_pairs(), cookies);
-    assert_eq!(request.cookie("sid").as_deref(), Some("first"));
-    assert_eq!(request.cookie("SID").as_deref(), Some("upper"));
-    assert_eq!(request.cookie("empty").as_deref(), Some(""));
-    assert_eq!(request.cookie("absent"), None);
-    let first_value = request.cookie_pairs()[0].1.as_ptr();
-    let parts = request.into_parts();
     assert_eq!(
-        parts.cookies,
+        cookies,
         [
             ("sid".into(), "first".into()),
             ("empty".into(), "".into()),
+            ("sid".into(), "second".into()),
             ("SID".into(), "upper".into()),
+            ("empty".into(), "later".into()),
         ]
     );
+    let first_value = request.cookie_pairs()[0].1.as_ptr();
+    let parts = request.into_parts();
+    assert_eq!(parts.cookies, cookies);
     assert_eq!(parts.cookies[0].1.as_ptr(), first_value);
     assert!(Request::from_parts("GET", "/", "")
         .into_parts()

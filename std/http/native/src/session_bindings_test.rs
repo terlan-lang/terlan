@@ -7,13 +7,18 @@ fn binding<S: SessionStorage + ?Sized>(operation: &str) -> Option<NativeContextB
         .find(|binding| binding.operation == operation)
 }
 
-fn operations() -> [(&'static str, usize, NativeValue); 7] {
+fn operations() -> [(&'static str, usize, NativeValue); 8] {
     [
-        ("current", 1, "issued".into()),
+        (
+            "lookup",
+            1,
+            Some(" \u{2003}identity=unchanged;\u{2003} ").into(),
+        ),
+        ("create", 2, "issued".into()),
         ("get", 2, Some("stored").into()),
         ("set", 3, NativeValue::Unit),
         ("delete", 2, NativeValue::Unit),
-        ("rotate", 1, "rotated".into()),
+        ("rotate", 2, "rotated".into()),
         ("expire", 1, NativeValue::Unit),
         ("is_live", 1, true.into()),
     ]
@@ -25,15 +30,19 @@ fn every_operation_preserves_exact_arguments_results_and_backend_errors() {
         let operation = format!("std.http.session.{name}");
         let binding = binding::<dyn SessionStorage>(&operation).unwrap();
         assert_eq!(binding.operation, operation);
+        let timed = matches!(name, "create" | "rotate");
         let texts = [
             " \u{2003}identity=unchanged;\u{2003} ",
-            " key\0 ",
+            if timed { "13" } else { " key\0 " },
             "\nvalue\0",
         ];
-        let args = texts[..arity]
+        let mut args = texts[..arity]
             .iter()
             .map(|value| NativeValue::from(*value))
             .collect::<Vec<_>>();
+        if timed {
+            args[1] = 13_i64.into();
+        }
         let mut storage = Probe {
             value: Some("stored".into()),
             live: true,
@@ -57,6 +66,7 @@ fn every_argument_is_checked_before_backend_access() {
         NativeValue::Unit,
         NativeValue::Bool(false),
         NativeValue::Int(0),
+        NativeValue::String("13".into()),
         NativeValue::Float(0.0),
         NativeValue::Atom("identity".into()),
         NativeValue::Bytes(b"identity".to_vec()),
@@ -67,7 +77,11 @@ fn every_argument_is_checked_before_backend_access() {
     ];
     for (name, arity, _) in operations() {
         let binding = binding::<dyn SessionStorage>(&format!("std.http.session.{name}")).unwrap();
-        let valid = vec![NativeValue::from(""); arity];
+        let timed = matches!(name, "create" | "rotate");
+        let mut valid = vec![NativeValue::from(""); arity];
+        if timed {
+            valid[1] = 13_i64.into();
+        }
         let mut storage = Probe::default();
         for count in 0..=4 {
             if count != arity {
@@ -82,6 +96,13 @@ fn every_argument_is_checked_before_backend_access() {
         }
         for index in 0..arity {
             for value in &invalid_values {
+                if if timed && index == 1 {
+                    matches!(value, NativeValue::Int(_))
+                } else {
+                    matches!(value, NativeValue::String(_))
+                } {
+                    continue;
+                }
                 let mut args = valid.clone();
                 args[index] = value.clone();
                 assert_eq!(
@@ -91,6 +112,25 @@ fn every_argument_is_checked_before_backend_access() {
             }
         }
         assert!(storage.calls.is_empty());
+    }
+}
+
+#[test]
+fn lifetime_is_positive_and_validated_before_storage_access() {
+    for operation in ["std.http.session.create", "std.http.session.rotate"] {
+        let binding = binding::<dyn SessionStorage>(operation).unwrap();
+        let mut storage = Probe::default();
+        for seconds in [i64::MIN, -1, 0] {
+            let error = binding
+                .call(&mut storage, &["id".into(), seconds.into()])
+                .unwrap_err();
+            assert!(error.to_string().contains("TTL must be greater than 0"));
+            assert!(storage.calls.is_empty());
+        }
+        binding
+            .call(&mut storage, &["id".into(), i64::MAX.into()])
+            .unwrap();
+        assert_eq!(storage.calls[0][2], i64::MAX.to_string());
     }
 }
 
@@ -126,6 +166,7 @@ fn unknown_and_legacy_names_are_not_admitted() {
         "std.http.session.GET",
         "std.http.session.get.extra",
         "std.http.session.cookie",
+        "std.http.session.current",
         "std.http.session.current ",
         "std.http.sessions.get",
     ] {

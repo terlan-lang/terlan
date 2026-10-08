@@ -7,3 +7,6 @@ mod field_and_record_shapes;
 #[path = "direct_core_shape_test/shape_fixtures.rs"]
 mod shape_fixtures;
 use shape_fixtures::*;
+
+#[path = "direct_core_shape_test/http_source_ownership.rs"]
+mod http_source_ownership;

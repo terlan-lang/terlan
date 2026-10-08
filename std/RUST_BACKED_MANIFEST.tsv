@@ -99,12 +99,13 @@ std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.named_capture	named_c
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.replace	replace	3
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.split	split	2
 std.regex.Regex	std/regex/Regex.terl	regex	std.regex.regex.escape	escape	1
-std.http.Cookies	std/http/Cookies.terl	std::http	std.http.cookies.set_header_with_options	set_header_with_options	10
-std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.current	lookup	1
+std.http.Cookies	std/http/Cookies.terl	terlan-http-native	std.http.cookies.encode	encode	9
+std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.lookup	lookup	1
+std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.create	create	2
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.get	read	2
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.set	write	3
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.delete	remove	2
-std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.rotate	renew	1
+std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.rotate	renew	2
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.expire	invalidate	1
 std.http.Session	std/http/Session.terl	terlan-http-native	std.http.session.is_live	is_live	1
 std.http.Sse	std/http/Sse.terl	axum	std.http.sse.encode_event	encode	4

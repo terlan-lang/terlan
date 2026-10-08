@@ -7,8 +7,8 @@
  */
 module std.http.Request.
 
-import std.collections.Map.
-import std.core.Option.{None}.
+import std.collections.{Enumerable, List}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Error, String}.
 import std.data.Json.
@@ -29,12 +29,12 @@ type InvalidBody = Atom["http.body_json"].
 pub struct Request {
     #method: String,
     #path: String,
-    #params: Map[String, String],
+    #params: List[{String, String}],
     #body: String,
     #query_string: String,
-    #query: Map[String, String],
-    #headers: Map[String, String],
-    #cookies: Map[String, String],
+    #query: List[{String, String}],
+    #headers: List[{String, String}],
+    #cookies: List[{String, String}],
     #body_file_path: String,
 }.
 
@@ -67,10 +67,10 @@ pub (request: Request) path(): String ->
  * Output: `Some(value)` when the matched route captured `name`, otherwise
  * `None`.
  * Transformation: reads decoded route parameters captured by the generated
- * router manifest.
+ * router manifest, retaining the last value for a repeated name.
  */
 pub (request: Request) param(name: String): Option[String] ->
-    request.#params.get(name).
+    last_value(request.#params, name, None).
 
 /**
  * Returns a query parameter value.
@@ -78,10 +78,23 @@ pub (request: Request) param(name: String): Option[String] ->
  * Input: one `Request` receiver and one query parameter name.
  * Output: `Some(value)` when the request query included `name`, otherwise
  * `None`.
- * Transformation: reads decoded query parameters supplied by the server bridge.
+ * Transformation: selects the last decoded pair for the exact name in Terlan.
+ * Empty values remain present; query decoding stays in the maintained codec.
  */
 pub (request: Request) query(name: String): Option[String] ->
-    request.#query.get(name).
+    last_value(request.#query, name, None).
+
+last_value(pairs: List[{String, String}], name: String, initial: Option[String]): Option[String] ->
+    Enumerable[List].fold(
+        pairs,
+        initial,
+        (found: Option[String], pair: {String, String}) ->
+            let {key, value} = pair;
+            if {
+                key == name -> Some(value);
+                true -> found
+            },
+    ).
 
 /**
  * Returns the raw query string.
@@ -103,11 +116,11 @@ pub (request: Request) query_string(): String ->
  * Output: `Some(value)` when the request included a header named `name`,
  * otherwise `None`.
  * Transformation: reads normalized request-header metadata supplied by the
- * server bridge without exposing backend header storage.
+ * server bridge, selecting the last value for the normalized ASCII name.
  */
 pub (request: Request) header(name: String): Option[String] ->
     if {
-        name.byte_size() == name.length() -> request.#headers.get(name.lowercase());
+        name.byte_size() == name.length() -> last_value(request.#headers, name.lowercase(), None);
         true -> None
     }.
 
@@ -117,11 +130,10 @@ pub (request: Request) header(name: String): Option[String] ->
  * Input: one `Request` receiver and one cookie name.
  * Output: `Some(value)` when the request included a cookie named `name`,
  * otherwise `None`.
- * Transformation: reads parsed request-cookie metadata supplied by the server
- * bridge.
+ * Transformation: uses the same source-owned first-value policy as the jar.
  */
 pub (request: Request) cookie(name: String): Option[String] ->
-    request.#cookies.get(name).
+    request.cookies().get(name).
 
 /**
  * Returns the request-scoped cookie jar.
@@ -130,10 +142,11 @@ pub (request: Request) cookie(name: String): Option[String] ->
  * Output: a fresh source-owned `Cookies.Jar` for reading incoming cookies
  * and recording response cookie mutations.
  * Transformation: initializes an empty pending-header list in Terlan from the
- * decoded incoming snapshot. Separate calls never share outgoing mutations.
+ * decoded incoming pairs, retaining the first value per case-sensitive name.
+ * Separate calls never share outgoing mutations.
  */
 pub (request: Request) cookies(): Jar ->
-    Cookies.from_map(request.#cookies).
+    Cookies.from_pairs(request.#cookies).
 
 /**
  * Returns the request body as text.

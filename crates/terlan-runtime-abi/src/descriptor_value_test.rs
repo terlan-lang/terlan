@@ -31,8 +31,8 @@ fn owned_descriptors_transfer_storage_and_keep_resources_opaque() {
     };
     assert_eq!(name, "Data");
     assert_eq!(fields.as_ptr(), pointer);
+    assert!(matches!(V::Unit.into_descriptor(), D::Unit));
     for opaque in [
-        V::Unit,
         V::Bool(false),
         V::Bytes(vec![255]),
         V::Float(1.0),

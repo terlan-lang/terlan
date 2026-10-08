@@ -1,6 +1,8 @@
 //! Source-owned library calls through the production protocol and actor path.
 
 use super::*;
+use http_body_util::Full;
+use terlan_http_native::request_ingress::{prepare_request, BodyStorage};
 
 fn with_source_handler(source: &str, check: impl FnOnce(&dyn Fn(&str) -> String)) {
     with_source_requests(source, &["/json"], |send| {
@@ -17,31 +19,115 @@ fn with_source_requests(
     routes: &[&str],
     check: impl FnOnce(&dyn Fn(&str) -> String),
 ) {
-    let root = temp_web_root();
-    let web = root.join("_build/web");
-    std::fs::create_dir_all(root.join("src/app")).unwrap();
-    std::fs::create_dir_all(&web).unwrap();
-    std::fs::write(
-        root.join("terlan.toml"),
-        "[package]\nname = \"json_body_test\"\nversion = \"0.0.9\"\nnamespace = \"app\"\n",
-    )
-    .unwrap();
-    std::fs::write(web.join("index.html"), "").unwrap();
-    std::fs::write(root.join("src/app/Api.terl"), source).unwrap();
-    std::fs::write(
-        web.join("manifest.json"),
-        serde_json::to_vec(&serde_json::json!({
-        "schema":"terlan-web-build-v1", "target_profile":"js.browser",
-        "source_js_manifest":"../js/manifest.json", "index":"index.html", "assets":[],
-        "handlers": routes.iter().map(|route| serde_json::json!({"method":"POST","route":route,"module":"app.Api",
-            "function":"handle","arity":1,"source":{"path":"src/app/Api.terl","line":8,"column":5}})).collect::<Vec<_>>()
-    })).unwrap(),
-    )
-    .unwrap();
-    crate::commands::serve::prewarm_dynamic_handler_sources(&web)
-        .expect("compile source-owned library handler");
-    with_source_protocol_server(web, check);
-    std::fs::remove_dir_all(root).unwrap();
+    with_source_project(source, routes, |web| {
+        with_source_protocol_server(web.to_path_buf(), check);
+    });
+}
+
+fn with_source_project(source: &str, routes: &[&str], check: impl FnOnce(&Path)) {
+    let handlers: Vec<_> = routes.iter().map(|route| (*route, "handle", 1)).collect();
+    with_source_handler_project(source, &handlers, check);
+}
+
+#[test]
+fn package_upload_lease_survives_source_projection_and_releases_after_dispatch() {
+    use terlan_http_native::request_ingress::RequestBodyFile;
+
+    with_source_project(
+        r#"module app.Api.
+import std.http.Response.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(request: Request): Response -> Response.text(request.body_file_path()).with_status(202).
+"#,
+        &["/json"],
+        |web| {
+            assert!(request_requires_file_body(web, "POST", "/json").unwrap());
+            let root = tempfile::tempdir().unwrap();
+            let request = Request::post("/json")
+                .body(Full::new(Bytes::from_static(b"\0\xff")))
+                .unwrap();
+            let request =
+                block_on(prepare_request(request, 2, BodyStorage::File(root.path()))).unwrap();
+            let path = request
+                .extensions()
+                .get::<RequestBodyFile>()
+                .unwrap()
+                .path()
+                .to_owned();
+            assert_eq!(std::fs::read(&path).unwrap(), b"\0\xff");
+            let mut channel = None;
+            let response = handle_vm_stream_request(request, web, &mut channel, false).unwrap();
+            assert_eq!(response.status(), 202);
+            assert_eq!(response.body().as_ref(), path.as_bytes());
+            assert!(channel.is_none());
+            assert!(!Path::new(&path).exists());
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        },
+    );
+}
+
+#[test]
+fn package_body_admission_preserves_source_handlers_over_socket() {
+    with_source_handler(
+        r#"module app.Api.
+import std.http.Response.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(request: Request): Response -> Response.text("source:" + request.body_text()).with_status(202).
+"#,
+        |send_body| {
+            let response = send_body("hello");
+            assert!(response.starts_with("HTTP/1.1 202 "), "{response}");
+            assert!(response.ends_with("\r\n\r\nsource:hello"), "{response}");
+            let response = send_body(&"x".repeat(4097));
+            assert!(response.starts_with("HTTP/1.1 413 "), "{response}");
+            assert!(
+                response.ends_with("request body exceeds 4096 bytes"),
+                "{response}"
+            );
+            let response = send_body("recovered");
+            assert!(response.ends_with("\r\n\r\nsource:recovered"), "{response}");
+        },
+    );
+}
+
+#[test]
+fn package_body_admission_counts_chunked_frames_before_source_execution() {
+    with_source_requests(
+        r#"module app.Api.
+import std.http.Response.
+import type std.http.Request.Request.
+import type std.http.Response.Response.
+pub handle(request: Request): Response -> Response.text("source:" + request.body_text()).with_status(202).
+"#,
+        &["/json"],
+        |send| {
+            for (chunks, status, suffix) in [
+                (
+                    "2\r\nhi\r\n1\r\n!\r\n0\r\n\r\n".to_string(),
+                    202,
+                    "source:hi!",
+                ),
+                (
+                    format!("1000\r\n{}\r\n1\r\nx\r\n0\r\n\r\n", "a".repeat(4096)),
+                    413,
+                    "request body exceeds 4096 bytes",
+                ),
+                ("0\r\n\r\n".to_string(), 202, "source:"),
+            ] {
+                let response = send(&format!("POST /json HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nTransfer-Encoding: chunked\r\n\r\n{chunks}"));
+                assert!(
+                    response.starts_with(&format!("HTTP/1.1 {status} ")),
+                    "{response}"
+                );
+                assert!(
+                    response.ends_with(&format!("\r\n\r\n{suffix}")),
+                    "{response}"
+                );
+            }
+        },
+    );
 }
 
 #[test]

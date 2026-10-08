@@ -734,7 +734,9 @@ unary_node_opcode(node: ProjectedExpressionNode): String ->
 
 list_node_opcode(node: ProjectedExpressionNode): String ->
     if {
-        node.kind == "list" or node.kind == "list-cons" or node.kind == "list-comprehension" -> "put-list";
+        node.kind == "list" -> "put-list";
+        node.kind == "list-cons" -> "put-list-cons";
+        node.kind == "list-comprehension" -> "unsupported-list-comprehension";
         true -> tuple_node_opcode(node)
     }.
 

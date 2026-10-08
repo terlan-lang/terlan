@@ -12,7 +12,6 @@ use crate::runtime::vm::debugger_control::{VmDebuggerControlCommand, VmDebuggerE
 use crate::runtime::vm::fixed_scheduler_telemetry::{
     VmFixedSchedulerEventKind, VM_FIXED_SCHEDULER_TRACE_CAPACITY,
 };
-use crate::runtime::vm::http_session::{VmHttpSessionRuntime, VmHttpSessionService};
 use crate::runtime::vm::multicore_replay::VmMulticoreEventKind;
 use crate::runtime::vm::scheduler::VmSchedulerClass;
 use crate::runtime::vm::scheduler_topology::VmSchedulerId;
@@ -1346,9 +1345,7 @@ fn wait_for_work_metrics(
 #[test]
 fn partial_scheduler_startup_is_rolled_back_without_live_generation() {
     let (root, image, _router) = compiled_handler();
-    let sessions = VmHttpSessionService::new(
-        VmHttpSessionRuntime::new("terlc-serve-startup-failure", 86_400).expect("session runtime"),
-    );
+    let sessions = super::super::session_service::new_session_service();
     let error = AotHandlerGeneration::load_with_start_failure(&image, sessions, 2, 1)
         .expect_err("second scheduler startup must fail");
     assert!(error.contains("shard_start_injected"), "{error}");
@@ -1381,7 +1378,7 @@ fn remote_cancellation_is_traced_as_signal_not_actor_message() {
 
 /// Builds one managed request argument accepted by the generated handler.
 fn request() -> ReplValue {
-    use crate::runtime::native::http::{Request, RequestFieldProjection};
+    use terlan_http_native::{Request, RequestFieldProjection};
     crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned(
         Request::from_parts("GET", "/delayed:", "").into_parts(),
         RequestFieldProjection::Complete,

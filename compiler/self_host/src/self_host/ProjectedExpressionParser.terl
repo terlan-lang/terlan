@@ -1493,7 +1493,7 @@ parse_postfix_dot_target(
         next.text == "(" -> parse_dynamic_call(base, next, rest);
         true -> parse_postfix_at(ProjectedExpressionResult(
             valid = true,
-            node = Some(node("field", next.text, base.start_byte, next.end_byte, [base, leaf(next)])),
+            node = Some(node("field", next.text, base.start_byte, next.end_byte, [base])),
             rest = rest,
             message = "",
         ))

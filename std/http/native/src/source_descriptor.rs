@@ -14,7 +14,7 @@ pub use execution::HandlerPipeline;
 pub use response::{cached_response, response, SourceResponse, SourceResponseBody};
 pub use restoration::restoration_identity;
 pub use router::{router, Route, RouteTarget, Router};
-pub use transition::{paired_transition, PairedTransition};
+pub use transition::{paired_callback_transition, paired_match, PairContext, PairedTransition};
 
 #[cfg(test)]
 #[path = "source_descriptor_test.rs"]

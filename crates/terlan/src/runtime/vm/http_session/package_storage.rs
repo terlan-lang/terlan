@@ -30,8 +30,20 @@ impl SessionHost for VmHttpSessionRuntime {
 }
 
 impl SessionStorage for VmHttpSessionRuntime {
-    fn current(&mut self, identity: &str) -> Result<String, BoundaryError> {
-        super::current(self, Some(identity)).map(|lookup| lookup.session.id)
+    fn lookup(&mut self, identity: &str) -> Result<Option<String>, BoundaryError> {
+        self.lookup_available(identity)
+            .map(|lookup| lookup.map(|lookup| lookup.session.id))
+            .map_err(session_error)
+    }
+
+    fn create(
+        &mut self,
+        excluded_identity: &str,
+        ttl_seconds: u64,
+    ) -> Result<String, BoundaryError> {
+        self.create_session_for(excluded_identity, ttl_seconds)
+            .map(|lookup| lookup.session.id)
+            .map_err(session_error)
     }
 
     fn get(&mut self, identity: &str, key: &str) -> Result<Option<String>, BoundaryError> {
@@ -51,9 +63,13 @@ impl SessionStorage for VmHttpSessionRuntime {
         super::delete(self, &VmHttpSession::from_managed_id(identity.into()), key)
     }
 
-    fn rotate(&mut self, identity: &str) -> Result<String, BoundaryError> {
-        super::rotate(self, &VmHttpSession::from_managed_id(identity.into()))
-            .map(|lookup| lookup.session.id)
+    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
+        self.rotate_for(
+            &VmHttpSession::from_managed_id(identity.into()),
+            ttl_seconds,
+        )
+        .map(|lookup| lookup.session.id)
+        .map_err(session_error)
     }
 
     fn expire(&mut self, identity: &str) -> Result<(), BoundaryError> {
@@ -66,4 +82,12 @@ impl SessionStorage for VmHttpSessionRuntime {
             &VmHttpSession::from_managed_id(identity.into()),
         ))
     }
+}
+
+fn session_error(error: String) -> BoundaryError {
+    BoundaryError::message(
+        terlan_runtime_abi::ErrorDomain::VmRuntime,
+        "resolve HTTP session",
+        error,
+    )
 }

@@ -23,8 +23,10 @@ impl VmHttpSessionRuntime {
         if node_id.trim().is_empty() {
             return Err("HTTP session node id cannot be empty".to_string());
         }
-        let sessions =
-            SessionRegistry::new(ttl_ticks, recovery_policy).map_err(|error| error.to_string())?;
+        if ttl_ticks == 0 {
+            return Err(terlan_http_native::session_registry::SessionError::ZeroTtl.to_string());
+        }
+        let sessions = SessionRegistry::new(recovery_policy);
         #[cfg(test)]
         let live_template_protocol =
             crate::runtime::vm::live_template_protocol::generate_vm_live_template_protocol_manifest(
@@ -38,6 +40,7 @@ impl VmHttpSessionRuntime {
             tables: VmTableStore::default(),
             sessions,
             node_id,
+            ttl_ticks,
             #[cfg(test)]
             live_template_protocol,
         })
@@ -48,10 +51,47 @@ impl VmHttpSessionRuntime {
         &mut self,
         identity: Option<&str>,
     ) -> Result<VmHttpSessionLookup, String> {
+        let identity = identity.unwrap_or_default();
+        match self.lookup_available(identity)? {
+            Some(lookup) => Ok(lookup),
+            None => self.create_session(identity),
+        }
+    }
+
+    pub(crate) fn lookup_available(
+        &mut self,
+        identity: &str,
+    ) -> Result<Option<VmHttpSessionLookup>, String> {
         let record = self
             .sessions
-            .acquire(
+            .lookup(
                 identity,
+                &mut Resources {
+                    actors: &mut self.actors,
+                    tables: &mut self.tables,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(record.map(|record| self.lookup_for_record(record)))
+    }
+
+    pub(crate) fn create_session(
+        &mut self,
+        excluded_identity: &str,
+    ) -> Result<VmHttpSessionLookup, String> {
+        self.create_session_for(excluded_identity, self.ttl_ticks)
+    }
+
+    pub(crate) fn create_session_for(
+        &mut self,
+        excluded_identity: &str,
+        ttl_ticks: u64,
+    ) -> Result<VmHttpSessionLookup, String> {
+        let record = self
+            .sessions
+            .create(
+                excluded_identity,
+                ttl_ticks,
                 &mut Resources {
                     actors: &mut self.actors,
                     tables: &mut self.tables,
@@ -672,10 +712,19 @@ impl VmHttpSessionRuntime {
         &mut self,
         session: &VmHttpSession,
     ) -> Result<VmHttpSessionLookup, String> {
+        self.rotate_for(session, self.ttl_ticks)
+    }
+
+    pub(crate) fn rotate_for(
+        &mut self,
+        session: &VmHttpSession,
+        ttl_ticks: u64,
+    ) -> Result<VmHttpSessionLookup, String> {
         let record = self
             .sessions
             .rotate(
                 &session.id,
+                ttl_ticks,
                 &mut Resources {
                     actors: &mut self.actors,
                     tables: &mut self.tables,

@@ -10,7 +10,7 @@ import self_host.ProjectedExpressionSupportIrPlan.{ExpressionPlan, append_ir_par
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
-import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_at, embedded_if_at, root_embedded_if_blocks, root_refutable_let_blocks}.
+import self_host.ProjectedEmbeddedControlIrPlan.{EmbeddedBranchPlan, embedded_case_at, embedded_if_any_at, root_embedded_if_blocks, root_refutable_let_blocks}.
 import self_host.ProjectedNestedControlIrPlan.{ExpressionNodePair, ExpressionNodeQuad, ExpressionNodeTriple, expression_node_pair, expression_node_quad, expression_node_triple, linear_binding, nested_let_if_blocks}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
 import self_host.SelfHostIrSyntax.{IrParameter}.
@@ -440,22 +440,22 @@ embedded_case_or_if_at(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[EmbeddedBranchPlan] ->
-    case embedded_case_at(
+    case embedded_if_any_at(
         node,
         node_id,
         entry_label,
-        case_label_prefix,
+        if_label_prefix,
         entry_instructions,
         join_target,
         facts,
         parameters,
     ) {
         Some(embedded) -> Some(embedded);
-        None -> embedded_if_at(
+        None -> embedded_case_at(
             node,
             node_id,
             entry_label,
-            if_label_prefix,
+            case_label_prefix,
             entry_instructions,
             join_target,
             facts,
@@ -1157,6 +1157,77 @@ declared_return_type(valid: Bool, text: String, fallback: Option[String]): Optio
         false -> none_string()
     }.
 
+has_annotation(
+    values: List[self_host.DeclarationMetadataSyntax.AnnotationUse],
+    expected: String,
+): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.path == expected or has_annotation(rest, expected)
+    }.
+
+native_declaration(declaration: BackendDeclaration, node: ProjectedExpressionNode): Bool ->
+    has_annotation(declaration.annotations, "compiler.intrinsic")
+        or node.kind == "primary" and node.text == "native".
+
+symbol_base_at(value: String, index: Int): String ->
+    if {
+        index == value.byte_size() -> value;
+        value.utf8_byte_at(index) == 91 -> value.utf8_slice(0, index);
+        true -> symbol_base_at(value, index + 1)
+    }.
+
+symbol_base(value: String): String -> symbol_base_at(value, 0).
+
+native_symbol_byte(byte: Int): Bool ->
+    byte >= 48 and byte <= 57
+        or byte >= 65 and byte <= 90
+        or byte >= 97 and byte <= 122
+        or byte == 95.
+
+hex_digit(value: Int): String -> "0123456789abcdef".utf8_slice(value, 1).
+
+escaped_native_symbol_at(value: String, index: Int, output: String): String ->
+    if {
+        index == value.byte_size() -> output;
+        native_symbol_byte(value.utf8_byte_at(index)) -> escaped_native_symbol_at(
+            value,
+            index + 1,
+            String.append(output, value.utf8_slice(index, 1)),
+        );
+        true ->
+            let byte = value.utf8_byte_at(index);
+            escaped_native_symbol_at(
+                value,
+                index + 1,
+                String.append(
+                    output,
+                    String.append("_", String.append(hex_digit(byte div 16), hex_digit(byte rem 16))),
+                ),
+            )
+    }.
+
+native_symbol_name(module_name: String, name: String, arity: Int): String ->
+    let identity = String.append(
+        module_name,
+        String.append(".", String.append(symbol_base(name), String.append("/", Int.to_string(arity)))),
+    );
+    String.append("terlan_native_", escaped_native_symbol_at(identity, 0, "")).
+
+native_symbol_for(
+    native: Bool,
+    module_name: String,
+    name: String,
+    arity: Int,
+): Option[String] ->
+    if {
+        native -> Some(native_symbol_name(module_name, name, arity));
+        true -> none_string()
+    }.
+
+native_blocks(native: Bool, blocks: List[SemanticBlockPlan]): List[SemanticBlockPlan] ->
+    blocks.
+
 function_plan_for_function(
     module_name: String,
     declaration: BackendDeclaration,
@@ -1165,6 +1236,8 @@ function_plan_for_function(
     facts: List[InferredTypeFact],
 ): Option[SemanticFunctionPlan] ->
     let params = ir_parameters(function.typed_parameters);
+    let arity = parameter_count(params);
+    let native = native_declaration(declaration, node);
     let expression = lower_expression(node, 0, facts, params);
     let return_name = declared_return_name(function.return_type.valid, function.return_type.syntax.text);
     let blocks =
@@ -1188,8 +1261,8 @@ function_plan_for_function(
             arity = parameter_count(params),
             parameters = params,
             resolved_return_type = resolved_return_type,
-            blocks = blocks,
-            native_symbol = none_string(),
+            blocks = native_blocks(native, blocks),
+            native_symbol = native_symbol_for(native, module_name, declaration.symbol_name, arity),
         ),
     ).
 
@@ -1201,6 +1274,8 @@ function_plan_for_method(
     facts: List[InferredTypeFact],
 ): Option[SemanticFunctionPlan] ->
     let params = [parameter(method.receiver) | ir_parameters(method.parameters)];
+    let arity = parameter_count(params);
+    let native = native_declaration(declaration, node);
     let expression = lower_expression(node, 0, facts, params);
     let return_name = declared_return_name(method.return_type.valid, method.return_type.syntax.text);
     let blocks =
@@ -1224,8 +1299,8 @@ function_plan_for_method(
             arity = parameter_count(params),
             parameters = params,
             resolved_return_type = resolved_return_type,
-            blocks = blocks,
-            native_symbol = none_string(),
+            blocks = native_blocks(native, blocks),
+            native_symbol = native_symbol_for(native, module_name, declaration.symbol_name, arity),
         ),
     ).
 

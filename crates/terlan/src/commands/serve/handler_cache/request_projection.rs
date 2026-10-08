@@ -1,4 +1,4 @@
-//! Admission and lookup of compiler-proven opaque Request projections.
+//! HTTP package admission of library-independent aggregate observations.
 
 #[cfg(test)]
 #[path = "source_request_suspension_test.rs"]
@@ -8,17 +8,37 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::runtime::native::http::RequestFieldProjection;
-use crate::runtime::vm::aot_metadata::NativeRequestProjection;
+use crate::runtime::native_image::aggregate_projection::{
+    AggregateFieldProjection, NativeAggregateProjection,
+};
+use crate::runtime::native_image::managed::SemanticTypeId;
 use terlan_http_native::session_service::{SessionHost, SessionService};
+use terlan_http_native::RequestFieldProjection;
 
 use super::{AdmittedRequestProjection, AotHandlerGeneration, AotHandlerRuntime};
 
 impl AotHandlerRuntime {
-    pub(super) fn load_with_request_projections(
+    /// Request ingress follows the admitted source parameter identity, not the
+    /// number of route captures or whether execution can suspend.
+    pub(in crate::commands::serve) fn uses_source_request(
+        &self,
+        module: &str,
+        function: &str,
+        arity: usize,
+    ) -> bool {
+        self.generation
+            .image
+            .export_parameters(module, function, arity)
+            .and_then(|parameters| parameters.first())
+            == Some(&terlan_runtime_abi::TvmBoundaryType::Managed(
+                request_semantic_id().bytes(),
+            ))
+    }
+
+    pub(super) fn load_with_aggregate_projections(
         module: String,
         image: &Path,
-        projections: Vec<NativeRequestProjection>,
+        projections: Vec<NativeAggregateProjection>,
         sessions: SessionService<impl SessionHost + 'static>,
     ) -> Result<Self, String> {
         let mut primary_request_projection = None;
@@ -27,11 +47,8 @@ impl AotHandlerRuntime {
             .into_iter()
             .filter(|projection| projection.module == module)
         {
-            let admitted = AdmittedRequestProjection {
-                fields: projection.fields,
-                scalar_entry: projection.scalar_entry,
-                scalar_field: projection.scalar_field,
-                suspending: projection.suspending,
+            let Some(admitted) = admit_projection(&projection) else {
+                continue;
             };
             if primary_request_projection.is_none() {
                 primary_request_projection = Some(super::PrimaryRequestProjection {
@@ -163,11 +180,10 @@ impl AotHandlerRuntime {
         if router.error_handler().is_some() {
             return false;
         }
-        let Some(method) = crate::runtime::vm::http_router::VmHttpRouteMethod::from_name(method)
-        else {
+        let Some(method) = terlan_http_native::routing::RouteMethod::from_name(method) else {
             return false;
         };
-        let Ok(crate::runtime::vm::http_router::VmHttpRouterOutcome::Matched(dispatch)) =
+        let Ok(terlan_http_native::routing::RouterOutcome::Matched(dispatch)) =
             router.dispatch(method, path)
         else {
             return false;
@@ -175,16 +191,50 @@ impl AotHandlerRuntime {
         if !dispatch.middleware.is_empty() || !dispatch.response_middleware.is_empty() {
             return false;
         }
-        let crate::runtime::vm::http_router::VmHttpRouteTarget::Handler(callable) =
-            &dispatch.target
-        else {
+        let terlan_http_native::routing::RouteTarget::Handler(callable) = &dispatch.target else {
             return false;
         };
-        crate::runtime::vm::http_router::VmHttpCompiledCallableRef::from_value(callable)
-            .is_some_and(|callable| {
+        crate::runtime::vm::native_callable::VmNativeCallableRef::from_value(callable).is_some_and(
+            |callable| {
                 callable.module == module
                     && callable.function == function
                     && callable.arity == arity
-            })
+            },
+        )
     }
 }
+
+fn admit_projection(projection: &NativeAggregateProjection) -> Option<AdmittedRequestProjection> {
+    if projection.semantic != request_semantic_id() {
+        return None;
+    }
+    let fields = match &projection.fields {
+        AggregateFieldProjection::Complete => RequestFieldProjection::Complete,
+        AggregateFieldProjection::Fields(fields) => {
+            RequestFieldProjection::from_observed_fields(fields.iter().copied())
+        }
+    };
+    let scalar_field = projection
+        .scalar_field
+        .and_then(|field| field.checked_add(1));
+    let scalar = scalar_field.is_some_and(|field| fields.admits_scalar_string(field))
+        && projection.scalar_entry.is_some();
+    Some(AdmittedRequestProjection {
+        fields,
+        scalar_entry: scalar.then(|| projection.scalar_entry.clone()).flatten(),
+        scalar_field: scalar.then_some(scalar_field).flatten(),
+        suspending: projection.suspending,
+    })
+}
+
+fn request_semantic_id() -> SemanticTypeId {
+    static IDENTITY: std::sync::OnceLock<SemanticTypeId> = std::sync::OnceLock::new();
+    *IDENTITY.get_or_init(|| {
+        SemanticTypeId::from_canonical(RequestFieldProjection::SEMANTIC_TYPE)
+            .expect("HTTP request has a nonempty canonical identity")
+    })
+}
+
+#[cfg(test)]
+#[path = "request_projection_test.rs"]
+mod tests;

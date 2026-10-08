@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "d05121818ea845614796399a7cab60b7d04217b285290b0f7c006e2a995d98b8",
+  "compilation_input_sha256": "af3e0e9007aac8933caed527d6aa9152826db969a1d67e27162be58517c9755a",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -48,7 +48,7 @@
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 49,
+      "reference_sites": 50,
       "source_domains": [
         "commands",
         "lsp",
@@ -155,7 +155,7 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 78,
+      "reference_sites": 60,
       "source_domains": [
         "commands",
         "compiler"
@@ -177,7 +177,7 @@
     },
     {
       "domain": "validation",
-      "reference_sites": 15,
+      "reference_sites": 16,
       "source_domains": [
         "commands"
       ]
@@ -718,7 +718,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 47,
+      "reference_sites": 48,
       "to": "formal_pipeline"
     },
     {
@@ -728,7 +728,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 61,
+      "reference_sites": 43,
       "to": "runtime"
     },
     {
@@ -738,7 +738,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 15,
+      "reference_sites": 16,
       "to": "validation"
     },
     {
@@ -795,13 +795,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 138337,
-      "rust_files": 384
+      "physical_lines": 135252,
+      "rust_files": 387
     },
     {
       "name": "compiler",
-      "physical_lines": 173943,
-      "rust_files": 480
+      "physical_lines": 173493,
+      "rust_files": 478
     },
     {
       "name": "formal_pipeline",
@@ -835,13 +835,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50630,
+      "physical_lines": 50640,
       "rust_files": 153
     },
     {
       "name": "root:",
-      "physical_lines": 26863,
-      "rust_files": 160
+      "physical_lines": 34910,
+      "rust_files": 202
     },
     {
       "name": "root:accelerator_contract",
@@ -900,13 +900,13 @@
     },
     {
       "name": "root:web_route",
-      "physical_lines": 7,
+      "physical_lines": 3,
       "rust_files": 1
     },
     {
       "name": "runtime",
-      "physical_lines": 140940,
-      "rust_files": 469
+      "physical_lines": 141055,
+      "rust_files": 468
     },
     {
       "name": "serve_runtime",
@@ -920,8 +920,8 @@
     },
     {
       "name": "validation",
-      "physical_lines": 9068,
-      "rust_files": 24
+      "physical_lines": 8970,
+      "rust_files": 23
     },
     {
       "name": "vm",
@@ -1205,7 +1205,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 51,
+      "reference_sites": 49,
       "to": "runtime"
     },
     {
@@ -1267,12 +1267,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 46830,
-      "rust_files": 209
+      "physical_lines": 48052,
+      "rust_files": 213
     },
     {
       "name": "compiler",
-      "physical_lines": 49972,
+      "physical_lines": 50182,
       "rust_files": 225
     },
     {
@@ -1302,7 +1302,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29112,
+      "physical_lines": 29113,
       "rust_files": 129
     },
     {
@@ -1332,7 +1332,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 81622,
+      "physical_lines": 81648,
       "rust_files": 362
     },
     {
@@ -1347,8 +1347,8 @@
     },
     {
       "name": "validation",
-      "physical_lines": 6971,
-      "rust_files": 18
+      "physical_lines": 7164,
+      "rust_files": 19
     },
     {
       "name": "vm",
@@ -2260,6 +2260,13 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "basic-toml",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "bytes",
           "optional": false
         },
@@ -2310,6 +2317,7 @@
         {
           "default_features": false,
           "features": [
+            "http1",
             "http2",
             "server"
           ],
@@ -2377,6 +2385,13 @@
           "features": [],
           "kind": "normal",
           "name": "serde_json",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "sha2",
           "optional": false
         },
         {

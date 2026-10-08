@@ -672,6 +672,7 @@ std.http.Cookies.Jar	std/http/CookiesTest.terl	cookie_jar_get_reads_present_and_
 std.http.Cookies.Jar.get	std/http/CookiesTest.terl	cookie_jar_get_reads_present_and_missing_values
 std.http.Cookies.Jar.set	std/http/CookiesTest.terl	cookie_jar_set_threads_response_header
 std.http.Cookies.Jar.delete	std/http/CookiesTest.terl	cookie_jar_delete_threads_expiring_response_header
+std.http.Cookies.from_pairs	std/http/CookiesTest.terl	decoded_pairs_keep_first_values_without_sharing_pending_headers
 std.http.Cookies.set_header	std/http/CookiesTest.terl	cookie_header_builders_serialize_defaults
 std.http.Cookies.set_header_options	std/http/CookiesTest.terl	typed_cookie_options_serialize_present_and_absent_attributes
 std.http.Cookies.delete_header	std/http/CookiesTest.terl	cookie_header_builders_serialize_defaults

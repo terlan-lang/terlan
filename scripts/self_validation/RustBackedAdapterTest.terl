@@ -189,8 +189,8 @@ pub adapter(module_name: String): Adapter ->
             Adapter(
                 known = true,
                 source = "std/http/Cookies.terl",
-                expected_crate = "std::http",
-                implementation_paths = ["std/http/native/src/lib.rs", "std/http/native/src/cookies.rs"],
+                expected_crate = "terlan-http-native",
+                implementation_paths = ["std/http/native/src/bindings.rs", "std/http/native/src/cookies.rs"],
                 test_paths = ["std/http/native/src/bindings_test.rs", "std/http/native/src/cookies_test.rs"],
             );
         "std.http.Response" -> single_native("std/http/Response.terl", "std::http", "http");
@@ -441,9 +441,11 @@ implementation_function(operation: String, function_name: String): String ->
     case operation {
         "std.crypto.hash.sha256" -> "sha256_bytes";
         "std.http.sse.encode_event" -> "encode_event";
+        "std.http.cookies.encode" -> "set_header_with_options";
         "std.db.postgres.commit" -> "finish_transaction";
         "std.db.postgres.rollback" -> "finish_transaction";
-        "std.http.session.current" -> "bindings";
+        "std.http.session.lookup" -> "bindings";
+        "std.http.session.create" -> "bindings";
         "std.http.session.get" -> "bindings";
         "std.http.session.set" -> "bindings";
         "std.http.session.delete" -> "bindings";
@@ -489,14 +491,21 @@ pub crate_visible_transaction_symbols_are_resolved_without_accepting_lookalikes(
         and implementation_function("app.commit", "commit") == "commit".
 
 @test
-pub package_owned_hash_and_session_adapters_retain_real_paths(): Bool ->
+pub package_owned_hash_cookie_and_session_adapters_retain_real_paths(): Bool ->
     let hash = adapter("std.crypto.Hash");
+    let cookies = adapter("std.http.Cookies");
     let session = adapter("std.http.Session");
     hash.known
         and hash.expected_crate == "sha2"
         and hash.implementation_paths == ["std/crypto/native/src/hash.rs"]
         and implementation_function("std.crypto.hash.sha256", "sha256") == "sha256_bytes"
         and implementation_function("app.sha256", "sha256") == "sha256"
+        and cookies.known
+        and cookies.expected_crate == "terlan-http-native"
+        and contains_string(cookies.implementation_paths, "std/http/native/src/bindings.rs")
+        and implementation_function("std.http.cookies.encode", "encode") == "set_header_with_options"
+        and implementation_function("std.http.session.lookup", "lookup") == "bindings"
+        and implementation_function("std.http.session.create", "create") == "bindings"
         and session.known
         and session.expected_crate == "terlan-http-native"
         and contains_string(session.implementation_paths, "std/http/native/src/session_bindings.rs")

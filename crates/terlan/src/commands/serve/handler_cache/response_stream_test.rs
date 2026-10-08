@@ -1,6 +1,5 @@
 //! Compiled Terlan streaming values cross the production response bridge and package codec.
 
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::handler_cache_test_support::compile_native_handler_fixture;
 use crate::commands::serve::response_rendering::serve_vm_stream_handler_response;
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
@@ -37,8 +36,7 @@ pub handle(body: String, size: Int): Response ->
                 &[ReplValue::String(body.into()), ReplValue::Int(size)],
             )
             .unwrap();
-        let result =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root);
+        let result = crate::commands::serve::handler::decode_owned_response(value, &fixture.root);
         if size <= 0 {
             assert!(result
                 .unwrap_err()

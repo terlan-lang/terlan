@@ -12,7 +12,6 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 #[cfg(test)]
 use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::fixed_scheduler_control::VmFixedSchedulerControl;
-use crate::runtime::vm::http_router::VmHttpRouter;
 use crate::runtime::vm::protocol_task_executor::{
     retire_protocol_resource, with_current_protocol_resource,
 };
@@ -26,6 +25,7 @@ use crate::runtime::vm::work_stealing::{
 };
 use crate::runtime::vm::ReplValue;
 use crate::support::fingerprint;
+use terlan_http_native::routing::Router;
 use terlan_http_native::session_service::{SessionHost, SessionService};
 
 use super::handler::WebPackageHandler;
@@ -106,7 +106,7 @@ mod response_policy_test;
 pub(super) struct AotHandlerRuntime {
     module: String,
     generation: Arc<AotHandlerGeneration>,
-    router: Option<VmHttpRouter>,
+    router: Option<Router<ReplValue>>,
     primary_request_projection: Option<PrimaryRequestProjection>,
     request_projections: HashMap<String, HashMap<usize, AdmittedRequestProjection>>,
 }
@@ -120,7 +120,7 @@ struct PrimaryRequestProjection {
 
 #[derive(Clone, Debug)]
 struct AdmittedRequestProjection {
-    fields: crate::runtime::native::http::RequestFieldProjection,
+    fields: terlan_http_native::RequestFieldProjection,
     scalar_entry: Option<String>,
     scalar_field: Option<usize>,
     suspending: bool,

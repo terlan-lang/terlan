@@ -10,6 +10,7 @@ fn response(content_type: &str, payload: &str, status: u16) -> ReplValue {
         content_type.into(),
         payload.into(),
         vec![],
+        vec![],
     ))
 }
 
@@ -86,10 +87,10 @@ fn owned_header_validation_retains_original_string_allocations() {
         "text/plain".into(),
         "body".into(),
         vec![(name, value)],
+        vec![],
     ));
     let decoded =
-        HandlerResponse::from_owned_vm_response_with_package_root(response, Path::new("."))
-            .unwrap();
+        crate::commands::serve::handler::decode_owned_response(response, Path::new(".")).unwrap();
     assert_eq!(decoded.headers[0].0.as_ptr(), name_ptr);
     assert_eq!(decoded.headers[0].1.as_ptr(), value_ptr);
 }
@@ -105,7 +106,10 @@ fn source_body_responses_preserve_provider_metadata() {
             source_response::decode(response(content_type, "managed body", 207), None).unwrap();
         assert_eq!(decoded.status, 207);
         assert_eq!(decoded.content_type, content_type);
-        assert_eq!(decoded.body.as_bytes(), b"managed body");
+        assert_eq!(
+            decoded.body.as_bytes().expect("finite response"),
+            b"managed body"
+        );
         assert!(decoded.headers.is_empty());
     }
 }
@@ -114,9 +118,15 @@ fn source_body_responses_preserve_provider_metadata() {
 fn owned_source_body_response_preserves_allocation() {
     let body = String::from("owned body");
     let pointer = body.as_ptr();
-    let value = from_native(cached_response(206, "text/plain".into(), body, vec![]));
+    let value = from_native(cached_response(
+        206,
+        "text/plain".into(),
+        body,
+        vec![],
+        vec![],
+    ));
     let decoded =
-        HandlerResponse::from_owned_vm_response_with_package_root(value, Path::new(".")).unwrap();
+        crate::commands::serve::handler::decode_owned_response(value, Path::new(".")).unwrap();
     assert_eq!(decoded.status, 206);
     assert_eq!(decoded.content_type, "text/plain");
     let HandlerBody::Text(body) = decoded.body else {
@@ -133,11 +143,12 @@ fn source_redirect_metadata_and_unknown_kind_are_checked() {
         "text/plain".into(),
         "".into(),
         vec![("Location".into(), "/next".into())],
+        vec![],
     ));
     let decoded = source_response::decode(value, None).unwrap();
     assert_eq!(decoded.status, 308);
     assert_eq!(decoded.headers, [("Location".into(), "/next".into())]);
-    assert!(decoded.body.is_empty());
+    assert!(decoded.body.as_bytes().expect("finite response").is_empty());
     let mut unknown = response("text/plain", "bad", 200);
     *field_mut(&mut unknown, "kind") = ReplValue::Int(99);
     assert!(source_response::decode(unknown, None)
@@ -168,11 +179,10 @@ fn retired_tuple_layouts_reject_before_body_or_metadata_interpretation() {
             ],
         ] {
             let value = ReplValue::Tuple(prefix.into_iter().chain(payload.clone()).collect());
-            let borrowed =
-                HandlerResponse::from_vm_response_with_package_root(&value, Path::new("."))
-                    .unwrap_err();
+            let borrowed = crate::commands::serve::handler::decode_response(&value, Path::new("."))
+                .unwrap_err();
             let owned =
-                HandlerResponse::from_owned_vm_response_with_package_root(value, Path::new("."))
+                crate::commands::serve::handler::decode_owned_response(value, Path::new("."))
                     .unwrap_err();
             assert_eq!(
                 borrowed,
@@ -205,11 +215,10 @@ fn retired_response_handles_reject_even_when_disguised_as_source_records() {
         };
         fields.extend(handle_fields);
         for value in [handle, mixed] {
-            let borrowed =
-                HandlerResponse::from_vm_response_with_package_root(&value, Path::new("."))
-                    .unwrap_err();
+            let borrowed = crate::commands::serve::handler::decode_response(&value, Path::new("."))
+                .unwrap_err();
             let owned =
-                HandlerResponse::from_owned_vm_response_with_package_root(value, Path::new("."))
+                crate::commands::serve::handler::decode_owned_response(value, Path::new("."))
                     .unwrap_err();
             assert_eq!(
                 borrowed,

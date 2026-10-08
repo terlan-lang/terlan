@@ -1,9 +1,11 @@
 //! Mutual TLS is enforced before Hyper can dispatch an authenticated peer request.
 
 use super::*;
+use http_body_util::Full;
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, ExtendedKeyUsagePurpose, IsCa, KeyPair,
 };
+use std::convert::Infallible;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn authority(name: &str) -> (Certificate, KeyPair) {

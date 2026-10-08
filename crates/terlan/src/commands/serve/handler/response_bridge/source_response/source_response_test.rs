@@ -42,6 +42,7 @@ fn response() -> Vec<(String, ReplValue)> {
         ),
         ("chunk_size".into(), ReplValue::Int(4)),
         ("max_pending_writes".into(), ReplValue::Int(2)),
+        ("default_headers".into(), ReplValue::List(vec![])),
     ]
 }
 
@@ -54,7 +55,7 @@ fn transport_respects_source_metadata_and_field_names_not_offsets() {
         let value = decode("Response", fields, None).unwrap();
         assert_eq!(value.status, 218);
         assert_eq!(value.content_type, "application/custom");
-        assert_eq!(value.body.as_bytes(), b"body");
+        assert_eq!(value.body.as_bytes().expect("finite response"), b"body");
         assert_eq!(
             value.headers,
             [
@@ -68,7 +69,7 @@ fn transport_respects_source_metadata_and_field_names_not_offsets() {
 #[test]
 fn transport_rejects_missing_duplicate_unknown_and_mistyped_fields() {
     assert!(decode("Unrelated", response(), None).is_err());
-    for index in 0..8 {
+    for index in 0..response().len() {
         let mut fields = response();
         fields.remove(index);
         assert!(decode("Response", fields, None).is_err());
@@ -171,13 +172,13 @@ fn source_file_responses_preserve_bytes_metadata_and_owned_decode() {
             name: "Response".into(),
             fields,
         };
-        let borrowed = HandlerResponse::from_vm_response_with_package_root(&record, root.path())
+        let borrowed = crate::commands::serve::handler::decode_response(&record, root.path())
             .expect("decode package-relative file");
-        let owned = HandlerResponse::from_owned_vm_response_with_package_root(record, root.path())
+        let owned = crate::commands::serve::handler::decode_owned_response(record, root.path())
             .expect("consume package-relative file");
         assert_eq!(owned, borrowed);
         assert_eq!(owned.status, 218);
-        assert_eq!(owned.body.as_bytes(), bytes);
+        assert_eq!(owned.body.as_bytes().expect("finite response"), bytes);
         assert_eq!(owned.headers.len(), 2);
         assert_eq!(
             owned.content_type,

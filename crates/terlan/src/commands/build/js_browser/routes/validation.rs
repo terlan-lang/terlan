@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use super::*;
 
 /// Validates handler rows before they enter the web manifest.
@@ -191,144 +189,6 @@ pub(super) fn apply_router_handler_arities(
     }
 }
 
-/// Validates one router middleware callback reference.
-///
-/// Inputs:
-/// - `module_name`: Terlan module that owns the middleware function.
-/// - `middleware`: callback name extracted from `Router.use`.
-/// - `signatures`: local function signature map.
-///
-/// Output:
-/// - `Ok(())` when the middleware has `Request -> MiddlewareResult` shape.
-/// - Stable `error[web_router]` diagnostic otherwise.
-///
-/// Transformation:
-/// - Checks only local function declarations until imported middleware
-///   validation is routed through the full typechecker.
-pub(super) fn validate_router_middleware(
-    module_name: &str,
-    middleware: &str,
-    signatures: &HashMap<String, RouterHandlerSignature>,
-) -> Result<(), String> {
-    let Some(signature) = signatures.get(middleware) else {
-        return Err(format!(
-            "error[web_router]: middleware `{middleware}` is not defined in module `{module_name}`"
-        ));
-    };
-    if signature.arity != 1 {
-        return Err(format!(
-            "error[web_router]: middleware `{middleware}` must accept one Request, got arity {}",
-            signature.arity
-        ));
-    }
-    let Some(request_type) = signature.param_types.first() else {
-        return Err(format!(
-            "error[web_router]: middleware `{middleware}` must accept Request"
-        ));
-    };
-    if !is_request_type(request_type) {
-        return Err(format!(
-            "error[web_router]: middleware `{middleware}` must accept Request, got `{request_type}`"
-        ));
-    }
-    if !is_middleware_result_type(&signature.return_type) {
-        return Err(format!(
-            "error[web_router]: middleware `{middleware}` must return MiddlewareResult, got `{}`",
-            signature.return_type
-        ));
-    }
-    Ok(())
-}
-
-/// Validates one router response-middleware callback reference.
-pub(super) fn validate_router_response_middleware(
-    module_name: &str,
-    middleware: &str,
-    signatures: &HashMap<String, RouterHandlerSignature>,
-) -> Result<(), String> {
-    let Some(signature) = signatures.get(middleware) else {
-        return Err(format!(
-            "error[web_router]: response middleware `{middleware}` is not defined in module `{module_name}`"
-        ));
-    };
-    if signature.arity != 2 {
-        return Err(format!(
-            "error[web_router]: response middleware `{middleware}` must accept Request and Response, got arity {}",
-            signature.arity
-        ));
-    }
-    let [request_type, response_type] = signature.param_types.as_slice() else {
-        return Err(format!(
-            "error[web_router]: response middleware `{middleware}` must accept Request and Response"
-        ));
-    };
-    if !is_request_type(request_type) || !is_response_type(response_type) {
-        return Err(format!(
-            "error[web_router]: response middleware `{middleware}` must accept Request and Response, got `({}, {})`",
-            request_type, response_type
-        ));
-    }
-    if !is_response_type(&signature.return_type) {
-        return Err(format!(
-            "error[web_router]: response middleware `{middleware}` must return Response, got `{}`",
-            signature.return_type
-        ));
-    }
-    Ok(())
-}
-
-/// Validates a router-level error handler before manifest serialization.
-///
-/// Inputs:
-/// - `module_name`: Terlan module that owns the error handler function.
-/// - `handler`: extracted error handler manifest row.
-/// - `signatures`: local function signature map.
-///
-/// Output:
-/// - `Ok(())` when the handler has `HttpError -> Response` shape.
-/// - Stable `error[web_router]` diagnostic otherwise.
-///
-/// Transformation:
-/// - Checks only local function declarations in the source module until richer
-///   imported handler validation is routed through the full typechecker.
-pub(super) fn validate_router_error_handler(
-    module_name: &str,
-    handler: &WebErrorHandlerArtifact,
-    signatures: &HashMap<String, RouterHandlerSignature>,
-) -> Result<(), String> {
-    let Some(signature) = signatures.get(&handler.function) else {
-        return Err(format!(
-            "error[web_router]: error handler `{}` is not defined in module `{}`",
-            handler.function, module_name
-        ));
-    };
-    if signature.arity != 1 {
-        return Err(format!(
-            "error[web_router]: error handler `{}` must accept one HttpError, got arity {}",
-            handler.function, signature.arity
-        ));
-    }
-    let Some(param_type) = signature.param_types.first() else {
-        return Err(format!(
-            "error[web_router]: error handler `{}` must accept HttpError",
-            handler.function
-        ));
-    };
-    if !is_http_error_type(param_type) {
-        return Err(format!(
-            "error[web_router]: error handler `{}` must accept HttpError, got `{param_type}`",
-            handler.function
-        ));
-    }
-    if !is_response_type(&signature.return_type) {
-        return Err(format!(
-            "error[web_router]: error handler `{}` must return Response, got `{}`",
-            handler.function, signature.return_type
-        ));
-    }
-    Ok(())
-}
-
 /// Validates the complete discovered route set.
 ///
 /// Inputs:
@@ -339,60 +199,21 @@ pub(super) fn validate_router_error_handler(
 /// - Stable `error[web_router]` diagnostic otherwise.
 ///
 /// Transformation:
-/// - Reuses the serve-side ambiguity model so build artifacts cannot encode
+/// - Reuses the HTTP package's ambiguity model so build artifacts cannot encode
 ///   same-shape routes such as `/users/:id` and `/users/:name` for one method.
 pub(super) fn validate_discovered_web_routes(rows: &WebRouteManifestRows) -> Result<(), String> {
-    let mut seen = BTreeSet::new();
-    for (method, route, kind) in rows
-        .handlers
-        .iter()
-        .map(|handler| {
-            (
-                handler.method.as_str(),
-                handler.route.as_str(),
-                "handler route",
-            )
-        })
-        .chain(
-            rows.websockets
-                .iter()
-                .map(|websocket| ("GET", websocket.route.as_str(), "websocket route")),
-        )
-        .chain(
-            rows.sse
-                .iter()
-                .map(|endpoint| ("GET", endpoint.route.as_str(), "SSE route")),
-        )
-        .chain(rows.static_responses.iter().map(|response| {
-            (
-                response.method.as_str(),
-                response.route.as_str(),
-                "static response route",
-            )
-        }))
-        .chain(rows.file_responses.iter().map(|response| {
-            (
-                response.method.as_str(),
-                response.route.as_str(),
-                "file response route",
-            )
-        }))
-    {
-        let key = (
-            method,
-            route_ambiguity_key(route).map_err(|message| {
-                message
-                    .to_string()
-                    .replacen("error[serve_package]", "error[web_router]", 1)
-            })?,
-        );
-        if !seen.insert(key) {
-            return Err(format!(
-                "error[web_router]: duplicate or ambiguous {kind} `{method}` `{route}`"
-            ));
-        }
-    }
-    Ok(())
+    terlan_http_native::manifest::validate_route_namespace(
+        &rows.handlers,
+        &rows.websockets,
+        &rows.sse,
+        &rows.static_responses,
+        &rows.file_responses,
+    )
+    .map_err(|error| {
+        error
+            .to_string()
+            .replacen("error[serve_package]", "error[web_router]", 1)
+    })
 }
 
 /// Validates dynamic handler routes for compatibility with earlier tests.

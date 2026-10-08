@@ -1,13 +1,12 @@
 //! Test-only legacy metadata adapter; production admits source-composed callbacks.
 
 use crate::runtime::vm::aot_metadata::{AotRouterCallable, AotRouterPlan, AotRouterRouteTarget};
-use crate::runtime::vm::http_router::{
-    VmHttpCompiledCallableRef, VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouter,
-};
+use crate::runtime::vm::native_callable::VmNativeCallableRef;
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::routing::{RouteMethod, RouteTarget, Router};
 
-pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, String> {
-    let mut router = VmHttpRouter::new();
+pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<Router<ReplValue>, String> {
+    let mut router = Router::new();
     let middleware: Vec<_> = plan.middleware.into_iter().map(callable_value).collect();
     let response_middleware: Vec<_> = plan
         .response_middleware
@@ -15,22 +14,20 @@ pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, St
         .map(callable_value)
         .collect();
     for route in plan.routes {
-        let method = VmHttpRouteMethod::from_name(&route.method).ok_or_else(|| {
+        let method = RouteMethod::from_name(&route.method).ok_or_else(|| {
             format!(
                 "error[serve.aot.router]: unsupported route method `{}`",
                 route.method
             )
         })?;
         let target = match route.target {
-            AotRouterRouteTarget::Handler(handler) => {
-                VmHttpRouteTarget::Handler(callable_value(handler))
+            AotRouterRouteTarget::Handler(handler) => RouteTarget::Handler(callable_value(handler)),
+            AotRouterRouteTarget::Sse(plan) => {
+                RouteTarget::SseEndpoint(plan.map_callbacks(VmNativeCallableRef::into_value))
             }
-            AotRouterRouteTarget::Sse(plan) => VmHttpRouteTarget::SseEndpoint(
-                plan.map_callbacks(VmHttpCompiledCallableRef::into_value),
-            ),
-            AotRouterRouteTarget::WebSocket(plan) => VmHttpRouteTarget::WebSocketEndpoint(
-                plan.map_callbacks(VmHttpCompiledCallableRef::into_value),
-            ),
+            AotRouterRouteTarget::WebSocket(plan) => {
+                RouteTarget::WebSocketEndpoint(plan.map_callbacks(VmNativeCallableRef::into_value))
+            }
         };
         router = router.scoped_target(
             method,
@@ -62,7 +59,7 @@ pub(super) fn materialize_router(plan: AotRouterPlan) -> Result<VmHttpRouter, St
 }
 
 fn callable_value(callable: AotRouterCallable) -> ReplValue {
-    VmHttpCompiledCallableRef {
+    VmNativeCallableRef {
         module: callable.module,
         function: callable.function,
         arity: callable.arity,

@@ -35,6 +35,7 @@ fn context_catalog_is_exact_and_does_not_grant_execution() {
     for name in [
         "",
         "std.http.session.",
+        "std.http.session.current",
         "std.http.response.text",
         "app.http.session.get",
     ] {
@@ -95,4 +96,6 @@ fn registration_is_unique_and_lookup_is_exact() {
     assert!(value_binding("app.uri.parse_parts").is_none());
     assert!(value_binding("std.http.cookies.set_header").is_none());
     assert!(value_binding("std.http.cookies.delete_header").is_none());
+    assert!(value_binding("std.http.cookies.set_header_with_options").is_none());
+    assert_eq!(value_binding("std.http.cookies.encode").unwrap().arity, 9);
 }

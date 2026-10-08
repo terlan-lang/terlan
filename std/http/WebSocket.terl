@@ -8,7 +8,9 @@
 module std.http.WebSocket.
 
 import std.collections.List.
+import std.core.Int.
 import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
 import std.http.WebSocketIdentity.
 
 import type std.collections.List.
@@ -84,18 +86,19 @@ type Callbacks =
           cancellation: (String) -> Unit
       }.
 
-type Pairing =
-      {
-          Atom["pairing"],
-          waiting: String,
-          first_matched: String,
-          second_matched: String,
-          peer_left: String,
-          inbound: (String) -> String,
-          cancellation: (String) -> Unit
-      }.
+type PairContext = {String, Int, String, String}.
 
-type StatefulInbound = (String, Int, String, String, String) -> {String, Option[String], Option[String]}.
+type StatefulInbound = (Option[PairContext], String) -> Result[{String, Option[String], Option[String]}, String].
+
+broadcast_delivery(inbound: (String) -> String): StatefulInbound ->
+    (context: Option[PairContext], frame: String) ->
+        let state =
+            case context {
+                Some({state, _, _, _}) -> state;
+                None -> ""
+            };
+        let payload = inbound(frame);
+        Ok({state, Some(payload), Some(payload)}).
 
 delivery(payload: String): Option[String] ->
     case payload {
@@ -106,11 +109,22 @@ delivery(payload: String): Option[String] ->
 stateful_delivery(
     inbound: (String, Int, String, String, String) -> {String, String, String},
 ): StatefulInbound ->
-    (state: String, role: Int, frame: String, first: String, second: String) ->
-        let {next, first_payload, second_payload} = inbound(state, role, frame, first, second);
-        {next, delivery(first_payload), delivery(second_payload)}.
+    (context: Option[PairContext], frame: String) ->
+        case context {
+            None ->
+                Err("error[serve.websocket.pairing]: inbound frame arrived before a peer joined");
+            Some({state, role, first, second}) ->
+                let {next, first_payload, second_payload} = inbound(state, role, frame, first, second);
+                Ok({next, delivery(first_payload), delivery(second_payload)})
+        }.
 
-type Matched = (String, Int, String, String) -> String.
+type Matched = (String, String, String) -> {String, String}.
+
+matched_delivery(matched: (String, Int, String, String) -> String): Matched ->
+    (room: String, first: String, second: String) ->
+        let first_payload = matched(room, 1, first, second);
+        let second_payload = matched(room, 2, first, second);
+        {first_payload, second_payload}.
 
 type Restored = (String, String, Int, String, String) -> String.
 
@@ -131,7 +145,7 @@ type RestorablePairing =
           waiting: () -> String,
           peer_left: () -> String,
           identity: (String) -> Result[Option[{String, Int}], String],
-          room_prefix: String,
+          room_identity: (Int) -> String,
           retention_ms: Int,
           retained_room_capacity: Int,
           matched: Matched,
@@ -140,7 +154,7 @@ type RestorablePairing =
           cancellation: (String) -> Unit
       }.
 
-type Policy = Callbacks | Pairing | StatefulPairing | RestorablePairing.
+type Policy = Callbacks | StatefulPairing | RestorablePairing.
 
 append_policy(endpoint: Endpoint, policy: Policy): Endpoint ->
     Endpoint {
@@ -171,9 +185,10 @@ pub (endpoint: Endpoint) callbacks(
  * Installs a two-peer session policy with source-owned protocol payloads.
  *
  * The runtime queues the waiting payload for the first peer, delivers the two
- * role-specific match payloads when a second peer arrives, broadcasts each
- * inbound callback result to the pair, and notifies the remaining peer when a
- * connection closes.
+ * role-specific match payloads when a second peer arrives, and notifies the
+ * remaining peer when a connection closes. The source adapter invokes each
+ * inbound callback once and selects both peer deliveries, including empty
+ * frames. Before pairing or after disconnect, it replies to the remaining peer.
  */
 pub (endpoint: Endpoint) paired_callbacks(
     waiting: String,
@@ -185,7 +200,14 @@ pub (endpoint: Endpoint) paired_callbacks(
 ): Endpoint ->
     append_policy(
         endpoint,
-        Pairing(waiting, first_matched, second_matched, peer_left, inbound, cancellation),
+        StatefulPairing(
+            waiting,
+            first_matched,
+            second_matched,
+            peer_left,
+            broadcast_delivery(inbound),
+            cancellation,
+        ),
     ).
 
 /**
@@ -222,9 +244,11 @@ pub (endpoint: Endpoint) stateful_paired_callbacks(
 /**
  * Installs a restorable stateful two-peer session policy.
  *
- * Fresh pairs receive a runtime-allocated room identifier formed from the
- * source-owned prefix and a monotonic sequence. The matched callback creates
- * each role's entry payload. A later request carrying the declared room and
+ * Fresh pairs receive a source-rendered room identifier formed from the
+ * supplied prefix and a runtime-reserved sequence. The matched callback creates
+ * each role's entry payload, first role 1 then role 2, in one source invocation.
+ * Both must succeed before the package publishes either payload. A later
+ * request carrying the declared room and
  * player query parameters can reclaim a disconnected seat; the restored
  * callback receives the retained opaque state and creates its current view.
  * Fully disconnected rooms remain reclaimable for `retention_ms`, with the
@@ -258,10 +282,10 @@ pub (endpoint: Endpoint) restorable_stateful_paired_callbacks(
                     first_player,
                     second_player,
                 ),
-            room_prefix,
+            (sequence: Int) -> room_prefix + Int.to_string(sequence),
             retention_ms,
             retained_room_capacity,
-            matched,
+            matched_delivery(matched),
             restored,
             stateful_delivery(inbound),
             cancellation,

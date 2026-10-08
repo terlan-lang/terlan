@@ -3,17 +3,9 @@ use std::path::PathBuf;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::CliState;
 
-/// Default host for `terlc serve`.
-pub(crate) const DEFAULT_SERVE_HOST: &str = "127.0.0.1";
-
-/// Default port for `terlc serve`.
-pub(crate) const DEFAULT_SERVE_PORT: u16 = 3000;
-
-/// Default live-reload polling interval in milliseconds.
-pub(crate) const DEFAULT_POLL_MS: u64 = 500;
-
-/// Default maximum request-body size accepted by the production HTTP adapter.
-pub(crate) const DEFAULT_MAX_BODY_BYTES: u64 = 8 * 1024 * 1024;
+pub(crate) use terlan_http_native::server_config::{
+    DEFAULT_MAX_BODY_BYTES, DEFAULT_POLL_MS, DEFAULT_SERVE_HOST, DEFAULT_SERVE_PORT,
+};
 
 /// Dynamic handler runtime selected for `terlc serve`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -224,12 +224,30 @@ fn colon_follows_callable_head(tokens: &[Token], colon: usize) -> bool {
 }
 
 fn arrow_starts_expression(tokens: &[Token], arrow: usize) -> bool {
-    let Some(next) = tokens[arrow + 1..]
+    let mut following = tokens[arrow + 1..]
         .iter()
-        .find(|token| !is_trivia(&token.kind))
-    else {
+        .filter(|token| !is_trivia(&token.kind))
+        .peekable();
+    let Some(mut next) = following.next() else {
         return false;
     };
+    // A fully qualified return type starts with a lowercase namespace but
+    // ends with its type name. Do not classify its arrow as a body separator.
+    while matches!(next.kind, TokenKind::Atom | TokenKind::Var)
+        && following
+            .peek()
+            .is_some_and(|dot| dot.kind == TokenKind::Dot && dot.start == next.end)
+    {
+        let mut qualified = following.clone();
+        let dot = qualified.next().expect("peeked dot");
+        let Some(part) = qualified.next().filter(|part| {
+            part.start == dot.end && matches!(part.kind, TokenKind::Atom | TokenKind::Var)
+        }) else {
+            break;
+        };
+        next = part;
+        following = qualified;
+    }
     match next.kind {
         TokenKind::Atom => true,
         TokenKind::Var => next.text.chars().next().is_some_and(char::is_lowercase),

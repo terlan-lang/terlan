@@ -38,7 +38,7 @@ pub type Continue =
 /// callback shape without exposing backend panic, bridge, or server internals.
 
 pub type ErrorHandler =
-    (HttpError) -> Response.
+    (std.http.Error.HttpError) -> std.http.Response.Response.
 
 /// GroupBuilder configures a nested router scope.
 ///
@@ -58,7 +58,7 @@ pub type GroupBuilder =
 /// the compiler can validate handler arity and return type.
 
 pub type Handler =
-    (Request) -> Response.
+    (std.http.Request.Request) -> std.http.Response.Response.
 
 /// Allows one policy-sensitive lifecycle transition.
 ///
@@ -146,7 +146,7 @@ pub type LifecycleRequestOutcome =
 /// deterministic continuation and short-circuit semantics.
 
 pub type Middleware =
-    (Request) -> MiddlewareResult.
+    (std.http.Request.Request) -> MiddlewareResult.
 
 /// MiddlewareResult is the complete result domain for HTTP middleware.
 ///
@@ -180,7 +180,7 @@ pub type OverloadPolicy =
 /// typed short-circuit path.
 
 pub type Respond =
-    {Atom["respond"], response: Response}.
+    {Atom["respond"], response: std.http.Response.Response}.
 
 /// ResponseMiddleware represents one router response callback.
 ///
@@ -190,7 +190,7 @@ pub type Respond =
 /// transport buffers or weakening the typed response contract.
 
 pub type ResponseMiddleware =
-    (Request, Response) -> Response.
+    (std.http.Request.Request, std.http.Response.Response) -> std.http.Response.Response.
 
 /// Router represents an HTTP route table.
 ///

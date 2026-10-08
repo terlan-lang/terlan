@@ -15,7 +15,7 @@ pub struct WebSocketHub {
 #[derive(Default)]
 struct WebSocketHubState {
     next_id: u64,
-    next_room: u64,
+    next_room: i64,
     waiting: HashMap<String, u64>,
     rooms: HashMap<(String, String), u64>,
     sessions: HashMap<u64, WebSocketHubSession>,
@@ -46,7 +46,7 @@ enum WebSocketHubAdmission {
     Waiting,
     Matched {
         pair_id: u64,
-        room_id: String,
+        sequence: i64,
         first_request: String,
         second_request: String,
     },
@@ -203,11 +203,11 @@ impl WebSocketHub {
                     "error[serve.websocket.hub]: waiting metadata disappeared".to_string()
                 })?
                 .first_request;
-            let (room_id, retention, retained_room_capacity) =
+            let (sequence, retention, retained_room_capacity) =
                 if let Some(restoration) = &pairing.restoration {
                     state.next_room += 1;
                     (
-                        Some(format!("{}{}", restoration.room_prefix, state.next_room)),
+                        Some(state.next_room),
                         Some(Duration::from_millis(restoration.retention_ms)),
                         restoration.retained_room_capacity,
                     )
@@ -235,17 +235,16 @@ impl WebSocketHub {
                     second_request: request_target.clone(),
                     state: String::new(),
                     route: route.clone(),
-                    room_id: room_id.clone(),
+                    room_id: None,
                     retention,
                     retained_room_capacity,
                     expires_at: None,
                 },
             );
-            if let Some(room_id) = room_id {
-                state.rooms.insert((route, room_id.clone()), waiting_id);
+            if let Some(sequence) = sequence {
                 WebSocketHubAdmission::Matched {
                     pair_id: waiting_id,
-                    room_id,
+                    sequence,
                     first_request,
                     second_request: request_target,
                 }
@@ -296,20 +295,39 @@ impl WebSocketHub {
     fn complete_match(
         &self,
         pair_id: u64,
+        room_id: String,
         first: String,
         second: String,
     ) -> Result<(), crate::ServiceError> {
         let senders = {
-            let state = self.state.lock().map_err(|_| {
+            let mut state = self.state.lock().map_err(|_| {
                 "error[serve.websocket.hub]: pairing state lock poisoned".to_string()
             })?;
             let pair = state.pairs.get(&pair_id).ok_or_else(|| {
                 "error[serve.websocket.pairing]: paired session state disappeared".to_string()
             })?;
-            [pair.first, pair.second].map(|id| {
+            let key = (pair.route.clone(), room_id.clone());
+            if room_id.is_empty() || state.rooms.contains_key(&key) || pair.room_id.is_some() {
+                return Err(
+                    "error[serve.websocket.pairing]: empty or duplicate room identity".into(),
+                );
+            }
+            if pair.first.is_none() || pair.second.is_none() {
+                return Err(
+                    "error[serve.websocket.pairing]: peer left before room admission".into(),
+                );
+            }
+            let senders = [pair.first, pair.second].map(|id| {
                 id.and_then(|id| state.sessions.get(&id))
                     .map(|session| session.outbound.clone())
-            })
+            });
+            state
+                .pairs
+                .get_mut(&pair_id)
+                .expect("validated pair")
+                .room_id = Some(room_id);
+            state.rooms.insert(key, pair_id);
+            senders
         };
         for (sender, payload) in senders.into_iter().zip([first, second]) {
             if let Some(sender) = sender {
@@ -319,43 +337,12 @@ impl WebSocketHub {
         Ok(())
     }
 
-    fn broadcast_pair(&self, id: u64, payload: String) -> Result<(), crate::ServiceError> {
-        for sender in self.pair_senders(id)? {
-            send_hub_payload(&sender, payload.clone())?;
-        }
-        Ok(())
-    }
-
-    fn pair_senders(&self, id: u64) -> Result<Vec<SyncSender<String>>, crate::ServiceError> {
-        let state = self
-            .state
-            .lock()
-            .map_err(|_| "error[serve.websocket.hub]: pairing state lock poisoned".to_string())?;
-        let session = state.sessions.get(&id).ok_or_else(|| {
-            "error[serve.websocket.hub]: session is no longer registered".to_string()
-        })?;
-        let Some(pair_id) = session.pair else {
-            return Ok(vec![session.outbound.clone()]);
-        };
-        let pair = state.pairs.get(&pair_id).ok_or_else(|| {
-            "error[serve.websocket.pairing]: paired session state disappeared".to_string()
-        })?;
-        Ok([pair.first, pair.second]
-            .into_iter()
-            .flatten()
-            .filter_map(|id| state.sessions.get(&id))
-            .map(|session| session.outbound.clone())
-            .collect())
-    }
-
     fn transition_pair<F>(&self, id: u64, transition: F) -> Result<(), crate::ServiceError>
     where
         F: FnOnce(
-            String,
-            i64,
-            String,
-            String,
-        ) -> Result<crate::source_descriptor::PairedTransition, String>,
+            Option<crate::source_descriptor::PairContext>,
+        )
+            -> Result<crate::source_descriptor::PairedTransition, crate::ServiceError>,
     {
         let deliveries = {
             let mut state = self.state.lock().map_err(|_| {
@@ -364,26 +351,33 @@ impl WebSocketHub {
             let session = state.sessions.get(&id).ok_or_else(|| {
                 "error[serve.websocket.hub]: session is no longer registered".to_string()
             })?;
-            let pair_id = session.pair.ok_or_else(|| {
-                "error[serve.websocket.pairing]: inbound frame arrived before a peer joined"
-                    .to_string()
-            })?;
-            let role = session.role;
-            let pair = state.pairs.get(&pair_id).ok_or_else(|| {
-                "error[serve.websocket.pairing]: paired session state disappeared".to_string()
-            })?;
-            let (next, first_payload, second_payload) = transition(
-                pair.state.clone(),
-                role,
-                pair.first_request.clone(),
-                pair.second_request.clone(),
-            )?;
-            let pair = state
-                .pairs
-                .get_mut(&pair_id)
-                .expect("validated pair remains locked");
-            pair.state = next;
-            [pair.first, pair.second]
+            let pair_id = session.pair;
+            let context = pair_id
+                .map(|pair_id| {
+                    let pair = state.pairs.get(&pair_id).ok_or_else(|| {
+                        "error[serve.websocket.pairing]: paired session state disappeared"
+                            .to_string()
+                    })?;
+                    Ok::<_, String>((
+                        pair.state.clone(),
+                        session.role,
+                        pair.first_request.clone(),
+                        pair.second_request.clone(),
+                    ))
+                })
+                .transpose()?;
+            let (next, first_payload, second_payload) = transition(context)?;
+            let recipients = if let Some(pair_id) = pair_id {
+                let pair = state
+                    .pairs
+                    .get_mut(&pair_id)
+                    .expect("validated pair remains locked");
+                pair.state = next;
+                [pair.first, pair.second]
+            } else {
+                [Some(id), None]
+            };
+            recipients
                 .into_iter()
                 .zip([first_payload, second_payload])
                 .filter_map(|(id, payload)| {
@@ -422,7 +416,7 @@ impl WebSocketHub {
                 pair.second = None;
             }
             let peer_id = pair.first.or(pair.second);
-            let restorable = pair.retention.is_some();
+            let restorable = pair.retention.is_some() && pair.room_id.is_some();
             let route = pair.route.clone();
             let retained_room_capacity = pair.retained_room_capacity;
             if restorable && peer_id.is_none() {
@@ -501,18 +495,14 @@ impl WebSocketHubLease {
         match self.admission.take() {
             Some(WebSocketHubAdmission::Matched {
                 pair_id,
-                room_id,
+                sequence,
                 first_request,
                 second_request,
             }) => {
-                let first = session.matched(
-                    room_id.clone(),
-                    1,
-                    first_request.clone(),
-                    second_request.clone(),
-                )?;
-                let second = session.matched(room_id, 2, first_request, second_request)?;
-                self.hub.complete_match(pair_id, first, second)
+                let room_id = session.room_identity(sequence)?;
+                let (first, second) =
+                    session.matched(room_id.clone(), first_request, second_request)?;
+                self.hub.complete_match(pair_id, room_id, first, second)
             }
             Some(WebSocketHubAdmission::Restored {
                 room_id,
@@ -529,18 +519,12 @@ impl WebSocketHubLease {
         }
     }
 
-    pub fn broadcast(&self, payload: String) -> Result<(), crate::ServiceError> {
-        self.hub.broadcast_pair(self.id, payload)
-    }
-
     pub fn transition<F>(&self, transition: F) -> Result<(), crate::ServiceError>
     where
         F: FnOnce(
-            String,
-            i64,
-            String,
-            String,
-        ) -> Result<crate::source_descriptor::PairedTransition, String>,
+            Option<crate::source_descriptor::PairContext>,
+        )
+            -> Result<crate::source_descriptor::PairedTransition, crate::ServiceError>,
     {
         self.hub.transition_pair(self.id, transition)
     }
@@ -568,13 +552,13 @@ fn send_hub_payload(
 
 /// Callback execution stays with the embedding runtime; the registry owns no VM values.
 pub trait AdmissionCallbacks {
+    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError>;
     fn matched(
         &mut self,
         room: String,
-        role: i64,
         first: String,
         second: String,
-    ) -> Result<String, String>;
+    ) -> Result<(String, String), crate::ServiceError>;
     fn restored(
         &mut self,
         room: String,
@@ -582,7 +566,7 @@ pub trait AdmissionCallbacks {
         role: i64,
         first: String,
         second: String,
-    ) -> Result<String, String>;
+    ) -> Result<String, crate::ServiceError>;
 }
 
 #[cfg(test)]

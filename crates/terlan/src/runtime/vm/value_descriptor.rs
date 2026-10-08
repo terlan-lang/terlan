@@ -20,6 +20,7 @@ impl DescriptorValue for ReplValue {
 
     fn into_descriptor(self) -> OwnedDescriptor<Self> {
         match self {
+            Self::Unit => OwnedDescriptor::Unit,
             Self::Int(value) => OwnedDescriptor::Int(value),
             Self::String(value) => OwnedDescriptor::String(value),
             Self::StringBytes(value) => std::str::from_utf8(&value)

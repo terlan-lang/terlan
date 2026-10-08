@@ -20,6 +20,7 @@ import self_host.SelfHostSourceClosure.
 import self_host.ProjectedParserEvidence.
 import self_host.ProjectedSemanticEvidence.
 import self_host.ProjectedTokenEvidence.
+import self_host.TokenEvidence.
 import self_host.ParserErrorEvidence.
 import std.collections.List.
 import std.core.{String, Unit}.
@@ -243,9 +244,7 @@ write_fragment(mode: String, output: Option[String], source: String): Bool ->
     ).
 
 write_tokens(output: Option[String], source: String): Bool ->
-    let lexed = CanonicalLexer.lex(source);
-    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-    write_exact_or_print(output, ProjectedTokenEvidence.document(frontend.tokens)).
+    write_exact_or_print(output, TokenEvidence.authority_document(source)).
 
 write_parser(output: Option[String], source: String): Bool ->
     let lexed = CanonicalLexer.lex(source);
@@ -273,7 +272,11 @@ parser_error_option(source: String): Option[String] ->
 parity_option(source: String): Option[String] ->
     let lexed = CanonicalLexer.lex(source);
     let frontend = ProjectedFrontend.compile(source, lexed.tokens);
-    case ProjectedParityEvidence.encode(frontend.backend) {
+    let syntax_valid = frontend.concrete.valid
+        and frontend.surface.valid
+        and frontend.signatures.valid
+        and frontend.bodies.valid;
+    case ProjectedParityEvidence.encode_with_validity(frontend.backend, syntax_valid) {
         Ok(text) -> some_string(text);
         Err(_) -> none_string()
     }.

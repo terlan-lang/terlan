@@ -539,6 +539,23 @@ fn parse_interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, 
                 })
                 .collect(),
         );
+        // Only declared alias parameters are polymorphic. Unknown uppercase
+        // dependency names must not silently become unconstrained variables.
+        let dependencies = vars
+            .iter()
+            .filter(|(_, id)| !params.contains(id))
+            .map(|(name, id)| {
+                (
+                    *id,
+                    Type::Named {
+                        module: None,
+                        name: name.clone(),
+                        args: Vec::new(),
+                    },
+                )
+            })
+            .collect();
+        let body = substitute_type_vars(&body, &dependencies);
         aliases.insert(
             name.clone(),
             TypeAlias {

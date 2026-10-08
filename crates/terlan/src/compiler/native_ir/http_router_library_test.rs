@@ -65,12 +65,8 @@ fn check_router(body: &str, owner: &str) {
 }
 
 fn check_router_provider(provider: &str, body: &str, owner: &str) {
-    let source = format!("{provider}\n{body}")
-        .replace("std.http.Router", owner)
-        .replace(
-            "import type std.http.Error.HttpError.",
-            "import std.http.{Response, Sse, WebSocket}.\nimport type std.http.Error.HttpError.",
-        );
+    let source = format!("{provider}\nimport std.http.{{Response, Sse, WebSocket}}.\n{body}")
+        .replace("std.http.Router", owner);
     check_sources(&[
         &source,
         include_str!("../../../../../std/http/Response.terl"),

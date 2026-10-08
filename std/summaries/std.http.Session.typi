@@ -3,20 +3,22 @@
 //! `std.http.Session` exposes actor-backed session helpers used by Terlan HTTP
 //! handlers. The HTTP server binds request cookies to VM session actor
 //! identity; source code owns the private session record and explicit response
-//! threading. Native operations receive only the selected identity.
+//! threading and lifetime policy. Native operations receive the selected identity
+//! and, for allocation and renewal, the source-selected lifetime.
 
 module std.http.Session.
 
 /// Session represents a source-owned reference to an HTTP session actor.
 ///
 /// Input: no type parameter.
-/// Output: a managed record with private identity and pending-cookie fields.
+/// Output: a managed record with private identity, pending-cookie, and lifetime fields.
 /// Transformation: hides actor ids, VM table ids, sticky routing metadata, and
 /// recovery policy while preserving a stable handler-facing session value.
 
 pub struct Session {
     #identity: String,
-    #pending_identity: String
+    #pending_identity: String,
+    #ttl_seconds: Int
 }.
 
 /// Returns the current request session.
@@ -24,8 +26,8 @@ pub struct Session {
 /// Input: one HTTP `Request`.
 /// Output: the VM-owned session actor bound to the request cookie, creating one
 /// when the request has no valid session cookie.
-/// Transformation: asks the HTTP runtime to bind request cookies to session
-/// actor identity without exposing cookie parsing or actor placement details.
+/// Transformation: selects a cookie identity, reuses a live lookup, and requests
+/// fresh allocation only on absence. Storage errors propagate without replacement.
 
 pub current(request: Request): Session.
 

@@ -31,3 +31,32 @@ pub check(): Bool -> left().read() == 21 and right().read() == 35.
         ]);
     }
 }
+
+#[test]
+fn renamed_imports_keep_receiver_identity_inside_captured_lambdas() {
+    check_sources(&[
+        r#"
+module captured_receiver.
+import app.{Left, Right}.
+import type app.Left.{Endpoint as Value, Outcome as Output}.
+factory(offset: Int): (Value) -> Output ->
+    (value: Value) -> value.read() + offset.
+pub check(): Bool ->
+    let callback = factory(4);
+    callback(Left.new()) == 25 and Right.new().read() == 35.
+"#,
+        r#"
+module app.Left.
+pub struct Endpoint { value: Int }.
+pub type Outcome = Int.
+pub new(): Endpoint -> Endpoint(value = 21).
+pub (endpoint: Endpoint) read(): Outcome -> endpoint.value.
+"#,
+        r#"
+module app.Right.
+pub struct Endpoint { value: Int }.
+pub new(): Endpoint -> Endpoint(value = 7).
+pub (endpoint: Endpoint) read(): Int -> endpoint.value * 5.
+"#,
+    ]);
+}

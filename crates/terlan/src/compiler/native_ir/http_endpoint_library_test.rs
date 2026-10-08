@@ -73,24 +73,34 @@ check_basic(policy: Policy): Bool -> case policy {
     _ -> false
 }.
 check_pairing(policy: Policy): Bool -> case policy {
-    Pairing("wait", "one", "two", "left", inbound, cancel) ->
-        inbound("frame") == "captured:frame" and cancel("closed") == Unit;
+    StatefulPairing("wait", "one", "two", "left", inbound, cancel) ->
+        let solo = case inbound(None, "frame") {
+            Ok({"", Some("captured:frame"), Some("captured:frame")}) -> true;
+            _ -> false
+        };
+        let paired = case inbound(Some({"state", 2, "a", "b"}), "frame") {
+            Ok({"state", Some("captured:frame"), Some("captured:frame")}) -> true;
+            _ -> false
+        };
+        solo and paired and cancel("closed") == Unit;
     _ -> false
 }.
 check_stateful(policy: Policy): Bool -> case policy {
     StatefulPairing("state-wait", "state-one", "state-two", "state-left", inbound, cancel) ->
-        let delivers = case inbound("s", 1, "f", "a", "b") { {"sf", Some("a"), Some("b")} -> true; _ -> false };
-        delivers and cancel("closed") == Unit;
+        let delivers = case inbound(Some({"s", 1, "a", "b"}), "f") { Ok({"sf", Some("a"), Some("b")}) -> true; _ -> false };
+        let unpaired = case inbound(None, "f") { Err(_) -> true; _ -> false };
+        delivers and unpaired and cancel("closed") == Unit;
     _ -> false
 }.
 check_restorable(policy: Policy): Bool -> case policy {
-    RestorablePairing(waiting, peer_left, identity, "room-", 107, 13,
+    RestorablePairing(waiting, peer_left, identity, room_identity, 107, 13,
         matched, restored_view, inbound, cancel) ->
         let selected = identity("/ws?room=r&player=two");
         let resolves = case selected { Ok(Some({room, role})) -> room == "r" and role == 2; _ -> false };
-        let delivers = case inbound("s", 2, "f", "a", "b") { {"sf", Some("a"), Some("b")} -> true; _ -> false };
+        let delivers = case inbound(Some({"s", 2, "a", "b"}), "f") { Ok({"sf", Some("a"), Some("b")}) -> true; _ -> false };
         resolves and waiting() == "captured:wait" and peer_left() == "captured:left"
-            and matched("r", 1, "a", "b") == "rab"
+            and room_identity(5) == "room-5"
+            and matched("r", "a", "b") == {"r1ab", "r2ab"}
             and restored_view("s", "r", 2, "a", "b") == "srab"
             and delivers
             and cancel("closed") == Unit;
@@ -107,7 +117,7 @@ pub check(): Bool ->
     let restored = stateful.restorable_stateful_paired_callbacks(
         () -> prefix + "wait", () -> prefix + "left",
         "room", "player", "room-", "one", "two", 107, 13,
-        (room: String, role: Int, first: String, second: String) -> room + first + second,
+        (room: String, role: Int, first: String, second: String) -> room + Int.to_string(role) + first + second,
         (state: String, room: String, role: Int, first: String, second: String) -> state + room + first + second,
         (state: String, role: Int, frame: String, first: String, second: String) -> {state + frame, first, second}, consume);
     let empty = case original.#policies { [] -> true; _ -> false };
@@ -150,10 +160,10 @@ pub check(): Bool ->
             {prefix + state + frame, first, second}, consume);
     case endpoint.#policies {
         [StatefulPairing(_, _, _, _, inbound, _)] ->
-            let silent = case inbound("s", 1, "f", "", "") { {"captured:sf", None, None} -> true; _ -> false };
-            let first = case inbound("s", 2, "f", "first", "") { {"captured:sf", Some("first"), None} -> true; _ -> false };
-            let second = case inbound("s", 1, "f", "", "second") { {"captured:sf", None, Some("second")} -> true; _ -> false };
-            let both = case inbound("s", 2, "f", " ", "text") { {"captured:sf", Some(" "), Some("text")} -> true; _ -> false };
+            let silent = case inbound(Some({"s", 1, "", ""}), "f") { Ok({"captured:sf", None, None}) -> true; _ -> false };
+            let first = case inbound(Some({"s", 2, "first", ""}), "f") { Ok({"captured:sf", Some("first"), None}) -> true; _ -> false };
+            let second = case inbound(Some({"s", 1, "", "second"}), "f") { Ok({"captured:sf", None, Some("second")}) -> true; _ -> false };
+            let both = case inbound(Some({"s", 2, " ", "text"}), "f") { Ok({"captured:sf", Some(" "), Some("text")}) -> true; _ -> false };
             silent and first and second and both;
         _ -> false
     }.
@@ -163,6 +173,7 @@ pub check(): Bool ->
         check_sources(&[
             &format!("{provider}\n{body}"),
             include_str!("../../../../../std/core/Option.terl"),
+            include_str!("../../../../../std/core/Result.terl"),
         ]);
         // Changing only package source must change delivery, including empty frames.
         let changed = provider.replace("\"\" -> None", "\"\" -> Some(payload)");
@@ -171,6 +182,7 @@ pub check(): Bool ->
         check_sources(&[
             &format!("{changed}\n{expected}"),
             include_str!("../../../../../std/core/Option.terl"),
+            include_str!("../../../../../std/core/Result.terl"),
         ]);
     }
 }

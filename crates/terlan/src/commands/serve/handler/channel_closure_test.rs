@@ -4,7 +4,6 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use super::{AotChannelCallbackState, AotChannelInvocation};
-use crate::commands::serve::handler::sse_invocation::AotSseCallbackSession;
 use crate::commands::serve::handler::websocket_invocation::AotWebSocketCallbackSession;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::native_image::managed::{
@@ -30,18 +29,21 @@ fn captured_channel_callbacks_preserve_state_wakes_and_recovery() {
         &source,
         r#"
 module channels.
+import std.core.Int.
 import std.core.Unit.
 import std.vm.Process.
-import std.core.Result.{Ok}.
-import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Option.{None, Some}.
 import type std.core.{Option, Result}.
 type Idle = () -> Unit.
 type Event = (String) -> Unit.
 type TextCallback = () -> String.
-type Matched = (String, Int, String, String) -> String.
+type Matched = (String, String, String) -> {String, String}.
 type Restored = (String, String, Int, String, String) -> String.
-type Inbound = (String, Int, String, String, String) -> {String, Option[String], Option[String]}.
+type Inbound = (Option[{String, Int, String, String}], String) -> Result[{String, Option[String], Option[String]}, String].
 type Identity = (String) -> Result[Option[{String, Int}], String].
+type RoomIdentity = (Int) -> String.
+pub room_identity(prefix: String): RoomIdentity -> (sequence: Int) -> prefix + Int.to_string(sequence).
 pub identity(prefix: String): Identity -> (target: String) -> Ok(Some({prefix + target, 2})).
 checked(value: String): Unit ->
     case value {
@@ -54,13 +56,18 @@ pub waiting(prefix: String): Event ->
     (_value: String) -> let wake = Process.receive_string(); checked(prefix + wake).
 pub text(prefix: String): TextCallback -> () -> prefix.
 pub matched(prefix: String): Matched ->
-    (room: String, _role: Int, first: String, second: String) -> prefix + room + first + second.
+    (room: String, first: String, second: String) ->
+        let payload = prefix + room + first + second;
+        {payload, payload}.
 pub restored(prefix: String): Restored ->
     (room: String, state: String, _role: Int, first: String, second: String) ->
         prefix + room + state + first + second.
 pub inbound(prefix: String): Inbound ->
-    (state: String, _role: Int, data: String, first: String, second: String) ->
-        {prefix + state + data, Some(first), Some(second)}.
+    (context: Option[{String, Int, String, String}], data: String) ->
+        case context {
+            Some({state, _role, first, second}) -> Ok({prefix + state + data, Some(first), Some(second)});
+            None -> Err("peer required")
+        }.
 "#,
     )
     .unwrap();
@@ -94,6 +101,7 @@ pub inbound(prefix: String): Inbound ->
     let restored = make("restored");
     let inbound = make("inbound");
     let identity = make("identity");
+    let room_identity = make("room_identity");
     drop(producer);
     drop(image);
     let runtime = Arc::new(AotHandlerRuntime::load("channels".into(), &path, None).unwrap());
@@ -106,7 +114,7 @@ pub inbound(prefix: String): Inbound ->
         matched,
         restored,
         inbound,
-        identity,
+        (identity, room_identity),
     );
     reject_invalid_callbacks(runtime, &text, &waiting);
 }
@@ -127,7 +135,7 @@ fn exercise_sse(
             cancellation: event.clone(),
         })
         .unwrap();
-    let mut session = AotSseCallbackSession::open(
+    let mut session = crate::commands::serve::handler::sse_invocation::open(
         Arc::clone(runtime),
         "channels".into(),
         SseSession::open(sse.clone()),
@@ -137,7 +145,10 @@ fn exercise_sse(
     else {
         panic!("captured event must park");
     };
-    assert!(session.keep_alive().unwrap_err().contains("callback_busy"));
+    assert_eq!(
+        session.keep_alive().unwrap_err().code(),
+        "serve.sse.callback_busy"
+    );
     completed(
         session
             .resume(wait.wake(ReplValue::String(String::new())))
@@ -146,7 +157,7 @@ fn exercise_sse(
     completed(session.keep_alive().unwrap());
     completed(session.drain().unwrap());
     assert!(!session.is_open());
-    let mut session = AotSseCallbackSession::open(
+    let mut session = crate::commands::serve::handler::sse_invocation::open(
         Arc::clone(runtime),
         "channels".into(),
         SseSession::open(sse),
@@ -176,7 +187,7 @@ fn exercise_websocket(
             cancellation: event.clone(),
         })
         .unwrap();
-    let mut session = AotWebSocketCallbackSession::open(
+    let mut session = crate::commands::serve::handler::websocket_invocation::open(
         Arc::clone(runtime),
         "channels".into(),
         Session::open(ws.clone()),
@@ -185,7 +196,10 @@ fn exercise_websocket(
     let AotChannelCallbackState::Waiting(wait) = session.inbound("event".into()).unwrap() else {
         panic!("captured inbound must park");
     };
-    assert!(session.writable().unwrap_err().contains("callback_busy"));
+    assert_eq!(
+        session.writable().unwrap_err().code(),
+        "serve.websocket.callback_busy"
+    );
     completed(
         session
             .resume(wait.wake(ReplValue::String(String::new())))
@@ -194,7 +208,7 @@ fn exercise_websocket(
     completed(session.writable().unwrap());
     completed(session.close().unwrap());
     assert!(!session.is_open());
-    let mut session = AotWebSocketCallbackSession::open(
+    let mut session = crate::commands::serve::handler::websocket_invocation::open(
         Arc::clone(runtime),
         "channels".into(),
         Session::open(ws),
@@ -215,7 +229,7 @@ fn exercise_recovery(
     matched: ReplValue,
     restored: ReplValue,
     inbound: ReplValue,
-    identity: ReplValue,
+    identities: (ReplValue, ReplValue),
 ) {
     let paired = WebSocketEndpointPlan::new(2, 128)
         .unwrap()
@@ -224,14 +238,13 @@ fn exercise_recovery(
             first_matched: String::new(),
             second_matched: String::new(),
             peer_left: String::new(),
-            stateful: true,
             inbound,
             cancellation: event,
             restoration: Some(WebSocketRestoration {
                 waiting: text.clone(),
                 peer_left: text.clone(),
-                identity,
-                room_prefix: "room-".into(),
+                identity: identities.0,
+                room_identity: identities.1,
                 retention_ms: 1000,
                 retained_room_capacity: 4,
                 matched,
@@ -239,7 +252,7 @@ fn exercise_recovery(
             }),
         })
         .unwrap();
-    let mut session = AotWebSocketCallbackSession::open(
+    let mut session = crate::commands::serve::handler::websocket_invocation::open(
         Arc::clone(runtime),
         "channels".into(),
         Session::open(paired.clone()),
@@ -247,11 +260,16 @@ fn exercise_recovery(
     .unwrap();
     assert_eq!(session.dispatch_pair_waiting_output().unwrap(), "captured:");
     assert_eq!(
+        session.dispatch_pair_room_identity_output(42).unwrap(),
+        "captured:42"
+    );
+    assert_eq!(
         std::future::Future::poll(
             std::pin::pin!(session.dispatch_pair_identity_output("target".into())),
             &mut std::task::Context::from_waker(std::task::Waker::noop())
-        ),
-        std::task::Poll::Ready(Ok(Some(("captured:target".into(), 2))))
+        )
+        .map(|result| result.unwrap()),
+        std::task::Poll::Ready(Some(("captured:target".into(), 2)))
     );
     assert_eq!(
         session.dispatch_pair_peer_left_output().unwrap(),
@@ -259,9 +277,12 @@ fn exercise_recovery(
     );
     assert_eq!(
         session
-            .dispatch_pair_matched_output("room".into(), 1, "first".into(), "second".into())
+            .dispatch_pair_matched_output("room".into(), "first".into(), "second".into())
             .unwrap(),
-        "captured:roomfirstsecond"
+        (
+            "captured:roomfirstsecond".into(),
+            "captured:roomfirstsecond".into()
+        )
     );
     assert_eq!(
         session
@@ -277,21 +298,20 @@ fn exercise_recovery(
     );
     session.enqueue_inbound("data".into()).unwrap();
     let (_, value) = session
-        .dispatch_next_stateful_inbound_output("state".into(), 1, "first".into(), "second".into())
+        .dispatch_next_paired_inbound_output(Some((
+            "state".into(),
+            1,
+            "first".into(),
+            "second".into(),
+        )))
         .unwrap();
     assert_eq!(
-        value,
-        Some(ReplValue::Tuple(vec![
-            ReplValue::String("captured:statedata".into()),
-            ReplValue::Record {
-                name: "Some".into(),
-                fields: vec![("value".into(), ReplValue::String("first".into()))]
-            },
-            ReplValue::Record {
-                name: "Some".into(),
-                fields: vec![("value".into(), ReplValue::String("second".into()))]
-            }
-        ]))
+        terlan_http_native::source_descriptor::paired_callback_transition(value.unwrap()).unwrap(),
+        (
+            "captured:statedata".into(),
+            Some("first".into()),
+            Some("second".into())
+        )
     );
     exercise_package_hub(&paired, &mut session);
     completed(session.cancel("disconnect".into()).unwrap());
@@ -315,19 +335,21 @@ fn exercise_package_hub(
     second.dispatch_admission(session).unwrap();
     assert_eq!(
         first.outbound.try_recv().unwrap(),
-        "captured:room-1firstsecond"
+        "captured:captured:1firstsecond"
     );
     assert_eq!(
         second.outbound.try_recv().unwrap(),
-        "captured:room-1firstsecond"
+        "captured:captured:1firstsecond"
     );
     session.enqueue_inbound("data".into()).unwrap();
     first
-        .transition(|state, role, first, second| {
-            let (dispatched, output) =
-                session.dispatch_next_stateful_inbound_output(state, role, first, second)?;
+        .transition(|context| {
+            let (dispatched, output) = session.dispatch_next_paired_inbound_output(context)?;
             assert!(dispatched);
-            Ok(terlan_http_native::source_descriptor::paired_transition(output.unwrap()).unwrap())
+            Ok(
+                terlan_http_native::source_descriptor::paired_callback_transition(output.unwrap())
+                    .unwrap(),
+            )
         })
         .unwrap();
     assert_eq!(first.outbound.try_recv().unwrap(), "first");
@@ -340,13 +362,13 @@ fn exercise_package_hub(
             "reconnect".into(),
             4,
             pairing,
-            Some(("room-1".into(), 2)),
+            Some(("captured:1".into(), 2)),
         )
         .unwrap();
     restored.dispatch_admission(session).unwrap();
     assert_eq!(
         restored.outbound.try_recv().unwrap(),
-        "captured:room-1captured:datafirstsecond"
+        "captured:captured:1captured:datafirstsecond"
     );
 }
 
@@ -389,10 +411,9 @@ fn reject_invalid_callbacks(
         .invoke(1, Some(waiting), vec![ReplValue::String("event".into())])
         .unwrap();
     assert!(matches!(state, AotChannelCallbackState::Waiting(_)));
-    assert!(invocation
-        .finish_terminal(1, state)
-        .unwrap_err()
-        .contains("terminal_wait"));
+    invocation
+        .cancel_pending("package terminated callback".into())
+        .unwrap();
     assert!(!invocation.is_waiting());
     let AotChannelCallbackState::Complete(value) =
         invocation.invoke(2, Some(text), vec![]).unwrap()

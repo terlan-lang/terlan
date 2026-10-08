@@ -1,6 +1,43 @@
 use super::*;
 
 #[test]
+fn websocket_handshake_rejection_precedes_source_and_static_fallback() {
+    let dir = temp_dir("websocket_package_handshake_admission");
+    let web_root = dir.join("web");
+    write_valid_package(&web_root);
+    fs::write(
+        web_root.join("manifest.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "terlan-web-build-v1", "target_profile": "js.browser",
+            "source_js_manifest": "../js/manifest.json", "index": "index.html", "assets": [],
+            "websockets": [{"route": "/ws", "protocol": "test.v1", "module": "app.Missing",
+                "source": {"path": "src/app/Missing.terl", "line": 1, "column": 1}}],
+            "static_responses": [{"method": "GET", "route": "*", "status": 200,
+                "content_type": "text/plain", "body": "fallback"}]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    for key in ["invalid", "", "AAAAAAAAAAAAAAAAAAAAAA=A"] {
+        let request = format!("GET /ws HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: {key}\r\n\r\n");
+        let response = String::from_utf8(
+            handle_vm_stream_http1_request(&web_root, request.as_bytes()).unwrap(),
+        )
+        .unwrap();
+        assert!(response.starts_with("HTTP/1.1 400 "), "{response}");
+        assert!(
+            response.ends_with("malformed websocket upgrade request"),
+            "{response}"
+        );
+        assert!(!response.contains("fallback"));
+        assert!(!response
+            .to_ascii_lowercase()
+            .contains("sec-websocket-accept"));
+    }
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 pub(super) fn vm_stream_head_reload_sse_handshake_omits_body_without_hyper() {
     let dir = temp_dir("vm_stream_reload_sse_head");
     let web_root = dir.join("web");

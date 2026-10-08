@@ -14,8 +14,9 @@ import std.core.String.
 import std.http.Error.
 
 import type std.collections.List.
-import type std.http.Error.HttpError.
-import type std.http.{Request, Response}.
+import type std.http.Error.{HttpError}.
+import type std.http.Request.{Request}.
+import type std.http.Response.{Response}.
 
 /**
  * Router represents an HTTP route table.

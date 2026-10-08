@@ -35,23 +35,18 @@ pub struct SessionRegistry<T> {
     deadlines: BTreeSet<(u64, String)>,
     now_tick: u64,
     clock_origin: Option<Instant>,
-    ttl_ticks: u64,
     recovery: RecoveryPolicy,
 }
 
 impl<T: Clone> SessionRegistry<T> {
-    pub fn new(ttl_ticks: u64, recovery: RecoveryPolicy) -> Result<Self, SessionError> {
-        if ttl_ticks == 0 {
-            return Err(SessionError::ZeroTtl);
-        }
-        Ok(Self {
+    pub fn new(recovery: RecoveryPolicy) -> Self {
+        Self {
             entries: BTreeMap::new(),
             deadlines: BTreeSet::new(),
             now_tick: 0,
             clock_origin: None,
-            ttl_ticks,
             recovery,
-        })
+        }
     }
 
     pub fn entries(&self) -> &BTreeMap<String, SessionEntry<T>> {
@@ -84,31 +79,73 @@ impl<T: Clone> SessionRegistry<T> {
         self.now_tick = self.now_tick.saturating_add(ticks);
     }
 
-    pub fn acquire(
+    /// Looks up an exact identity without allocating a replacement. Stale
+    /// resources are released before reporting absence or fail-closed policy.
+    pub fn lookup(
         &mut self,
-        identity: Option<&str>,
+        identity: &str,
         resources: &mut impl SessionResources<T>,
-    ) -> Result<SessionEntry<T>, SessionError> {
-        if let Some(identity) = identity.filter(|identity| !identity.is_empty()) {
+    ) -> Result<Option<SessionEntry<T>>, SessionError> {
+        if !identity.is_empty() {
             if self.is_live(identity, |value| {
                 resources.failure(identity, value).is_none()
             }) {
-                return Ok(self.entries[identity].clone());
+                return Ok(Some(self.entries[identity].clone()));
             }
             self.remove(identity, resources)?;
             if self.recovery == RecoveryPolicy::FailClosed {
                 return Err(SessionError::Stale(identity.into()));
             }
         }
-        let id = self.issue(identity.unwrap_or_default())?;
+        Ok(None)
+    }
+
+    /// Allocates a fresh identity, never accepting a caller-selected identity.
+    pub fn create(
+        &mut self,
+        excluded_identity: &str,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+    ) -> Result<SessionEntry<T>, SessionError> {
+        self.create_with(ttl_ticks, resources, |registry| {
+            registry.issue(excluded_identity)
+        })
+    }
+
+    fn create_with(
+        &mut self,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+        issue: impl FnOnce(&Self) -> Result<String, SessionError>,
+    ) -> Result<SessionEntry<T>, SessionError> {
+        if ttl_ticks == 0 {
+            return Err(SessionError::ZeroTtl);
+        }
+        let id = issue(self)?;
         let value = resources.create(&id)?;
         let entry = SessionEntry {
             id,
-            expires_at_tick: self.now_tick().saturating_add(self.ttl_ticks),
+            expires_at_tick: self.now_tick().saturating_add(ttl_ticks),
             value,
         };
         self.insert(entry.clone());
         Ok(entry)
+    }
+
+    // Historical registry scenarios compose the two operations just as source
+    // does. Production callers cannot bypass the source acquisition branch.
+    #[cfg(test)]
+    fn acquire(
+        &mut self,
+        identity: Option<&str>,
+        ttl_ticks: u64,
+        resources: &mut impl SessionResources<T>,
+    ) -> Result<SessionEntry<T>, SessionError> {
+        let identity = identity.unwrap_or_default();
+        match self.lookup(identity, resources)? {
+            Some(entry) => Ok(entry),
+            None => self.create(identity, ttl_ticks, resources),
+        }
     }
 
     pub fn is_live(&self, identity: &str, alive: impl FnOnce(&T) -> bool) -> bool {
@@ -141,17 +178,24 @@ impl<T: Clone> SessionRegistry<T> {
     pub fn rotate(
         &mut self,
         identity: &str,
+        ttl_ticks: u64,
         resources: &mut impl SessionResources<T>,
     ) -> Result<SessionEntry<T>, SessionError> {
-        self.rotate_with(identity, resources, |registry| registry.issue(identity))
+        self.rotate_with(identity, ttl_ticks, resources, |registry| {
+            registry.issue(identity)
+        })
     }
 
     fn rotate_with(
         &mut self,
         identity: &str,
+        ttl_ticks: u64,
         resources: &mut impl SessionResources<T>,
         issue: impl FnOnce(&Self) -> Result<String, SessionError>,
     ) -> Result<SessionEntry<T>, SessionError> {
+        if ttl_ticks == 0 {
+            return Err(SessionError::ZeroTtl);
+        }
         self.live(identity, resources)?;
         let id = issue(self)?;
         let mut entry = self
@@ -161,7 +205,7 @@ impl<T: Clone> SessionRegistry<T> {
         self.deadlines
             .remove(&(entry.expires_at_tick, entry.id.clone()));
         entry.id = id;
-        entry.expires_at_tick = self.now_tick().saturating_add(self.ttl_ticks);
+        entry.expires_at_tick = self.now_tick().saturating_add(ttl_ticks);
         self.insert(entry.clone());
         Ok(entry)
     }

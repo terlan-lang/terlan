@@ -1,6 +1,5 @@
 //! Source response methods retain metadata; package admission validates it.
 
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::handler_cache_test_support::compile_native_handler_fixture;
 use crate::commands::serve::response_rendering::serve_vm_stream_handler_response;
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
@@ -29,6 +28,8 @@ pub handle(name: String, value: String): Response ->
     for (name, value, valid) in [
         ("X-Test", "unchanged", true),
         ("Cache-Control", "public, max-age=60", true),
+        ("cAcHe-CoNtRoL", "private, no-store", true),
+        ("CACHE-CONTROL", "no-cache", true),
         ("X-Frame-Options", "DENY", true),
         ("X-Test", "", true),
         ("X-Test", "\t", true),
@@ -43,6 +44,11 @@ pub handle(name: String, value: String): Response ->
         ("X-Test", "bad\u{7f}value", false),
         ("X-Test", "bad\r\nInjected: yes", false),
     ] {
+        let expected_cache = if name.eq_ignore_ascii_case("cache-control") {
+            value
+        } else {
+            "no-cache"
+        };
         let value = shard
             .call_on_admitted_fixed_owner(
                 owner,
@@ -53,8 +59,7 @@ pub handle(name: String, value: String): Response ->
                 ],
             )
             .unwrap();
-        let result =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root);
+        let result = crate::commands::serve::handler::decode_owned_response(value, &fixture.root);
         if !valid {
             assert!(
                 result
@@ -68,6 +73,20 @@ pub handle(name: String, value: String): Response ->
         assert_eq!(response.status(), 218);
         assert_eq!(response.body().as_ref(), b"source body");
         assert_eq!(response.headers()[http::header::CONTENT_LENGTH], "11");
+        assert_eq!(response.headers()["cache-control"], expected_cache);
+        assert_eq!(
+            response.headers().get_all("cache-control").iter().count(),
+            1
+        );
+        assert_eq!(response.headers()["x-content-type-options"], "nosniff");
+        assert_eq!(
+            response
+                .headers()
+                .get_all("x-content-type-options")
+                .iter()
+                .count(),
+            1
+        );
         assert_eq!(
             response
                 .headers()

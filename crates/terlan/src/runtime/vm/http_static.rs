@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Component, Path};
 
 use super::sse::VmSseEvent;
-use crate::terlan_native::http::content_type_for_path;
+use terlan_http_native::content_type_for_path;
 
 mod http1_stream;
 mod range;

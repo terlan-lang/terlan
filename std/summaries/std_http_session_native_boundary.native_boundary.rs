@@ -12,20 +12,22 @@ pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
     ("lookup", 1),
+    ("create", 2),
     ("read", 2),
     ("write", 3),
     ("remove", 2),
-    ("renew", 1),
+    ("renew", 2),
     ("invalidate", 1),
     ("is_live", 1),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("lookup", "std.http.session.current", 1),
+    ("lookup", "std.http.session.lookup", 1),
+    ("create", "std.http.session.create", 2),
     ("read", "std.http.session.get", 2),
     ("write", "std.http.session.set", 3),
     ("remove", "std.http.session.delete", 2),
-    ("renew", "std.http.session.rotate", 1),
+    ("renew", "std.http.session.rotate", 2),
     ("invalidate", "std.http.session.expire", 1),
     ("is_live", "std.http.session.is_live", 1),
 ];
@@ -155,7 +157,8 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
-                        "std.http.session.current" => native_unimplemented_operation(operation),
+                        "std.http.session.lookup" => native_unimplemented_operation(operation),
+                        "std.http.session.create" => native_unimplemented_operation(operation),
                         "std.http.session.get" => native_unimplemented_operation(operation),
                         "std.http.session.set" => native_unimplemented_operation(operation),
                         "std.http.session.delete" => native_unimplemented_operation(operation),

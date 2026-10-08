@@ -1,6 +1,5 @@
 //! Owner-local immediate generated-call reuse.
 
-use crate::runtime::native::http::{RequestFieldProjection, RequestParts};
 use crate::runtime::native_image::control::TvmTransitionOperation;
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
@@ -12,6 +11,7 @@ use crate::runtime::vm::scheduler_topology::VmFixedActorRoute;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::NativeBoundaryReplyTerm;
 use std::time::{Duration, Instant};
+use terlan_http_native::{RequestFieldProjection, RequestParts};
 
 use super::invocation;
 use super::shard_owner::OwnedInvocationStep;

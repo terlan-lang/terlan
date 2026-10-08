@@ -13,7 +13,9 @@ import self_host.BackendSyntax.
 
 import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
 import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
+import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration, ProjectedSurfaceModule}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, DeclarationClass, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
+import self_host.Parser.
 
 surface_class_native(value: DeclarationClass): String ->
     if { value == NativeDeclaration -> "NativeDecl"; true -> "UnknownDecl" }.
@@ -81,15 +83,44 @@ declarations_at(values: List[BackendDeclaration], output: Json): Json ->
         [value | rest] -> declarations_at(rest, output.push(declaration(value)))
     }.
 
-pub document(value: BackendModule): Json ->
+pub document_with_validity(value: BackendModule, valid: Bool): Json ->
     Json.object()
         .put("schema", Json.string("terlan.self_host.surface.v1"))
-        .put("valid", Json.bool(value.valid))
+        .put("valid", Json.bool(valid))
         .put("module_name", Json.string(value.module_name))
         .put("declarations", declarations_at(value.declarations, Json.array())).
 
+pub document(value: BackendModule): Json ->
+    document_with_validity(value, value.valid).
+
 pub encode(value: BackendModule): Result[String, JsonError] ->
     Json.stringify_pretty(document(value)).
+
+pub encode_with_validity(value: BackendModule, valid: Bool): Result[String, JsonError] ->
+    Json.stringify_pretty(document_with_validity(value, valid)).
+
+projected_surface_declaration(value: ProjectedSurfaceDeclaration): Json ->
+    Json.object()
+        .put("class", Json.string(surface_class_name(value.class)))
+        .put("symbol_name", Json.string(Parser.declaration_head(value.text)))
+        .put("is_public", Json.bool(value.is_public)).
+
+projected_surface_declarations_at(values: List[ProjectedSurfaceDeclaration], output: Json): Json ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            projected_surface_declarations_at(rest, output.push(projected_surface_declaration(value)))
+    }.
+
+pub projected_surface_document(value: ProjectedSurfaceModule): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.self_host.surface.v1"))
+        .put("valid", Json.bool(value.valid))
+        .put("module_name", Json.string(value.name))
+        .put("declarations", projected_surface_declarations_at(value.declarations, Json.array())).
+
+pub encode_projected_surface(value: ProjectedSurfaceModule): Result[String, JsonError] ->
+    Json.stringify_pretty(projected_surface_document(value)).
 
 surface_declaration(value: DeclarationSyntax): Json ->
     Json.object()

@@ -40,11 +40,11 @@ fn upgrade<const KIND: u8>(prefix: &[u8]) -> (hyper::upgrade::Upgraded, Arc<Mute
     (upgraded, state)
 }
 
-type Adapter = UpgradeIo<MemoryIo<1>, MemoryIo<2>>;
+type Adapter = UpgradeIo<MemoryIo<1>>;
 
 fn assert_transfer<const KIND: u8>(prefix: &[u8]) {
     let (upgraded, state) = upgrade::<KIND>(prefix);
-    let mut io = Adapter::from_upgraded(upgraded).unwrap();
+    let mut io = UpgradeIo::<MemoryIo<KIND>>::from_upgraded(upgraded).unwrap();
     let reads = state.lock().unwrap().reads;
     assert_eq!(io.read(&mut []).unwrap(), 0);
     let mut actual = Vec::new();

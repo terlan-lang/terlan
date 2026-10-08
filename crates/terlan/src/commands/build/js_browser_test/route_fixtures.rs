@@ -1,9 +1,8 @@
 use super::*;
 
-use super::super::manifest::{WebErrorHandlerArtifact, WebHandlerArtifact};
+use super::super::manifest::WebHandlerArtifact;
 use super::super::routes::{
-    discover_web_error_handler_from_modules, discover_web_handlers_from_modules,
-    discover_web_route_manifest_from_sources,
+    discover_web_handlers_from_modules, discover_web_route_manifest_from_sources,
 };
 use crate::commands::emit_js::target_contract::js_target_contract;
 use crate::support::test_fs;
@@ -177,8 +176,8 @@ pub(super) fn write_router_source(path: &Path) {
 ///   bodies.
 ///
 /// Transformation:
-/// - Produces source that route discovery can classify into manifest
-///   `file_responses` without invoking typechecking or backend emission.
+/// - Verifies file-producing routes retain source handler identity, including
+///   positional and named arguments owned by the response implementation.
 pub(super) fn write_file_router_source(path: &Path) {
     fs::write(
         path,
@@ -197,8 +196,8 @@ pub(super) fn write_file_router_source(path: &Path) {
 ///   handler body.
 ///
 /// Transformation:
-/// - Produces source that route discovery can classify into manifest
-///   `static_responses` with a `Location` header.
+/// - Verifies redirect-producing routes retain source handler identity instead
+///   of synthesizing status and Location in the compiler.
 pub(super) fn write_redirect_router_source(path: &Path) {
     fs::write(
         path,
@@ -330,41 +329,6 @@ pub(super) fn write_invalid_router_source(path: &Path, handler_decl: &str) {
     .expect("write invalid router source");
 }
 
-/// Writes a source fixture with one invalid middleware reference.
-///
-/// Inputs:
-/// - `path`: destination file path.
-/// - `middleware_decl`: optional middleware declaration text appended after
-///   the handler.
-///
-/// Output:
-/// - No return value.
-///
-/// Transformation:
-/// - Produces a router chain containing `Router.use(...).get(...)`, allowing
-///   tests to vary whether the middleware is missing or has the wrong shape
-///   while keeping the route handler valid.
-pub(super) fn write_invalid_middleware_source(path: &Path, middleware_decl: &str) {
-    fs::write(
-        path,
-        format!(
-            "module app.Http.\n\nimport std.http.Router.\nimport std.http.Response.\nimport type std.http.Request.Request.\nimport type std.http.Response.Response.\nimport type std.http.Router.{{MiddlewareResult, Router}}.\n\npub router(): Router ->\n    Router.use(Router.new(), require_user).get(\"/\", home).\n\npub home(_request: Request): Response ->\n    Response.text(\"home\").\n\n{middleware_decl}\n"
-        ),
-    )
-    .expect("write invalid middleware source");
-}
-
-/// Writes a source fixture with one response middleware reference.
-pub(super) fn write_response_middleware_source(path: &Path, middleware_decl: &str) {
-    fs::write(
-        path,
-        format!(
-            "module app.Http.\n\nimport std.http.Router.\nimport std.http.Response.\nimport type std.http.Request.Request.\nimport type std.http.Response.Response.\nimport type std.http.Router.Router.\n\npub router(): Router ->\n    Router.map_response(Router.new(), decorate).get(\"/\", home).\n\npub home(_request: Request): Response ->\n    Response.text(\"home\").\n\n{middleware_decl}\n"
-        ),
-    )
-    .expect("write response middleware source");
-}
-
 /// Writes a source fixture with one invalid route pattern.
 ///
 /// Inputs:
@@ -476,7 +440,8 @@ pub router(): Router ->
     assert_eq!(rows.sse.len(), 1);
     assert_eq!(rows.sse[0].module, "app.Events");
     assert_eq!(rows.sse[0].route, "/live/events");
-    assert!(rows.sse[0].source.is_some());
+    assert!(rows.sse[0].source.line > 0);
+    assert!(rows.sse[0].source.column > 0);
 
     fs::remove_file(source_path).expect("cleanup SSE source");
 }
@@ -792,37 +757,6 @@ pub(super) fn discover_web_handlers_from_modules_extracts_grouped_router_builder
     assert_eq!(handlers.len(), 9);
 
     fs::remove_file(source_path).expect("cleanup grouped router source");
-}
-
-/// Verifies router-level error builders become error-handler manifest rows.
-///
-/// Inputs:
-/// - One source module with `Router.new().get(...).error(render_error)`.
-///
-/// Output:
-/// - One error-handler row for the source-visible error callback.
-///
-/// Transformation:
-/// - Exercises error-handler discovery separately from normal route discovery
-///   so the manifest can later support runtime error dispatch.
-#[test]
-pub(super) fn discover_web_error_handler_from_modules_extracts_router_error_handler() {
-    let source_path = temp_source_path("router_error_handler");
-    write_error_router_source(&source_path);
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let handler =
-        discover_web_error_handler_from_modules(&modules).expect("discover error handler");
-
-    assert_eq!(
-        handler,
-        Some(WebErrorHandlerArtifact {
-            module: "app.Http".to_string(),
-            function: "render_error".to_string(),
-            arity: 1,
-        })
-    );
-    fs::remove_file(source_path).expect("cleanup router error source");
 }
 
 /// Verifies browser package manifests serialize discovered handlers.

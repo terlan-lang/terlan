@@ -1,6 +1,6 @@
 use std::path::{Component, Path};
 
-pub(super) use crate::compiler::router::router_receiver_method_name;
+pub(super) use crate::commands::api::router_syntax::router_receiver_method_name;
 use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
 
 use super::super::manifest::WebSourceSpanArtifact;
@@ -158,50 +158,6 @@ fn line_column_for_offset(source: &str, offset: usize) -> (usize, usize) {
         }
     }
     (line, column)
-}
-
-/// Extracts a middleware function reference from a `Router.use` builder call.
-///
-/// Inputs:
-/// - `expr`: syntax expression candidate.
-///
-/// Output:
-/// - Middleware function name when `expr` is a supported `use` builder call.
-/// - `None` for unrelated expressions or unsupported argument shapes.
-///
-/// Transformation:
-/// - Reads direct local function references from static or receiver-style
-///   middleware registration calls without evaluating router values.
-pub(super) fn router_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&str> {
-    router_callback_from_expr(expr, "use")
-}
-
-/// Extracts a response middleware function from `Router.map_response`.
-pub(super) fn router_response_middleware_from_expr(expr: &SyntaxExprOutput) -> Option<&str> {
-    router_callback_from_expr(expr, "map_response")
-}
-
-fn router_callback_from_expr<'a>(
-    expr: &'a SyntaxExprOutput,
-    expected_method: &str,
-) -> Option<&'a str> {
-    if expr.kind != SyntaxExprKind::Call {
-        return None;
-    }
-    let (method_name, middleware_index) = if expr.remote.as_deref() == Some("Router") {
-        (expr.children.first()?.text.as_deref()?, 2)
-    } else {
-        let callee = expr.children.first()?;
-        let method_name = router_receiver_method_name(callee)?;
-        if !is_router_builder_receiver(callee.children.first()?) {
-            return None;
-        }
-        (method_name, 1)
-    };
-    if method_name != expected_method {
-        return None;
-    }
-    router_handler_name(expr.children.get(middleware_index)?)
 }
 
 /// Returns whether a receiver expression is router-builder shaped.
@@ -442,42 +398,5 @@ pub(super) fn is_response_type(type_text: &str) -> bool {
     matches!(
         type_text,
         "Response" | "std.http.Response.Response" | "Response.Response"
-    )
-}
-
-/// Returns whether a return type denotes `std.http.Router.MiddlewareResult`.
-///
-/// Inputs:
-/// - `type_text`: source-like type annotation text.
-///
-/// Output:
-/// - `true` for simple or qualified middleware-result aliases.
-///
-/// Transformation:
-/// - Conservatively recognizes the closed continuation/response union until
-///   route extraction consumes fully resolved type identities.
-pub(super) fn is_middleware_result_type(type_text: &str) -> bool {
-    matches!(
-        type_text,
-        "MiddlewareResult" | "std.http.Router.MiddlewareResult" | "Router.MiddlewareResult"
-    )
-}
-
-/// Returns whether a type annotation denotes `std.http.Error.HttpError`.
-///
-/// Inputs:
-/// - `type_text`: source-like type annotation text.
-///
-/// Output:
-/// - `true` for simple or qualified HTTP error aliases accepted by 0.0.5
-///   router extraction.
-///
-/// Transformation:
-/// - Performs conservative textual recognition until router error extraction
-///   is wired through the full resolved typechecker.
-pub(super) fn is_http_error_type(type_text: &str) -> bool {
-    matches!(
-        type_text,
-        "HttpError" | "std.http.Error.HttpError" | "Error.HttpError"
     )
 }

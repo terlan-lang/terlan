@@ -12,16 +12,21 @@ const PLACEHOLDER_REPORT_TERMS: &[&str] = &["placeholder", "todo", "tbd"];
 const REQUIRED_API_CONTRACT_ANCHORS: &[&str] = &[
     "API_CONTRACT_SCHEMA",
     "OPENAPI_VERSION",
-    "pub(crate) struct ApiContract",
-    "pub(crate) struct ApiRoute",
+    "pub struct ApiContract",
+    "pub struct ApiRoute",
     "method: String",
     "path: String",
     "handler: String",
-    "from_router_source",
+    "from_routes",
     "to_openapi",
-    "routes_from_syntax_module",
     "openapi_path",
     "openapi_operation_id",
+];
+
+const REQUIRED_API_DISCOVERY_ANCHORS: &[&str] = &[
+    "from_router_source",
+    "routes_from_syntax_module",
+    "ApiContract::from_routes",
 ];
 
 const REQUIRED_API_COMMAND_ANCHORS: &[&str] = &[
@@ -40,7 +45,7 @@ const REQUIRED_API_COMMAND_ANCHORS: &[&str] = &[
 
 const REQUIRED_API_TEST_ANCHORS: &[(&str, &[&str])] = &[
     (
-        "crates/terlan/src/compiler/api_contract_test.rs",
+        "crates/terlan/src/commands/api/source_contract_test.rs",
         &[
             "router_source_contract_extracts_routes",
             "router_source_contract_projects_to_openapi_paths",
@@ -67,7 +72,7 @@ const REQUIRED_WEB_MANIFEST_ANCHORS: &[&str] = &[
     "WebSourceSpanArtifact",
     "build_id",
     "web_build_id",
-    "source: Option<WebSourceSpanArtifact>",
+    "pub(super) use terlan_http_native::manifest",
 ];
 
 const REQUIRED_ROUTE_EXTRACTION_ANCHORS: &[&str] = &[
@@ -77,18 +82,14 @@ const REQUIRED_ROUTE_EXTRACTION_ANCHORS: &[&str] = &[
     "source_span_for_expr",
     "validate_discovered_web_routes",
     "validate_router_handler_rows",
-    "validate_router_middleware",
-    "validate_router_error_handler",
     "route_param_types",
 ];
 
 const REQUIRED_ROUTE_VALIDATION_ANCHORS: &[&str] = &[
     "validate_router_handler_rows",
     "validate_route_handler_param_types",
-    "validate_router_middleware",
-    "validate_router_error_handler",
     "validate_discovered_web_routes",
-    "duplicate or ambiguous",
+    "terlan_http_native::manifest::validate_route_namespace",
 ];
 
 const REQUIRED_ROUTE_TEST_ANCHORS: &[&str] = &[
@@ -109,8 +110,8 @@ const REQUIRED_GATE_TERMS: &[&str] = &[concat!(
 
 const ROUTE_MANIFEST_HASH_CASES: &[&str] = &[
     "browser web manifest build_id is deterministic from route/static asset identity",
-    "API contract schema is compiler-owned before OpenAPI projection",
-    "OpenAPI paths are projected from compiler-owned route rows",
+    "API contract schema is std.http-owned before OpenAPI projection",
+    "OpenAPI paths are projected from package-owned route rows",
     "client import writes a skip manifest for unsupported OpenAPI features",
 ];
 
@@ -129,8 +130,8 @@ const GENERATED_CLIENT_FIXTURES: &[&str] = &[
 ];
 
 const SECURITY_POLICY_LINKS: &[&str] = &[
-    "router middleware rows are validated before manifest emission",
-    "router error handler rows are validated before manifest emission",
+    "router middleware callback types are checked by the ordinary compiler",
+    "router recovery callbacks execute from source, not generated manifest rows",
     "route parameter names and types are checked against handler signatures",
     "security policy schema output remains rejected until typed policy rows exist",
 ];
@@ -181,9 +182,15 @@ pub fn run_vm_web_route_schema_client(root: &Path) -> QualityResult<VmWebRouteSc
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/compiler/api_contract.rs",
+        "std/http/native/src/api_contract.rs",
         REQUIRED_API_CONTRACT_ANCHORS,
-        "compiler API contract",
+        "std.http API contract",
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        "crates/terlan/src/commands/api/source_contract.rs",
+        REQUIRED_API_DISCOVERY_ANCHORS,
+        "CLI static API discovery",
     )?);
     diagnostics.extend(validate_required_terms(
         root,

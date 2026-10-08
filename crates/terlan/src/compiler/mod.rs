@@ -10,7 +10,6 @@
 //! - Groups compiler phases by responsibility inside one shipped crate.
 
 pub mod accelerator;
-pub mod api_contract;
 pub mod hir;
 pub(crate) mod native_ir;
 pub(crate) mod purity;
@@ -18,7 +17,6 @@ pub(crate) mod purity;
 #[path = "purity_test.rs"]
 #[cfg(test)]
 mod purity_test;
-pub(crate) mod router;
 pub mod syntax;
 pub mod typeck;
 pub(crate) mod value_lifecycle;

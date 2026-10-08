@@ -12,7 +12,6 @@
 //! are implemented as Rust resources. NativeBoundary remains the bridge and safety
 //! contract layer; this module owns concrete storage and target-native logic.
 
-pub mod http;
 /// Package-owned JSON adapter, re-exported for remaining legacy dispatch users.
 pub use terlan_data_native as json;
 pub mod path;

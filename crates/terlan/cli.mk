@@ -660,8 +660,9 @@ http-router-check:
 	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::route_fixtures::discover_web_handlers_from_modules_extracts_receiver_router_builder_calls -- --exact
 	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::route_fixtures::discover_web_handlers_from_modules_extracts_grouped_router_builder_calls -- --exact
 	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::route_fixtures::write_browser_package_serializes_discovered_router_handlers -- --exact
-	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::route_fixtures::discover_web_error_handler_from_modules_extracts_router_error_handler -- --exact
-	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package_serializes_router_error_handler -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package_keeps_error_handlers_in_source -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::callback_source_execution::generated_router_executes_imported_and_captured_policy_over_http1 -- --exact
+	$(TERLC_EXACT_TEST) commands::build::js_browser::js_browser_test::callback_source_execution::router_callback_types_are_checked_by_the_ordinary_compiler -- --exact
 
 http-observability-check:
 	$(TERLC_EXACT_TEST) commands::serve::serve_test::observability_and_packages::render_handler_log_line_includes_handler_metadata -- --exact
@@ -866,14 +867,11 @@ native-boundary-postgres-check:
 	$(TERLC_EXACT_TEST) runtime::native_boundary::runtime::runtime_test::runtime_decodes_postgres_row_columns_through_handles -- --exact
 
 native-boundary-http-cookie-check:
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::request_cookies_returns_mutable_cookie_jar -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::request_cookie_header_parser_splits_request_cookie_pairs -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::request_cookie_header_parser_ignores_malformed_segments -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::request_cookie_header_parser_preserves_duplicates_and_quoted_values -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::cookie_set_header_serializes_supported_attributes -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::cookie_set_header_with_options_serializes_full_option_surface -- --exact
-	$(TERLC_EXACT_TEST) runtime::native::http::http_test::cookie_delete_header_serializes_expiring_cookie -- --exact
-	$(TERLC_EXACT_TEST) runtime::native_boundary::runtime::runtime_test::runtime_executes_http_cookie_jar_operations_through_terms -- --exact
+	$(RUST_TEST) -p terlan-http-native --lib -- cookies_test:: bindings::tests::
+	$(RUST_TEST) -p terlan --lib -- \
+		compiler::native_ir::http_cookie_library_test:: \
+		retired_http_value_operations_reject_handles_without_changing_resources \
+		commands::serve::handler_cache::response_policy_test::response_cookie_test::
 
 native-boundary-postgres-docker-check:
 	$(CARGO) test -p terlan-libpq --all-targets
@@ -955,8 +953,8 @@ sql-runtime-check:
 	$(TERLC_EXACT_TEST) commands::sql_runtime::sql_runtime_test::malformed_invocation_returns_error_protocol -- --exact
 
 api-schema-check:
-	$(TERLC_EXACT_TEST) compiler::api_contract::api_contract_test::router_source_contract_extracts_routes -- --exact
-	$(TERLC_EXACT_TEST) compiler::api_contract::api_contract_test::router_source_contract_projects_to_openapi_paths -- --exact
+	$(TERLC_EXACT_TEST) commands::api::source_contract::tests::router_source_contract_extracts_routes -- --exact
+	$(TERLC_EXACT_TEST) commands::api::source_contract::tests::router_source_contract_projects_to_openapi_paths -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_emit_from_source_writes_route_openapi_paths -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_generates_client_module_and_skip_manifest -- --exact
 	$(TERLC_EXACT_TEST) commands::api::mod_test::api_import_records_unsupported_operation_skips -- --exact

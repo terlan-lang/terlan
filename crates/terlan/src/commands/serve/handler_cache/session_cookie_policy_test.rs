@@ -2,14 +2,13 @@
 
 use super::super::{AotHandlerGeneration, AotHandlerRuntime};
 use super::compile_native_handler_fixture;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::invocation::AotHandlerInvocationStep;
-use crate::runtime::vm::http_session::{self, VmHttpSessionRuntime, VmHttpSessionService};
 use crate::runtime::vm::package_native_helper::VmPackageNativeHelpers;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 use std::collections::HashMap;
 use std::sync::Arc;
+use terlan_http_native::session_bindings::SessionStorage;
 
 #[test]
 fn session_cookie_policy_omits_empty_replays_pending_and_serializes_expiration() {
@@ -31,10 +30,11 @@ pub expire(session: Session): Response ->
     handle(session).
 "#,
     );
-    let mut state = VmHttpSessionRuntime::new("cookie-policy", 100).unwrap();
-    let handle = http_session::current(&mut state, None).unwrap().session;
-    let pending = handle.managed_id().to_owned();
-    let sessions = VmHttpSessionService::new(state);
+    let sessions = super::super::session_service::new_session_service();
+    let pending = sessions
+        .with_storage(|state| state.create("", 86400))
+        .unwrap()
+        .unwrap();
     let runtime = AotHandlerRuntime {
         module: "app.SessionCookies".into(),
         generation: Arc::new(
@@ -48,11 +48,9 @@ pub expire(session: Session): Response ->
     let session = |cookie: &str| ReplValue::Record {
         name: "Session".into(),
         fields: vec![
-            (
-                "identity".into(),
-                ReplValue::String(handle.managed_id().into()),
-            ),
+            ("identity".into(), ReplValue::String(pending.clone())),
             ("pending_identity".into(), ReplValue::String(cookie.into())),
+            ("ttl_seconds".into(), ReplValue::Int(86400)),
         ],
     };
     let mut helpers = VmPackageNativeHelpers::default();
@@ -81,10 +79,7 @@ pub expire(session: Session): Response ->
             panic!("pending identity must be validated by the package codec");
         };
         let request = invocation.request().unwrap();
-        assert_eq!(
-            request.operation,
-            "std.http.cookies.set_header_with_options"
-        );
+        assert_eq!(request.operation, "std.http.cookies.encode");
         let error = helpers.call(1, request, &[]).unwrap_err();
         assert!(
             invocation
@@ -97,7 +92,8 @@ pub expire(session: Session): Response ->
             "invalid cookie input must never complete a response"
         );
         assert!(sessions
-            .with_storage(|state| state.is_live(&handle))
+            .with_storage(|state| state.is_live(&pending))
+            .unwrap()
             .unwrap());
     }
     let deletion = "terlan_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -122,10 +118,7 @@ pub expire(session: Session): Response ->
                 panic!("session cookies must use the package codec");
             };
             let request = invocation.request().unwrap();
-            assert_eq!(
-                request.operation,
-                "std.http.cookies.set_header_with_options"
-            );
+            assert_eq!(request.operation, "std.http.cookies.encode");
             let ReplValue::String(header) = helpers.call(1, request, &[]).unwrap() else {
                 panic!("cookie codec must return text");
             };
@@ -140,8 +133,7 @@ pub expire(session: Session): Response ->
             panic!("omitted cookies require no codec; emitted cookies resume after one codec");
         };
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
-                .unwrap();
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
         let mut expected = vec![
             ("X-Before".into(), "kept".into()),
             ("Set-Cookie".into(), "existing=one".into()),
@@ -150,9 +142,12 @@ pub expire(session: Session): Response ->
             expected.push(("Set-Cookie".into(), expected_cookie));
         }
         expected.push(("X-After".into(), "kept".into()));
-        assert_eq!(response.headers, expected);
+        assert_eq!(response.headers[2..], expected);
         assert_eq!(response.status, 209);
-        assert_eq!(response.body.as_bytes(), b"session");
+        assert_eq!(
+            response.body.as_bytes().expect("finite response"),
+            b"session"
+        );
     }
     let step = runtime
         .begin_request_invocation("app.SessionCookies", "handle", vec![session(&pending)])
@@ -170,9 +165,7 @@ pub expire(session: Session): Response ->
             .is_err(),
         "codec failure must not return a response"
     );
-    assert!(sessions
-        .with_storage(|state| state.snapshots().is_empty())
-        .unwrap());
+    assert!(sessions.with_storage(|state| state.is_empty()).unwrap());
     drop(runtime);
     std::fs::remove_dir_all(fixture.root).unwrap();
 }

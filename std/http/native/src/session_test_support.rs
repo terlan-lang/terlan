@@ -30,8 +30,12 @@ pub(crate) fn failure() -> BoundaryError {
 }
 
 impl SessionStorage for Probe {
-    fn current(&mut self, identity: &str) -> Result<String, BoundaryError> {
-        self.record(&["current", identity])?;
+    fn lookup(&mut self, identity: &str) -> Result<Option<String>, BoundaryError> {
+        self.record(&["lookup", identity])?;
+        Ok(self.live.then(|| identity.into()))
+    }
+    fn create(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
+        self.record(&["create", identity, &ttl_seconds.to_string()])?;
         Ok("issued".into())
     }
     fn get(&mut self, identity: &str, key: &str) -> Result<Option<String>, BoundaryError> {
@@ -44,8 +48,8 @@ impl SessionStorage for Probe {
     fn delete(&mut self, identity: &str, key: &str) -> Result<(), BoundaryError> {
         self.record(&["delete", identity, key])
     }
-    fn rotate(&mut self, identity: &str) -> Result<String, BoundaryError> {
-        self.record(&["rotate", identity])?;
+    fn rotate(&mut self, identity: &str, ttl_seconds: u64) -> Result<String, BoundaryError> {
+        self.record(&["rotate", identity, &ttl_seconds.to_string()])?;
         Ok("rotated".into())
     }
     fn expire(&mut self, identity: &str) -> Result<(), BoundaryError> {

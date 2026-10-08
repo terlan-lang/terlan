@@ -34,7 +34,6 @@ fn source_callbacks_and_pairing_remain_opaque_session_policy() {
             first_matched: "first".into(),
             second_matched: "second".into(),
             peer_left: "left".into(),
-            stateful: true,
             restoration: None,
             inbound: "pair_inbound",
             cancellation: "pair_cancel",

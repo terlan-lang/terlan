@@ -155,8 +155,11 @@ const REQUIRED_STREAM_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/commands/serve/websocket.rs",
-        &["websocket_upgrade_state", "WebSocketUpgradeState"],
+        "std/http/native/src/websocket/handshake.rs",
+        &[
+            "pub fn opening_handshake",
+            "tungstenite::handshake::server::create_response_with_body",
+        ],
     ),
 ];
 

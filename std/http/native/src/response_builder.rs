@@ -30,19 +30,6 @@ where
         http::header::CONTENT_LENGTH,
         http::HeaderValue::from(content_length as u64),
     );
-    if !extra_headers
-        .iter()
-        .any(|(name, _)| name == http::header::CACHE_CONTROL)
-    {
-        headers.insert(
-            http::header::CACHE_CONTROL,
-            http::HeaderValue::from_static("no-cache"),
-        );
-    }
-    headers.insert(
-        http::HeaderName::from_static("x-content-type-options"),
-        http::HeaderValue::from_static("nosniff"),
-    );
     if connection_close {
         headers.insert(
             http::header::CONNECTION,
@@ -53,6 +40,43 @@ where
         headers.append(name, value);
     }
     Ok(response)
+}
+
+/// Defaults for host-generated errors and static assets, never source handlers.
+pub fn build_server_response<B>(
+    status: u16,
+    content_type: &str,
+    extra_headers: &[(String, String)],
+    body: B,
+    head_only: bool,
+    connection_close: bool,
+) -> Result<http::Response<B>, HttpError>
+where
+    B: AsRef<[u8]> + Default,
+{
+    let mut headers = server_default_headers(extra_headers);
+    headers.extend_from_slice(extra_headers);
+    build_http_response(
+        status,
+        content_type,
+        &headers,
+        body,
+        head_only,
+        connection_close,
+    )
+}
+
+/// Host response policy, also used when cached server metadata enters middleware.
+pub fn server_default_headers(headers: &[(String, String)]) -> Vec<(String, String)> {
+    let mut defaults = Vec::with_capacity(2);
+    if !headers
+        .iter()
+        .any(|(name, _)| name.eq_ignore_ascii_case("cache-control"))
+    {
+        defaults.push(("Cache-Control".into(), "no-cache".into()));
+    }
+    defaults.push(("X-Content-Type-Options".into(), "nosniff".into()));
+    defaults
 }
 
 type ValidatedHttpResponseMetadata = (

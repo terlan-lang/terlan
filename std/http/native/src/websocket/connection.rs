@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 
 use crate::channel_plan::WebSocketEndpointPlan;
-use crate::source_descriptor::PairedTransition;
+use crate::source_descriptor::{PairContext, PairedTransition};
 
 use super::hub::{AdmissionCallbacks, WebSocketHub, WebSocketHubLease};
 use super::{output, ErrorKind, Message, Server, Utf8Bytes};
@@ -18,22 +18,19 @@ pub trait Callbacks: AdmissionCallbacks {
     fn identity(
         &mut self,
         target: String,
-    ) -> impl Future<Output = Result<Option<(String, i64)>, String>>;
-    fn waiting(&mut self) -> Result<String, String>;
-    fn peer_left(&mut self) -> Result<String, String>;
-    fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), String>;
-    fn next_inbound(&mut self) -> Result<(bool, Option<String>), String>;
-    fn next_stateful(
+    ) -> impl Future<Output = Result<Option<(String, i64)>, crate::ServiceError>>;
+    fn waiting(&mut self) -> Result<String, crate::ServiceError>;
+    fn peer_left(&mut self) -> Result<String, crate::ServiceError>;
+    fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), crate::ServiceError>;
+    fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError>;
+    fn next_paired(
         &mut self,
-        state: String,
-        role: i64,
-        first: String,
-        second: String,
-    ) -> Result<Option<PairedTransition>, String>;
+        context: Option<PairContext>,
+    ) -> Result<Option<PairedTransition>, crate::ServiceError>;
     /// Notify source code only when no callback is parked.
-    fn writable(&mut self) -> Result<(), String>;
-    fn close(&mut self) -> Result<(), String>;
-    fn cancel(&mut self, reason: String) -> Result<(), String>;
+    fn writable(&mut self) -> Result<(), crate::ServiceError>;
+    fn close(&mut self) -> Result<(), crate::ServiceError>;
+    fn cancel(&mut self, reason: String) -> Result<(), crate::ServiceError>;
 }
 
 /// Acquires an upgraded transport, then drives the maintained codec. Once polled,
@@ -81,7 +78,7 @@ struct Lifecycle<'a, C: Callbacks> {
 impl<C: Callbacks> Lifecycle<'_, C> {
     fn close(&mut self) -> Result<(), crate::ServiceError> {
         self.terminal = true;
-        Ok(self.callbacks.close()?)
+        self.callbacks.close()
     }
 }
 
@@ -138,11 +135,7 @@ where
         match socket.read() {
             Ok(Message::Text(text)) => {
                 live.callbacks.enqueue(text)?;
-                dispatch_inbound(
-                    live.callbacks,
-                    lease.as_ref(),
-                    pairing.as_ref().is_some_and(|p| p.stateful),
-                )?;
+                dispatch_inbound(live.callbacks, lease.as_ref())?;
             }
             Ok(Message::Ping(_)) => {
                 if !output::flush(&mut socket, &mut wait).await? {
@@ -187,13 +180,16 @@ where
 fn dispatch_inbound<C: Callbacks>(
     callbacks: &mut C,
     lease: Option<&WebSocketHubLease>,
-    stateful: bool,
 ) -> Result<(), crate::ServiceError> {
-    if let Some(lease) = lease.filter(|_| stateful) {
+    if let Some(lease) = lease {
         loop {
             let mut dispatched = false;
-            lease.transition(|state, role, first, second| {
-                match callbacks.next_stateful(state.clone(), role, first, second)? {
+            lease.transition(|context| {
+                let state = context
+                    .as_ref()
+                    .map(|(state, _, _, _)| state.clone())
+                    .unwrap_or_default();
+                match callbacks.next_paired(context)? {
                     Some(transition) => {
                         dispatched = true;
                         Ok(transition)
@@ -207,12 +203,9 @@ fn dispatch_inbound<C: Callbacks>(
         }
     }
     loop {
-        let (dispatched, payload) = callbacks.next_inbound()?;
+        let (dispatched, _) = callbacks.next_inbound()?;
         if !dispatched {
             return Ok(());
-        }
-        if let (Some(lease), Some(payload)) = (lease, payload) {
-            lease.broadcast(payload)?;
         }
     }
 }

@@ -6,6 +6,7 @@ fn source_cookie_policy_operations_are_absent_from_native_dispatch() {
     for operation in [
         "std.http.cookies.set_header",
         "std.http.cookies.delete_header",
+        "std.http.cookies.set_header_with_options",
     ] {
         assert_eq!(operation_arity(operation), None);
         for count in [0, 2, 5, 10] {
@@ -30,21 +31,36 @@ fn source_cookie_policy_operations_are_absent_from_native_dispatch() {
 #[test]
 pub(super) fn bridge_dispatch_cookie_codecs_and_json_serialization() {
     let mut store = ResourceStore::new();
+    let optional_text = |value: Option<&str>| match value {
+        Some(value) => NativeBoundaryBridgeValue::Record {
+            name: "Some".into(),
+            fields: vec![(
+                "value".into(),
+                NativeBoundaryBridgeValue::Text(value.into()),
+            )],
+        },
+        None => NativeBoundaryBridgeValue::Record {
+            name: "None".into(),
+            fields: vec![],
+        },
+    };
     assert_eq!(
         bridge_dispatch_ok(
             &mut store,
-            "std.http.cookies.set_header_with_options",
+            "std.http.cookies.encode",
             &[
                 NativeBoundaryBridgeValue::Text("session".to_string()),
                 NativeBoundaryBridgeValue::Text("abc123".to_string()),
                 NativeBoundaryBridgeValue::Text("/".to_string()),
-                NativeBoundaryBridgeValue::Text(String::new()),
-                NativeBoundaryBridgeValue::Int(0),
-                NativeBoundaryBridgeValue::Bool(false),
-                NativeBoundaryBridgeValue::Text(String::new()),
+                optional_text(None),
+                NativeBoundaryBridgeValue::Record {
+                    name: "None".into(),
+                    fields: vec![]
+                },
+                optional_text(None),
                 NativeBoundaryBridgeValue::Bool(true),
                 NativeBoundaryBridgeValue::Bool(true),
-                NativeBoundaryBridgeValue::Text(String::new()),
+                optional_text(None),
             ],
         ),
         Some(NativeBoundaryBridgeValue::Text(
@@ -54,18 +70,17 @@ pub(super) fn bridge_dispatch_cookie_codecs_and_json_serialization() {
     assert_eq!(
         bridge_dispatch_ok(
             &mut store,
-            "std.http.cookies.set_header_with_options",
+            "std.http.cookies.encode",
             &[
                 NativeBoundaryBridgeValue::Text("session".to_string()),
                 NativeBoundaryBridgeValue::Text("abc123".to_string()),
                 NativeBoundaryBridgeValue::Text("/account".to_string()),
-                NativeBoundaryBridgeValue::Text("example.com".to_string()),
-                NativeBoundaryBridgeValue::Int(3600),
+                optional_text(Some("example.com")),
+                NativeBoundaryBridgeValue::Record { name: "Some".into(), fields: vec![("value".into(), NativeBoundaryBridgeValue::Int(3600))] },
+                optional_text(Some("Wed, 21 Oct 2015 07:28:00 GMT")),
                 NativeBoundaryBridgeValue::Bool(true),
-                NativeBoundaryBridgeValue::Text("Wed, 21 Oct 2015 07:28:00 GMT".to_string()),
                 NativeBoundaryBridgeValue::Bool(true),
-                NativeBoundaryBridgeValue::Bool(true),
-                NativeBoundaryBridgeValue::Text("lax".to_string()),
+                optional_text(Some("lax")),
             ],
         ),
         Some(NativeBoundaryBridgeValue::Text(

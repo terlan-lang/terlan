@@ -7,7 +7,16 @@ fn session_acquisition_preserves_exact_identity_and_expiration_through_package_b
     let services = service.native_services().unwrap();
     let acquire = |identity: &str| {
         let value = services
-            .call("std.http.session.current", &[identity.into()])
+            .call("std.http.session.lookup", &[identity.into()])
+            .unwrap();
+        if let Some(identity) = Option::<String>::from_native(&value).unwrap() {
+            return identity;
+        }
+        let value = services
+            .call(
+                "std.http.session.create",
+                &[identity.into(), 100_i64.into()],
+            )
             .unwrap();
         String::from_native(&value).unwrap()
     };
@@ -63,7 +72,8 @@ fn session_package_rejects_invalid_arguments_before_storage_mutation() {
         NativeValue::Tuple(vec!["identity".into(), true.into()]),
     ];
     for (name, args) in [
-        ("current", vec![session.managed_id().into()]),
+        ("lookup", vec![session.managed_id().into()]),
+        ("create", vec![session.managed_id().into(), 100_i64.into()]),
         ("get", vec![session.managed_id().into(), "key".into()]),
         (
             "set",
@@ -74,7 +84,7 @@ fn session_package_rejects_invalid_arguments_before_storage_mutation() {
             ],
         ),
         ("delete", vec![session.managed_id().into(), "key".into()]),
-        ("rotate", vec![session.managed_id().into()]),
+        ("rotate", vec![session.managed_id().into(), 100_i64.into()]),
         ("expire", vec![session.managed_id().into()]),
         ("is_live", vec![session.managed_id().into()]),
     ] {

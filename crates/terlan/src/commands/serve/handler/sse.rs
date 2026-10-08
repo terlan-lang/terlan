@@ -2,15 +2,14 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouteTarget, VmHttpRouterOutcome};
-use crate::terlan_native::http as native_http;
+use terlan_http_native as native_http;
+use terlan_http_native::channel_admission::{self, Admission};
 
 use super::sse_invocation::AotSseCallbackSession;
 
 use super::{
-    finish_router_response, validate_handler_module, validate_handler_route, validate_source_span,
-    vm_request_descriptor, HandlerResponse, RouterResponseRuntime, WebPackageHandler,
-    WebPackageSse,
+    finish_router_response, vm_request_descriptor, HandlerResponse, RouterResponseRuntime,
+    WebPackageHandler, WebPackageSse,
 };
 
 /// Result of source-router admission for one SSE request.
@@ -31,10 +30,8 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
 ) -> Result<VmSseRouterAdmission, String> {
     let router = vm.execute_http_router(&endpoint.module, "router", output)?;
     let middleware_request = vm_request_descriptor(request, &[]);
-    let outcome = router.dispatch_with_typed_middleware(
-        VmHttpRouteMethod::Get,
-        request.path(),
-        |middleware, _| {
+    let outcome =
+        channel_admission::sse(&router, &endpoint.route, request.path(), |middleware, _| {
             vm.execute_callable(
                 &endpoint.module,
                 middleware,
@@ -42,10 +39,9 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
                 output,
             )
             .map_err(String::from)
-        },
-    )?;
+        })?;
     match outcome {
-        VmHttpRouterOutcome::ShortCircuited(short) => finish_router_response(
+        Admission::Respond(short) => finish_router_response(
             RouterResponseRuntime::new(&vm, &endpoint.module, request, package_root),
             output,
             short.response,
@@ -53,22 +49,7 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
             short.response_middleware,
         )
         .map(VmSseRouterAdmission::Respond),
-        VmHttpRouterOutcome::Matched(dispatch) => {
-            if dispatch.method != VmHttpRouteMethod::Get || dispatch.route_pattern != endpoint.route
-            {
-                return Err(format!(
-                    "error[serve_router]: SSE route `GET` `{}` does not match materialized route `{}` `{}`",
-                    endpoint.route,
-                    dispatch.method.as_str(),
-                    dispatch.route_pattern
-                ));
-            }
-            let VmHttpRouteTarget::SseEndpoint(plan) = dispatch.target else {
-                return Err(format!(
-                    "error[serve_router]: SSE route `GET` `{}` did not resolve to an SSE endpoint",
-                    endpoint.route
-                ));
-            };
+        Admission::Open(plan) => {
             // Middleware may return a normal response even without a live
             // transport. Never run open callbacks for a stream we cannot serve.
             if !live_transport_available {
@@ -82,21 +63,14 @@ pub(in crate::commands::serve) fn execute_vm_router_sse_admission_with_package_r
                 }));
             }
             let session = terlan_http_native::sse_session::SseSession::open(plan);
-            AotSseCallbackSession::open(vm, endpoint.module.clone(), session)
-                .map(|session| VmSseRouterAdmission::Stream(Box::new(session)))
+            crate::commands::serve::handler::sse_invocation::open(
+                vm,
+                endpoint.module.clone(),
+                session,
+            )
+            .map(|session| VmSseRouterAdmission::Stream(Box::new(session)))
         }
-        VmHttpRouterOutcome::NotFound => Err(format!(
-            "error[serve_router]: materialized router did not match SSE GET {}",
-            request.path()
-        )),
     }
-}
-
-/// Validates one source-owned SSE manifest route.
-pub(in crate::commands::serve) fn validate_sse(endpoint: &WebPackageSse) -> Result<(), String> {
-    validate_handler_route(&endpoint.route)?;
-    validate_handler_module(&endpoint.module)?;
-    validate_source_span("SSE", &format!("GET {}", endpoint.route), &endpoint.source)
 }
 
 /// Projects an SSE route into the shared source-module loader.

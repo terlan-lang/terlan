@@ -120,6 +120,64 @@ lower_children(
             )
     }.
 
+lower_flattened_child(
+    value: ProjectedExpressionNode,
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    if {
+        value.kind == "sequence" ->
+            let lowered = lower_flattened_children(value.children, next_id + 1, facts, parameters);
+            ChildrenPlan(
+                next_id = next_id + node_size(value),
+                results = lowered.results,
+                instructions = lowered.instructions,
+            );
+        true ->
+            let lowered = lower_expression(value, next_id, facts, parameters);
+            ChildrenPlan(
+                next_id = lowered.next_id,
+                results = [lowered.result],
+                instructions = lowered.instructions,
+            )
+    }.
+
+lower_flattened_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    case values {
+        [] ->
+            ChildrenPlan(
+                next_id = next_id,
+                results = List.new[String](),
+                instructions = List.new[SemanticInstructionPlan](),
+            );
+        [value | rest] ->
+            let lowered = lower_flattened_child(value, next_id, facts, parameters);
+            let remaining = lower_flattened_children(rest, lowered.next_id, facts, parameters);
+            ChildrenPlan(
+                next_id = remaining.next_id,
+                results = concat(lowered.results, remaining.results),
+                instructions = concat(lowered.instructions, remaining.instructions),
+            )
+    }.
+
+lower_node_children(
+    node: ProjectedExpressionNode,
+    next_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[IrParameter],
+): ChildrenPlan ->
+    if {
+        node.kind == "list" or node.kind == "list-cons" or node.kind == "tuple" ->
+            lower_flattened_children(node.children, next_id, facts, parameters);
+        true -> lower_children(node.children, next_id, facts, parameters)
+    }.
+
 call_identity(callee: ProjectedExpressionNode): List[String] ->
     if {
         callee.kind == "field" -> field_call_identity(callee, callee.children);
@@ -969,8 +1027,35 @@ lower_expression_after_leaf_if_three(
 ): ExpressionPlan ->
     if {
         node.kind == "if" and leaf_if_long_supported(node) -> lower_leaf_if_long(node, node_id, facts, parameters);
+        node.kind == "atom-literal" -> lower_atom_literal(node, node_id);
         node.kind == "lambda" -> lower_lambda(node, node_id, facts, parameters);
         true -> lower_generic_expression(node, node_id, facts, parameters)
+    }.
+
+lower_atom_literal(node: ProjectedExpressionNode, node_id: Int): ExpressionPlan ->
+    case node.children {
+        [_marker, value] ->
+            let result = register(node_id);
+            ExpressionPlan(
+                next_id = node_id + node_size(node),
+                result = result,
+                result_type = some_string("Atom"),
+                instructions = [
+                    SemanticInstructionPlan(
+                        opcode = "load-atom",
+                        result = some_string(result),
+                        operands = [value.text],
+                        resolved_type = some_string("Atom"),
+                    ),
+                ],
+            );
+        _ ->
+            ExpressionPlan(
+                next_id = node_id + node_size(node),
+                result = register(node_id),
+                result_type = none_string(),
+                instructions = List.new[SemanticInstructionPlan](),
+            )
     }.
 
 lower_generic_expression(
@@ -979,7 +1064,7 @@ lower_generic_expression(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): ExpressionPlan ->
-    let children = lower_children(node.children, node_id + 1, facts, parameters);
+    let children = lower_node_children(node, node_id + 1, facts, parameters);
     let structural = structural_expression(node);
     let result = expression_result(structural, children.results, node_id);
     let result_type = expression_type(node, facts, parameters);

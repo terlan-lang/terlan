@@ -12,6 +12,9 @@ use hyper::rt::{Executor, Read, ReadBufCursor, Write};
 use rcgen::generate_simple_self_signed;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName};
 use rustls::{ClientConfig, ClientConnection, RootCertStore, ServerConfig, StreamOwned};
+use terlan_http_native::request_body::{
+    collect_bounded_body, declared_body_exceeds_limit, spool_bounded_body_to_root, BodyReadError,
+};
 
 use crate::runtime::vm::protocol_task_executor::start_protocol_tasks_with_topology;
 use crate::runtime::vm::scheduler_topology::VmSchedulerTopology;
@@ -25,14 +28,32 @@ mod tls_transport;
 #[path = "hyper_server_json_body_test.rs"]
 mod json_body;
 
+#[path = "hyper_server_request_abi_test.rs"]
+mod request_abi;
+
+#[path = "hyper_server_paired_source_test.rs"]
+mod paired_source;
+
 #[path = "hyper_server_source_protocol_test_support.rs"]
 mod source_protocol;
-pub(in crate::commands::serve) use source_protocol::with_source_protocol_server;
+pub(in crate::commands::serve) use source_protocol::{
+    with_source_handler_project, with_source_protocol_server,
+};
 
 #[test]
 fn protocol_errors_are_hyper_responses() {
-    let response = error_response(400, "bad request".to_string());
-    assert_eq!(response.status(), http::StatusCode::BAD_REQUEST);
+    let request = Request::builder()
+        .header("content-length", "5")
+        .body(Empty::<Bytes>::new())
+        .unwrap();
+    let response = block_on(request_pipeline::handle(
+        &CompiledApplication(Path::new("missing-web-package")),
+        request,
+        4,
+        None,
+        None,
+    ));
+    assert_eq!(response.status(), http::StatusCode::PAYLOAD_TOO_LARGE);
     assert_eq!(
         response.headers().get(http::header::CONTENT_TYPE),
         Some(&http::HeaderValue::from_static("text/plain; charset=utf-8"))

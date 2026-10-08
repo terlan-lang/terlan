@@ -9,7 +9,7 @@ module std.http.Response.
 
 import std.collections.List.
 import std.core.Int.{to_string}.
-import std.core.Unit.
+import std.core.{String, Unit}.
 import std.data.Json.{to_string as json_to_string}.
 import std.http.Cookies.{delete_header, headers, set_header, set_header_with_options}.
 import std.template.Template.{to_string as html_to_string}.
@@ -161,6 +161,7 @@ pub struct Response {
     #payload: String,
     #status: Int,
     #content_type: String,
+    #default_headers: List[{String, String}],
     #headers: List[{String, String}],
     #chunks: List[String],
     #chunk_size: Int,
@@ -173,18 +174,28 @@ new(kind: Int, payload: String, status: Int, content_type: String): Response ->
         #payload: payload,
         #status: status,
         #content_type: content_type,
+        #default_headers: default_headers(),
         #headers: [],
         #chunks: [],
         #chunk_size: 0,
         #max_pending_writes: 0,
     }.
 
-update(response: Response, status: Int, headers: List[{String, String}]): Response ->
+default_headers(): List[{String, String}] ->
+    [{"Cache-Control", "no-cache"}, {"X-Content-Type-Options", "nosniff"}].
+
+update(
+    response: Response,
+    status: Int,
+    defaults: List[{String, String}],
+    headers: List[{String, String}],
+): Response ->
     Response {
         #kind: response.#kind,
         #payload: response.#payload,
         #status: status,
         #content_type: response.#content_type,
+        #default_headers: defaults,
         #headers: headers,
         #chunks: response.#chunks,
         #chunk_size: response.#chunk_size,
@@ -287,6 +298,7 @@ pub stream(
         #payload: "",
         #status: status,
         #content_type: content_type,
+        #default_headers: default_headers(),
         #headers: [],
         #chunks: chunks,
         #chunk_size: chunk_size,
@@ -325,7 +337,7 @@ pub redirect(location: String, status: Int = 302): Response ->
  * mutable receiver ABI.
  */
 pub (mut response: Response) status(code: Int): Unit ->
-    update(response, code, response.#headers).
+    update(response, code, response.#default_headers, response.#headers).
 
 /**
  * Sets a response header.
@@ -337,7 +349,15 @@ pub (mut response: Response) status(code: Int): Unit ->
  * mutable receiver ABI.
  */
 pub (mut response: Response) header(name: String, value: String): Unit ->
-    update(response, response.#status, response.#headers.concat([{name, value}])).
+    let defaults =
+        if {
+            name.lowercase() == "cache-control" -> without_cache_default(response.#default_headers);
+            true -> response.#default_headers
+        };
+    update(response, response.#status, defaults, response.#headers.concat([{name, value}])).
+
+without_cache_default(defaults: List[{String, String}]): List[{String, String}] ->
+    [{key, value} | {key, value} <- defaults, key.lowercase() != "cache-control"].
 
 /**
  * Returns a response after setting its status.

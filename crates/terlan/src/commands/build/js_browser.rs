@@ -17,7 +17,7 @@ use assets::{
     copy_manifest_static_assets,
 };
 use manifest::{write_browser_manifest, WebAssetArtifact};
-use routes::{discover_web_error_handler_from_sources, discover_web_route_manifest_from_sources};
+use routes::discover_web_route_manifest_from_sources;
 
 /// Manifest-declared static assets for a browser package.
 ///
@@ -140,8 +140,7 @@ pub(super) fn write_vm_service_package(
     }
     copy_vm_service_template_dependencies(project_dir, &staging_root, source_roots)?;
     let routes = discover_web_route_manifest_from_sources(route_sources)?;
-    let error_handler = discover_web_error_handler_from_sources(route_sources)?;
-    manifest::write_vm_service_manifest(&staging_root, assets, routes, error_handler, incremental)?;
+    manifest::write_vm_service_manifest(&staging_root, assets, routes, None, incremental)?;
     crate::commands::serve::prewarm_dynamic_handler_sources(&staging_root)?;
     remove_transient_vm_service_build_state(&staging_root)?;
     remove_generated_web_root(&web_root)?;
@@ -503,13 +502,12 @@ pub(super) fn write_browser_package_with_route_sources(
         write_browser_index(&web_root, &assets, incremental)?;
     }
     let route_manifest = discover_web_route_manifest_from_sources(route_sources)?;
-    let error_handler = discover_web_error_handler_from_sources(route_sources)?;
     write_browser_manifest(
         &web_root,
         contract,
         assets,
         route_manifest,
-        error_handler,
+        None,
         incremental,
     )
 }

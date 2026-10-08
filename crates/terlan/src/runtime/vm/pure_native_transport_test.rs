@@ -650,6 +650,37 @@ fn continuation_projection_rejects_invalid_scalars_and_mismatched_results() {
     assert!(result_error.contains("does not match the declared resume signature"));
 }
 
+#[test]
+fn export_parameters_require_exact_module_name_function_and_arity() {
+    let mut boundary = typed_mailbox_boundary();
+    let mut other = boundary.artifact.as_ref().unwrap().exports[0].clone();
+    other.module = "other.Mailbox".into();
+    other.arity = 1;
+    other.parameters = vec![TvmBoundaryType::Managed([7; 16])];
+    boundary.artifact.as_mut().unwrap().exports.push(other);
+    assert_eq!(
+        boundary.export_parameters("typed.Mailbox", "round_trip", 0),
+        Some([].as_slice())
+    );
+    assert_eq!(
+        boundary.export_parameters("other.Mailbox", "round_trip", 1),
+        Some([TvmBoundaryType::Managed([7; 16])].as_slice())
+    );
+    for (module, function, arity) in [
+        ("Mailbox", "round_trip", 0),
+        ("typed.Mailbox", "round_trip", 1),
+        ("other.Mailbox", "round_trip", 0),
+        ("typed.Mailbox", "missing", 0),
+    ] {
+        assert_eq!(boundary.export_parameters(module, function, arity), None);
+    }
+    boundary.artifact = None;
+    assert_eq!(
+        boundary.export_parameters("typed.Mailbox", "round_trip", 0),
+        None
+    );
+}
+
 /// Keeps managed exports visible instead of applying the removed worker filter.
 #[test]
 fn export_projection_preserves_exact_managed_signatures() {

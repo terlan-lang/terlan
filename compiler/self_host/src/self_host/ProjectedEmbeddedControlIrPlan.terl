@@ -1745,22 +1745,22 @@ general_embedded_control_at(
     ) {
         Some(embedded) -> Some(embedded);
         None ->
-            case embedded_case_at(
+            case embedded_if_any_at(
                 node,
                 node_id,
                 entry_label,
-                embedded_label(label_prefix, "case_"),
+                embedded_label(label_prefix, "if_"),
                 entry_instructions,
                 join_target,
                 facts,
                 parameters,
             ) {
                 Some(embedded) -> Some(embedded);
-                None -> embedded_if_any_at(
+                None -> embedded_case_at(
                     node,
                     node_id,
                     entry_label,
-                    embedded_label(label_prefix, "if_"),
+                    embedded_label(label_prefix, "case_"),
                     entry_instructions,
                     join_target,
                     facts,
@@ -2603,41 +2603,13 @@ general_if_let_at(
     facts: List[InferredTypeFact],
     parameters: List[IrParameter],
 ): Option[EmbeddedBranchPlan] ->
-    general_if_let_values(
-        node.children,
-        node_id + 1,
-        entry_label,
-        label_prefix,
-        entry_instructions,
-        join_target,
-        facts,
-        parameters,
-    ).
-
-general_if_let_after_source(
-    values: List[ProjectedExpressionNode],
-    next_id: Int,
-    entry_label: String,
-    label_prefix: String,
-    entry_instructions: List[SemanticInstructionPlan],
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    case values {
-        [continuation] -> Some(general_if_continuation_or_linear(
-            continuation,
-            next_id,
-            entry_label,
-            label_prefix,
-            entry_instructions,
-            join_target,
-            facts,
-            parameters,
-        ));
-        [_next | _rest] -> general_if_let_values(
-            values,
-            next_id,
+    case expression_node_triple(node.children) {
+        Some(parts) -> general_if_let_parts(
+            parts.first.kind == "binding-pattern",
+            parts.first,
+            parts.second,
+            parts.third,
+            node_id,
             entry_label,
             label_prefix,
             entry_instructions,
@@ -2645,172 +2617,7 @@ general_if_let_after_source(
             facts,
             parameters,
         );
-        [] -> None
-    }.
-
-general_if_let_chain_embedded_source(
-    source: EmbeddedBranchPlan,
-    source_plan: ExpressionPlan,
-    pattern: ProjectedExpressionNode,
-    remaining: List[ProjectedExpressionNode],
-    next_id: Int,
-    source_join_label: String,
-    label_prefix: String,
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    case general_if_let_after_source(
-        remaining,
-        next_id,
-        source_join_label,
-        label_prefix,
-        linear_binding(pattern, source_plan),
-        join_target,
-        facts,
-        parameters,
-    ) {
-        Some(continuation) -> Some(EmbeddedBranchPlan(
-            concat_blocks(source.blocks, continuation.blocks),
-            continuation.result,
-            continuation.exit_label,
-        ));
         None -> None
-    }.
-
-general_if_let_chain_bound(
-    pattern: ProjectedExpressionNode,
-    source: ProjectedExpressionNode,
-    remaining: List[ProjectedExpressionNode],
-    pattern_id: Int,
-    entry_label: String,
-    label_prefix: String,
-    entry_instructions: List[SemanticInstructionPlan],
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    let source_id = pattern_id + node_size(pattern);
-    let next_id = source_id + node_size(source);
-    let source_plan = lower_expression(source, source_id, facts, parameters);
-    let source_join_label = general_case_label(label_prefix, "let_source_join_", pattern_id);
-    case general_embedded_control_at(
-        source,
-        source_id,
-        entry_label,
-        general_case_label(label_prefix, "let_source_", pattern_id),
-        entry_instructions,
-        source_join_label,
-        facts,
-        parameters,
-    ) {
-        Some(embedded) -> general_if_let_chain_embedded_source(
-            embedded,
-            source_plan,
-            pattern,
-            remaining,
-            next_id,
-            source_join_label,
-            label_prefix,
-            join_target,
-            facts,
-            parameters,
-        );
-        None -> general_if_let_after_source(
-            remaining,
-            next_id,
-            entry_label,
-            label_prefix,
-            concat_instructions(
-                entry_instructions,
-                concat_instructions(source_plan.instructions, linear_binding(pattern, source_plan)),
-            ),
-            join_target,
-            facts,
-            parameters,
-        )
-    }.
-
-general_if_let_chain_supported(
-    valid: Bool,
-    pattern: ProjectedExpressionNode,
-    source: ProjectedExpressionNode,
-    remaining: List[ProjectedExpressionNode],
-    pattern_id: Int,
-    entry_label: String,
-    label_prefix: String,
-    entry_instructions: List[SemanticInstructionPlan],
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    case valid {
-        true -> general_if_let_chain_bound(
-            pattern,
-            source,
-            remaining,
-            pattern_id,
-            entry_label,
-            label_prefix,
-            entry_instructions,
-            join_target,
-            facts,
-            parameters,
-        );
-        false -> None
-    }.
-
-general_if_let_values(
-    values: List[ProjectedExpressionNode],
-    pattern_id: Int,
-    entry_label: String,
-    label_prefix: String,
-    entry_instructions: List[SemanticInstructionPlan],
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    case values {
-        [pattern | rest] -> general_if_let_values_tail(
-            pattern,
-            rest,
-            pattern_id,
-            entry_label,
-            label_prefix,
-            entry_instructions,
-            join_target,
-            facts,
-            parameters,
-        );
-        [] -> None
-    }.
-
-general_if_let_values_tail(
-    pattern: ProjectedExpressionNode,
-    values: List[ProjectedExpressionNode],
-    pattern_id: Int,
-    entry_label: String,
-    label_prefix: String,
-    entry_instructions: List[SemanticInstructionPlan],
-    join_target: String,
-    facts: List[InferredTypeFact],
-    parameters: List[IrParameter],
-): Option[EmbeddedBranchPlan] ->
-    case values {
-        [source | remaining] -> general_if_let_chain_supported(
-            pattern.kind == "binding-pattern",
-            pattern,
-            source,
-            remaining,
-            pattern_id,
-            entry_label,
-            label_prefix,
-            entry_instructions,
-            join_target,
-            facts,
-            parameters,
-        );
-        [] -> None
     }.
 
 /** Lowers embedded if expressions recursively, including let-bound control-flow sources. */

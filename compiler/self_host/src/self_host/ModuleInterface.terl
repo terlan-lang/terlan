@@ -63,7 +63,7 @@ constructor_return_type(arity: Int, values: List[ConstructorClauseSyntax]): Opti
     case values {
         [] -> None;
         [value | rest] -> if {
-            value.parameters.length() == arity -> selected_return_type(value.return_type.valid, value.return_type.syntax.text);
+            List.length(value.parameters) == arity -> selected_return_type(value.return_type.valid, value.return_type.syntax.text);
             true -> constructor_return_type(arity, rest)
         }
     }.

@@ -1,7 +1,6 @@
 //! Maintained Hyper HTTP/1 protocol ownership over VM socket tasks.
 
 use std::cell::RefCell;
-use std::convert::Infallible;
 use std::net as std_net;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -9,21 +8,15 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
-use terlan_http_native::request_body::{
-    collect_bounded_body, declared_body_exceeds_limit, spool_bounded_body_to_root, BodyReadError,
-    TemporaryBodyFile,
-};
-use terlan_http_native::websocket::connection;
+use terlan_http_native::request_pipeline::{self, Application};
+use terlan_http_native::websocket::upgrade::UpgradeSlot;
 
 use super::handle_vm_stream_request;
 use super::handler::VmHttpChannelTransport;
-use super::server_lifecycle::{
-    handle_suspendable_vm_stream_request, request_requires_file_body, RequestBodyFilePath,
-};
+use super::server_lifecycle::{handle_suspendable_vm_stream_request, request_requires_file_body};
 #[cfg(test)]
 use super::{channel_transport, handle_vm_stream_http1_exchange};
 use crate::runtime::vm::protocol_task_executor::{
@@ -33,8 +26,7 @@ use crate::runtime::vm::protocol_task_executor::{
 mod http2;
 mod tls_io;
 use terlan_http_native::response_body::ResponseBody;
-mod websocket_hub;
-use websocket_hub::WebSocketHub;
+use terlan_http_native::websocket::hub::WebSocketHub;
 
 thread_local! {
     /// Immutable route root copied once onto each permanent protocol owner.
@@ -156,33 +148,28 @@ async fn serve_http1<I>(
     failure_context: impl FnOnce(hyper::Error) -> String,
 ) -> Result<(), String>
 where
-    I: hyper::rt::Read + hyper::rt::Write + Unpin + Send + 'static,
+    I: hyper::rt::Read + hyper::rt::Write + std::io::Read + std::io::Write + Unpin + Send + 'static,
 {
-    let pending_upgrade = Rc::new(RefCell::new(None));
-    let service_pending_upgrade = Rc::clone(&pending_upgrade);
-    let service = service_fn(move |request| {
-        let web_root = Rc::clone(&web_root);
-        let pending_upgrade = Rc::clone(&service_pending_upgrade);
-        async move {
-            Ok::<_, Infallible>(
+    terlan_http_native::server_connection::serve_http1(
+        io,
+        move |request, pending_upgrade| {
+            let web_root = Rc::clone(&web_root);
+            async move {
                 handle_request(
                     request,
                     web_root.as_path(),
                     max_body_bytes,
                     Some(&pending_upgrade),
                 )
-                .await,
-            )
-        }
-    });
-    terlan_http_native::http1::serve_connection(io, service)
-        .await
-        .map_err(failure_context)?;
-    let pending = pending_upgrade.borrow_mut().take();
-    if let Some(pending) = pending {
-        pump_hyper_websocket(pending, websocket_hub).await?;
-    }
-    Ok(())
+                .await
+            }
+        },
+        &websocket_hub,
+        websocket_transport_wait,
+        failure_context,
+    )
+    .await
+    .map_err(String::from)
 }
 
 fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
@@ -202,193 +189,58 @@ fn owner_local_web_root(shared: &Arc<PathBuf>) -> Rc<PathBuf> {
     })
 }
 
-async fn spool_bounded_body<B>(
-    body: B,
-    max_body_bytes: u64,
-) -> Result<TemporaryBodyFile, BodyReadError>
-where
-    B: hyper::body::Body<Data = Bytes> + Unpin,
-    B::Error: std::fmt::Display,
-{
-    let configured_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT").map_err(|_| {
-        BodyReadError::Unavailable(
-            "TERLAN_SERVE_UPLOAD_ROOT is required for file-backed request bodies".into(),
-        )
-    })?;
-    spool_bounded_body_to_root(body, max_body_bytes, Path::new(&configured_root)).await
-}
-
 /// Package-owned Hyper adaptation; the VM supplies only registered streams.
 type HyperVmIo = terlan_http_native::plain_io::PlainIo<VmReadyStream>;
 
+struct CompiledApplication<'a>(&'a Path);
+
+impl Application for CompiledApplication<'_> {
+    type WebSocket = super::handler::AotWebSocketCallbackSession;
+    type Sse = super::handler::AotSseCallbackSession;
+
+    fn requires_file_body(&self, method: &str, path: &str) -> Result<bool, String> {
+        request_requires_file_body(self.0, method, path)
+    }
+
+    async fn handle_suspendable(
+        &self,
+        request: &Request<String>,
+    ) -> Result<Option<Response<Bytes>>, String> {
+        handle_suspendable_vm_stream_request(request, self.0).await
+    }
+
+    fn handle(
+        &self,
+        request: Request<String>,
+        channel: &mut Option<VmHttpChannelTransport>,
+    ) -> Result<Response<Bytes>, String> {
+        handle_vm_stream_request(request, self.0, channel, false)
+    }
+}
+
 async fn handle_request(
-    mut request: Request<Incoming>,
+    request: Request<Incoming>,
     web_root: &Path,
     max_body_bytes: u64,
     upgrade_slot: Option<&PendingHyperUpgradeSlot>,
 ) -> Response<ResponseBody> {
-    if declared_body_exceeds_limit(request.headers(), max_body_bytes) {
-        return error_response(413, format!("request body exceeds {max_body_bytes} bytes"));
-    }
-    let file_backed =
-        match request_requires_file_body(web_root, request.method().as_str(), request.uri().path())
-        {
-            Ok(file_backed) => file_backed,
-            Err(error) => return error_response(500, error),
-        };
-    let on_upgrade = upgrade_slot.map(|_| hyper::upgrade::on(&mut request));
-    let (parts, body) = request.into_parts();
-    let (body, temporary) = if file_backed {
-        match spool_bounded_body(body, max_body_bytes).await {
-            Ok(temporary) => (String::new(), Some(temporary)),
-            Err(BodyReadError::TooLarge) => {
-                return error_response(413, format!("request body exceeds {max_body_bytes} bytes"))
-            }
-            Err(BodyReadError::Invalid(error)) => {
-                return error_response(400, format!("invalid request body: {error}"))
-            }
-            Err(BodyReadError::Unavailable(error)) => return error_response(503, error),
-        }
-    } else {
-        match collect_bounded_body(body, max_body_bytes).await {
-            Ok(body) => match String::from_utf8(body) {
-                Ok(body) => (body, None),
-                Err(error) => return error_response(400, format!("invalid UTF-8 body: {error}")),
-            },
-            Err(BodyReadError::TooLarge) => {
-                return error_response(413, format!("request body exceeds {max_body_bytes} bytes"))
-            }
-            Err(BodyReadError::Invalid(error)) => {
-                return error_response(400, format!("invalid request body: {error}"))
-            }
-            Err(BodyReadError::Unavailable(error)) => return error_response(503, error),
-        }
-    };
-    let mut request = Request::from_parts(parts, body);
-    if let Some(temporary) = &temporary {
-        let Some(path) = temporary.path().to_str() else {
-            return error_response(503, "temporary request path is not UTF-8".into());
-        };
-        request
-            .extensions_mut()
-            .insert(RequestBodyFilePath(path.to_string()));
-    }
-    match handle_suspendable_vm_stream_request(&request, web_root).await {
-        Ok(Some(response)) => {
-            return ResponseBody::from_response(response);
-        }
-        Ok(None) => {}
-        Err(error) => return error_response(500, error),
-    }
-    let channel_route = request.uri().path().to_string();
-    let channel_request_target = request
-        .uri()
-        .path_and_query()
-        .map(|target| target.as_str().to_string())
-        .unwrap_or_else(|| channel_route.clone());
-    let mut channel = None;
-    let response = match handle_vm_stream_request(request, web_root, &mut channel, false) {
-        Ok(response) => response,
-        Err(error) => return error_response(500, error),
-    };
-    if let Some(channel) = channel {
-        let channel = match channel {
-            VmHttpChannelTransport::WebSocket(session) => {
-                let Some(slot) = upgrade_slot else {
-                    drop(session);
-                    return error_response(
-                        501,
-                        "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for WebSocket"
-                            .to_string(),
-                    );
-                };
-                let Some(on_upgrade) = on_upgrade else {
-                    drop(session);
-                    return error_response(
-                        500,
-                        "error[serve_http.upgrade_state]: Hyper upgrade future was not retained"
-                            .to_string(),
-                    );
-                };
-                let mut slot = slot.borrow_mut();
-                if slot.is_some() {
-                    drop(session);
-                    return error_response(
-                        500,
-                        "error[serve_http.upgrade_state]: connection already owns an upgrade"
-                            .to_string(),
-                    );
-                }
-                *slot = Some(PendingHyperUpgrade {
-                    on_upgrade,
-                    session,
-                    route: channel_route,
-                    request_target: channel_request_target,
-                });
-                return ResponseBody::from_response(response);
-            }
-            VmHttpChannelTransport::Sse(session) => {
-                drop(session);
-                "SSE"
-            }
-        };
-        return error_response(
-            501,
-            format!(
-                "error[serve_http.upgrade_adapter_missing]: maintained async Hyper adapter is required for {channel}"
-            ),
-        );
-    }
-    ResponseBody::from_response(response)
-}
-
-type PendingHyperUpgradeSlot = Rc<RefCell<Option<PendingHyperUpgrade>>>;
-
-struct PendingHyperUpgrade {
-    on_upgrade: hyper::upgrade::OnUpgrade,
-    session: super::handler::AotWebSocketCallbackSession,
-    route: String,
-    request_target: String,
-}
-
-type HyperWebSocketIo = terlan_http_native::upgrade_io::UpgradeIo<HyperVmIo, tls_io::HttpTlsIo>;
-
-async fn pump_hyper_websocket(
-    mut pending: PendingHyperUpgrade,
-    hub: Arc<WebSocketHub>,
-) -> Result<(), String> {
-    let io = async {
-        let upgraded = pending.on_upgrade.await.map_err(|error| {
-            format!("error[serve.websocket.upgrade]: Hyper upgrade failed: {error}")
-        })?;
-        HyperWebSocketIo::from_upgraded(upgraded).map_err(String::from)
-    };
-    connection::serve(
-        io,
-        &mut pending.session,
-        &hub,
-        pending.route,
-        pending.request_target,
-        websocket_transport_wait,
+    let upload_root = std::env::var("TERLAN_SERVE_UPLOAD_ROOT")
+        .ok()
+        .map(PathBuf::from);
+    request_pipeline::handle(
+        &CompiledApplication(web_root),
+        request,
+        max_body_bytes,
+        upload_root.as_deref(),
+        upgrade_slot,
     )
     .await
-    .map_err(String::from)
 }
+
+type PendingHyperUpgradeSlot = UpgradeSlot<super::handler::AotWebSocketCallbackSession>;
 
 async fn websocket_transport_wait() {
     protocol_sleep_until(Instant::now() + Duration::from_millis(2)).await;
-}
-
-fn error_response(status: u16, message: String) -> Response<ResponseBody> {
-    Response::builder()
-        .status(status)
-        .header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8")
-        .body(ResponseBody::Buffered(Full::new(Bytes::from(message))))
-        .unwrap_or_else(|_| {
-            Response::new(ResponseBody::Buffered(Full::new(Bytes::from_static(
-                b"HTTP service error",
-            ))))
-        })
 }
 
 #[cfg(test)]

@@ -68,22 +68,32 @@ pub handle(kind: Int, body: String): Response ->
             .unwrap();
         let value = result;
         let response =
-            super::super::handler::HandlerResponse::from_owned_vm_response_with_package_root(
-                value,
-                &fixture.root,
-            )
-            .unwrap();
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
         assert_eq!(response.content_type, expected_type);
         assert_eq!(response.status, expected_status);
+        assert_eq!(
+            response.headers[..2],
+            [
+                ("Cache-Control".into(), "no-cache".into()),
+                ("X-Content-Type-Options".into(), "nosniff".into())
+            ]
+        );
         if input == 4 {
-            assert!(response.body.is_empty());
+            assert!(response
+                .body
+                .as_bytes()
+                .expect("finite response")
+                .is_empty());
             assert_eq!(
-                response.headers,
+                response.headers[2..],
                 [("Location".into(), "dynamic-body".into())]
             );
         } else {
-            assert_eq!(response.body.as_bytes(), b"dynamic-body");
-            assert!(response.headers.is_empty());
+            assert_eq!(
+                response.body.as_bytes().expect("finite response"),
+                b"dynamic-body"
+            );
+            assert_eq!(response.headers.len(), 2);
         }
     }
     drop(shard);
@@ -132,8 +142,14 @@ pub handle(content: Bool, alternate: Bool, age: Int, subdomains: Bool): Response
                         )
                         .unwrap();
                     let value = result;
-                    let response = super::super::handler::HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root).unwrap();
+                    let response = crate::commands::serve::handler::decode_owned_response(
+                        value,
+                        &fixture.root,
+                    )
+                    .unwrap();
                     let mut headers = vec![
+                        ("Cache-Control".into(), "no-cache".into()),
+                        ("X-Content-Type-Options".into(), "nosniff".into()),
                         ("X-Original".into(), "kept".into()),
                         (
                             "X-Frame-Options".into(),
@@ -168,7 +184,10 @@ pub handle(content: Bool, alternate: Bool, age: Int, subdomains: Bool): Response
                         "{content}/{alternate}/{age}/{subdomains}"
                     );
                     assert_eq!(response.status, 200);
-                    assert_eq!(response.body.as_bytes(), b"policy");
+                    assert_eq!(
+                        response.body.as_bytes().expect("finite response"),
+                        b"policy"
+                    );
                 }
             }
         }

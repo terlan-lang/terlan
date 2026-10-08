@@ -38,9 +38,7 @@ pub router(): Router ->
     let router = runtime
         .execute_http_router(MODULE, "router", &mut |_| {})
         .unwrap();
-    let VmHttpRouterOutcome::Matched(route) = router
-        .dispatch(VmHttpRouteMethod::Get, "/pipeline")
-        .unwrap()
+    let RouterOutcome::Matched(route) = router.dispatch(RouteMethod::Get, "/pipeline").unwrap()
     else {
         panic!("compiled middleware route");
     };
@@ -61,10 +59,7 @@ pub router(): Router ->
         let AotHandlerInvocationStep::CapabilityWaiting(wait) = step else {
             panic!("source stage must park")
         };
-        assert_eq!(
-            wait.request().unwrap().operation,
-            "std.http.cookies.set_header_with_options"
-        );
+        assert_eq!(wait.request().unwrap().operation, "std.http.cookies.encode");
         let ReplValue::String(header) = helpers.call(1, wait.request().unwrap(), &[]).unwrap()
         else {
             panic!("cookie codec result")
@@ -116,10 +111,13 @@ pub router(): Router ->
         panic!("response stage must complete")
     };
     let response =
-        HandlerResponse::from_owned_vm_response_with_package_root(response, &fixture.root).unwrap();
-    assert_eq!(response.body.as_bytes(), second.as_bytes());
+        crate::commands::serve::handler::decode_owned_response(response, &fixture.root).unwrap();
     assert_eq!(
-        response.headers,
+        response.body.as_bytes().expect("finite response"),
+        second.as_bytes()
+    );
+    assert_eq!(
+        response.headers[2..],
         vec![("X-Inner".into(), inner), ("X-Outer".into(), outer)]
     );
     drop(runtime);

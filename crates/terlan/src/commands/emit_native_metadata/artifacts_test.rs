@@ -563,11 +563,7 @@ fn compiler_native_metadata_extracts_all_rust_backed_std_operations() {
             http_cookies_std_source(),
             "std_http_cookies_native_boundary",
             1,
-            &[(
-                "set_header_with_options",
-                10,
-                "std.http.cookies.set_header_with_options",
-            )],
+            &[("encode", 9, "std.http.cookies.encode")],
         ),
         (
             "std.db.Postgres",

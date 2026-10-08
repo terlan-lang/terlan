@@ -42,43 +42,7 @@ where
     let header_pairs = request_header_pairs(request.headers());
     let cookie_pairs = request_cookie_pairs(request.headers());
     if manifest_websocket_for_path(&web_root, &request_path).is_some() {
-        if method != "GET" {
-            return serve_response(
-                405,
-                "Method Not Allowed",
-                "text/plain; charset=utf-8",
-                &[
-                    ("allow".to_string(), "GET".to_string()),
-                    ("upgrade".to_string(), "websocket".to_string()),
-                ],
-                b"websocket upgrades require GET",
-                method == "HEAD",
-            );
-        }
         let _ = websocket_hub;
-        match websocket_upgrade_state(request.headers()) {
-            WebSocketUpgradeState::Missing => {
-                return serve_response(
-                    426,
-                    "Upgrade Required",
-                    "text/plain; charset=utf-8",
-                    &[("upgrade".to_string(), "websocket".to_string())],
-                    b"websocket upgrade required",
-                    false,
-                );
-            }
-            WebSocketUpgradeState::Malformed => {
-                return serve_response(
-                    400,
-                    "Bad Request",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"malformed websocket upgrade request",
-                    false,
-                );
-            }
-            WebSocketUpgradeState::Upgrade => {}
-        }
         return websocket_upgrade_response(&request);
     }
 
@@ -194,31 +158,27 @@ where
                 return output;
             }
         };
-        let native_request =
-            crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                method,
-                request_path,
-                body_text,
-                crate::terlan_native::http::RequestMetadata {
-                    params: handler.params.clone(),
-                    query_string: request_query.to_owned(),
-                    query: query_pairs(&request_query),
-                    headers: header_pairs,
-                    cookies: cookie_pairs,
-                },
-            );
+        let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
+            method,
+            request_path,
+            body_text,
+            terlan_http_native::RequestMetadata {
+                params: handler.params.clone(),
+                query_string: request_query.to_owned(),
+                query: query_pairs(&request_query),
+                headers: header_pairs,
+                cookies: cookie_pairs,
+            },
+        );
         let result = execute_dynamic_vm_handler(&web_root, &handler, native_request);
         match result {
             Ok(response) => {
                 let status = response.status;
-                let output = serve_response(
-                    response.status,
-                    http_reason_phrase(response.status),
-                    &response.content_type,
-                    &response.headers,
-                    response.body.as_bytes(),
-                    method == "HEAD",
-                );
+                let output = response
+                    .into_http(method == "HEAD")
+                    .map(terlan_http_native::response_body::ResponseBody::from_response)
+                    .map(|response| response.map(BodyExt::boxed))
+                    .unwrap_or_else(|error| internal_error_response(error.message().to_owned()));
                 log_handler_result(
                     request_id,
                     &build_id,
@@ -337,7 +297,7 @@ where
         );
     }
 
-    let Some(file_path) = request_file_path(&web_root, &request_path) else {
+    let Some(response_path) = request_file_path(&web_root, &request_path) else {
         return serve_response(
             400,
             "Bad Request",
@@ -346,15 +306,6 @@ where
             b"bad request",
             method == "HEAD",
         );
-    };
-    let response_path = if file_path.is_dir() {
-        file_path.join("index.html")
-    } else if file_path.exists() {
-        file_path
-    } else if file_path.extension().is_none() {
-        file_path.join("index.html")
-    } else {
-        file_path
     };
 
     let started = Instant::now();
@@ -418,8 +369,8 @@ pub(super) fn handle_vm_stream_request(
     let (request, body) = request.into_parts();
     let body_file_path = request
         .extensions
-        .get::<RequestBodyFilePath>()
-        .map(|path| path.0.clone())
+        .get::<terlan_http_native::request_ingress::RequestBodyFile>()
+        .map(|file| file.path().to_owned())
         .unwrap_or_default();
     let method = request.method.as_str();
     let request_path = request.uri.path();
@@ -427,54 +378,23 @@ pub(super) fn handle_vm_stream_request(
 
     let route = match manifest_route_for_request(web_root, method, request_path) {
         Some(MatchedWebPackageRoute::WebSocket(websocket)) => {
-            if method != "GET" {
-                return serve_vm_stream_response(
-                    405,
-                    "Method Not Allowed",
-                    "text/plain; charset=utf-8",
-                    &[
-                        ("allow".to_string(), "GET".to_string()),
-                        ("upgrade".to_string(), "websocket".to_string()),
-                    ],
-                    b"websocket upgrades require GET",
-                    method == "HEAD",
-                );
-            }
-            match websocket_upgrade_state(&request.headers) {
-                WebSocketUpgradeState::Missing => {
-                    return serve_vm_stream_response(
-                        426,
-                        "Upgrade Required",
-                        "text/plain; charset=utf-8",
-                        &[("upgrade".to_string(), "websocket".to_string())],
-                        b"websocket upgrade required",
-                        method == "HEAD",
-                    );
-                }
-                WebSocketUpgradeState::Malformed => {
-                    return serve_vm_stream_response(
-                        400,
-                        "Bad Request",
-                        "text/plain; charset=utf-8",
-                        &[],
-                        b"malformed websocket upgrade request",
-                        method == "HEAD",
-                    );
-                }
-                WebSocketUpgradeState::Upgrade => {}
-            }
-            let native_request =
-                crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-                    method.to_owned(),
-                    request_path.to_owned(),
-                    body.clone(),
-                    crate::terlan_native::http::RequestMetadata::from_http(
-                        crate::terlan_native::http::RequestFieldProjection::Complete,
-                        &[],
-                        request_query,
-                        &request.headers,
-                    ),
-                );
+            use terlan_http_native::websocket::handshake::{opening_handshake, OpeningHandshake};
+            let upgrade =
+                match opening_handshake(&request.method, request.version, &request.headers) {
+                    OpeningHandshake::Reject(response) => return Ok(response),
+                    OpeningHandshake::Upgrade(response) => response,
+                };
+            let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
+                method.to_owned(),
+                request_path.to_owned(),
+                body.clone(),
+                terlan_http_native::RequestMetadata::from_http(
+                    terlan_http_native::RequestFieldProjection::Complete,
+                    &[],
+                    request_query,
+                    &request.headers,
+                ),
+            );
             match execute_websocket_vm_router(web_root, &websocket, &native_request) {
                 Ok(Some(VmWebSocketRouterAdmission::Respond(response))) => {
                     return serve_vm_stream_handler_response(response, false);
@@ -497,7 +417,7 @@ pub(super) fn handle_vm_stream_request(
                     );
                 }
             }
-            return serve_vm_stream_websocket_upgrade_response(&request.headers);
+            return Ok(upgrade);
         }
         route => route,
     };
@@ -597,17 +517,23 @@ pub(super) fn handle_vm_stream_request(
                             handler.handler.arity,
                         );
                         let native_request =
-                            crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+                            terlan_http_native::Request::from_parts_with_raw_query_metadata(
                                 if projection
-                                    .requires(
-                                        crate::runtime::native::http::RequestFieldProjection::METHOD,
-                                    ) { method.to_owned() } else { Default::default() },
+                                    .requires(terlan_http_native::RequestFieldProjection::METHOD)
+                                {
+                                    method.to_owned()
+                                } else {
+                                    Default::default()
+                                },
                                 if projection
-                                    .requires(
-                                        crate::runtime::native::http::RequestFieldProjection::PATH,
-                                    ) { request_path.to_owned() } else { Default::default() },
+                                    .requires(terlan_http_native::RequestFieldProjection::PATH)
+                                {
+                                    request_path.to_owned()
+                                } else {
+                                    Default::default()
+                                },
                                 body,
-                                crate::terlan_native::http::RequestMetadata::from_http(
+                                terlan_http_native::RequestMetadata::from_http(
                                     projection,
                                     &handler.params,
                                     request_query,
@@ -616,7 +542,7 @@ pub(super) fn handle_vm_stream_request(
                             )
                             .with_body_file_path(
                                 if projection.requires(
-                                    crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH,
+                                    terlan_http_native::RequestFieldProjection::BODY_FILE_PATH,
                                 ) {
                                     body_file_path.clone()
                                 } else {
@@ -666,12 +592,12 @@ pub(super) fn handle_vm_stream_request(
                     response.arity,
                 );
                 let native_request =
-                    crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+                    terlan_http_native::Request::from_parts_with_raw_query_metadata(
                         method.to_owned(),
                         request_path.to_owned(),
                         body,
-                        crate::terlan_native::http::RequestMetadata::from_http(
-                            crate::terlan_native::http::RequestFieldProjection::Complete,
+                        terlan_http_native::RequestMetadata::from_http(
+                            terlan_http_native::RequestFieldProjection::Complete,
                             &[],
                             request_query,
                             &request.headers,
@@ -702,12 +628,12 @@ pub(super) fn handle_vm_stream_request(
             }
             MatchedWebPackageRoute::Sse(endpoint) => {
                 let native_request =
-                    crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
+                    terlan_http_native::Request::from_parts_with_raw_query_metadata(
                         method.to_owned(),
                         request_path.to_owned(),
                         body,
-                        crate::terlan_native::http::RequestMetadata::from_http(
-                            crate::terlan_native::http::RequestFieldProjection::Complete,
+                        terlan_http_native::RequestMetadata::from_http(
+                            terlan_http_native::RequestFieldProjection::Complete,
                             &[],
                             request_query,
                             &request.headers,
@@ -777,7 +703,7 @@ pub(super) fn handle_vm_stream_request(
         );
     }
 
-    let Some(file_path) = request_file_path(web_root, request_path) else {
+    let Some(response_path) = request_file_path(web_root, request_path) else {
         return serve_vm_stream_response(
             400,
             "Bad Request",
@@ -786,15 +712,6 @@ pub(super) fn handle_vm_stream_request(
             b"bad request",
             method == "HEAD",
         );
-    };
-    let response_path = if file_path.is_dir() {
-        file_path.join("index.html")
-    } else if file_path.exists() {
-        file_path
-    } else if file_path.extension().is_none() {
-        file_path.join("index.html")
-    } else {
-        file_path
     };
     static_vm_stream_file_response(method, &response_path)
 }
@@ -833,5 +750,7 @@ pub(super) fn reload_vm_stream_response(
 #[cfg(test)]
 #[path = "request_dispatch/request_values.rs"]
 mod request_values;
+#[cfg(test)]
+pub(crate) use request_values::handle_vm_stream_http1_request;
 #[cfg(test)]
 pub(super) use request_values::*;

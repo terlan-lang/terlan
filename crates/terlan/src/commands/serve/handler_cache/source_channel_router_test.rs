@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::commands::serve::handler_cache::{cached_source_entry, invalidate_vm_handler_cache};
-use terlan_http_native::source_descriptor::paired_transition;
+use terlan_http_native::source_descriptor::paired_callback_transition;
 
 const MODULE: &str = "app.Channels";
 const PROVIDER: &str = r#"module app.Callbacks.
@@ -12,7 +12,8 @@ pub received(_data: String): Unit -> Unit.
 pub writable(): Unit -> Unit.
 pub closed(): Unit -> Unit.
 pub cancelled(_reason: String): Unit -> Unit.
-pub inbound(frame: String): String -> "provider:" + frame.
+pub inbound(frame: String): String ->
+    case frame { "" -> ""; _ -> "provider:" + frame }.
 pub waiting(): String -> "waiting".
 pub peer_left(): String -> "left".
 pub matched(room: String, role: Int, first: String, second: String): String ->
@@ -67,14 +68,14 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
             .unwrap()
     };
     for suffix in ["events", "socket", "paired", "stateful", "restored"] {
-        let VmHttpRouterOutcome::Matched(route) = router
-            .dispatch(VmHttpRouteMethod::Get, &format!("/computed/{suffix}"))
+        let RouterOutcome::Matched(route) = router
+            .dispatch(RouteMethod::Get, &format!("/computed/{suffix}"))
             .unwrap()
         else {
             panic!("source-computed channel path missing: {suffix}");
         };
         match route.target {
-            VmHttpRouteTarget::SseEndpoint(plan) => {
+            RouteTarget::SseEndpoint(plan) => {
                 assert_eq!(plan.max_pending_events(), 4);
                 assert_eq!(plan.max_event_bytes(), 1024);
                 assert_eq!(plan.keep_alive_ms(), Some(15000));
@@ -86,7 +87,7 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
                     assert_eq!(call(callback, vec![text("event")]), ReplValue::Unit);
                 }
             }
-            VmHttpRouteTarget::WebSocketEndpoint(plan) => {
+            RouteTarget::WebSocketEndpoint(plan) => {
                 assert_eq!(plan.max_pending_frames(), 4);
                 assert_eq!(plan.max_frame_bytes(), 1024);
                 if let Some(callbacks) = plan.callbacks() {
@@ -105,7 +106,10 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
                     ReplValue::Unit
                 );
                 if let Some(restoration) = &pairing.restoration {
-                    assert_eq!(restoration.room_prefix, "room-");
+                    assert_eq!(
+                        call(&restoration.room_identity, vec![ReplValue::Int(42)]),
+                        text("room-42")
+                    );
                     assert_eq!(restoration.retention_ms, 300000);
                     assert_eq!(restoration.retained_room_capacity, 1024);
                     assert_eq!(call(&restoration.waiting, vec![]), text("waiting"));
@@ -113,9 +117,9 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
                     assert_eq!(
                         call(
                             &restoration.matched,
-                            vec![text("room-1"), ReplValue::Int(2), text("one"), text("two")]
+                            vec![text("room-1"), text("one"), text("two")]
                         ),
-                        text("room-1:2:one:two")
+                        ReplValue::Tuple(vec![text("room-1:1:one:two"), text("room-1:2:one:two")])
                     );
                     assert_eq!(
                         call(
@@ -143,36 +147,64 @@ fn source_channels_execute_imported_callbacks_and_restorable_policy() {
                         ("waiting", "first", "second", "left")
                     );
                 }
-                assert_eq!(pairing.stateful, suffix != "paired");
-                if pairing.stateful {
-                    let value = call(
-                        &pairing.inbound,
-                        vec![
+                let context = ReplValue::Record {
+                    name: "Some".into(),
+                    fields: vec![(
+                        "value".into(),
+                        ReplValue::Tuple(vec![
                             text("saved"),
                             ReplValue::Int(2),
-                            text("frame"),
                             text("one"),
                             text("two"),
-                        ],
-                    );
-                    assert_eq!(
-                        paired_transition(value).unwrap(),
-                        ("saved:frame".into(), Some("2:one:two".into()), None)
-                    );
-                    assert!(runtime
-                        .execute_callable(
-                            MODULE,
-                            &pairing.inbound,
-                            vec![text("wrong arity")],
-                            &mut |_| {}
-                        )
-                        .is_err());
+                        ]),
+                    )],
+                };
+                let value = call(&pairing.inbound, vec![context, text("frame")]);
+                let expected = if suffix == "paired" {
+                    (
+                        "saved".into(),
+                        Some("provider:frame".into()),
+                        Some("provider:frame".into()),
+                    )
                 } else {
+                    ("saved:frame".into(), Some("2:one:two".into()), None)
+                };
+                assert_eq!(paired_callback_transition(value).unwrap(), expected);
+                let before_peer = call(
+                    &pairing.inbound,
+                    vec![ReplValue::Atom("none".into()), text("early")],
+                );
+                if suffix == "paired" {
                     assert_eq!(
-                        call(&pairing.inbound, vec![text("frame")]),
-                        text("provider:frame")
+                        paired_callback_transition(before_peer).unwrap(),
+                        (
+                            "".into(),
+                            Some("provider:early".into()),
+                            Some("provider:early".into())
+                        )
                     );
+                    let empty = call(
+                        &pairing.inbound,
+                        vec![ReplValue::Atom("none".into()), text("")],
+                    );
+                    assert_eq!(
+                        paired_callback_transition(empty).unwrap(),
+                        (String::new(), Some(String::new()), Some(String::new()))
+                    );
+                } else {
+                    assert!(paired_callback_transition(before_peer)
+                        .unwrap_err()
+                        .message()
+                        .contains("inbound frame arrived before a peer joined"));
                 }
+                assert!(runtime
+                    .execute_callable(
+                        MODULE,
+                        &pairing.inbound,
+                        vec![text("wrong arity")],
+                        &mut |_| {},
+                    )
+                    .is_err());
             }
             _ => panic!("channel target required"),
         }

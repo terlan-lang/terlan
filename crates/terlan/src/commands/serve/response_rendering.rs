@@ -2,202 +2,81 @@
 use super::server_lifecycle::ReloadSseBody;
 use super::*;
 
-/// Builds one static file response for `terlc serve`.
-///
-/// Inputs:
-/// - `method`: parsed request method.
-/// - `response_path`: resolved package file path to read.
-///
-/// Output:
-/// - Emitted status code for request logging.
-/// - Hyper response for the selected file or a stable 404.
-///
-/// Transformation:
-/// - Reads the selected file, injects the local reload client for HTML
-///   responses, selects MIME type by extension, and builds a typed HTTP
-///   response for Hyper.
+/// Legacy transport tests use the same package file behavior as production.
 #[cfg(test)]
 pub(super) fn static_file_response(
     method: &str,
     response_path: &Path,
 ) -> (u16, Response<ServeBody>) {
-    let bytes = match fs::read(&response_path) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            return (
-                404,
-                serve_response(
-                    404,
-                    "Not Found",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"not found",
-                    method == "HEAD",
-                ),
-            );
-        }
-    };
-    let content_type = content_type_for_path(&response_path);
-    let body = if content_type.starts_with("text/html") {
-        String::from_utf8(bytes)
-            .map(|html| inject_reload_script(&html).into_bytes())
-            .unwrap_or_else(|err| err.into_bytes())
-    } else {
-        bytes
-    };
-    (
-        200,
-        serve_response(200, "OK", &content_type, &[], &body, method == "HEAD"),
-    )
+    boxed_file_response(static_vm_stream_file_response(method, response_path))
 }
 
-/// Builds one manifest file-route response for `terlc serve`.
-///
-/// Inputs:
-/// - `method`: parsed request method.
-/// - `response_path`: resolved package file path to read.
-/// - `response`: manifest file response metadata.
-///
-/// Output:
-/// - Emitted status code for request logging.
-/// - Hyper response for the configured file or a stable 404.
-///
-/// Transformation:
-/// - Reads the selected file, uses explicit manifest content type when
-///   supplied or infers it by path, and builds a typed HTTP response without
-///   modifying the file bytes.
 #[cfg(test)]
 pub(super) fn manifest_file_response(
     method: &str,
     response_path: &Path,
     response: &WebPackageFileResponse,
 ) -> (u16, Response<ServeBody>) {
-    let bytes = match fs::read(response_path) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            return (
-                404,
-                serve_response(
-                    404,
-                    "Not Found",
-                    "text/plain; charset=utf-8",
-                    &[],
-                    b"not found",
-                    method == "HEAD",
-                ),
-            );
-        }
-    };
-    let inferred_content_type;
-    let content_type = match response.content_type.as_deref() {
-        Some(content_type) => content_type,
-        None => {
-            inferred_content_type = content_type_for_path(response_path);
-            inferred_content_type.as_str()
-        }
-    };
-    (
-        response.status,
-        serve_response(
-            response.status,
-            http_reason_phrase(response.status),
-            content_type,
-            &[],
-            &bytes,
-            method == "HEAD",
-        ),
-    )
+    boxed_file_response(manifest_vm_stream_file_response(
+        method,
+        response_path,
+        response,
+    ))
 }
 
-/// Builds one static file response for the VM-stream HTTP adapter.
-///
-/// Inputs:
-/// - `method`: parsed request method.
-/// - `response_path`: resolved package file path to read.
-///
-/// Output:
-/// - Text-body HTTP response accepted by the VM HTTP writer.
-///
-/// Transformation:
-/// - Reuses the same file, MIME, and reload-injection behavior as the Hyper
-///   static file path, then validates metadata through the shared response
-///   builder before crossing into VM HTTP serialization.
+#[cfg(test)]
+fn boxed_file_response(
+    response: Result<::http::Response<Bytes>, String>,
+) -> (u16, Response<ServeBody>) {
+    let response = match response {
+        Ok(mut response) => {
+            response.headers_mut().insert(
+                http::header::CONNECTION,
+                http::HeaderValue::from_static("close"),
+            );
+            response.map(|body| Full::new(body).boxed())
+        }
+        Err(message) => internal_error_response(message),
+    };
+    (response.status().as_u16(), response)
+}
+
+/// File policy belongs to std.http; only local reload injection belongs to CLI.
 pub(super) fn static_vm_stream_file_response(
     method: &str,
     response_path: &Path,
 ) -> Result<::http::Response<Bytes>, String> {
-    let bytes = match fs::read(response_path) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            return serve_vm_stream_response(
-                404,
-                "Not Found",
-                "text/plain; charset=utf-8",
-                &[],
-                b"not found",
-                method == "HEAD",
-            );
-        }
-    };
-    let content_type = content_type_for_path(response_path);
-    let body = if content_type.starts_with("text/html") {
-        String::from_utf8(bytes)
-            .map(|html| inject_reload_script(&html).into_bytes())
-            .unwrap_or_else(|err| err.into_bytes())
-    } else {
-        bytes
-    };
-    serve_vm_stream_response(200, "OK", &content_type, &[], &body, method == "HEAD")
+    terlan_http_native::static_file::response(
+        response_path,
+        200,
+        None,
+        method == "HEAD",
+        |content_type, bytes| {
+            if content_type.starts_with("text/html") {
+                String::from_utf8(bytes)
+                    .map(|html| inject_reload_script(&html).into_bytes())
+                    .unwrap_or_else(|error| error.into_bytes())
+            } else {
+                bytes
+            }
+        },
+    )
+    .map_err(|error| error.message().to_owned())
 }
 
-/// Builds one manifest file-route response for the VM-stream HTTP adapter.
-///
-/// Inputs:
-/// - `method`: parsed request method.
-/// - `response_path`: resolved package file path to read.
-/// - `response`: manifest file response metadata.
-///
-/// Output:
-/// - Text-body HTTP response accepted by the VM HTTP writer.
-///
-/// Transformation:
-/// - Mirrors manifest file response resolution outside Hyper so production
-///   serve can move protocol ownership into VM TCP without changing route
-///   semantics.
 pub(super) fn manifest_vm_stream_file_response(
     method: &str,
     response_path: &Path,
     response: &WebPackageFileResponse,
 ) -> Result<::http::Response<Bytes>, String> {
-    let bytes = match fs::read(response_path) {
-        Ok(bytes) => bytes,
-        Err(_) => {
-            return serve_vm_stream_response(
-                404,
-                "Not Found",
-                "text/plain; charset=utf-8",
-                &[],
-                b"not found",
-                method == "HEAD",
-            );
-        }
-    };
-    let inferred_content_type;
-    let content_type = match response.content_type.as_deref() {
-        Some(content_type) => content_type,
-        None => {
-            inferred_content_type = content_type_for_path(response_path);
-            inferred_content_type.as_str()
-        }
-    };
-    serve_vm_stream_response(
+    terlan_http_native::static_file::response(
+        response_path,
         response.status,
-        http_reason_phrase(response.status),
-        content_type,
-        &[],
-        &bytes,
+        response.content_type.as_deref(),
         method == "HEAD",
+        |_, bytes| bytes,
     )
+    .map_err(|error| error.message().to_owned())
 }
 
 /// Builds a validated string-body response for the VM HTTP writer.
@@ -232,67 +111,9 @@ pub(super) fn serve_vm_stream_handler_response(
     response: handler::HandlerResponse,
     head_only: bool,
 ) -> Result<::http::Response<Bytes>, String> {
-    match response.body {
-        handler::HandlerBody::Stream(stream) => {
-            let mut response = build_http_shared_response_owned_for_stream(
-                response.status,
-                &response.content_type,
-                &response.headers,
-                Bytes::new(),
-                head_only,
-            )?;
-            response
-                .headers_mut()
-                .remove(::http::header::CONTENT_LENGTH);
-            if !head_only {
-                response.extensions_mut().insert(stream);
-            }
-            Ok(response)
-        }
-        handler::HandlerBody::Text(body) => {
-            let response = build_http_text_response_owned_for_stream(
-                response.status,
-                &response.content_type,
-                &response.headers,
-                body,
-                head_only,
-            )?;
-            let (parts, body) = response.into_parts();
-            Ok(::http::Response::from_parts(parts, Bytes::from(body)))
-        }
-        handler::HandlerBody::Bytes(body) => {
-            let response = build_http_response_owned_for_stream(
-                response.status,
-                &response.content_type,
-                &response.headers,
-                body,
-                head_only,
-            )?;
-            let (parts, body) = response.into_parts();
-            Ok(::http::Response::from_parts(parts, Bytes::from(body)))
-        }
-    }
-}
-
-/// Builds a VM-stream WebSocket opening-handshake response.
-pub(super) fn serve_vm_stream_websocket_upgrade_response(
-    headers: &::http::HeaderMap,
-) -> Result<::http::Response<Bytes>, String> {
-    let key = headers
-        .get("sec-websocket-key")
-        .and_then(|value| value.to_str().ok())
-        .ok_or_else(|| "VM stream WebSocket upgrade is missing Sec-WebSocket-Key".to_string())?;
-    let upgrade = terlan_http_native::websocket::upgrade_response(key)
-        .map_err(|error| format!("error[vm_websocket]: {}", error.message()))?;
-    let status = ::http::StatusCode::from_u16(upgrade.status)
-        .map_err(|error| format!("VM stream WebSocket status is invalid: {error}"))?;
-    let mut builder = ::http::Response::builder().status(status);
-    for (name, value) in upgrade.headers {
-        builder = builder.header(name, value);
-    }
-    builder
-        .body(Bytes::new())
-        .map_err(|error| format!("VM stream WebSocket response cannot be built: {error}"))
+    response
+        .into_http(head_only)
+        .map_err(|error| error.message().to_owned())
 }
 
 /// Builds one local live-reload SSE response.
@@ -416,68 +237,5 @@ pub(super) fn internal_error_response(message: String) -> Response<ServeBody> {
         .unwrap_or_else(|_| Response::new(boxed_body(b"internal server error".to_vec())))
 }
 
-/// Converts a URL request path into a package file path.
-///
-/// Inputs:
-/// - `web_root`: package root.
-/// - `request_path`: URL path component.
-///
-/// Output:
-/// - Safe filesystem path under `web_root`, or `None` for unsafe paths.
-///
-/// Transformation:
-/// - Maps `/` to `index.html`, strips a leading slash, and rejects traversal,
-///   Windows separators, and NUL bytes.
-pub(super) fn request_file_path(web_root: &Path, request_path: &str) -> Option<PathBuf> {
-    let trimmed = request_path.trim_start_matches('/');
-    if trimmed.is_empty() {
-        return Some(web_root.join("index.html"));
-    }
-    package_relative_path(web_root, trimmed)
-}
-
-/// Converts a manifest-relative path into a safe package file path.
-///
-/// Inputs:
-/// - `web_root`: package root.
-/// - `relative`: manifest-relative path text.
-///
-/// Output:
-/// - Safe filesystem path under `web_root`, or `None` for unsafe paths.
-///
-/// Transformation:
-/// - Rejects absolute paths, parent components, prefixes, Windows separators,
-///   and NUL bytes before joining accepted normal components. Existing paths
-///   must resolve inside the canonical package root, including through symlinks.
-///   Served package trees must not be mutated by untrusted host processes during
-///   lookup/read; this is not a descriptor-relative, race-proof filesystem jail.
-pub(super) fn package_relative_path(web_root: &Path, relative: &str) -> Option<PathBuf> {
-    if relative.contains('\\') || relative.contains('\0') {
-        return None;
-    }
-    let relative_path = Path::new(relative);
-    if relative_path.is_absolute() {
-        return None;
-    }
-
-    let mut output = web_root.to_path_buf();
-    for component in relative_path.components() {
-        match component {
-            Component::Normal(segment) => output.push(segment),
-            Component::CurDir => {}
-            Component::ParentDir | Component::RootDir | Component::Prefix(_) => return None,
-        }
-    }
-    let root = web_root.canonicalize().ok()?;
-    match output.canonicalize() {
-        Ok(resolved) => resolved.starts_with(root).then_some(resolved),
-        // Callers retain their existing missing-file diagnostics. They must
-        // still check/open the file; absence is not authorization to create it.
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Some(output),
-        Err(_) => None,
-    }
-}
-
-#[cfg(test)]
-#[path = "response_rendering_path_test.rs"]
-mod path_tests;
+pub(super) use terlan_http_native::file_response::package_relative_path;
+pub(super) use terlan_http_native::static_file::request_path as request_file_path;

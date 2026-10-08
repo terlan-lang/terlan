@@ -1,9 +1,9 @@
 {
   "functions": [
     {
-      "arity": 10,
-      "name": "set_header_with_options",
-      "operation": "std.http.cookies.set_header_with_options"
+      "arity": 9,
+      "name": "encode",
+      "operation": "std.http.cookies.encode"
     }
   ],
   "module": "std_http_cookies_native_boundary",

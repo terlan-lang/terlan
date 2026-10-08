@@ -8,7 +8,6 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
-use crate::commands::serve::handler::HandlerResponse;
 use crate::runtime::native_image::managed::{
     ActorHeap, ActorId, AllocationClass, HeapLimits, ManagedRoot, ManagedTypeDescriptor,
     RootLocation, SemanticTypeId,
@@ -113,12 +112,7 @@ pub(super) fn measure_mixed_tail(
     }
     let generation = AotHandlerGeneration::load_with_shard_count(
         image,
-        crate::runtime::vm::http_session::VmHttpSessionService::new(
-            crate::runtime::vm::http_session::VmHttpSessionRuntime::new(
-                "terlc-multicore-mixed-tail",
-                86_400,
-            )?,
-        ),
+        super::super::session_service::new_session_service(),
         MIXED_LOAD_SCHEDULERS,
     )?;
     let measurements = vec![
@@ -287,12 +281,14 @@ fn measure_http_latency(
                 Arc::new(AtomicUsize::new(0)),
             );
             let response = result.and_then(|(value, _)| {
-                HandlerResponse::from_vm_response_with_package_root(&value, package_root)
+                crate::commands::serve::handler::decode_response(&value, package_root)
             });
             let elapsed = started.elapsed().as_nanos();
             generation.release_actor_route(0);
             let response = response?;
-            if response.status != 200 || response.body.as_bytes() != b"multicore" {
+            if response.status != 200
+                || response.body.as_bytes().expect("finite response") != b"multicore"
+            {
                 return Err("mixed HTTP probe returned an invalid response".to_string());
             }
             Ok(elapsed)

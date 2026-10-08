@@ -59,6 +59,7 @@ pub struct Response {
     #payload: String,
     #status: Int,
     #content_type: String,
+    #default_headers: List[{String, String}],
     #headers: List[{String, String}],
     #chunks: List[String],
     #chunk_size: Int,

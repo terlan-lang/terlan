@@ -4,7 +4,6 @@
 #[path = "aot_metadata_test.rs"]
 mod tests;
 
-use crate::runtime::native::http::RequestFieldProjection;
 #[cfg(test)]
 use crate::runtime::vm::native_callable::VmNativeCallableRef;
 #[cfg(test)]
@@ -49,19 +48,4 @@ pub(crate) struct AotRouterPlan {
     pub(crate) response_middleware: Vec<AotRouterCallable>,
     pub(crate) fallback: Option<AotRouterCallable>,
     pub(crate) error: Option<AotRouterCallable>,
-}
-
-/// Export-specific opaque Request projection carried beside a compiled image.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub(crate) struct NativeRequestProjection {
-    pub(crate) module: String,
-    pub(crate) function: String,
-    pub(crate) arity: usize,
-    pub(crate) fields: RequestFieldProjection,
-    #[serde(default)]
-    pub(crate) scalar_entry: Option<String>,
-    #[serde(default)]
-    pub(crate) scalar_field: Option<usize>,
-    #[serde(default)]
-    pub(crate) suspending: bool,
 }

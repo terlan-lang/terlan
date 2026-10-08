@@ -3,6 +3,31 @@
 use super::source_constructor_test::check_sources;
 
 #[test]
+fn duplicate_cookie_precedence_is_executed_from_source_not_ingress() {
+    for module in ["std.http.Cookies", "app.SourceCookies"] {
+        for (condition, expected) in [("values.contains_key(name)", "first"), ("false", "last")] {
+            let provider = include_str!("../../../../../std/http/Cookies.terl")
+                .replace("module std.http.Cookies.", &format!("module {module}."))
+                .replace("values.contains_key(name)", condition);
+            check_sources(&[
+                &format!(
+                    r#"{provider}
+pub check(): Bool ->
+    let jar = from_pairs([{{"sid", "first"}}, {{"SID", "upper"}}, {{"empty", ""}}, {{"sid", "last"}}]);
+    jar.get("sid") == Some("{expected}") and jar.get("SID") == Some("upper")
+        and jar.get("empty") == Some("") and jar.get("missing") == None
+        and jar.headers() == [] and from_pairs([]).get("sid") == None.
+"#
+                ),
+                include_str!("../../../../../std/collections/Enumerable.terl"),
+                include_str!("../../../../../std/collections/List.terl"),
+                include_str!("../../../../../std/collections/Iterator.terl"),
+            ]);
+        }
+    }
+}
+
+#[test]
 fn cookie_jar_construction_executes_source_under_both_module_names() {
     let provider = include_str!("../../../../../std/http/Cookies.terl");
     for module in ["std.http.Cookies", "app.SourceCookies"] {
@@ -29,11 +54,11 @@ pub check(): Bool ->
 #[test]
 fn cookie_defaults_and_deletion_policy_execute_actual_source() {
     let provider = include_str!("../../../../../std/http/Cookies.terl")
-        .replace("@compiler.native {std.http.cookies.set_header_with_options}\n", "")
+        .replace("@compiler.native {std.http.cookies.encode}\n", "")
         .replace("    native.", r#"    if {
-        domain != "" or max_age != 0 or same_site != "" -> "unexpected options";
-        include_max_age and value == "" and not http_only and not secure -> name + ":" + path + ":" + expires;
-        not include_max_age and expires == "" -> name + ":" + value + ":" + path
+        domain != None or same_site != None -> "unexpected options";
+        max_age == Some(0) and value == "" and not http_only and not secure -> name + ":" + path + ":" + (case expires { Some(text) -> text; None -> "missing" });
+        max_age == None and expires == None -> name + ":" + value + ":" + path
             + (if { http_only -> ":private"; true -> ":public" })
             + (if { secure -> ":tls"; true -> ":plain" });
         true -> "unexpected policy"

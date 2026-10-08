@@ -11,11 +11,11 @@ pub const NATIVE_MODULE: &str = "std_http_cookies_native_boundary";
 pub const SCHEDULER: &str = "normal";
 
 pub const FUNCTIONS: &[(&str, usize)] = &[
-    ("set_header_with_options", 10),
+    ("encode", 9),
 ];
 
 pub const OPERATIONS: &[(&str, &str, usize)] = &[
-    ("set_header_with_options", "std.http.cookies.set_header_with_options", 10),
+    ("encode", "std.http.cookies.encode", 9),
 ];
 
 pub const DEFAULT_CREDIT_WINDOW: usize = 32;
@@ -143,7 +143,7 @@ fn worker_loop(rx: Receiver<NativeBoundaryCommand>, credit_window: usize) {
             NativeBoundaryCommand::Call { request_id, operation, args, reply } => {
                 let result = match validate_args(&resources, &args) {
                     Ok(()) => match operation {
-                        "std.http.cookies.set_header_with_options" => native_unimplemented_operation(operation),
+                        "std.http.cookies.encode" => native_unimplemented_operation(operation),
                         _ => native_unknown_operation(operation),
                     },
                     Err(err) => Err(err),

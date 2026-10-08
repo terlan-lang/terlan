@@ -49,16 +49,13 @@ pub struct RequestParts {
     pub query: Vec<(String, String)>,
     /// Decoded headers in source-visible order.
     pub headers: Vec<(String, String)>,
-    /// First value per cookie name, in source-visible order for map projection.
+    /// Decoded cookies in wire order, including duplicate names and empty values.
     pub cookies: Vec<(String, String)>,
 }
 
 impl Request {
-    /// Transfers request storage, retaining the first cookie per name for source maps.
-    pub fn into_parts(mut self) -> RequestParts {
-        let mut cookie_names = std::collections::HashSet::new();
-        self.cookies
-            .retain(|(name, _)| cookie_names.insert(name.clone()));
+    /// Transfers request storage without applying source cookie precedence.
+    pub fn into_parts(self) -> RequestParts {
         RequestParts {
             method: self.method,
             path: self.path,
@@ -275,40 +272,6 @@ impl Request {
         &self.body_file_path
     }
 
-    /// Returns the first decoded route parameter value for a name.
-    ///
-    /// Inputs:
-    /// - `self`: request wrapper.
-    /// - `name`: route parameter name.
-    ///
-    /// Output:
-    /// - `Some(value)` when a matching route parameter exists.
-    /// - `None` when the request route did not capture the name.
-    ///
-    /// Transformation:
-    /// - Searches captured route params in declaration order and clones the
-    ///   first matching value into a portable optional string.
-    pub fn param(&self, name: &str) -> Option<String> {
-        find_named_value(&self.params, name)
-    }
-
-    /// Returns the first decoded query parameter value for a name.
-    ///
-    /// Inputs:
-    /// - `self`: request wrapper.
-    /// - `name`: query parameter name.
-    ///
-    /// Output:
-    /// - `Some(value)` when a matching query parameter exists.
-    /// - `None` when the query string did not include the name.
-    ///
-    /// Transformation:
-    /// - Searches decoded query pairs in request order and clones the first
-    ///   matching value into a portable optional string.
-    pub fn query(&self, name: &str) -> Option<String> {
-        find_named_value(&self.query, name)
-    }
-
     /// Returns decoded query pairs in request order.
     ///
     /// Inputs:
@@ -339,24 +302,6 @@ impl Request {
         &self.query_string
     }
 
-    /// Returns the first decoded request header value for a name.
-    ///
-    /// Inputs:
-    /// - `self`: request wrapper.
-    /// - `name`: header name.
-    ///
-    /// Output:
-    /// - `Some(value)` when a matching request header exists.
-    /// - `None` when the request did not include the header.
-    ///
-    /// Transformation:
-    /// - Searches decoded header pairs in request order with ASCII
-    ///   case-insensitive key comparison and clones the first matching value
-    ///   into a portable optional string.
-    pub fn header(&self, name: &str) -> Option<String> {
-        find_header_value(&self.headers, name)
-    }
-
     /// Returns decoded header pairs in request order.
     ///
     /// Inputs:
@@ -370,23 +315,6 @@ impl Request {
     ///   selecting a concrete HTTP server type.
     pub fn header_pairs(&self) -> &[(String, String)] {
         &self.headers
-    }
-
-    /// Returns the first decoded request cookie value for a name.
-    ///
-    /// Inputs:
-    /// - `self`: request wrapper.
-    /// - `name`: cookie name.
-    ///
-    /// Output:
-    /// - `Some(value)` when a matching request cookie exists.
-    /// - `None` when the request did not include the cookie.
-    ///
-    /// Transformation:
-    /// - Searches parsed request cookies in header order and clones the first
-    ///   matching value into a portable optional string.
-    pub fn cookie(&self, name: &str) -> Option<String> {
-        find_named_value(&self.cookies, name)
     }
 
     /// Returns decoded request cookie pairs for runtime jar construction.
@@ -449,38 +377,4 @@ fn request_uri_text(request: &Request) -> String {
     } else {
         format!("{}?{}", request.path, request.query_string)
     }
-}
-
-/// Finds the first matching value in request metadata pairs.
-///
-/// Inputs:
-/// - `pairs`: ordered request metadata key/value pairs.
-/// - `name`: requested key.
-///
-/// Output:
-/// - Cloned first matching value when present.
-///
-/// Transformation:
-/// - Preserves repeated metadata behavior by choosing the first decoded pair.
-fn find_named_value(pairs: &[(String, String)], name: &str) -> Option<String> {
-    pairs
-        .iter()
-        .find_map(|(key, value)| (key == name).then(|| value.clone()))
-}
-
-/// Finds the first matching value in request header pairs.
-///
-/// Inputs:
-/// - `pairs`: ordered request header key/value pairs.
-/// - `name`: requested header name.
-///
-/// Output:
-/// - Cloned first matching value when present.
-///
-/// Transformation:
-/// - Compares header names with ASCII case-insensitive equality.
-fn find_header_value(pairs: &[(String, String)], name: &str) -> Option<String> {
-    pairs
-        .iter()
-        .find_map(|(key, value)| key.eq_ignore_ascii_case(name).then(|| value.clone()))
 }

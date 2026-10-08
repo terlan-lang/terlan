@@ -5,8 +5,11 @@ use std::process::ExitCode;
 use openapiv3::{OpenAPI, ReferenceOr};
 use serde::{Deserialize, Serialize};
 
-use crate::compiler::api_contract::{ApiContract, API_CONTRACT_SCHEMA, OPENAPI_VERSION};
 use crate::{CliCommand, CliState};
+use terlan_http_native::api_contract::{ApiContract, API_CONTRACT_SCHEMA, OPENAPI_VERSION};
+
+pub(crate) mod router_syntax;
+pub(crate) mod source_contract;
 
 const API_OUTPUT_DIR: &str = "api";
 const API_CONTRACT_FILE: &str = "api-contract.json";
@@ -335,7 +338,7 @@ fn parse_api_import_args(args: &[String]) -> ApiCommand {
 /// - Artifact paths when all writes succeed.
 ///
 /// Transformation:
-/// - Builds the compiler-owned API contract from the optional router source,
+/// - Builds the package-owned API contract from the optional router source,
 ///   projects it to OpenAPI, and writes JSON/YAML artifacts under
 ///   `<out-dir>/api`.
 fn emit_api_artifacts(out_dir: &Path, args: &ApiEmitArgs) -> Result<ApiArtifactPaths, String> {
@@ -377,7 +380,7 @@ fn emit_api_artifacts(out_dir: &Path, args: &ApiEmitArgs) -> Result<ApiArtifactP
 ///
 /// Transformation:
 /// - Reads the source file at the command boundary and delegates route
-///   extraction to the compiler-owned API contract model.
+///   extraction to the CLI adapter and projection to the std.http package.
 fn api_contract_from_emit_args(args: &ApiEmitArgs) -> Result<ApiContract, String> {
     if let Some(source) = &args.source {
         let text = fs::read_to_string(source).map_err(|err| {
@@ -386,7 +389,7 @@ fn api_contract_from_emit_args(args: &ApiEmitArgs) -> Result<ApiContract, String
                 source.display()
             )
         })?;
-        ApiContract::from_router_source(&text, &args.service_name, &args.service_version)
+        source_contract::from_router_source(&text, &args.service_name, &args.service_version)
     } else {
         Ok(ApiContract::empty(
             &args.service_name,
@@ -678,7 +681,7 @@ fn module_file_stem(module: &str) -> String {
 ///
 /// Transformation:
 /// - Reads the deterministic artifact set, parses JSON/YAML through maintained
-///   serde libraries, and checks the compiler-owned schema marker plus OpenAPI
+///   serde libraries, and checks the package-owned schema marker plus OpenAPI
 ///   version.
 fn check_api_artifacts(out_dir: &Path, args: &ApiCheckArgs) -> Result<(), String> {
     let api_dir = args

@@ -1,14 +1,11 @@
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use terlan_http_native::route_pattern::match_route_pattern;
-use terlan_runtime_abi::{BoundaryError, ErrorDomain};
+use terlan_runtime_abi::BoundaryError;
 
 use crate::runtime::vm::ReplValue;
-use crate::web_route::{route_ambiguity_key, route_segments, typed_route_param_segment};
 
 use super::{
     WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
@@ -37,54 +34,14 @@ pub(crate) struct MatchedWebPackageHandler {
     pub(in crate::commands::serve) params: Vec<(String, String)>,
 }
 
-/// Materializes one positional route capture according to its manifest type.
-///
-/// Untyped `:name` captures and wildcard captures remain strings. Typed
-/// captures are converted only after route matching has validated their text,
-/// so generated handler ABI validation sees the declared scalar type.
+/// Converts a package-admitted route scalar into the host value representation.
 pub(super) fn route_param_argument(
     pattern: &str,
     name: &str,
     value: &str,
 ) -> Result<ReplValue, BoundaryError> {
-    let declared_type = route_segments(pattern)
-        .into_iter()
-        .find_map(|segment| {
-            typed_route_param_segment(segment)
-                .filter(|(declared_name, _)| *declared_name == name)
-                .map(|(_, type_name)| type_name)
-        })
-        .unwrap_or("String");
-    match declared_type {
-        "String" => Ok(ReplValue::String(value.to_string())),
-        "Int" => value.parse::<i64>().map(ReplValue::Int).map_err(|error| {
-            BoundaryError::message(
-                ErrorDomain::CommandExecution,
-                "materialize HTTP route parameter",
-                format!(
-                    "error[serve.route_param]: typed route capture `{name}:Int` could not materialize `{value}`: {error}"
-                ),
-            )
-        }),
-        "Bool" => match value {
-            "true" => Ok(ReplValue::Bool(true)),
-            "false" => Ok(ReplValue::Bool(false)),
-            _ => Err(BoundaryError::message(
-                ErrorDomain::CommandExecution,
-                "materialize HTTP route parameter",
-                format!(
-                    "error[serve.route_param]: typed route capture `{name}:Bool` could not materialize `{value}`"
-                ),
-            )),
-        },
-        other => Err(BoundaryError::message(
-            ErrorDomain::CommandExecution,
-            "materialize HTTP route parameter",
-            format!(
-                "error[serve.route_param]: unsupported typed route capture `{name}:{other}`"
-            ),
-        )),
-    }
+    terlan_http_native::route_pattern::route_param_argument(pattern, name, value)
+        .map(crate::runtime::vm::native_value::from_native)
 }
 
 /// One best route selected across all executable manifest response kinds.
@@ -234,35 +191,6 @@ fn manifest_route_for_loaded_manifest(
         .then_some(MatchedWebPackageRoute::FileResponse(response, path))
 }
 
-/// Validates a set of dynamic HTTP handler routes.
-///
-/// Inputs:
-/// - `handlers`: manifest-declared handler routes.
-///
-/// Output:
-/// - `Ok(())` when no routes have the same method and ambiguous pattern shape.
-/// - Stable `error[serve_package]` diagnostic otherwise.
-///
-/// Transformation:
-/// - Normalizes parameter names out of route signatures so `/users/:id` and
-///   `/users/:name` are rejected as ambiguous for the same method.
-pub(crate) fn validate_handler_routes(handlers: &[WebPackageHandler]) -> Result<(), String> {
-    let mut seen = BTreeSet::new();
-    for handler in handlers {
-        let key = (
-            handler.method.as_str(),
-            route_ambiguity_key(&handler.route)?,
-        );
-        if !seen.insert(key.clone()) {
-            return Err(format!(
-                "error[serve_package]: duplicate or ambiguous handler route `{}` `{}`",
-                handler.method, handler.route
-            ));
-        }
-    }
-    Ok(())
-}
-
 /// Selects the best manifest handler for one request.
 ///
 /// Inputs:
@@ -290,37 +218,13 @@ pub(super) fn select_handler_for_request_ref(
     method: &str,
     request_path: &str,
 ) -> Option<MatchedWebPackageHandler> {
-    let exact_method = select_best_handler_ref(
-        handlers.iter().filter(|handler| handler.method == method),
-        request_path,
-    );
-    if exact_method.is_some() || method != "HEAD" {
-        return exact_method;
-    }
-    select_best_handler_ref(
-        handlers.iter().filter(|handler| handler.method == "GET"),
-        request_path,
-    )
-}
-
-fn select_best_handler_ref<'a>(
-    handlers: impl Iterator<Item = &'a WebPackageHandler>,
-    request_path: &str,
-) -> Option<MatchedWebPackageHandler> {
-    handlers
-        .filter_map(|handler| {
-            match_route_pattern(&handler.route, request_path).map(|matched| {
-                (
-                    matched.score,
-                    MatchedWebPackageHandler {
-                        handler: handler.clone(),
-                        params: matched.params,
-                    },
-                )
-            })
-        })
-        .max_by_key(|(score, _)| *score)
-        .map(|(_, matched)| matched)
+    terlan_http_native::route_pattern::select_route(handlers, method, request_path, |handler| {
+        (&handler.method, &handler.route)
+    })
+    .map(|selected| MatchedWebPackageHandler {
+        handler: selected.route.clone(),
+        params: selected.params,
+    })
 }
 
 #[cfg(test)]

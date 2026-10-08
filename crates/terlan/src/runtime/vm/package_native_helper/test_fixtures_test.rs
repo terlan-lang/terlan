@@ -6,6 +6,7 @@ fn response_with_headers(headers: Vec<(String, String)>) -> ReplValue {
         "text/plain".into(),
         "ok".into(),
         headers,
+        vec![],
     ))
 }
 
@@ -166,9 +167,9 @@ fn http_fixture_is_unavailable_to_application_helpers() {
     assert_eq!(fields[7].0, "cookies");
     assert_eq!(
         fields[7].1,
-        ReplValue::Map(vec![(
+        ReplValue::List(vec![ReplValue::Tuple(vec![
             ReplValue::String("session".into()),
             ReplValue::String("abc123".into())
-        )])
+        ])])
     );
 }

@@ -3,7 +3,12 @@
     {
       "arity": 1,
       "name": "lookup",
-      "operation": "std.http.session.current"
+      "operation": "std.http.session.lookup"
+    },
+    {
+      "arity": 2,
+      "name": "create",
+      "operation": "std.http.session.create"
     },
     {
       "arity": 2,
@@ -21,7 +26,7 @@
       "operation": "std.http.session.delete"
     },
     {
-      "arity": 1,
+      "arity": 2,
       "name": "renew",
       "operation": "std.http.session.rotate"
     },

@@ -23,6 +23,7 @@ fn fields() -> Vec<(String, V)> {
         ),
         ("chunk_size".into(), V::Int(4)),
         ("max_pending_writes".into(), V::Int(2)),
+        ("default_headers".into(), V::List(vec![])),
     ]
 }
 
@@ -45,6 +46,7 @@ fn cached_response_projection_preserves_metadata_and_still_requires_admission() 
             content_type.into(),
             "cached".into(),
             vec![("X-Cache".into(), "hit".into())],
+            vec![],
         );
         let V::Record {
             ref name,
@@ -65,11 +67,12 @@ fn cached_response_projection_preserves_metadata_and_still_requires_admission() 
         assert!(matches!(parsed.body, SourceResponseBody::Text(body) if body == "cached"));
     }
     for descriptor in [
-        cached_response(600, "text/plain".into(), "body".into(), vec![]),
+        cached_response(600, "text/plain".into(), "body".into(), vec![], vec![]),
         cached_response(
             200,
             "text/plain\r\nInjected: yes".into(),
             "body".into(),
+            vec![],
             vec![],
         ),
         cached_response(
@@ -77,6 +80,7 @@ fn cached_response_projection_preserves_metadata_and_still_requires_admission() 
             "text/plain".into(),
             "body".into(),
             vec![("Content-Length".into(), "1".into())],
+            vec![],
         ),
     ] {
         assert!(response(descriptor).is_err());
@@ -123,6 +127,49 @@ fn source_response_preserves_allocations_metadata_and_repeated_header_order() {
 }
 
 #[test]
+fn source_defaults_are_validated_data_not_trusted_transport_instructions() {
+    let parsed = response(cached_response(
+        200,
+        "text/plain".into(),
+        "body".into(),
+        vec![("X-Source".into(), "last".into())],
+        vec![("X-Source".into(), "first".into())],
+    ))
+    .unwrap();
+    assert_eq!(
+        parsed.headers,
+        [
+            ("X-Source".into(), "first".into()),
+            ("X-Source".into(), "last".into())
+        ]
+    );
+    for (name, value) in [
+        ("Content-Length", "100"),
+        ("Transfer-Encoding", "chunked"),
+        ("bad name", "ok"),
+        ("X-Test", "bad\r\nInjected: yes"),
+    ] {
+        assert!(response(cached_response(
+            200,
+            "text/plain".into(),
+            "body".into(),
+            vec![],
+            vec![(name.into(), value.into())]
+        ))
+        .is_err());
+    }
+    for malformed in [V::Int(0), V::List(vec![V::String("not-a-header".into())])] {
+        let mut record = fields();
+        record
+            .iter_mut()
+            .find(|(name, _)| name == "default_headers")
+            .unwrap()
+            .1 = malformed;
+        assert!(response(value(record)).is_err());
+    }
+}
+
+#[test]
 fn source_response_rejects_wrong_missing_unknown_duplicate_and_mistyped_fields() {
     for malformed in [
         V::Unit,
@@ -134,7 +181,7 @@ fn source_response_rejects_wrong_missing_unknown_duplicate_and_mistyped_fields()
     ] {
         assert_eq!(response(malformed).unwrap_err().code(), "http.descriptor");
     }
-    for index in 0..8 {
+    for index in 0..fields().len() {
         let mut missing = fields();
         missing.remove(index);
         let mut unknown = fields();

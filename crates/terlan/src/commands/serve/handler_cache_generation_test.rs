@@ -8,6 +8,9 @@ use crate::support::test_fs;
 
 use super::*;
 
+#[path = "handler_cache_generation_projection_test.rs"]
+mod projection_metadata;
+
 const MODULE: &str = "app.ReloadGeneration";
 static GENERATION_TEST_LOCK: Mutex<()> = Mutex::new(());
 
@@ -387,7 +390,9 @@ fn admitted_source_body_handler_uses_record_ingress_and_returns_source_response(
         entry
             .runtime
             .request_projection(REQUEST_MODULE, "handle", 1),
-        crate::runtime::native::http::RequestFieldProjection::Complete
+        terlan_http_native::RequestFieldProjection::Fields(
+            1 << terlan_http_native::RequestFieldProjection::BODY
+        )
     );
     assert_eq!(
         entry
@@ -399,7 +404,7 @@ fn admitted_source_body_handler_uses_record_ingress_and_returns_source_response(
     let projection = entry
         .runtime
         .request_projection(REQUEST_MODULE, "handle", 1);
-    let request = crate::terlan_native::http::Request::new("typed response body").into_parts();
+    let request = terlan_http_native::Request::new("typed response body").into_parts();
     let response = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
         VmSchedulerId::primary(),
         || {
@@ -417,17 +422,23 @@ fn admitted_source_body_handler_uses_record_ingress_and_returns_source_response(
     );
     let value = response;
     let response =
-        crate::commands::serve::handler::HandlerResponse::from_owned_vm_response_with_package_root(
-            value,
-            std::path::Path::new("/tmp"),
-        )
-        .unwrap();
+        crate::commands::serve::handler::decode_owned_response(value, std::path::Path::new("/tmp"))
+            .unwrap();
     assert_eq!(response.status, 200);
-    assert_eq!(response.body.as_bytes(), b"typed response body");
-    assert!(response.headers.is_empty());
+    assert_eq!(
+        response.body.as_bytes().expect("finite response"),
+        b"typed response body"
+    );
+    assert_eq!(
+        response.headers,
+        [
+            ("Cache-Control".into(), "no-cache".into()),
+            ("X-Content-Type-Options".into(), "nosniff".into()),
+        ]
+    );
 
     let large_body = "x".repeat(4 * 1024);
-    let request = crate::terlan_native::http::Request::new(large_body.clone()).into_parts();
+    let request = terlan_http_native::Request::new(large_body.clone()).into_parts();
     let response = crate::runtime::vm::protocol_task_executor::with_protocol_scheduler_for_test(
         VmSchedulerId::primary(),
         || {
@@ -445,12 +456,12 @@ fn admitted_source_body_handler_uses_record_ingress_and_returns_source_response(
     );
     let value = response;
     let response =
-        crate::commands::serve::handler::HandlerResponse::from_owned_vm_response_with_package_root(
-            value,
-            std::path::Path::new("/tmp"),
-        )
-        .unwrap();
-    assert_eq!(response.body.as_bytes(), large_body.as_bytes());
+        crate::commands::serve::handler::decode_owned_response(value, std::path::Path::new("/tmp"))
+            .unwrap();
+    assert_eq!(
+        response.body.as_bytes().expect("finite response"),
+        large_body.as_bytes()
+    );
 
     cache()
         .expect("handler cache")

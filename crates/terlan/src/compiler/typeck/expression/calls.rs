@@ -105,6 +105,15 @@ fn infer_syntax_call_arg_types(
         .skip(1)
         .enumerate()
         .map(|(index, arg)| {
+            if arg.kind == SyntaxExprKind::Var {
+                let name = arg.text.as_deref().unwrap_or_default();
+                if infer_syntax_var(name, locals, ctx).is_none()
+                    && !ctx.signatures.keys().any(|(function, _)| function == name)
+                    && !ctx.function_imports.contains_key(name)
+                {
+                    errors.push(format!("unresolved value `{name}`"));
+                }
+            }
             expected_arg_types
                 .as_ref()
                 .and_then(|expected| expected.get(index))

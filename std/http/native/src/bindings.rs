@@ -1,30 +1,32 @@
 //! Package-owned cookie argument contracts and codec entry points.
 
-use terlan_runtime_abi::{BoundaryError, ErrorDomain, NativeBinding, NativeValue};
+use terlan_runtime_abi::{BoundaryError, ErrorDomain, FromNativeValue, NativeBinding, NativeValue};
 
 use crate::{CookieOptions, CookieSameSite, HttpError};
 
 /// Serializes the complete optional cookie attribute contract.
-pub const SET_HEADER_WITH_OPTIONS: NativeBinding = NativeBinding {
-    operation: "std.http.cookies.set_header_with_options",
-    arity: 10,
-    invoke: set_header_with_options,
+pub const ENCODE_COOKIE: NativeBinding = NativeBinding {
+    operation: "std.http.cookies.encode",
+    arity: 9,
+    invoke: encode,
 };
 
-fn set_header_with_options(args: &[NativeValue]) -> Result<NativeValue, BoundaryError> {
-    let [NativeValue::String(name), NativeValue::String(value), NativeValue::String(path), NativeValue::String(domain), NativeValue::Int(max_age), NativeValue::Bool(include_max_age), NativeValue::String(expires), NativeValue::Bool(http_only), NativeValue::Bool(secure), NativeValue::String(same_site)] =
-        args
-    else {
-        return Err(arguments(
-            "set_header_with_options requires its ten typed cookie arguments",
-        ));
-    };
-    let same_site = match same_site.to_ascii_lowercase().as_str() {
-        "" => None,
-        "lax" => Some(CookieSameSite::Lax),
-        "strict" => Some(CookieSameSite::Strict),
-        "none" => Some(CookieSameSite::None),
-        other => {
+fn encode(args: &[NativeValue]) -> Result<NativeValue, BoundaryError> {
+    ENCODE_COOKIE.validate_arity(args.len())?;
+    let name = <&str>::from_native(&args[0])?;
+    let value = <&str>::from_native(&args[1])?;
+    let path = String::from_native(&args[2])?;
+    let domain = Option::<String>::from_native(&args[3])?;
+    let max_age = Option::<i64>::from_native(&args[4])?;
+    let expires = Option::<String>::from_native(&args[5])?;
+    let http_only = bool::from_native(&args[6])?;
+    let secure = bool::from_native(&args[7])?;
+    let same_site = match Option::<&str>::from_native(&args[8])? {
+        None => None,
+        Some("lax") => Some(CookieSameSite::Lax),
+        Some("strict") => Some(CookieSameSite::Strict),
+        Some("none") => Some(CookieSameSite::None),
+        Some(other) => {
             return Err(BoundaryError::message(
                 ErrorDomain::NativeBoundary,
                 "cookie options",
@@ -35,25 +37,17 @@ fn set_header_with_options(args: &[NativeValue]) -> Result<NativeValue, Boundary
         }
     };
     let options = CookieOptions {
-        path: path.clone(),
-        domain: (!domain.is_empty()).then(|| domain.clone()),
-        max_age: include_max_age.then_some(*max_age),
-        expires: (!expires.is_empty()).then(|| expires.clone()),
-        http_only: *http_only,
-        secure: *secure,
+        path,
+        domain,
+        max_age,
+        expires,
+        http_only,
+        secure,
         same_site,
     };
     crate::set_header_with_options(name, value, &options)
         .map(NativeValue::from)
         .map_err(codec_error)
-}
-
-fn arguments(message: &str) -> BoundaryError {
-    BoundaryError::message(
-        ErrorDomain::NativeBoundary,
-        "cookie arguments",
-        format!("error[dispatch.type]: {message}"),
-    )
 }
 
 fn codec_error(error: HttpError) -> BoundaryError {

@@ -25,6 +25,64 @@ fn fixture(name: &str) -> (PathBuf, ServeArgs) {
 }
 
 #[test]
+fn cli_adapter_forwards_only_explicit_values_to_package_config() {
+    let (_root, mut args) = fixture("cli-adapter");
+    args.host = "127.0.0.9".into();
+    args.port = 9999;
+    args.poll_ms = 77;
+    let implicit = cli_overrides(&args);
+    assert_eq!(implicit.host, None);
+    assert_eq!(implicit.port, None);
+    assert_eq!(implicit.poll_ms, None);
+    assert_eq!(implicit.allow_public, None);
+
+    args.overrides = ServeCliOverrides {
+        host: true,
+        port: true,
+        poll_ms: true,
+        protocol: Some("http1".into()),
+        allow_public: true,
+        max_connections: Some(100),
+        max_request_bytes: Some(4096),
+        max_body_bytes: Some(2048),
+        max_header_bytes: Some(1024),
+        request_timeout_ms: Some(200),
+        idle_timeout_ms: Some(300),
+        queue_capacity: Some(50),
+        handler_pool_size: Some(10),
+        shutdown_grace_ms: Some(400),
+        telemetry: Some("off".into()),
+        log_format: Some("json".into()),
+    };
+    let config = resolve_effective_serve_config_with_env(&args, []).unwrap();
+    assert_eq!(config.host, args.host);
+    assert_eq!(config.port, args.port);
+    assert_eq!(config.poll_ms, args.poll_ms);
+    assert_eq!(config.max_connections, 100);
+    assert_eq!(config.max_request_bytes, 4096);
+    assert_eq!(config.max_body_bytes, 2048);
+    assert_eq!(config.max_header_bytes, 1024);
+    assert_eq!(config.request_timeout_ms, 200);
+    assert_eq!(config.idle_timeout_ms, 300);
+    assert_eq!(config.queue_capacity, 50);
+    assert_eq!(config.handler_pool_size, 10);
+    assert_eq!(config.shutdown_grace_ms, 400);
+    assert!(config.allow_public);
+    assert_eq!(config.protocol, server_config::ServeProtocol::Http1);
+    assert_eq!(config.telemetry, server_config::ServeTelemetry::Off);
+    assert_eq!(config.log_format, server_config::ServeLogFormat::Json);
+    assert_eq!(
+        config
+            .sources
+            .values()
+            .filter(|value| *value == "cli")
+            .count(),
+        16
+    );
+    assert_eq!(config.sources["certificate_cache"], "default");
+}
+
+#[test]
 fn effective_config_precedence_is_default_manifest_environment_cli() {
     let (root, mut args) = fixture("precedence");
     fs::write(

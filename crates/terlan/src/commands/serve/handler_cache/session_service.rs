@@ -47,10 +47,7 @@ pub(super) fn http_session_service_for(
     {
         return Ok(service);
     }
-    let service = SessionService::new(
-        SessionStore::with_defaults(VmActorStateStore::default())
-            .map_err(|error| session_error(error.to_string()))?,
-    );
+    let service = new_session_service();
     service.start_clock()?;
     let mut services = services
         .write()
@@ -72,9 +69,10 @@ pub(in crate::commands::serve) fn http_session_maintenance_for(
     })
 }
 
-#[cfg(test)]
-pub(super) fn test_session_service() -> Result<HttpSessionService, BoundaryError> {
-    SessionStore::with_defaults(VmActorStateStore::default())
-        .map(SessionService::new)
-        .map_err(|error| session_error(error.to_string()))
+/// Creates an isolated application context; the serving owner attaches its clock.
+pub(super) fn new_session_service() -> HttpSessionService {
+    SessionService::new(SessionStore::new(
+        VmActorStateStore::default(),
+        terlan_http_native::session_registry::RecoveryPolicy::CreateLocalReplacement,
+    ))
 }

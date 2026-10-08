@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 const SERVE_RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
 const COMPILER_DAEMON_ENV: &str = "TERLAN_SERVE_COMPILER_DAEMON";
 const COMPILER_DAEMON_PREFIX: &str = "TERLAN_GENERATION:";
-const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v15";
+const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v25";
 const ACTIVE_GENERATION_SCHEMA: &str = "terlan-serve-active-generation-v1";
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 const RELOAD_REPORT_SCHEMA: &str = "terlan-aot-developer-hot-reload-v1";
@@ -44,7 +44,8 @@ pub(super) struct PersistedServeGeneration {
     image: PathBuf,
     image_sha256: String,
     image_bytes: u64,
-    request_projections: Vec<crate::runtime::vm::aot_metadata::NativeRequestProjection>,
+    aggregate_projections:
+        Vec<crate::runtime::native_image::aggregate_projection::NativeAggregateProjection>,
     compatibility: ServeGenerationCompatibility,
 }
 
@@ -217,15 +218,15 @@ fn compile_source_candidate(
         image: portable_image,
         image_sha256,
         image_bytes,
-        request_projections: image.request_projections.clone(),
+        aggregate_projections: image.aggregate_projections.clone(),
         compatibility: compatibility.clone(),
     };
     let entry = HandlerCacheEntry {
         checksum,
-        runtime: Arc::new(AotHandlerRuntime::load_with_request_projections(
+        runtime: Arc::new(AotHandlerRuntime::load_with_aggregate_projections(
             expected_module.to_string(),
             &image.path,
-            image.request_projections,
+            image.aggregate_projections,
             http_session_service_for(web_root)?,
         )?),
         compatibility,
@@ -389,10 +390,10 @@ fn load_persisted_generation(
     }
     Ok(Some(HandlerCacheEntry {
         checksum: generation.checksum.clone(),
-        runtime: Arc::new(AotHandlerRuntime::load_with_request_projections(
+        runtime: Arc::new(AotHandlerRuntime::load_with_aggregate_projections(
             generation.module.clone(),
             &image,
-            generation.request_projections.clone(),
+            generation.aggregate_projections.clone(),
             http_session_service_for(web_root)?,
         )?),
         compatibility: generation.compatibility.clone(),

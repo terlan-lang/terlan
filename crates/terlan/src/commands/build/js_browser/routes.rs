@@ -7,35 +7,30 @@ use crate::terlan_syntax::{
 
 #[cfg(test)]
 use crate::commands::build::js::JsModuleArtifact;
-use crate::web_route::{route_ambiguity_key, route_param_types, validate_route_pattern};
+use crate::web_route::{route_param_types, validate_route_pattern};
 
 use super::manifest::{
-    WebErrorHandlerArtifact, WebFileResponseArtifact, WebHandlerArtifact, WebSocketArtifact,
-    WebSseArtifact, WebStaticResponseArtifact,
+    WebFileResponseArtifact, WebHandlerArtifact, WebSocketArtifact, WebSseArtifact,
+    WebStaticResponseArtifact,
 };
 use super::WebRouteSourceArtifact;
 
 mod helpers;
-mod responses;
 mod validation;
 
 #[cfg(test)]
 use validation::validate_discovered_web_handler_routes;
 use validation::{
-    apply_router_handler_arities, validate_discovered_web_routes, validate_router_error_handler,
-    validate_router_handler_rows, validate_router_middleware, validate_router_response_middleware,
+    apply_router_handler_arities, validate_discovered_web_routes, validate_router_handler_rows,
 };
 
 #[cfg(test)]
 use helpers::prefixed_router_route;
 use helpers::{
-    is_http_error_type, is_middleware_result_type, is_request_type, is_response_type,
-    is_router_builder_receiver, prefix_web_route_manifest_rows, route_source_context,
-    router_group_body_expr, router_handler_name, router_middleware_from_expr,
-    router_receiver_method_name, router_response_middleware_from_expr, router_route_literal,
-    source_span_for_expr, WebRouteSourceContext,
+    is_request_type, is_response_type, is_router_builder_receiver, prefix_web_route_manifest_rows,
+    route_source_context, router_group_body_expr, router_handler_name, router_receiver_method_name,
+    router_route_literal, source_span_for_expr, WebRouteSourceContext,
 };
-use responses::{file_response_from_handler, static_response_from_handler};
 
 /// Discovered route-manifest rows for one browser package.
 ///
@@ -46,8 +41,8 @@ use responses::{file_response_from_handler, static_response_from_handler};
 /// - Dynamic handler rows plus cacheable static and file response rows.
 ///
 /// Transformation:
-/// - Keeps compile-time response payloads in the manifest while preserving
-///   their source router ownership for middleware-aware VM serving.
+/// - Keeps source handlers executable; explicit static/file rows remain part
+///   of the manifest format but are not inferred from handler bodies.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(super) struct WebRouteManifestRows {
     pub(super) handlers: Vec<WebHandlerArtifact>,
@@ -67,9 +62,7 @@ pub(super) struct WebRouteManifestRows {
 /// - Stable error if a source file cannot be read, reparsed, or validated.
 ///
 /// Transformation:
-/// - Classifies handler functions whose body is a constant `Response.text` or
-///   `Response.html` builder as static responses and keeps all other supported
-///   routes as dynamic VM handler routes.
+/// - Preserves handler calls without interpreting response-provider semantics.
 pub(super) fn discover_web_route_manifest_from_sources(
     sources: &[WebRouteSourceArtifact],
 ) -> Result<WebRouteManifestRows, String> {
@@ -204,85 +197,6 @@ fn discover_web_handlers_from_sources(
     Ok(handlers)
 }
 
-/// Discovers an optional router-level error handler from route-source modules.
-///
-/// Inputs:
-/// - `sources`: Terlan source modules known to contain HTTP router metadata.
-///
-/// Output:
-/// - `Ok(Some(handler))` when a supported router error handler is found.
-/// - `Ok(None)` when no error handler is found.
-/// - Stable diagnostics for invalid handler declarations.
-///
-/// Transformation:
-/// - Converts JS module artifacts to route-source artifacts before using the
-///   route-source error-handler discovery path.
-#[cfg(test)]
-pub(super) fn discover_web_error_handler_from_modules(
-    modules: &[JsModuleArtifact],
-) -> Result<Option<WebErrorHandlerArtifact>, String> {
-    let sources = modules
-        .iter()
-        .map(WebRouteSourceArtifact::from_js_module)
-        .collect::<Vec<_>>();
-    discover_web_error_handler_from_sources(&sources)
-}
-
-/// Discovers an optional router-level error handler from emitted source modules.
-///
-/// Inputs:
-/// - `modules`: emitted JS module artifacts containing original source paths.
-///
-/// Output:
-/// - `Ok(Some(handler))` when a supported `Router.error(handler)` call is
-///   found.
-/// - `Ok(None)` when no router-level error handler is declared.
-/// - Stable `error[web_router]` diagnostics for duplicate or invalid handlers.
-///
-/// Transformation:
-/// - Reparses source modules, walks `router` function bodies, extracts
-///   `Router.error` calls, and validates the referenced local function has the
-///   current `HttpError -> Response` shape.
-pub(super) fn discover_web_error_handler_from_sources(
-    sources: &[WebRouteSourceArtifact],
-) -> Result<Option<WebErrorHandlerArtifact>, String> {
-    let mut discovered: Option<WebErrorHandlerArtifact> = None;
-    for source_artifact in sources {
-        let source = fs::read_to_string(&source_artifact.source_path).map_err(|err| {
-            format!(
-                "cannot read source {} for web error handler discovery: {err}",
-                source_artifact.source_path
-            )
-        })?;
-        let syntax = parse_module_as_syntax_output(&source).map_err(|err| {
-            format!(
-                "cannot parse source {} for web error handler discovery: {err:?}",
-                source_artifact.source_path
-            )
-        })?;
-        let source_context = route_source_context(source_artifact, &source);
-        let signatures = router_handler_signatures(&syntax, Some(&source_context));
-        for declaration in &syntax.declarations {
-            let SyntaxDeclarationPayload::Function { name, clauses, .. } = &declaration.payload
-            else {
-                continue;
-            };
-            if name != "router" {
-                continue;
-            }
-            for clause in clauses {
-                collect_router_error_handlers_from_expr(
-                    &source_artifact.module,
-                    &clause.body,
-                    &signatures,
-                    &mut discovered,
-                )?;
-            }
-        }
-    }
-    Ok(discovered)
-}
-
 /// Local function signature data used by router-manifest extraction.
 ///
 /// Inputs:
@@ -301,7 +215,6 @@ struct RouterHandlerSignature {
     param_names: Vec<String>,
     param_types: Vec<String>,
     return_type: String,
-    body: Option<SyntaxExprOutput>,
     source: Option<super::manifest::WebSourceSpanArtifact>,
 }
 
@@ -449,9 +362,6 @@ fn router_handler_signatures(
                         .map(|param| param.annotation.text.clone())
                         .collect(),
                     return_type: return_type.text.clone(),
-                    body: clauses
-                        .first()
-                        .and_then(|clause| (clauses.len() == 1).then(|| clause.body.clone())),
                     source: clauses.first().and_then(|clause| {
                         source.map(|source| source_span_for_expr(source, &clause.body))
                     }),
@@ -461,7 +371,7 @@ fn router_handler_signatures(
         .collect()
 }
 
-/// Recursively collects route-builder calls and classifies static responses.
+/// Recursively collects route-builder calls and their source handler targets.
 ///
 /// Inputs:
 /// - `module_name`: Terlan module that owns discovered handlers.
@@ -474,8 +384,7 @@ fn router_handler_signatures(
 /// - Stable `error[web_router]` diagnostic for invalid handler references.
 ///
 /// Transformation:
-/// - Reuses route-builder extraction, then moves handlers with constant
-///   response bodies into `static_responses`.
+/// - Resolves handler targets without replacing source execution with payloads.
 fn collect_router_routes_from_expr(
     module_name: &str,
     expr: &SyntaxExprOutput,
@@ -484,12 +393,6 @@ fn collect_router_routes_from_expr(
     handler_targets: &HashMap<String, RouterHandlerTarget>,
     rows: &mut WebRouteManifestRows,
 ) -> Result<(), String> {
-    if let Some(middleware) = router_middleware_from_expr(expr) {
-        validate_router_middleware(module_name, middleware, signatures)?;
-    }
-    if let Some(middleware) = router_response_middleware_from_expr(expr) {
-        validate_router_response_middleware(module_name, middleware, signatures)?;
-    }
     if let Some((prefix, body)) = router_group_body_expr(expr) {
         let mut grouped_rows = WebRouteManifestRows::default();
         collect_router_routes_from_expr(
@@ -518,36 +421,14 @@ fn collect_router_routes_from_expr(
         apply_router_handler_arities(&mut handlers, signatures);
         for mut handler in handlers {
             let local_name = handler.function.clone();
-            if let Some(response) = static_response_from_handler(&handler, signatures) {
-                let mut response = response;
-                apply_router_target(
-                    &local_name,
-                    &mut response.module,
-                    &mut response.function,
-                    &mut response.source,
-                    handler_targets,
-                );
-                rows.static_responses.push(response);
-            } else if let Some(response) = file_response_from_handler(&handler, signatures) {
-                let mut response = response;
-                apply_router_target(
-                    &local_name,
-                    &mut response.module,
-                    &mut response.function,
-                    &mut response.source,
-                    handler_targets,
-                );
-                rows.file_responses.push(response);
-            } else {
-                apply_router_target(
-                    &local_name,
-                    &mut handler.module,
-                    &mut handler.function,
-                    &mut handler.source,
-                    handler_targets,
-                );
-                rows.handlers.push(handler);
-            }
+            apply_router_target(
+                &local_name,
+                &mut handler.module,
+                &mut handler.function,
+                &mut handler.source,
+                handler_targets,
+            );
+            rows.handlers.push(handler);
         }
     }
     for child in &expr.children {
@@ -588,7 +469,7 @@ fn router_sse_from_expr(
     Some(WebSseArtifact {
         module: module_name.to_string(),
         route: router_route_literal(expr.children.get(route_index)?)?,
-        source: Some(source_span_for_expr(source, expr)),
+        source: source_span_for_expr(source, expr),
     })
 }
 
@@ -614,12 +495,6 @@ fn collect_router_handlers_from_expr(
     handler_targets: &HashMap<String, RouterHandlerTarget>,
     handlers: &mut Vec<WebHandlerArtifact>,
 ) -> Result<(), String> {
-    if let Some(middleware) = router_middleware_from_expr(expr) {
-        validate_router_middleware(module_name, middleware, signatures)?;
-    }
-    if let Some(middleware) = router_response_middleware_from_expr(expr) {
-        validate_router_response_middleware(module_name, middleware, signatures)?;
-    }
     if let Some((prefix, body)) = router_group_body_expr(expr) {
         let mut grouped_handlers = Vec::new();
         collect_router_handlers_from_expr(
@@ -679,73 +554,6 @@ fn apply_router_target(
     module.clone_from(&target.module);
     function.clone_from(&target.function);
     source.clone_from(&target.source);
-}
-
-/// Recursively collects router-level error-handler calls from a syntax tree.
-///
-/// Inputs:
-/// - `module_name`: Terlan module that owns the error handler function.
-/// - `expr`: syntax expression to inspect.
-/// - `signatures`: local function signature map.
-/// - `discovered`: mutable slot for the single supported router error handler.
-///
-/// Output:
-/// - `Ok(())` when zero or one valid error handler is found.
-/// - Stable diagnostic for duplicate or invalid handler shape.
-///
-/// Transformation:
-/// - Walks expression children and records recognized `Router.error(...)`
-///   calls without evaluating the router builder value.
-fn collect_router_error_handlers_from_expr(
-    module_name: &str,
-    expr: &SyntaxExprOutput,
-    signatures: &HashMap<String, RouterHandlerSignature>,
-    discovered: &mut Option<WebErrorHandlerArtifact>,
-) -> Result<(), String> {
-    if let Some(handler) = router_error_handler_from_expr(module_name, expr) {
-        validate_router_error_handler(module_name, &handler, signatures)?;
-        if discovered.replace(handler).is_some() {
-            return Err(
-                "error[web_router]: duplicate router-level error handler declaration".to_string(),
-            );
-        }
-    }
-    for child in &expr.children {
-        collect_router_error_handlers_from_expr(module_name, child, signatures, discovered)?;
-    }
-    Ok(())
-}
-
-/// Extracts a statically named router error handler from a router expression.
-///
-/// Returns `None` for dynamic or higher-order handlers so manifest generation
-/// remains deterministic until resolved route extraction owns those shapes.
-fn router_error_handler_from_expr(
-    module_name: &str,
-    expr: &SyntaxExprOutput,
-) -> Option<WebErrorHandlerArtifact> {
-    if expr.kind != SyntaxExprKind::Call {
-        return None;
-    }
-    let (method_name, handler_index) = if expr.remote.as_deref() == Some("Router") {
-        (expr.children.first()?.text.as_deref()?, 2)
-    } else {
-        let callee = expr.children.first()?;
-        let method_name = router_receiver_method_name(callee)?;
-        if !is_router_builder_receiver(callee.children.first()?) {
-            return None;
-        }
-        (method_name, 1)
-    };
-    if method_name != "error" {
-        return None;
-    }
-    let handler = router_handler_name(expr.children.get(handler_index)?)?;
-    Some(WebErrorHandlerArtifact {
-        module: module_name.to_string(),
-        function: handler.to_string(),
-        arity: 1,
-    })
 }
 
 /// Converts one direct `Router.*` call into manifest handler rows.

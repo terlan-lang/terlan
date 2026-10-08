@@ -26,10 +26,10 @@ pub(super) fn run_discovered_terlan_vm_tests(
     })?;
     // Test suites use the same actor/table service as HTTP handlers, scoped to
     // this run so session state never escapes into another invocation.
-    let sessions = SessionService::new(
-        SessionStore::with_defaults(VmActorStateStore::default())
-            .map_err(|error| error.to_string())?,
-    );
+    let sessions = SessionService::new(SessionStore::new(
+        VmActorStateStore::default(),
+        terlan_http_native::session_registry::RecoveryPolicy::CreateLocalReplacement,
+    ));
     let mut native = PureNativeExecutionImage::load_with_native_services(
         native_image,
         sessions.native_services().map_err(String::from)?,

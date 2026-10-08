@@ -30,6 +30,7 @@ pub fn cached_response(
     content_type: String,
     payload: String,
     headers: Vec<(String, String)>,
+    default_headers: Vec<(String, String)>,
 ) -> NativeValue {
     let kind = if content_type == "text/html; charset=utf-8" {
         1_i64
@@ -40,7 +41,7 @@ pub fn cached_response(
     let chunks = Vec::<String>::new();
     let chunk_size = 0_i64;
     let max_pending_writes = 0_i64;
-    native_record!(Response, {kind, payload, status, content_type, headers, chunks, chunk_size, max_pending_writes})
+    native_record!(Response, {kind, payload, status, content_type, default_headers, headers, chunks, chunk_size, max_pending_writes})
 }
 
 /// Consumes an executed Response, preserving body/header allocations and order.
@@ -55,6 +56,7 @@ pub fn response<V: DescriptorValue>(value: V) -> Result<SourceResponse> {
             "chunk_size",
             "chunks",
             "content_type",
+            "default_headers",
             "headers",
             "kind",
             "max_pending_writes",
@@ -69,12 +71,14 @@ pub fn response<V: DescriptorValue>(value: V) -> Result<SourceResponse> {
         Some(D::Int(chunk_size)),
         Some(D::List(chunks)),
         Some(D::String(content_type)),
+        Some(D::List(default_headers)),
         Some(D::List(headers)),
         Some(D::Int(kind)),
         Some(D::Int(max_pending_writes)),
         Some(D::String(payload)),
         Some(D::Int(status)),
     ) = (
+        fields.next(),
         fields.next(),
         fields.next(),
         fields.next(),
@@ -94,7 +98,11 @@ pub fn response<V: DescriptorValue>(value: V) -> Result<SourceResponse> {
     }
     http::HeaderValue::from_str(&content_type)
         .map_err(|reason| error(format!("invalid response content type: {reason}")))?;
-    let headers = headers.into_iter().map(header).collect::<Result<_>>()?;
+    let headers = default_headers
+        .into_iter()
+        .chain(headers)
+        .map(header)
+        .collect::<Result<_>>()?;
     let body = match kind {
         0..=2 => SourceResponseBody::Text(payload),
         4 => SourceResponseBody::File(payload),

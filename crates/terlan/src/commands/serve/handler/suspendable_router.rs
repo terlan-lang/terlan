@@ -13,13 +13,13 @@ pub(in crate::commands::serve) async fn execute_suspendable_router(
     let module = &matched.handler.module;
     let router = vm.execute_http_router(module, "router", &mut |_| {})?;
     let method = vm_route_method(&matched.handler.method)?;
-    let VmHttpRouterOutcome::Matched(dispatch) = router.dispatch(method, request.path())? else {
+    let RouterOutcome::Matched(dispatch) = router.dispatch(method, request.path())? else {
         return Err("error[serve_router]: source router did not match request".into());
     };
     if dispatch.method != method || dispatch.route_pattern != matched.handler.route {
         return Err("error[serve_router]: manifest and source router routes disagree".into());
     }
-    let VmHttpRouteTarget::Handler(handler) = &dispatch.target else {
+    let RouteTarget::Handler(handler) = &dispatch.target else {
         return Err("error[serve_router]: expected source HTTP handler".into());
     };
     let request = vm_request_descriptor(&request, &dispatch.route_params);
@@ -49,7 +49,7 @@ pub(in crate::commands::serve) async fn execute_suspendable_router(
         .execute(request, args, &mut invoke, error_value)
         .await
         .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))?;
-    match HandlerResponse::from_owned_vm_response_with_package_root(response, package_root) {
+    match crate::commands::serve::handler::decode_owned_response(response, package_root) {
         Ok(response) => Ok(response),
         Err(error) => {
             let recovered = pipeline
@@ -60,7 +60,7 @@ pub(in crate::commands::serve) async fn execute_suspendable_router(
                 )
                 .await
                 .map_err(|error| format!("error[{}]: {}", error.code(), error.message()))?;
-            HandlerResponse::from_owned_vm_response_with_package_root(recovered, package_root)
+            crate::commands::serve::handler::decode_owned_response(recovered, package_root)
         }
     }
 }

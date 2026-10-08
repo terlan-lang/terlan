@@ -1,7 +1,7 @@
 //! Test-runner-only access to production HTTP request and response values.
 use super::{PureNativeCapabilityRequest, ReplValue, VmRuntimeResult};
-use crate::runtime::native::http::{self, RequestFieldProjection};
 use crate::runtime::vm::native_value::from_native;
+use terlan_http_native::{self as http, RequestFieldProjection};
 
 pub(super) fn call(
     enabled: bool,

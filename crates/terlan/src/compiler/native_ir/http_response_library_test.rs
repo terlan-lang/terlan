@@ -17,6 +17,9 @@ pub check(): Bool ->
     let moved = redirect("/next", 302);
     let streamed = stream(["a", "b"], 202, "application/custom", 7, 2);
     original.#status == 200 and original.#headers == []
+        and original.#default_headers == [{"Cache-Control", "no-cache"}, {"X-Content-Type-Options", "nosniff"}]
+        and changed.#default_headers == original.#default_headers
+        and streamed.#default_headers == original.#default_headers
         and changed.#status == 218 and changed.#payload == "body"
         and changed.#headers == [{"X-Test", "first"}, {"X-Test", "second"}]
         and moved.#payload == "" and moved.#status == 302
@@ -24,6 +27,39 @@ pub check(): Bool ->
         and streamed.#kind == 5 and streamed.#chunks == ["a", "b"]
         and streamed.#chunk_size == 7 and streamed.#max_pending_writes == 2
         and streamed.#content_type == "application/custom".
+"#
+    );
+    check_sources(&[&provider]);
+    check_sources(&[&provider.replace("module std.http.Response.", "module app.SourceResponse.")]);
+}
+
+#[test]
+fn response_default_policy_follows_source_not_module_identity() {
+    let provider = format!(
+        "{}\npub check(): Bool -> let response = text(\"body\", 200); response.#default_headers == [{{\"X-Package\", \"owned\"}}].",
+        include_str!("../../../../../std/http/Response.terl").replace(
+            "[{\"Cache-Control\", \"no-cache\"}, {\"X-Content-Type-Options\", \"nosniff\"}]",
+            "[{\"X-Package\", \"owned\"}]",
+        ),
+    );
+    check_sources(&[&provider]);
+    check_sources(&[&provider.replace("module std.http.Response.", "module app.SourceResponse.")]);
+}
+
+#[test]
+fn source_cache_override_preserves_explicit_duplicates_and_original_defaults() {
+    let provider = format!(
+        "{}\n{}",
+        include_str!("../../../../../std/http/Response.terl"),
+        r#"
+pub check(): Bool ->
+    let original = text("body", 200);
+    let cached = original.with_header("CACHE-CONTROL", "no-cache").with_header("cache-control", "private").with_status(209);
+    cached.#default_headers == [{"X-Content-Type-Options", "nosniff"}]
+        and cached.#headers == [{"CACHE-CONTROL", "no-cache"}, {"cache-control", "private"}]
+        and cached.#status == 209
+        and original.#default_headers == [{"Cache-Control", "no-cache"}, {"X-Content-Type-Options", "nosniff"}]
+        and original.#headers == [].
 "#
     );
     check_sources(&[&provider]);

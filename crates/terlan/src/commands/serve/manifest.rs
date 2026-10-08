@@ -15,10 +15,9 @@ use crate::commands::serve::tls_contract::ProjectServerTls;
 use terlan_http_native::tls_paths::validate_manual_tls_file_references;
 
 use super::handler::{
-    validate_error_handler, validate_file_response, validate_handler, validate_handler_routes,
-    validate_sse, validate_static_response, validate_websocket, WebPackageErrorHandler,
-    WebPackageFileResponse, WebPackageHandler, WebPackageSse, WebPackageStaticResponse,
-    WebPackageWebSocket,
+    validate_error_handler, validate_file_response, validate_handler, validate_sse,
+    validate_static_response, validate_websocket, WebPackageErrorHandler, WebPackageFileResponse,
+    WebPackageHandler, WebPackageSse, WebPackageStaticResponse, WebPackageWebSocket,
 };
 use super::package_relative_path;
 
@@ -191,12 +190,7 @@ pub(crate) fn validate_web_package(web_root: &Path) -> Result<(), String> {
     if let Some(handler) = &manifest.error_handler {
         validate_error_handler(handler)?;
     }
-    validate_handler_routes(&manifest.handlers)?;
-    validate_websocket_routes(&manifest.websockets)?;
-    validate_sse_routes(&manifest.sse)?;
-    validate_static_response_routes(&manifest.static_responses)?;
-    validate_file_response_routes(&manifest.file_responses)?;
-    validate_manifest_route_namespace(
+    terlan_http_native::manifest::validate_route_namespace(
         &manifest.handlers,
         &manifest.websockets,
         &manifest.sse,
@@ -639,10 +633,7 @@ pub(super) fn manifest_static_file_from_manifest(
 
 #[path = "manifest/route_validation.rs"]
 mod route_validation;
-use route_validation::{
-    validate_asset_kind, validate_file_response_routes, validate_manifest_route_namespace,
-    validate_sse_routes, validate_static_response_routes, validate_websocket_routes,
-};
+use route_validation::validate_asset_kind;
 
 #[cfg(test)]
 #[path = "manifest_test.rs"]

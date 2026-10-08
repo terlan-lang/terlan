@@ -88,12 +88,11 @@ fn callback_mapping_preserves_pairing_and_every_recovery_field() {
             first_matched: "first".into(),
             second_matched: "second".into(),
             peer_left: "left".into(),
-            stateful: restore,
-            restoration: restore.then(|| WebSocketRestoration {
+            restoration: restore.then_some(WebSocketRestoration {
                 waiting: Owned(0),
                 peer_left: Owned(1),
                 identity: Owned(6),
-                room_prefix: "prefix".into(),
+                room_identity: Owned(7),
                 retention_ms: 1234,
                 retained_room_capacity: 17,
                 matched: Owned(2),
@@ -114,7 +113,7 @@ fn callback_mapping_preserves_pairing_and_every_recovery_field() {
         assert_eq!(
             seen,
             if restore {
-                vec![0, 1, 6, 2, 3, 4, 5]
+                vec![0, 1, 6, 7, 2, 3, 4, 5]
             } else {
                 vec![4, 5]
             }
@@ -127,12 +126,11 @@ fn callback_mapping_preserves_pairing_and_every_recovery_field() {
             first_matched: "first".into(),
             second_matched: "second".into(),
             peer_left: "left".into(),
-            stateful: restore,
-            restoration: restore.then(|| WebSocketRestoration {
+            restoration: restore.then_some(WebSocketRestoration {
                 waiting: 10,
                 peer_left: 11,
                 identity: 16,
-                room_prefix: "prefix".into(),
+                room_identity: 17,
                 retention_ms: 1234,
                 retained_room_capacity: 17,
                 matched: 12,

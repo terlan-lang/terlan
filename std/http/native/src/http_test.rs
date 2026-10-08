@@ -34,8 +34,7 @@ fn body_file_path_reads_temporary_upload_path() {
 /// - A request wrapper built from explicit metadata pairs.
 ///
 /// Output:
-/// - Test passes when helper accessors return present and absent optional
-///   values predictably.
+/// - Test passes when storage preserves metadata without selecting lookup policy.
 ///
 /// Transformation:
 /// - Exercises the request metadata shape used by router-backed handlers
@@ -57,20 +56,15 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
 
     assert_eq!(request.method(), "GET");
     assert_eq!(request.path(), "/users/42");
-    assert_eq!(request.param("id"), Some("42".to_string()));
-    assert_eq!(request.param("missing"), None);
-    assert_eq!(request.query("tab"), Some("profile".to_string()));
     assert_eq!(request.query_string(), "tab=profile");
+    let parts = request.into_parts();
+    assert_eq!(parts.params, [("id".into(), "42".into())]);
+    assert_eq!(parts.query, [("tab".into(), "profile".into())]);
     assert_eq!(
-        request.header("accept"),
-        Some("application/json".to_string())
+        parts.headers,
+        [("Accept".into(), "application/json".into())]
     );
-    assert_eq!(
-        request.header("ACCEPT"),
-        Some("application/json".to_string())
-    );
-    assert_eq!(request.header("missing"), None);
-    assert_eq!(request.cookie("theme"), Some("dark".to_string()));
+    assert_eq!(parts.cookies, [("theme".into(), "dark".into())]);
 }
 
 /// Verifies request metadata names remain text at the HTTP boundary.
@@ -80,7 +74,7 @@ fn request_from_parts_with_metadata_preserves_lookup_pairs() {
 ///   construction functions.
 ///
 /// Output:
-/// - Test passes when each lookup returns the associated text value.
+/// - Test passes when each stored pair retains the associated text value.
 ///
 /// Transformation:
 /// - Exercises request metadata storage without converting external names into
@@ -100,10 +94,11 @@ fn request_metadata_names_that_look_like_atom_builders_remain_strings() {
         },
     );
 
-    assert_eq!(request.param("binary_to_atom"), Some("route".to_string()));
-    assert_eq!(request.query("list_to_atom"), Some("query".to_string()));
-    assert_eq!(request.header("binary-to-atom"), Some("header".to_string()));
-    assert_eq!(request.cookie("list_to_atom"), Some("cookie".to_string()));
+    let parts = request.into_parts();
+    assert_eq!(parts.params, [("binary_to_atom".into(), "route".into())]);
+    assert_eq!(parts.query, [("list_to_atom".into(), "query".into())]);
+    assert_eq!(parts.headers, [("Binary-To-Atom".into(), "header".into())]);
+    assert_eq!(parts.cookies, [("list_to_atom".into(), "cookie".into())]);
 }
 
 /// Verifies browser runtime asset MIME lookup stays at the HTTP adapter boundary.

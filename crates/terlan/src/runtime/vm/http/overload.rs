@@ -2,10 +2,11 @@ use super::{
     finish_http1_tcp_handler, VmHttpQueue, VmHttpTcpHandler, VmHttpTcpServer, VmHttpTcpServerPoll,
 };
 use crate::runtime::vm::{
-    http_router::VmHttpRouter,
     process::{VmExitReason, VmProcessSource, VmProcessTable},
     tcp::{VmTcpListener, VmTcpRuntime},
+    ReplValue,
 };
+use terlan_http_native::routing::Router;
 
 pub(crate) use terlan_http_native::routing::{
     OverloadConfig as VmHttpOverloadConfig, OverloadPolicy as VmHttpOverloadPolicy,
@@ -17,7 +18,7 @@ impl VmHttpTcpServer {
     pub(crate) fn from_router(
         listener: VmTcpListener,
         handler_source: VmProcessSource,
-        router: &VmHttpRouter,
+        router: &Router<ReplValue>,
     ) -> Self {
         let mut server = Self::new(listener, handler_source);
         server.overload = router.overload_config();

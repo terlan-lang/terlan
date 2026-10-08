@@ -93,5 +93,6 @@ nested_case_list_argument(): Bool ->
         None -> false
     }.
 
+@test
 pub self_test(): Bool ->
     list_cons_argument() and nested_if_list_argument() and nested_case_list_argument().

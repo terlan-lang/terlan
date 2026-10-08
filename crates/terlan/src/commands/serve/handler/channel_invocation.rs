@@ -11,26 +11,15 @@ use crate::runtime::vm::pure_native::PureNativeIoWait;
 use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::ReplValue;
 
-/// Observable completion state after dispatching or resuming one channel callback.
-pub(in crate::commands::serve) enum AotChannelCallbackState {
-    /// Callback returned without retaining generated execution state.
-    Complete(ReplValue),
-    /// Callback parked on one exact typed VM I/O wait.
-    Waiting(PureNativeIoWait),
-}
+/// Observable completion state after dispatching or resuming one callback.
+pub(in crate::commands::serve) type AotChannelCallbackState =
+    terlan_runtime_abi::CallbackState<ReplValue, PureNativeIoWait>;
 
 #[cfg(test)]
 #[path = "channel_closure_test.rs"]
 mod closure_test;
 
-impl Debug for AotChannelCallbackState {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Complete(value) => formatter.debug_tuple("Complete").field(value).finish(),
-            Self::Waiting(wait) => formatter.debug_tuple("Waiting").field(wait).finish(),
-        }
-    }
-}
+mod package_adapter;
 
 /// Channel-neutral linear owner for generated callback invocation state.
 #[derive(Debug)]
@@ -172,22 +161,6 @@ where
             invocation.cancel(reason)?;
         }
         Ok(())
-    }
-
-    /// Accepts a terminal callback only when it released generated state.
-    pub(in crate::commands::serve) fn finish_terminal(
-        &mut self,
-        event: Event,
-        state: AotChannelCallbackState,
-    ) -> Result<AotChannelCallbackState, String> {
-        if matches!(state, AotChannelCallbackState::Waiting(_)) {
-            self.cancel_pending(format!("terminal {event:?} callback cannot suspend"))?;
-            return Err(format!(
-                "error[serve.{}.terminal_wait]: terminal {event:?} callback cannot suspend",
-                self.channel
-            ));
-        }
-        Ok(state)
     }
 
     /// Converts one shared invocation step into channel-owned state.

@@ -3,8 +3,10 @@
 use std::path::Path;
 
 mod matching;
+mod selection;
 
 pub use matching::{match_route_pattern, RoutePatternMatch, RouteScore};
+pub use selection::{route_param_argument, select_route, SelectedRoute};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebRouteError(String);

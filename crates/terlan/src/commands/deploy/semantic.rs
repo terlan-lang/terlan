@@ -5,10 +5,10 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use crate::commands::api::source_contract::{imports_std_http_router, routes_from_syntax_module};
 use crate::commands::build::project_manifest::{
     ProjectArtifactKind, ProjectDeployment, ProjectManifest, ProjectRollbackCompatibility,
 };
-use crate::compiler::api_contract::{imports_std_http_router, routes_from_syntax_module};
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
 use super::{

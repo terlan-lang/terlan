@@ -3,6 +3,7 @@ module self_host.ProjectedFrontend.
 
 import self_host.CanonicalToken.{CanonicalToken}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
+import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
 
 import std.collections.List.
 import std.core.{Bool, String}.
@@ -15,6 +16,21 @@ import self_host.ProjectedParser.
 import self_host.ProjectedSignatureParser.
 import self_host.SemanticAnalysis.
 import self_host.TypedModuleLowering.
+
+@pure
+canonical_tokens(values: List[CanonicalToken]): List[ProjectedCanonicalToken] ->
+    case values {
+        [] -> List.new[ProjectedCanonicalToken]();
+        [value | rest] -> [
+            ProjectedCanonicalToken(
+                value.terminal,
+                value.text,
+                value.start_byte,
+                value.end_byte,
+            )
+            | canonical_tokens(rest)
+        ]
+    }.
 
 
 @pure
@@ -56,7 +72,7 @@ frontend_message_after_bodies(backend_valid: Bool, backend_message: String): Str
 @pure
 pub compile(source: String, canonical: List[CanonicalToken]): ProjectedFrontendModule ->
     let tokens = ProjectionAdapter.rewrite(source, canonical);
-    let concrete = ConcreteSyntaxParser.parse(tokens);
+    let concrete = ConcreteSyntaxParser.parse(canonical_tokens(canonical));
     let surface = ProjectedParser.parse(source, tokens);
     let signatures = ProjectedSignatureParser.parse(tokens, surface.declarations);
     let bodies = ProjectedBodyParser.parse(tokens, surface.declarations);

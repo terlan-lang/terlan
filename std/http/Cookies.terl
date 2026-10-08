@@ -8,9 +8,9 @@
  */
 module std.http.Cookies.
 
-import std.collections.{List, Map}.
+import std.collections.{Enumerable, List, Map}.
 import std.core.Option.{None, Some, is_some, with_default}.
-import std.core.Unit.
+import std.core.{String, Unit}.
 
 import type std.core.Option.
 
@@ -117,6 +117,26 @@ pub from_map(incoming: Map[String, String]): Jar ->
     Jar {#incoming: incoming, #pending: []}.
 
 /**
+ * Creates a jar from ordered, decoded cookie pairs.
+ *
+ * The first value for each case-sensitive name wins, including empty values.
+ * Source owns this precedence; the maintained parser preserves all pairs.
+ */
+pub from_pairs(incoming: List[{String, String}]): Jar ->
+    from_map(
+        Enumerable[List].fold(
+            incoming,
+            Map.new[String, String](),
+            (values, pair) ->
+                let {name, value} = pair;
+                if {
+                    values.contains_key(name) -> values;
+                    true -> (values.put(name, value); values)
+                },
+        ),
+    ).
+
+/**
  * Returns pending response headers.
  *
  * Input: one cookie jar receiver.
@@ -200,7 +220,6 @@ pub set_header(
  * native cookie codec. Typed `Options` values use `set_header_options` to
  * project into this boundary; wrappers do not assemble wire headers.
  */
-@compiler.native {std.http.cookies.set_header_with_options}
 pub set_header_with_options(
     name: String,
     value: String,
@@ -212,6 +231,44 @@ pub set_header_with_options(
     http_only: Bool = false,
     secure: Bool = false,
     same_site: String = "",
+): String ->
+    encode(
+        name,
+        value,
+        path,
+        optional_text(domain),
+        if {
+            include_max_age -> Some(max_age);
+            true -> None
+        },
+        optional_text(expires),
+        http_only,
+        secure,
+        optional_text(same_site.lowercase()),
+    ).
+
+optional_text(value: String): Option[String] ->
+    if {
+        value == "" -> None;
+        true -> Some(value)
+    }.
+
+/**
+ * Serializes explicit attributes through the maintained cookie codec.
+ * Source selects omission and normalizes policy text before this boundary.
+ * Native code validates every supplied attribute before emitting wire text.
+ */
+@compiler.native {std.http.cookies.encode}
+encode(
+    name: String,
+    value: String,
+    path: String,
+    domain: Option[String],
+    max_age: Option[Int],
+    expires: Option[String],
+    http_only: Bool,
+    secure: Bool,
+    same_site: Option[String],
 ): String ->
     native.
 

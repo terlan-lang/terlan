@@ -290,6 +290,20 @@ pub(super) fn specialize_expr(
             args,
             type_args,
         } => {
+            // Lexical callables shadow named functions, including unique names
+            // found in other modules by the signature fallback.
+            if let Some(local_type) = variables.get(function) {
+                for argument in args.iter_mut() {
+                    specialize_expr(argument, variables, functions, module);
+                }
+                return match local_type {
+                    CoreType::Arrow {
+                        params,
+                        return_type,
+                    } if params.len() == args.len() => Some(return_type.as_ref().clone()),
+                    _ => None,
+                };
+            }
             let signature = function_signature(functions, module, function, args.len()).cloned();
             let argument_types = args
                 .iter_mut()

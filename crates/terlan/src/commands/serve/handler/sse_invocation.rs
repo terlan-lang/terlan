@@ -1,198 +1,32 @@
-//! Native invocation ownership for one admitted SSE stream.
+//! VM construction adapter; callback protocol policy belongs to std.http.
 
 use std::sync::Arc;
-
+#[cfg(test)]
 use terlan_http_native::channel_plan::SseEndpointPlan;
-use terlan_http_native::sse_session::{SseSession, SseStreamInfo};
+use terlan_http_native::channel_plan::SseEvent as AotSseCallbackEvent;
+use terlan_http_native::sse_callbacks::SseCallbacks;
+use terlan_http_native::sse_session::SseSession;
 
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-#[cfg(test)]
-use crate::runtime::native_image::TvmBoundaryType;
-#[cfg(test)]
-use crate::runtime::vm::pure_native::PureNativeIoWake;
 use crate::runtime::vm::ReplValue;
 
-use super::channel_invocation::{AotChannelCallbackState, AotChannelInvocation};
+#[cfg(test)]
+use super::channel_invocation::AotChannelCallbackState;
+use super::channel_invocation::AotChannelInvocation;
 
-/// SSE lifecycle event currently entering or parked in generated code.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::commands::serve) enum AotSseCallbackEvent {
-    /// Stream admission completed.
-    Open,
-    /// One application event became ready for the stream.
-    #[cfg(test)]
-    EventReady,
-    /// The VM emitted a keep-alive comment.
-    #[cfg(test)]
-    KeepAlive,
-    /// The stream began graceful drain and close.
-    #[cfg(test)]
-    Drain,
-    /// The scheduler or transport cancelled the stream.
-    #[cfg(test)]
-    Cancellation,
-}
+#[cfg(test)]
+type AotSseCallbackState = AotChannelCallbackState;
 
-/// Observable state after one SSE callback dispatch or resume.
-pub(in crate::commands::serve) type AotSseCallbackState = AotChannelCallbackState;
+pub(in crate::commands::serve) type AotSseCallbackSession =
+    SseCallbacks<AotChannelInvocation<AotSseCallbackEvent>>;
 
-/// One SSE stream bound to a native image generation and callback set.
-#[derive(Debug)]
-pub(in crate::commands::serve) struct AotSseCallbackSession {
+pub(in crate::commands::serve) fn open(
+    runtime: Arc<AotHandlerRuntime>,
+    module: String,
     live: SseSession<ReplValue>,
-    invocation: AotChannelInvocation<AotSseCallbackEvent>,
-}
-
-impl AotSseCallbackSession {
-    /// Admits one live stream and immediately dispatches its open callback.
-    pub(in crate::commands::serve) fn open(
-        runtime: Arc<AotHandlerRuntime>,
-        module: String,
-        live: SseSession<ReplValue>,
-    ) -> Result<Self, String> {
-        let invocation = AotChannelInvocation::new("sse", runtime, module);
-        let mut session = Self { live, invocation };
-        session.invoke(AotSseCallbackEvent::Open, Vec::new())?;
-        Ok(session)
-    }
-
-    /// Returns whether the package-owned stream remains open.
-    pub(in crate::commands::serve) fn is_open(&self) -> bool {
-        self.live.is_open()
-    }
-
-    /// Returns the immutable endpoint policy retained by the live stream.
-    pub(in crate::commands::serve) fn plan(&self) -> &SseEndpointPlan<ReplValue> {
-        self.live.plan()
-    }
-
-    /// Returns bounded queue state for transport admission checks.
-    pub(in crate::commands::serve) fn inspect(&self) -> SseStreamInfo {
-        self.live.inspect()
-    }
-
-    /// Returns callback events that completed for runtime instrumentation.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn completed_events(&self) -> &[AotSseCallbackEvent] {
-        self.invocation.completed_events()
-    }
-
-    /// Returns whether generated callback work is parked on typed VM I/O.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn is_waiting(&self) -> bool {
-        self.invocation.is_waiting()
-    }
-
-    /// Queues one data event and dispatches or wakes its generated callback.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn enqueue_event(
-        &mut self,
-        data: String,
-    ) -> Result<AotSseCallbackState, String> {
-        let pending = self.invocation.pending_wait()?;
-        if let Some(wait) = &pending {
-            if wait.boundary_type() != &TvmBoundaryType::String {
-                return Err(format!(
-                    "error[serve.sse.wake_type]: event data cannot wake {:?}",
-                    wait.boundary_type()
-                ));
-            }
-        }
-        self.live
-            .enqueue(None, None, None, &data)
-            .map_err(|error| format!("error[serve.sse.queue]: {error:?}"))?;
-        if let Some(wait) = pending {
-            self.resume(wait.wake(ReplValue::String(data)))
-        } else {
-            self.event_ready(data)
-        }
-    }
-
-    /// Transfers the oldest encoded event to HTTP stream transport.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn flush_next_event(&mut self) -> Option<Vec<u8>> {
-        self.live.flush_next()
-    }
-
-    /// Dispatches one ready application event through generated code.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn event_ready(
-        &mut self,
-        data: String,
-    ) -> Result<AotSseCallbackState, String> {
-        self.invoke(
-            AotSseCallbackEvent::EventReady,
-            vec![ReplValue::String(data)],
-        )
-    }
-
-    /// Dispatches one VM keep-alive notification through generated code.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn keep_alive(&mut self) -> Result<AotSseCallbackState, String> {
-        self.invoke(AotSseCallbackEvent::KeepAlive, Vec::new())
-    }
-
-    /// Dispatches graceful drain and ends the live-session lease.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn drain(&mut self) -> Result<AotSseCallbackState, String> {
-        self.invocation
-            .cancel_pending("SSE transport began graceful drain".to_string())?;
-        let state = self.invoke(AotSseCallbackEvent::Drain, Vec::new());
-        self.live.close();
-        self.invocation
-            .finish_terminal(AotSseCallbackEvent::Drain, state?)
-    }
-
-    /// Cancels parked work, dispatches cancellation, and ends the live lease.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn cancel(
-        &mut self,
-        reason: String,
-    ) -> Result<AotSseCallbackState, String> {
-        self.invocation.cancel_pending(reason.clone())?;
-        let state = self.invoke(
-            AotSseCallbackEvent::Cancellation,
-            vec![ReplValue::String(reason)],
-        );
-        self.live.close();
-        self.invocation
-            .finish_terminal(AotSseCallbackEvent::Cancellation, state?)
-    }
-
-    /// Resumes the exact parked callback from one typed VM I/O wake.
-    #[cfg(test)]
-    pub(in crate::commands::serve) fn resume(
-        &mut self,
-        wake: PureNativeIoWake,
-    ) -> Result<AotSseCallbackState, String> {
-        self.invocation.resume(wake)
-    }
-
-    /// Starts one event using its retained source callback.
-    fn invoke(
-        &mut self,
-        event: AotSseCallbackEvent,
-        args: Vec<ReplValue>,
-    ) -> Result<AotSseCallbackState, String> {
-        let callback = self.callback(event).cloned();
-        self.invocation.invoke(event, callback.as_ref(), args)
-    }
-
-    /// Selects the source callback assigned to one lifecycle event.
-    fn callback(&self, event: AotSseCallbackEvent) -> Option<&ReplValue> {
-        let callbacks = self.live.plan().callbacks()?;
-        Some(match event {
-            AotSseCallbackEvent::Open => &callbacks.open,
-            #[cfg(test)]
-            AotSseCallbackEvent::EventReady => &callbacks.event_ready,
-            #[cfg(test)]
-            AotSseCallbackEvent::KeepAlive => &callbacks.keep_alive,
-            #[cfg(test)]
-            AotSseCallbackEvent::Drain => &callbacks.drain,
-            #[cfg(test)]
-            AotSseCallbackEvent::Cancellation => &callbacks.cancellation,
-        })
-    }
+) -> Result<AotSseCallbackSession, String> {
+    AotSseCallbackSession::open(AotChannelInvocation::new("sse", runtime, module), live)
+        .map_err(String::from)
 }
 
 #[cfg(test)]

@@ -23,9 +23,7 @@ pub(super) struct SuspendableRouteDecision {
     suspending: bool,
 }
 
-/// Runtime-owned temporary path attached only to file-backed request bodies.
-#[derive(Clone, Debug)]
-pub(super) struct RequestBodyFilePath(pub(super) String);
+use terlan_http_native::request_ingress::RequestBodyFile;
 
 /// Boxed body type used by the Hyper development server.
 #[cfg(test)]
@@ -481,7 +479,7 @@ pub(crate) fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), Str
 pub(super) fn execute_dynamic_vm_handler(
     web_root: &Path,
     matched: &MatchedWebPackageHandler,
-    request: crate::terlan_native::http::Request,
+    request: terlan_http_native::Request,
 ) -> Result<handler::HandlerResponse, String> {
     let runtime = cached_vm_handler_runtime_for_request(web_root, &matched.handler)?;
     let projection = runtime.vm().request_projection(
@@ -498,8 +496,8 @@ pub(super) fn execute_dynamic_vm_handler_with_runtime(
     vm: &AotHandlerRuntime,
     web_root: &Path,
     matched: &MatchedWebPackageHandler,
-    request: crate::terlan_native::http::Request,
-    projection: crate::runtime::native::http::RequestFieldProjection,
+    request: terlan_http_native::Request,
+    projection: terlan_http_native::RequestFieldProjection,
 ) -> Result<handler::HandlerResponse, String> {
     let mut output = crate::service_foundation::emit_program_output;
     if let Some(response) =
@@ -567,7 +565,7 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         return Ok(None);
     }
     let projection = if source_router {
-        crate::runtime::native::http::RequestFieldProjection::Complete
+        terlan_http_native::RequestFieldProjection::Complete
     } else {
         runtime.vm().direct_request_projection(
             &matched.handler.module,
@@ -575,23 +573,23 @@ pub(super) async fn handle_suspendable_vm_stream_request(
             matched.handler.arity,
         )
     };
-    let native_request = crate::terlan_native::http::Request::from_parts_with_raw_query_metadata(
-        if projection.requires(crate::runtime::native::http::RequestFieldProjection::METHOD) {
+    let native_request = terlan_http_native::Request::from_parts_with_raw_query_metadata(
+        if projection.requires(terlan_http_native::RequestFieldProjection::METHOD) {
             method.to_owned()
         } else {
             Default::default()
         },
-        if projection.requires(crate::runtime::native::http::RequestFieldProjection::PATH) {
+        if projection.requires(terlan_http_native::RequestFieldProjection::PATH) {
             request_path.to_owned()
         } else {
             Default::default()
         },
-        if projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY) {
+        if projection.requires(terlan_http_native::RequestFieldProjection::BODY) {
             request.body().clone()
         } else {
             Default::default()
         },
-        crate::terlan_native::http::RequestMetadata::from_http(
+        terlan_http_native::RequestMetadata::from_http(
             projection,
             &matched.params,
             request_query,
@@ -599,12 +597,11 @@ pub(super) async fn handle_suspendable_vm_stream_request(
         ),
     )
     .with_body_file_path(
-        if projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH)
-        {
+        if projection.requires(terlan_http_native::RequestFieldProjection::BODY_FILE_PATH) {
             request
                 .extensions()
-                .get::<RequestBodyFilePath>()
-                .map(|path| path.0.clone())
+                .get::<RequestBodyFile>()
+                .map(|file| file.path().to_owned())
                 .unwrap_or_default()
         } else {
             String::new()
@@ -655,17 +652,16 @@ pub(super) fn request_requires_file_body(
     );
     Ok(matches!(
         projection,
-        crate::runtime::native::http::RequestFieldProjection::Fields(_)
-    ) && projection
-        .requires(crate::runtime::native::http::RequestFieldProjection::BODY_FILE_PATH)
-        && !projection.requires(crate::runtime::native::http::RequestFieldProjection::BODY))
+        terlan_http_native::RequestFieldProjection::Fields(_)
+    ) && projection.requires(terlan_http_native::RequestFieldProjection::BODY_FILE_PATH)
+        && !projection.requires(terlan_http_native::RequestFieldProjection::BODY))
 }
 
 /// Executes middleware for a compiler-folded static route through its source router.
 pub(super) fn execute_static_vm_router(
     web_root: &Path,
     response: &WebPackageStaticResponse,
-    request: &crate::terlan_native::http::Request,
+    request: &terlan_http_native::Request,
 ) -> Result<Option<handler::HandlerResponse>, String> {
     let Some(handler) = static_response_router_handler(response) else {
         return Ok(None);
@@ -693,7 +689,7 @@ pub(super) fn execute_static_vm_router(
 pub(super) fn execute_websocket_vm_router(
     web_root: &Path,
     websocket: &WebPackageWebSocket,
-    request: &crate::terlan_native::http::Request,
+    request: &terlan_http_native::Request,
 ) -> Result<Option<VmWebSocketRouterAdmission>, String> {
     let Some(handler) = websocket_router_handler(websocket) else {
         return Ok(None);
@@ -716,7 +712,7 @@ pub(super) fn execute_websocket_vm_router(
 pub(super) fn execute_sse_vm_router(
     web_root: &Path,
     endpoint: &WebPackageSse,
-    request: &crate::terlan_native::http::Request,
+    request: &terlan_http_native::Request,
     live_transport_available: bool,
 ) -> Result<VmSseRouterAdmission, String> {
     let handler = sse_router_handler(endpoint);

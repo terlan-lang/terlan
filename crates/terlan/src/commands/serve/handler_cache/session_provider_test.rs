@@ -8,6 +8,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use terlan_http_native::session_bindings::SessionStorage;
 
+#[path = "session_acquisition_test.rs"]
+mod acquisition;
+
 #[test]
 fn canonical_session_provider_preserves_commands_rotation_and_expiration() {
     let fixture = compile_native_handler_fixture(
@@ -41,9 +44,9 @@ pub expire(session: Session): Bool ->
     done == Unit.
 "#,
     );
-    let sessions = super::super::session_service::test_session_service().unwrap();
+    let sessions = super::super::session_service::new_session_service();
     let identity = sessions
-        .with_storage(|state| state.current(""))
+        .with_storage(|state| state.create("", 86400))
         .unwrap()
         .unwrap();
     let session = ReplValue::Record {
@@ -51,19 +54,20 @@ pub expire(session: Session): Bool ->
         fields: vec![
             ("identity".into(), ReplValue::String(identity.clone())),
             ("pending_identity".into(), ReplValue::String(identity)),
+            ("ttl_seconds".into(), ReplValue::Int(86400)),
         ],
     };
-    let runtime = AotHandlerRuntime {
+    let load = |services| AotHandlerRuntime {
         module: "app.Sessions".into(),
         generation: Arc::new(
-            AotHandlerGeneration::load_with_shard_count(&fixture.image, sessions.clone(), 1)
-                .unwrap(),
+            AotHandlerGeneration::load_with_shard_count(&fixture.image, services, 1).unwrap(),
         ),
         router: None,
         primary_request_projection: None,
         request_projections: HashMap::new(),
     };
-    let invoke = |function, value| {
+    let runtime = load(sessions.clone());
+    let invoke = |runtime: &AotHandlerRuntime, function, value| {
         runtime
             .begin_request_invocation("app.Sessions", function, vec![value])
             .map(|step| {
@@ -73,30 +77,47 @@ pub expire(session: Session): Bool ->
                 value
             })
     };
+    let assert_stale = |runtime: &AotHandlerRuntime, function, value| {
+        let error = invoke(runtime, function, value).expect_err("identity must be rejected");
+        assert!(error.contains("stale HTTP session"), "{function}: {error}");
+    };
     assert_eq!(
-        invoke("update", session.clone()).unwrap(),
+        invoke(&runtime, "update", session.clone()).unwrap(),
         ReplValue::Bool(true)
     );
-    let rotated = invoke("rotate", session.clone()).unwrap();
+    let replacement = load(sessions.clone());
+    let isolated = load(super::super::session_service::new_session_service());
+    for function in ["read", "expire"] {
+        assert_stale(&isolated, function, session.clone());
+    }
+    assert_eq!(
+        invoke(&replacement, "read", session.clone()).unwrap(),
+        ReplValue::String("retained".into()),
+        "a replacement code image shares the application's state"
+    );
+    let rotated = invoke(&replacement, "rotate", session.clone()).unwrap();
     assert_ne!(rotated, session);
     assert_eq!(
-        invoke("read", rotated.clone()).unwrap(),
+        invoke(&runtime, "read", rotated.clone()).unwrap(),
         ReplValue::String("retained".into())
     );
-    assert!(
-        invoke("read", session).is_err(),
-        "old identity must be rejected"
+    for generation in [&runtime, &replacement] {
+        assert_stale(generation, "read", session.clone());
+    }
+    drop(runtime);
+    assert_eq!(
+        invoke(&replacement, "read", rotated.clone()).unwrap(),
+        ReplValue::String("retained".into()),
+        "unloading the old image must not release application-owned resources"
     );
     assert_eq!(
-        invoke("expire", rotated.clone()).unwrap(),
+        invoke(&replacement, "expire", rotated.clone()).unwrap(),
         ReplValue::Bool(true)
     );
-    assert!(
-        invoke("read", rotated).is_err(),
-        "expired identity must be rejected"
-    );
+    assert_stale(&replacement, "read", rotated);
     assert!(sessions.with_storage(|state| state.is_empty()).unwrap());
-    drop(runtime);
+    drop(replacement);
+    drop(isolated);
     std::fs::remove_dir_all(fixture.root).unwrap();
 }
 
@@ -113,8 +134,10 @@ fn compiled_session_capabilities_reject_incompatible_context_results() {
         "app_SessionBoundary",
         r#"module app.SessionBoundary.
 import std.core.Option.
-@compiler.native {std.http.session.current}
-pub current(identity: String): String -> native.
+@compiler.native {std.http.session.lookup}
+pub lookup(identity: String): Option[String] -> native.
+@compiler.native {std.http.session.create}
+pub create(identity: String, ttl_seconds: Int): String -> native.
 @compiler.native {std.http.session.get}
 pub get(identity: String, key: String): Option[String] -> native.
 @compiler.native {std.http.session.set}
@@ -122,7 +145,7 @@ pub set(identity: String, key: String, value: String): Unit -> native.
 @compiler.native {std.http.session.delete}
 pub delete(identity: String, key: String): Unit -> native.
 @compiler.native {std.http.session.rotate}
-pub rotate(identity: String): String -> native.
+pub rotate(identity: String, ttl_seconds: Int): String -> native.
 @compiler.native {std.http.session.expire}
 pub expire(identity: String): Unit -> native.
 @compiler.native {std.http.session.is_live}
@@ -133,11 +156,12 @@ pub healthy(): Int -> 42.
     let count = Arc::new(Mutex::new(0));
     let mut services = NativeServices::default();
     let operations = [
-        ("std.http.session.current", "current", 1),
+        ("std.http.session.lookup", "lookup", 1),
+        ("std.http.session.create", "create", 2),
         ("std.http.session.get", "get", 2),
         ("std.http.session.set", "set", 3),
         ("std.http.session.delete", "delete", 2),
-        ("std.http.session.rotate", "rotate", 1),
+        ("std.http.session.rotate", "rotate", 2),
         ("std.http.session.expire", "expire", 1),
         ("std.http.session.is_live", "is_live", 1),
     ];
@@ -158,14 +182,12 @@ pub healthy(): Int -> 42.
         .unwrap();
     let mut helpers = VmPackageNativeHelpers::default();
     for (index, (_, export, arity)) in operations.iter().enumerate() {
-        let error = execute_call(
-            &mut shard,
-            &mut helpers,
-            export,
-            &vec![ReplValue::String("identity".into()); *arity],
-        )
-        .unwrap_err();
-        let expected = if *export == "get" {
+        let mut args = vec![ReplValue::String("identity".into()); *arity];
+        if matches!(*export, "create" | "rotate") {
+            args[1] = ReplValue::Int(86400);
+        }
+        let error = execute_call(&mut shard, &mut helpers, export, &args).unwrap_err();
+        let expected = if matches!(*export, "get" | "lookup") {
             "error[execution_shard.managed_layout]"
         } else {
             "error[execution_shard.type]"

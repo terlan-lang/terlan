@@ -15,6 +15,7 @@ struct Source {
     cancel_failure: bool,
     identity: Option<(String, i64)>,
     pending_identity: bool,
+    broadcast: bool,
 }
 
 impl Source {
@@ -31,13 +32,14 @@ impl Source {
             cancel_failure: false,
             identity: None,
             pending_identity: false,
+            broadcast: false,
         }
     }
 
-    fn event(&mut self, name: &str) -> Result<(), String> {
+    fn event(&mut self, name: &str) -> Result<(), crate::ServiceError> {
         self.events.push(name.into());
         if self.failure == Some(name) {
-            Err(format!("source failure: {name}"))
+            Err(format!("source failure: {name}").into())
         } else {
             Ok(())
         }
@@ -45,9 +47,18 @@ impl Source {
 }
 
 impl AdmissionCallbacks for Source {
-    fn matched(&mut self, room: String, role: i64, _: String, _: String) -> Result<String, String> {
+    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+        self.event("room_identity")?;
+        Ok(format!("room{sequence}"))
+    }
+    fn matched(
+        &mut self,
+        room: String,
+        _: String,
+        _: String,
+    ) -> Result<(String, String), crate::ServiceError> {
         self.event("matched")?;
-        Ok(format!("{room}/{role}"))
+        Ok((format!("{room}/1"), format!("{room}/2")))
     }
     fn restored(
         &mut self,
@@ -56,7 +67,7 @@ impl AdmissionCallbacks for Source {
         role: i64,
         _: String,
         _: String,
-    ) -> Result<String, String> {
+    ) -> Result<String, crate::ServiceError> {
         self.event("restored")?;
         Ok(format!("{room}/{state}/{role}"))
     }
@@ -67,42 +78,47 @@ impl Callbacks for Source {
     fn plan(&self) -> &WebSocketEndpointPlan<()> {
         self.live.plan()
     }
-    async fn identity(&mut self, _: String) -> Result<Option<(String, i64)>, String> {
+    async fn identity(&mut self, _: String) -> Result<Option<(String, i64)>, crate::ServiceError> {
         self.event("identity")?;
         if self.pending_identity {
             pending::<()>().await;
         }
         Ok(self.identity.clone())
     }
-    fn waiting(&mut self) -> Result<String, String> {
+    fn waiting(&mut self) -> Result<String, crate::ServiceError> {
         self.event("waiting")?;
         Ok("source-waiting".into())
     }
-    fn peer_left(&mut self) -> Result<String, String> {
+    fn peer_left(&mut self) -> Result<String, crate::ServiceError> {
         self.event("peer_left")?;
         Ok("source-left".into())
     }
-    fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), String> {
+    fn enqueue(&mut self, text: Utf8Bytes) -> Result<(), crate::ServiceError> {
         self.event("enqueue")?;
         self.live
             .enqueue_inbound(text)
-            .map_err(|error| error.to_string())
+            .map_err(|error| crate::ServiceError::from(error.to_string()))
     }
-    fn next_inbound(&mut self) -> Result<(bool, Option<String>), String> {
+    fn next_inbound(&mut self) -> Result<(bool, Option<String>), crate::ServiceError> {
         self.event("inbound")?;
         Ok(match self.live.next_inbound() {
             Some(text) => (true, Some(format!("echo:{text}"))),
             None => (false, None),
         })
     }
-    fn next_stateful(
+    fn next_paired(
         &mut self,
-        state: String,
-        role: i64,
-        first: String,
-        second: String,
-    ) -> Result<Option<PairedTransition>, String> {
+        context: Option<PairContext>,
+    ) -> Result<Option<PairedTransition>, crate::ServiceError> {
         self.event("stateful")?;
+        if self.broadcast {
+            let state = context.map(|context| context.0).unwrap_or_default();
+            return Ok(self.live.next_inbound().map(|text| {
+                let payload = format!("echo:{text}");
+                (state, Some(payload.clone()), Some(payload))
+            }));
+        }
+        let (state, role, first, second) = context.expect("paired stateful fixture");
         assert_eq!(role, 2);
         assert_eq!((first.as_str(), second.as_str()), ("/first", "/second"));
         Ok(self.live.next_inbound().map(|text| {
@@ -113,14 +129,14 @@ impl Callbacks for Source {
             )
         }))
     }
-    fn writable(&mut self) -> Result<(), String> {
+    fn writable(&mut self) -> Result<(), crate::ServiceError> {
         self.event("writable")
     }
-    fn close(&mut self) -> Result<(), String> {
+    fn close(&mut self) -> Result<(), crate::ServiceError> {
         self.live.close();
         self.event("close")
     }
-    fn cancel(&mut self, reason: String) -> Result<(), String> {
+    fn cancel(&mut self, reason: String) -> Result<(), crate::ServiceError> {
         self.events.push(format!("cancel:{reason}"));
         self.live.close();
         if self.cancel_failure {
@@ -131,20 +147,19 @@ impl Callbacks for Source {
     }
 }
 
-fn pairing(stateful: bool, restorable: bool) -> WebSocketPairing<()> {
+fn pairing(restorable: bool) -> WebSocketPairing<()> {
     WebSocketPairing {
         waiting: "waiting".into(),
         first_matched: "first-matched".into(),
         second_matched: "second-matched".into(),
         peer_left: "left".into(),
-        stateful,
         inbound: (),
         cancellation: (),
         restoration: restorable.then_some(WebSocketRestoration {
             waiting: (),
             peer_left: (),
             identity: (),
-            room_prefix: "room".into(),
+            room_identity: (),
             retention_ms: 1000,
             retained_room_capacity: 4,
             matched: (),
@@ -252,13 +267,14 @@ fn close_callback_failure_does_not_cancel_twice_or_skip_close_reply() {
 #[test]
 fn paired_delivery_and_stateful_transitions_use_package_registry() {
     for stateful in [false, true] {
-        let pair = pairing(stateful, false);
+        let pair = pairing(false);
         let hub = Arc::new(WebSocketHub::default());
         let first = hub
             .join("/ws".into(), "/first".into(), 8, &pair, None)
             .unwrap();
         assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
         let mut source = Source::new(Some(pair));
+        source.broadcast = !stateful;
         let (io, state) = io(vec![Message::text("update"), Message::Close(None)]);
         run(io, &mut source, &hub).unwrap();
         let payload = if stateful {
@@ -292,7 +308,7 @@ fn paired_delivery_and_stateful_transitions_use_package_registry() {
 #[test]
 fn failed_pair_admission_and_transition_release_the_live_seat() {
     for failure in ["admission", "stateful"] {
-        let pair = pairing(true, false);
+        let pair = pairing(false);
         let hub = Arc::new(WebSocketHub::default());
         let capacity = if failure == "admission" { 1 } else { 8 };
         let first = hub
@@ -320,7 +336,7 @@ fn failed_pair_admission_and_transition_release_the_live_seat() {
 #[test]
 fn restoration_invokes_source_identity_and_payloads_and_propagates_failures() {
     for failure in [None, Some("identity"), Some("waiting"), Some("peer_left")] {
-        let mut source = Source::new(Some(pairing(false, true)));
+        let mut source = Source::new(Some(pairing(true)));
         source.failure = failure;
         let (io, state) = io(vec![Message::Close(None)]);
         let result = run(io, &mut source, &Arc::default());
@@ -347,7 +363,7 @@ fn restoration_invokes_source_identity_and_payloads_and_propagates_failures() {
 #[test]
 fn dropped_waits_cancel_source_and_release_transport_and_hub_membership() {
     for identity in [false, true] {
-        let pair = pairing(false, identity);
+        let pair = pairing(identity);
         let hub = Arc::new(WebSocketHub::default());
         let mut source = Source::new(Some(pair.clone()));
         source.pending_identity = identity;
@@ -475,7 +491,7 @@ fn failed_and_cancelled_upgrade_cancel_the_already_admitted_source() {
 fn output_failure_and_disconnect_finish_source_without_reading_more_input() {
     for paired in [false, true] {
         for kind in [io::ErrorKind::BrokenPipe, io::ErrorKind::PermissionDenied] {
-            let mut source = Source::new(paired.then(|| pairing(false, false)));
+            let mut source = Source::new(paired.then(|| pairing(false)));
             let (io, state) = io(vec![Message::Ping(vec![1].into())]);
             state.lock().unwrap().write_error = Some(kind);
             let result = run(io, &mut source, &Arc::default());
@@ -511,20 +527,33 @@ fn malformed_frames_cancel_before_application_admission() {
 
 #[test]
 fn restored_seats_and_failed_match_callbacks_follow_source_policy() {
-    for fail_match in [false, true] {
-        let pair = pairing(false, true);
+    for failure in [None, Some("matched"), Some("room_identity")] {
+        let pair = pairing(true);
         let hub = Arc::new(WebSocketHub::default());
         let first = hub
             .join("/ws".into(), "/first".into(), 8, &pair, None)
             .unwrap();
         assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
         let mut source = Source::new(Some(pair.clone()));
-        source.failure = fail_match.then_some("matched");
+        source.failure = failure;
         let (stream, state) = io(vec![Message::Close(None)]);
         let result = run(stream, &mut source, &hub);
-        if fail_match {
-            assert!(result.unwrap_err().contains("matched"));
+        if let Some(failure) = failure {
+            assert!(result.unwrap_err().contains(failure));
             assert!(source.events.last().unwrap().starts_with("cancel:"));
+            assert_eq!(first.outbound.try_iter().collect::<Vec<_>>(), ["left"]);
+            assert!(hub
+                .join(
+                    "/ws".into(),
+                    "/restore".into(),
+                    8,
+                    &pair,
+                    Some(("room1".into(), 2))
+                )
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("room not found"));
             continue;
         }
         result.unwrap();
@@ -550,13 +579,14 @@ fn restored_seats_and_failed_match_callbacks_follow_source_policy() {
 
 #[test]
 fn full_peer_queue_cancels_broadcast_without_consuming_more_frames() {
-    let pair = pairing(false, false);
+    let pair = pairing(false);
     let hub = Arc::new(WebSocketHub::default());
     let first = hub
         .join("/ws".into(), "/first".into(), 1, &pair, None)
         .unwrap();
     first.outbound.try_recv().unwrap();
     let mut source = Source::new(Some(pair));
+    source.broadcast = true;
     let (stream, _) = io(vec![Message::text("update"), Message::text("unread")]);
     let error = run(stream, &mut source, &hub).unwrap_err();
     assert!(error.contains("queue is full"), "{error}");

@@ -21,6 +21,7 @@ pub enum DescriptorView<'a, V> {
 /// Consuming counterpart to `DescriptorView`, preserving owned allocations.
 /// Opaque callbacks and resources are dropped, never exposed or invoked.
 pub enum OwnedDescriptor<V> {
+    Unit,
     Int(i64),
     String(String),
     Atom(String),
@@ -56,6 +57,7 @@ impl DescriptorValue for crate::NativeValue {
 
     fn into_descriptor(self) -> OwnedDescriptor<Self> {
         match self {
+            Self::Unit => OwnedDescriptor::Unit,
             Self::Int(value) => OwnedDescriptor::Int(value),
             Self::String(value) => OwnedDescriptor::String(value),
             Self::Atom(value) => OwnedDescriptor::Atom(value),

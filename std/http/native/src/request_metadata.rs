@@ -32,7 +32,7 @@ pub fn request_cookie_pairs(headers: &HeaderMap) -> Vec<(String, String)> {
 
 impl RequestMetadata {
     /// Decodes only source-observable metadata. Direct cookie reads and
-    /// source-owned jar construction observe the same incoming cookie map.
+    /// source-owned jar construction observe the same incoming cookie pairs.
     pub fn from_http(
         projection: Projection,
         params: &[(String, String)],

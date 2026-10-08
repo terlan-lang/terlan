@@ -1,7 +1,6 @@
 //! SSE response policy executes as source, with only event framing crossing the package boundary.
 
 use super::compile_native_handler_fixture;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::invocation::AotHandlerInvocationStep;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::commands::serve::response_rendering::serve_vm_stream_handler_response;
@@ -95,12 +94,11 @@ pub empty(): Response -> Sse.response([]).
             panic!("response construction must not invoke a reserved HTTP response operation");
         };
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
-                .unwrap();
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
         assert_eq!(response.status, if empty { 200 } else { 201 });
         assert_eq!(response.content_type, "text/event-stream; charset=utf-8");
         if !empty {
-            assert_eq!(response.headers, [("X-Source".into(), "kept".into())]);
+            assert_eq!(response.headers[2..], [("X-Source".into(), "kept".into())]);
         }
         let response = serve_vm_stream_handler_response(response, false).unwrap();
         let mut stream = response

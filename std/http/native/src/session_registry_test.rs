@@ -33,23 +33,61 @@ impl SessionResources<u64> for Resources {
 }
 
 fn registry() -> SessionRegistry<u64> {
-    SessionRegistry::new(10, RecoveryPolicy::CreateLocalReplacement).unwrap()
+    SessionRegistry::new(RecoveryPolicy::CreateLocalReplacement)
+}
+
+#[test]
+fn invalid_lifetimes_do_not_issue_identities_or_mutate_live_or_expired_resources() {
+    let mut registry = registry();
+    let mut resources = Resources::default();
+    assert_eq!(
+        registry.create_with(0, &mut resources, |_| panic!(
+            "unexpected identity issuance"
+        )),
+        Err(SessionError::ZeroTtl)
+    );
+    assert_eq!(resources.next, 0);
+    assert!(registry.entries().is_empty());
+
+    let first = registry.create("", 2, &mut resources).unwrap();
+    for elapsed in [0, 2] {
+        registry.advance_ticks(elapsed);
+        for identity in [&first.id, "unknown"] {
+            assert_eq!(
+                registry.rotate_with(identity, 0, &mut resources, |_| {
+                    panic!("unexpected identity issuance")
+                }),
+                Err(SessionError::ZeroTtl)
+            );
+        }
+        assert_eq!(registry.entries().len(), 1);
+        assert_eq!(registry.entries()[&first.id], first);
+        assert_eq!(resources.next, 1);
+        assert_eq!(resources.live, BTreeSet::from([first.value]));
+        assert!(resources.released.is_empty());
+    }
+    assert_eq!(registry.expire_due(&mut resources).unwrap(), vec![first.id]);
+    assert_eq!(resources.released, vec![first.value]);
 }
 
 #[test]
 fn exact_identity_reuses_resource_without_sliding_expiry() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, 10, &mut resources).unwrap();
     assert_eq!(first.id.len(), 43);
     assert_eq!(first.expires_at_tick, 10);
     registry.advance_ticks(9);
     assert_eq!(
-        registry.acquire(Some(&first.id), &mut resources).unwrap(),
+        registry
+            .acquire(Some(&first.id), 10, &mut resources)
+            .unwrap(),
         first
     );
     for unknown in [String::new(), format!(" {} ", first.id), "missing".into()] {
-        let other = registry.acquire(Some(&unknown), &mut resources).unwrap();
+        let other = registry
+            .acquire(Some(&unknown), 10, &mut resources)
+            .unwrap();
         assert_ne!(other.id, unknown);
         assert_ne!(other.value, first.value);
         assert_eq!(other.expires_at_tick, 19);
@@ -63,40 +101,42 @@ fn exact_identity_reuses_resource_without_sliding_expiry() {
     );
     assert_eq!(resources.released, vec![first.value]);
     assert_eq!(registry.entries().len(), 3);
-    let replacement = registry.acquire(Some(&first.id), &mut resources).unwrap();
+    let replacement = registry
+        .acquire(Some(&first.id), 10, &mut resources)
+        .unwrap();
     assert_ne!(replacement.id, first.id);
     assert_eq!(replacement.expires_at_tick, 20);
 }
 
 #[test]
 fn fail_closed_cleans_stale_resources_but_allows_absent_identity() {
-    let mut registry = SessionRegistry::new(1, RecoveryPolicy::FailClosed).unwrap();
+    let mut registry = SessionRegistry::new(RecoveryPolicy::FailClosed);
     let mut resources = Resources::default();
-    let first = registry.acquire(Some(""), &mut resources).unwrap();
+    let first = registry.acquire(Some(""), 1, &mut resources).unwrap();
     for identity in ["missing", " ", "\0"] {
         assert_eq!(
-            registry.acquire(Some(identity), &mut resources),
+            registry.acquire(Some(identity), 10, &mut resources),
             Err(SessionError::Stale(identity.into()))
         );
     }
     assert_eq!(resources.next, 1);
     registry.advance_ticks(1);
     assert_eq!(
-        registry.acquire(Some(&first.id), &mut resources),
+        registry.acquire(Some(&first.id), 10, &mut resources),
         Err(SessionError::Stale(first.id.clone()))
     );
     assert!(registry.entries().is_empty());
     assert_eq!(resources.released, vec![first.value]);
-    assert!(registry.acquire(None, &mut resources).is_ok());
+    assert!(registry.acquire(None, 10, &mut resources).is_ok());
 }
 
 #[test]
 fn rotation_preserves_resource_and_old_identity_is_revoked() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, 10, &mut resources).unwrap();
     registry.advance_ticks(7);
-    let rotated = registry.rotate(&first.id, &mut resources).unwrap();
+    let rotated = registry.rotate(&first.id, 10, &mut resources).unwrap();
     assert_eq!(rotated.value, first.value);
     assert_ne!(rotated.id, first.id);
     assert_eq!(rotated.expires_at_tick, 17);
@@ -109,7 +149,7 @@ fn rotation_preserves_resource_and_old_identity_is_revoked() {
         Err(SessionError::Stale(first.id.clone()))
     );
     assert_eq!(
-        registry.rotate(&first.id, &mut resources),
+        registry.rotate(&first.id, 10, &mut resources),
         Err(SessionError::Stale(first.id.clone()))
     );
     registry.expire(&rotated.id, &mut resources).unwrap();
@@ -121,16 +161,16 @@ fn rotation_preserves_resource_and_old_identity_is_revoked() {
 fn failed_entropy_or_resource_allocation_cannot_modify_existing_sessions() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, 10, &mut resources).unwrap();
     registry.advance_ticks(4);
     assert_eq!(
-        registry.rotate_with(&first.id, &mut resources, |_| Err(SessionError::Identity(
-            terlan_runtime_abi::NativeAdapterError::new(
+        registry.rotate_with(&first.id, 10, &mut resources, |_| Err(
+            SessionError::Identity(terlan_runtime_abi::NativeAdapterError::new(
                 "http.session.entropy",
                 "entropy failed",
                 0
-            )
-        ))),
+            ))
+        )),
         Err(SessionError::Identity(
             terlan_runtime_abi::NativeAdapterError::new(
                 "http.session.entropy",
@@ -140,9 +180,22 @@ fn failed_entropy_or_resource_allocation_cannot_modify_existing_sessions() {
         ))
     );
     assert_eq!(registry.entries()[&first.id], first);
+    let entropy_error = SessionError::Identity(terlan_runtime_abi::NativeAdapterError::new(
+        "http.session.entropy",
+        "entropy failed",
+        0,
+    ));
+    assert_eq!(
+        registry.create_with(10, &mut resources, |_| Err(entropy_error.clone())),
+        Err(entropy_error),
+    );
+    assert_eq!(
+        resources.next, 1,
+        "no resource allocation after entropy failure"
+    );
     resources.fail_create = true;
     assert_eq!(
-        registry.acquire(None, &mut resources),
+        registry.acquire(None, 10, &mut resources),
         Err(SessionError::Resource("allocation failed".into()))
     );
     assert_eq!(registry.entries().len(), 1);
@@ -155,7 +208,7 @@ fn failed_release_keeps_entry_for_retry_on_every_cleanup_path() {
     for path in 0..5 {
         let mut registry = registry();
         let mut resources = Resources::default();
-        let first = registry.acquire(None, &mut resources).unwrap();
+        let first = registry.acquire(None, 10, &mut resources).unwrap();
         if path != 0 {
             registry.advance_ticks(10);
         }
@@ -164,10 +217,10 @@ fn failed_release_keeps_entry_for_retry_on_every_cleanup_path() {
             0 => registry.expire(&first.id, &mut resources).unwrap_err(),
             1 => registry.live(&first.id, &mut resources).unwrap_err(),
             2 => registry
-                .acquire(Some(&first.id), &mut resources)
+                .acquire(Some(&first.id), 10, &mut resources)
                 .unwrap_err(),
             3 => registry.expire_due(&mut resources).unwrap_err(),
-            _ => registry.rotate(&first.id, &mut resources).unwrap_err(),
+            _ => registry.rotate(&first.id, 10, &mut resources).unwrap_err(),
         };
         assert_eq!(error, SessionError::Resource("cleanup failed".into()));
         assert_eq!(registry.entries()[&first.id], first);
@@ -184,7 +237,7 @@ fn failed_release_keeps_entry_for_retry_on_every_cleanup_path() {
 fn exited_resources_are_reclaimed_without_reusing_the_identity() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, 10, &mut resources).unwrap();
     resources.live.clear();
     assert!(!registry.is_live(&first.id, |value| resources.live.contains(value)));
     assert_eq!(
@@ -193,10 +246,14 @@ fn exited_resources_are_reclaimed_without_reusing_the_identity() {
     );
     assert!(registry.entries().is_empty());
     assert_eq!(resources.released, vec![first.value]);
-    let next = registry.acquire(Some(&first.id), &mut resources).unwrap();
+    let next = registry
+        .acquire(Some(&first.id), 10, &mut resources)
+        .unwrap();
     assert_ne!(next.id, first.id);
     resources.live.clear();
-    let replacement = registry.acquire(Some(&next.id), &mut resources).unwrap();
+    let replacement = registry
+        .acquire(Some(&next.id), 10, &mut resources)
+        .unwrap();
     assert_ne!(replacement.value, next.value);
     assert_eq!(resources.released, vec![first.value, next.value]);
 }
@@ -242,12 +299,10 @@ fn restore_rejects_expired_empty_and_duplicate_entries_without_overwrite() {
 
 #[test]
 fn clock_and_deadlines_saturate_without_reviving_expired_entries() {
-    assert!(SessionRegistry::<u64>::new(0, RecoveryPolicy::FailClosed).is_err());
-    let mut registry =
-        SessionRegistry::new(u64::MAX, RecoveryPolicy::CreateLocalReplacement).unwrap();
+    let mut registry = SessionRegistry::new(RecoveryPolicy::CreateLocalReplacement);
     let mut resources = Resources::default();
     registry.advance_ticks(1);
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, u64::MAX, &mut resources).unwrap();
     assert_eq!(first.expires_at_tick, u64::MAX);
     registry.advance_ticks(u64::MAX);
     registry.advance_ticks(1);
@@ -326,13 +381,13 @@ fn monotonic_clock_is_opt_in_idempotent_and_saturates() {
 fn indexed_expiry_bounds_cleanup_and_rotation_does_not_leave_old_deadlines() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let mut rotating = registry.acquire(None, &mut resources).unwrap();
+    let mut rotating = registry.acquire(None, 10, &mut resources).unwrap();
     for _ in 0..50 {
-        rotating = registry.rotate(&rotating.id, &mut resources).unwrap();
+        rotating = registry.rotate(&rotating.id, 10, &mut resources).unwrap();
         assert_eq!(registry.deadlines.len(), 1);
     }
     registry.advance_ticks(1);
-    let later = registry.acquire(None, &mut resources).unwrap();
+    let later = registry.acquire(None, 10, &mut resources).unwrap();
     registry.advance_ticks(9);
     assert!(registry
         .expire_due_limit(&mut resources, 0)
@@ -365,7 +420,7 @@ fn indexed_expiry_bounds_cleanup_and_rotation_does_not_leave_old_deadlines() {
 fn clocked_reads_reject_expired_entries_before_host_cleanup_runs() {
     let mut registry = registry();
     let mut resources = Resources::default();
-    let first = registry.acquire(None, &mut resources).unwrap();
+    let first = registry.acquire(None, 10, &mut resources).unwrap();
     registry.clock_origin = Some(Instant::now() - std::time::Duration::from_secs(11));
     assert!(!registry.is_live(&first.id, |_| true));
     assert_eq!(registry.entries().len(), 1, "timer has not run yet");

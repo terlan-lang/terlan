@@ -1,37 +1,7 @@
 use crate::HttpError;
-use cookie::{Cookie, SameSite};
+use cookie::Cookie;
+pub use cookie::SameSite as CookieSameSite;
 use time::{format_description::well_known::Rfc2822, Duration, OffsetDateTime};
-
-/// SameSite cookie policy.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CookieSameSite {
-    /// Lax SameSite policy.
-    Lax,
-    /// Strict SameSite policy.
-    Strict,
-    /// None SameSite policy.
-    None,
-}
-
-impl CookieSameSite {
-    /// Returns this policy in the maintained cookie crate's representation.
-    ///
-    /// Inputs:
-    /// - `self`: cookie SameSite marker.
-    ///
-    /// Output:
-    /// - Cookie crate SameSite value.
-    ///
-    /// Transformation:
-    /// - Converts typed policy variants before response-cookie serialization.
-    fn to_cookie_same_site(self) -> SameSite {
-        match self {
-            Self::Lax => SameSite::Lax,
-            Self::Strict => SameSite::Strict,
-            Self::None => SameSite::None,
-        }
-    }
-}
 
 /// Parses an HTTP request `Cookie` header into name/value pairs.
 ///
@@ -135,7 +105,7 @@ pub fn set_header_with_options(
         builder = builder.secure(true);
     }
     if let Some(same_site) = options.same_site {
-        builder = builder.same_site(same_site.to_cookie_same_site());
+        builder = builder.same_site(same_site);
     }
     Ok(builder.build().to_string())
 }
@@ -171,13 +141,10 @@ fn parse_cookie_expires(value: &str) -> Result<OffsetDateTime, HttpError> {
 /// - `Err(HttpError)` when the name is empty or contains unsupported bytes.
 ///
 /// Transformation:
-/// - Applies the same practical token boundary used by response header names
-///   while rejecting `$`-prefixed names reserved by cookie specifications.
+/// - Uses the maintained HTTP token parser while preserving the package's
+///   existing rejection of dollar signs anywhere in cookie names.
 fn validate_cookie_name(name: &str) -> Result<(), HttpError> {
-    if name.is_empty()
-        || name.starts_with('$')
-        || !name.as_bytes().iter().copied().all(is_cookie_token_byte)
-    {
+    if name.contains('$') || http::HeaderName::from_bytes(name.as_bytes()).is_err() {
         return Err(HttpError::new(
             "http.cookie.invalid_name",
             format!("cookie name `{name}` is not supported"),
@@ -268,34 +235,4 @@ fn validate_cookie_attribute(name: &str, value: &str) -> Result<(), HttpError> {
         ));
     }
     Ok(())
-}
-
-/// Returns whether a byte is allowed in a conservative cookie token.
-///
-/// Inputs:
-/// - `byte`: candidate byte.
-///
-/// Output:
-/// - `true` when the byte is accepted.
-///
-/// Transformation:
-/// - Implements the practical RFC token subset needed by cookie names.
-fn is_cookie_token_byte(byte: u8) -> bool {
-    byte.is_ascii_alphanumeric()
-        || matches!(
-            byte,
-            b'!' | b'#'
-                | b'%'
-                | b'&'
-                | b'\''
-                | b'*'
-                | b'+'
-                | b'-'
-                | b'.'
-                | b'^'
-                | b'_'
-                | b'`'
-                | b'|'
-                | b'~'
-        )
 }

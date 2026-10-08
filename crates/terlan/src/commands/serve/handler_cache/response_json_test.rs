@@ -1,7 +1,6 @@
 //! JSON response composition crosses the JSON package boundary, not its storage layout.
 
 use super::compile_native_handler_fixture;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::invocation::AotHandlerInvocationStep;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
 use crate::runtime::vm::package_native_helper::VmPackageNativeHelpers;
@@ -79,8 +78,7 @@ pub string(text: String): Response -> Response.json(Json.string(text)).
             panic!("response composition must not invoke an HTTP JSON resource operation");
         };
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
-                .unwrap();
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
         assert_eq!(response.status, status as u16);
         assert_eq!(
             response.content_type,
@@ -90,11 +88,14 @@ pub string(text: String): Response -> Response.json(Json.string(text)).
                 "application/json; charset=utf-8"
             }
         );
-        assert_eq!(response.body.as_bytes(), expected.as_bytes());
+        assert_eq!(
+            response.body.as_bytes().expect("finite response"),
+            expected.as_bytes()
+        );
         let has_header = function == "handle" && status != 400;
-        assert_eq!(response.headers.len(), usize::from(has_header));
+        assert_eq!(response.headers.len(), 2 + usize::from(has_header));
         if has_header {
-            assert_eq!(response.headers[0], ("X-Source".into(), "kept".into()));
+            assert_eq!(response.headers[2], ("X-Source".into(), "kept".into()));
         }
     }
     drop(runtime);
@@ -140,11 +141,11 @@ pub handle(request: Request): Response ->
         ("\0", None),
         ("[1,true,null]", Some("[1,true,null]")),
     ] {
-        let request = crate::terlan_native::http::Request::from_parts("POST", "/", input);
+        let request = terlan_http_native::Request::from_parts("POST", "/", input);
         let request =
             crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned(
                 request.into_parts(),
-                crate::runtime::native::http::RequestFieldProjection::Complete,
+                terlan_http_native::RequestFieldProjection::Complete,
             );
         let step = runtime
             .begin_request_invocation("app.RequestJson", "handle", vec![request])
@@ -157,20 +158,22 @@ pub handle(request: Request): Response ->
             panic!("Result predicates and HTTP error mapping must execute as source");
         };
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
-                .unwrap();
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
         match canonical {
             Some(expected) => {
                 assert_eq!(response.status, 201);
                 assert_eq!(response.content_type, "application/json; charset=utf-8");
-                assert_eq!(response.body.as_bytes(), expected.as_bytes());
+                assert_eq!(
+                    response.body.as_bytes().expect("finite response"),
+                    expected.as_bytes()
+                );
             }
             None => {
                 let error = crate::terlan_native::json::parse(input).unwrap_err();
                 assert_eq!(response.status, 400);
                 assert_eq!(response.content_type, "text/plain; charset=utf-8");
                 assert_eq!(
-                    response.body.as_bytes(),
+                    response.body.as_bytes().expect("finite response"),
                     format!("http.body_json:{}", error.message()).as_bytes()
                 );
             }

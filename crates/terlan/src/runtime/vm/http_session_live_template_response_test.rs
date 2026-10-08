@@ -11,11 +11,11 @@ use super::live_template_response::{
 use super::{VmHttpSessionLiveTemplateSourceSpan, VmHttpSessionRuntime};
 use crate::runtime::vm::framing::VmInMemoryFrameReader;
 use crate::runtime::vm::http::handle_http1_in_memory_exchange;
-use crate::runtime::vm::http_router::{VmHttpRouteMethod, VmHttpRouter, VmHttpRouterOutcome};
 use crate::runtime::vm::http_static::{VmHttp1ResponseStream, VmHttp1StreamTcpFlush};
 use crate::runtime::vm::process::VmProcessId;
 use crate::runtime::vm::tcp::VmTcpRuntime;
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::routing::{RouteMethod, Router, RouterOutcome};
 
 fn source() -> VmHttpSessionLiveTemplateSourceSpan {
     VmHttpSessionLiveTemplateSourceSpan::new("app.UserPage", 8, 17)
@@ -168,7 +168,7 @@ fn http_handler_renders_actor_updated_live_template_state() {
     sessions
         .subscribe_live_template(&created.session, "user-page", "sse")
         .expect("subscribe live template");
-    let router = VmHttpRouter::new()
+    let router = Router::new()
         .get("/api/:id", ReplValue::Atom("render_user_page".to_string()))
         .expect("register parameterized route");
     let request = b"GET /api/42 HTTP/1.1\r\nHost: vm.local\r\nContent-Length: 0\r\n\r\n";
@@ -176,8 +176,8 @@ fn http_handler_renders_actor_updated_live_template_state() {
     let mut writer = Vec::new();
 
     let exchange = handle_http1_in_memory_exchange(&mut reader, &mut writer, false, |request| {
-        let outcome = router.dispatch(VmHttpRouteMethod::Get, request.uri().path())?;
-        let VmHttpRouterOutcome::Matched(dispatch) = outcome else {
+        let outcome = router.dispatch(RouteMethod::Get, request.uri().path())?;
+        let RouterOutcome::Matched(dispatch) = outcome else {
             return Err("expected /api/:id route to match".to_string());
         };
         let user_id = dispatch

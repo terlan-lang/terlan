@@ -2,11 +2,10 @@
 
 use std::path::Path;
 
-use crate::terlan_native::http as native_http;
+use terlan_http_native as native_http;
 
 use super::super::handler_cache::AotHandlerRuntime;
-use super::request_materialization::vm_request_descriptor_owned;
-use super::route::route_param_argument;
+use super::request_materialization::direct_handler_arguments;
 use super::{HandlerResponse, MatchedWebPackageHandler};
 
 pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_package_root_projected(
@@ -16,7 +15,9 @@ pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_pack
     projection: native_http::RequestFieldProjection,
     package_root: &Path,
 ) -> Result<HandlerResponse, String> {
-    let result = if matched.handler.arity == 1 {
+    let result = if matched.handler.arity == 1
+        && vm.uses_source_request(&matched.handler.module, &matched.handler.function, 1)
+    {
         vm.execute_suspendable_projected_http_request(
             &matched.handler.module,
             &matched.handler.function,
@@ -25,24 +26,7 @@ pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_pack
         )
         .await?
     } else {
-        let request = vm_request_descriptor_owned(request.into_parts(), projection);
-        let mut args = vec![request];
-        args.extend(
-            matched
-                .params
-                .iter()
-                .map(|(name, value)| route_param_argument(&matched.handler.route, name, value))
-                .collect::<Result<Vec<_>, _>>()?,
-        );
-        if args.len() != matched.handler.arity {
-            return Err(format!(
-                "error[serve_handler]: handler `{}.{}/{}` received {} VM argument(s)",
-                matched.handler.module,
-                matched.handler.function,
-                matched.handler.arity,
-                args.len()
-            ));
-        }
+        let args = direct_handler_arguments(vm, matched, request.into_parts(), projection)?;
         vm.execute_suspendable_http_response(
             &matched.handler.module,
             &matched.handler.function,
@@ -50,5 +34,5 @@ pub(in crate::commands::serve) async fn execute_suspendable_vm_handler_with_pack
         )
         .await?
     };
-    HandlerResponse::from_owned_vm_response_with_package_root(result, package_root)
+    crate::commands::serve::handler::decode_owned_response(result, package_root)
 }

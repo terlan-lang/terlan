@@ -458,18 +458,20 @@ pub(super) fn adversarial_native_boundary_dispatch_rejects_cross_resource_handle
 pub(super) fn dispatch_http_cookie_and_response_operations_return_native_values() {
     assert_eq!(
         dispatch_ok(
-            "std.http.cookies.set_header_with_options",
+            "std.http.cookies.encode",
             &[
                 NativeBoundaryValue::Text("session".to_string()),
                 NativeBoundaryValue::Text("abc123".to_string()),
                 NativeBoundaryValue::Text("/".to_string()),
-                NativeBoundaryValue::Text(String::new()),
-                NativeBoundaryValue::Int(0),
-                NativeBoundaryValue::Bool(false),
-                NativeBoundaryValue::Text(String::new()),
+                NativeBoundaryValue::OptionalText(None),
+                NativeBoundaryValue::Record {
+                    name: "None".into(),
+                    fields: vec![]
+                },
+                NativeBoundaryValue::OptionalText(None),
                 NativeBoundaryValue::Bool(true),
                 NativeBoundaryValue::Bool(false),
-                NativeBoundaryValue::Text(String::new()),
+                NativeBoundaryValue::OptionalText(None),
             ],
         ),
         Some(NativeBoundaryValue::Text(
@@ -478,18 +480,17 @@ pub(super) fn dispatch_http_cookie_and_response_operations_return_native_values(
     );
     assert_eq!(
         dispatch_ok(
-            "std.http.cookies.set_header_with_options",
+            "std.http.cookies.encode",
             &[
                 NativeBoundaryValue::Text("session".to_string()),
                 NativeBoundaryValue::Text("abc123".to_string()),
                 NativeBoundaryValue::Text("/account".to_string()),
-                NativeBoundaryValue::Text("example.com".to_string()),
-                NativeBoundaryValue::Int(3600),
+                NativeBoundaryValue::OptionalText(Some("example.com".into())),
+                NativeBoundaryValue::Record { name: "Some".into(), fields: vec![("value".into(), NativeBoundaryValue::Int(3600))] },
+                NativeBoundaryValue::OptionalText(Some("Wed, 21 Oct 2015 07:28:00 GMT".into())),
                 NativeBoundaryValue::Bool(true),
-                NativeBoundaryValue::Text("Wed, 21 Oct 2015 07:28:00 GMT".to_string()),
                 NativeBoundaryValue::Bool(true),
-                NativeBoundaryValue::Bool(true),
-                NativeBoundaryValue::Text("strict".to_string()),
+                NativeBoundaryValue::OptionalText(Some("strict".into())),
             ],
         ),
         Some(NativeBoundaryValue::Text(
@@ -498,18 +499,20 @@ pub(super) fn dispatch_http_cookie_and_response_operations_return_native_values(
     );
     assert_eq!(
         dispatch_ok(
-            "std.http.cookies.set_header_with_options",
+            "std.http.cookies.encode",
             &[
                 NativeBoundaryValue::Text("session".to_string()),
                 NativeBoundaryValue::Text(String::new()),
                 NativeBoundaryValue::Text("/".to_string()),
-                NativeBoundaryValue::Text(String::new()),
-                NativeBoundaryValue::Int(0),
-                NativeBoundaryValue::Bool(true),
-                NativeBoundaryValue::Text("Thu, 01 Jan 1970 00:00:00 GMT".into()),
+                NativeBoundaryValue::OptionalText(None),
+                NativeBoundaryValue::Record {
+                    name: "Some".into(),
+                    fields: vec![("value".into(), NativeBoundaryValue::Int(0))]
+                },
+                NativeBoundaryValue::OptionalText(Some("Thu, 01 Jan 1970 00:00:00 GMT".into())),
                 NativeBoundaryValue::Bool(false),
                 NativeBoundaryValue::Bool(false),
-                NativeBoundaryValue::Text(String::new()),
+                NativeBoundaryValue::OptionalText(None),
             ],
         ),
         Some(NativeBoundaryValue::Text(

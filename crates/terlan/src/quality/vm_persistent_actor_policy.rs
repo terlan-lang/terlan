@@ -38,8 +38,8 @@ const REQUIRED_FOUNDATION_ANCHORS: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "crates/terlan/src/runtime/vm/http_router.rs",
-        &["dispatch_with_middleware_policy"],
+        "std/http/native/src/routing.rs",
+        &["dispatch_with_typed_middleware"],
     ),
     (
         "crates/terlan/src/runtime/vm/process.rs",

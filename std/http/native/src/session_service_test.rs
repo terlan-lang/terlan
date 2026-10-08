@@ -101,6 +101,6 @@ fn session_poisoned_contexts_fail_closed_for_host_and_image_access() {
         assert!(result.unwrap_err().to_string().contains("lock poisoned"));
     }
     assert!(image
-        .call("std.http.session.current", &["".into()])
+        .call("std.http.session.create", &["".into(), 10_i64.into()])
         .is_err());
 }

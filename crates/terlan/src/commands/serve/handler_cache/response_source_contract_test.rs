@@ -1,7 +1,6 @@
 //! Response behavior formerly exercised on an unused Rust mirror now runs source.
 
 use super::super::handler_cache_test_support::compile_native_handler_fixture;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::response_rendering::serve_vm_stream_handler_response;
 use crate::runtime::vm::pure_native::PureNativeExecutionShard;
 use crate::runtime::vm::ReplValue;
@@ -62,12 +61,14 @@ pub handle(kind: Int, body: String, status: Int, content_type: String, name: Str
             for body in ["", "<main>Hello</main>", "{not-reparsed}", "/login"] {
                 let value = run(kind, status, body, "unused", "x-terlan", "yes");
                 let admitted =
-                    HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
+                    crate::commands::serve::handler::decode_owned_response(value, &fixture.root)
                         .unwrap();
                 let wire = serve_vm_stream_handler_response(admitted, false).unwrap();
                 assert_eq!(wire.status().as_u16(), status as u16);
                 assert_eq!(wire.headers()[http::header::CONTENT_TYPE], content_type);
                 assert_eq!(wire.headers()["x-terlan"], "yes");
+                assert_eq!(wire.headers()["cache-control"], "no-cache");
+                assert_eq!(wire.headers()["x-content-type-options"], "nosniff");
                 assert_eq!(
                     wire.headers()
                         .get_all(http::header::SET_COOKIE)
@@ -102,13 +103,37 @@ pub handle(kind: Int, body: String, status: Int, content_type: String, name: Str
     assert_eq!(file.content_type, "text/plain");
     assert!(matches!(file.body, SourceResponseBody::File(path) if path == "missing/report.txt"));
     assert_eq!(
-        file.headers,
+        file.headers[2..],
         [
             ("Set-Cookie".into(), "a=1".into()),
             ("Set-Cookie".into(), "b=2".into()),
             ("x-terlan".into(), "yes".into())
         ]
     );
+
+    // The compiled Terlan builder supplies intent; the package admits file I/O.
+    let bytes = [0, 255, 10, 42];
+    std::fs::write(fixture.root.join("body.txt"), bytes).unwrap();
+    for (supplied, expected) in [
+        ("", "text/plain; charset=utf-8"),
+        ("application/custom", "application/custom"),
+    ] {
+        let value = run(4, 206, "body.txt", supplied, "x-terlan", "file");
+        let admitted =
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
+        let wire = serve_vm_stream_handler_response(admitted, false).unwrap();
+        assert_eq!(wire.status().as_u16(), 206);
+        assert_eq!(wire.headers()[http::header::CONTENT_TYPE], expected);
+        assert_eq!(wire.headers()[http::header::CONTENT_LENGTH], "4");
+        assert_eq!(wire.headers()["x-terlan"], "file");
+        assert_eq!(wire.body().as_ref(), bytes);
+    }
+    for path in ["../outside", "missing.txt"] {
+        let value = run(4, 200, path, "", "x-terlan", "file");
+        assert!(
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).is_err()
+        );
+    }
 
     let stream = response(run(
         5,

@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 
 use super::super::{TargetProfile, TargetProfileCheckOptions, TargetProfileViolation};
-use super::http_response;
 
 /// Std module call-head aliases visible to target-profile validation.
 ///
@@ -668,57 +667,6 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_std_remo
             ("inserted", 1) | ("updated", 1) | ("deleted", 1) | ("kind", 1) | ("value", 1)
         ),
         "std.core.Task" | "Task" => matches!((function, arity), ("done" | "failed", 1)),
-        "std.http.Error" => {
-            matches!(
-                (function, arity),
-                ("new", 3) | ("code", 1) | ("message", 1) | ("status", 1)
-            )
-        }
-        "std.http.Response" | "Response" => http_response::supports_operation(function, arity),
-        "std.http.Session" | "Session" => matches!(
-            (function, arity),
-            ("current", 1)
-                | ("get", 2)
-                | ("set", 3)
-                | ("delete", 2)
-                | ("rotate", 1)
-                | ("expire", 1)
-                | ("with_response", 2)
-        ),
-        "std.http.Sse" | "Sse" => matches!(
-            (function, arity),
-            ("data", 1)
-                | ("with_id", 2)
-                | ("with_name", 2)
-                | ("with_retry_ms", 2)
-                | ("response", 1 | 2)
-                | ("endpoint", 0..=2)
-                | ("endpoint_with_keep_alive", 0..=3)
-        ),
-        "std.http.WebSocket" | "WebSocket" => matches!(
-            (function, arity),
-            ("text" | "ping" | "pong", 1) | ("close", 0) | ("endpoint", 0..=2)
-        ),
-        "std.http.Router" | "Router" => matches!(
-            (function, arity),
-            ("new", 0)
-                | ("get", 3)
-                | ("post", 3)
-                | ("put", 3)
-                | ("patch", 3)
-                | ("delete", 3)
-                | ("head", 3)
-                | ("options", 3)
-                | ("sse", 3)
-                | ("websocket", 3)
-                | ("use", 2)
-                | ("map_response", 2)
-                | ("fallback", 2)
-                | ("error", 2)
-                | ("overload", 3)
-                | ("lifecycle", 2)
-                | ("group", 3)
-        ),
         "__receiver__" => target_profile_supports_vm_receiver_call(profile, function, arity),
         _ => false,
     }
@@ -737,7 +685,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_std_remo
 ///
 /// Transformation:
 /// - Keeps receiver calls narrower than a blanket CoreV0 opening while
-///   allowing std collections, strings, Task, HTTP, and Postgres row surfaces
+///   allowing std collections, strings, Task, and Postgres row surfaces
 ///   to move through the VM-default stdlib release gate.
 pub(in crate::validation::target_profile) fn target_profile_supports_vm_receiver_call(
     profile: TargetProfile,
@@ -773,24 +721,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_receiver
                 | ("result", 1)
                 | ("code", 1)
                 | ("message", 1)
-                | ("method", 1)
                 | ("path", 1)
-                | ("param", 2)
-                | ("query", 2)
-                | ("query_string", 1)
-                | ("header", 2 | 3)
-                | ("cookie", 2..=6)
-                | ("cookies", 1)
-                | ("body_text", 1)
-                | ("body_json", 1)
-                | ("status", 2)
-                | ("with_status", 2)
-                | ("with_header", 3)
-                | ("set_cookie_header", 2)
-                | ("cookie_with_options", 3..=11)
-                | ("with_cookie_options", 3..=11)
-                | ("delete_cookie", 2 | 3)
-                | ("with_deleted_cookie", 2 | 3)
                 | ("int", 2)
                 | ("bool", 2)
                 | ("json", 2)
@@ -806,8 +737,8 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_receiver
 /// - `arity`: non-receiver argument count.
 ///
 /// Output:
-/// - `true` for collection mutators implemented by the VM evaluator and HTTP
-///   response mutator declarations that should validate under the VM lane.
+/// - `true` for collection mutators implemented by the VM evaluator.
+///   Source-defined methods require ordinary lowering and evidence.
 ///
 /// Transformation:
 /// - Preserves the default rejection for arbitrary mutable receiver calls while
@@ -820,21 +751,6 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_mutable_
     matches!(profile, TargetProfile::CoreV0)
         && matches!(
             (method, arity),
-            ("push", 1)
-                | ("clear", 0)
-                | ("put", 2)
-                | ("remove", 1)
-                | ("add", 1)
-                | ("status", 1)
-                | ("header", 2)
-                | ("with_status", 1)
-                | ("with_header", 2)
-                | ("set_cookie_header", 1)
-                | ("cookie", 2..=5)
-                | ("cookie_with_options", 2..=10)
-                | ("with_cookie", 2..=5)
-                | ("with_cookie_options", 2..=10)
-                | ("delete_cookie", 1 | 2)
-                | ("with_deleted_cookie", 1 | 2)
+            ("push", 1) | ("clear", 0) | ("put", 2) | ("remove", 1) | ("add", 1)
         )
 }

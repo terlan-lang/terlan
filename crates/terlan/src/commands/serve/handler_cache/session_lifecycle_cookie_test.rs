@@ -2,13 +2,12 @@
 
 use super::compile_native_handler_fixture;
 use crate::commands::serve::handler::request_materialization::vm_request_descriptor_owned;
-use crate::commands::serve::handler::HandlerResponse;
 use crate::commands::serve::handler_cache::invocation::AotHandlerInvocationStep;
 use crate::commands::serve::handler_cache::AotHandlerRuntime;
-use crate::runtime::native::http::{Request, RequestFieldProjection, RequestMetadata};
 use crate::runtime::vm::package_native_helper::VmPackageNativeHelpers;
 use crate::runtime::vm::ReplValue;
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
+use terlan_http_native::{Request, RequestFieldProjection, RequestMetadata};
 
 #[test]
 fn source_lookup_reuse_rotation_and_stale_replacement_use_cookie_package() {
@@ -88,10 +87,7 @@ pub handle(request: Request, rotate: Bool): Response ->
                 panic!("new or rotated identity must suspend for source cookie encoding");
             };
             let request = invocation.request().unwrap();
-            assert_eq!(
-                request.operation,
-                "std.http.cookies.set_header_with_options"
-            );
+            assert_eq!(request.operation, "std.http.cookies.encode");
             let ReplValue::String(header) = helpers.call(1, request, &[]).unwrap() else {
                 panic!("cookie codec must return a string");
             };
@@ -118,11 +114,13 @@ pub handle(request: Request, rotate: Bool): Response ->
             panic!("reused sessions need no header; new cookies need only one codec reply");
         };
         let response =
-            HandlerResponse::from_owned_vm_response_with_package_root(value, &fixture.root)
-                .unwrap();
-        assert_eq!(response.body.as_bytes(), body.as_bytes());
+            crate::commands::serve::handler::decode_owned_response(value, &fixture.root).unwrap();
+        assert_eq!(
+            response.body.as_bytes().expect("finite response"),
+            body.as_bytes()
+        );
         assert_eq!(response.status, 200);
-        assert_eq!(response.headers, expected);
+        assert_eq!(response.headers[2..], expected);
     }
     drop(runtime);
     std::fs::remove_dir_all(fixture.root).unwrap();

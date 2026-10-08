@@ -7,7 +7,7 @@ impl AotHandlerRuntime {
         image: &Path,
         router: Option<AotRouterPlan>,
     ) -> Result<Self, String> {
-        let sessions = session_service::test_session_service()?;
+        let sessions = session_service::new_session_service();
         Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load(image, sessions)?),
@@ -24,7 +24,7 @@ impl AotHandlerRuntime {
         router: Option<AotRouterPlan>,
         shard_count: usize,
     ) -> Result<Self, String> {
-        let sessions = session_service::test_session_service()?;
+        let sessions = session_service::new_session_service();
         Self {
             module,
             generation: Arc::new(AotHandlerGeneration::load_with_shard_count(

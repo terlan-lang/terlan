@@ -4,8 +4,8 @@ set -euo pipefail
 changes=$1
 echo 'pre-commit: Rust formatting'
 cargo fmt --all -- --check
-echo 'pre-commit: build the staged compiler, VM, and service runtime'
-cargo build --locked -p terlan --bin terlc --bin terlan-vm
+echo 'pre-commit: build the staged compiler, VM, native worker, and service runtime'
+cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 echo 'pre-commit: hook policy and snapshot regression tests'

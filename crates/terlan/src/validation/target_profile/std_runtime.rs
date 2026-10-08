@@ -1,4 +1,3 @@
-mod http_response;
 #[path = "std_runtime/module_support.rs"]
 mod module_support;
 #[path = "std_runtime/operation_support.rs"]

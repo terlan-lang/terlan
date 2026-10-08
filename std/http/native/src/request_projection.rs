@@ -12,6 +12,8 @@ pub enum RequestFieldProjection {
 }
 
 impl RequestFieldProjection {
+    /// Source record identity used by the package's ingress adapter.
+    pub const SEMANTIC_TYPE: &str = "Named(std.http.Request.Request)";
     pub const METHOD: usize = 1;
     pub const PATH: usize = 2;
     pub const PARAMS: usize = 3;
@@ -24,6 +26,27 @@ impl RequestFieldProjection {
 
     pub const fn empty() -> Self {
         Self::Fields(0)
+    }
+
+    /// Maps zero-based source record positions to ingress slots. Slot zero is
+    /// reserved by the retained transport mask, not a field in the source record.
+    pub fn from_observed_fields(fields: impl IntoIterator<Item = usize>) -> Self {
+        let mut projection = Self::empty();
+        for field in fields {
+            if field >= Self::BODY_FILE_PATH {
+                return Self::Complete;
+            }
+            projection.include(field + 1);
+        }
+        projection
+    }
+
+    /// A scalar ingress may replace only one proven String field, never a map.
+    pub fn admits_scalar_string(self, field: usize) -> bool {
+        matches!(
+            field,
+            Self::METHOD | Self::PATH | Self::BODY | Self::QUERY_STRING | Self::BODY_FILE_PATH
+        ) && self == Self::Fields(1 << field)
     }
 
     pub const fn requires(self, field: usize) -> bool {
@@ -46,3 +69,7 @@ impl RequestFieldProjection {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "request_projection_test.rs"]
+mod tests;

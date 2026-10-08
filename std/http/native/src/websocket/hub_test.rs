@@ -40,11 +40,65 @@ fn failed_admission_preserves_waiter_and_does_not_leak_sessions() {
 }
 
 #[test]
+fn source_controls_unpaired_admission_without_creating_peer_state() {
+    let hub = Arc::new(WebSocketHub::default());
+    let mut pairing = restorable_pairing(1000, 4);
+    pairing.restoration = None;
+    let first = join(&hub, &pairing, 4).unwrap();
+    first.outbound.try_recv().unwrap();
+    assert_eq!(
+        first
+            .transition(|context| {
+                assert!(context.is_none());
+                Err("source requires peer".into())
+            })
+            .unwrap_err()
+            .to_string(),
+        "source requires peer"
+    );
+    assert!(first.outbound.try_recv().is_err());
+    first
+        .transition(|context| {
+            assert!(context.is_none());
+            Ok((
+                "not retained before pairing".into(),
+                Some(String::new()),
+                Some("no recipient".into()),
+            ))
+        })
+        .unwrap();
+    assert_eq!(first.outbound.try_recv().unwrap(), "");
+    assert!(first.outbound.try_recv().is_err());
+    let second = join(&hub, &pairing, 4).unwrap();
+    first.outbound.try_recv().unwrap();
+    second.outbound.try_recv().unwrap();
+    first
+        .transition(|context| {
+            let (state, role, first, second) = context.unwrap();
+            assert_eq!(
+                (state.as_str(), role, first.as_str(), second.as_str()),
+                ("", 1, "/request", "/request")
+            );
+            Ok(("saved".into(), None, None))
+        })
+        .unwrap();
+    drop(second);
+    first.outbound.try_recv().unwrap();
+    first
+        .transition(|context| {
+            assert!(context.is_none());
+            Ok((String::new(), Some("alone again".into()), None))
+        })
+        .unwrap();
+    assert_eq!(first.outbound.try_recv().unwrap(), "alone again");
+}
+
+#[test]
 fn identifier_exhaustion_does_not_overwrite_live_state() {
     let hub = Arc::new(WebSocketHub::default());
     let pairing = restorable_pairing(1000, 4);
     let first = join(&hub, &pairing, 4).unwrap();
-    hub.state.lock().unwrap().next_room = u64::MAX;
+    hub.state.lock().unwrap().next_room = i64::MAX;
     assert!(join(&hub, &pairing, 4)
         .err()
         .unwrap()
@@ -90,7 +144,7 @@ fn panicking_transition_poison_is_reported_without_further_callback_execution() 
     let second = join(&hub, &pairing, 4).unwrap();
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         first
-            .transition(|_, _, _, _| panic!("injected transition panic"))
+            .transition(|_| panic!("injected transition panic"))
             .unwrap();
     }))
     .is_err());
@@ -99,12 +153,15 @@ fn panicking_transition_poison_is_reported_without_further_callback_execution() 
         hub.deliver(first.id, "value".into())
             .unwrap_err()
             .to_string(),
-        hub.complete_match(first.id, "first".into(), "second".into())
+        hub.complete_match(first.id, "room-1".into(), "first".into(), "second".into())
             .unwrap_err()
             .to_string(),
-        first.broadcast("value".into()).unwrap_err().to_string(),
         first
-            .transition(|_, _, _, _| panic!("poison must reject before invocation"))
+            .transition(|_| Ok(("".into(), Some("value".into()), Some("value".into()))))
+            .unwrap_err()
+            .to_string(),
+        first
+            .transition(|_| panic!("poison must reject before invocation"))
             .unwrap_err()
             .to_string(),
     ] {
@@ -117,23 +174,30 @@ fn panicking_transition_poison_is_reported_without_further_callback_execution() 
 #[derive(Default)]
 struct Callbacks {
     calls: Vec<(String, i64)>,
-    fail_role: Option<i64>,
+    fail_match: bool,
+    requests: Option<(String, String)>,
 }
 
 impl AdmissionCallbacks for Callbacks {
+    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+        Ok(format!("room-{sequence}"))
+    }
     fn matched(
         &mut self,
         room: String,
-        role: i64,
         first: String,
         second: String,
-    ) -> Result<String, String> {
-        assert_eq!((first.as_str(), second.as_str()), ("/request", "/request"));
-        self.calls.push((room, role));
-        if self.fail_role == Some(role) {
+    ) -> Result<(String, String), crate::ServiceError> {
+        let expected = self
+            .requests
+            .clone()
+            .unwrap_or(("/request".into(), "/request".into()));
+        assert_eq!((first, second), expected);
+        self.calls.push((room, 0));
+        if self.fail_match {
             return Err("source callback rejected".into());
         }
-        Ok(format!("matched-{role}"))
+        Ok(("matched-1".into(), "matched-2".into()))
     }
 
     fn restored(
@@ -143,11 +207,197 @@ impl AdmissionCallbacks for Callbacks {
         role: i64,
         first: String,
         second: String,
-    ) -> Result<String, String> {
+    ) -> Result<String, crate::ServiceError> {
         assert_eq!((first.as_str(), second.as_str()), ("/request", "/request"));
         self.calls.push((room, role));
         Ok(format!("restored-{role}:{state}"))
     }
+}
+
+fn admit_pair(first: &WebSocketHubLease, second: &mut WebSocketHubLease) {
+    let Some(WebSocketHubAdmission::Matched {
+        first_request,
+        second_request,
+        ..
+    }) = &second.admission
+    else {
+        panic!("expected pending match");
+    };
+    let mut callbacks = Callbacks {
+        requests: Some((first_request.clone(), second_request.clone())),
+        ..Callbacks::default()
+    };
+    second.dispatch_admission(&mut callbacks).unwrap();
+    assert_eq!(first.outbound.try_recv().unwrap(), "matched-1");
+    assert_eq!(second.outbound.try_recv().unwrap(), "matched-2");
+}
+
+struct NamingCallbacks<'a> {
+    hub: &'a WebSocketHub,
+    identity: Result<String, String>,
+    sequences: Vec<i64>,
+    departing: Option<WebSocketHubLease>,
+}
+
+impl AdmissionCallbacks for NamingCallbacks<'_> {
+    fn room_identity(&mut self, sequence: i64) -> Result<String, crate::ServiceError> {
+        assert!(
+            self.hub.state.try_lock().is_ok(),
+            "source must run outside registry lock"
+        );
+        self.sequences.push(sequence);
+        drop(self.departing.take());
+        self.identity.clone().map_err(crate::ServiceError::from)
+    }
+
+    fn matched(
+        &mut self,
+        room: String,
+        _: String,
+        _: String,
+    ) -> Result<(String, String), crate::ServiceError> {
+        assert_eq!(Ok(&room), self.identity.as_ref());
+        Ok((room.clone(), room))
+    }
+
+    fn restored(
+        &mut self,
+        room: String,
+        _: String,
+        _: i64,
+        _: String,
+        _: String,
+    ) -> Result<String, crate::ServiceError> {
+        Ok(room)
+    }
+}
+
+#[test]
+fn source_room_names_are_opaque_unique_and_not_published_before_admission() {
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = restorable_pairing(300_000, 4);
+    let first = join(&hub, &pairing, 4).unwrap();
+    first.outbound.try_recv().unwrap();
+    let mut second = join(&hub, &pairing, 4).unwrap();
+    let name = "custom/\u{754c}?not-a-prefix";
+    let mut callbacks = NamingCallbacks {
+        hub: &hub,
+        identity: Ok(name.into()),
+        sequences: vec![],
+        departing: None,
+    };
+    assert!(hub.state.lock().unwrap().rooms.is_empty());
+    second.dispatch_admission(&mut callbacks).unwrap();
+    second.dispatch_admission(&mut callbacks).unwrap();
+    assert_eq!(callbacks.sequences, [1]);
+    assert_eq!(first.outbound.try_recv().unwrap(), name);
+    assert_eq!(second.outbound.try_recv().unwrap(), name);
+    let third = join(&hub, &pairing, 4).unwrap();
+    third.outbound.try_recv().unwrap();
+    let mut fourth = join(&hub, &pairing, 4).unwrap();
+    assert!(fourth
+        .dispatch_admission(&mut callbacks)
+        .unwrap_err()
+        .to_string()
+        .contains("duplicate room identity"));
+    assert_eq!(callbacks.sequences, [1, 2]);
+    assert!(third.outbound.try_recv().is_err());
+    assert!(fourth.outbound.try_recv().is_err());
+    drop(third);
+    drop(fourth);
+    drop(second);
+    let mut restored = hub
+        .join(
+            "/ws".into(),
+            "/opaque".into(),
+            4,
+            &pairing,
+            Some((name.into(), 2)),
+        )
+        .unwrap();
+    restored.dispatch_admission(&mut callbacks).unwrap();
+    assert_eq!(restored.outbound.try_recv().unwrap(), name);
+    assert_eq!(
+        callbacks.sequences,
+        [1, 2],
+        "restoration must not rename rooms"
+    );
+    let state = hub.state.lock().unwrap();
+    assert_eq!(state.rooms.len(), 1);
+    assert_eq!(state.rooms[&("/ws".into(), name.into())], first.id);
+}
+
+#[test]
+fn rejected_room_names_and_departing_peers_leave_no_restorable_state() {
+    for (identity, depart, error) in [
+        (
+            Err("source naming failed".into()),
+            false,
+            "source naming failed",
+        ),
+        (Ok(String::new()), false, "empty or duplicate"),
+        (Ok("valid".into()), true, "state disappeared"),
+    ] {
+        let hub = Arc::new(WebSocketHub::default());
+        let pairing = restorable_pairing(300_000, 4);
+        let first = join(&hub, &pairing, 4).unwrap();
+        first.outbound.try_recv().unwrap();
+        let mut second = join(&hub, &pairing, 4).unwrap();
+        let mut first = Some(first);
+        let mut callbacks = NamingCallbacks {
+            hub: &hub,
+            identity,
+            sequences: vec![],
+            departing: if depart { first.take() } else { None },
+        };
+        assert!(second
+            .dispatch_admission(&mut callbacks)
+            .unwrap_err()
+            .to_string()
+            .contains(error));
+        assert_eq!(callbacks.sequences, [1]);
+        assert!(hub.state.lock().unwrap().rooms.is_empty());
+        drop(first);
+        drop(second);
+        let state = hub.state.lock().unwrap();
+        assert!(state.rooms.is_empty() && state.pairs.is_empty() && state.sessions.is_empty());
+    }
+}
+
+#[test]
+fn room_publication_requires_two_peers_and_cannot_be_repeated() {
+    let hub = Arc::new(WebSocketHub::default());
+    let pairing = restorable_pairing(300_000, 4);
+    let first = join(&hub, &pairing, 4).unwrap();
+    first.outbound.try_recv().unwrap();
+    assert!(hub
+        .complete_match(
+            first.id,
+            "premature".into(),
+            "first".into(),
+            "second".into()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("peer left before room admission"));
+    assert!(hub.state.lock().unwrap().rooms.is_empty());
+    let mut second = join(&hub, &pairing, 4).unwrap();
+    admit_pair(&first, &mut second);
+    assert!(hub
+        .complete_match(
+            first.id,
+            "different".into(),
+            "first".into(),
+            "second".into()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("duplicate room identity"));
+    assert!(first.outbound.try_recv().is_err());
+    assert!(second.outbound.try_recv().is_err());
+    let state = hub.state.lock().unwrap();
+    assert_eq!(state.rooms.len(), 1);
+    assert_eq!(state.rooms[&("/ws".into(), "room-1".into())], first.id);
 }
 
 #[test]
@@ -162,14 +412,11 @@ fn admissions_invoke_opaque_callbacks_once_and_deliver_to_the_correct_seat() {
     let mut second = join(&hub, &pairing, 4).unwrap();
     second.dispatch_admission(&mut callbacks).unwrap();
     second.dispatch_admission(&mut callbacks).unwrap();
-    assert_eq!(
-        callbacks.calls,
-        vec![("room-1".into(), 1), ("room-1".into(), 2)]
-    );
+    assert_eq!(callbacks.calls, vec![("room-1".into(), 0)]);
     assert_eq!(first.outbound.try_recv().unwrap(), "matched-1");
     assert_eq!(second.outbound.try_recv().unwrap(), "matched-2");
     first
-        .transition(|_, _, _, _| Ok(("retained".into(), None, None)))
+        .transition(|_| Ok(("retained".into(), None, None)))
         .unwrap();
     drop(second);
     assert_eq!(first.outbound.try_recv().unwrap(), "left");
@@ -195,7 +442,7 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
     first.outbound.try_recv().unwrap();
     let mut second = join(&hub, &pairing, 4).unwrap();
     let mut callbacks = Callbacks {
-        fail_role: Some(2),
+        fail_match: true,
         ..Callbacks::default()
     };
     assert_eq!(
@@ -209,13 +456,14 @@ fn callback_failures_do_not_publish_partial_match_or_mutate_transition_state() {
     assert!(second.outbound.try_recv().is_err());
     assert_eq!(
         first
-            .transition(|_, _, _, _| Err("rejected".into()))
+            .transition(|_| Err("rejected".into()))
             .unwrap_err()
             .to_string(),
         "rejected"
     );
     first
-        .transition(|state, _, _, _| {
+        .transition(|context| {
+            let (state, _, _, _) = context.unwrap();
             assert!(state.is_empty());
             Ok(("valid".into(), None, None))
         })
@@ -237,7 +485,8 @@ fn concurrent_transitions_are_serialized_without_lost_updates() {
             barrier.wait();
             for _ in 0..100 {
                 lease
-                    .transition(|state, _, _, _| {
+                    .transition(|context| {
+                        let (state, _, _, _) = context.unwrap();
                         let count = if state.is_empty() {
                             0
                         } else {
@@ -252,7 +501,8 @@ fn concurrent_transitions_are_serialized_without_lost_updates() {
     });
     let leases = workers.map(|worker| worker.join().unwrap());
     leases[0]
-        .transition(|state, _, _, _| {
+        .transition(|context| {
+            let (state, _, _, _) = context.unwrap();
             assert_eq!(state, "200");
             Ok((state, None, None))
         })
@@ -267,12 +517,11 @@ fn restorable_pairing(retention_ms: u64, retained_room_capacity: usize) -> WebSo
         first_matched: String::new(),
         second_matched: String::new(),
         peer_left: "left".into(),
-        stateful: true,
         restoration: Some(WebSocketRestoration {
             waiting: (),
             peer_left: (),
             identity: (),
-            room_prefix: "room-".into(),
+            room_identity: (),
             retention_ms,
             retained_room_capacity,
             matched: (),
@@ -289,27 +538,30 @@ fn optional_transition_deliveries_preserve_empty_frames_and_state() {
     let pairing = restorable_pairing(1000, 4);
     let first = join(&hub, &pairing, 1).unwrap();
     first.outbound.try_recv().unwrap();
-    let second = join(&hub, &pairing, 1).unwrap();
+    let mut second = join(&hub, &pairing, 1).unwrap();
+    admit_pair(&first, &mut second);
     first
-        .transition(|_, _, _, _| Ok(("silent".into(), None, None)))
+        .transition(|_| Ok(("silent".into(), None, None)))
         .unwrap();
     assert!(first.outbound.try_recv().is_err());
     assert!(second.outbound.try_recv().is_err());
     first
-        .transition(|state, _, _, _| {
+        .transition(|context| {
+            let (state, _, _, _) = context.unwrap();
             assert_eq!(state, "silent");
             Ok(("empty-frame".into(), Some(String::new()), None))
         })
         .unwrap();
     // An absent delivery must not touch even a full queue.
     second
-        .transition(|state, _, _, _| {
+        .transition(|context| {
+            let (state, _, _, _) = context.unwrap();
             assert_eq!(state, "empty-frame");
             Ok((state, None, Some(String::new())))
         })
         .unwrap();
     assert!(second
-        .transition(|state, _, _, _| Ok((state, None, Some(String::new()))))
+        .transition(|context| Ok((context.unwrap().0, None, Some(String::new()))))
         .unwrap_err()
         .to_string()
         .contains("queue is full"));
@@ -320,7 +572,8 @@ fn optional_transition_deliveries_preserve_empty_frames_and_state() {
     drop(second);
     first.outbound.try_recv().unwrap();
     first
-        .transition(|state, _, _, _| {
+        .transition(|context| {
+            let (state, _, _, _) = context.unwrap();
             assert_eq!(state, "empty-frame");
             Ok((state, Some("survivor".into()), Some("disconnected".into())))
         })
@@ -336,7 +589,6 @@ fn websocket_hub_pairs_broadcasts_and_notifies_disconnect() {
         first_matched: "first".into(),
         second_matched: "second".into(),
         peer_left: "left".into(),
-        stateful: false,
         restoration: None,
         inbound: (),
         cancellation: (),
@@ -351,7 +603,15 @@ fn websocket_hub_pairs_broadcasts_and_notifies_disconnect() {
     assert_eq!(first.outbound.try_recv().unwrap(), "first");
     assert_eq!(second.outbound.try_recv().unwrap(), "second");
 
-    second.broadcast("update".into()).expect("broadcast update");
+    second
+        .transition(|context| {
+            Ok((
+                context.unwrap().0,
+                Some("update".into()),
+                Some("update".into()),
+            ))
+        })
+        .expect("broadcast update");
     assert_eq!(first.outbound.try_recv().unwrap(), "update");
     assert_eq!(second.outbound.try_recv().unwrap(), "update");
     drop(second);
@@ -366,7 +626,6 @@ fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
         first_matched: "first".into(),
         second_matched: "second".into(),
         peer_left: "left".into(),
-        stateful: true,
         restoration: None,
         inbound: (),
         cancellation: (),
@@ -382,7 +641,8 @@ fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
     assert_eq!(second.outbound.try_recv().unwrap(), "second");
 
     second
-        .transition(|state, role, first_request, second_request| {
+        .transition(|context| {
+            let (state, role, first_request, second_request) = context.unwrap();
             assert_eq!(state, "");
             assert_eq!(role, 2);
             assert_eq!(first_request, "/ws?player=Ada");
@@ -398,7 +658,8 @@ fn websocket_hub_serializes_stateful_pair_transitions_and_addresses_peers() {
     assert_eq!(second.outbound.try_recv().unwrap(), "view-1b");
 
     first
-        .transition(|state, role, _, _| {
+        .transition(|context| {
+            let (state, role, _, _) = context.unwrap();
             assert_eq!(state, "move-1");
             assert_eq!(role, 1);
             Ok((
@@ -420,11 +681,13 @@ fn websocket_hub_restores_disconnected_seat_with_retained_state() {
         .join("/ws".into(), "/ws?board=first".into(), 4, &pairing, None)
         .expect("join first peer");
     assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
-    let second = hub
+    let mut second = hub
         .join("/ws".into(), "/ws?board=second".into(), 4, &pairing, None)
         .expect("join second peer");
+    admit_pair(&first, &mut second);
     first
-        .transition(|state, role, first_request, second_request| {
+        .transition(|context| {
+            let (state, role, first_request, second_request) = context.unwrap();
             assert_eq!(state, "");
             assert_eq!(role, 1);
             assert_eq!(first_request, "/ws?board=first");
@@ -451,7 +714,8 @@ fn websocket_hub_restores_disconnected_seat_with_retained_state() {
         )
         .expect("restore second seat");
     restored
-        .transition(|state, role, first_request, second_request| {
+        .transition(|context| {
+            let (state, role, first_request, second_request) = context.unwrap();
             assert_eq!(state, "1,5,5");
             assert_eq!(role, 2);
             assert_eq!(first_request, "/ws?board=first");
@@ -474,9 +738,11 @@ fn websocket_hub_retains_room_after_both_peers_disconnect() {
     let first = hub
         .join("/ws".into(), "/ws?board=first".into(), 4, &pairing, None)
         .expect("join first peer");
-    let second = hub
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let mut second = hub
         .join("/ws".into(), "/ws?board=second".into(), 4, &pairing, None)
         .expect("join second peer");
+    admit_pair(&first, &mut second);
     drop(first);
     drop(second);
 
@@ -499,7 +765,8 @@ fn websocket_hub_retains_room_after_both_peers_disconnect() {
         )
         .expect("restore second seat");
     restored_second
-        .transition(|state, role, first_request, second_request| {
+        .transition(|context| {
+            let (state, role, first_request, second_request) = context.unwrap();
             assert_eq!(state, "");
             assert_eq!(role, 2);
             assert_eq!(first_request, "/ws?board=first");
@@ -522,11 +789,20 @@ fn websocket_hub_expires_fully_disconnected_room() {
     let first = hub
         .join("/ws".into(), "/ws?board=first".into(), 4, &pairing, None)
         .expect("join first peer");
-    let second = hub
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let mut second = hub
         .join("/ws".into(), "/ws?board=second".into(), 4, &pairing, None)
         .expect("join second peer");
+    admit_pair(&first, &mut second);
     drop(first);
     drop(second);
+
+    assert!(hub
+        .state
+        .lock()
+        .unwrap()
+        .rooms
+        .contains_key(&("/ws".into(), "room-1".into())));
 
     let error = hub
         .join_at(
@@ -562,9 +838,11 @@ fn websocket_hub_requires_valid_source_identity_and_keeps_room_isolation() {
     let first = hub
         .join("/ws".into(), "/ws".into(), 4, &pairing, None)
         .unwrap();
-    let second = hub
+    assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+    let mut second = hub
         .join("/ws".into(), "/ws".into(), 4, &pairing, None)
         .unwrap();
+    admit_pair(&first, &mut second);
     assert!(hub
         .join(
             "/ws".into(),
@@ -631,7 +909,8 @@ fn websocket_hub_evicts_oldest_fully_disconnected_room_at_capacity() {
                 None,
             )
             .expect("join first peer");
-        let second = hub
+        assert_eq!(first.outbound.try_recv().unwrap(), "waiting");
+        let mut second = hub
             .join(
                 "/ws".into(),
                 format!("/ws?board={suffix}-2"),
@@ -640,6 +919,7 @@ fn websocket_hub_evicts_oldest_fully_disconnected_room_at_capacity() {
                 None,
             )
             .expect("join second peer");
+        admit_pair(&first, &mut second);
         drop(first);
         drop(second);
     }

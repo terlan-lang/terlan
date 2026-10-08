@@ -1,5 +1,5 @@
-use crate::runtime::native::http::{Request, RequestFieldProjection};
 use crate::runtime::vm::ReplValue;
+use terlan_http_native::{Request, RequestFieldProjection};
 
 use super::{replace_vm_request_descriptor, vm_request_descriptor_owned};
 
@@ -8,7 +8,7 @@ fn request() -> Request {
         "POST",
         "/items/7",
         "payload",
-        crate::terlan_native::http::RequestMetadata {
+        terlan_http_native::RequestMetadata {
             params: vec![("id".to_string(), "7".to_string())],
             query_string: ("page=2").into(),
             query: vec![("page".to_string(), "2".to_string())],
@@ -34,9 +34,7 @@ fn package_metadata_projection_and_late_source_projection_agree() {
             "GET",
             "/",
             "",
-            crate::terlan_native::http::RequestMetadata::from_http(
-                projection, &params, query, &headers,
-            ),
+            terlan_http_native::RequestMetadata::from_http(projection, &params, query, &headers),
         )
     };
     let complete = make_request(RequestFieldProjection::Complete);
@@ -62,7 +60,7 @@ fn borrowed_router_request_uses_the_same_source_record_as_owned_ingress() {
             expected
         );
     }
-    assert_eq!(request.param("id"), Some("7".into()));
+    assert_eq!(request.into_parts().params, [("id".into(), "7".into())]);
 }
 
 #[test]
@@ -79,12 +77,12 @@ fn body_only_projection_keeps_layout_but_omits_unobservable_payloads() {
     assert_eq!(fields.len(), 9);
     assert_eq!(fields[0].1, ReplValue::String(String::new()));
     assert_eq!(fields[1].1, ReplValue::String(String::new()));
-    assert_eq!(fields[2].1, ReplValue::Map(Vec::new()));
+    assert_eq!(fields[2].1, ReplValue::List(Vec::new()));
     assert_eq!(fields[3].1, ReplValue::String("payload".to_string()));
     assert_eq!(fields[4].1, ReplValue::String(String::new()));
-    assert_eq!(fields[5].1, ReplValue::Map(Vec::new()));
-    assert_eq!(fields[6].1, ReplValue::Map(Vec::new()));
-    assert_eq!(fields[7].1, ReplValue::Map(Vec::new()));
+    assert_eq!(fields[5].1, ReplValue::List(Vec::new()));
+    assert_eq!(fields[6].1, ReplValue::List(Vec::new()));
+    assert_eq!(fields[7].1, ReplValue::List(Vec::new()));
     assert_eq!(fields[8].1, ReplValue::String(String::new()));
 }
 
@@ -101,27 +99,27 @@ fn complete_projection_preserves_every_request_field() {
     assert_eq!(fields[1].1, ReplValue::String("/items/7".to_string()));
     assert_eq!(fields[3].1, ReplValue::String("payload".to_string()));
     assert_eq!(fields[4].1, ReplValue::String("page=2".to_string()));
-    assert!(matches!(&fields[2].1, ReplValue::Map(entries) if entries.len() == 1));
+    assert!(matches!(&fields[2].1, ReplValue::List(entries) if entries.len() == 1));
     assert_eq!(
         fields[5].1,
-        ReplValue::Map(vec![(
+        ReplValue::List(vec![ReplValue::Tuple(vec![
             ReplValue::String("page".to_string()),
             ReplValue::String("2".to_string()),
-        )])
+        ])])
     );
     assert_eq!(
         fields[6].1,
-        ReplValue::Map(vec![(
+        ReplValue::List(vec![ReplValue::Tuple(vec![
             ReplValue::String("content-type".to_string()),
             ReplValue::String("text/plain".to_string()),
-        )])
+        ])])
     );
     assert_eq!(
         fields[7].1,
-        ReplValue::Map(vec![(
+        ReplValue::List(vec![ReplValue::Tuple(vec![
             ReplValue::String("session".to_string()),
             ReplValue::String("abc".to_string()),
-        )])
+        ])])
     );
     assert_eq!(
         fields[8].1,
@@ -170,7 +168,7 @@ fn repeated_projection_reuses_fixed_request_vector_without_native_jar() {
 }
 
 #[test]
-fn replacing_request_clears_incoming_cookies_and_repairs_invalid_map_shapes() {
+fn replacing_request_clears_incoming_cookies_and_repairs_invalid_pair_shapes() {
     let mut value =
         vm_request_descriptor_owned(request().into_parts(), RequestFieldProjection::Complete);
     for replacement in [
@@ -197,6 +195,6 @@ fn replacing_request_clears_incoming_cookies_and_repairs_invalid_map_shapes() {
         let ReplValue::Record { fields, .. } = &value else {
             panic!("request")
         };
-        assert_eq!(fields[7].1, ReplValue::Map(Vec::new()));
+        assert_eq!(fields[7].1, ReplValue::List(Vec::new()));
     }
 }

@@ -1,5 +1,35 @@
 use super::*;
 
+#[cfg(unix)]
+#[test]
+fn vm_stream_static_indexes_reject_escaping_symlinks() {
+    use std::os::unix::fs::symlink;
+    let parent = tempfile::tempdir().expect("temporary package");
+    let root = parent.path().join("web");
+    fs::create_dir_all(root.join("docs")).expect("directory route");
+    let secret = parent.path().join("secret.html");
+    fs::write(&secret, "private host content").expect("secret");
+    symlink(&secret, root.join("index.html")).expect("root index symlink");
+    symlink(&secret, root.join("docs/index.html")).expect("directory index symlink");
+    for path in ["/", "/docs", "/docs/", "/index.html", "/docs/index.html"] {
+        for method in ["GET", "HEAD"] {
+            let request = format!("{method} {path} HTTP/1.1\r\nHost: localhost\r\n\r\n");
+            let response =
+                handle_vm_stream_http1_request(&root, request.as_bytes()).expect("HTTP exchange");
+            let response = String::from_utf8(response).expect("text response");
+            assert!(
+                response.starts_with("HTTP/1.1 400 "),
+                "{method} {path}: {response}"
+            );
+            assert!(!response.contains("private host content"), "{response}");
+            assert!(!response.contains(RELOAD_ENDPOINT), "{response}");
+            if method == "HEAD" {
+                assert!(response.ends_with("\r\n\r\n"), "{response}");
+            }
+        }
+    }
+}
+
 #[test]
 pub(super) fn vm_stream_request_serves_acme_like_static_file_for_plain_http_package_without_hyper()
 {

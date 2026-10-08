@@ -1,5 +1,112 @@
 use super::*;
 
+#[test]
+fn write_browser_manifest_rejects_route_namespace_conflicts_before_writing() {
+    use serde_json::{from_value, json};
+    for kind in ["handler", "websocket", "sse", "static", "file"] {
+        let root = temp_dir(&format!("conflicting_manifest_{kind}"));
+        let mut routes = WebRouteManifestRows::default();
+        routes.handlers.push(
+            from_value(json!({
+                "method":"GET", "route":"/users/:id", "module":"app.Http",
+                "function":"show", "arity":1
+            }))
+            .unwrap(),
+        );
+        let row = json!({
+            "method":"GET", "route":"/users/:name", "module":"app.Http",
+            "function":"show", "arity":1, "protocol":"chat.v1",
+            "source":{"path":"app/Http.terl", "line":1, "column":1},
+            "status":200, "content_type":"text/plain", "body":"hello", "path":"assets/hello.txt"
+        });
+        match kind {
+            "handler" => routes.handlers.push(from_value(row).unwrap()),
+            "websocket" => routes.websockets.push(from_value(row).unwrap()),
+            "sse" => routes.sse.push(from_value(row).unwrap()),
+            "static" => routes.static_responses.push(from_value(row).unwrap()),
+            "file" => routes.file_responses.push(from_value(row).unwrap()),
+            _ => unreachable!(),
+        }
+        let error = write_browser_manifest(
+            &root,
+            js_target_contract(TargetProfile::JsBrowser).unwrap(),
+            Vec::new(),
+            routes,
+            None,
+            false,
+        )
+        .expect_err("conflicting routes must not be published");
+        assert!(error.contains("/users/:name"), "{error}");
+        assert!(
+            error.contains(if kind == "handler" {
+                "duplicate or ambiguous handler route"
+            } else {
+                "conflicts with handler route `GET` `/users/:id`"
+            }),
+            "{error}"
+        );
+        assert!(!root.join("manifest.json").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn write_browser_manifest_rejects_package_invalid_route_metadata_before_writing() {
+    use serde_json::{from_value, json};
+    let cases = [
+        (
+            "handler",
+            json!({"method":"GET","route":"/","module":"app.Http","function":"home","arity":0}),
+        ),
+        (
+            "websocket",
+            json!({"route":"/ws","protocol":"bad protocol"}),
+        ),
+        (
+            "sse",
+            json!({"module":"app.Events","route":"/events","source":{"path":"../bad","line":1,"column":1}}),
+        ),
+        (
+            "static",
+            json!({"method":"GET","route":"/","status":600,"content_type":"text/plain","body":"bad"}),
+        ),
+        (
+            "file",
+            json!({"method":"GET","route":"/file","path":"/outside","status":200}),
+        ),
+        (
+            "error",
+            json!({"module":"app.Http","function":"recover","arity":2}),
+        ),
+    ];
+    for (kind, value) in cases {
+        let root = temp_dir(&format!("invalid_manifest_{kind}"));
+        let mut routes = WebRouteManifestRows::default();
+        let mut error_handler = None;
+        match kind {
+            "handler" => routes.handlers.push(from_value(value).unwrap()),
+            "websocket" => routes.websockets.push(from_value(value).unwrap()),
+            "sse" => routes.sse.push(from_value(value).unwrap()),
+            "static" => routes.static_responses.push(from_value(value).unwrap()),
+            "file" => routes.file_responses.push(from_value(value).unwrap()),
+            "error" => error_handler = Some(from_value(value).unwrap()),
+            _ => unreachable!(),
+        }
+        let error = write_browser_manifest(
+            &root,
+            js_target_contract(TargetProfile::JsBrowser).unwrap(),
+            Vec::new(),
+            routes,
+            error_handler,
+            false,
+        )
+        .expect_err("package-invalid records must not be published");
+        assert!(error.starts_with("error[serve_package]:"), "{error}");
+        assert!(!root.join("manifest.json").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
 /// Verifies browser manifests reject duplicate final asset paths.
 ///
 /// Inputs:
@@ -57,253 +164,73 @@ pub(super) fn write_browser_manifest_rejects_duplicate_web_asset_paths() {
     fs::remove_dir_all(root).expect("cleanup package dir");
 }
 
-/// Verifies browser package manifests serialize constant handlers as static responses.
-///
-/// Inputs:
-/// - A fake JS build root with one emitted module file.
-/// - A source module whose handlers return constant `Response.text` values.
-///
-/// Output:
-/// - `_build/web/manifest.json` containing cacheable static response rows.
-///
-/// Transformation:
-/// - Exercises the first static-response lowering pass so route manifests can
-///   cache simple HTTP responses without invoking VM handlers.
+/// Constant-looking calls remain executable source, including grouped routes,
+/// named arguments, file responses, and redirects.
 #[test]
-pub(super) fn write_browser_package_serializes_constant_handlers_as_static_responses() {
-    let root = temp_dir("package_static_responses");
-    let js_root = root.join("js");
-    let modules_dir = js_root.join("modules");
-    fs::create_dir_all(&modules_dir).expect("create modules dir");
-    fs::write(modules_dir.join("app.js"), "export {};\n").expect("write js module");
-
-    let source_path = root.join("Http.terl");
-    write_router_source(&source_path);
-    let modules = vec![module_artifact("app.Http", &source_path)];
-    let contract = js_target_contract(TargetProfile::JsBrowser).expect("browser contract");
-
-    write_browser_package(&js_root, contract, &modules, None, false).expect("write package");
-
-    let manifest_text =
-        fs::read_to_string(root.join("web/manifest.json")).expect("read web manifest");
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_text).expect("parse web manifest");
-    assert_eq!(manifest["handlers"].as_array().expect("handlers").len(), 0);
-    let static_responses = manifest["static_responses"]
-        .as_array()
-        .expect("static responses");
-    assert!(static_responses.iter().any(|response| {
-        response["method"] == "GET"
-            && response["route"] == "/"
-            && response["module"] == "app.Http"
-            && response["function"] == "home"
-            && response["arity"] == 1
-            && response["status"] == 200
-            && response["content_type"] == "text/plain; charset=utf-8"
-            && response["body"] == "home"
-    }));
-    assert!(static_responses.iter().any(|response| {
-        response["method"] == "HEAD" && response["route"] == "*" && response["body"] == "not found"
-    }));
-    assert_eq!(static_responses.len(), 10);
-    let home = static_responses
-        .iter()
-        .find(|response| response["method"] == "GET" && response["route"] == "/")
-        .expect("home static response");
-    assert_json_source(home, &source_path);
-
-    fs::remove_dir_all(root).expect("cleanup package dir");
-}
-
-/// Verifies grouped constant routes reach the browser package manifest.
-///
-/// Inputs:
-/// - A fake JS build root with one emitted module file.
-/// - A source module whose grouped router handlers return constant
-///   `Response.text` values.
-///
-/// Output:
-/// - `_build/web/manifest.json` containing prefixed static response rows.
-///
-/// Transformation:
-/// - Exercises the browser package writer boundary so grouped route lowering is
-///   proven for the manifest consumed by `terlc serve`, not only the internal
-///   route extractor.
-#[test]
-pub(super) fn write_browser_package_serializes_grouped_static_responses() {
-    let root = temp_dir("package_grouped_static_responses");
-    let js_root = root.join("js");
-    let modules_dir = js_root.join("modules");
-    fs::create_dir_all(&modules_dir).expect("create modules dir");
-    fs::write(modules_dir.join("app.js"), "export {};\n").expect("write js module");
-
-    let source_path = root.join("Http.terl");
-    write_grouped_router_source(&source_path);
-    let modules = vec![module_artifact("app.Http", &source_path)];
-    let contract = js_target_contract(TargetProfile::JsBrowser).expect("browser contract");
-
-    write_browser_package(&js_root, contract, &modules, None, false).expect("write package");
-
-    let manifest_text =
-        fs::read_to_string(root.join("web/manifest.json")).expect("read web manifest");
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_text).expect("parse web manifest");
-    assert_eq!(manifest["handlers"].as_array().expect("handlers").len(), 0);
-    let static_responses = manifest["static_responses"]
-        .as_array()
-        .expect("static responses");
-    assert!(static_responses.iter().any(|response| {
-        response["method"] == "GET" && response["route"] == "/users" && response["body"] == "users"
-    }));
-    assert!(static_responses.iter().any(|response| {
-        response["method"] == "GET"
-            && response["route"] == "/users/:id"
-            && response["body"] == "user"
-    }));
-    assert!(static_responses.iter().any(|response| {
-        response["method"] == "HEAD"
-            && response["route"] == "/users/*"
-            && response["body"] == "missing"
-    }));
-    assert_eq!(static_responses.len(), 9);
-
-    fs::remove_dir_all(root).expect("cleanup package dir");
-}
-
-/// Verifies browser package manifests serialize constant file handlers.
-///
-/// Inputs:
-/// - A fake JS build root with one emitted module file.
-/// - A source module whose handlers return constant `Response.file` values.
-///
-/// Output:
-/// - `_build/web/manifest.json` containing route-backed file response rows.
-///
-/// Transformation:
-/// - Exercises compiler-side file-response lowering so typed routes can stream
-///   package files without invoking VM handlers.
-#[test]
-pub(super) fn write_browser_package_serializes_constant_handlers_as_file_responses() {
-    let root = temp_dir("package_file_responses");
-    let js_root = root.join("js");
-    let modules_dir = js_root.join("modules");
-    fs::create_dir_all(&modules_dir).expect("create modules dir");
-    fs::write(modules_dir.join("app.js"), "export {};\n").expect("write js module");
-
-    let source_path = root.join("Http.terl");
-    write_file_router_source(&source_path);
-    let modules = vec![module_artifact("app.Http", &source_path)];
-    let contract = js_target_contract(TargetProfile::JsBrowser).expect("browser contract");
-
-    write_browser_package(&js_root, contract, &modules, None, false).expect("write package");
-
-    let manifest_text =
-        fs::read_to_string(root.join("web/manifest.json")).expect("read web manifest");
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_text).expect("parse web manifest");
-    assert_eq!(manifest["handlers"].as_array().expect("handlers").len(), 0);
-    assert_eq!(
-        manifest["static_responses"]
-            .as_array()
-            .expect("static responses")
-            .len(),
-        0
+pub(super) fn write_browser_package_preserves_response_handlers_as_source_calls() {
+    type Fixture = (
+        fn(&std::path::Path),
+        &'static [(&'static str, &'static str, &'static str)],
+        usize,
     );
-    let file_responses = manifest["file_responses"]
-        .as_array()
-        .expect("file responses");
-    assert!(file_responses.iter().any(|response| {
-        response["module"] == "app.Http"
-            && response["function"] == "download"
-            && response["arity"] == 1
-            && response["method"] == "GET"
-            && response["route"] == "/download"
-            && response["path"] == "downloads/report.txt"
-            && response["status"] == 200
-            && response["content_type"] == "text/plain; charset=utf-8"
-    }));
-    assert!(file_responses.iter().any(|response| {
-        response["module"] == "app.Http"
-            && response["function"] == "manual"
-            && response["arity"] == 1
-            && response["method"] == "GET"
-            && response["route"] == "/manual"
-            && response["path"] == "downloads/manual.pdf"
-            && response["status"] == 206
-            && response["content_type"] == "application/pdf"
-    }));
-    assert_eq!(file_responses.len(), 2);
-    let download = file_responses
-        .iter()
-        .find(|response| response["method"] == "GET" && response["route"] == "/download")
-        .expect("download file response");
-    assert_json_source(download, &source_path);
-
-    fs::remove_dir_all(root).expect("cleanup package dir");
+    let fixtures: [Fixture; 4] = [
+        (
+            write_router_source,
+            &[("GET", "/", "home"), ("HEAD", "*", "not_found")],
+            10,
+        ),
+        (
+            write_grouped_router_source,
+            &[
+                ("GET", "/users", "users"),
+                ("GET", "/users/:id", "show_user"),
+                ("HEAD", "/users/*", "users_not_found"),
+            ],
+            9,
+        ),
+        (
+            write_file_router_source,
+            &[
+                ("GET", "/download", "download"),
+                ("GET", "/manual", "manual"),
+            ],
+            2,
+        ),
+        (write_redirect_router_source, &[("GET", "/old", "old")], 1),
+    ];
+    for (index, (write_source, expected, count)) in fixtures.into_iter().enumerate() {
+        let root = temp_dir(&format!("package_source_responses_{index}"));
+        let js_root = root.join("js");
+        fs::create_dir_all(js_root.join("modules")).unwrap();
+        fs::write(js_root.join("modules/app.js"), "export {};\n").unwrap();
+        let source_path = root.join("Http.terl");
+        write_source(&source_path);
+        let modules = vec![module_artifact("app.Http", &source_path)];
+        let contract = js_target_contract(TargetProfile::JsBrowser).unwrap();
+        write_browser_package(&js_root, contract, &modules, None, false).unwrap();
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join("web/manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["static_responses"], serde_json::json!([]));
+        assert_eq!(manifest["file_responses"], serde_json::json!([]));
+        let handlers = manifest["handlers"].as_array().unwrap();
+        assert_eq!(handlers.len(), count);
+        for &(method, route, function) in expected {
+            let handler = handlers
+                .iter()
+                .find(|handler| handler["method"] == method && handler["route"] == route)
+                .expect("source handler");
+            assert_eq!(handler["module"], "app.Http");
+            assert_eq!(handler["function"], function);
+            assert_eq!(handler["arity"], 1);
+            assert_json_source(handler, &source_path);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
 }
 
-/// Verifies browser package manifests serialize constant redirects.
-///
-/// Inputs:
-/// - A fake JS build root with one emitted module file.
-/// - A source module whose handler returns `Response.redirect`.
-///
-/// Output:
-/// - `_build/web/manifest.json` containing a static response with `Location`.
-///
-/// Transformation:
-/// - Exercises compiler-side redirect lowering so simple redirects are served
-///   from the manifest without invoking VM handlers.
+/// Recovery remains in executed source, not a compiler-synthesized callback row.
 #[test]
-pub(super) fn write_browser_package_serializes_constant_redirect_as_static_response() {
-    let root = temp_dir("package_static_redirect");
-    let js_root = root.join("js");
-    let modules_dir = js_root.join("modules");
-    fs::create_dir_all(&modules_dir).expect("create modules dir");
-    fs::write(modules_dir.join("app.js"), "export {};\n").expect("write js module");
-
-    let source_path = root.join("Http.terl");
-    write_redirect_router_source(&source_path);
-    let modules = vec![module_artifact("app.Http", &source_path)];
-    let contract = js_target_contract(TargetProfile::JsBrowser).expect("browser contract");
-
-    write_browser_package(&js_root, contract, &modules, None, false).expect("write package");
-
-    let manifest_text =
-        fs::read_to_string(root.join("web/manifest.json")).expect("read web manifest");
-    let manifest: serde_json::Value =
-        serde_json::from_str(&manifest_text).expect("parse web manifest");
-    assert_eq!(manifest["handlers"].as_array().expect("handlers").len(), 0);
-    let static_responses = manifest["static_responses"]
-        .as_array()
-        .expect("static responses");
-    assert_eq!(static_responses.len(), 1);
-    let redirect = &static_responses[0];
-    assert_eq!(redirect["method"], "GET");
-    assert_eq!(redirect["route"], "/old");
-    assert_eq!(redirect["status"], 301);
-    assert_eq!(redirect["content_type"], "text/plain; charset=utf-8");
-    assert_eq!(redirect["body"], "");
-    assert_eq!(redirect["headers"][0]["name"], "Location");
-    assert_eq!(redirect["headers"][0]["value"], "/new");
-
-    fs::remove_dir_all(root).expect("cleanup package dir");
-}
-
-/// Verifies browser package manifests serialize router-level error handlers.
-///
-/// Inputs:
-/// - A fake JS build root with one emitted module file.
-/// - A source module with supported `Router.error` builder calls.
-///
-/// Output:
-/// - `_build/web/manifest.json` containing the error handler row.
-///
-/// Transformation:
-/// - Exercises the browser package writer boundary so error-handler discovery
-///   is proven to affect the actual manifest consumed by `terlc serve`.
-#[test]
-pub(super) fn write_browser_package_serializes_router_error_handler() {
+pub(super) fn write_browser_package_keeps_error_handlers_in_source() {
     let root = temp_dir("package_error_handler");
     let js_root = root.join("js");
     let modules_dir = js_root.join("modules");
@@ -321,10 +248,7 @@ pub(super) fn write_browser_package_serializes_router_error_handler() {
         fs::read_to_string(root.join("web/manifest.json")).expect("read web manifest");
     let manifest: serde_json::Value =
         serde_json::from_str(&manifest_text).expect("parse web manifest");
-    let error_handler = &manifest["error_handler"];
-    assert_eq!(error_handler["module"], "app.Http");
-    assert_eq!(error_handler["function"], "render_error");
-    assert_eq!(error_handler["arity"], 1);
+    assert!(manifest.get("error_handler").is_none());
 
     fs::remove_dir_all(root).expect("cleanup package dir");
 }
@@ -431,147 +355,6 @@ pub(super) fn discover_web_handlers_rejects_wrong_handler_request_type() {
 
     assert!(error.contains("error[web_router]: handler `home`"));
     assert!(error.contains("must accept Request as parameter 1, got `String`"));
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-/// Verifies route extraction rejects missing middleware functions.
-///
-/// Inputs:
-/// - A source module whose router references `require_user` without declaring
-///   it.
-///
-/// Output:
-/// - Stable `error[web_router]` diagnostic.
-///
-/// Transformation:
-/// - Exercises middleware validation before route manifest rows are
-///   serialized.
-#[test]
-pub(super) fn discover_web_handlers_rejects_missing_middleware_function() {
-    let source_path = temp_source_path("missing_middleware");
-    write_invalid_middleware_source(&source_path, "");
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules).expect_err("missing middleware");
-
-    assert!(error.contains("error[web_router]: middleware `require_user`"));
-    assert!(error.contains("is not defined"));
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-/// Verifies route extraction rejects middleware with non-result returns.
-///
-/// Inputs:
-/// - A source module whose router references a `Request -> String` middleware.
-///
-/// Output:
-/// - Stable `error[web_router]` diagnostic.
-///
-/// Transformation:
-/// - Covers the return-type half of middleware signature validation.
-#[test]
-pub(super) fn discover_web_handlers_rejects_wrong_middleware_return_type() {
-    let source_path = temp_source_path("wrong_middleware_return");
-    write_invalid_middleware_source(
-        &source_path,
-        "pub require_user(_request: Request): String ->\n    \"authorized\".\n",
-    );
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules).expect_err("wrong middleware return");
-
-    assert!(error.contains("error[web_router]: middleware `require_user`"));
-    assert!(error.contains("must return MiddlewareResult, got `String`"));
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-/// Verifies route extraction rejects middleware with non-request params.
-///
-/// Inputs:
-/// - A source module whose router references a `String -> MiddlewareResult`
-///   middleware.
-///
-/// Output:
-/// - Stable `error[web_router]` diagnostic.
-///
-/// Transformation:
-/// - Covers the request-parameter half of middleware signature validation.
-#[test]
-pub(super) fn discover_web_handlers_rejects_wrong_middleware_request_type() {
-    let source_path = temp_source_path("wrong_middleware_request");
-    write_invalid_middleware_source(
-        &source_path,
-        "pub require_user(_request: String): MiddlewareResult ->\n    Atom[\"continue\"].\n",
-    );
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules).expect_err("wrong middleware request");
-
-    assert!(error.contains("error[web_router]: middleware `require_user`"));
-    assert!(error.contains("must accept Request, got `String`"));
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-#[test]
-pub(super) fn discover_web_handlers_rejects_missing_response_middleware_function() {
-    let source_path = temp_source_path("missing_response_middleware");
-    write_response_middleware_source(&source_path, "");
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules)
-        .expect_err("missing response middleware should fail");
-
-    assert!(
-        error.contains("error[web_router]: response middleware `decorate`"),
-        "{error}"
-    );
-    assert!(error.contains("is not defined"), "{error}");
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-#[test]
-pub(super) fn discover_web_handlers_rejects_wrong_response_middleware_parameters() {
-    let source_path = temp_source_path("wrong_response_middleware_parameters");
-    write_response_middleware_source(
-        &source_path,
-        "pub decorate(_request: Request): Response ->\n    Response.text(\"wrong\").\n",
-    );
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules)
-        .expect_err("wrong response middleware parameters should fail");
-
-    assert!(
-        error.contains("error[web_router]: response middleware `decorate`"),
-        "{error}"
-    );
-    assert!(
-        error.contains("must accept Request and Response, got arity 1"),
-        "{error}"
-    );
-    fs::remove_file(source_path).expect("cleanup router source");
-}
-
-#[test]
-pub(super) fn discover_web_handlers_rejects_wrong_response_middleware_return_type() {
-    let source_path = temp_source_path("wrong_response_middleware_return");
-    write_response_middleware_source(
-        &source_path,
-        "pub decorate(_request: Request, _response: Response): String ->\n    \"wrong\".\n",
-    );
-    let modules = vec![module_artifact("app.Http", &source_path)];
-
-    let error = discover_web_handlers_from_modules(&modules)
-        .expect_err("wrong response middleware return should fail");
-
-    assert!(
-        error.contains("error[web_router]: response middleware `decorate`"),
-        "{error}"
-    );
-    assert!(
-        error.contains("must return Response, got `String`"),
-        "{error}"
-    );
     fs::remove_file(source_path).expect("cleanup router source");
 }
 

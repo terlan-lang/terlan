@@ -5,7 +5,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::commands::serve::handler::HandlerResponse;
 use crate::runtime::vm::actor::{VmActorReceive, VmActorRuntime};
 use crate::runtime::vm::aot_metadata::AotRouterPlan;
 use crate::runtime::vm::epmd::protocol::Alive2Request;
@@ -175,11 +174,14 @@ fn measure_http_workload(
                                     "multicore HTTP workload parked unexpectedly".to_string()
                                 );
                             };
-                            let response = HandlerResponse::from_vm_response_with_package_root(
+                            let response = crate::commands::serve::handler::decode_response(
                                 &value,
                                 package_root,
                             )?;
-                            if response.status != 200 || response.body.as_bytes() != b"multicore" {
+                            if response.status != 200
+                                || response.body.as_bytes().expect("finite response")
+                                    != b"multicore"
+                            {
                                 return Err("multicore HTTP workload returned an invalid response"
                                     .to_string());
                             }
