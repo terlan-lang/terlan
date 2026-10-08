@@ -72,7 +72,7 @@ scenario(
             File.write_text(
                 path(root, "Cargo.toml"),
                 if {
-                    mode == "tag-version" -> "[workspace.package]\nversion = \"0.0.8\"\n";
+                    mode == "tag-version" or mode == "submit-version" -> "[workspace.package]\nversion = \"0.0.8\"\n";
                     true -> "[workspace.package]\nversion = \"0.0.9\"\n"
                 },
             )
@@ -91,10 +91,12 @@ scenario(
                         "--script-eval",
                         "--",
                         if {
+                            String.starts_with(mode, "submit-") -> "submit";
                             String.starts_with(mode, "tag-") -> "publish-tag";
                             true -> "publish"
                         },
                         "0.0.9",
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                     ],
                 ),
                 60000,
@@ -159,8 +161,8 @@ pub run(vm: String, image: String): Bool ->
             String.append("target/release-control-tests/", Int.to_string(Clock.unix_time_ns())),
         );
     let passed =
-        scenario(root, "ready", true, "publish-prepare\npublish\n", vm, image)
-            and scenario(root, "pending", true, "sleep\npublish-prepare\npublish\n", vm, image)
+        scenario(root, "ready", true, "publish-prepare\npublish-upload\n", vm, image)
+            and scenario(root, "pending", true, "sleep\npublish-prepare\npublish-upload\n", vm, image)
             and scenario(root, "failed", false, "", vm, image)
             and scenario(root, "failed-missing", false, "", vm, image)
             and scenario(root, "cancelled", false, "", vm, image)
@@ -173,7 +175,7 @@ pub run(vm: String, image: String): Bool ->
     root,
     "missing",
     true,
-    "dispatch ci.yml\ndispatch release.yml\npublish-prepare\npublish\n",
+    "dispatch ci.yml\ndispatch release.yml\npublish-prepare\npublish-upload\n",
     vm,
     image,
 )
@@ -188,6 +190,17 @@ pub run(vm: String, image: String): Bool ->
             and scenario(root, "tag-not-main", false, "", vm, image)
             and scenario(root, "tag-dirty", false, "", vm, image)
             and scenario(root, "tag-failed", false, "", vm, image)
+            and scenario(root, "submit-ready", true, "annotate\npush\n", vm, image)
+            and scenario(root, "submit-existing", true, "push\n", vm, image)
+            and scenario(root, "submit-dirty", false, "", vm, image)
+            and scenario(root, "submit-version", false, "", vm, image)
+            and scenario(root, "submit-not-main", false, "", vm, image)
+            and scenario(root, "submit-behind", false, "", vm, image)
+            and scenario(root, "submit-moved", false, "annotate\n", vm, image)
+            and scenario(root, "submit-lightweight", false, "annotate\n", vm, image)
+            and scenario(root, "submit-push-failed", false, "annotate\npush\n", vm, image)
+            and scenario(root, "submit-hosted-failed", false, "annotate\npush\n", vm, image)
+            and scenario(root, "submit-waiting", true, "annotate\npush\nsleep\n", vm, image)
             and scenario(root, "timeout", false, "", vm, image);
     let _removed = Directory.remove_all(root);
     passed.

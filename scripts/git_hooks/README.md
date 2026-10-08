@@ -13,8 +13,9 @@ renamed paths, and the alternate index used by `git commit --only` are supported
 Changes to the real index or HEAD during validation reject the commit. Checks
 that alter tracked snapshot files also fail; fixes must be reviewed and staged.
 
-Every nonempty commit checks Rust formatting, builds the staged compiler and VM,
-and tests the hook policy and snapshot isolation. This requires Git, Bash, the
+Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
+and service runtime, and tests the hook policy and snapshot isolation. The paired
+service runtime is required by executable service-package tests. This requires Git, Bash, the
 pinned Rust toolchain with rustfmt and Clippy, Make, and the compiler's native build dependencies.
 The first run compiles a fresh cache and can take several minutes. Later runs
 reuse it. The Terlan planner selects additional checks:

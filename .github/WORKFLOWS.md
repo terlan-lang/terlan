@@ -7,19 +7,19 @@ deployment contract.
 
 ## Tagged releases
 
-Push an annotated `vMAJOR.MINOR.PATCH` tag on a committed, pushed `main`
-revision to start `publish.yml`. For example:
+Run the publication command from a clean `main` checkout:
 
 ```sh
-git tag -a v0.0.9 -m "Terlan v0.0.9"
-git push origin v0.0.9
+make publish VERSION=0.0.9
 ```
 
-The tag must match `workspace.package.version`. Publication checks the existing
+The command completes local validation, atomically pushes the commit and its
+annotated `vMAJOR.MINOR.PATCH` tag, and waits for publication. The pushed tag
+starts `publish.yml`. It must match `workspace.package.version`. Publication checks the existing
 remote tag and waits for successful Compiler CI and Release validation for its
 exact commit. It then verifies the attested six-platform artifacts, prepares
 proof and runtime evidence, and publishes the release with the existing verified
-uploader. No workstation publication command is required. Main may advance while
+uploader. Main may advance while
 the tagged release is being prepared; the tag and candidate must remain fixed.
 
 The tag workflow never creates or moves tags and never pushes `main`. Failed
@@ -434,13 +434,19 @@ no publication and is not an AOT completion dependency.
 
 ## Publication
 
-Publication starts from a pushed annotated tag after committing the workflow
-and release contents to `main`:
+Run publication from a clean `main` checkout after committing the release contents:
 
 ```sh
-git tag -a v0.0.9 -m "Terlan v0.0.9"
-git push origin v0.0.9
+make publish VERSION=0.0.9
 ```
+
+This entry point runs `publish-local-check`, pins and rechecks the source commit,
+then atomically pushes the commit and annotated tag. The Terlan controller waits
+for the tag workflow to publish; it reports workflow failures without modifying
+existing tags. Local validation failures prevent pushes. Working files must be
+clean; the command never commits, stashes, or resets them. The tag push triggers
+`publish.yml`, which owns artifact preparation and upload. `make release` aliases
+the same command. `make publish-local-check` validates without tagging or pushing.
 
 The preflight rejects tags outside `main` history, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation

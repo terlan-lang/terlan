@@ -418,12 +418,12 @@ fn full_candidate_rehearsal_covers_cold_warm_resume_and_upload_retry() {
     let mut make = fs::read_to_string(&make_path).unwrap();
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let start = source.find("\npublish:\n").unwrap();
+    let start = source.find("\npublish-upload:\n").unwrap();
     let end = start
         + source[start..]
             .find("\npublish-release-from-dist:")
             .unwrap();
-    make.push_str("\n.PHONY: publish\n");
+    make.push_str("\n.PHONY: publish-upload\n");
     make.push_str(&source[start..end]);
     fs::create_dir_all(fixture.0.join("scripts")).unwrap();
     fs::write(
@@ -517,7 +517,7 @@ printf 'promotion\n' >> "$FIXTURE_PUBLISH_LOG"
         let mut command = Command::new("make");
         command
             .current_dir(&fixture.0)
-            .args(["--no-print-directory", "publish"])
+            .args(["--no-print-directory", "publish-upload"])
             .env("FIXTURE_PUBLISH_LOG", log)
             .env("FIXTURE_UPLOAD_FAILED", failed)
             .env_remove("MAKEFLAGS")

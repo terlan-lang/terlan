@@ -312,12 +312,18 @@ inputs.
 
 ### Publication
 
-Push an annotated version tag on the intended, pushed `main` commit:
+From a clean `main` checkout, run:
 
 ```sh
-git tag -a v0.0.9 -m "Terlan v0.0.9"
-git push origin v0.0.9
+make publish VERSION=0.0.9
 ```
+
+The command rejects uncommitted changes, runs local release validation, native
+platform checks, available sanitizers, and publication-controller regressions,
+then rechecks the source. It atomically pushes the validated commit and its
+annotated tag and waits for the public release. Local failures stop before any
+push. It never commits, stashes, or discards working files. `make publish-local-check`
+runs the local checks alone.
 
 The tag version must match `workspace.package.version`. GitHub Actions runs
 `publish.yml`, waits for Compiler CI and Release validation on that exact commit,
@@ -326,9 +332,10 @@ or mismatched evidence stop publication. Retry the workflow on the existing tag
 after an infrastructure failure; it reuses verified preparation and upload
 checkpoints. The tagged commit stays fixed even if `main` advances.
 
-The publication job supplies GitHub authentication and an Ubuntu 24.04 runner
-with Rust, Lean, Node 24/npm, and JDK 21. No workstation publisher or Docker
-container is needed. `make release-status` remains available for inspecting
+Local validation requires the repository's build/test tools, Go for workflow
+lint, and authenticated GitHub CLI for submission. The publication job supplies
+an Ubuntu 24.04 runner with Rust, Lean, Node 24/npm, and JDK 21 for artifact
+preparation and upload. `make release-status` remains available for inspecting
 validation from a clean `main` checkout.
 
 Preparation retains the verified hosted archives while refreshing stale local

@@ -271,13 +271,13 @@ printf 'promotion\n' >> "$PUBLISH_RETRY_LOG"
     );
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let begin = source.find("\npublish:\n").unwrap() + 1;
+    let begin = source.find("\npublish-upload:\n").unwrap() + 1;
     let end = source[begin..]
         .find("\npublish-release-from-dist:")
         .unwrap()
         + begin;
     let mut makefile = String::from("SHELL := /bin/bash\nVERSION := fixture\n");
-    makefile.push_str(".PHONY: publish\n");
+    makefile.push_str(".PHONY: publish-upload\n");
     makefile.push_str(&source[begin..end]);
     fs::write(root.join("Makefile"), makefile).unwrap();
     let log = root.join("operations");
@@ -288,7 +288,7 @@ printf 'promotion\n' >> "$PUBLISH_RETRY_LOG"
         let mut command = Command::new("make");
         command
             .current_dir(&root)
-            .args(["--no-print-directory", "publish"])
+            .args(["--no-print-directory", "publish-upload"])
             .env("PATH", std::env::join_paths(&paths).unwrap())
             .env("PUBLISH_RETRY_LOG", log)
             .env("PUBLISH_RETRY_FAILED", failed)
@@ -332,7 +332,7 @@ fn publication_retry_path_contains_no_preparation_or_refresh_targets() {
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
     let start = source
-        .find("\npublish:\n")
+        .find("\npublish-upload:\n")
         .expect("publish target must exist")
         + 1;
     let end = source[start..]

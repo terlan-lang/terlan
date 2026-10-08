@@ -1,0 +1,142 @@
+/**
+ * Validates source identity, pushes an annotated tag, and observes hosted publication.
+ */
+module release_control.Submit.
+
+import release_control.{Publication, Status, Support, Tag}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{println}.
+import std.io.File.
+import std.time.Clock.
+
+import type std.core.Result.
+
+local_guard(revision: String, version: String): Result[Unit, String] ->
+    let {
+        Ok(source) <- File.read_text("Cargo.toml");
+        true <- Tag.version_matches(source, version);
+        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000)
+    } else {
+        _ -> Err("publication requires the validated, clean main commit and matching version")
+    };
+    if {
+        revision == "" or head != revision or branch != "main" or changes != "" -> Err("validated publication source changed");
+        true -> Ok(Unit)
+    }.
+
+annotate(revision: String, version: String): Result[String, String] ->
+    let tag = String.append("v", version);
+    let reference = String.append("refs/tags/", tag);
+    let {
+        Ok(existing) <- Support.run("git", ["tag", "--list", tag], 30000);
+        Ok(_tagged) <-
+            if {
+                existing == "" -> Support.run(
+                    "git",
+                    ["tag", "--annotate", tag, revision, "--message", String.append("Terlan ", tag)],
+                    30000,
+                );
+                true -> Ok("")
+            };
+        Ok(kind) <- Support.run("git", ["cat-file", "-t", reference], 30000);
+        Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30000);
+        Ok(object) <- Support.run("git", ["rev-parse", reference], 30000);
+        Ok(remote) <-
+            Support.run(
+                "git",
+                ["ls-remote", "origin", reference, String.append(reference, "^{}")],
+                60000,
+            )
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        kind != "tag" or commit != revision -> Err("existing release tag does not match the validated commit");
+        remote != ""
+            and remote != String.concat([object, "\t", reference, "\n", revision, "\t", reference, "^{}"]) -> Err("remote release tag already has a different identity");
+        true -> Ok(object)
+    }.
+
+wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
+    let {
+        Ok(_guarded) <- Tag.guard(revision, version);
+        Ok(publication) <- Publication.observe(revision, version)
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        Support.text(publication, "html_url") != "" -> let _shown = println(String.append("[publish] ", Support.text(publication, "html_url")));
+        Ok(Unit);
+        true -> let {
+            Ok(runs) <-
+                Support.github(
+                    [
+                        "run",
+                        "list",
+                        "--branch",
+                        String.append("v", version),
+                        "--commit",
+                        revision,
+                        "--workflow",
+                        "publish.yml",
+                        "--limit",
+                        "1",
+                        "--json",
+                        "databaseId,headSha,status,conclusion,url",
+                    ],
+                );
+            Ok(workflow) <- Status.workflow(runs, revision, "publish.yml")
+        } else {
+            Err(reason) -> Err(reason)
+        };
+        if {
+            Support.text(workflow, "state") == "failed" -> Err(String.append("tag publication failed: ", Support.text(workflow, "url")));
+            Clock.monotonic_time_ns() >= deadline -> Err("publication is not yet public; inspect the existing tag workflow before retrying");
+            true -> let _shown =
+                println(
+                    String.concat(
+                        [
+                            "[publish] waiting for ",
+                            String.append("v", version),
+                            " ",
+                            Support.text(workflow, "url"),
+                        ],
+                    ),
+                );
+            case Support.run("sleep", ["30"], 35000) {
+                Err(reason) -> Err(reason);
+                Ok(_slept) -> wait(revision, version, deadline)
+            }
+        }
+    }.
+
+/**
+ * Local validation is owned by publish-local before this command can run.
+ */
+pub run(revision: String, version: String, seconds: Int): Result[Unit, String] ->
+    let {
+        Ok(_local) <- local_guard(revision, version);
+        Ok(_authenticated) <- Support.run("gh", ["auth", "status"], 30000);
+        Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60000);
+        Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", "origin/main", revision], 30000);
+        Ok(tag_object) <- annotate(revision, version);
+        Ok(_unchanged) <- local_guard(revision, version);
+        Ok(output) <-
+            Support.run(
+                "git",
+                [
+                    "push",
+                    "--atomic",
+                    "origin",
+                    String.append(revision, ":refs/heads/main"),
+                    String.concat([tag_object, ":refs/tags/v", version]),
+                ],
+                120000,
+            )
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (let _shown = println(output); wait(revision, version, Clock.monotonic_time_ns() + seconds * 1000000000)).

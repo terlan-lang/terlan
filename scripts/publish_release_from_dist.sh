@@ -5,8 +5,8 @@ set -euo pipefail
 #
 # Inputs:
 # - First argument: release version without leading v.
-# - Optional --promote: run publication preflight and tag/push under the same
-#   ownership scope. Without this flag the exact annotated tag must exist.
+# - Optional --promote: run publication preflight under the same
+#   ownership scope. The exact annotated tag must already exist in either mode.
 # - dist/terlc-* artifacts downloaded from and smoke-tested by the exact
 #   successful release-validation workflow.
 # - CHANGELOG.md section matching the version.
@@ -18,7 +18,7 @@ set -euo pipefail
 # - An exact, verified set of uploaded release-candidate assets.
 #
 # Transformation:
-# - Keeps publication local while consuming the native artifacts produced,
+# - Uploads from the tag workflow while consuming the native artifacts produced,
 #   validated, and attested by GitHub Actions for the exact release commit.
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,7 +42,7 @@ fi
 tag="v$version"
 
 # Serialize local publishers across worktrees, then exclude preparation and
-# distribution restoration for the entire preflight/tag/upload interval. Other
+# distribution restoration for the entire preflight/upload interval. Other
 # clones/hosts still require one coordinated publisher; this is not a remote
 # GitHub compare-and-swap or distributed lease.
 regular_lock() {
@@ -104,11 +104,6 @@ if [[ "$mode" == --promote ]]; then
   # a candidate during publication. Borrow fd 9 when a verifier needs its owner.
   export TERLAN_PREPARATION_LOCK_HELD=1
   make --no-print-directory publish-preflight VERSION="$version" </dev/null
-  if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-    git tag --annotate "$tag" --message "Terlan $tag"
-  fi
-  git push origin main
-  git push origin "$tag"
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -132,7 +127,7 @@ read_remote_assets() {
 }
 
 if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-  echo "local tag $tag is missing; run make publish" >&2
+  echo "local tag $tag is missing; publication requires an existing annotated tag" >&2
   exit 1
 fi
 if [[ "$(git cat-file -t "refs/tags/$tag")" != "tag" ]]; then

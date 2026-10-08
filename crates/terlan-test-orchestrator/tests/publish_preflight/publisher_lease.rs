@@ -228,13 +228,13 @@ fn promotion_fixture() -> Fixture {
     fixture.git(&["tag", "-d", "vfixture"]);
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let start = source.find("\npublish:\n").unwrap() + 1;
+    let start = source.find("\npublish-upload:\n").unwrap() + 1;
     let end = start
         + source[start..]
             .find("\npublish-release-from-dist:")
             .unwrap();
     let preflight = r#"
-.PHONY: publish publish-preflight
+.PHONY: publish-upload publish-preflight
 publish-preflight:
 	@printf 'preflight\n' >> "$$PUBLICATION_CALLS"
 	@test "$$TERLAN_PREPARATION_LOCK_HELD" = 1
@@ -269,9 +269,9 @@ fn promote(fixture: &Fixture, mode: &str, dry_run: bool) -> Result<(), Failure> 
     shell.args([
         "-ec",
         if dry_run {
-            "exec make --no-print-directory -n publish VERSION=fixture"
+            "exec make --no-print-directory -n publish-upload VERSION=fixture"
         } else {
-            "exec make --no-print-directory publish VERSION=fixture"
+            "exec make --no-print-directory publish-upload VERSION=fixture"
         },
     ]);
     ProcessControl::new(Duration::from_secs(15)).run(&mut shell, |_| Ok(()))
@@ -328,6 +328,8 @@ fn make_publication_preflight_failure_cannot_tag_or_upload() {
 #[test]
 fn make_publication_keeps_tag_identity_on_retry_and_holds_preflight_leases() {
     let fixture = promotion_fixture();
+    fixture.tag("existing release tag");
+    fixture.git(&["push", "origin", "refs/tags/vfixture"]);
     assert!(promote(&fixture, "failure", false).is_err());
     let tag = remote_tag(&fixture).expect("fixture preflight admitted the tag");
     assert!(promote(&fixture, "failure", false).is_err());
@@ -337,6 +339,21 @@ fn make_publication_keeps_tag_identity_on_retry_and_holds_preflight_leases() {
         "preflight\ngh\nplan\npreflight\ngh\nplan\n"
     );
     assert!(!fixture.root.join("checkout").join(SCRATCH).exists());
+}
+
+#[test]
+fn upload_never_creates_a_missing_release_tag() {
+    let fixture = promotion_fixture();
+    assert!(promote(&fixture, "failure", false).is_err());
+    assert!(remote_tag(&fixture).is_none());
+    assert!(!fixture
+        .root
+        .join("checkout/.git/refs/tags/vfixture")
+        .exists());
+    assert_eq!(
+        fs::read_to_string(fixture.root.join("publisher-calls")).unwrap(),
+        "preflight\ngh\n"
+    );
 }
 
 #[test]

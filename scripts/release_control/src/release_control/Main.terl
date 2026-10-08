@@ -3,7 +3,7 @@
  */
 module release_control.Main.
 
-import release_control.{Acceptance, Fixtures, Status, Support, Tag, Tests, Version}.
+import release_control.{Acceptance, Fixtures, Status, Submit, Support, Tag, Tests, Version}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -222,7 +222,7 @@ publish(document: Json, version: String): Result[Unit, String] ->
                     "verify and upload the prepared candidate",
                     if {
                         argument(0, "") == "publish-tag" -> "publish-tag";
-                        true -> "publish"
+                        true -> "publish-upload"
                     },
                     version,
                 );
@@ -244,6 +244,10 @@ run(command: String, version: String): Result[Unit, String] ->
     Err(reason) -> Err(reason)
 };
 if {
+    command == "submit" -> case wait_seconds() {
+        Ok(seconds) -> Submit.run(argument(2, ""), version, seconds);
+        Err(reason) -> Err(reason)
+    };
     command == "status" -> case Status.collect(revision, version) {
         Err(reason) -> Err(reason);
         Ok(document) ->
@@ -278,7 +282,7 @@ if {
         command == "publish" or command == "publish-tag" -> publish(ready, version);
         true -> Ok(Unit)
     };
-    true -> Err("usage: Release.terls status|wait|publish|publish-tag <version> (or self-test)")
+    true -> Err("usage: Release.terls status|wait|publish|publish-tag|submit <version> [validated revision] (or self-test)")
 }).
 
 /**

@@ -62,11 +62,36 @@ head(): String ->
         false -> revision()
     }.
 
+git_tag(): Bool ->
+    if {
+        arg(3) == "--list" -> show(if { mode() == "submit-existing" -> "v0.0.9"; true -> "" });
+        true -> log("annotate")
+    }.
+
+git_push(): Bool ->
+    let exact = arg(3) == "--atomic" and arg(4) == "origin"
+        and arg(5) == String.append(revision(), ":refs/heads/main")
+        and arg(6) == String.append(revision(), ":refs/tags/v0.0.9");
+    let successful = exact and log("push") and mode() != "submit-push-failed" and write("pushed", "1");
+    if {
+        not successful -> false;
+        mode() == "submit-hosted-failed" or mode() == "submit-waiting" -> true;
+        true -> write("published", "1")
+    }.
+
+submit_remote(): Bool ->
+    let pushed = File.exists("pushed");
+    if {
+        pushed or mode() == "submit-existing" -> show(String.concat([revision(), "\t", arg(4), "\n", revision(), "\t", arg(5)]));
+        true -> show("")
+    }.
+
 git(): Bool ->
     case arg(2) {
         "branch" ->
             show(
                 if {
+                    mode() == "submit-not-main" -> "side";
                     String.starts_with(mode(), "tag-") -> "";
                     true -> "main"
                 },
@@ -74,17 +99,19 @@ git(): Bool ->
         "cat-file" ->
             show(
                 if {
-                    mode() == "tag-lightweight" -> "commit";
+                    mode() == "tag-lightweight" or mode() == "submit-lightweight" -> "commit";
                     true -> "tag"
                 },
             );
         "fetch" -> true;
-        "merge-base" -> mode() != "tag-not-main";
+        "merge-base" -> mode() != "tag-not-main" and mode() != "submit-behind";
+        "tag" -> git_tag();
+        "push" -> git_push();
         "rev-parse" -> show(head());
         "status" ->
             show(
                 if {
-                    mode() == "dirty" or mode() == "tag-dirty" -> " M source.terl";
+                    mode() == "dirty" or mode() == "tag-dirty" or mode() == "submit-dirty" -> " M source.terl";
                     true -> ""
                 },
             );
@@ -92,6 +119,8 @@ git(): Bool ->
             if {
                 mode() == "tag-missing" -> show("");
                 mode() == "tag-moved" -> show("changed tag");
+                mode() == "submit-moved" -> show("changed tag");
+                String.starts_with(mode(), "submit-") and arg(5) != "" -> submit_remote();
                 String.starts_with(mode(), "tag-") and arg(5) != "" -> show(String.concat([revision(), "\t", arg(4), "\n", revision(), "\t", arg(5)]));
                 true -> show(
                     String.concat(
@@ -131,6 +160,7 @@ workflow_row(): Bool ->
     let waiting = compiler and (mode() == "pending" and ticks < 2 or mode() == "timeout" or mode() == "drift");
     let conclusion =
         if {
+            mode() == "submit-hosted-failed" -> "failure";
             compiler
                 and (mode() == "failed" or mode() == "failed-missing" or mode() == "tag-failed") -> "failure";
             compiler and mode() == "cancelled" -> "cancelled";
@@ -221,6 +251,7 @@ api(path: String): Bool ->
 
 github(): Bool ->
     case {arg(2), arg(3)} {
+        {"auth", "status"} -> true;
         {"run", "list"} -> workflow();
         {"run", "view"} ->
             json(Json.object().put("headSha", Json.string(revision())).put("jobs", Json.array()));
@@ -242,13 +273,14 @@ pub entry(): Bool ->
             log("sleep")
                 and if {
     mode() == "drift" -> write("drifted", "1");
+    mode() == "submit-waiting" -> write("published", "1");
     true -> true
 };
         "make" ->
             log(arg(3))
                 and if {
     mode() == "prepare-failed" -> false;
-    arg(3) == "publish" or arg(3) == "publish-tag" -> write("published", "1");
+    arg(3) == "publish-upload" or arg(3) == "publish-tag" -> write("published", "1");
     true -> arg(3) == "publish-prepare"
 };
         _ -> false

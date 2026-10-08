@@ -403,7 +403,7 @@ VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
 HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 
-ifneq ($(filter release release-wait release-tag release-status publish publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
+ifneq ($(filter release release-wait release-tag release-status publish publish-local publish-upload publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
@@ -5400,12 +5400,14 @@ endif
 release-status: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) status "$(VERSION)"
 
-release release-wait: publish-source-preflight
+release: publish
+
+release-wait: publish-source-preflight
 	$(MAKE) --no-print-directory terlan-release-control-bootstrap
 	@test ! -L target && test ! -L target/quality && test ! -L target/quality/release-control.lock
 	@mkdir -p target/quality
 	flock --nonblock target/quality/release-control.lock \
-		$(TERLAN_RELEASE_CONTROL) $(if $(filter release,$@),publish,wait) "$(VERSION)"
+		$(TERLAN_RELEASE_CONTROL) wait "$(VERSION)"
 
 release-tag: publish-source-preflight
 	$(MAKE) --no-print-directory terlan-release-control-bootstrap
@@ -5422,7 +5424,36 @@ release-control-check: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) self-test
 	$(TERLAN_RELEASE_CONTROL) acceptance-test "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
 
-publish:
+.PHONY: publish publish-local publish-local-check publish-upload
+publish: publish-source-preflight
+	@test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }
+	@test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }
+	@set -eu; \
+	case "$${MAKEFLAGS%% *}" in *n*) $(MAKE) --no-print-directory -n publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"; exit ;; esac; \
+	test ! -L target && test ! -L target/quality; \
+	mkdir -p target/quality; \
+	test ! -L target/quality/release-control.lock; \
+	test ! -e target/quality/release-control.lock || test -f target/quality/release-control.lock; \
+	flock --nonblock target/quality/release-control.lock \
+		$(MAKE) --no-print-directory publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"
+
+publish-local: publish-source-preflight
+	@test -n "$(PUBLISH_REVISION)" && test "$$(git rev-parse HEAD)" = "$(PUBLISH_REVISION)"
+	$(MAKE) --no-print-directory publish-local-check
+	$(MAKE) --no-print-directory terlan-release-control-bootstrap
+	$(MAKE) --no-print-directory publish-source-preflight
+	@test "$$(git rev-parse HEAD)" = "$(PUBLISH_REVISION)" || { echo 'validated commit changed' >&2; exit 1; }
+	$(TERLAN_RELEASE_CONTROL) submit "$(VERSION)" "$(PUBLISH_REVISION)"
+
+publish-local-check:
+	TERLAN_TEST_PHASE_TIMEOUT_SECONDS=3600 $(MAKE) --no-print-directory release-candidate-check
+	$(MAKE) --no-print-directory tvm-aot-platform-target-check tvm-aot-thread-sanitizer-check vm-multicore-thread-sanitizer-check release-control-check
+	bash scripts/git_hooks_test.sh
+	bash scripts/publish_command_test.sh "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
+	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/git_hooks/src/git_hooks/PlanTest.terl
+	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
+
+publish-upload:
 	timeout --kill-after=10s 1800s bash scripts/publish_release_from_dist.sh "$(VERSION)" --promote </dev/null
 
 publish-release-from-dist:
