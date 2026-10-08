@@ -435,11 +435,15 @@ fn render_module_test(
 ) -> String {
     let mut output = render_module_header(module, manifest, manifest_path, "test");
     output.push_str(&format!("module {}Test.\n\n", module.module_path));
-    output.push_str(&format!(
-        "import type {}.{{{}}}.\n\n",
-        module.module_path,
-        render_type_name(&module.type_name, &[])
-    ));
+    let type_name = render_type_name(&module.type_name, &[]);
+    if module.module_path.rsplit('.').next() == Some(type_name.as_str()) {
+        output.push_str(&format!("import type {}.\n\n", module.module_path));
+    } else {
+        output.push_str(&format!(
+            "import type {}.{{{type_name}}}.\n\n",
+            module.module_path,
+        ));
+    }
     output.push_str("pub generated_binding_surface_contract(): Bool ->\n    true.\n");
     for member in &module.members {
         output.push('\n');

@@ -355,6 +355,30 @@ pub main(): Int -> 1.
     assert!(!output.contains("import std.collections.Set.{Set}."));
 }
 
+/// Formatting must preserve provider identities in exported callback types.
+#[test]
+pub(super) fn formatter_preserves_selected_type_interface_identity() {
+    let source = r#"
+module callback_types.
+import type std.http.Request.{Request}.
+import type std.http.Response.{Response}.
+pub type Handler = (Request) -> Response.
+pub type Respond = {Atom["respond"], response: Response}.
+pub handle(request: Request, callback: Handler): Response -> callback(request).
+"#;
+    let interface = |text| {
+        let module = crate::terlan_syntax::parse_module_as_syntax_output(text)
+            .expect("parse callback types");
+        crate::terlan_hir::syntax_module_output_to_interface(&module).to_terlan_interface_text()
+    };
+    let expected = interface(source);
+    assert!(expected.contains("std.http.Request.Request"));
+    assert!(expected.contains("std.http.Response.Response"));
+    let formatted = format_source_module(source).expect("format callback types");
+    assert_eq!(interface(&formatted), expected);
+    assert_eq!(format_source_module(&formatted).unwrap(), formatted);
+}
+
 /// Verifies multi-field structs keep explicit field separators.
 ///
 /// Inputs:

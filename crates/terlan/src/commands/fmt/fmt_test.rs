@@ -130,21 +130,9 @@ export add/1.
     assert!(formatted.contains("export add/1."));
 }
 
-/// Verifies `terlc fmt` canonicalizes noisy default-export type imports.
-///
-/// Inputs:
-/// - A source module importing `std.core.Error.Error`, where the final path
-///   segment repeats the imported type name.
-///
-/// Output:
-/// - Formatted source using `import type std.core.Error.`.
-///
-/// Transformation:
-/// - Parses through the formal syntax-output path, formats through the
-///   source formatter, and applies the default-export import shorthand only
-///   when the selected type has no alias.
+/// Explicit type imports retain their provider identity through the CLI.
 #[test]
-fn fmt_collapses_redundant_default_type_import() {
+fn fmt_preserves_explicit_default_type_import() {
     let formatted = parse_source(
         "sample.terl",
         r#"
@@ -155,10 +143,10 @@ import type std.core.Error.Error.
 pub value(error: Error): Error -> error.
 "#,
     )
-    .expect("redundant default type import should format");
+    .expect("explicit default type import should format");
 
-    assert!(formatted.contains("import type std.core.Error."));
-    assert!(!formatted.contains("import type std.core.Error.Error."));
+    assert!(formatted.contains("import type std.core.Error.Error."));
+    assert!(!formatted.contains("import type std.core.Error.\n"));
 }
 
 /// Verifies `terlc fmt` normalizes TypeDoc block marker spacing.

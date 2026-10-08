@@ -505,7 +505,9 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
         fs::read_to_string(out_dir.join("terlan/angular/Ng.terl")).expect("read facade source");
     assert!(facade_source.contains("module terlan.angular.Ng."));
     assert!(facade_source.contains("import type std.js.String.{JsString}."));
-    assert!(facade_source.contains("import type terlan.angular.ng.{"));
+    assert!(facade_source.contains("import type terlan.angular.ng.NgModule.{NgModule}."));
+    assert!(facade_source
+        .contains("import type terlan.angular.ng.TemplateCacheService.{TemplateCacheService}."));
     assert!(facade_source.contains("NgModule"));
     assert!(facade_source.contains("TemplateCacheService"));
     assert!(facade_source.contains("pub angular(): terlan.angular.ng.Angular.Angular ->"));

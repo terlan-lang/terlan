@@ -298,7 +298,9 @@ pub(super) fn is_collapsible_import(import: &ImportDecl) -> bool {
 }
 
 pub(super) fn normalize_default_selected_import(import: &ImportDecl) -> ImportDecl {
-    if import.items.len() != 1 || import.items[0].as_alias.is_some() {
+    // Explicit type selection carries the provider identity into interfaces.
+    // A namespace import is resolver-owned and cannot replace it during fmt.
+    if import.is_type || import.items.len() != 1 || import.items[0].as_alias.is_some() {
         return import.clone();
     }
     let item = &import.items[0];
