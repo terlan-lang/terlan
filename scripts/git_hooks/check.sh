@@ -8,6 +8,8 @@ echo 'pre-commit: build the staged compiler, VM, native worker, and service runt
 cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
+echo 'pre-commit: Terlan formatting'
+make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
 echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh

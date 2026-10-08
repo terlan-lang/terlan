@@ -211,8 +211,10 @@ formatter-pipe-canonicalization-selector-inventory:
 	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::structural_layout::formatter_splits_short_function_body_semicolon_sequences -- --exact
 	$(TERLC_EXACT_TEST) compiler::typeck::expression_test::assignment_templates_and_html::syntax_output_infers_pipe_forward_into_imported_module_member_call -- --exact
 
+TERLAN_FORMAT_COMPILER ?= target/debug/terlc
+
 terlan-format-check:
-	target/debug/terlc fmt --check \
+	$(TERLAN_FORMAT_COMPILER) fmt --check \
 		std \
 		scripts/self_validation \
 		benchmarks \
