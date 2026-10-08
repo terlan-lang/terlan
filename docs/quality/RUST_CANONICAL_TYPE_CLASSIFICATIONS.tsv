@@ -1,4 +1,9 @@
 # candidate_id	category	classification	owner	invariant_rationale
+f093267295d01dd9	equal-shape	canonical-alias	http-callbacks	SSE and WebSocket test aliases both resolve to the shared channel callback state and introduce no independent state representation.
+21a95ec6142c7bb0	same-name	distinct-invariant	http-admission	Proof tool admission retains verified executable identity while HTTP channel admission selects an opened endpoint or a middleware short circuit.
+dfc3502ad08ad284	same-name	boundary-conversion	http-response	Admitted responses retain text or byte allocations before transport projection while Hyper response bodies implement asynchronous frame polling and backpressure.
+6981c1077a636a59	same-name	phase-boundary	http-callbacks	SSE route plans retain immutable callback identities while live callback sessions own mutable stream state and a host invocation adapter.
+b25f32b3dd1f91bf	same-name	phase-boundary	http-callbacks	WebSocket route plans retain immutable callback identities while live callback sessions own connection state and the host invocation adapter.
 2db857c0958bdc41	equal-shape	distinct-invariant	c-abi-bindings	Owned and borrowed array-copy markers deliberately carry different transfer invariants despite their identical zero-data enum shape.
 2c5cb49b330b3866	equal-shape	boundary-conversion	native-bindings	C and C++ parameter directions belong to independently versioned generated metadata schemas and are converted at the binding boundary.
 7366a5661b05f3b9	equal-shape	boundary-conversion	native-bindings	C ABI and C++ native blocking policies describe different generated contracts and remain nominally distinct across their boundary.
