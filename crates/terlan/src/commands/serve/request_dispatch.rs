@@ -753,4 +753,7 @@ mod request_values;
 #[cfg(test)]
 pub(crate) use request_values::handle_vm_stream_http1_request;
 #[cfg(test)]
-pub(super) use request_values::*;
+pub(super) use request_values::{
+    handle_vm_stream_http1_exchange, query_pairs, request_body_text, request_cookie_pairs,
+    request_header_pairs, VmStreamHttp1Exchange,
+};
