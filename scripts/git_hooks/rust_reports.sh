@@ -10,7 +10,7 @@ mkdir -p target/quality
   > target/quality/rust-boundary-ast.json
 "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --cargo-metadata \
   "$PWD/target/quality/rust-cargo-metadata.json" -- cargo --locked
-for check in api-boundary-check dependency-impact-check file-headroom-check; do
+for check in api-boundary-check dependency-impact-check file-headroom-check workspace-policy-check; do
   TERLAN_RUST_QUALITY_ROOT="$PWD" "$CARGO_TARGET_DIR/debug/terlc" run \
     scripts/self_validation/rust_quality/scripts/RustQuality.terls -- "$check"
 done

@@ -31,6 +31,7 @@ authors = ["Terlan contributors"]
 repository = "https://github.com/terlan-lang/terlan"
 
 [workspace.dependencies]
+basic-toml = "0.1.10"
 instant-acme = "0.7"
 mio = "1.2.2"
 socket2 = "0.6.1"

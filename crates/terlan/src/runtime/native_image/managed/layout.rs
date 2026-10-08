@@ -2,6 +2,7 @@
 
 use std::sync::OnceLock;
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::ManagedMemoryError;
@@ -10,9 +11,7 @@ use super::ManagedMemoryError;
 pub const MAX_MANAGED_OBJECT_BYTES: usize = 16 * 1024 * 1024;
 
 /// Stable 128-bit identity of one canonical Terlan type shape.
-#[derive(
-    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
-)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub struct SemanticTypeId([u8; 16]);
 
 impl SemanticTypeId {
