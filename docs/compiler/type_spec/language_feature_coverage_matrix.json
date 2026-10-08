@@ -506,7 +506,7 @@
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::IndexSet.set_at",
-        "crates/terlan/src/compiler/native_ir/collection_intrinsic_specialization.rs::Functionalizes one mutable collection receiver call for the persistent AOT"
+        "crates/terlan/src/compiler/native_ir/collection_intrinsic_specialization/support.rs::Functionalizes one mutable collection receiver call for the persistent AOT"
       ]
     },
     {
