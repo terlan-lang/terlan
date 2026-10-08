@@ -5,7 +5,6 @@ crates/terlan/src/benchmark/http_benchmark_support.rs	implementation	973	900	100
 crates/terlan/src/commands/bind/c_abi_binding_generator/generator/binding_validation.rs	implementation	991	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/bind/c_abi_binding_generator/generator/safe_wrapper_rendering.rs	implementation	957	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/bind/cpp_binding_generator/generator.rs	implementation	908	900	1000	commands-structure	0.0.9
-crates/terlan/src/commands/bind/ts_dom_generator.rs	implementation	967	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/build/project_manifest/parser.rs	implementation	921	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/doc/render.rs	implementation	996	900	1000	commands-structure	0.0.9
 crates/terlan/src/commands/doc/validation.rs	implementation	947	900	1000	commands-structure	0.0.9

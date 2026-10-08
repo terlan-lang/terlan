@@ -1,5 +1,69 @@
 use super::*;
 
+/// Functionalizes one mutable collection receiver call for the persistent AOT
+/// heap while retaining the source-level `Unit` result.
+///
+/// A source binding such as `_result = values.push(value)` mutates `values`
+/// conceptually. The native managed heap instead returns a new persistent
+/// collection. Bind that new value to `values`, then insert a `Unit` binding
+/// for `_result`. Sequence lowering already binds discarded receiver calls
+/// directly to the receiver and therefore needs no extra binding.
+pub(super) fn functionalize_collection_receiver_binding(
+    binding: &mut CoreLetBinding,
+    variables: &HashMap<String, CoreType>,
+) -> Option<CorePattern> {
+    let CoreExpr::MutableReceiverCall {
+        receiver,
+        method,
+        args,
+        ..
+    } = &binding.value
+    else {
+        return None;
+    };
+    let CoreExpr::Var(receiver_name) = receiver.as_ref() else {
+        return None;
+    };
+    let receiver_type = variables.get(receiver_name)?;
+    let arity = args.len() + 1;
+    let is_persistent_mutator = if map_elements(receiver_type).is_some() {
+        matches!(
+            map_receiver_intrinsic(method, arity),
+            Some(
+                CorePrimitiveIntrinsic::MapPut
+                    | CorePrimitiveIntrinsic::MapRemove
+                    | CorePrimitiveIntrinsic::MapClear
+            )
+        )
+    } else if set_element(receiver_type).is_some() {
+        matches!(
+            set_receiver_intrinsic(method, arity),
+            Some(
+                CorePrimitiveIntrinsic::SetAdd
+                    | CorePrimitiveIntrinsic::SetRemove
+                    | CorePrimitiveIntrinsic::SetClear
+            )
+        )
+    } else if list_element(receiver_type).is_some() {
+        matches!(
+            list_receiver_intrinsic(method, arity),
+            Some(CorePrimitiveIntrinsic::ListPush | CorePrimitiveIntrinsic::ListClear)
+        )
+    } else {
+        false
+    };
+    if !is_persistent_mutator {
+        return None;
+    }
+    if matches!(&binding.pattern, CorePattern::Var(name) if name == receiver_name) {
+        return None;
+    }
+    Some(std::mem::replace(
+        &mut binding.pattern,
+        CorePattern::Var(receiver_name.clone()),
+    ))
+}
+
 /// A receiver remains a lexical place until mutation is functionalized. Folding
 /// a bottom read here would lose the binding before a callback is instantiated.
 pub(super) fn specialize_receiver(

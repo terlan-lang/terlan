@@ -271,4 +271,7 @@ mod runtime;
 mod resources;
 
 pub(crate) use commands::*;
-pub(crate) use runtime::*;
+
+#[path = "state/value_projection.rs"]
+mod value_projection;
+pub(crate) use value_projection::get;
