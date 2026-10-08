@@ -64,6 +64,60 @@ SH
 done
 echo 'Publication command regressions passed (10 scenarios).'
 
+# Exercise the hosted tag guard itself, including retries from a newer main.
+# Checkout must use the named tag: the implicit event SHA flattens annotations.
+grep -Fxq '          ref: refs/tags/${{ inputs.tag || github.ref_name }}' "$root/.github/workflows/publish.yml"
+awk '/^      - name: Require an annotated version tag$/ { guard=1; next }
+  guard && /^        run: \|$/ { body=1; next }
+  body && /^          / { sub(/^          /, ""); print; next }
+  body { exit }' "$root/.github/workflows/publish.yml" > "$temporary/tag-guard.sh"
+test -s "$temporary/tag-guard.sh"
+mkdir "$temporary/tag-bin"
+cat > "$temporary/tag-bin/gh" <<'SH'
+#!/bin/sh
+test "$*" = 'auth setup-git --hostname github.com'
+SH
+chmod 700 "$temporary/tag-bin/gh"
+for mode in annotated retry lightweight wrong-head wrong-event outside-main invalid-version; do
+  fixture="$temporary/tag-$mode"
+  git init --quiet --initial-branch=main "$fixture"
+  (
+    cd "$fixture"
+    git config user.name 'Publication test'
+    git config user.email 'publication@example.invalid'
+    git config core.hooksPath /dev/null
+    git config commit.gpgsign false
+    git config tag.gpgsign false
+    git commit --quiet --allow-empty -m Initial
+    initial=$(git rev-parse HEAD)
+    git commit --quiet --allow-empty -m Candidate
+    revision=$(git rev-parse HEAD)
+    git update-ref refs/remotes/origin/main "$revision"
+    export RELEASE_TAG=v0.0.9 GITHUB_EVENT_NAME=push GITHUB_SHA="$revision" GITHUB_ENV="$fixture/environment"
+    if [[ "$mode" == lightweight ]]; then git tag "$RELEASE_TAG";
+    else git tag --annotate "$RELEASE_TAG" --message Release; fi
+    case "$mode" in
+      retry)
+        git commit --quiet --allow-empty -m Workflow
+        git update-ref refs/remotes/origin/main HEAD
+        export GITHUB_EVENT_NAME=workflow_dispatch GITHUB_SHA="$(git rev-parse HEAD)"
+        git checkout --quiet --detach "refs/tags/$RELEASE_TAG"
+        ;;
+      wrong-head) git checkout --quiet --detach "$initial" ;;
+      wrong-event) export GITHUB_SHA="$initial" ;;
+      outside-main) git update-ref refs/remotes/origin/main "$initial" ;;
+      invalid-version) export RELEASE_TAG=v0.0.09 ;;
+    esac
+    status=0
+    PATH="$temporary/tag-bin:$PATH" bash -euo pipefail "$temporary/tag-guard.sh" > "$temporary/tag-$mode.log" 2>&1 || status=$?
+    case "$mode" in
+      annotated|retry) test "$status" = 0; test "$(cat "$GITHUB_ENV")" = VERSION=0.0.9 ;;
+      *) test "$status" != 0; test ! -e "$GITHUB_ENV" ;;
+    esac
+  )
+done
+echo 'Hosted tag guard regressions passed (7 scenarios).'
+
 # With the built controller, also verify exact atomic ref updates using real Git.
 if (( $# == 2 )); then
   vm=$1

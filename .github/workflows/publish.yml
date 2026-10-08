@@ -1,6 +1,12 @@
 name: Publish tagged release
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated release tag to publish
+        required: true
+        type: string
   push:
     tags:
       - "v*"
@@ -9,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -24,13 +30,15 @@ jobs:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
       TERLAN_RELEASE_WAIT_SECONDS: "14400"
       TERLAN_TAG_PUBLICATION: "1"
     steps:
       - name: Checkout the tagged commit
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          # An explicit ref preserves the tag object instead of fetching the event SHA over it.
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -40,6 +48,9 @@ jobs:
           [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
           test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$(git rev-parse HEAD)"
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            test "$(git rev-parse HEAD)" = "$(git rev-parse "$GITHUB_SHA^{commit}")"
+          fi
           git merge-base --is-ancestor HEAD origin/main
           printf 'VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
           gh auth setup-git --hostname github.com
@@ -74,7 +85,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: publication-${{ github.ref_name }}-${{ github.run_attempt }}
+          name: publication-${{ env.RELEASE_TAG }}-${{ github.run_attempt }}
           path: target/quality
           if-no-files-found: ignore
           retention-days: 90
