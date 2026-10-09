@@ -98,7 +98,9 @@ while IFS= read -r lane; do
     release-contract)
       cargo build --locked -p terlan-test-orchestrator
       "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
-      TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/RepositoryValidation.terls -- build-release-contract
+      make --no-print-directory repository-build-release-contract-check \
+        TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+        "TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run scripts/self_validation/RepositoryValidation.terls --"
       ;;
     '') ;;
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;

@@ -1282,11 +1282,11 @@ repository-build-release-contract-check: | terlan-repository-validation-bootstra
 	@rg -q '"duplicate_equivalent_build_count": 0' target/quality/validation-build-plan-report.json
 	@rg -q '"terlc_test_invocation_count":' target/quality/validation-build-plan-report.json
 	@rg -q '"terlc_test_invocation_maximum": 32' target/quality/validation-build-plan-report.json
-	@rg -q '"terlc_build_invocation_maximum": 16' target/quality/validation-build-plan-report.json
+	@rg -q '"terlc_build_invocation_maximum": 17' target/quality/validation-build-plan-report.json
 	@rg -q '"incremental_terlc_build_invocation_count":' target/quality/validation-build-plan-report.json
 	@rg -q '"lifecycle_partial_check_count": 2' target/quality/validation-build-plan-report.json
 	@rg -q '"cargo_invocation_maximum": 8' target/quality/validation-build-plan-report.json
-	@rg -q '"typed_validator_request_maximum": 17' target/quality/validation-build-plan-report.json
+	@rg -q '"typed_validator_request_maximum": 18' target/quality/validation-build-plan-report.json
 	@rg -q '"typed_validator_parallelism_maximum": 2' target/quality/validation-build-plan-report.json
 
 release-boundary-check: repository-build-release-contract-check
