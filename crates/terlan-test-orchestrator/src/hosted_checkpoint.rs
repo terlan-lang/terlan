@@ -12,6 +12,11 @@ use std::path::{Component, Path};
 use std::time::Instant;
 use terlan_process_owner::ProcessControl;
 
+// The distribution includes thousands of generated JS and stdlib files.
+// Bound the complete download manifest separately from small coverage records.
+const MAX_MANIFEST_BYTES: u64 = 4 * 1024 * 1024;
+const MAX_MANIFEST_ENTRIES: usize = 16 * 1024;
+
 /// Reads the selected coverage subjects while excluding download/retention writers.
 /// The immutable in-memory result outlives that lease; it never reopens the cache.
 pub(super) fn admit(
@@ -65,14 +70,7 @@ pub(super) fn admit(
             "hosted checkpoint origin, source or verifier implementation changed",
         ));
     }
-    let bytes = read_hashed_file(
-        &cache.join("verified-files.sha256"),
-        &mut Sha256::new(),
-        1024 * 1024,
-        control,
-        Instant::now(),
-    )?;
-    let manifest = manifest(&bytes)?;
+    let manifest = read_manifest(&cache.join("verified-files.sha256"), control)?;
     let (cached_candidate, cached_digest) = read_document(
         &cache.join("evidence/hosted-candidate-validation.json"),
         1024 * 1024,
@@ -127,6 +125,20 @@ fn digest(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+fn read_manifest(
+    path: &Path,
+    control: ProcessControl<'_>,
+) -> Result<BTreeMap<String, String>, PhaseFailure> {
+    let bytes = read_hashed_file(
+        path,
+        &mut Sha256::new(),
+        MAX_MANIFEST_BYTES,
+        control,
+        Instant::now(),
+    )?;
+    manifest(&bytes)
+}
+
 fn manifest(bytes: &[u8]) -> Result<BTreeMap<String, String>, PhaseFailure> {
     let text = std::str::from_utf8(bytes).map_err(failure)?;
     if !text.ends_with('\n') {
@@ -146,7 +158,7 @@ fn manifest(bytes: &[u8]) -> Result<BTreeMap<String, String>, PhaseFailure> {
             || Path::new(path)
                 .components()
                 .any(|part| !matches!(part, Component::Normal(_)))
-            || result.len() == 4096
+            || result.len() == MAX_MANIFEST_ENTRIES
             || result.insert(path.into(), hash.into()).is_some()
         {
             return Err(failure("invalid or duplicate checkpoint checksum entry"));

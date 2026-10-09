@@ -23,7 +23,7 @@ pub(super) struct Selection {
     pub(super) kind: &'static str,
     /// Named binary/integration target; a library is unique within its package.
     pub(super) target: Option<String>,
-    /// Shared libtest selectors with presentation-only arguments omitted.
+    /// Shared libtest selectors and supported harness options.
     pub(super) selectors: Vec<String>,
 }
 

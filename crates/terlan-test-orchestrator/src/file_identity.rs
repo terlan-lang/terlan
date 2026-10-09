@@ -58,7 +58,11 @@ fn visit_file(
     let mut file = regular_file(path)?;
     let before = file.metadata().map_err(failure)?;
     if before.len() > budget {
-        return Err(failure("input exceeds its byte budget"));
+        return Err(failure(format!(
+            "input exceeds its byte budget: {} has {} bytes, limit {budget}",
+            path.display(),
+            before.len()
+        )));
     }
     if include_metadata {
         field(digest, &before.len().to_le_bytes());

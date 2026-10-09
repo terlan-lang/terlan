@@ -2,6 +2,8 @@ CARGO := cargo --locked
 RUST_TEST := $(CARGO) test
 RELEASE_VERSION ?= $(shell sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
 EXACT_CARGO_TEST := bash scripts/run_exact_cargo_test.sh
+# Requests with explicit execution policy must run, even with hosted coverage.
+POLICY_CARGO_TEST = bash scripts/run_exact_cargo_test.sh
 TERLAN_BOOTSTRAP_COMPILER := target/debug/terlc
 TERLAN_BOOTSTRAP_COMPILER_BUILD := $(TERLAN_BOOTSTRAP_COMPILER) build --incremental
 TERLAN_BOOTSTRAP_VM := target/debug/terlan-vm
@@ -1564,7 +1566,7 @@ lalrpop-grammar-contract-check:
 	target/debug/terlc test scripts/self_validation/LalrpopGrammarContractTest.terl
 
 lalrpop-parser-parity-check: tree-sitter-package-check tree-sitter-cli-check editor-check lalrpop-grammar-contract-check
-	$(RUST_TEST) -p terlan --lib compiler::syntax:: -- --test-threads=1
+	$(POLICY_CARGO_TEST) --locked -p terlan --lib compiler::syntax:: -- --test-threads=1
 
 lean-proof-parser-shape-check: lalrpop-grammar-contract-check
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
@@ -2346,8 +2348,9 @@ tvm-aot-capability-worker-check: tvm-aot-stale-epoch-check | terlan-native-worke
 	fi
 
 .PHONY: tvm-managed-list-profile-benchmark-check
+TERLAN_MANAGED_LIST_PROFILE_RUN = TERLAN_MANAGED_LIST_PROFILE_OUTPUT=$(CURDIR)/target/quality/tvm-managed-list-profile.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib runtime::native_image::managed::lists::managed_list_profile_benchmark_test::managed_list_profiles_emit_stable_benchmark_report -- --exact --nocapture
 tvm-managed-list-profile-benchmark-check:
-	TERLAN_MANAGED_LIST_PROFILE_OUTPUT=$(CURDIR)/target/quality/tvm-managed-list-profile.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib runtime::native_image::managed::lists::managed_list_profile_benchmark_test::managed_list_profiles_emit_stable_benchmark_report -- --exact --nocapture
+	$(TERLAN_MANAGED_LIST_PROFILE_RUN)
 	test -s target/quality/tvm-managed-list-profile.json
 
 .PHONY: tvm-aot-runtime-workload-benchmark-check
@@ -2869,8 +2872,8 @@ tvm-aot-compilation-time-check: tvm-single-image-artifact-check
 	$(RUST_TEST) -p terlan --lib commands::build::source_roots_test
 	$(RUST_TEST) -p terlan --lib commands::build::vm_artifact::checked_cache_test
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::build::build_test::tests::parallel_compilation_test::parallel_frontend_compilation_preserves_one_application_link -- --exact
-	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_timings_report_compile_and_native_artifact_phases -- --exact
-	$(EXACT_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache unchanged_repl_generation_reuses_native_image_without_relinking -- --exact
+	$(POLICY_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache vm_aot_timings_report_compile_and_native_artifact_phases -- --exact
+	$(POLICY_CARGO_TEST) --locked --release -p terlan --test direct_aot_cache unchanged_repl_generation_reuses_native_image_without_relinking -- --exact
 
 tail-recursion-lowering-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::tail_position_test
@@ -5261,10 +5264,14 @@ publish-evidence-refresh: release-version-metadata-check terlan-self-validation-
 .PHONY: publish-evidence-source-prerequisites publish-evidence-covered-gates publish-evidence-staged-inputs
 ifeq ($(TERLAN_RUST_COVERAGE_SCOPE),hosted-source)
 ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
+POLICY_CARGO_TEST = $(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds $(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS) -- bash scripts/run_exact_cargo_test.sh
 publish-evidence-source-prerequisites: vm-multicore-publish-prerequisites $(AOT_RELEASE_LOCAL_GATES) tvm-aot-release-closeout-contract-check
 	$(AOT_RELEASE_CARGO_CHECK)
 
 publish-evidence-covered-gates: release-evidence-compose lean-proof-lanes-check
+# Release-profile measurements execute under their own producer, never debug coverage.
+tvm-managed-list-profile-benchmark-check: TERLAN_MANAGED_LIST_PROFILE_RUN = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMOTION) prepare-managed-list-profile
+tvm-managed-list-profile-benchmark-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
 # The runtime prerequisite owns all three source-only policy reports under one
 # shared preflight. PR/regression recipes retain their exact Rust coverage
 # requests, but their report producers have already succeeded in that graph.
@@ -5372,8 +5379,8 @@ publish-evidence-refresh-plan-check:
 		echo "error[publish.evidence.refresh_plan]: $$cargo_count Cargo invocations exceed the six-invocation budget" >&2; \
 		exit 1; \
 	fi; \
-	if test "$$exact_count" -gt 2; then \
-		echo "error[publish.evidence.refresh_plan]: $$exact_count exact Cargo selectors exceed the two isolated-benchmark budget" >&2; \
+	if test "$$exact_count" -gt 4; then \
+		echo "error[publish.evidence.refresh_plan]: $$exact_count Cargo selectors exceed the managed-list, two release-AOT, and serial-parser budget" >&2; \
 		exit 1; \
 	fi; \
 	if test -n "$$duplicate_cargo"; then \

@@ -52,7 +52,44 @@ fn library_and_integration_requests_preserve_shared_exact_and_skip_semantics() {
 }
 
 #[test]
+fn presentation_flags_preserve_the_requested_test_selection() {
+    let inventory = ["module_layout_a", "module_layout_ab", "unrelated"]
+        .map(str::to_owned)
+        .into_iter()
+        .collect();
+    for (target, presentation) in [vec!["--lib"], vec!["--test", "layout"]]
+        .into_iter()
+        .flat_map(|target| ["--nocapture", "--quiet", "-q"].map(|flag| (target.clone(), flag)))
+    {
+        let mut arguments = vec!["-p", "terlan"];
+        arguments.extend(target);
+        arguments.extend(["module_layout_a", "--", presentation, "--exact"]);
+        let selected = selection(&arguments).unwrap();
+        let selectors = selected
+            .selectors
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            crate::test_inventory::select(&inventory, &selectors).unwrap(),
+            vec![&"module_layout_a".to_owned()]
+        );
+        arguments.extend(["--skip", "module_layout_a"]);
+        let selected = selection(&arguments).unwrap();
+        let selectors = selected
+            .selectors
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        assert!(crate::test_inventory::select(&inventory, &selectors)
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
 fn unsupported_build_policies_cannot_be_silently_covered_by_debug_tests() {
+    assert!(selection(&["-p", "terlan", "--lib", "--", "--test-threads=1"]).is_err());
     for option in [
         "--release",
         "--profile",

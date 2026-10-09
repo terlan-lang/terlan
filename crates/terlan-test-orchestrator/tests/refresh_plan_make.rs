@@ -137,7 +137,8 @@ fn refresh_plan_counts_report_owner_and_rejects_missing_or_repeated_work() {
         (format!("{valid}{owner}"), false),
         (format!("{valid}cargo --locked build -p compiler\n"), false),
         (format!("{valid}cargo --locked build -p extra1\ncargo --locked build -p extra2\ncargo --locked build -p extra3\n"), false),
-        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\n"), false),
+        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\n"), true),
+        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\nrun_exact_cargo_test d\n"), false),
         (format!("{valid}terlan-vm run scripts_TvmAotPlatformMatrix.tvm --script-eval -- tsan-self-test\n"), false),
     ] {
         let root = std::env::temp_dir().join(format!(
@@ -164,7 +165,8 @@ fn refresh_plan_counts_report_owner_and_rejects_missing_or_repeated_work() {
             .unwrap();
         assert_eq!(output.outcome.is_ok(), expected, "{plan}");
         if expected {
-            assert!(String::from_utf8(output.stdout).unwrap().contains("cargo=4 exact-isolated=1 duplicate-builds=0"));
+            let expected_count = plan.matches("run_exact_cargo_test").count() + 1;
+            assert!(String::from_utf8(output.stdout).unwrap().contains(&format!("cargo=4 exact-isolated={expected_count} duplicate-builds=0")));
         }
     }
 }

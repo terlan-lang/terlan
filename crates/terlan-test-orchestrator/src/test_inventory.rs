@@ -193,7 +193,7 @@ pub(super) fn select<'a>(
     let mut args = args.iter();
     while let Some(argument) = args.next() {
         match *argument {
-            "--ignored" => {}
+            "--ignored" | "--nocapture" | "--quiet" | "-q" => {}
             "--exact" => exact = true,
             "--skip" => skipped.push(
                 *args

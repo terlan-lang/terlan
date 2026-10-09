@@ -12,6 +12,9 @@ use terlan_process_owner::ProcessControl;
 #[path = "hosted_release_make/download_scratch.rs"]
 mod download_scratch;
 
+#[path = "hosted_release_make/execution_policy.rs"]
+mod execution_policy;
+
 const GOALS: [&str; 8] = [
     "release-hosted-validation-check",
     "tvm-aot-platform-aggregate-check",
@@ -161,6 +164,71 @@ fn every_hosted_release_leaf_failure_fails_the_aggregate() {
         assert!(!run(&fixture, leaf, true), "lost failure of {leaf}");
         assert!(fixture.0.join("seen").join(leaf).is_dir());
         assert!(!fixture.0.join("passed").join(leaf).exists());
+    }
+}
+
+#[test]
+fn managed_list_publication_uses_a_release_producer_and_propagates_failure() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let target = "tvm-managed-list-profile-benchmark-check";
+    let default = source
+        .lines()
+        .find(|line| line.starts_with("TERLAN_MANAGED_LIST_PROFILE_RUN ="))
+        .unwrap();
+    let hosted_rules = source
+        .lines()
+        .filter(|line| line.starts_with(&format!("{target}: ")))
+        .collect::<Vec<_>>()
+        .join("\n");
+    for hosted in [false, true] {
+        for fail in [false, true] {
+            let fixture = fixture();
+            fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
+            fs::write(
+                fixture.0.join("worker"),
+                r#"#!/bin/sh
+set -eu
+test "$1" = "$EXPECTED_PRODUCER"
+printf '%s\n' "$1" > invoked
+test "$FAIL_PRODUCER" = 0
+printf '{}\n' > target/quality/tvm-managed-list-profile.json
+"#,
+            )
+            .unwrap();
+            fs::write(fixture.0.join("Makefile"), format!(
+                "EXACT_CARGO_TEST := ./worker {}\nTERLAN_PREPARATION_OWNER :=\nTERLAN_RELEASE_PROMOTION := ./worker\n{default}\n{}\n{}\nterlan-release-promotion-bootstrap publish-preparation-lock-directory:\n",
+                if hosted { "coverage-must-not-own-release" } else { "cargo" },
+                rule(&source, target),
+                if hosted { hosted_rules.as_str() } else { "" },
+            )).unwrap();
+            let mut command = Command::new("make");
+            command
+                .current_dir(&fixture.0)
+                .args(["--no-print-directory", target])
+                .env(
+                    "EXPECTED_PRODUCER",
+                    if hosted {
+                        "prepare-managed-list-profile"
+                    } else {
+                        "cargo"
+                    },
+                )
+                .env("FAIL_PRODUCER", if fail { "1" } else { "0" })
+                .env_remove("MAKEFLAGS")
+                .env_remove("MAKEOVERRIDES")
+                .env_remove("MFLAGS");
+            let result = ProcessControl::new(Duration::from_secs(10)).run(&mut command, |_| Ok(()));
+            assert_eq!(result.is_ok(), !fail, "hosted={hosted}, fail={fail}");
+            assert!(fixture.0.join("invoked").is_file());
+            assert_eq!(
+                fixture
+                    .0
+                    .join("target/quality/tvm-managed-list-profile.json")
+                    .is_file(),
+                !fail
+            );
+        }
     }
 }
 
