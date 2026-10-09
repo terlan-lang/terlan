@@ -2612,7 +2612,7 @@ tvm-aot-c-abi-boundary-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::native_image_test::native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::fixtures_and_generation::structured_c_metadata_generates_real_ffi_package -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::structured_cpp_metadata_generates_real_cxx_package -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::ownership_adapters::generated_c_adapter_compiles_and_enforces_public_protocol -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::ownership_adapters::integration::generated_c_adapter_compiles_and_enforces_public_protocol -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::generated_cxx_adapter_compiles_and_enforces_public_protocol -- --exact
 	@rg -q 'PUBLIC_ADAPTER_ABI_VERSION' crates/terlan/src/runtime/native_image/image.rs crates/terlan/src/commands/build/vm_artifact/native_descriptor.rs
 	@rg -q 'cache_identity\(&target\.triple, &target\.calling_convention\)' crates/terlan/src/commands/build/vm_artifact/native_image.rs
