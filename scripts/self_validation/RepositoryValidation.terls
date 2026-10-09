@@ -763,7 +763,8 @@ job_lines(lines: List[String], in_jobs: Bool, scan: JobScan): JobScan ->
                         timeout = false,
                     ),
                 );
-                String.starts_with(line, "    timeout-minutes:") -> job_lines(
+                String.starts_with(line, "    timeout-minutes:")
+                    or String.starts_with(line, "    uses: ./.github/workflows/") -> job_lines(
                     rest,
                     true,
                     JobScan(valid = scan.valid, active = scan.active, timeout = true),
@@ -790,8 +791,12 @@ workflow_contract(files: List[TextFile]): Bool ->
 approved_direct_cargo_script(path: String): Bool ->
     String.ends_with(path, "/scripts/run_exact_cargo_test.sh")
         or String.ends_with(path, "/scripts/run_prebuilt_terlan_binary.sh")
+        or String.ends_with(path, "/scripts/git_hooks/check.sh")
+        or String.ends_with(path, "/scripts/git_hooks/rust_reports.sh")
         or path == "scripts/run_exact_cargo_test.sh"
-        or path == "scripts/run_prebuilt_terlan_binary.sh".
+        or path == "scripts/run_prebuilt_terlan_binary.sh"
+        or path == "scripts/git_hooks/check.sh"
+        or path == "scripts/git_hooks/rust_reports.sh".
 
 @pure
 direct_cargo_line(line: String): Bool ->
@@ -857,6 +862,7 @@ build_release_contract(repository: String): Bool ->
         Some(editor) <- read(repository, "editors/editor.mk");
         Some(release) <- read(repository, ".github/workflows/release.yml");
         Some(ci) <- read(repository, ".github/workflows/ci.yml");
+        Some(source_preflight) <- read(repository, ".github/workflows/source-preflight.yml");
         Some(docs) <- read(repository, ".github/workflows/docs.yml");
         Some(pages) <- read(repository, ".github/workflows/pages.yml");
         Some(security) <- read(repository, ".github/workflows/security.yml");
@@ -956,7 +962,7 @@ if {
     not String.contains(ci, "name: Rust dependency security audit")
         or not String.contains(security, "schedule:") -> failure("build_release.security", "locked dependency audits are incomplete");
     not contains_all(
-    ci,
+    source_preflight,
     [
         "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
         "go-version: \"1.25.0\"",
@@ -1035,6 +1041,12 @@ build_release_process_contract(repository: String): Bool ->
                     "MAKEOVERRIDES",
                     "-u",
                     "MFLAGS",
+                    "-u",
+                    "TERLAN_RUST_COVERAGE_CONTEXT",
+                    "-u",
+                    "TERLAN_RUST_COVERAGE_SCOPE",
+                    "-u",
+                    "TERLAN_CHECK_RELEASE_EVIDENCE",
                     "TERLAN_VALIDATION_BOOTSTRAPPED=0",
                     "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
                     "TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=0",
@@ -1048,7 +1060,17 @@ build_release_process_contract(repository: String): Bool ->
             run_output(
                 repository,
                 "env",
-                ["-u", "MAKEFLAGS", "-u", "MAKEOVERRIDES", "-u", "MFLAGS", "make", "-n", "publish"],
+                [
+                    "-u",
+                    "MAKEFLAGS",
+                    "-u",
+                    "MAKEOVERRIDES",
+                    "-u",
+                    "MFLAGS",
+                    "make",
+                    "-n",
+                    "publish-tag",
+                ],
                 30000,
             );
         Some(tracked) <- run_output(repository, "git", ["ls-files"], 30000)
@@ -1082,7 +1104,7 @@ if {
         ],
     ) -> failure(
         "build_release.publication",
-        "publication must not build, test, download, or refresh evidence",
+        "tag upload must consume prepared evidence without builds, tests, downloads, or refreshes",
     );
     rust_orchestrators != 1 -> failure("build_release.suite", "release plan must own one Rust orchestrator");
     not bootstrap_declarations_hold(plan_text) -> failure(
@@ -1105,7 +1127,14 @@ if {
         "build_release.cargo_budget",
         "release plan exceeds the reviewed eight-invocation Cargo budget",
     );
-    typed_validator_requests > 17 -> failure(
+    count_occurrences(
+    plan_text,
+    "bash scripts/build_typed_validator.sh target/release-control/vm/scripts_Release.tvm ",
+) != 1 -> failure(
+        "build_release.release_control",
+        "release plan must build the tag-publication controller exactly once",
+    );
+    typed_validator_requests > 18 -> failure(
         "build_release.validator_budget",
         "release plan exceeds the typed-validator request budget",
     );
@@ -1117,7 +1146,7 @@ if {
         "build_release.terlc_test_budget",
         "release plan exceeds the Terlan test-process budget",
     );
-    terlc_build_invocations > 16 -> failure(
+    terlc_build_invocations > 17 -> failure(
         "build_release.terlc_build_budget",
         "release plan exceeds the Terlan AOT build-process budget",
     );
@@ -1170,7 +1199,7 @@ write_build_plan_report(
                 "typed_validator_request_count",
                 Json.int(count_occurrences(plan, "bash scripts/build_typed_validator.sh ")),
             )
-            .put("typed_validator_request_maximum", Json.int(17))
+            .put("typed_validator_request_maximum", Json.int(18))
             .put("typed_validator_parallelism", Json.int(validator_parallelism(plan)))
             .put("typed_validator_parallelism_maximum", Json.int(2))
             .put(
@@ -1184,7 +1213,7 @@ write_build_plan_report(
             )
             .put("terlc_toolchain_probe_invocation_count", Json.int(toolchain_probes))
             .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
-            .put("terlc_build_invocation_maximum", Json.int(16))
+            .put("terlc_build_invocation_maximum", Json.int(17))
             .put(
                 "incremental_terlc_build_invocation_count",
                 Json.int(count_occurrences(plan, "target/debug/terlc build --incremental ")),
@@ -1329,10 +1358,19 @@ self_test(): Bool ->
         and not stale_extension("sample.terl")
         and same_set(["a", "b"], ["b", "a"])
         and jobs_have_timeouts("jobs:\n  check:\n    timeout-minutes: 10\n    runs-on: ubuntu\n")
+        and jobs_have_timeouts("jobs:\n  check:\n    uses: ./.github/workflows/source-preflight.yml\n")
+        and not jobs_have_timeouts("jobs:\n  check:\n    runs-on: ubuntu\n")
+        and not jobs_have_timeouts(
+    "jobs:\n  shared:\n    uses: ./.github/workflows/source-preflight.yml\n  check:\n    runs-on: ubuntu\n",
+)
         and script_has_direct_cargo("#!/bin/sh\ncargo test -p terlan\n")
         and script_has_direct_cargo("#!/bin/sh\ncargo --locked build -p terlan\n")
         and not script_has_direct_cargo("#!/bin/sh\n# cargo test is owned elsewhere\necho ready\n")
         and approved_direct_cargo_script("/checkout/scripts/run_exact_cargo_test.sh")
+        and approved_direct_cargo_script("scripts/git_hooks/check.sh")
+        and approved_direct_cargo_script("/checkout/scripts/git_hooks/rust_reports.sh")
+        and not approved_direct_cargo_script("/checkout/scripts/git_hooks/ordinary_check.sh")
+        and not approved_direct_cargo_script("/checkout/scripts/git_hooks/check.sh.backup")
         and not approved_direct_cargo_script("/checkout/scripts/ordinary_check.sh").
 
 entry(): Bool ->

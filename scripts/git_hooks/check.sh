@@ -95,6 +95,11 @@ while IFS= read -r lane; do
     workflow)
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
       ;;
+    release-contract)
+      cargo build --locked -p terlan-test-orchestrator
+      "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
+      TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/RepositoryValidation.terls -- build-release-contract
+      ;;
     '') ;;
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;
   esac

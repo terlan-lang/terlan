@@ -1,14 +1,16 @@
-/** Selects local gates from staged paths, including deleted and renamed inputs. */
+/**
+ * Selects local gates from staged paths, including deleted and renamed inputs.
+ */
 module git_hooks.Plan.
 
-import std.core.String.
 import std.collections.List.
+import std.core.String.
 
 pub affected(paths: List[String], prefix: String, suffix: String): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            (String.starts_with(path, prefix) and String.ends_with(path, suffix))
+            String.starts_with(path, prefix) and String.ends_with(path, suffix)
                 or affected(rest, prefix, suffix)
     }.
 
@@ -24,8 +26,8 @@ general_fixtures(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            (String.starts_with(path, "tests/fixtures/")
-                and not String.starts_with(path, "tests/fixtures/phase_contract/"))
+            String.starts_with(path, "tests/fixtures/")
+    and not String.starts_with(path, "tests/fixtures/phase_contract/")
                 or general_fixtures(rest)
     }.
 
@@ -33,9 +35,9 @@ non_compiler_rust(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            (String.ends_with(path, ".rs")
-                and not String.starts_with(path, "crates/terlan/src/compiler/")
-                and not String.starts_with(path, "tree-sitter-terlan/"))
+            String.ends_with(path, ".rs")
+    and not String.starts_with(path, "crates/terlan/src/compiler/")
+    and not String.starts_with(path, "tree-sitter-terlan/")
                 or non_compiler_rust(rest)
     }.
 
@@ -48,14 +50,13 @@ pub compiler(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            (String.starts_with(path, "crates/terlan/src/compiler/")
-                and not String.starts_with(path, "crates/terlan/src/compiler/syntax/"))
+            String.starts_with(path, "crates/terlan/src/compiler/")
+    and not String.starts_with(path, "crates/terlan/src/compiler/syntax/")
                 or compiler(rest)
     }.
 
 pub phase(paths: List[String]): Bool ->
-    syntax(paths) or compiler(paths)
-        or affected(paths, "tests/fixtures/phase_contract/", "").
+    syntax(paths) or compiler(paths) or affected(paths, "tests/fixtures/phase_contract/", "").
 
 pub editor(paths: List[String]): Bool ->
     syntax(paths) or affected(paths, "editors/", "").
@@ -64,37 +65,54 @@ pub terlan(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            ((String.ends_with(path, ".terl") or String.ends_with(path, ".terls")
-                or String.ends_with(path, ".terli") or String.ends_with(path, "terlan.toml"))
-                and not String.starts_with(path, "tests/fixtures/")
-                and not String.starts_with(path, "docs/grammar/fixtures/"))
+            (String.ends_with(path, ".terl")
+    or String.ends_with(path, ".terls")
+    or String.ends_with(path, ".terli")
+    or String.ends_with(path, "terlan.toml"))
+    and not String.starts_with(path, "tests/fixtures/")
+    and not String.starts_with(path, "docs/grammar/fixtures/")
                 or terlan(rest)
     }.
 
 pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
+pub release_contract(paths: List[String]): Bool ->
+    workflow(paths)
+        or affected(paths, "Makefile", "")
+        or affected(paths, "mk/", "")
+        or affected(paths, "scripts/", ".sh")
+        or affected(paths, "scripts/self_validation/RepositoryValidation.terls", "")
+        or affected(paths, "editors/editor.mk", "")
+        or affected(paths, "rust-toolchain.toml", "").
+
 pub bootstrap(paths: List[String]): Bool ->
     not workspace(paths)
         and (affected(paths, "mk/hermetic-support.mk", "")
-            or affected(paths, "Makefile", "")
-            or affected(paths, "scripts/git_hooks/check.sh", "")).
+    or affected(paths, "Makefile", "")
+    or affected(paths, "scripts/git_hooks/check.sh", "")).
 
 pub clippy(paths: List[String]): Bool ->
-    workspace(paths) or compiler(paths) or syntax(paths)
+    workspace(paths)
+        or compiler(paths)
+        or syntax(paths)
         or affected(paths, "", ".rs")
         or affected(paths, "", "clippy.toml")
         or affected(paths, "", "Makefile")
         or affected(paths, "mk/", "").
 
 pub reports(paths: List[String]): Bool ->
-    clippy(paths) or affected(paths, "docs/quality/", "")
+    clippy(paths)
+        or affected(paths, "docs/quality/", "")
         or affected(paths, "scripts/self_validation/rust_quality/", "")
         or affected(paths, "scripts/git_hooks/rust_reports.sh", "").
 
 pub summaries(paths: List[String]): Bool ->
-    workspace(paths) or compiler(paths) or syntax(paths)
-        or affected(paths, "std/", ".terl") or affected(paths, "std/", ".terli")
+    workspace(paths)
+        or compiler(paths)
+        or syntax(paths)
+        or affected(paths, "std/", ".terl")
+        or affected(paths, "std/", ".terli")
         or affected(paths, "std/summaries/", "")
         or affected(paths, "std/js/manifests/", "")
         or affected(paths, "scripts/self_validation/BuildInterfacesTest.terl", "")
@@ -103,21 +121,55 @@ pub summaries(paths: List[String]): Bool ->
         or affected(paths, "scripts/git_hooks/stdlib_summaries.sh", "").
 
 pub lanes(paths: List[String]): List[String] ->
-    let rust = if {
-        workspace(paths) -> ["workspace"];
-        compiler(paths) -> ["compiler", "phase"];
-        syntax(paths) -> ["syntax", "phase"];
-        phase(paths) -> ["phase"];
-        true -> List.new[String]()
-    };
-    let workflows = if { workflow(paths) -> ["workflow"]; true -> List.new[String]() };
-    let sources = if { terlan(paths) -> ["terlan" | workflows]; true -> workflows };
-    let tooling = if { editor(paths) -> ["editor" | sources]; true -> sources };
-    let summarized_rust = if { summaries(paths) -> ["summaries" | rust]; true -> rust };
-    let reported_rust = if { reports(paths) -> ["rust-reports" | summarized_rust]; true -> summarized_rust };
-    let checked_rust = if { clippy(paths) -> ["clippy" | reported_rust]; true -> reported_rust };
-    let bootstrapped = if { bootstrap(paths) -> ["bootstrap" | checked_rust]; true -> checked_rust };
-    append(["shell" | bootstrapped], tooling).
+    let rust =
+        if {
+            workspace(paths) -> ["workspace"];
+            compiler(paths) -> ["compiler", "phase"];
+            syntax(paths) -> ["syntax", "phase"];
+            phase(paths) -> ["phase"];
+            true -> List.new[String]()
+        };
+    let workflows =
+        if {
+            workflow(paths) -> ["workflow"];
+            true -> List.new[String]()
+        };
+    let sources =
+        if {
+            terlan(paths) -> ["terlan" | workflows];
+            true -> workflows
+        };
+    let tooling =
+        if {
+            editor(paths) -> ["editor" | sources];
+            true -> sources
+        };
+    let summarized_rust =
+        if {
+            summaries(paths) -> ["summaries" | rust];
+            true -> rust
+        };
+    let reported_rust =
+        if {
+            reports(paths) -> ["rust-reports" | summarized_rust];
+            true -> summarized_rust
+        };
+    let checked_rust =
+        if {
+            clippy(paths) -> ["clippy" | reported_rust];
+            true -> reported_rust
+        };
+    let bootstrapped =
+        if {
+            bootstrap(paths) -> ["bootstrap" | checked_rust];
+            true -> checked_rust
+        };
+    let contracted =
+        if {
+            release_contract(paths) -> ["release-contract" | tooling];
+            true -> tooling
+        };
+    append(["shell" | bootstrapped], contracted).
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {

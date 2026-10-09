@@ -411,6 +411,7 @@ endif
 endif
 
 CHECK_GATES := \
+	repository-build-release-contract-check \
 	release-control-check \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
