@@ -77,8 +77,7 @@ pub(super) fn publish_transport_event(
     true
 }
 
-/// Terminates and reaps one child without panicking during cleanup.
-pub(super) fn terminate_child(child: &mut Child) {
-    let _ = child.kill();
-    let _ = child.wait();
+/// Retires the worker's owned processes before joining its pipe readers.
+pub(super) fn terminate_child(child: &mut OwnedChild) {
+    let _ = child.finish();
 }

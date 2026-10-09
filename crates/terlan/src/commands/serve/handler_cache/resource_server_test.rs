@@ -28,21 +28,23 @@ fn source_resource_calls_resume_and_retire_both_serving_owners() {
             module_path!(),
             "::source_resource_calls_resume_and_retire_both_serving_owners"
         );
-        let output = std::process::Command::new(std::env::current_exe().unwrap())
+        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+        command
             .args([
                 "--exact",
                 name.strip_prefix("terlan::").unwrap(),
                 "--nocapture",
             ])
             .env("TERLAN_TEST_AOT_CAPABILITY_PUMP", "1")
-            .env_remove("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES")
-            .output()
-            .unwrap();
+            .env_remove("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES");
+        let output = terlan_process_owner::ProcessControl::new(Duration::from_secs(120))
+            .capture_stdout_result(&mut command, 1_048_576, |_| Ok(()))
+            .expect("resource lifecycle test must complete within its process deadline");
         assert!(
-            output.status.success(),
-            "{}\n{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
+            output.outcome.is_ok(),
+            "{:?}\n{}",
+            output.outcome,
+            String::from_utf8_lossy(&output.stdout)
         );
         assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed; 0 failed"));
         return;

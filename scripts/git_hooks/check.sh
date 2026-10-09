@@ -48,6 +48,7 @@ while IFS= read -r lane; do
     bootstrap)
       if [[ $(uname -s) == Linux ]]; then
         cargo test --locked -p terlan-build-cache --test support_bootstrap_make
+        cargo test --locked -p terlan-test-orchestrator --test hosted_release_make
       else
         echo 'pre-commit: Linux bootstrap integration tests require a Linux host'
       fi

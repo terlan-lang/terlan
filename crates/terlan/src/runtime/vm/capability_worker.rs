@@ -19,11 +19,12 @@ pub(crate) use pool::{
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufReader, Read, Write};
-use std::process::{Child, Stdio};
+use std::process::Stdio;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::task::Waker;
 use std::thread::{self, JoinHandle};
+use terlan_process_owner::OwnedChild;
 
 use crate::runtime::vm::execution_shard_epoch::{VmShardEpochOperation, VmShardOperationKind};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
@@ -392,17 +393,17 @@ impl VmCapabilityWorkerClient {
             .arg(policy.max_requests.to_string())
             .arg("--credit-limit")
             .arg(policy.credit_limit.to_string());
-        let mut child = command.spawn().map_err(|error| {
+        let mut child = OwnedChild::spawn(command).map_err(|error| {
             format!(
                 "failed to start capability worker `{}`: {error}",
                 policy.executable.display()
             )
         })?;
-        let input = child.stdin.take().ok_or_else(|| {
+        let input = child.take_stdin().ok_or_else(|| {
             terminate_child(&mut child);
             "capability worker did not expose stdin".to_string()
         })?;
-        let output = child.stdout.take().ok_or_else(|| {
+        let output = child.take_stdout().ok_or_else(|| {
             terminate_child(&mut child);
             "capability worker did not expose stdout".to_string()
         })?;
@@ -772,7 +773,7 @@ struct VmCapabilityWorkerTransport {
     /// Protocol tasks waiting for any newly published worker event.
     event_wakers: Arc<Mutex<Vec<Waker>>>,
     /// Attached sandboxed child process when this is a production transport.
-    child: Option<Child>,
+    child: Option<OwnedChild>,
     /// Temporary sandbox directory retained for the child lifetime.
     _sandbox_dir: Option<sandbox::VmCapabilityWorkerSandboxDir>,
     /// Request serialization thread.
@@ -788,7 +789,7 @@ impl VmCapabilityWorkerTransport {
         output: impl Read + Send + 'static,
         max_payload_bytes: usize,
         credit_limit: u64,
-        child: Option<Child>,
+        child: Option<OwnedChild>,
         sandbox_dir: Option<sandbox::VmCapabilityWorkerSandboxDir>,
     ) -> Result<Self, String> {
         let queue_limit = credit_limit
@@ -900,7 +901,6 @@ impl Drop for VmCapabilityWorkerTransport {
 
 #[cfg(test)]
 #[path = "capability_worker_test.rs"]
-#[cfg(test)]
 mod capability_worker_test;
 #[path = "capability_worker/transport_io.rs"]
 mod transport_io;

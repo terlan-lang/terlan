@@ -174,9 +174,9 @@ fn repository_report_consumer_requires_the_reviewed_cargo_budget() {
         let report = serde_json::json!({
             "decision":"pass", "duplicate_equivalent_build_count":0,
             "terlc_test_invocation_count":0, "terlc_test_invocation_maximum":32,
-            "terlc_build_invocation_maximum":16, "incremental_terlc_build_invocation_count":0,
+            "terlc_build_invocation_maximum":17, "incremental_terlc_build_invocation_count":0,
             "lifecycle_partial_check_count":2, "cargo_invocation_maximum":maximum,
-            "typed_validator_request_maximum":17, "typed_validator_parallelism_maximum":2,
+            "typed_validator_request_maximum":18, "typed_validator_parallelism_maximum":2,
         });
         fs::write(
             fixture

@@ -8,6 +8,9 @@ use super::*;
 #[cfg(target_os = "linux")]
 #[path = "capability_worker/storage_process_test.rs"]
 mod storage_process_test;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[path = "capability_worker/transport_process_test.rs"]
+mod transport_process_test;
 use crate::runtime::vm::process::{VmProcessSource, VmProcessState};
 use crate::runtime::vm::scheduler::VmSchedulerConfig;
 use crate::runtime::vm::{
@@ -737,9 +740,9 @@ fn capability_worker_sandbox_closes_inherited_descriptor() {
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
-    let mut child = command.spawn().expect("spawn descriptor test wrapper");
-    let input = child.stdin.take().expect("worker stdin");
-    let output = child.stdout.take().expect("worker stdout");
+    let mut child = OwnedChild::spawn(command).expect("spawn descriptor test wrapper");
+    let input = child.take_stdin().expect("worker stdin");
+    let output = child.take_stdout().expect("worker stdout");
     let transport = VmCapabilityWorkerTransport::from_streams(
         input,
         output,
