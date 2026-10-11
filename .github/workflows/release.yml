@@ -251,7 +251,7 @@ jobs:
         uses: ./.github/actions/setup-rust
 
       - name: Download target execution attestations
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           # A failed final-job retry may already have uploaded the matrix
           # artifact. Admit target reports only, never that aggregate output.
@@ -260,19 +260,19 @@ jobs:
           merge-multiple: true
 
       - name: Download ThreadSanitizer evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality
 
       - name: Download hosted multicore ThreadSanitizer evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-vm-multicore-thread-sanitizer
           path: target/quality
 
       - name: Download native release archives
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: release-distribution-*
           path: target/release-distribution
