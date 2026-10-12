@@ -1701,7 +1701,9 @@ proof-readiness-release-mode-check: release-artifacts-closeout-check
 
 .PHONY: release-preparation-proof-check release-preparation-proof-input-check release-preparation-proof-track-check release-preparation-proof-policy-check release-preparation-proof-kernels-check
 release-preparation-proof-kernels-check: | terlan-release-promotion-bootstrap
-	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-kernels-self-test
+	TERLAN_RUST_COVERAGE_CONTEXT=fixture:must-not-reuse \
+		TERLAN_RUST_COVERAGE_SCOPE=hosted-source \
+		timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-kernels-self-test
 
 release-preparation-proof-policy-check: | terlan-release-promotion-bootstrap
 	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-policy-self-test

@@ -76,8 +76,8 @@ Ok(
 )).
 
 /**
- * Coverage endpoint identity is explicit: a different canonical test admission
- * cannot inherit a semantic report that claims the previous suite's ownership.
+ * The clean owner environment executes its runtime oracles locally. It cannot
+ * reuse canonical tests requested under the enclosing Make environment.
  */
 pub prepare(root: String, quality: String, vm: String, image: String): Result[Summary, String] ->
     let {
@@ -88,16 +88,7 @@ pub prepare(root: String, quality: String, vm: String, image: String): Result[Su
         Ok(context) <-
             PreparationContext.capture(
                 root,
-                [
-                    "PATH",
-                    "HOME",
-                    "ELAN_HOME",
-                    "CARGO_HOME",
-                    "RUSTUP_HOME",
-                    "RUSTUP_TOOLCHAIN",
-                    "TERLAN_RUST_COVERAGE_CONTEXT",
-                    "TERLAN_RUST_COVERAGE_SCOPE",
-                ],
+                ["PATH", "HOME", "ELAN_HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
             );
         Ok(size) <- image_size(root, image);
         true <- size > 0;

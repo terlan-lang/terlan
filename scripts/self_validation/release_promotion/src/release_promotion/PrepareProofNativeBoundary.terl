@@ -1,6 +1,6 @@
 /**
  * Owns one complete native-boundary evidence generation. Hosted execution
- * consumes admitted proofs and Rust coverage, never replaying missing tests.
+ * consumes admitted proofs and executes Rust oracles in its clean environment.
  */
 module release_promotion.PrepareProofNativeBoundary.
 
@@ -100,7 +100,7 @@ generation(names: List[String]): Artifact ->
     ).
 
 /**
- * Bind source selection, tool admission, coverage endpoint and exact outputs.
+ * Bind source selection, tool admission, runtime environment and exact outputs.
  */
 pub declare(
     root: String,
@@ -209,7 +209,8 @@ if {
 }).
 
 /**
- * Admit only clean hosted candidates and retain their shared coverage context.
+ * Admit only clean hosted candidates. Runtime oracles execute locally because
+ * the owner environment differs from the enclosing coverage requester.
  */
 pub prepare(root: String, compiler: String): Result[Summary, String] ->
     let {
@@ -220,16 +221,7 @@ pub prepare(root: String, compiler: String): Result[Summary, String] ->
         Ok(context) <-
             PreparationContext.capture(
                 root,
-                [
-                    "PATH",
-                    "HOME",
-                    "ELAN_HOME",
-                    "CARGO_HOME",
-                    "RUSTUP_HOME",
-                    "RUSTUP_TOOLCHAIN",
-                    "TERLAN_RUST_COVERAGE_CONTEXT",
-                    "TERLAN_RUST_COVERAGE_SCOPE",
-                ],
+                ["PATH", "HOME", "ELAN_HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
             )
     } else {
         Err(reason) -> Err(reason);

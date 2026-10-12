@@ -3,6 +3,7 @@
  *
  * The smoke script keeps its standalone output defaults, while publication
  * preparation supplies private output paths through the owner environment.
+ * Runtime oracles execute locally under that clean environment.
  */
 module release_promotion.PrepareProofSmoke.
 
@@ -91,7 +92,7 @@ fixture(root: String): Bool ->
         Ok(_tool) <-
             File.write_text(
                 OwnerStorage.child(root, "target/tools/quality"),
-                "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest \"$3\" = scripts/self_validation/LeanProofSmokeTest.terl\ntest -n \"$TERLAN_BUILD_ACTIVITY_LOG\"\ntest -n \"$TERLAN_PROCESS_ACTIVITY_LOG\"\ncommand -v ld >/dev/null\nprintf 'run\\n' >> calls\nprintf '{\"schema\":\"terlan.lean-proof-smoke.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_OUTPUT\"\nprintf 'smoke_id\\tblocker\\tremediation_plan\\treviewed_by\\n' > \"$TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT\"\nprintf '{\"schema\":\"terlan.lean-proof-smoke-attempt.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_ATTEMPT_OUTPUT\"\necho 'Lean proof smoke passed:'\n",
+                "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest \"$3\" = scripts/self_validation/LeanProofSmokeTest.terl\ntest -n \"$TERLAN_BUILD_ACTIVITY_LOG\"\ntest -n \"$TERLAN_PROCESS_ACTIVITY_LOG\"\ntest -z \"${TERLAN_RUST_COVERAGE_CONTEXT+x}\"\ntest -z \"${TERLAN_RUST_COVERAGE_SCOPE+x}\"\ncommand -v ld >/dev/null\nprintf 'run\\n' >> calls\nprintf '{\"schema\":\"terlan.lean-proof-smoke.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_OUTPUT\"\nprintf 'smoke_id\\tblocker\\tremediation_plan\\treviewed_by\\n' > \"$TERLAN_PROOF_SMOKE_BLOCKERS_OUTPUT\"\nprintf '{\"schema\":\"terlan.lean-proof-smoke-attempt.v1\"}\\n' > \"$TERLAN_PROOF_SMOKE_ATTEMPT_OUTPUT\"\necho 'Lean proof smoke passed:'\n",
             );
         true <- OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/quality"])
     } else {
@@ -125,16 +126,7 @@ pub prepare(root: String, quality: String): Result[Summary, String] ->
         Ok(context) <-
             PreparationContext.capture(
                 root,
-                [
-                    "PATH",
-                    "HOME",
-                    "ELAN_HOME",
-                    "CARGO_HOME",
-                    "RUSTUP_HOME",
-                    "RUSTUP_TOOLCHAIN",
-                    "TERLAN_RUST_COVERAGE_CONTEXT",
-                    "TERLAN_RUST_COVERAGE_SCOPE",
-                ],
+                ["PATH", "HOME", "ELAN_HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
             )
     } else {
         Err(reason) -> Err(reason);
