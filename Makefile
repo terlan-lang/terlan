@@ -1795,6 +1795,7 @@ release-preflight:
 release-check: release-evidence-refresh
 	$(MAKE) --no-print-directory release-preflight RELEASE_VERSION="$(RELEASE_VERSION)"
 
+release-candidate-check: editor-release-contract-check
 release-candidate-check: build-artifact-budget-record
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=0 \
 		$(MAKE) --no-print-directory terlan-quality-tools-bootstrap

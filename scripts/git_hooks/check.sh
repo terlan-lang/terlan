@@ -2,6 +2,8 @@
 # Execute the Terlan-owned plan inside the staged-source validation clone.
 set -euo pipefail
 changes=$1
+echo 'pre-commit: editor release contracts'
+make --no-print-directory editor-release-contract-check
 echo 'pre-commit: Rust formatting'
 cargo fmt --all -- --check
 echo 'pre-commit: build the staged compiler, VM, native worker, and service runtime'

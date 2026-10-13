@@ -266,10 +266,12 @@ function testTreeSitterPackageArchive(archive) {
   const manifest = readJson("tree-sitter-terlan/package.json");
   const fileSet = packageFileSet(archive);
   const grammar = manifest["tree-sitter"][0];
+  const scannerFiles = ["src/scanner.c", "src/sql_identifier_ranges.h", "src/tree_sitter/parser.h"];
   const requiredFiles = [
     "package.json",
     "README.md",
     "grammar.js",
+    ...scannerFiles,
     "queries/highlights.scm",
     "queries/injections.scm",
     "test/corpus/basic.txt"
@@ -283,7 +285,7 @@ function testTreeSitterPackageArchive(archive) {
   assert.ok(grammar["file-types"].includes("terl.html"));
 
   for (const filePath of fileSet) {
-    assert.ok(!filePath.startsWith("src/"), `Tree-sitter package contains generated parser ${filePath}`);
+    assert.ok(!filePath.startsWith("src/") || scannerFiles.includes(filePath), `Tree-sitter package contains generated parser ${filePath}`);
     assert.ok(!filePath.startsWith("bindings/"), `Tree-sitter package contains generated binding ${filePath}`);
     assert.ok(!filePath.endsWith(".tgz"), `Tree-sitter package contains npm archive ${filePath}`);
   }

@@ -14,6 +14,9 @@ TREE_SITTER_DEPENDENCY_STAMP := tree-sitter-terlan/node_modules/.terlan-package-
 .PHONY: editor-help editor-check editor-package-output-directories lsp-outline-check editor-code-action-auto-import-check editor-completion-signature-check editor-runnable-debug-launch-check editor-semantic-token-icon-check editor-diagnostic-parity-check editor-extension-install-update-check vscode-extension-check vscode-extension-core-check vscode-diagnostics-smoke-check vscode-textmate-bridge-check vscode-package-report-check tree-sitter-package-check tree-sitter-package-report-check tree-sitter-cli-check neovim-editor-check emacs-editor-check intellij-editor-check shared-editor-icon-check shared-editor-contract-check editor-debugger-surface-check
 .PHONY: editor-definition-navigation-check
 .PHONY: editor-node-tools-check
+.PHONY: editor-release-contract-check
+
+editor-release-contract-check: editor-node-tools-check editor-debugger-surface-check editor-extension-install-update-check
 
 # Probe execution, not just PATH presence: cached package dependencies can outlive
 # the Node installation or be mounted into an incompatible validation container.

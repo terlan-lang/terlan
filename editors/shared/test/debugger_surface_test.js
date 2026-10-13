@@ -53,7 +53,7 @@ const REQUIRED_CLI_DEBUG_TERMS = Object.freeze([
 ]);
 
 const REQUIRED_IMAGE_DOC_TERMS = Object.freeze([
-  "TVMDBG05",
+  "TVMDBG06",
   ".debug_terlan",
   "__terlan",
   ".tdbg$D",
@@ -142,7 +142,7 @@ function testVmImageDebuggerMetadataContract() {
   );
   assert.ok(imageSource.includes(".debug_terlan"), "ELF images must use the native debug section");
   assert.ok(buildSource.includes("encode_native_debug"), "build path must encode native debug metadata");
-  assert.ok(debugSource.includes("TVMDBG05"), "native debug records must carry a versioned magic");
+  assert.ok(debugSource.includes('const MAGIC: &[u8; 8] = b"TVMDBG06";'), "native debug records must carry the documented versioned magic");
 }
 
 /**

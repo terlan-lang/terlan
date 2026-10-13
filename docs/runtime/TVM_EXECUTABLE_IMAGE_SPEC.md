@@ -238,14 +238,15 @@ information MAY use the platform's native debug representation or a detached,
 checksum-bound debug artifact. Release images SHOULD be strippable without
 changing executable behavior or the TVM ABI.
 
-Compiler builds embed `TVMDBG05` source identities in a non-loaded native debug
+Compiler builds embed `TVMDBG06` source identities in a non-loaded native debug
 section (`.debug_terlan` on ELF, `__terlan` in `__DWARF` on Mach-O,
 `.tdbg$D` on COFF, and `.tdbg` on PE). Records identify only emitted native
 functions and bind module/function/arity to the real compiler input path,
 UTF-8-safe declaration ranges, a SHA-256 digest of the exact compiler input,
 generated/template source origin, compiler-generated continuation identities,
 and exact source-expression ranges for resume entries whose spans survive
-lowering. The section never embeds source text. This section is debugger
+lowering, including continuation capture names in native value order.
+The section never embeds source text. This section is debugger
 metadata, not executable IR or an admission fallback; stripping it cannot
 change the canonical descriptor or runtime code.
 
