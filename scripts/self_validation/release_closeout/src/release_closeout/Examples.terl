@@ -47,7 +47,7 @@ run_template_test(candidate: Candidate): CommandResult ->
             name,
             source(
                 "examples.Template",
-                "template Card from \"card.terl.html\" { name: String }.\n\nrender(name: String): Html ->\n    Card(name = name).\n\n@test\npub installed_example_works(): Bool ->\n    render(\"Terlan\") == render(\"Terlan\").",
+                "import type std.template.Template.Html.\n\ntemplate Card from \"card.terl.html\" { name: String }.\n\nrender(name: String): Html ->\n    Card(name = name).\n\n@test\npub installed_example_works(): Bool ->\n    render(\"Terlan\") == render(\"Terlan\").",
             ),
         );
     let _template = File.write_text(Support.child(directory, "card.terl.html"), "<main>Hello {name}</main>\n");

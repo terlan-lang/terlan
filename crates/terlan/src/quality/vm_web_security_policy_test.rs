@@ -93,7 +93,7 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
         self.write(
             "std/http/native/src/session_store.rs",
             r#"
-.rotate(identity, &mut Resources(&mut self.resources))
+.rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))
 .expire(identity, &mut Resources(&mut self.resources))
 "#,
         )?;
@@ -123,12 +123,16 @@ VM HTTP response exceeded 1 MiB body limit
         self.write(
             "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
             r#"
-RuntimeTlsConfig ProjectServerTlsMode::Manual ProjectServerTlsMode::Internal
+RuntimeTlsConfig
 ProjectServerTlsMode::Auto
 is_acme_http01_token
 "#,
         )?;
         self.write("std/http/native/src/acme.rs", "")?;
+        self.write(
+            "std/http/native/src/tls_runtime.rs",
+            "Mode::Manual Mode::Internal Mode::Auto",
+        )?;
         self.write(
             "crates/terlan/src/commands/serve/serve_test/dynamic_dispatch.rs",
             r#"
@@ -263,9 +267,14 @@ fn vm_web_security_policy_rejects_missing_cookie_anchor() {
 fn vm_web_security_policy_rejects_legacy_session_and_parser_evidence() {
     for (owner, legacy, anchor) in [
         (
+            "std/http/native/src/tls_runtime.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "Mode::Manual",
+        ),
+        (
             "std/http/native/src/session_store.rs",
             "crates/terlan/src/runtime/vm/http_session/state/commands.rs",
-            ".rotate(identity, &mut Resources(&mut self.resources))",
+            ".rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))",
         ),
         (
             "std/http/SessionTest.terl",
@@ -286,6 +295,12 @@ fn vm_web_security_policy_rejects_legacy_session_and_parser_evidence() {
         let error = run_vm_web_security_policy(repo.root()).unwrap_err();
         assert!(error.contains(owner) && error.contains(anchor), "{error}");
     }
+}
+
+#[test]
+fn vm_web_security_policy_accepts_repository_sources() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    run_vm_web_security_policy(&root).expect("repository security policy");
 }
 
 #[test]

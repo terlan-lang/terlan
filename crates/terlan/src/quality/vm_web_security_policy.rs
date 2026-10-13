@@ -53,7 +53,7 @@ const REQUIRED_SESSION_ANCHORS: &[(&str, &[&str])] = &[
     (
         "std/http/native/src/session_store.rs",
         &[
-            ".rotate(identity, &mut Resources(&mut self.resources))",
+            ".rotate(identity, ttl_seconds, &mut Resources(&mut self.resources))",
             ".expire(identity, &mut Resources(&mut self.resources))",
         ],
     ),
@@ -94,8 +94,6 @@ const REQUIRED_HTTP_LIMIT_ANCHORS: &[(&str, &[&str])] = &[
 
 const REQUIRED_TLS_ANCHORS: &[&str] = &[
     "RuntimeTlsConfig",
-    "ProjectServerTlsMode::Manual",
-    "ProjectServerTlsMode::Internal",
     "ProjectServerTlsMode::Auto",
     "https://acme-v02.api.letsencrypt.org/directory",
     "is_acme_http01_token",
@@ -264,6 +262,12 @@ pub fn run_vm_web_security_policy(root: &Path) -> QualityResult<VmWebSecurityPol
         ],
         REQUIRED_TLS_ANCHORS,
         "TLS and ACME policy boundary",
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
+        "std/http/native/src/tls_runtime.rs",
+        &["Mode::Manual", "Mode::Internal", "Mode::Auto"],
+        "package TLS mode policy",
     )?);
     diagnostics.extend(validate_required_terms(
         root,

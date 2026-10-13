@@ -68,12 +68,18 @@ const REQUIRED_SECRET_STD_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_MANIFEST_ANCHORS: &[&str] = &[
-    "ProjectServerTlsBuilder",
-    "validate_non_empty_values",
-    "validate_auto_mode",
-    "validate_manual_mode",
-    "validate_internal_mode",
+    "tls_config::Settings as ProjectServerTlsBuilder",
     "parse_server_profile",
+];
+
+const REQUIRED_TLS_CONFIG_ANCHORS: &[&str] = &[
+    "pub fn validate(self)",
+    "cannot be empty",
+    "domains cannot contain empty entries",
+    "requires mode",
+    "mode auto requires domains",
+    "mode manual requires cert and key",
+    "mode internal cannot set public or manual TLS fields",
     "passphrase_env",
 ];
 
@@ -96,7 +102,7 @@ const REQUIRED_DEPLOY_TLS_SECRET_ANCHORS: &[&str] = &[
 ];
 
 const REQUIRED_RUNTIME_TLS_SECRET_ANCHORS: &[&str] =
-    &["manual_runtime_tls_config", "tls.passphrase_env.is_some()"];
+    &["pub fn manual(", "tls.passphrase_env.is_some()"];
 
 const REQUIRED_VM_RUNTIME_TLS_SECRET_ANCHORS: &[&str] = &[
     "build_manual_server_config",
@@ -306,6 +312,12 @@ pub fn run_vm_web_config_secret_boundary(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
+        "std/http/native/src/tls_config.rs",
+        REQUIRED_TLS_CONFIG_ANCHORS,
+        "package TLS config validation",
+    )?);
+    diagnostics.extend(validate_required_terms(
+        root,
         "crates/terlan/src/commands/build/project_manifest/parser.rs",
         REQUIRED_PROJECT_MANIFEST_ANCHORS,
         "project manifest unknown-key validation",
@@ -324,7 +336,7 @@ pub fn run_vm_web_config_secret_boundary(
     )?);
     diagnostics.extend(validate_required_terms(
         root,
-        "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+        "std/http/native/src/tls_material.rs",
         REQUIRED_RUNTIME_TLS_SECRET_ANCHORS,
         "local TLS secret usage",
     )?);

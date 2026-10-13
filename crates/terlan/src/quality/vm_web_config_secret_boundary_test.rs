@@ -106,8 +106,16 @@ pub trace(secret: Secret): String
         self.write(
             "crates/terlan/src/commands/build/project_manifest/config.rs",
             r#"
-ProjectServerTlsBuilder validate_non_empty_values validate_auto_mode
-validate_manual_mode validate_internal_mode parse_server_profile
+tls_config::Settings as ProjectServerTlsBuilder parse_server_profile
+"#,
+        )?;
+        self.write(
+            "std/http/native/src/tls_config.rs",
+            r#"
+pub fn validate(self)
+cannot be empty domains cannot contain empty entries requires mode
+mode auto requires domains mode manual requires cert and key
+mode internal cannot set public or manual TLS fields
 passphrase_env
 "#,
         )?;
@@ -132,9 +140,9 @@ fn plan_server_tls passphrase_env: tls.passphrase_env.clone()
 "#,
         )?;
         self.write(
-            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "std/http/native/src/tls_material.rs",
             r#"
-manual_runtime_tls_config tls.passphrase_env.is_some()
+pub fn manual( tls.passphrase_env.is_some()
 "#,
         )?;
         self.write(
@@ -283,6 +291,36 @@ fn vm_web_config_secret_boundary_rejects_placeholder_report_entries() {
             .any(|diagnostic| diagnostic.contains("placeholder term")),
         "expected placeholder report entry diagnostic: {diagnostics:?}"
     );
+}
+
+#[test]
+fn vm_web_config_secret_boundary_accepts_repository_sources() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    run_vm_web_config_secret_boundary(&root).expect("repository config and secret policy");
+}
+
+#[test]
+fn vm_web_config_secret_boundary_requires_package_tls_policy() {
+    for (owner, legacy, anchor) in [
+        (
+            "std/http/native/src/tls_config.rs",
+            "crates/terlan/src/commands/build/project_manifest/config.rs",
+            "mode manual requires cert and key",
+        ),
+        (
+            "std/http/native/src/tls_material.rs",
+            "crates/terlan/src/commands/serve/tls/acme_runtime.rs",
+            "tls.passphrase_env.is_some()",
+        ),
+    ] {
+        let repo = TestRepo::new("package-tls-policy").unwrap();
+        repo.write_complete_fixture().unwrap();
+        let source = fs::read_to_string(repo.root().join(owner)).unwrap();
+        repo.write(owner, &source.replace(anchor, "")).unwrap();
+        repo.write(legacy, anchor).unwrap();
+        let error = run_vm_web_config_secret_boundary(repo.root()).unwrap_err();
+        assert!(error.contains(owner) && error.contains(anchor), "{error}");
+    }
 }
 
 #[test]
