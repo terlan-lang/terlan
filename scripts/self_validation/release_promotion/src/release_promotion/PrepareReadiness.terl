@@ -121,7 +121,7 @@ pub declare(root: String, vm: String, image: String, version: String): Result[Li
         Ok(_paths) <- tool_paths(vm, image);
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(inputs) <- CandidateInputs.collect(root, version);
-        true <- inputs.identity.revision == context.revision;
+        true <- revision_matches(inputs.identity.revision, context.revision);
         true <- inputs.identity.target == "x86_64-unknown-linux-gnu";
         true <- inputs.identity.operating_system == "linux";
         Ok(vm_version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment)
@@ -130,6 +130,13 @@ pub declare(root: String, vm: String, image: String, version: String): Result[Li
         _ -> Err("candidate metadata does not match clean Linux publication source")
     };
     Ok(bound_nodes(root, vm, image, context, inputs, vm_version)).
+
+/**
+ * Distribution metadata uses the packager's canonical twelve-character revision.
+ */
+@pure
+pub revision_matches(metadata: String, revision: String): Bool ->
+    metadata == revision or String.length(metadata) == 12 and String.starts_with(revision, metadata).
 
 /**
  * Restores successful matching outputs without replaying their producer.

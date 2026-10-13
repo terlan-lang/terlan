@@ -8,7 +8,7 @@ import release_promotion.{CandidateFiles, CandidateFixture, EvidenceReportsTest,
 import std.collections.List.{length}.
 import std.core.Int.{to_string}.
 import std.core.Result.{Err, Ok}.
-import std.core.String.{append, concat, split}.
+import std.core.String.{append, concat, split, utf8_slice}.
 import std.data.Json.{string}.
 import std.io.{Console, Directory, File}.
 
@@ -56,7 +56,7 @@ bind_revision(root: String): Bool ->
     OwnerStorage.atomic_json(
         root,
         "dist/terlan-release.json",
-        metadata.put("source_revision", string(revision)),
+        metadata.put("source_revision", string(utf8_slice(revision, 0, 12))),
     ).
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
@@ -215,7 +215,8 @@ pub self_test(origin: String, vm: String, image: String): Bool ->
         _ -> fail("temporary fixture directory")
     };
     (let valid =
-    inventory_scale(origin)
+    revision_contract()
+        and inventory_scale(origin)
         and fixture(root, origin, vm, image)
         and cold_and_warm(root)
         and interrupted(root)
@@ -233,3 +234,13 @@ let _printed =
         },
     );
 valid and removed).
+
+@test
+pub revision_contract(): Bool ->
+    let revision = "0123456789abcdef0123456789abcdef01234567";
+    PrepareReadiness.revision_matches(revision, revision)
+        and PrepareReadiness.revision_matches("0123456789ab", revision)
+        and not PrepareReadiness.revision_matches("0123456789ac", revision)
+        and not PrepareReadiness.revision_matches("0123456", revision)
+        and not PrepareReadiness.revision_matches("", revision)
+        and not PrepareReadiness.revision_matches("0123456789abcdef0123456789abcdef01234568", revision).
