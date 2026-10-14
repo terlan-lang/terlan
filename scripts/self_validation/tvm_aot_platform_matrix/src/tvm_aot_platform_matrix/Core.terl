@@ -411,11 +411,7 @@ run_command(
     }.
 
 cargo_validation_target(root: String): String ->
-    let platform = Platform.current();
-    if {
-        platform.operating_system == "windows" -> child(root, "target/self-validation/tvm-aot-platform-cargo");
-        true -> child(root, "target")
-    }.
+    child(root, "target/self-validation/tvm-aot-platform-cargo").
 
 run_native_tests(root: String): Bool ->
     let platform = Platform.current();
