@@ -60,7 +60,7 @@ const REQUIRED_SESSION_ANCHORS: &[(&str, &[&str])] = &[
     (
         "std/http/SessionTest.terl",
         &[
-            "; HttpOnly; SameSite=Lax; Path=/",
+            "; HttpOnly; SameSite=Lax; Secure; Path=/",
             "session_rotation_preserves_values_and_revokes_old_cookie",
             "session_expiration_clears_state_and_threads_deletion_cookie",
         ],

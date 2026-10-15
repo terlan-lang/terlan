@@ -114,7 +114,7 @@ const REQUIRED_RESPONSE_ANCHORS: &[(&str, &[&str])] = &[
     ("std/http/Session.terl", &["set_header_with_options("]),
     (
         "std/http/SessionTest.terl",
-        &["; HttpOnly; SameSite=Lax; Path=/"],
+        &["; HttpOnly; SameSite=Lax; Secure; Path=/"],
     ),
 ];
 

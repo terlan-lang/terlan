@@ -324,7 +324,7 @@ fn scheduler_panic_fails_the_whole_handler_generation_closed() {
     let rejected = runtime
         .begin_request_invocation("app.AsyncHandler", "delayed", vec![request()])
         .expect_err("peer scheduler admission must close after shard failure");
-    assert!(rejected.contains("scheduler_shard_failed"), "{rejected}");
+    assert!(rejected.contains("scheduler_shard_failed"));
     fs::remove_dir_all(root).expect("cleanup native handler fixture");
 }
 
@@ -1451,7 +1451,7 @@ fn persistent_shard_actors_resume_only_from_exact_typed_io_wake() {
         .expect_err("immediate native callback must reject asynchronous I/O");
     assert!(
         error.contains("error[serve.aot.async_io_unavailable]"),
-        "{error}"
+        "expected asynchronous I/O rejection"
     );
     assert_eq!(
         runtime.completed_call_count().expect("final call count"),

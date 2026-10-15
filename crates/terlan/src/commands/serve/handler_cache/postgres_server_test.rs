@@ -156,7 +156,7 @@ async fn invoke(runtime: &AotHandlerRuntime, url: &str) -> Result<ReplValue, Str
         step = match step {
             AotHandlerInvocationStep::Complete(value) => return Ok(value),
             AotHandlerInvocationStep::CapabilityWaiting(wait) => wait.resume_from_worker().await?,
-            other => panic!("unexpected database step: {other:?}"),
+            _ => panic!("unexpected database invocation step"),
         };
     }
 }

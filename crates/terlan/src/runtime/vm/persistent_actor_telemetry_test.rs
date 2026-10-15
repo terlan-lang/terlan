@@ -88,7 +88,7 @@ fn vm_persistent_actor_telemetry_exports_structurally_redacted_support_bundle() 
         "private-recovery-token",
         "database-password=unsafe",
     ] {
-        assert!(!rendered.contains(secret), "support bundle leaked {secret}");
+        assert!(!rendered.contains(secret), "support bundle leaked a secret");
     }
 }
 

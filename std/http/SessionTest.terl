@@ -58,7 +58,7 @@ pub session_current_reads_request_cookie(): Bool ->
     let resumed = current(request_fixture(cookie));
     let valid =
         assert(String.starts_with(cookie, "terlan_session="))
-            and assert(String.contains(cookie, "; HttpOnly; SameSite=Lax; Path=/"))
+            and assert(String.contains(cookie, "; HttpOnly; SameSite=Lax; Secure; Path=/"))
             and assert(value_or_empty(resumed, "user_id") == "ada")
             and assert(session_cookie(resumed) == "");
     (resumed.expire(); valid).

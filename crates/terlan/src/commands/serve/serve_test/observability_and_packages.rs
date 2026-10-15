@@ -703,7 +703,7 @@ pub expire_session(request: Request): Response ->
                 assert_eq!(identity.len(), 43);
                 assert_eq!(
                     header,
-                    format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Path=/")
+                    format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Secure; Path=/")
                 );
                 identity
             };

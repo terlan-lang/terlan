@@ -80,7 +80,7 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
         self.write(
             "std/http/SessionTest.terl",
             "session_get_and_response_threading_execute\n\
-             ; HttpOnly; SameSite=Lax; Path=/\n\
+             ; HttpOnly; SameSite=Lax; Secure; Path=/\n\
              session_rotation_preserves_values_and_revokes_old_cookie\n\
              session_expiration_clears_state_and_threads_deletion_cookie",
         )?;
@@ -279,7 +279,7 @@ fn vm_web_security_policy_rejects_legacy_session_and_parser_evidence() {
         (
             "std/http/SessionTest.terl",
             "crates/terlan/src/runtime/vm/http_session/state.rs",
-            "; HttpOnly; SameSite=Lax; Path=/",
+            "; HttpOnly; SameSite=Lax; Secure; Path=/",
         ),
         (
             "std/http/native/src/http1.rs",

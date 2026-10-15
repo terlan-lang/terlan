@@ -111,7 +111,7 @@ pub expire(session: Session): Response ->
         let expected_cookie = if expired {
             deletion.to_string()
         } else {
-            format!("terlan_session={cookie}; HttpOnly; SameSite=Lax; Path=/")
+            format!("terlan_session={cookie}; HttpOnly; SameSite=Lax; Secure; Path=/")
         };
         if expired || !cookie.is_empty() {
             let AotHandlerInvocationStep::CapabilityWaiting(invocation) = step else {

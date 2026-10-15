@@ -43,7 +43,7 @@ fn memory_transfer_preserves_metrics_decisions_resources_and_shared_identity() {
         .expect("shared identity");
     let resource_id = match resource {
         crate::runtime::vm::resource::VmResourceEvent::Registered { id, .. } => id,
-        event => panic!("expected registration, found {event:?}"),
+        _ => panic!("expected resource registration"),
     };
     let heap_bytes = processes.get(owner).expect("owner").heap_bytes;
     memory

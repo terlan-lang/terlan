@@ -161,7 +161,7 @@ fn login(args: &[String]) -> Result<(), String> {
     }
     let path = args.profile.unwrap_or(profile_path()?);
     save_profile(&path, &profile)?;
-    println!("logged in to {} as {}", profile.endpoint, profile.user_id);
+    println!("logged in to {}", profile.endpoint);
     Ok(())
 }
 

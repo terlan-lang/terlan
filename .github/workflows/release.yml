@@ -133,7 +133,7 @@ jobs:
           test -s "dist/${{ matrix.archive }}.sha256"
 
       - name: Upload native release archive
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-distribution-${{ matrix.target }}
           path: |
@@ -143,7 +143,7 @@ jobs:
           retention-days: 7
 
       - name: Upload target execution attestation
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-tvm-aot-platform-${{ matrix.target }}
           path: target/quality/tvm-aot-platform/${{ matrix.target }}.json
@@ -178,7 +178,7 @@ jobs:
         run: make tvm-aot-thread-sanitizer-check
 
       - name: Upload ThreadSanitizer evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality/tvm-aot-thread-sanitizer-report.json
@@ -212,7 +212,7 @@ jobs:
         run: make vm-multicore-thread-sanitizer-check
 
       - name: Upload multicore ThreadSanitizer evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-vm-multicore-thread-sanitizer
           path: |
@@ -251,7 +251,7 @@ jobs:
         uses: ./.github/actions/setup-rust
 
       - name: Download target execution attestations
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           # A failed final-job retry may already have uploaded the matrix
           # artifact. Admit target reports only, never that aggregate output.
@@ -260,19 +260,19 @@ jobs:
           merge-multiple: true
 
       - name: Download ThreadSanitizer evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-tvm-aot-thread-sanitizer
           path: target/quality
 
       - name: Download hosted multicore ThreadSanitizer evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-vm-multicore-thread-sanitizer
           path: target/quality
 
       - name: Download native release archives
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: release-distribution-*
           path: target/release-distribution
@@ -286,7 +286,7 @@ jobs:
           TERLAN_TVM_PLATFORM_REPORT_ROOT: target/quality/tvm-aot-platform-input
 
       - name: Upload aggregate evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-tvm-aot-platform-matrix
           path: target/quality/tvm-aot-platform-matrix-report.json
@@ -294,7 +294,7 @@ jobs:
           retention-days: 90
 
       - name: Upload hosted release evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-hosted-validation-evidence
           path: |
@@ -311,7 +311,7 @@ jobs:
           subject-path: target/release-distribution/*
 
       - name: Upload validated release distribution
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-distribution
           path: target/release-distribution
@@ -320,7 +320,7 @@ jobs:
 
       - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-validation-failure-${{ github.run_id }}
           path: target/quality

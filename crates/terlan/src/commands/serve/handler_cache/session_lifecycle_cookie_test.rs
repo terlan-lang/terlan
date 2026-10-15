@@ -100,7 +100,7 @@ pub handle(request: Request, rotate: Bool): Response ->
             assert!(!identities.values().any(|previous| previous == &identity));
             assert_eq!(
                 header,
-                format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Path=/")
+                format!("terlan_session={identity}; HttpOnly; SameSite=Lax; Secure; Path=/")
             );
             identities.insert(label, identity);
             expected.push(("Set-Cookie".into(), header.clone()));

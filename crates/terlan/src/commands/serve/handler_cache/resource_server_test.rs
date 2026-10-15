@@ -149,7 +149,7 @@ async fn invoke(runtime: &AotHandlerRuntime) -> Result<ReplValue, String> {
         step = match step {
             AotHandlerInvocationStep::Complete(value) => return Ok(value),
             AotHandlerInvocationStep::CapabilityWaiting(wait) => wait.resume_from_worker().await?,
-            other => panic!("unexpected resource step: {other:?}"),
+            _ => panic!("unexpected resource invocation step"),
         };
     }
 }

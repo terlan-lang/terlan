@@ -116,7 +116,7 @@ SameSite http_only: Bool secure: Bool same_site_to_string
         self.write("std/http/Session.terl", "set_header_with_options(")?;
         self.write(
             "std/http/SessionTest.terl",
-            "; HttpOnly; SameSite=Lax; Path=/",
+            "; HttpOnly; SameSite=Lax; Secure; Path=/",
         )?;
         self.write(
             "std/http/Sse.terl",

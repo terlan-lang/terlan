@@ -133,7 +133,7 @@ fn key_compatibility_rejects_legacy_debug_info_key_options() {
 
         assert_eq!(error, expected);
         for secret in ["secret-one", "secret-two", "secret-three", "an old key"] {
-            assert!(!error.contains(secret), "diagnostic leaked `{secret}`");
+            assert!(!error.contains(secret), "diagnostic leaked a secret");
         }
     }
 }
@@ -156,7 +156,7 @@ fn compiler_transform_retirement_rejects_legacy_options_without_reflection() {
 
         assert_eq!(error, expected);
         for secret in ["secret_parse_plugin", "secret_core_plugin"] {
-            assert!(!error.contains(secret), "diagnostic leaked `{secret}`");
+            assert!(!error.contains(secret), "diagnostic leaked a secret");
         }
     }
 }

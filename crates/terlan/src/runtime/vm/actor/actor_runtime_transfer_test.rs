@@ -100,7 +100,7 @@ fn actor_runtime_transfer_moves_aliases_resources_and_process_handles_together()
         .expect("resource registration")
     {
         VmResourceEvent::Registered { id, .. } => id,
-        event => panic!("expected registration, found {event:?}"),
+        _ => panic!("expected resource registration"),
     };
     let shared = source_runtime
         .memory
