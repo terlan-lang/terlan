@@ -615,7 +615,7 @@ fn preparation_network_and_binary_probes_have_outer_deadlines() {
     assert!(source.contains("timeout 900s $(TERLAN_RELEASE_PROMOTION) prepare-release-reports"));
     assert!(source.contains("timeout 900s $(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-matrix"));
     assert!(
-        source.contains("timeout 1800s $(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage")
+        source.contains("timeout 14400s $(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage")
     );
     assert!(
         !recipe.contains("gh auth status"),

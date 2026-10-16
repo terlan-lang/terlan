@@ -14,6 +14,9 @@ use terlan_process_owner::ProcessControl;
 #[path = "make_coverage/publication_graph.rs"]
 mod publication_graph;
 
+#[path = "make_coverage/runtime_reports.rs"]
+mod runtime_reports;
+
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 #[path = "make_coverage/hosted_source.rs"]
 mod hosted_source;

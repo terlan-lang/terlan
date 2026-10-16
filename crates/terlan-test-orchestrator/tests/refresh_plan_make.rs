@@ -137,8 +137,8 @@ fn refresh_plan_counts_report_owner_and_rejects_missing_or_repeated_work() {
         (format!("{valid}{owner}"), false),
         (format!("{valid}cargo --locked build -p compiler\n"), false),
         (format!("{valid}cargo --locked build -p extra1\ncargo --locked build -p extra2\ncargo --locked build -p extra3\n"), false),
-        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\n"), true),
-        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\nrun_exact_cargo_test d\n"), false),
+        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\nrun_exact_cargo_test d\n"), true),
+        (format!("{valid}run_exact_cargo_test a\nrun_exact_cargo_test b\nrun_exact_cargo_test c\nrun_exact_cargo_test d\nrun_exact_cargo_test e\n"), false),
         (format!("{valid}terlan-vm run scripts_TvmAotPlatformMatrix.tvm --script-eval -- tsan-self-test\n"), false),
     ] {
         let root = std::env::temp_dir().join(format!(

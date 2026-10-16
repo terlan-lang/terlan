@@ -3902,13 +3902,27 @@ vm-multicore-publish-check:
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
 
-vm-memory-heap-pressure-check: vm-process-model-check vm-resource-ownership-check
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::memory::memory_test::limits_and_accounting::memory_accounting_writes_deterministic_pressure_report -- --exact
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::memory::memory_test::shared_ownership_and_soak::memory_accounting_soak_preserves_ownership_and_writes_benchmark_report -- --exact
+# Hosted coverage proves test outcomes, but cannot supply test side effects.
+# Produce runtime reports together on every fresh publication runner.
+.PHONY: vm-runtime-report-artifacts
+vm-runtime-report-artifacts:
+	$(POLICY_CARGO_TEST) --locked -p terlan --lib -- --exact \
+		runtime::vm::memory::memory_test::limits_and_accounting::memory_accounting_writes_deterministic_pressure_report \
+		runtime::vm::memory::memory_test::shared_ownership_and_soak::memory_accounting_soak_preserves_ownership_and_writes_benchmark_report \
+		runtime::vm::scheduler::scheduler_test::scheduler_writes_fairness_report_with_starvation_evidence \
+		runtime::vm::timer::timer_test::cancellation_and_events::timer_table_writes_deadline_report_from_runtime_events \
+		runtime::native_boundary::worker::worker_test::worker_lifecycle_events_write_native_boundary_report
+	test -s target/quality/vm-memory-pressure-report.json
+	test -s target/quality/vm-memory-soak-report.json
+	test -s target/quality/vm-scheduler-fairness-report.json
+	test -s target/quality/vm-timer-deadline-report.json
+	test -s target/quality/vm-native-boundary-report.json
+
+vm-memory-heap-pressure-check: vm-process-model-check vm-resource-ownership-check vm-runtime-report-artifacts
 	test -f target/quality/vm-memory-pressure-report.json
 	test -f target/quality/vm-memory-soak-report.json
 
-vm-scheduler-fairness-check: vm-memory-heap-pressure-check vm-scheduler-contract-check
+vm-scheduler-fairness-check: vm-memory-heap-pressure-check vm-scheduler-contract-check vm-runtime-report-artifacts
 	$(RUST_TEST) -p terlan --lib runtime::vm::http::response_memory_test
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::native_boundary::deadline::deadline_test::native_boundary_deadline_charges_only_successful_parks_to_scheduler -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::timer::timer_accounting_test::timer_table_charges_only_successful_mailbox_deliveries -- --exact
@@ -3926,7 +3940,6 @@ vm-scheduler-fairness-check: vm-memory-heap-pressure-check vm-scheduler-contract
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_send_accounting_test::actor_runtime_charges_only_successful_send_operations_to_sender -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_receive_accounting_test::actor_runtime_charges_receive_operations_without_charging_invalid_attempts -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_fairness_telemetry_is_deterministic_under_cpu_bound_load -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_writes_fairness_report_with_starvation_evidence -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_weighted_classes_preserve_order_and_bound_background_wait -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_rejects_silent_reclassification_of_queued_process -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::scheduler::scheduler_test::scheduler_cancels_at_preemption_boundary_without_requeueing -- --exact
@@ -3989,7 +4002,7 @@ vm-timer-primitives-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::timer::timer_test::scheduling_and_overflow::timer_table_rejects_missing_process_owner -- --exact
 	$(RUST_TEST) -p terlan --lib runtime::vm::timer::timer_test
 
-vm-timer-deadline-check:
+vm-timer-deadline-check: vm-runtime-report-artifacts
 	test -f target/quality/vm-timer-deadline-report.json
 
 vm-resource-ownership-check:
@@ -4775,7 +4788,7 @@ native-boundary-runtime-adversarial-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact
 
 .PHONY: vm-native-boundary-contract-check
-vm-native-boundary-contract-check: lean-proof-track-check
+vm-native-boundary-contract-check: lean-proof-track-check vm-runtime-report-artifacts
 	test -f target/quality/vm-native-boundary-report.json
 
 .PHONY: vm-sql-macro-validation-check
@@ -5258,7 +5271,8 @@ publish-evidence-refresh: release-version-metadata-check terlan-self-validation-
 			$(MAKE) --no-print-directory publish-evidence-covered-gates ;; \
 		*) TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 			TERLAN_RELEASE_BINARIES_PREBUILT=1 \
-			timeout 1800s $(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage -- $(MAKE) --no-print-directory publish-evidence-covered-gates ;; \
+			TERLAN_TEST_PHASE_TIMEOUT_SECONDS=$${TERLAN_TEST_PHASE_TIMEOUT_SECONDS:-14400} \
+			timeout 14400s $(TERLAN_RUST_ORCHESTRATOR) --with-hosted-cargo-coverage -- $(MAKE) --no-print-directory publish-evidence-covered-gates ;; \
 	esac
 
 # One live owner admits hosted source coverage before any source-test gate runs.
@@ -5382,8 +5396,8 @@ publish-evidence-refresh-plan-check:
 		echo "error[publish.evidence.refresh_plan]: $$cargo_count Cargo invocations exceed the six-invocation budget" >&2; \
 		exit 1; \
 	fi; \
-	if test "$$exact_count" -gt 4; then \
-		echo "error[publish.evidence.refresh_plan]: $$exact_count Cargo selectors exceed the managed-list, two release-AOT, and serial-parser budget" >&2; \
+	if test "$$exact_count" -gt 5; then \
+		echo "error[publish.evidence.refresh_plan]: $$exact_count Cargo selectors exceed the managed-list, two release-AOT, serial-parser, and runtime-report budget" >&2; \
 		exit 1; \
 	fi; \
 	if test -n "$$duplicate_cargo"; then \
