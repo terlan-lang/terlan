@@ -26,7 +26,7 @@ pub runtime_resource_limits_are_typed_and_positive(): Bool ->
 @test
 pub runtime_resource_limits_match_enforced_contract(): Bool ->
     let limits = Process.limits();
-    Process.maximum_timeout_ms(limits) == 3600000
+    Process.maximum_timeout_ms(limits) == 21600000
         and Process.maximum_output_bytes(limits) == 16777216
         and Process.maximum_stdin_bytes(limits) == 1048576
         and Process.maximum_batch_commands(limits) == 4096
@@ -90,6 +90,30 @@ pub explicit_overlay_wins_over_inherited_removal(): Bool ->
         );
     case Process.run(request) {
         Ok(output) -> Process.status(output) == 0 and Process.stdout(output) == "overlay";
+        _ -> false
+    }.
+
+@test
+pub publication_budget_accepts_a_completed_child(): Bool ->
+    let request =
+        Process.with_timeout_ms(
+            Process.with_arguments(Process.command("/bin/sh"), ["-c", "printf prepared"]),
+            18000000,
+        );
+    case Process.run(request) {
+        Ok(output) -> Process.status(output) == 0 and Process.stdout(output) == "prepared";
+        _ -> false
+    }.
+
+@test
+pub excessive_timeout_is_rejected_before_spawn(): Bool ->
+    let request =
+        Process.with_timeout_ms(
+            Process.command("/terlan-process-test/nonexistent-program"),
+            Process.maximum_timeout_ms(Process.limits()) + 1,
+        );
+    case Process.run(request) {
+        Err(reason) -> Process.error_code(reason) == InvalidRequest;
         _ -> false
     }.
 

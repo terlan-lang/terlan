@@ -188,7 +188,10 @@ stage(
     case Support.run(
         "make",
         ["--no-print-directory", target, String.append("VERSION=", version)],
-        3600000,
+        if {
+            target == "publish-prepare" -> 18000000;
+            true -> 3600000
+        },
     ) {
         Err(reason) ->
             let _saved =
@@ -282,7 +285,9 @@ if {
         command == "publish" or command == "publish-tag" -> publish(ready, version);
         true -> Ok(Unit)
     };
-    true -> Err("usage: Release.terls status|wait|publish|publish-tag|submit <version> [validated revision] (or self-test)")
+    true -> Err(
+        "usage: Release.terls status|wait|publish|publish-tag|submit <version> [validated revision] (or self-test)",
+    )
 }).
 
 /**

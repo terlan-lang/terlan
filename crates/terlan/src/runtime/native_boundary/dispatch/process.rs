@@ -35,7 +35,8 @@ mod owned_child_test;
 #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod pipe_scope_test;
 
-const MAX_TIMEOUT_MS: u64 = 3_600_000;
+// Trusted build and publication tools may enclose multi-hour validation stages.
+const MAX_TIMEOUT_MS: u64 = 6 * 60 * 60 * 1000;
 const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_STDIN_BYTES: usize = 1024 * 1024;
 const MAX_BATCH_COMMANDS: usize = 4096;
