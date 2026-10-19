@@ -96,14 +96,15 @@ fn compile_and_exercise_generated_c_adapter(out_dir: &Path, target_dir: &Path) -
         &format!(" h:{}:1:1:{handle_type}", STANDARD.encode("foreign-worker")),
     );
     drop(call);
-    writeln!(
-        input,
-        "{}",
-        "x".repeat(
-            crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES + 1
-        )
-    )
-    .expect("write oversized helper frame");
+    // The helper exits as soon as the bound is exceeded. A trailing newline
+    // would race that exit; rejection must not require a frame terminator.
+    input
+        .write_all(&vec![
+            b'x';
+            crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES
+                + 1
+        ])
+        .expect("write oversized helper frame");
     input.flush().expect("flush oversized helper frame");
     let mut oversized = String::new();
     output

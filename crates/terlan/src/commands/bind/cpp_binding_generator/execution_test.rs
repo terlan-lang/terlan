@@ -215,14 +215,15 @@ pub(super) fn assert_generated_helper_replies(helper: &Path) {
         .read_line(&mut chunked_reply)
         .expect("read chunked helper reply");
     assert_eq!(chunked_reply.trim_end(), "reply 24 1 ok_int 60");
-    writeln!(
-        input,
-        "{}",
-        "x".repeat(
-            crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES + 1
-        )
-    )
-    .expect("write oversized helper frame");
+    // The helper exits as soon as the bound is exceeded. A trailing newline
+    // would race that exit; rejection must not require a frame terminator.
+    input
+        .write_all(&vec![
+            b'x';
+            crate::runtime::native_boundary::adapter_abi::PUBLIC_ADAPTER_MAX_FRAME_BYTES
+                + 1
+        ])
+        .expect("write oversized helper frame");
     input.flush().expect("flush oversized helper frame");
     let mut oversized = String::new();
     output

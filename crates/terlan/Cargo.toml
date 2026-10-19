@@ -133,7 +133,7 @@ native-codegen = [
 postgres-libpq = ["dep:terlan-libpq"]
 
 [dependencies]
-ammonia = "~4.1.7"
+ammonia = "~4.1.8"
 axum = { workspace = true, default-features = true, optional = true }
 base64.workspace = true
 basic-toml.workspace = true
