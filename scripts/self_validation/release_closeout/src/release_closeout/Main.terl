@@ -28,6 +28,8 @@ pub entry(): Bool ->
         "security" -> SupplyChain.security(root);
         "support-bundle" -> ReleaseEvidence.support_bundle(root);
         "performance" -> ReleaseEvidence.performance(root);
+        "performance-unavailable-metrics-self-test" ->
+            ReleaseEvidence.performance_unavailable_metrics_self_test(root);
         "adversarial" -> ReleaseEvidence.adversarial(root);
         "mutation" -> ReleaseEvidence.mutation(root);
         "fault" -> ReleaseEvidence.fault(root);

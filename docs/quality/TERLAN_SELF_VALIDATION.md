@@ -163,11 +163,14 @@ replacement, and the Python sources have been deleted.
   repository. The inventory and Make-recipe gates reject source or command
   regressions, and the former Battleship external-VM contract executes through
   the typed direct-AOT path.
-- Controlled Rust timing provenance now uses
-  `std.system.Platform.current_metrics()`. Linux `/proc` and sysfs parsing is a
-  VM implementation detail; validation code receives a typed snapshot and
-  fails closed when affinity, governor, memory, CPU, kernel, or load evidence
-  is unavailable.
+- Host timing provenance uses `std.system.Platform.current_metrics()`.
+  Linux `/proc` and sysfs parsing is a VM implementation detail. Release
+  workload checks record the snapshot's availability and diagnostic message;
+  missing telemetry cannot reject a correct workload or establish comparative
+  performance. Timings remain diagnostic, as required by the Rust code-quality
+  policy. Workload execution, benchmark output, baseline inventory, report
+  writing, and cleanup still fail closed. An installed-candidate regression
+  replays the workloads with unavailable telemetry before the real host run.
 
 ## Capability Dependency Graph
 

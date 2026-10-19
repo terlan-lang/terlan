@@ -13,6 +13,7 @@ import std.data.Json.
 import std.io.Console.println.
 import std.io.{Directory, File}.
 import std.system.Platform.
+import std.system.Platform.{HostMetrics}.
 
 import type release_closeout.Support.{Candidate, CommandResult}.
 import type std.collections.List.
@@ -317,6 +318,9 @@ file_hash(path: String): String ->
  * Runs bounded installed-candidate timings and classifies linked VM/HTTP evidence.
  */
 pub performance(root: String): Bool ->
+    performance_with_metrics(root, Platform.current_metrics()).
+
+performance_with_metrics(root: String, metrics: HostMetrics): Bool ->
     let Some(candidate) <- Support.prepare(root, "performance") else {
         _ -> false
     };
@@ -372,7 +376,6 @@ let benchmark_output =
         "performance/benchmark-result.json",
         ["\"passed\": 1", "\"failed\": 0", "benchmark_samples", "benchmark_p95_nanoseconds"],
     );
-let metrics = Platform.current_metrics();
 let measurements =
     Json.array()
         .push(timing_row("compiler-startup", "synthetic-microbenchmark", 1, startup))
@@ -385,7 +388,7 @@ let commands_ok =
         and Support.all_succeeded(checked)
         and Support.all_succeeded(built)
         and Support.all_succeeded(benchmarked);
-let valid = fixture_ready and commands_ok and benchmark_output and baseline and metrics.available;
+let valid = fixture_ready and commands_ok and benchmark_output and baseline;
 let raw_directory = Support.child(root, "target/quality/release-performance");
 let raw_path = Support.child(raw_directory, "installed-benchmark-result.json");
 let copied =
@@ -414,6 +417,8 @@ let report =
         .put(
             "host",
             Json.object()
+                .put("available", Json.bool(metrics.available))
+                .put("message", Json.string(metrics.message))
                 .put("kernel", Json.string(metrics.kernel))
                 .put("operating_system", Json.string(metrics.operating_system))
                 .put("cpu_model", Json.string(metrics.cpu_model))
@@ -423,6 +428,17 @@ let report =
                 .put("cpu_governor", Json.string(metrics.cpu_governor)),
         )
         .put("measurements", measurements)
+        .put("timing_policy", Json.string("diagnostic-only-not-a-comparative-performance-claim"))
+        .put(
+            "checks",
+            Json.object()
+                .put("fixture", Json.bool(fixture_ready))
+                .put("commands", Json.bool(commands_ok))
+                .put("benchmark_output", Json.bool(benchmark_output))
+                .put("baseline_inventory", Json.bool(baseline))
+                .put("raw_output_copy", Json.bool(copied))
+                .put("cleanup", Json.bool(cleaned)),
+        )
         .put("baseline_sha256", Json.string(file_hash(baseline_path)))
         .put("regressions", Json.array())
         .put("accepted_regressions", Json.array())
@@ -438,8 +454,48 @@ let written = Support.write_report(root, "release-performance-baseline-report.js
 if {
     passed and written -> let _printed = println("release performance baseline passed");
     true;
-    true -> false
+    true -> Support.fail(
+        "performance",
+        "installed workload, benchmark output, baseline, report, or cleanup failed",
+    )
 }).
+
+/**
+ * Replays real installed workloads without host telemetry, as on virtual runners.
+ * Missing telemetry must remain explicit and cannot replace workload correctness.
+ */
+pub performance_unavailable_metrics_self_test(root: String): Bool ->
+    let metrics =
+        HostMetrics(
+            available = false,
+            message = "host metrics unavailable in regression fixture",
+            kernel = "",
+            operating_system = "",
+            cpu_model = "",
+            memory_bytes = 0,
+            available_memory_bytes = 0,
+            cpu_affinity = [],
+            cpu_governor = "",
+            load_1m = 0.0,
+            load_5m = 0.0,
+            load_15m = 0.0,
+        );
+    let {
+        true <- performance_with_metrics(root, metrics);
+        Ok(source) <-
+            File.read_text(
+                Support.child(root, "target/quality/release-performance-baseline-report.json"),
+            );
+        Ok(report) <- Json.parse(source);
+        Ok(host) <- report.get("host");
+        Ok(available) <- host.get("available");
+        Ok(false) <- available.as_bool();
+        Ok(message) <- host.get("message");
+        Ok("host metrics unavailable in regression fixture") <- message.as_string()
+    } else {
+        _ -> Support.fail("performance-metrics", "unavailable host metrics regression failed")
+    };
+    true.
 
 adversarial_fixture(candidate: Candidate): Bool ->
     let directory = Support.child(candidate.workspace, "adversarial");

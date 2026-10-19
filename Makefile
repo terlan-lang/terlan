@@ -855,6 +855,7 @@ release-support-bundle-check: release-security-hardening-check
 
 release-performance-baseline-check: release-support-bundle-check
 	test -s benchmarks/release_0_0_7.baseline.json
+	TERLAN_RELEASE_CLOSEOUT_ROOT=$(CURDIR) $(TERLAN_RELEASE_CLOSEOUT) performance-unavailable-metrics-self-test
 	TERLAN_RELEASE_CLOSEOUT_ROOT=$(CURDIR) $(TERLAN_RELEASE_CLOSEOUT) performance
 	test -s target/quality/release-performance-baseline-report.json
 	@rg -q '"decision": "pass"' target/quality/release-performance-baseline-report.json
