@@ -1,6 +1,9 @@
 /**
  * Candidate evidence excludes mutable preparation bookkeeping and documents
- * derived from the candidate itself. Other gate reports remain sealed.
+ * derived from the candidate itself. The live hosted owner ledger and release
+ * controller status continue changing after sealing; their authenticated input
+ * evidence and all other gate reports remain sealed. Reserved publisher JSON
+ * outputs must not become inputs to the verification that produces them.
  */
 module release_promotion.CandidateEvidence.
 
@@ -15,6 +18,11 @@ excluded_record(path: String): Bool ->
     case path {
         "target/quality/rust-cargo-metadata.json" -> true;
         "target/quality/rust-cargo-metadata.json.attempt.json" -> true;
+        "target/quality/hosted-source-coverage.json" -> true;
+        "target/quality/release-status.json" -> true;
+        "target/quality/publication.pending/publication-plan.json" -> true;
+        "target/quality/publication.pending/release.json" -> true;
+        "target/quality/publication.pending/releases.json" -> true;
         "target/quality/release-promotion-pipeline-report.json" -> true;
         "target/quality/release-readiness-attestation-report.json" -> true;
         "target/quality/release-staged-distribution-verification-report.json" -> true;

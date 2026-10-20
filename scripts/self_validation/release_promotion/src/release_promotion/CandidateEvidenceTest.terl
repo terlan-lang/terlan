@@ -43,6 +43,13 @@ create_bookkeeping(root: String): Bool ->
                 "target/quality/preparation/candidate/owner.work/output.json",
                 "partial scratch",
             );
+        true <-
+            write(
+                root,
+                "target/quality/hosted-source-coverage.json",
+                "{\"decision\":\"running\"}\n",
+            );
+        true <- write(root, "target/quality/release-status.json", "{\"state\":\"preparing\"}\n");
         true <- write(root, "target/quality/rust-cargo-metadata.json", "{\"packages\":[]}\n");
         true <-
             write(
@@ -50,6 +57,17 @@ create_bookkeeping(root: String): Bool ->
                 "target/quality/rust-cargo-metadata.json.attempt.json",
                 "{\"outcome\":\"running\"}\n",
             )
+    } else {
+        _ -> false
+    };
+    publication_scratch(root).
+
+publication_scratch(root: String): Bool ->
+    let {
+        Ok(_scratch) <- Directory.create_all(OwnerStorage.child(root, "target/quality/publication.pending"));
+        true <- write(root, "target/quality/publication.pending/publication-plan.json", "");
+        true <- write(root, "target/quality/publication.pending/release.json", "{}\n");
+        true <- write(root, "target/quality/publication.pending/releases.json", "[]\n")
     } else {
         _ -> false
     };
@@ -72,6 +90,14 @@ bookkeeping(root: String, original: List[String]): Bool ->
                 "target/quality/rust-cargo-metadata.json.attempt.json",
                 "{\"outcome\":\"failed\"}\n",
             );
+        true <- write(root, "target/quality/hosted-source-coverage.json", "{\"decision\":\"pass\"}\n");
+        true <- write(root, "target/quality/release-status.json", "{\"state\":\"publishing\"}\n");
+        true <-
+            write(
+                root,
+                "target/quality/publication.pending/publication-plan.json",
+                "{\"schema\":\"terlan.publication-plan.v1\"}\n",
+            );
         Ok(changed) <- CandidateEvidence.paths(root)
     } else {
         _ -> false
@@ -85,6 +111,11 @@ genuine_reports(root: String, original: List[String]): Bool ->
             "target/quality/rust-cargo-metadata-report.json",
             "target/quality/nested/rust-cargo-metadata.json",
             "target/quality/nested/preparation/evidence.json",
+            "target/quality/hosted-candidate-validation.json",
+            "target/quality/hosted-source-coverage-report.json",
+            "target/quality/nested/hosted-source-coverage.json",
+            "target/quality/nested/release-status.json",
+            "target/quality/publication.pending/evidence.json",
         ];
     let {
         Ok(_nested) <- Directory.create_all(OwnerStorage.child(root, "target/quality/nested/preparation"));
@@ -92,6 +123,11 @@ genuine_reports(root: String, original: List[String]): Bool ->
         true <- write(root, "target/quality/rust-cargo-metadata-report.json", "{}\n");
         true <- write(root, "target/quality/nested/rust-cargo-metadata.json", "{}\n");
         true <- write(root, "target/quality/nested/preparation/evidence.json", "{}\n");
+        true <- write(root, "target/quality/hosted-candidate-validation.json", "{}\n");
+        true <- write(root, "target/quality/hosted-source-coverage-report.json", "{}\n");
+        true <- write(root, "target/quality/nested/hosted-source-coverage.json", "{}\n");
+        true <- write(root, "target/quality/nested/release-status.json", "{}\n");
+        true <- write(root, "target/quality/publication.pending/evidence.json", "{}\n");
         Ok(added) <- CandidateEvidence.paths(root);
         true <- List.length(added) == List.length(original) + List.length(genuine);
         true <- List.subtract(genuine, added) == [];
@@ -118,3 +154,25 @@ pub self_test(root: String): Bool ->
         _ -> false
     };
     bookkeeping(root, original) and genuine_reports(root, original).
+
+/**
+ * Runs the inventory regression directly through the ordinary test runner.
+ */
+@test
+pub mutable_bookkeeping_preserves_bound_gate_inventory(): Bool ->
+    case Directory.create_temporary("terlan-candidate-evidence-") {
+        Err(_reason) -> false;
+        Ok(root) ->
+            let prepared =
+                case Directory.create_all(OwnerStorage.child(root, "target/quality")) {
+                    Ok(_created) -> write(root, "target/quality/self-test-report.json", "{}\n");
+                    Err(_reason) -> false
+                };
+            let valid = prepared and self_test(root);
+            let removed =
+                case Directory.remove_all(root) {
+                    Ok(_removed) -> true;
+                    Err(_reason) -> false
+                };
+            valid and removed
+    }.

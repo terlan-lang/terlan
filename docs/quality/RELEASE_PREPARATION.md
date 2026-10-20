@@ -433,9 +433,19 @@ outputs and Cargo metadata query records. Updating a checkpoint could therefore
 invalidate the seal of otherwise unchanged release evidence.
 
 `CandidateEvidence` now excludes the exact `target/quality/preparation/`
-namespace and the two root Cargo metadata bookkeeping files, in addition to
-the existing derived-output exclusions. Other gate reports remain sealed;
-similarly named files and nested directories are not broad exclusions.
+namespace, the two root Cargo metadata bookkeeping files, the live
+`target/quality/hosted-source-coverage.json` owner ledger, and
+`target/quality/release-status.json`, in addition to the existing derived-output
+exclusions. The publisher's exact `publication-plan.json`, `release.json`, and
+`releases.json` paths under `target/quality/publication.pending/` are also
+excluded: the plan export creates its output file before verifying the candidate.
+Other JSON files in that directory remain sealed. The hosted owner finishes
+its ledger after the enclosed sealing
+step; publication status also changes as the controller advances. These two
+mutable records remain available for diagnostics but cannot identify immutable
+candidate contents. The owner still must complete successfully before publication;
+authenticated hosted validation, mandatory gate reports, and artifact hashes
+remain sealed. Similarly named files and nested directories are not broad exclusions.
 Enumeration failures are errors, not an empty successful inventory. Relative
 roots account for the filesystem API's path normalization.
 
