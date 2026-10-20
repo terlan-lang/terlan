@@ -143,7 +143,7 @@ pub adapter(module_name: String): Adapter ->
                 ],
                 test_paths = ["std/data/native/src/json_test.rs"],
             );
-        "std.data.Toml" -> single_native("std/data/Toml.terl", "basic-toml", "toml");
+        "std.data.Toml" -> single_native("std/data/Toml.terl", "toml", "toml");
         "std.encoding.Base64" ->
             Adapter(
                 known = true,

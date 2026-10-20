@@ -6,7 +6,7 @@ template data, and the current HTML and Markdown template parsers. It converts `
 packaging and static-site paths. JSON, TOML, YAML, XML, and text template
 suffixes are recognized here so validators share one target contract. JSON
 structure validation is implemented with `serde_json`; TOML validation is
-implemented with `basic-toml`; XML validation uses `quick-xml` after masking
+implemented with `toml`; XML validation uses `quick-xml` after masking
 typed interpolation positions; text templates validate interpolation
 boundaries while leaving text content otherwise free-form.
 
@@ -81,7 +81,7 @@ For structure-only artifact validation:
 1. Classify the suffix with `ArtifactTemplateTarget`.
 2. Delegate `.terl.html` and `.terl.md` to existing template parsers.
 3. Delegate `.terl.json` to `serde_json` after interpolation masking.
-4. Delegate `.terl.toml` to `basic-toml` after interpolation masking.
+4. Delegate `.terl.toml` to `toml` after interpolation masking.
 5. Delegate `.terl.yaml` / `.terl.yml` to `serde_yaml` after interpolation
    masking.
 6. Delegate `.terl.xml` to `quick-xml` after interpolation masking.
@@ -102,7 +102,7 @@ Important invariants:
 - `comrak`: owns Markdown rendering.
 - `cssparser`: validates CSS-shaped values where needed.
 - `serde_json`: validates JSON artifact-template structure.
-- `basic-toml`: validates TOML artifact-template structure.
+- `toml`: validates TOML artifact-template structure.
 - `yaml-rust`: validates YAML artifact-template structure.
 - `quick-xml`: validates XML artifact-template structure without resolving
   external entities.

@@ -86,8 +86,8 @@ fn validate_no_core_cuda_dependency(root: &Path) -> QualityResult<()> {
     let path = root.join(CORE_MANIFEST);
     let text = std::fs::read_to_string(&path)
         .map_err(|err| format!("{}: failed to read manifest: {err}", path.display()))?;
-    let manifest: CargoManifest = basic_toml::from_str(&text)
-        .map_err(|err| format!("{}: invalid TOML: {err}", path.display()))?;
+    let manifest: CargoManifest =
+        toml::from_str(&text).map_err(|err| format!("{}: invalid TOML: {err}", path.display()))?;
     let mut diagnostics = Vec::new();
     for dependency in manifest.dependencies.keys() {
         let normalized = dependency.to_lowercase();

@@ -221,14 +221,14 @@ fn invalid_xml_message(path: &Path, detail: &str) -> Vec<HtmlDiagnostic> {
 ///
 /// Transformation:
 /// - Replaces interpolation islands with TOML-compatible placeholder values and
-///   delegates structure validation to `basic-toml`.
+///   delegates structure validation to `toml`.
 pub fn validate_toml_template_structure(
     source: impl AsRef<str>,
     path: impl AsRef<Path>,
 ) -> Result<(), Vec<HtmlDiagnostic>> {
     let path = path.as_ref();
     let masked = mask_toml_interpolations(source.as_ref(), path)?;
-    basic_toml::from_str::<Value>(&masked)
+    toml::from_str::<Value>(&masked)
         .map(|_| ())
         .map_err(|error| {
             vec![HtmlDiagnostic::new(

@@ -204,15 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "basic-toml"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba62675e8242a4c4e806d12f11d136e626e6c8361d6b829310732241652a178a"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4136,7 +4127,6 @@ dependencies = [
  "ammonia",
  "axum",
  "base64",
- "basic-toml",
  "bytes",
  "comrak",
  "concurrent-queue",
@@ -4205,6 +4195,7 @@ dependencies = [
  "terlan-storage",
  "time",
  "tokio",
+ "toml",
  "tower-lsp-server",
  "tungstenite",
  "ureq",
@@ -4279,7 +4270,6 @@ version = "0.0.9"
 dependencies = [
  "axum",
  "base64",
- "basic-toml",
  "bytes",
  "cookie",
  "futures-util",
@@ -4302,6 +4292,7 @@ dependencies = [
  "terlan-net-native",
  "terlan-runtime-abi",
  "time",
+ "toml",
  "tungstenite",
 ]
 

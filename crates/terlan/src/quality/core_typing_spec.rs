@@ -113,7 +113,7 @@ fn validate_spec_doc(doc: &str) -> Vec<String> {
 }
 
 fn parse_spec_index(text: &str) -> QualityResult<CoreTypingSpecIndex> {
-    basic_toml::from_str(text).map_err(|err| format!("`{SPEC_INDEX}` is invalid TOML: {err}"))
+    toml::from_str(text).map_err(|err| format!("`{SPEC_INDEX}` is invalid TOML: {err}"))
 }
 
 fn validate_spec_index(

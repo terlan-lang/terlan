@@ -695,7 +695,7 @@ fn read_optional_lockfile(path: &Path) -> RegistryResult<Option<RegistryLockfile
 pub(super) fn read_lockfile(path: &Path) -> RegistryResult<RegistryLockfile> {
     let text = fs::read_to_string(path)
         .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    let lock: RegistryLockfile = basic_toml::from_str(&text)
+    let lock: RegistryLockfile = toml::from_str(&text)
         .map_err(|error| format!("error[registry_lock_invalid]: {}: {error}", path.display()))?;
     let supported = (lock.version == 2 && lock.resolver == "terlan-registry-resolver-v1")
         || (lock.version == LOCKFILE_VERSION && lock.resolver == RESOLVER_VERSION);

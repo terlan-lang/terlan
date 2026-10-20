@@ -167,7 +167,7 @@ pub(crate) fn validate_gap_toml_mirror(
             .replace('\\', "/");
         let text = fs::read_to_string(&path)
             .map_err(|error| format!("{relative}: failed to read gap TOML: {error}"))?;
-        let record = basic_toml::from_str::<LeanProofGapFile>(&text)
+        let record = toml::from_str::<LeanProofGapFile>(&text)
             .map_err(|error| format!("{relative}: invalid gap TOML: {error}"))?;
         if record.schema != "terlan.lean-proof-gap.v1" {
             diagnostics.push(format!(
@@ -236,7 +236,7 @@ pub(crate) fn read_gap_policy(root: &Path) -> QualityResult<GapPolicy> {
     let path = root.join(GAP_POLICY_PATH);
     let text = fs::read_to_string(&path)
         .map_err(|err| format!("{}: failed to read gap policy: {err}", path.display()))?;
-    let mut policy = basic_toml::from_str::<GapPolicy>(&text)
+    let mut policy = toml::from_str::<GapPolicy>(&text)
         .map_err(|err| format!("{}: invalid gap policy TOML: {err}", path.display()))?;
     if policy.schema != "terlan.lean-proof-gap-policy.v2" {
         return Err(format!(
@@ -251,7 +251,7 @@ pub(crate) fn read_gap_policy(root: &Path) -> QualityResult<GapPolicy> {
     }
     let manifest = fs::read_to_string(root.join("Cargo.toml"))
         .map_err(|error| format!("Cargo.toml: failed to read release version: {error}"))?;
-    let manifest: Value = basic_toml::from_str(&manifest)
+    let manifest: Value = toml::from_str(&manifest)
         .map_err(|error| format!("Cargo.toml: invalid workspace manifest: {error}"))?;
     policy.release_version = manifest["workspace"]["package"]["version"]
         .as_str()

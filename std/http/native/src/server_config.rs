@@ -219,7 +219,7 @@ impl MutableConfig {
 impl ServeManifest {
     /// Decode the package configuration without reading files or environment state.
     pub fn parse(source: &str) -> Result<Self, ServiceError> {
-        basic_toml::from_str(source).map_err(|error| ServiceError::from(error.to_string()))
+        toml::from_str(source).map_err(|error| ServiceError::from(error.to_string()))
     }
 }
 

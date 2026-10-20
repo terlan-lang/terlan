@@ -5,7 +5,7 @@ use super::*;
 /// Keeps cache/provenance backend identity aligned with every pinned Cranelift crate.
 #[test]
 fn native_backend_identity_matches_all_cranelift_dependency_pins() {
-    let manifest: serde_json::Value = basic_toml::from_str(include_str!(concat!(
+    let manifest: serde_json::Value = toml::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/Cargo.toml"
     )))

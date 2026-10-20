@@ -184,8 +184,8 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     assert!(!adapter.contains("pjrt"));
 
     let cargo = fs::read_to_string(out_dir.join("native/rust/Cargo.toml")).expect("Cargo.toml");
-    let generated: Value = basic_toml::from_str(&cargo).expect("generated manifest");
-    let workspace: Value = basic_toml::from_str(include_str!(concat!(
+    let generated: Value = toml::from_str(&cargo).expect("generated manifest");
+    let workspace: Value = toml::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../Cargo.toml"
     )))

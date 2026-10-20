@@ -110,7 +110,7 @@ fn all_fields_obey_manifest_environment_cli_precedence_and_provenance() {
         request_timeout_ms = 500\nidle_timeout_ms = 600\nqueue_capacity = 100\n\
         handler_pool_size = 20\nshutdown_grace_ms = 700\ntelemetry = 'full'\n\
         log_format = 'text'\ncertificate_cache = 'cli-certificates'";
-    let cli: ServeOverrides = basic_toml::from_str(fields).unwrap();
+    let cli: ServeOverrides = toml::from_str(fields).unwrap();
     let effective = resolve_at(root.path(), manifest, ENV, cli).unwrap();
     let from_manifest = resolve_at(
         root.path(),

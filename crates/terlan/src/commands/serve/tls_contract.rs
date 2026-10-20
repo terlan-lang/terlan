@@ -27,7 +27,7 @@ pub(crate) fn read_runtime_server_tls(
     let source = std::fs::read_to_string(path).map_err(|error| {
         tls_contract_error(path, format!("cannot read project manifest: {error}"))
     })?;
-    let manifest: RuntimeProjectManifest = basic_toml::from_str(&source).map_err(|error| {
+    let manifest: RuntimeProjectManifest = toml::from_str(&source).map_err(|error| {
         tls_contract_error(path, format!("cannot parse runtime TLS metadata: {error}"))
     })?;
     manifest

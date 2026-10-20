@@ -384,7 +384,7 @@ pub struct AcceleratorDependencyClosure {
 impl AcceleratorDescriptor {
     /// Parses and validates one descriptor without loading package-native code.
     pub fn parse(source: &str, provenance: &Path) -> AcceleratorResult<Self> {
-        let mut descriptor: Self = basic_toml::from_str(source).map_err(|error| {
+        let mut descriptor: Self = toml::from_str(source).map_err(|error| {
             format!(
                 "error[accelerator.descriptor-parse]: {}: invalid accelerator descriptor: {error}",
                 AcceleratorSourceSpan::start(provenance)

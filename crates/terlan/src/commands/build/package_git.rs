@@ -591,7 +591,7 @@ struct LockedGitPackage {
 fn read_lockfile(path: &Path) -> Result<ParsedPackageLockfile, String> {
     let text = fs::read_to_string(path)
         .map_err(|error| format!("{}: failed to read lockfile: {error}", path.display()))?;
-    let lock: PackageLockfile = basic_toml::from_str(&text)
+    let lock: PackageLockfile = toml::from_str(&text)
         .map_err(|error| format!("{}: invalid Terlan lockfile: {error}", path.display()))?;
     let registry_lock = (lock.version == REGISTRY_LOCKFILE_VERSION
         && lock.resolver == REGISTRY_RESOLVER_VERSION)

@@ -103,8 +103,7 @@ fn read_text(root: &Path, relative: &str) -> QualityResult<String> {
 }
 
 fn parse_config(text: &str) -> QualityResult<LeanProofRunnerConfig> {
-    basic_toml::from_str(text)
-        .map_err(|err| format!("{RUNNER_CONFIG_PATH}: failed to parse TOML: {err}"))
+    toml::from_str(text).map_err(|err| format!("{RUNNER_CONFIG_PATH}: failed to parse TOML: {err}"))
 }
 
 fn validate_config(config: &LeanProofRunnerConfig) -> Vec<String> {

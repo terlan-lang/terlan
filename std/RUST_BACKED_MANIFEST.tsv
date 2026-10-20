@@ -51,7 +51,7 @@ std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_int	as_int	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_float	as_float	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.as_bool	as_bool	1
 std.data.Json	std/data/Json.terl	serde_json	std.data.json.is_null	is_null	1
-std.data.Toml	std/data/Toml.terl	basic-toml	std.data.toml.parse	parse	1
+std.data.Toml	std/data/Toml.terl	toml	std.data.toml.parse	parse	1
 std.package.Registry	std/package/Registry.terl	terlan	std.package.registry.parse_publish_request	parse_publish_request	1
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256	sha256	1
 std.crypto.Hash	std/crypto/Hash.terl	sha2	std.crypto.hash.sha256_bytes	sha256_bytes	1

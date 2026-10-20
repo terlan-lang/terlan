@@ -223,7 +223,7 @@ parse_manifest_row(
 allowed_crate(value: String): Bool ->
     value == "serde_json"
         or value == "axum"
-        or value == "basic-toml"
+        or value == "toml"
         or value == "base64"
         or value == "md-5"
         or value == "sha2"

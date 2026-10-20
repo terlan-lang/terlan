@@ -126,7 +126,7 @@ fn read_profile(root: &Path) -> QualityResult<(BenchmarkProfile, String)> {
             path.display()
         )
     })?;
-    let profile = basic_toml::from_str(&text)
+    let profile = toml::from_str(&text)
         .map_err(|err| format!("{}: invalid benchmark profile: {err}", path.display()))?;
     Ok((profile, text))
 }

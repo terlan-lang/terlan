@@ -5,10 +5,8 @@ use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
 use time::{Date, Month};
 
 fn policy() -> GapPolicy {
-    basic_toml::from_str(
-        "schema = \"terlan.lean-proof-gap-policy.v2\"\napproval_scope = \"release\"\n",
-    )
-    .expect("valid gap policy")
+    toml::from_str("schema = \"terlan.lean-proof-gap-policy.v2\"\napproval_scope = \"release\"\n")
+        .expect("valid gap policy")
 }
 
 fn gap_with_status(status: &str, updated_at: &str, planned_gate: &str) -> LeanProofGap {

@@ -536,7 +536,7 @@ struct CargoDependencyTable {
 
 /// Parses package default dependency names and specifications through TOML.
 fn parse_default_dependency_entries(manifest: &str) -> QualityResult<Vec<DefaultDependencyEntry>> {
-    let manifest = basic_toml::from_str::<CargoManifest>(manifest)
+    let manifest = toml::from_str::<CargoManifest>(manifest)
         .map_err(|err| format!("{CARGO_MANIFEST_PATH}: invalid Cargo manifest: {err}"))?;
     let default_enabled_dependencies = default_enabled_optional_dependencies(&manifest.features);
     Ok(manifest

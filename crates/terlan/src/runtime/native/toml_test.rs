@@ -23,3 +23,28 @@ fn parse_rejects_malformed_toml() {
     assert_eq!(error.code(), "toml.parse");
     assert!(!error.message().is_empty());
 }
+
+#[test]
+fn parse_preserves_scalar_types_and_array_tables() {
+    let value = parse(
+        "enabled = true\nport = 8080\nratio = 1.5\n\
+         [[routes]]\npath = '/health'\nmethods = ['GET', 'HEAD']\n",
+    )
+    .expect("parse TOML values");
+    assert_eq!(
+        value.as_serde(),
+        &serde_json::json!({
+            "enabled": true,
+            "port": 8080,
+            "ratio": 1.5,
+            "routes": [{"path": "/health", "methods": ["GET", "HEAD"]}]
+        })
+    );
+}
+
+#[test]
+fn parse_rejects_duplicate_keys() {
+    let error = parse("port = 8080\nport = 9090\n").expect_err("reject duplicate keys");
+    assert_eq!(error.code(), "toml.parse");
+    assert!(!error.message().is_empty());
+}
