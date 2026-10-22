@@ -2,6 +2,8 @@
 # Validate checked-in reports against the same staged sources as CI.
 set -euo pipefail
 cargo build --locked -p terlan-rust-boundary-audit -p terlan-test-orchestrator
+cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+"$CARGO_TARGET_DIR/debug/terlan-quality" rust-quality
 mkdir -p target/quality
 "$CARGO_TARGET_DIR/debug/terlan-rust-boundary-audit" . \
   --api-boundary-input target/quality/rust-api-boundary-input.tsv \
