@@ -25,7 +25,7 @@ fn run_interface_success_and_error_paths() {
     let interface_path = success_dir.join("fixture.terli");
     fs::write(
         &interface_path,
-        "//! Cache contract interface.\nmodule cache_contract.\n\n/// User ID alias.\npub type UserId = Int.\n\n/// User ID box alias.\npub type UserBox[T] = {box, T}.\n\n/// Cache handle.\npub opaque type Cache.\n\n/// Reads a value from the cache.\npub get(Cache: Cache, Key: Binary): Result[Binary, not_found].\n\n/// Trait for logging values.\npub trait Logger[A] {\n    log(V: A): Dynamic.\n}.\n",
+        "//! Cache contract interface.\nmodule cache_contract.\nimport type std.core.Result.{Result}.\n\n/// User ID alias.\npub type UserId = Int.\n\n/// User ID box alias.\npub type UserBox[T] = {box, T}.\n\n/// Cache handle.\npub opaque type Cache.\n\n/// Reads a value from the cache.\npub get(Cache: Cache, Key: Binary): Result[Binary, not_found].\n\n/// Trait for logging values.\npub trait Logger[A] {\n    log(V: A): Dynamic.\n}.\n",
     )
     .expect("write interface fixture");
     let path = interface_path.to_string_lossy().to_string();
@@ -49,13 +49,16 @@ fn run_interface_success_and_error_paths() {
     assert!(emitted.contains("/// Cache handle."));
     assert!(emitted.contains("/// Reads a value from the cache."));
     assert!(emitted.contains("pub opaque type Cache."));
-    assert!(emitted.contains("pub get(Cache: Cache, Key: Binary): Result[Binary, not_found]."));
+    assert!(emitted.contains(
+        "pub get(Cache: Cache, Key: Binary): std.core.Result.Result[Binary, not_found]."
+    ));
     assert!(emitted.contains("/// Trait for logging values."));
     assert!(emitted.contains("pub trait Logger[A]"));
     assert!(emitted.contains("log(V: A): Dynamic."));
     assert!(emitted_deps.contains("module=cache_contract"));
     assert!(emitted_deps.contains("syntax_contract_schema=terlan-syntax-contract-v1"));
-    assert!(emitted_deps.contains("deps=0"));
+    assert!(emitted_deps.contains("deps=1"));
+    assert!(emitted_deps.contains("std.core.Result="));
 
     let exit = commands::interface::run(&[], &CliState::default());
     assert_eq!(exit, ExitCode::from(2));

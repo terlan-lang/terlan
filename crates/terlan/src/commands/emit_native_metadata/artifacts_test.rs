@@ -221,16 +221,35 @@ fn assert_operation(metadata: &NativeMetadata, name: &str, arity: usize, operati
 }
 
 #[test]
+fn native_declaration_metadata_uses_the_same_inferred_and_explicit_keys_as_core() {
+    let source = "module example.HTTPServer. pub opaque type Server. @compiler.native pub open(port: Int = 8080): Server. @compiler.native {external.server.length} pub (server: Server) len(): Int.";
+    let metadata = extract_native_metadata(source, NativePolicy::NativeBoundaryOptional).unwrap();
+    assert_operation(&metadata, "open", 1, "example.http_server.open");
+    assert_operation(&metadata, "len", 1, "external.server.length");
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(source).unwrap();
+    let resolved = crate::terlan_hir::resolve_syntax_module_output(&syntax).module;
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    for binding in metadata.functions {
+        let function = core
+            .functions
+            .iter()
+            .find(|function| function.name == binding.name && function.arity == binding.arity)
+            .unwrap();
+        assert_eq!(function.native_operation, binding.operation);
+    }
+}
+
+#[test]
 fn compiler_native_metadata_ignores_delimiters_inside_default_strings() {
     let source = r#"
 module package.Options.
 
-@compiler.native {package.options.csv}
+@compiler.native
 pub csv(
     separator: String = ",",
     quote_char: String = "\"",
     suffix: String = "a)b"
-): String -> native.
+): String.
 "#;
     let metadata = extract_native_metadata(source, NativePolicy::NativeBoundaryOptional)
         .expect("native metadata");
@@ -271,9 +290,9 @@ native core module NativeArray {
 fn compiler_native_metadata_includes_private_helpers_not_comment_lookalikes() {
     let source = r#"module package.Parser.
 // @compiler.native {fake.comment}
-// pub fake(text: String): String -> native.
-@compiler.native {package.parser.parts}
-parts(text: String): Result[{String, Option[String]}, String] -> native.
+// pub fake(text: String): String.
+@compiler.native
+parts(text: String): Result[{String, Option[String]}, String].
 pub parse(text: String): String -> text.
 "#;
     let metadata = extract_native_metadata(source, NativePolicy::Pure).unwrap();
@@ -357,13 +376,11 @@ fn compiler_native_metadata_deduplicates_identical_overload_operations() {
     let source = "\
 module native.Dedupe.\n\
 \n\
-@compiler.native {native.dedupe.html}\n\
-pub html(value: String, status: Int = 200): Response ->\n\
-    native.\n\
+@compiler.native\n\
+pub html(value: String, status: Int = 200): Response.\n\
 \n\
-@compiler.native {native.dedupe.html}\n\
-pub html(value: Html, status: Int = 200): Response ->\n\
-    native.\n\
+@compiler.native\n\
+pub html(value: Html, status: Int = 200): Response.\n\
 ";
 
     let metadata = extract_native_metadata(source, NativePolicy::Pure).expect("metadata");

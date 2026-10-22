@@ -38,6 +38,12 @@ pub(super) fn reuse_dependency_free_native_image(
     if !state.incremental || state.no_emit {
         return Ok(false);
     }
+    match fs::symlink_metadata(Path::new(path).with_extension("terli")) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        // Contracted modules must pass declaration validation and export
+        // restriction even when their implementation source is unchanged.
+        _ => return Ok(false),
+    }
     let Ok(source_text) = crate::support::read_file(path) else {
         return Ok(false);
     };
@@ -52,6 +58,9 @@ pub(super) fn reuse_dependency_free_native_image(
         .declarations
         .iter()
         .any(|declaration| matches!(declaration.payload, SyntaxDeclarationPayload::Import { .. }))
+        || crate::formal_pipeline::source_dependency_modules(&syntax)
+            .iter()
+            .any(|dependency| dependency != &syntax.module_name)
     {
         return Ok(false);
     }
@@ -70,7 +79,7 @@ pub(super) fn reuse_dependency_free_native_image(
         .cache_identity(&target.triple, &target.calling_convention)
         .map_err(|error| BuildOneError::Message(error.into()))?;
     let linker_policy = native_linker_cache_identity()?;
-    if stamp.source_sha256 != source_identity(&canonical_source, &source_text, policy)
+    if stamp.source_sha256 != source_identity(Path::new(path), &source_text, policy)
         || stamp.image_name != format!("{module_stem}.tvm")
         || stamp.policy != policy.cache_identity()
         || stamp.target != target.triple
@@ -145,7 +154,7 @@ pub(super) fn write_native_reuse_stamp(
         .map_err(|error| BuildOneError::Message(error.into()))?;
     let linker_policy = native_linker_cache_identity()?.to_string();
     let stamp = render_stamp(&NativeReuseStamp {
-        source_sha256: source_identity(&canonical_source, source_text, policy),
+        source_sha256: source_identity(Path::new(source_path), source_text, policy),
         image_name: image.image_name.clone(),
         input_sha256: image.cache_input_sha256.clone(),
         policy: policy.cache_identity().to_string(),
@@ -288,9 +297,12 @@ fn is_identity_text(value: &str) -> bool {
 }
 
 fn source_identity(path: &Path, source_text: &str, policy: NativeCodegenPolicy) -> String {
+    let interface = fs::read(path.with_extension("terli"))
+        .map(|bytes| sha256_hex(&bytes))
+        .unwrap_or_else(|_| "no-interface".to_string());
     sha256_hex(
         format!(
-            "{REUSE_SCHEMA}\0{}\0{}\0{}\0{}",
+            "{REUSE_SCHEMA}\0{}\0{}\0{}\0{}\0{interface}",
             env!("CARGO_PKG_VERSION"),
             policy.cache_identity(),
             path.display(),

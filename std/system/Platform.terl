@@ -38,9 +38,8 @@ pub struct HostMetrics {
 /**
  * Returns the active runtime's host platform without invoking an external tool.
  */
-@compiler.native {std.system.platform.current}
-pub current(): Host ->
-    native.
+@compiler.native
+pub current(): Host.
 
 /**
  * Captures scheduler-affinity, load, memory, and host identity in one typed

@@ -99,214 +99,188 @@ pub opaque type Rollback.
  * Transformation: delegates threshold validation to the VM fault scheduler.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.policy}
+@compiler.native
 pub policy(
     suspicion_threshold_ticks: Int,
     isolation_threshold_ticks: Int,
     recovery_window_ticks: Int,
-): Policy ->
-    native.
+): Policy.
 
 /**
  * Resolves mismatched peer policies to the stricter threshold in each field.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.resolve_policy}
-pub resolve_policy(local: Policy, peer: Policy): Policy ->
-    native.
+@compiler.native
+pub resolve_policy(local: Policy, peer: Policy): Policy.
 
 /**
  * Classifies distributed compatibility as `supported`,
  * `fallback_local_only`, or `feature_unsupported`.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.compatibility}
-pub compatibility(partition_tolerant: Bool, local_fallback_available: Bool): String ->
-    native.
+@compiler.native
+pub compatibility(partition_tolerant: Bool, local_fallback_available: Bool): String.
 
 /**
  * Creates a VM-owned fault monitor for a non-empty set of unique nodes.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.monitor}
-pub monitor(node_ids: List[String], policy: Policy): Monitor ->
-    native.
+@compiler.native
+pub monitor(node_ids: List[String], policy: Policy): Monitor.
 
 /**
  * Records a heartbeat and reports `recorded` or `duplicate_suppressed`.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.record_heartbeat}
-pub (monitor: Monitor) record_heartbeat(node_id: String, tick: Int): String ->
-    native.
+@compiler.native
+pub (monitor: Monitor) record_heartbeat(node_id: String, tick: Int): String.
 
 /**
  * Applies the suspicion threshold and returns the resulting transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.suspect}
-pub (monitor: Monitor) suspect(node_id: String, tick: Int, reason: String): Option[Transition] ->
-    native.
+@compiler.native
+pub (monitor: Monitor) suspect(node_id: String, tick: Int, reason: String): Option[Transition].
 
 /**
  * Marks a suspected node degraded before isolation.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.degrade}
-pub (monitor: Monitor) degrade(node_id: String, tick: Int, reason: String): Transition ->
-    native.
+@compiler.native
+pub (monitor: Monitor) degrade(node_id: String, tick: Int, reason: String): Transition.
 
 /**
  * Applies the isolation threshold and returns the resulting transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.isolate}
-pub (monitor: Monitor) isolate(node_id: String, tick: Int, reason: String): Option[Transition] ->
-    native.
+@compiler.native
+pub (monitor: Monitor) isolate(node_id: String, tick: Int, reason: String): Option[Transition].
 
 /**
  * Begins a bounded recovery attempt for one isolated node.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.begin_recovery}
-pub (monitor: Monitor) begin_recovery(node_id: String, tick: Int, reason: String): Transition ->
-    native.
+@compiler.native
+pub (monitor: Monitor) begin_recovery(node_id: String, tick: Int, reason: String): Transition.
 
 /**
  * Completes recovery and refreshes the node heartbeat.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.complete}
-pub (monitor: Monitor) complete(node_id: String, tick: Int, reason: String): Transition ->
-    native.
+@compiler.native
+pub (monitor: Monitor) complete(node_id: String, tick: Int, reason: String): Transition.
 
 /**
  * Re-isolates a recovering node after its policy window expires.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.expire}
-pub (monitor: Monitor) expire(node_id: String, tick: Int, reason: String): Option[Transition] ->
-    native.
+@compiler.native
+pub (monitor: Monitor) expire(node_id: String, tick: Int, reason: String): Option[Transition].
 
 /**
  * Returns the canonical state name for one monitored node.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.state_name}
-pub (monitor: Monitor) state_name(node_id: String): String ->
-    native.
+@compiler.native
+pub (monitor: Monitor) state_name(node_id: String): String.
 
 /**
  * Replays ordered transitions after an exclusive tick cursor.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transitions_after}
-pub (monitor: Monitor) transitions_after(tick: Int): List[Transition] ->
-    native.
+@compiler.native
+pub (monitor: Monitor) transitions_after(tick: Int): List[Transition].
 
 /**
  * Replays ordered failure envelopes after an exclusive tick cursor.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failures_after}
-pub (monitor: Monitor) failures_after(tick: Int): List[Failure] ->
-    native.
+@compiler.native
+pub (monitor: Monitor) failures_after(tick: Int): List[Failure].
 
 /**
  * Releases the monitor resource; subsequent operations fail deterministically.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.close}
-pub (monitor: Monitor) close(): Unit ->
-    native.
+@compiler.native
+pub (monitor: Monitor) close(): Unit.
 
 /**
  * Returns the node id recorded by a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_node_id}
-pub transition_node_id(transition: Transition): String ->
-    native.
+@compiler.native
+pub transition_node_id(transition: Transition): String.
 
 /**
  * Returns the state before a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_previous_state}
-pub transition_previous_state(transition: Transition): String ->
-    native.
+@compiler.native
+pub transition_previous_state(transition: Transition): String.
 
 /**
  * Returns the state after a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_next_state}
-pub transition_next_state(transition: Transition): String ->
-    native.
+@compiler.native
+pub transition_next_state(transition: Transition): String.
 
 /**
  * Returns the scheduler tick recorded by a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_tick}
-pub transition_tick(transition: Transition): Int ->
-    native.
+@compiler.native
+pub transition_tick(transition: Transition): Int.
 
 /**
  * Returns the stable reason recorded by a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_reason}
-pub transition_reason(transition: Transition): String ->
-    native.
+@compiler.native
+pub transition_reason(transition: Transition): String.
 
 /**
  * Returns the stable operational diagnostic represented by a transition.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.transition_diagnostic_kind}
-pub transition_diagnostic_kind(transition: Transition): String ->
-    native.
+@compiler.native
+pub transition_diagnostic_kind(transition: Transition): String.
 
 /**
  * Returns the stable machine-readable failure kind.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure_kind}
-pub failure_kind(failure: Failure): String ->
-    native.
+@compiler.native
+pub failure_kind(failure: Failure): String.
 
 /**
  * Returns the node associated with a failure.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure_node_id}
-pub failure_node_id(failure: Failure): String ->
-    native.
+@compiler.native
+pub failure_node_id(failure: Failure): String.
 
 /**
  * Returns the scheduler tick associated with a failure.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure_tick}
-pub failure_tick(failure: Failure): Int ->
-    native.
+@compiler.native
+pub failure_tick(failure: Failure): Int.
 
 /**
  * Returns the stable reason associated with a failure.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure_reason}
-pub failure_reason(failure: Failure): String ->
-    native.
+@compiler.native
+pub failure_reason(failure: Failure): String.
 
 /**
  * Returns the stable operational diagnostic represented by a failure.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure_diagnostic_kind}
-pub failure_diagnostic_kind(failure: Failure): String ->
-    native.
+@compiler.native
+pub failure_diagnostic_kind(failure: Failure): String.
 
 /**
  * Builds a fault state descriptor.
@@ -317,9 +291,8 @@ pub failure_diagnostic_kind(failure: Failure): String ->
  * test scenarios.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.state}
-pub state(node_id: String, state: String): State ->
-    native.
+@compiler.native
+pub state(node_id: String, state: String): State.
 
 /**
  * Classifies a missed heartbeat.
@@ -330,15 +303,14 @@ pub state(node_id: String, state: String): State ->
  * transition when the policy threshold is exceeded.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.classify_heartbeat}
+@compiler.native
 pub classify_heartbeat(
     policy: Policy,
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
     reason: String,
-): Transition ->
-    native.
+): Transition.
 
 /**
  * Classifies partition isolation after suspicion.
@@ -349,15 +321,14 @@ pub classify_heartbeat(
  * legal state progression.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.isolate_partition}
+@compiler.native
 pub isolate_partition(
     policy: Policy,
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
     reason: String,
-): Transition ->
-    native.
+): Transition.
 
 /**
  * Starts recovery for one isolated node.
@@ -368,9 +339,8 @@ pub isolate_partition(
  * expiry.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.start_recovery}
-pub start_recovery(node_id: String, tick: Int, reason: String): Recovery ->
-    native.
+@compiler.native
+pub start_recovery(node_id: String, tick: Int, reason: String): Recovery.
 
 /**
  * Completes one recovery attempt.
@@ -381,9 +351,8 @@ pub start_recovery(node_id: String, tick: Int, reason: String): Recovery ->
  * VM scheduler.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.complete_recovery}
-pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition ->
-    native.
+@compiler.native
+pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition.
 
 /**
  * Expires one recovery attempt.
@@ -393,9 +362,8 @@ pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition
  * Transformation: records deterministic recovery-window expiry diagnostics.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.expire_recovery}
-pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: String): Failure ->
-    native.
+@compiler.native
+pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: String): Failure.
 
 /**
  * Builds a migration-timeout rollback descriptor.
@@ -407,7 +375,7 @@ pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: Strin
  * migration safety lane.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.migration_timeout}
+@compiler.native
 pub migration_timeout(
     actor_id: String,
     sequence: Int,
@@ -416,8 +384,7 @@ pub migration_timeout(
     phase: String,
     tick: Int,
     reason: String,
-): Rollback ->
-    native.
+): Rollback.
 
 /**
  * Builds a migration partial-commit rollback descriptor.
@@ -429,7 +396,7 @@ pub migration_timeout(
  * VM migration safety lane.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.migration_partial_commit}
+@compiler.native
 pub migration_partial_commit(
     actor_id: String,
     sequence: Int,
@@ -438,8 +405,7 @@ pub migration_partial_commit(
     phase: String,
     tick: Int,
     reason: String,
-): Rollback ->
-    native.
+): Rollback.
 
 /**
  * Converts a rollback descriptor to a failure envelope descriptor.
@@ -450,15 +416,14 @@ pub migration_partial_commit(
  * stream used by heartbeat, partition, and recovery failures.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.failure}
-pub failure(rollback: Rollback): Failure ->
-    native.
+@compiler.native
+pub failure(rollback: Rollback): Failure.
 
 /**
  * Builds a typed failure for a rejected stale placement update.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.fault.stale_placement_update}
+@compiler.native
 pub stale_placement_update(
     actor_id: String,
     node_id: String,
@@ -466,5 +431,4 @@ pub stale_placement_update(
     current_sequence: Int,
     tick: Int,
     reason: String,
-): Failure ->
-    native.
+): Failure.

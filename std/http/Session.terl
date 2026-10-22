@@ -59,13 +59,11 @@ pub current(request: Request): Session ->
         };
     Session {#identity: identity, #pending_identity: pending, #ttl_seconds: ttl_seconds}.
 
-@compiler.native {std.http.session.lookup}
-lookup(identity: String): Option[String] ->
-    native.
+@compiler.native
+lookup(identity: String): Option[String].
 
-@compiler.native {std.http.session.create}
-create(excluded_identity: String, ttl_seconds: Int): String ->
-    native.
+@compiler.native
+create(excluded_identity: String, ttl_seconds: Int): String.
 
 /**
  * Reads one session value.
@@ -79,8 +77,7 @@ pub (session: Session) get(key: String): Option[String] ->
     read(session.#identity, key).
 
 @compiler.native {std.http.session.get}
-read(identity: String, key: String): Option[String] ->
-    native.
+read(identity: String, key: String): Option[String].
 
 /**
  * Writes one session value.
@@ -94,8 +91,7 @@ pub (mut session: Session) set(key: String, value: String): Unit ->
     session.
 
 @compiler.native {std.http.session.set}
-write(identity: String, key: String, value: String): Unit ->
-    native.
+write(identity: String, key: String, value: String): Unit.
 
 /**
  * Deletes one session value.
@@ -109,8 +105,7 @@ pub (mut session: Session) delete(key: String): Unit ->
     session.
 
 @compiler.native {std.http.session.delete}
-remove(identity: String, key: String): Unit ->
-    native.
+remove(identity: String, key: String): Unit.
 
 /**
  * Rotates the session id.
@@ -125,8 +120,7 @@ pub (mut session: Session) rotate(): Session ->
     Session {#identity: identity, #pending_identity: identity, #ttl_seconds: session.#ttl_seconds}.
 
 @compiler.native {std.http.session.rotate}
-renew(identity: String, ttl_seconds: Int): String ->
-    native.
+renew(identity: String, ttl_seconds: Int): String.
 
 /**
  * Expires the session.
@@ -141,8 +135,7 @@ pub (mut session: Session) expire(): Unit ->
     session.
 
 @compiler.native {std.http.session.expire}
-invalidate(identity: String): Unit ->
-    native.
+invalidate(identity: String): Unit.
 
 /**
  * Threads session response metadata onto a response.
@@ -194,6 +187,5 @@ live_identity(session: Session): Option[String] ->
         true -> None
     }.
 
-@compiler.native {std.http.session.is_live}
-is_live(identity: String): Bool ->
-    native.
+@compiler.native
+is_live(identity: String): Bool.

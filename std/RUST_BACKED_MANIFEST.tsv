@@ -2,7 +2,7 @@
 #
 # Inputs:
 # - Portable std modules whose first executable backend is Rust/NativeBoundary.
-# - `@compiler.native {operation}` annotations in those source modules.
+# - `@compiler.native` declarations, with explicit keys only for aliases.
 #
 # Output:
 # - A tab-separated operation inventory consumed by

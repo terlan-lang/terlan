@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use crate::terlan_hir::parse_interface_dependency_entries;
 use crate::terlan_hir::ModuleInterface;
 use crate::terlan_syntax::{
-    syntax_contract_identity_from_fingerprint, syntax_module_import_identities,
-    SyntaxContractIdentity, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput,
+    syntax_contract_identity_from_fingerprint, SyntaxContractIdentity, SyntaxDeclarationPayload,
+    SyntaxImportKind, SyntaxModuleOutput,
 };
 
 pub(crate) use crate::support::fingerprint;
@@ -220,8 +220,8 @@ pub(crate) fn read_manifest(path: &Path) -> Option<DependencyManifest> {
 /// - Sorted dependency name/hash pairs.
 ///
 /// Transformation:
-/// - Hashes imported module interfaces, file/CSS/Markdown imports, and external
-///   template files so cache invalidation can detect semantic input changes.
+/// - Hashes interfaces referenced by imports, qualified annotations, or remote
+///   calls, plus assets and templates, so caches track semantic input changes.
 pub(crate) fn collect_syntax_dependency_hashes(
     module: &SyntaxModuleOutput,
     interfaces: &HashMap<String, ModuleInterface>,
@@ -229,7 +229,10 @@ pub(crate) fn collect_syntax_dependency_hashes(
     file_imports: Option<&BTreeMap<String, Vec<u8>>>,
 ) -> Vec<(String, u64)> {
     let mut out = Vec::new();
-    for module_name in syntax_module_import_identities(module) {
+    for module_name in crate::formal_pipeline::source_dependency_modules(module)
+        .into_iter()
+        .filter(|name| name != &module.module_name)
+    {
         if let Some(interface) = interfaces.get(&module_name) {
             let interface_text = interface.to_terlan_interface_type_text();
             out.push((module_name, fingerprint(interface_text.as_bytes())));

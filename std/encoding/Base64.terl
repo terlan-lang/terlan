@@ -29,21 +29,17 @@ decode_result[T](result: Result[T, {Bool, String}]): Result[T, Base64Error] ->
             Err(Base64Error(code = code, message = message, offset = 0))
     }.
 
-@compiler.native {std.encoding.base64.decode_text}
-decode_text(text: String): Result[String, {Bool, String}] ->
-    native.
+@compiler.native
+decode_text(text: String): Result[String, {Bool, String}].
 
-@compiler.native {std.encoding.base64.decode_url_text}
-decode_url_text(text: String): Result[String, {Bool, String}] ->
-    native.
+@compiler.native
+decode_url_text(text: String): Result[String, {Bool, String}].
 
-@compiler.native {std.encoding.base64.decode_octets}
-decode_octets(text: String): Result[Bytes, {Bool, String}] ->
-    native.
+@compiler.native
+decode_octets(text: String): Result[Bytes, {Bool, String}].
 
-@compiler.native {std.encoding.base64.decode_url_octets}
-decode_url_octets(text: String): Result[Bytes, {Bool, String}] ->
-    native.
+@compiler.native
+decode_url_octets(text: String): Result[Bytes, {Bool, String}].
 
 /**
  * Base64Error is the portable error returned by Base64 decoding operations.
@@ -67,9 +63,8 @@ pub struct Base64Error includes Error {
  * Output: Base64 text using the standard alphabet with padding.
  * Transformation: delegates encoding to the selected target Base64 capability.
  */
-@compiler.native {std.encoding.base64.encode}
-pub encode(text: String): String ->
-    native.
+@compiler.native
+pub encode(text: String): String.
 
 /**
  * Decodes standard Base64 text into UTF-8 text.
@@ -92,9 +87,8 @@ pub decode(text: String): Result[String, Base64Error] ->
  * Transformation: delegates URL-safe encoding to the selected target Base64
  * capability.
  */
-@compiler.native {std.encoding.base64.encode_url}
-pub encode_url(text: String): String ->
-    native.
+@compiler.native
+pub encode_url(text: String): String.
 
 /**
  * Decodes URL-safe Base64 text into UTF-8 text.
@@ -116,9 +110,8 @@ pub decode_url(text: String): Result[String, Base64Error] ->
  * Transformation: passes the exact octets through the selected native
  * capability without interpreting them as UTF-8.
  */
-@compiler.native {std.encoding.base64.encode_bytes}
-pub encode_bytes(bytes: Bytes): String ->
-    native.
+@compiler.native
+pub encode_bytes(bytes: Bytes): String.
 
 /**
  * Decodes standard Base64 text into arbitrary VM-owned bytes.
@@ -139,9 +132,8 @@ pub decode_bytes(text: String): Result[Bytes, Base64Error] ->
  * Transformation: passes the exact octets through the selected URL-safe
  * native capability without interpreting them as UTF-8.
  */
-@compiler.native {std.encoding.base64.encode_url_bytes}
-pub encode_url_bytes(bytes: Bytes): String ->
-    native.
+@compiler.native
+pub encode_url_bytes(bytes: Bytes): String.
 
 /**
  * Decodes URL-safe Base64 text into arbitrary VM-owned bytes.

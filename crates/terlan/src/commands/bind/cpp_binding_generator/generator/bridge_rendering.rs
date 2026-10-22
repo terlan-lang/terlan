@@ -352,10 +352,30 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
         "/**\n * {}\n */\n\nmodule {}.\n\n",
         module.documentation, module.module
     );
+    let core_imports = module
+        .functions
+        .iter()
+        .flat_map(|function| {
+            std::iter::once(function.returns.as_str())
+                .chain(function.args.iter().map(|arg| arg.ty.as_str()))
+        })
+        .chain(
+            module
+                .types
+                .iter()
+                .flat_map(|ty| ty.fields.iter().map(|field| field.ty.as_str())),
+        )
+        .flat_map(|ty| ty.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_' && ch != '.'))
+        .filter(|name| matches!(*name, "Option" | "Result"))
+        .filter(|name| !module.types.iter().any(|ty| ty.name == *name))
+        .collect::<BTreeSet<_>>();
+    for name in &core_imports {
+        source.push_str(&format!("import type std.core.{name}.\n"));
+    }
     for imported in &module.type_imports {
         source.push_str(&format!("import type {imported}.\n"));
     }
-    if !module.type_imports.is_empty() {
+    if !module.type_imports.is_empty() || !core_imports.is_empty() {
         source.push('\n');
     }
     for ty in &module.types {
@@ -447,9 +467,13 @@ pub(super) fn render_module_source(module: &NativeBindingModule) -> String {
             ));
         } else {
             source.push_str(&format!(
-                "/** {} */\n@compiler.native {{{}}}\n{visibility}{}({}): {} -> native.\n\n",
+                "/** {} */\n{}\n{visibility}{}({}): {}.\n\n",
                 function.documentation,
-                function.operation,
+                crate::compiler::native_bindings::annotation(
+                    &module.module,
+                    &function.name,
+                    &function.operation
+                ),
                 function.name,
                 render_args(&function.args),
                 function.returns

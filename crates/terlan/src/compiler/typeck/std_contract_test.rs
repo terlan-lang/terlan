@@ -16,6 +16,9 @@ fn std_interface_fixture_scope_includes_only_direct_and_transitive_dependencies(
         modules,
         vec![
             "std.collections.Enumerable",
+            "std.collections.Iterator",
+            "std.collections.List",
+            "std.collections.Set",
             "std.core.Option",
             "std.core.Ordering",
             "std.core.Unit"

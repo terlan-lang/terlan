@@ -180,6 +180,14 @@ lifecycle hooks, property generators, shrinking/reporting support, and fake-test
 detection. These are used by the standard library itself, not kept as examples
 only.
 
+## Interface-First Development
+
+Terlan also supports interface-first development. Write public signatures and
+opaque types in `.terli` files, then run `terlc check src --interfaces-only` to
+check the contracts and their client modules before implementing the paired
+`.terl` files. Normal checks and builds enforce those contracts against the
+implementations. See the [interface-first workflow](docs/grammar/README.md#interface-first-module-development).
+
 ## Runtime Model
 
 Terlan 0.0.8 is centered on `terlan-vm`.

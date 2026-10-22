@@ -14,9 +14,8 @@ import type std.core.{Error, Option, Result}.
 /**
  * Decodes raw form-url-encoded query text in wire order, retaining duplicate keys.
  */
-@compiler.native {std.net.uri.query_pairs}
-pub query_pairs(query: String): List[{String, String}] ->
-    native.
+@compiler.native
+pub query_pairs(query: String): List[{String, String}].
 
 /**
  * Uri represents a parsed URI value.
@@ -36,9 +35,8 @@ pub struct Uri {
 
 type ParseFailure = Atom["uri.parse"].
 
-@compiler.native {std.net.uri.parse_parts}
-parse_parts(text: String): Result[Uri, String] ->
-    native.
+@compiler.native
+parse_parts(text: String): Result[Uri, String].
 
 /**
  * UriError is the portable error returned by URI parsing and accessors.

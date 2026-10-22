@@ -160,9 +160,8 @@ pub opaque type Outcome.
  * Transformation: selects force-local VM behavior for tests and development.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.local_only}
-pub local_only(): Mode ->
-    native.
+@compiler.native
+pub local_only(): Mode.
 
 /**
  * Builds the durable storage mode.
@@ -173,9 +172,8 @@ pub local_only(): Mode ->
  * available.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.durable}
-pub durable(): Mode ->
-    native.
+@compiler.native
+pub durable(): Mode.
 
 /**
  * Builds the cluster storage mode.
@@ -186,9 +184,8 @@ pub durable(): Mode ->
  * supports it.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.cluster}
-pub cluster(): Mode ->
-    native.
+@compiler.native
+pub cluster(): Mode.
 
 /**
  * Builds the default force-local storage policy.
@@ -200,9 +197,8 @@ pub cluster(): Mode ->
  * shutdown loses its data; this policy does not support durable-flush proofs.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.force_local}
-pub force_local(): Policy ->
-    native.
+@compiler.native
+pub force_local(): Policy.
 
 /**
  * Builds a storage policy descriptor.
@@ -213,9 +209,8 @@ pub force_local(): Policy ->
  * supervisor-provided binding; source code cannot grant filesystem authority.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.policy}
-pub policy(name: String, mode: Mode, available: Bool): Policy ->
-    native.
+@compiler.native
+pub policy(name: String, mode: Mode, available: Bool): Policy.
 
 /**
  * Returns the stable policy name.
@@ -226,9 +221,8 @@ pub policy(name: String, mode: Mode, available: Bool): Policy ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.policy_name}
-pub policy_name(policy: Policy): String ->
-    native.
+@compiler.native
+pub policy_name(policy: Policy): String.
 
 /**
  * Returns the stable policy mode kind.
@@ -239,9 +233,8 @@ pub policy_name(policy: Policy): String ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.policy_mode_kind}
-pub policy_mode_kind(policy: Policy): String ->
-    native.
+@compiler.native
+pub policy_mode_kind(policy: Policy): String.
 
 /**
  * Returns whether the selected backend is available.
@@ -252,9 +245,8 @@ pub policy_mode_kind(policy: Policy): String ->
  * without opening the adapter.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.policy_available}
-pub policy_available(policy: Policy): Bool ->
-    native.
+@compiler.native
+pub policy_available(policy: Policy): Bool.
 
 /**
  * Returns whether a policy can perform cluster replication.
@@ -265,9 +257,8 @@ pub policy_available(policy: Policy): Bool ->
  * lifecycle calls.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.policy_can_cluster_replicate}
-pub policy_can_cluster_replicate(policy: Policy): Bool ->
-    native.
+@compiler.native
+pub policy_can_cluster_replicate(policy: Policy): Bool.
 
 /**
  * Creates a storage adapter from a policy.
@@ -277,9 +268,8 @@ pub policy_can_cluster_replicate(policy: Policy): Bool ->
  * Transformation: binds lifecycle operations to one VM-owned backend policy.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.adapter}
-pub adapter(policy: Policy): Adapter ->
-    native.
+@compiler.native
+pub adapter(policy: Policy): Adapter.
 
 /**
  * Returns the policy name attached to an adapter.
@@ -291,8 +281,7 @@ pub adapter(policy: Policy): Adapter ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.distributed_storage.adapter_policy_name}
-pub (adapter: Adapter) policy_name(): String ->
-    native.
+pub (adapter: Adapter) policy_name(): String.
 
 /**
  * Returns the policy mode kind attached to an adapter.
@@ -304,8 +293,7 @@ pub (adapter: Adapter) policy_name(): String ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.distributed_storage.adapter_policy_mode_kind}
-pub (adapter: Adapter) policy_mode_kind(): String ->
-    native.
+pub (adapter: Adapter) policy_mode_kind(): String.
 
 /**
  * Returns whether an adapter's selected backend is available.
@@ -317,8 +305,7 @@ pub (adapter: Adapter) policy_mode_kind(): String ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.distributed_storage.adapter_policy_available}
-pub (adapter: Adapter) policy_available(): Bool ->
-    native.
+pub (adapter: Adapter) policy_available(): Bool.
 
 /**
  * Returns whether an adapter can perform cluster replication.
@@ -329,9 +316,8 @@ pub (adapter: Adapter) policy_available(): Bool ->
  * `require_cluster_replication`.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.can_cluster_replicate}
-pub (adapter: Adapter) can_cluster_replicate(): Bool ->
-    native.
+@compiler.native
+pub (adapter: Adapter) can_cluster_replicate(): Bool.
 
 /**
  * Builds a checkpoint descriptor from distributed state.
@@ -342,13 +328,12 @@ pub (adapter: Adapter) can_cluster_replicate(): Bool ->
  * checkpoint.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.checkpoint}
+@compiler.native
 pub checkpoint(
     checkpoint_id: String,
     sequence: Int,
     state: std.vm.DistributedState.Snapshot,
-): Snapshot ->
-    native.
+): Snapshot.
 
 /**
  * Restores checkpoint contents as a new actor-owned mutable state store.
@@ -359,9 +344,8 @@ pub checkpoint(
  * the current image's atom vocabulary. This does not open a durable backend.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.restore}
-pub (snapshot: Snapshot) restore(): std.vm.DistributedState.Store ->
-    native.
+@compiler.native
+pub (snapshot: Snapshot) restore(): std.vm.DistributedState.Store.
 
 /**
  * Builds a logical checkpoint with an explicit application schema version.
@@ -373,14 +357,13 @@ pub (snapshot: Snapshot) restore(): std.vm.DistributedState.Store ->
  * rejects tags that differ from the durable backend's current schema.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.checkpoint_with_schema}
+@compiler.native
 pub checkpoint_with_schema(
     checkpoint_id: String,
     sequence: Int,
     schema: Int,
     state: std.vm.DistributedState.Snapshot,
-): Snapshot ->
-    native.
+): Snapshot.
 
 /**
  * Returns the application schema tag of a created or loaded checkpoint.
@@ -391,9 +374,8 @@ pub checkpoint_with_schema(
  * without conflating their schema with the VM's versioned logical encoding.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.checkpoint_schema}
-pub checkpoint_schema(snapshot: Snapshot): Int ->
-    native.
+@compiler.native
+pub checkpoint_schema(snapshot: Snapshot): Int.
 
 /**
  * Opens a storage adapter.
@@ -403,9 +385,8 @@ pub checkpoint_schema(snapshot: Snapshot): Int ->
  * Transformation: performs deterministic capability and availability checks.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.open}
-pub (adapter: Adapter) open(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) open(): Outcome.
 
 /**
  * Appends a storage snapshot.
@@ -417,9 +398,8 @@ pub (adapter: Adapter) open(): Outcome ->
  * storage lane.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.append}
-pub (adapter: Adapter) append(snapshot: Snapshot): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) append(snapshot: Snapshot): Outcome.
 
 /**
  * Requires atomic append support.
@@ -430,9 +410,8 @@ pub (adapter: Adapter) append(snapshot: Snapshot): Outcome ->
  * writing checkpoints.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_atomic_append}
-pub (adapter: Adapter) require_atomic_append(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_atomic_append(): Outcome.
 
 /**
  * Returns the current atomic append proof.
@@ -443,9 +422,8 @@ pub (adapter: Adapter) require_atomic_append(): Outcome ->
  * must not advance.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.atomic_append_proof}
-pub (adapter: Adapter) atomic_append_proof(): AtomicAppendProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) atomic_append_proof(): AtomicAppendProof.
 
 /**
  * Requires snapshot isolation support.
@@ -456,9 +434,8 @@ pub (adapter: Adapter) atomic_append_proof(): AtomicAppendProof ->
  * before loading checkpoint views.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_snapshot_isolation}
-pub (adapter: Adapter) require_snapshot_isolation(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_snapshot_isolation(): Outcome.
 
 /**
  * Returns a snapshot isolation proof for a checkpoint.
@@ -469,9 +446,8 @@ pub (adapter: Adapter) require_snapshot_isolation(): Outcome ->
  * adapter writes or compaction can occur.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.snapshot_isolation_proof}
-pub (adapter: Adapter) snapshot_isolation_proof(checkpoint_id: String): SnapshotIsolationProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) snapshot_isolation_proof(checkpoint_id: String): SnapshotIsolationProof.
 
 /**
  * Requires durable flush proof support.
@@ -483,9 +459,8 @@ pub (adapter: Adapter) snapshot_isolation_proof(checkpoint_id: String): Snapshot
  * capability checks before accepting a durable boundary proof.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_durable_flush}
-pub (adapter: Adapter) require_durable_flush(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_durable_flush(): Outcome.
 
 /**
  * Returns the current durable flush proof.
@@ -497,9 +472,8 @@ pub (adapter: Adapter) require_durable_flush(): Outcome ->
  * rather than issuing a persistence proof for volatile memory.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.durable_flush_proof}
-pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof.
 
 /**
  * Requires transactional batch append support.
@@ -510,9 +484,8 @@ pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof ->
  * before accepting grouped checkpoint writes.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_transactional_batch}
-pub (adapter: Adapter) require_transactional_batch(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_transactional_batch(): Outcome.
 
 /**
  * Returns the current transactional batch proof.
@@ -523,9 +496,8 @@ pub (adapter: Adapter) require_transactional_batch(): Outcome ->
  * partial batch attempts must not advance.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.transactional_batch_proof}
-pub (adapter: Adapter) transactional_batch_proof(): TransactionalBatchProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) transactional_batch_proof(): TransactionalBatchProof.
 
 /**
  * Appends a group of snapshots as one all-or-nothing transaction.
@@ -537,9 +509,8 @@ pub (adapter: Adapter) transactional_batch_proof(): TransactionalBatchProof ->
  * a partial batch cannot become actor-visible.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.transactional_batch_append}
-pub (adapter: Adapter) transactional_batch_append(snapshots: List[Snapshot]): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) transactional_batch_append(snapshots: List[Snapshot]): Outcome.
 
 /**
  * Requires schema migration support.
@@ -550,9 +521,8 @@ pub (adapter: Adapter) transactional_batch_append(snapshots: List[Snapshot]): Ou
  * before accepting adapter schema changes.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_schema_migration}
-pub (adapter: Adapter) require_schema_migration(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_schema_migration(): Outcome.
 
 /**
  * Returns the current schema migration proof.
@@ -563,9 +533,8 @@ pub (adapter: Adapter) require_schema_migration(): Outcome ->
  * migration attempts must not advance.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.schema_migration_proof}
-pub (adapter: Adapter) schema_migration_proof(): SchemaMigrationProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) schema_migration_proof(): SchemaMigrationProof.
 
 /**
  * Migrates the adapter schema when the expected version is current.
@@ -577,9 +546,8 @@ pub (adapter: Adapter) schema_migration_proof(): SchemaMigrationProof ->
  * boundary instead of allowing hidden adapter-specific rewrites.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.migrate_schema}
-pub (adapter: Adapter) migrate_schema(expected_schema: Int, next_schema: Int): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) migrate_schema(expected_schema: Int, next_schema: Int): Outcome.
 
 /**
  * Requires resource handle validation support.
@@ -591,9 +559,8 @@ pub (adapter: Adapter) migrate_schema(expected_schema: Int, next_schema: Int): O
  * capability check does not itself validate a resource or confer authority.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_resource_handle_validation}
-pub (adapter: Adapter) require_resource_handle_validation(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_resource_handle_validation(): Outcome.
 
 /**
  * Returns the current resource handle validation proof.
@@ -606,9 +573,8 @@ pub (adapter: Adapter) require_resource_handle_validation(): Outcome ->
  * guarantees. Unsupported or closed adapters cannot issue these proofs.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.resource_handle_validation_proof}
-pub (adapter: Adapter) resource_handle_validation_proof(): ResourceHandleValidationProof ->
-    native.
+@compiler.native
+pub (adapter: Adapter) resource_handle_validation_proof(): ResourceHandleValidationProof.
 
 /**
  * Registers a supervisor-authorized resource name with the adapter.
@@ -624,9 +590,8 @@ pub (adapter: Adapter) resource_handle_validation_proof(): ResourceHandleValidat
  * currently supported. Volatile adapters do not gain storage durability.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.register_resource_handle}
-pub (adapter: Adapter) register_resource_handle(handle: String): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) register_resource_handle(handle: String): Outcome.
 
 /**
  * Revalidates registered resource names against their authorized live workers.
@@ -641,9 +606,8 @@ pub (adapter: Adapter) register_resource_handle(handle: String): Outcome ->
  * snapshot across resources, and all probes share one bounded deadline.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.validate_resource_handles}
-pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome.
 
 /**
  * Requests storage snapshot replication, unsupported in 0.0.9.
@@ -655,9 +619,8 @@ pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome
  * substituted. Rejection coverage is not replication capability coverage.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.replicate_snapshot}
-pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome.
 
 /**
  * Returns a compare-and-swap append token for the current sequence.
@@ -668,9 +631,8 @@ pub (adapter: Adapter) replicate_snapshot(snapshot: Snapshot): Outcome ->
  * before a guarded append can commit.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.compare_and_swap_token}
-pub (adapter: Adapter) compare_and_swap_token(): CompareAndSwapToken ->
-    native.
+@compiler.native
+pub (adapter: Adapter) compare_and_swap_token(): CompareAndSwapToken.
 
 /**
  * Appends a storage snapshot if the compare-and-swap token is current.
@@ -682,9 +644,8 @@ pub (adapter: Adapter) compare_and_swap_token(): CompareAndSwapToken ->
  * boundary.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.compare_and_swap_append}
-pub (adapter: Adapter) compare_and_swap_append(snapshot: Snapshot, token: CompareAndSwapToken): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) compare_and_swap_append(snapshot: Snapshot, token: CompareAndSwapToken): Outcome.
 
 /**
  * Flushes pending storage writes.
@@ -696,9 +657,8 @@ pub (adapter: Adapter) compare_and_swap_append(snapshot: Snapshot, token: Compar
  * local-only adapters establish an in-memory ordering barrier only.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.flush}
-pub (adapter: Adapter) flush(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) flush(): Outcome.
 
 /**
  * Compacts old storage snapshots.
@@ -708,9 +668,8 @@ pub (adapter: Adapter) flush(): Outcome ->
  * Transformation: delegates deterministic retention to the VM storage lane.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.compact}
-pub (adapter: Adapter) compact(retain_from_sequence: Int): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) compact(retain_from_sequence: Int): Outcome.
 
 /**
  * Loads a checkpoint by id.
@@ -722,9 +681,8 @@ pub (adapter: Adapter) compact(retain_from_sequence: Int): Outcome ->
  * loaded descriptor.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.load_snapshot}
-pub (adapter: Adapter) load_snapshot(checkpoint_id: String): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) load_snapshot(checkpoint_id: String): Outcome.
 
 /**
  * Closes a storage adapter.
@@ -734,9 +692,8 @@ pub (adapter: Adapter) load_snapshot(checkpoint_id: String): Outcome ->
  * Transformation: makes adapter lifecycle shutdown explicit.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.close}
-pub (adapter: Adapter) close(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) close(): Outcome.
 
 /**
  * Checks for cluster replication support, unsupported in 0.0.9.
@@ -747,9 +704,8 @@ pub (adapter: Adapter) close(): Outcome ->
  * availability flag or whether a local durable backend has been configured.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.require_cluster_replication}
-pub (adapter: Adapter) require_cluster_replication(): Outcome ->
-    native.
+@compiler.native
+pub (adapter: Adapter) require_cluster_replication(): Outcome.
 
 /**
  * Returns the sequence boundary covered by an atomic append proof.
@@ -760,9 +716,8 @@ pub (adapter: Adapter) require_cluster_replication(): Outcome ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.proof_sequence}
-pub proof_sequence(proof: AtomicAppendProof): Int ->
-    native.
+@compiler.native
+pub proof_sequence(proof: AtomicAppendProof): Int.
 
 /**
  * Returns the checkpoint id covered by a snapshot isolation proof.
@@ -773,9 +728,8 @@ pub proof_sequence(proof: AtomicAppendProof): Int ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.isolation_checkpoint_id}
-pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String ->
-    native.
+@compiler.native
+pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String.
 
 /**
  * Returns the sequence covered by a snapshot isolation proof.
@@ -786,9 +740,8 @@ pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.isolation_sequence}
-pub isolation_sequence(proof: SnapshotIsolationProof): Int ->
-    native.
+@compiler.native
+pub isolation_sequence(proof: SnapshotIsolationProof): Int.
 
 /**
  * Returns the checksum covered by a snapshot isolation proof.
@@ -799,9 +752,8 @@ pub isolation_sequence(proof: SnapshotIsolationProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.isolation_checksum}
-pub isolation_checksum(proof: SnapshotIsolationProof): Int ->
-    native.
+@compiler.native
+pub isolation_checksum(proof: SnapshotIsolationProof): Int.
 
 /**
  * Returns the sequence covered by a durable flush proof.
@@ -812,9 +764,8 @@ pub isolation_checksum(proof: SnapshotIsolationProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.durable_flush_sequence}
-pub durable_flush_sequence(proof: DurableFlushProof): Int ->
-    native.
+@compiler.native
+pub durable_flush_sequence(proof: DurableFlushProof): Int.
 
 /**
  * Returns the first sequence covered by a transactional batch proof.
@@ -825,9 +776,8 @@ pub durable_flush_sequence(proof: DurableFlushProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.batch_first_sequence}
-pub batch_first_sequence(proof: TransactionalBatchProof): Int ->
-    native.
+@compiler.native
+pub batch_first_sequence(proof: TransactionalBatchProof): Int.
 
 /**
  * Returns the last sequence covered by a transactional batch proof.
@@ -838,9 +788,8 @@ pub batch_first_sequence(proof: TransactionalBatchProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.batch_last_sequence}
-pub batch_last_sequence(proof: TransactionalBatchProof): Int ->
-    native.
+@compiler.native
+pub batch_last_sequence(proof: TransactionalBatchProof): Int.
 
 /**
  * Returns the number of snapshots covered by a transactional batch proof.
@@ -851,9 +800,8 @@ pub batch_last_sequence(proof: TransactionalBatchProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.batch_committed_count}
-pub batch_committed_count(proof: TransactionalBatchProof): Int ->
-    native.
+@compiler.native
+pub batch_committed_count(proof: TransactionalBatchProof): Int.
 
 /**
  * Returns the schema version covered by a schema migration proof.
@@ -864,9 +812,8 @@ pub batch_committed_count(proof: TransactionalBatchProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.schema_version}
-pub schema_version(proof: SchemaMigrationProof): Int ->
-    native.
+@compiler.native
+pub schema_version(proof: SchemaMigrationProof): Int.
 
 /**
  * Returns the storage sequence covered by a schema migration proof.
@@ -877,9 +824,8 @@ pub schema_version(proof: SchemaMigrationProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.schema_sequence}
-pub schema_sequence(proof: SchemaMigrationProof): Int ->
-    native.
+@compiler.native
+pub schema_sequence(proof: SchemaMigrationProof): Int.
 
 /**
  * Returns the count covered by a resource handle validation proof.
@@ -890,9 +836,8 @@ pub schema_sequence(proof: SchemaMigrationProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.resource_handle_count}
-pub resource_handle_count(proof: ResourceHandleValidationProof): Int ->
-    native.
+@compiler.native
+pub resource_handle_count(proof: ResourceHandleValidationProof): Int.
 
 /**
  * Returns the storage sequence covered by a resource validation proof.
@@ -903,9 +848,8 @@ pub resource_handle_count(proof: ResourceHandleValidationProof): Int ->
  * exposing adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.resource_handle_sequence}
-pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int ->
-    native.
+@compiler.native
+pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int.
 
 /**
  * Returns the missing resource handle for validation failures.
@@ -916,9 +860,8 @@ pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.missing_resource_handle}
-pub missing_resource_handle(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub missing_resource_handle(outcome: Outcome): String.
 
 /**
  * Returns the count validated by a successful resource handle check.
@@ -929,9 +872,8 @@ pub missing_resource_handle(outcome: Outcome): String ->
  * and replay diagnostics.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.validated_resource_count}
-pub validated_resource_count(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub validated_resource_count(outcome: Outcome): Int.
 
 /**
  * Extracts a loaded snapshot from a lifecycle outcome.
@@ -942,9 +884,8 @@ pub validated_resource_count(outcome: Outcome): Int ->
  * parsing.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.loaded_snapshot}
-pub loaded_snapshot(outcome: Outcome): Snapshot ->
-    native.
+@compiler.native
+pub loaded_snapshot(outcome: Outcome): Snapshot.
 
 /**
  * Returns the textual lifecycle outcome kind.
@@ -955,9 +896,8 @@ pub loaded_snapshot(outcome: Outcome): Snapshot ->
  * tools.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.kind}
-pub kind(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub kind(outcome: Outcome): String.
 
 /**
  * Returns the lifecycle operation kind associated with an outcome.
@@ -969,9 +909,8 @@ pub kind(outcome: Outcome): String ->
  * exposing backend internals or debug text.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.operation_kind}
-pub operation_kind(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub operation_kind(outcome: Outcome): String.
 
 /**
  * Returns the storage mode kind associated with an outcome.
@@ -983,9 +922,8 @@ pub operation_kind(outcome: Outcome): String ->
  * without exposing adapter state.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.mode_kind}
-pub mode_kind(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub mode_kind(outcome: Outcome): String.
 
 /**
  * Returns the stable failure reason associated with an outcome.
@@ -997,9 +935,8 @@ pub mode_kind(outcome: Outcome): String ->
  * leaking backend-specific error messages.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.reason}
-pub reason(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub reason(outcome: Outcome): String.
 
 /**
  * Returns whether an outcome represents a failed storage operation.
@@ -1011,9 +948,8 @@ pub reason(outcome: Outcome): String ->
  * of requiring string comparisons.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.is_failure}
-pub is_failure(outcome: Outcome): Bool ->
-    native.
+@compiler.native
+pub is_failure(outcome: Outcome): Bool.
 
 /**
  * Returns whether an outcome represents a successful storage operation.
@@ -1025,9 +961,8 @@ pub is_failure(outcome: Outcome): Bool ->
  * requiring callers to negate failure state.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.is_success}
-pub is_success(outcome: Outcome): Bool ->
-    native.
+@compiler.native
+pub is_success(outcome: Outcome): Bool.
 
 /**
  * Returns whether a failure outcome requires storage recovery work.
@@ -1039,9 +974,8 @@ pub is_success(outcome: Outcome): Bool ->
  * capability or lookup outcomes without string comparisons.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.requires_recovery}
-pub requires_recovery(outcome: Outcome): Bool ->
-    native.
+@compiler.native
+pub requires_recovery(outcome: Outcome): Bool.
 
 /**
  * Returns the recovery action associated with a failure outcome.
@@ -1053,9 +987,8 @@ pub requires_recovery(outcome: Outcome): Bool ->
  * of coupling migration or fault code to diagnostic strings.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.recovery_action}
-pub recovery_action(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub recovery_action(outcome: Outcome): String.
 
 /**
  * Returns the sequence associated with a lifecycle outcome.
@@ -1066,9 +999,8 @@ pub recovery_action(outcome: Outcome): String ->
  * without exposing backend internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.sequence}
-pub sequence(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub sequence(outcome: Outcome): Int.
 
 /**
  * Returns the expected sequence for compare-and-swap token mismatch outcomes.
@@ -1080,9 +1012,8 @@ pub sequence(outcome: Outcome): Int ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.expected_sequence}
-pub expected_sequence(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub expected_sequence(outcome: Outcome): Int.
 
 /**
  * Returns the actual sequence for compare-and-swap token mismatch outcomes.
@@ -1094,9 +1025,8 @@ pub expected_sequence(outcome: Outcome): Int ->
  * internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.actual_sequence}
-pub actual_sequence(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub actual_sequence(outcome: Outcome): Int.
 
 /**
  * Returns the expected schema version for schema migration failures.
@@ -1108,9 +1038,8 @@ pub actual_sequence(outcome: Outcome): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.expected_schema}
-pub expected_schema(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub expected_schema(outcome: Outcome): Int.
 
 /**
  * Returns the actual schema version for schema migration outcomes.
@@ -1122,9 +1051,8 @@ pub expected_schema(outcome: Outcome): Int ->
  * adapter internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.actual_schema}
-pub actual_schema(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub actual_schema(outcome: Outcome): Int.
 
 /**
  * Returns the checkpoint id associated with a lifecycle outcome.
@@ -1136,9 +1064,8 @@ pub actual_schema(outcome: Outcome): Int ->
  * recovery without exposing snapshot internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.checkpoint_id}
-pub checkpoint_id(outcome: Outcome): String ->
-    native.
+@compiler.native
+pub checkpoint_id(outcome: Outcome): String.
 
 /**
  * Returns the local sequence for stale-snapshot outcomes.
@@ -1149,9 +1076,8 @@ pub checkpoint_id(outcome: Outcome): String ->
  * state.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.local_sequence}
-pub local_sequence(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub local_sequence(outcome: Outcome): Int.
 
 /**
  * Returns the incoming sequence for stale-snapshot outcomes.
@@ -1161,9 +1087,8 @@ pub local_sequence(outcome: Outcome): Int ->
  * Transformation: exposes rejected checkpoint ordering as typed metadata.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.incoming_sequence}
-pub incoming_sequence(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub incoming_sequence(outcome: Outcome): Int.
 
 /**
  * Returns the checksum associated with a lifecycle outcome.
@@ -1174,9 +1099,8 @@ pub incoming_sequence(outcome: Outcome): Int ->
  * leaking the snapshot representation.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.checksum}
-pub checksum(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub checksum(outcome: Outcome): Int.
 
 /**
  * Returns the expected checksum for checksum-mismatch outcomes.
@@ -1188,9 +1112,8 @@ pub checksum(outcome: Outcome): Int ->
  * snapshot representation.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.expected_checksum}
-pub expected_checksum(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub expected_checksum(outcome: Outcome): Int.
 
 /**
  * Returns the expected entry count for partial-write outcomes.
@@ -1203,9 +1126,8 @@ pub expected_checksum(outcome: Outcome): Int ->
  * write; zero does not establish that an unacknowledged write rolled back.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.expected_entries}
-pub expected_entries(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub expected_entries(outcome: Outcome): Int.
 
 /**
  * Returns the persisted entry count for partial-write outcomes.
@@ -1218,9 +1140,8 @@ pub expected_entries(outcome: Outcome): Int ->
  * checkpoint identities; this getter is not evidence of rollback.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.persisted_entries}
-pub persisted_entries(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub persisted_entries(outcome: Outcome): Int.
 
 /**
  * Returns the retained snapshot count for compaction outcomes.
@@ -1231,6 +1152,5 @@ pub persisted_entries(outcome: Outcome): Int ->
  * adapter log internals.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.distributed_storage.retained_snapshots}
-pub retained_snapshots(outcome: Outcome): Int ->
-    native.
+@compiler.native
+pub retained_snapshots(outcome: Outcome): Int.

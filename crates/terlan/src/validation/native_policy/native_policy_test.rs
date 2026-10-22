@@ -15,9 +15,8 @@ use super::*;
 fn compiler_native_annotation_requires_native_policy() {
     let source = r#"module std.data.Json.
 
-@compiler.native {std.data.json.parse}
-pub parse(text: String): Json ->
-    native.
+@compiler.native
+pub parse(text: String): Json.
 "#;
 
     assert!(source_uses_native(source));
@@ -86,9 +85,8 @@ fn parses_native_boundary_policy_values() {
 /// - Keeps user-facing errors aligned with native-boundary terminology.
 #[test]
 fn pure_policy_error_names_native_boundary_values() {
-    let error =
-        validate_native_policy("@compiler.native {std.data.json.parse}", NativePolicy::Pure)
-            .expect_err("native usage should fail under pure policy");
+    let error = validate_native_policy("@compiler.native", NativePolicy::Pure)
+        .expect_err("native usage should fail under pure policy");
     assert!(error.contains("native_boundary_optional"), "{error}");
     assert!(error.contains("native_boundary_required"), "{error}");
 }

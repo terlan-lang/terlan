@@ -1,8 +1,10 @@
 module=std.vcs.Git
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
 source_hash=2794294468673974141
 interface_hash=124440084770436481
 interface_doc_hash=5873675575262176328
-deps=0
+deps=2
+std.core.Error=1244151485527378485
+std.core.Result=11040488711914238385

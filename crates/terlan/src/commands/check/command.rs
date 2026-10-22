@@ -10,9 +10,7 @@ use crate::validation::target_profile::{
     explicit_target_profile_override_error, infer_target_profile_from_typed_evidence,
     TargetInferenceInput, TargetProfile,
 };
-use crate::{formal_pipeline::CheckedSyntaxModuleArtifacts, CliCommand, CliState};
-
-use super::directory::run_check_dir;
+use crate::{CliCommand, CliState};
 
 /// Executes the `check` CLI command for a source path or directory.
 ///
@@ -31,7 +29,7 @@ use super::directory::run_check_dir;
 ///   directory checker, and runs single-file sources through the formal compile
 ///   phase pipeline with optional phase-manifest emission.
 pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
-    let (path, phase_manifest_path) = match parse_check_args(&cmd.args) {
+    let (path, phase_manifest_path, interfaces_only) = match parse_check_args(&cmd.args) {
         Ok(result) => result,
         Err(message) => {
             eprintln!("{}", message);
@@ -41,7 +39,16 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     };
 
     if Path::new(&path).is_dir() {
-        return run_check_dir(&path, state, phase_manifest_path.as_deref());
+        return super::project::run(
+            &path,
+            state,
+            phase_manifest_path.as_deref(),
+            interfaces_only,
+        );
+    }
+    if interfaces_only {
+        eprintln!("--interfaces-only requires a source directory");
+        return ExitCode::from(2);
     }
 
     let source = match crate::support::read_file(&path) {
@@ -107,6 +114,24 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             target_profile,
         );
 
+    finish_check(
+        &path,
+        source_hash,
+        &state,
+        phase_manifest_path.as_deref(),
+        compile,
+    )
+}
+
+/// Presents a shared pipeline result without treating interface declarations as
+/// executable CoreIR. Directory contract checking uses the same diagnostics.
+pub(super) fn finish_check(
+    path: &str,
+    source_hash: u64,
+    state: &CliState,
+    phase_manifest_path: Option<&Path>,
+    compile: crate::formal_pipeline::CompileSyntaxModuleThroughPhasesResult,
+) -> ExitCode {
     let parse_output = if compile.parse_diagnostics.is_empty() {
         create_phase("parse", "ok", Vec::new())
     } else {
@@ -170,7 +195,8 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     } else {
         create_phase("typecheck", "ok", compile.typecheck_diagnostics.clone())
     };
-    let core_output = if !compile.parse_diagnostics.is_empty()
+    let core_output = if compile.checked_interface.is_some()
+        || !compile.parse_diagnostics.is_empty()
         || !compile.macro_expansion_diagnostics.is_empty()
         || !compile.include_expansion_diagnostics.is_empty()
         || !compile.resolve_diagnostics.is_empty()
@@ -189,7 +215,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         )
     };
 
-    if let Some(manifest_path) = phase_manifest_path.as_deref() {
+    if let Some(manifest_path) = phase_manifest_path {
         if let Some(artifacts) = &compile.artifacts {
             let interface = &artifacts.core.interface;
             let dependency_hashes = collect_syntax_dependency_hashes(
@@ -207,7 +233,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             if let Err(err) = emit_phase_manifest(
                 Path::new(manifest_path),
                 PhaseManifestIdentity {
-                    source_path: &path,
+                    source_path: path,
                     module_name: Some(artifacts.syntax_output.module_name.as_str()),
                     source_hash,
                     interface_hash,
@@ -228,11 +254,46 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 eprintln!("failed to write phase manifest: {}", err);
                 return ExitCode::from(1);
             }
+        } else if let Some(checked) = &compile.checked_interface {
+            let dependencies = collect_syntax_dependency_hashes(
+                &checked.syntax_output,
+                &checked.interfaces,
+                Some(Path::new(path)),
+                None,
+            );
+            if let Err(err) = emit_phase_manifest(
+                manifest_path,
+                PhaseManifestIdentity {
+                    source_path: path,
+                    module_name: Some(&checked.syntax_output.module_name),
+                    source_hash,
+                    interface_hash: fingerprint(
+                        checked.interface.to_terlan_interface_type_text().as_bytes(),
+                    ),
+                    interface_doc_hash: fingerprint(
+                        checked.interface.to_terlan_interface_doc_text().as_bytes(),
+                    ),
+                    core_ir_hash: 0,
+                },
+                PhaseManifestCoreProofCoverage::default(),
+                &dependencies,
+                &[
+                    parse_output,
+                    macro_output,
+                    include_output,
+                    resolve_output,
+                    type_output,
+                    core_output,
+                ],
+            ) {
+                eprintln!("failed to write phase manifest: {err}");
+                return ExitCode::from(1);
+            }
         } else {
             if let Err(err) = emit_phase_manifest(
                 Path::new(manifest_path),
                 PhaseManifestIdentity {
-                    source_path: &path,
+                    source_path: path,
                     module_name: None,
                     source_hash,
                     interface_hash: 0,
@@ -261,9 +322,13 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
         return compile.exit_code;
     }
 
-    let CheckedSyntaxModuleArtifacts { syntax_output, .. } = compile
-        .artifacts
-        .expect("compile module should produce artifacts on success");
+    let syntax_output = if let Some(artifacts) = compile.artifacts {
+        artifacts.syntax_output
+    } else if let Some(checked) = compile.checked_interface {
+        checked.syntax_output
+    } else {
+        return ExitCode::from(1);
+    };
 
     if state.trace_invalidation {
         println!("CHECK {}", syntax_output.module_name);
@@ -351,12 +416,21 @@ pub(super) fn effective_check_target_profile_from_input(
 /// Transformation:
 /// - Scans positional source path and `--emit-phase-manifest <path>` while
 ///   rejecting unsupported argument shapes.
-pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBuf>), String> {
+pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBuf>, bool), String> {
     let mut path = None;
     let mut emit_phase_manifest = None;
+    let mut interfaces_only = false;
     let mut i = 0;
 
     while i < args.len() {
+        if args[i] == "--interfaces-only" {
+            if interfaces_only {
+                return Err("duplicate --interfaces-only".to_string());
+            }
+            interfaces_only = true;
+            i += 1;
+            continue;
+        }
         if args[i].as_str() == "--emit-phase-manifest" {
             if i + 1 >= args.len() {
                 return Err("--emit-phase-manifest requires a path".to_string());
@@ -379,5 +453,5 @@ pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBu
     }
 
     let path = path.ok_or_else(|| "missing path argument".to_string())?;
-    Ok((path, emit_phase_manifest))
+    Ok((path, emit_phase_manifest, interfaces_only))
 }

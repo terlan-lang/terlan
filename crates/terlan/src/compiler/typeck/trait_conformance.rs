@@ -4,7 +4,7 @@ mod impls;
 mod negative_impls;
 mod syntax;
 
-use impls::check_parsed_trait_impl_signature;
+use impls::{check_parsed_trait_impl_signature, TraitImplSignatureContext};
 pub(super) use negative_impls::{
     check_syntax_negative_trait_impls, collect_visible_negative_trait_impl_type_args,
     syntax_trait_impl_to_parsed,
@@ -133,57 +133,6 @@ pub(super) fn collect_local_syntax_struct_fields(
         .collect()
 }
 
-/// Collects imported struct fields visible under local import names.
-///
-/// Inputs:
-/// - `resolved`: resolved module context with imported type items and provider
-///   interfaces.
-///
-/// Output:
-/// - Map from local imported type name to ordered syntax-output-like field
-///   metadata.
-///
-/// Transformation:
-/// - Reads public struct field signatures from the provider interface and
-///   converts them back into syntax-output field metadata with empty spans and
-///   no defaults. This lets derive expansion treat local and imported parent
-///   structs uniformly without loading provider source files.
-pub(super) fn collect_imported_syntax_struct_fields(
-    resolved: &ResolvedModule,
-) -> HashMap<String, Vec<SyntaxStructFieldOutput>> {
-    let mut structs = HashMap::new();
-
-    for (local_name, imported) in &resolved.imported_types {
-        let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
-            continue;
-        };
-        let Some(fields) = interface.struct_fields.get(&imported.source_name) else {
-            continue;
-        };
-
-        structs.insert(
-            local_name.clone(),
-            fields
-                .iter()
-                .map(|field| SyntaxStructFieldOutput {
-                    name: field.name.clone(),
-                    annotation: SyntaxTypeOutput {
-                        text: field.annotation.clone(),
-                        span: Default::default(),
-                    },
-                    is_private: field.is_private,
-                    docs: Vec::new(),
-                    has_default: false,
-                    default: None,
-                    span: Default::default(),
-                })
-                .collect(),
-        );
-    }
-
-    structs
-}
-
 /// Returns whether an included parent name is visible as a local or imported type.
 ///
 /// Inputs:
@@ -197,8 +146,7 @@ pub(super) fn collect_imported_syntax_struct_fields(
 /// - `true` when the parent is a local struct or imported public struct name.
 ///
 /// Transformation:
-/// - Keeps struct inclusion validation separate from trait lookup. Imported
-///   names are accepted only when their provider interface exposes structured
+/// - Accepts imported parent names only when the provider exposes structured
 ///   public field metadata.
 fn is_visible_struct_include_parent(
     parent_name: &str,
@@ -229,7 +177,7 @@ pub(super) fn check_syntax_struct_includes(
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let local_structs = collect_local_syntax_struct_fields(module);
-    let imported_structs = collect_imported_syntax_struct_fields(resolved);
+    let imported_structs = super::struct_includes::imported_struct_fields(resolved);
 
     for declaration in &module.declarations {
         let SyntaxDeclarationPayload::Struct { name, includes, .. } = &declaration.payload else {
@@ -547,10 +495,14 @@ pub(super) fn check_syntax_trait_impl_signatures(
         check_parsed_trait_impl_signature(
             &impl_decl,
             declaration.span.into(),
-            trait_map,
+            TraitImplSignatureContext {
+                trait_map,
+                alias_names,
+                aliases,
+                require_implementation: module.source_kind
+                    != crate::terlan_syntax::SyntaxSourceKind::Interface,
+            },
             &mut inheritance_cache,
-            alias_names,
-            aliases,
             &mut diagnostics,
         );
     }

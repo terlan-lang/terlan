@@ -147,17 +147,62 @@ fn decode_checked_entry(
         return None;
     }
     let interface = syntax_module_output_to_interface(&cached.syntax_output);
-    if manifest.interface_hash != fingerprint(interface.to_terlan_interface_type_text().as_bytes())
-        || manifest.interface_doc_hash
-            != fingerprint(interface.to_terlan_interface_doc_text().as_bytes())
-    {
-        return None;
-    }
-    let interfaces = crate::formal_pipeline::load_external_interfaces_for_module(
+    let mut interfaces = crate::formal_pipeline::load_external_interfaces_for_module(
         path,
         Some(cache_dir),
         &cached.syntax_output,
     );
+    if crate::formal_pipeline::interface_dependencies::check_interface_dependencies(
+        Path::new(path),
+        &cached.syntax_output,
+        Some(cache_dir),
+        &mut interfaces,
+        None,
+    )
+    .iter()
+    .any(|diagnostic| {
+        matches!(
+            diagnostic.severity,
+            crate::terlan_typeck::DiagSeverity::Error
+        )
+    }) {
+        return None;
+    }
+    let (diagnostics, declared) =
+        crate::formal_pipeline::interface_contract::check_declared_interface_and_surface(
+            Path::new(path),
+            &cached.syntax_output,
+            &interfaces,
+        );
+    if !diagnostics.is_empty() {
+        return None;
+    }
+    cached.core.interface = interface;
+    if let Some(interface) = declared {
+        crate::formal_pipeline::interface_contract::restrict_module_exports(
+            &mut cached.core,
+            &interface,
+        );
+    }
+    if manifest.interface_hash
+        != fingerprint(
+            cached
+                .core
+                .interface
+                .to_terlan_interface_type_text()
+                .as_bytes(),
+        )
+        || manifest.interface_doc_hash
+            != fingerprint(
+                cached
+                    .core
+                    .interface
+                    .to_terlan_interface_doc_text()
+                    .as_bytes(),
+            )
+    {
+        return None;
+    }
     let dependencies = collect_syntax_dependency_hashes(
         &cached.syntax_output,
         &interfaces,
@@ -167,7 +212,6 @@ fn decode_checked_entry(
     if dependencies != manifest.dependencies {
         return None;
     }
-    cached.core.interface = interface;
     cached.core.source.source_path = Some(path.to_string());
     Some(CheckedSyntaxModuleArtifacts {
         syntax_output: cached.syntax_output,

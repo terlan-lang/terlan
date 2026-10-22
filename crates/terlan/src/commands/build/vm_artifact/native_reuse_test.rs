@@ -2,6 +2,67 @@
 
 use super::{parse_stamp, render_stamp, NativeReuseStamp};
 
+#[test]
+#[cfg(feature = "native-codegen")]
+fn interface_first_warm_native_images_revalidate_qualified_dependencies_without_imports() {
+    let directory =
+        crate::support::test_fs::TestDirectory::new("interfaces", "native_qualified_dependency");
+    let path = directory.path().join("api.terl");
+    let dependency = directory.path().join("dep.terli");
+    std::fs::write(
+        &path,
+        "module api. type Local = dep.Value. pub main(): Int -> 7.",
+    )
+    .unwrap();
+    std::fs::write(&dependency, "module dep. pub type Value = Int.").unwrap();
+    let state = crate::CliState {
+        incremental: true,
+        cache_dir: Some(directory.path().join("cache")),
+        out_dir: directory.path().join("out"),
+        ..crate::CliState::default()
+    };
+    let policy = crate::compiler::native_ir::NativeCodegenPolicy::Development;
+    let build = || {
+        super::super::orchestration::build_one_vm_artifact(path.to_str().unwrap(), &state, policy)
+    };
+    build().expect("publish a valid native image and reuse stamp");
+    assert!(state.out_dir.join("vm/api.tvm").is_file());
+    std::fs::write(
+        &dependency,
+        "module dep. pub type Value = Int. pub invalid(): Missing.",
+    )
+    .unwrap();
+    assert!(
+        build().is_err(),
+        "warm native reuse bypassed source dependency validation"
+    );
+}
+
+#[test]
+fn interface_first_native_reuse_identity_tracks_contract_presence_and_content() {
+    let directory =
+        crate::support::test_fs::TestDirectory::new("interfaces", "native_reuse_contract");
+    let path = directory.path().join("api.terl");
+    let policy = crate::compiler::native_ir::NativeCodegenPolicy::Development;
+    let source = "module api. pub value(): Int -> 1.";
+    let absent = super::source_identity(&path, source, policy);
+    std::fs::write(
+        path.with_extension("terli"),
+        "module api. pub value(): Int.",
+    )
+    .unwrap();
+    let present = super::source_identity(&path, source, policy);
+    assert_ne!(absent, present);
+    std::fs::write(
+        path.with_extension("terli"),
+        "module api. pub value(): String.",
+    )
+    .unwrap();
+    assert_ne!(present, super::source_identity(&path, source, policy));
+    std::fs::remove_file(path.with_extension("terli")).unwrap();
+    assert_eq!(absent, super::source_identity(&path, source, policy));
+}
+
 /// Builds one canonical stamp accepted by the production parser.
 fn stamp() -> NativeReuseStamp {
     NativeReuseStamp {

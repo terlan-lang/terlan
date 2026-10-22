@@ -212,6 +212,122 @@ name and arity are visible. External code may use values of the opaque type but
 may not construct, deconstruct, or coerce them through the representation type
 unless public functions expose that behavior.
 
+## Interface-First Module Development
+
+A handwritten `.terli` file declares a module's public contract independently
+of its `.terl` implementation. For example, `src/ledger/Money.terli` can contain:
+
+```terlan
+module ledger.Money.
+
+pub opaque type Money.
+
+@pure
+pub of_pence(pence: Int): Money.
+
+@pure
+pub add(left: Money, right: Money): Money.
+```
+
+Check the interface or the complete source-root design:
+
+```sh
+terlc check src/ledger/Money.terli
+terlc check src --interfaces-only
+```
+
+The project command checks every `.terli` and every `.terl` client that has no
+sibling `.terli`. It skips paired implementation files entirely, so they can be
+absent or unfinished. Interfaces are collected across the source root before
+checking imports, signatures, and clients. Module names follow the same
+source-root-relative layout as implementation modules. Nested projects and
+generated build/cache directories are excluded from this discovery.
+
+After implementations are available, `terlc check src` checks them against their
+sibling interfaces as well as checking clients. Single-file implementation
+checks and builds also enforce the sibling contract. A changed contract is
+revalidated when loading an incremental checked implementation.
+Single-file checks validate reachable handwritten interface dependencies,
+including transitive imports and qualified type references. Unrelated unfinished
+interfaces do not prevent checking an independent module.
+Project checks also resolve external interfaces from `--cache-dir` and revalidate
+reachable handwritten contracts there, including during incremental checks.
+Source-root declarations take precedence over cached copies.
+Interface imports are validated even when no implementation body uses them yet.
+Project and batch checks collect adjacent dependency summaries from every source
+directory before expanding inherited fields. Inherited field types keep their
+provider's identity, even when a child declares a type with the same short name.
+
+To publish a checked declaration for another project, use
+`terlc interface src/ledger/Money.terli --out-dir build/interfaces`. The command
+validates handwritten declarations and their dependencies before emitting
+`.typi` summaries. Passing an implementation with a sibling `.terli` checks
+conformance and exports the declared API. Batch generation validates every
+contract before writing any summary.
+Batch argument order does not change inherited fields or dependency fingerprints;
+implementations and handwritten declarations share the same expansion graph.
+
+Handwritten interfaces take precedence over generated `.typi` summaries. An
+implementation may contain additional helpers, but clients resolve only the
+declared API. Public functions must preserve parameter and return types, generic
+constraints, receiver mutability, and default arguments. Renaming ordinary
+generic parameters or function parameters does not change a function contract.
+An operation's overload set must be declared completely; additional helpers
+use a different name or arity and stay out of backend exports.
+Opaque types must remain opaque. Transparent representations and public struct
+fields must agree with the declaration. Purity can be strengthened; a declared
+`@pure` operation requires a compiler-checked pure implementation.
+Implementations may use private transparent aliases for compatible public types;
+generated public signatures and TypeScript declarations preserve the contract's
+types. Private opaque types keep their distinct identities.
+
+Interface checking does not generate executable CoreIR or claim application
+proof evidence. Its phase manifest records CoreIR as skipped. In a project
+manifest directory, interface reports use `<module>.interface.phase-manifest.json`
+so they do not overwrite implementation reports. Projects containing handwritten
+interfaces recheck the declared graph on each check; generated implementation
+cache entries are not published by the interface-only operation.
+
+Opaque types enforce representation boundaries. They do not prove business
+invariants such as nonnegative money: validate constructors and test those
+properties in the implementation.
+
+## Native declarations
+
+Use a bodyless typed declaration to select a native implementation:
+
+```terlan
+module std.regex.Regex.
+
+@compiler.native
+pub matching_line_numbers(regex: Regex, text: String): List[Int].
+```
+
+The default operation key is the module path with each segment converted to
+lower snake case, followed by the callable name. The declaration above binds to
+`std.regex.regex.matching_line_numbers`; `std.vm.DistributedState.version`
+binds to `std.vm.distributed_state.version`. Receiver methods use the same rule
+and include the receiver in their native parameter list.
+
+Keep an explicit key when a callable aliases a differently named operation:
+
+```terlan
+@compiler.native {std.native.collections.vector.length}
+pub (vector: Vector[T]) len(): Int.
+```
+
+Renaming a module or callable changes its inferred key. Add an explicit key
+when relocated source must keep calling the original native provider.
+
+Native declarations retain normal signature and parameter-default checks.
+Installed operation arities are checked, and an unknown inferred operation in
+an inventoried Rust standard-library namespace is an error. External packages
+and VM service bindings retain their provider-owned
+binding identities. Native calls do not acquire inferred purity from an absent
+body. Ordinary `.terl` functions still require implementations. Older explicit
+keys and placeholder bodies remain accepted for compatibility; new native
+declarations need neither an arrow nor a `native.` body.
+
 ## Structs
 
 Struct inclusion is compile-time expansion, not class inheritance. Inclusion
@@ -219,7 +335,11 @@ copies fields and eligible receiver functions from included parent structs. It
 does not create subtyping, runtime parent objects, implicit coercions, virtual
 dispatch, or true inheritance.
 
-Field conflicts are errors. Method conflicts are errors unless an override rule
+Local inclusion chains expand every ancestor regardless of declaration order,
+preserving field defaults and visibility. Cycles and inherited field conflicts
+are errors; an invalid inclusion graph is rejected before expansion is published.
+
+Method conflicts are errors unless an override rule
 is later introduced. Traits are not included with `includes`; trait conformance
 is expressed with `implements` or explicit `impl` declarations.
 

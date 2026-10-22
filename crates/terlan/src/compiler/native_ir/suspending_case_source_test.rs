@@ -15,7 +15,7 @@ pub type None = Atom["none"].
 pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 @compiler.native {probe.read}
-read(): Bool -> native.
+read(): Bool.
 pub evaluate(): Option[Int] ->
     let { true <- read(); true <- read() } else { _ -> Some(1) };
     None.
@@ -134,9 +134,9 @@ pub type Ok[T] = {{Atom["ok"], value: T}}.
 pub type Err[E] = {{Atom["error"], reason: E}}.
 pub type Result[T, E] = Ok[T] | Err[E].
 @compiler.native {{probe.left}}
-read_left(): Result[Int, String] -> native.
+read_left(): Result[Int, String].
 @compiler.native {{probe.right}}
-read_right(): Result[Int, String] -> native.
+read_right(): Result[Int, String].
 pub evaluate(enabled: Bool, choice: Bool): Bool -> {expression}.
 "#,
         );
@@ -168,10 +168,10 @@ pub type Err[E] = {{Atom["error"], reason: E}}.
 pub type Result[T, E] = Ok[T] | Err[E].
 
 @compiler.native {{probe.read}}
-read(): Int -> native.
+read(): Int.
 
 @compiler.native {{probe.read_result}}
-read_result(): Result[Int, String] -> native.
+read_result(): Result[Int, String].
 
 pub evaluate(enabled: Bool): Result[Int, String] ->
     let result = {expression};
@@ -202,7 +202,7 @@ pub type Err[E] = {Atom["error"], reason: E}.
 pub type Result[T, E] = Ok[T] | Err[E].
 
 @compiler.native {probe.read}
-read(): Result[Int, String] -> native.
+read(): Result[Int, String].
 
 pub evaluate(): Int ->
     if {
@@ -232,7 +232,7 @@ fn non_tail_recursive_native_calls_retain_their_post_call_continuation() {
 module suspending_recursive_source.
 
 @compiler.native {probe.read}
-read(value: Int): Int -> native.
+read(value: Int): Int.
 
 pub evaluate(count: Int): Int ->
     if {
@@ -264,10 +264,10 @@ module suspending_nested_list_source.
 pub struct Node { value: Int }.
 
 @compiler.native {probe.read}
-read(): Bool -> native.
+read(): Bool.
 
 @compiler.native {probe.consume}
-consume(values: List[List[Node]]): Bool -> native.
+consume(values: List[List[Node]]): Bool.
 
 pub evaluate(): Bool ->
     let matrix = [[], [Node(value = 7)], []];
@@ -300,7 +300,7 @@ module suspending_projection_source.
 pub struct Summary {{ valid: Bool }}.
 
 @compiler.native {{probe.read}}
-read(): Bool -> native.
+read(): Bool.
 
 read_summary(): Summary ->
     let valid = read();
@@ -333,7 +333,7 @@ pub type Err[E] = {Atom["error"], reason: E}.
 pub type Result[T, E] = Ok[T] | Err[E].
 
 @compiler.native {probe.read}
-read(): Result[Int, String] -> native.
+read(): Result[Int, String].
 
 pub evaluate(enabled: Bool): Result[Int, String] ->
     let {
@@ -366,10 +366,10 @@ module valued_union_suspending_case_source.
 pub type Mode: Int = LOWER = 0 | UPPER = 1.
 
 @compiler.native {probe.lower}
-lower(): Int -> native.
+lower(): Int.
 
 @compiler.native {probe.upper}
-upper(): Int -> native.
+upper(): Int.
 
 pub select(mode: Mode): Int ->
     case mode {
@@ -397,13 +397,13 @@ fn suspension_aware_case_continuations_keep_their_hidden_abi_arguments() {
 module suspending_case_source.
 
 @compiler.native {probe.read}
-read(): Int -> native.
+read(): Int.
 
 read_wrapped(): Int ->
     read().
 
 @compiler.native {probe.inspect}
-inspect(value: Int): Bool -> native.
+inspect(value: Int): Bool.
 
 pub evaluate(): Bool ->
     case read_wrapped() {
@@ -444,10 +444,10 @@ fn nested_suspending_native_call_arguments_lower_as_continuations() {
 module nested_suspending_native_source.
 
 @compiler.native {probe.inner}
-inner(value: Int): Int -> native.
+inner(value: Int): Int.
 
 @compiler.native {probe.outer}
-outer(value: Int): Bool -> native.
+outer(value: Int): Bool.
 
 pub evaluate(): Bool ->
     outer(inner(7)).
@@ -484,10 +484,10 @@ fn sequential_suspending_case_bindings_lower_as_continuations() {
 module sequential_suspending_case_source.
 
 @compiler.native {probe.read}
-read(): Int -> native.
+read(): Int.
 
 @compiler.native {probe.release}
-release(value: Int): Unit -> native.
+release(value: Int): Unit.
 
 pub evaluate(): Bool ->
     let first = case read() {
@@ -542,16 +542,16 @@ pub type Err[E] = {Atom["error"], reason: E}.
 pub type Result[T, E] = Ok[T] | Err[E].
 
 @compiler.native {probe.open}
-open(): Result[Int, String] -> native.
+open(): Result[Int, String].
 
 @compiler.native {probe.read}
-read(handle: Int): Bool -> native.
+read(handle: Int): Bool.
 
 read_wrapped(handle: Int): Bool ->
     read(handle).
 
 @compiler.native {probe.cleanup}
-cleanup(): Unit -> native.
+cleanup(): Unit.
 
 pub evaluate(): Bool ->
     let opened = open();
@@ -592,7 +592,7 @@ pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 
 @compiler.native {probe.read}
-read(): Int -> native.
+read(): Int.
 
 some_after_read(): Option[Int] ->
     Some(read()).
@@ -635,7 +635,7 @@ pub struct Host {
 }.
 
 @compiler.native {probe.host}
-host_name(): String -> native.
+host_name(): String.
 
 normalize(value: String): Option[String] -> if {
     value == "linux" -> Some(value);
@@ -691,7 +691,7 @@ pub struct Plan {
 }.
 
 @compiler.native {probe.read}
-read(path: String): Result[String, String] -> native.
+read(path: String): Result[String, String].
 
 problem(code: Atom, message: String, field: String): Problem ->
     Problem {code: code, message: message, field: field}.
@@ -740,7 +740,7 @@ pub struct Source {
 }.
 
 @compiler.native {probe.read}
-read(path: String): Result[String, String] -> native.
+read(path: String): Result[String, String].
 
 pub load(path: String): Result[Source, String] ->
     case read(path) {
@@ -776,7 +776,7 @@ pub struct Options {
 }.
 
 @compiler.native {probe.exists}
-exists(path: String): Bool -> native.
+exists(path: String): Bool.
 
 validate(options: Options): Bool ->
     exists(options.path) and exists(options.path).

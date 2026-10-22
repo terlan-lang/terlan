@@ -87,8 +87,8 @@ sample_cookie_with_options sample_delete_cookie sample_redirect
         self.write(
             "std/http/Session.terl",
             "set_header_with_options(\n\
-             @compiler.native {std.http.session.rotate}\n\
-             @compiler.native {std.http.session.expire}",
+             @compiler.native {std.http.session.rotate}\nrenew(identity: String, ttl_seconds: Int): String.\n\
+             @compiler.native {std.http.session.expire}\ninvalidate(identity: String): Unit.",
         )?;
         self.write(
             "std/http/native/src/session_store.rs",

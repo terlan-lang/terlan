@@ -53,7 +53,7 @@ mod tests {
     }
 
     #[test]
-    fn target_profile_fixtures_clone_only_direct_std_imports() {
+    fn target_profile_fixtures_clone_only_required_std_dependencies() {
         let module = parse_module_as_syntax_output(
             "module profile_import_scope.\n\nimport std.core.Task.\nimport std.core.Result.{Ok}.\n\npub main(): Int ->\n    1.\n",
         )
@@ -63,6 +63,9 @@ mod tests {
         let mut modules = interfaces.keys().map(String::as_str).collect::<Vec<_>>();
         modules.sort_unstable();
 
-        assert_eq!(modules, vec!["std.core.Result", "std.core.Task"]);
+        assert_eq!(
+            modules,
+            vec!["std.core.Error", "std.core.Result", "std.core.Task"]
+        );
     }
 }

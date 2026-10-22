@@ -15,31 +15,104 @@ use crate::terlan_typeck::{CoreModule, CoreTupleTypeElem, CoreType, CoreVisibili
 ///   signatures from CoreIR parameter/return metadata.
 pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -> String {
     let mut out = String::new();
+    let mut declared_alias_groups = std::collections::HashSet::new();
     for type_decl in &module.types {
         if !matches!(type_decl.visibility, CoreVisibility::Public) {
             continue;
         }
-        let params = typescript_generic_params(&type_decl.params);
+        let mut params = typescript_generic_params(&type_decl.params);
         if type_decl.name == "Result" && type_decl.params.as_slice() == ["T", "E"] {
             out.push_str(
                 "export type Result<T, E> = { tag: \"ok\"; value: T } | { tag: \"error\"; error: E };\n\n",
             );
             continue;
         }
-        let body = type_decl
+        let mut body = type_decl
             .core_body
             .as_ref()
             .map(core_type_to_typescript)
             .unwrap_or_else(|| type_body_text_to_typescript(&type_decl.body));
+        if mentions_private_type(module, &body) {
+            if let Some(declared) = module.interface.type_bodies.get(&type_decl.name) {
+                body = type_body_text_to_typescript(declared);
+            }
+            if let Some(fields) = module.interface.struct_fields.get(&type_decl.name) {
+                body = format!(
+                    "{{ {} }}",
+                    fields
+                        .iter()
+                        .map(|field| {
+                            let ty = crate::terlan_typeck::core_type_from_text(&field.annotation);
+                            format!(
+                                "{}: {}",
+                                field.name,
+                                core_type_or_text_to_typescript(ty.as_ref(), &field.annotation)
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                );
+            }
+            if let Some(declared) = module.interface.type_params.get(&type_decl.name) {
+                params = typescript_generic_params(declared);
+            }
+        }
         out.push_str(&format!(
             "export type {}{} = {};\n\n",
             type_decl.name, params, body
         ));
     }
 
+    let private_alias_groups = module
+        .functions
+        .iter()
+        .filter(|function| function.public)
+        .filter(|function| {
+            std::iter::once(function.return_type.as_str())
+                .chain(function.params.iter().map(|param| param.ty.as_str()))
+                .any(|text| mentions_private_type(module, text))
+        })
+        .map(|function| (function.name.clone(), function.arity))
+        .collect::<std::collections::HashSet<_>>();
     for function in &module.functions {
         if !function.public {
             continue;
+        }
+        let key = (function.name.clone(), function.arity);
+        if private_alias_groups.contains(&key) {
+            if let Some(signatures) = module.interface.function_overloads.get(&key) {
+                if declared_alias_groups.insert(key) {
+                    for signature in signatures.iter().filter(|signature| signature.public) {
+                        let params = signature
+                            .params
+                            .iter()
+                            .map(|param| {
+                                let ty =
+                                    crate::terlan_typeck::core_type_from_text(&param.annotation);
+                                format!(
+                                    "{}: {}",
+                                    param.name,
+                                    core_type_or_text_to_typescript(ty.as_ref(), &param.annotation)
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        let result =
+                            crate::terlan_typeck::core_type_from_text(&signature.return_type);
+                        out.push_str(&format!(
+                            "export function {}{}({}): {};\n",
+                            signature.name,
+                            typescript_generic_params(&signature.generic_params),
+                            params,
+                            core_type_or_text_to_typescript(
+                                result.as_ref(),
+                                &signature.return_type
+                            )
+                        ));
+                    }
+                }
+                continue;
+            }
         }
         let params = function
             .params
@@ -64,6 +137,11 @@ pub(crate) fn emit_core_module_to_typescript_declarations(module: &CoreModule) -
         ));
     }
     out
+}
+
+fn mentions_private_type(module: &CoreModule, text: &str) -> bool {
+    text.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_' && ch != '.')
+        .any(|name| module.interface.private_types.contains(name))
 }
 
 /// Renders type parameters as a TypeScript generic suffix.

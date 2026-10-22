@@ -67,9 +67,8 @@ pub type Config = {url: String}.
  * adapter without exposing driver state to source code. URL validation happens
  * immediately; network and authentication failures can occur on the first query.
  */
-@compiler.native {std.db.postgres.connect}
-pub connect(config: Config): Result[Pool, Error] ->
-    native.
+@compiler.native
+pub connect(config: Config): Result[Pool, Error].
 
 /**
  * Runs a SQL query and returns all rows.
@@ -80,9 +79,8 @@ pub connect(config: Config): Result[Pool, Error] ->
  * Transformation: delegates SQL execution and row decoding to the Postgres
  * adapter while preserving a portable row handle surface.
  */
-@compiler.native {std.db.postgres.query}
-pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error] ->
-    native.
+@compiler.native
+pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error].
 
 /**
  * Runs a SQL query and returns at most one row.
@@ -93,13 +91,12 @@ pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[Li
  * Transformation: delegates SQL execution to the adapter and normalizes the
  * single-row result shape into `Option`.
  */
-@compiler.native {std.db.postgres.query_one}
+@compiler.native
 pub query_one(
     target: Pool | Connection,
     sql: String,
     params: List[Json],
-): Result[Option[Row], Error] ->
-    native.
+): Result[Option[Row], Error].
 
 /**
  * Runs a SQL command and returns the affected row count.
@@ -110,9 +107,8 @@ pub query_one(
  * Transformation: delegates command execution to the adapter and exposes only
  * the portable affected-row count.
  */
-@compiler.native {std.db.postgres.execute}
-pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error] ->
-    native.
+@compiler.native
+pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error].
 
 /**
  * Runs a transaction body.
@@ -145,17 +141,14 @@ pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T
             }
     }.
 
-@compiler.native {std.db.postgres.begin}
-begin(pool: Pool): Result[Connection, Error] ->
-    native.
+@compiler.native
+begin(pool: Pool): Result[Connection, Error].
 
-@compiler.native {std.db.postgres.commit}
-commit(connection: Connection): Result[Unit, Error] ->
-    native.
+@compiler.native
+commit(connection: Connection): Result[Unit, Error].
 
-@compiler.native {std.db.postgres.rollback}
-rollback(connection: Connection): Result[Unit, Error] ->
-    native.
+@compiler.native
+rollback(connection: Connection): Result[Unit, Error].
 
 /**
  * Reads a string column by name.
@@ -165,9 +158,8 @@ rollback(connection: Connection): Result[Unit, Error] ->
  * otherwise `Err(Error)`.
  * Transformation: delegates typed row decoding to the Postgres adapter.
  */
-@compiler.native {std.db.postgres.string}
-pub (row: Row) string(name: String): Result[String, Error] ->
-    native.
+@compiler.native
+pub (row: Row) string(name: String): Result[String, Error].
 
 /**
  * Reads an integer column by name.
@@ -177,9 +169,8 @@ pub (row: Row) string(name: String): Result[String, Error] ->
  * otherwise `Err(Error)`.
  * Transformation: delegates typed row decoding to the Postgres adapter.
  */
-@compiler.native {std.db.postgres.int}
-pub (row: Row) int(name: String): Result[Int, Error] ->
-    native.
+@compiler.native
+pub (row: Row) int(name: String): Result[Int, Error].
 
 /**
  * Reads a boolean column by name.
@@ -189,9 +180,8 @@ pub (row: Row) int(name: String): Result[Int, Error] ->
  * otherwise `Err(Error)`.
  * Transformation: delegates typed row decoding to the Postgres adapter.
  */
-@compiler.native {std.db.postgres.bool}
-pub (row: Row) bool(name: String): Result[Bool, Error] ->
-    native.
+@compiler.native
+pub (row: Row) bool(name: String): Result[Bool, Error].
 
 /**
  * Reads a JSON column by name.
@@ -202,6 +192,5 @@ pub (row: Row) bool(name: String): Result[Bool, Error] ->
  * Transformation: delegates typed row decoding to the Postgres adapter and
  * returns the portable JSON handle.
  */
-@compiler.native {std.db.postgres.json}
-pub (row: Row) json(name: String): Result[Json, Error] ->
-    native.
+@compiler.native
+pub (row: Row) json(name: String): Result[Json, Error].

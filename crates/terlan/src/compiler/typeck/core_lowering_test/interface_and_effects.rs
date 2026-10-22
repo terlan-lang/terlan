@@ -4,6 +4,121 @@ use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::{parse_module_as_syntax_output, SyntaxPatternFieldOutput};
 
 #[test]
+fn native_declarations_infer_keys_and_lower_without_placeholder_bodies() {
+    let source = "module std.regex.Regex. pub opaque type Regex. @compiler.native pub matching_line_numbers(regex: Regex, text: String): List[Int].";
+    assert!(check_syntax_output(source).is_empty());
+    let syntax = parse_module_as_syntax_output(source).unwrap();
+    let SyntaxDeclarationPayload::Function { clauses, .. } = &syntax.declarations[1].payload else {
+        panic!("function");
+    };
+    assert!(clauses.is_empty());
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let function = &core.functions[0];
+    assert_eq!(
+        function.native_operation.as_deref(),
+        Some("std.regex.regex.matching_line_numbers")
+    );
+    assert_eq!(function.clauses.len(), 1);
+    let Some(CoreExpr::Intrinsic(call)) = &function.clauses[0].body.core_expr else {
+        panic!("native intrinsic");
+    };
+    assert!(
+        matches!(&call.id, CoreIntrinsicId::NativeOperation { operation, parameter_types } if operation == "std.regex.regex.matching_line_numbers" && parameter_types.len() == 2)
+    );
+    assert_eq!(
+        call.args,
+        [CoreExpr::Var("regex".into()), CoreExpr::Var("text".into())]
+    );
+    assert_eq!(call.effects.effects, ["native-package"]);
+    assert_eq!(
+        function.clauses[0].body.proof_coverage,
+        CoreProofCoverage::ProofModelRequired
+    );
+}
+
+#[test]
+fn native_declarations_require_valid_signatures_and_an_installed_inferred_std_key() {
+    for source in [
+        "module std.regex.Regex. @compiler.native pub missing(): Int.",
+        "module std.regex.Regex. @compiler.native pub is_match(text: String): Bool.",
+        "module example. @compiler.native pub value(): Missing.",
+        "module example. pub value(): Int.",
+        "module example. @compiler.native pub value(step: Int = \"bad\"): Int.",
+        "module example. @compiler.native pub value(): Int. @pure pub wrapper(): Int -> value().",
+    ] {
+        assert!(!check_syntax_output(source).is_empty(), "accepted {source}");
+    }
+    let source = "module custom.Package. @compiler.native {external.operation} pub value(step: Int = 2): Int.";
+    assert!(check_syntax_output(source).is_empty());
+}
+
+#[test]
+fn native_declarations_include_the_postgres_provider_operation_catalog() {
+    let source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../std/db/Postgres.terl"
+    ));
+    let diagnostics = check_syntax_output_with_std_interfaces(source, "std/db/Postgres.terl");
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
+/// Old packages keep their native ABI while repository fixtures use bodyless declarations.
+#[test]
+fn legacy_native_placeholder_syntax_preserves_the_bodyless_native_abi() {
+    let cores = [
+        "module example.Native. @compiler.native pub read(value: Int): Int.",
+        "module example.Native. @compiler.native {example.native.read} pub read(value: Int): Int -> native.",
+    ].map(|source| {
+        let syntax = parse_module_as_syntax_output(source).unwrap();
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        assert!(type_check_syntax_module_output(&syntax, &resolved).is_empty());
+        lower_syntax_module_output_to_core(&syntax, &resolved)
+    });
+    assert_eq!(
+        cores[0].functions[0].native_operation,
+        cores[1].functions[0].native_operation
+    );
+    let bodyless =
+        crate::compiler::native_ir::NativeModule::lower_application(&[&cores[0]]).unwrap();
+    let legacy = crate::compiler::native_ir::NativeModule::lower_application(&[&cores[1]]).unwrap();
+    assert_eq!(bodyless, legacy);
+}
+
+#[test]
+fn native_receiver_declarations_keep_aliases_mutability_and_default_adapters() {
+    let syntax = parse_module_as_syntax_output("module vectors.Vector. pub opaque type Vector. @compiler.native {std.native.collections.vector.length} pub (vector: Vector) len(): Int. @compiler.native {fixture.adjust} pub (mut vector: Vector) adjust(amount: Int = 2): Unit.").unwrap();
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    assert!(type_check_syntax_module_output(&syntax, &resolved).is_empty());
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let len = core
+        .functions
+        .iter()
+        .find(|function| function.name == "len")
+        .unwrap();
+    assert_eq!(
+        len.native_operation.as_deref(),
+        Some("std.native.collections.vector.length")
+    );
+    assert!(len.receiver_method);
+    assert_eq!(len.clauses.len(), 1);
+    let full = core
+        .functions
+        .iter()
+        .find(|function| function.name == "adjust" && function.arity == 2)
+        .unwrap();
+    assert!(full.receiver_mutable && full.receiver_command);
+    assert_eq!(full.native_operation.as_deref(), Some("fixture.adjust"));
+    let adapter = core
+        .functions
+        .iter()
+        .find(|function| function.name == "adjust" && function.arity == 1)
+        .unwrap();
+    assert_eq!(adapter.native_operation, None);
+    assert_eq!(adapter.clauses.len(), 1);
+}
+
+#[test]
 pub(super) fn syntax_output_lowering_to_core_preserves_interface_contract() {
     let module = parse_module_as_syntax_output(
         "\
@@ -168,8 +283,7 @@ pub(super) fn syntax_output_lowering_to_core_preserves_compiler_native_operation
 module core_native_receiver.\n\
 pub opaque type Frame.\n\
 @compiler.native {polars.dataframe.height}\n\
-pub (frame: Frame) height(): Int ->\n\
-    native.\n",
+pub (frame: Frame) height(): Int.\n",
     )
     .expect("parse native receiver fixture");
     let resolved = resolve_syntax_module_output(&module).module;

@@ -1,10 +1,11 @@
 module=std.encoding.Base64
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=16051766334357840324
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=1123826524428811153
 interface_hash=5688394417667814053
 interface_doc_hash=10301689513079929202
-deps=2
+deps=3
+std.core.Error=1244151485527378485
 std.core.Result=11040488711914238385
 std.vm.Bytes=17172708358078158316

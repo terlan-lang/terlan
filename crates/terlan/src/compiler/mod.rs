@@ -11,6 +11,7 @@
 
 pub mod accelerator;
 pub mod hir;
+pub(crate) mod native_bindings;
 pub(crate) mod native_ir;
 pub(crate) mod purity;
 #[cfg(test)]

@@ -4,6 +4,15 @@ use super::hir::{resolve_syntax_module_output_with_interfaces, syntax_module_out
 use super::syntax::{parse_interface_module_as_syntax_output, parse_module_as_syntax_output};
 use super::typeck::type_check_syntax_module_output;
 
+#[test]
+fn native_declarations_do_not_infer_purity_from_missing_or_placeholder_bodies() {
+    let module = parse_module_as_syntax_output("module effects.Native. @compiler.native pub read(): Int. @compiler.native pub legacy(): Int -> 0. pub wrapper(): Int -> read().").unwrap();
+    let interface = syntax_module_output_to_interface(&module);
+    for name in ["read", "legacy", "wrapper"] {
+        assert!(!interface.functions[&(name.into(), 0)].pure, "{name}");
+    }
+}
+
 /// Verifies body-available purity survives the public interface boundary.
 ///
 /// Inputs:
@@ -137,9 +146,8 @@ pub load(value: Int): Int ->\n\
 pub apply(callback: (Int) -> Int, value: Int): Int ->\n\
     callback(value).\n\
 \n\
-@compiler.native {provider.effects.connect}\n\
-pub connect(): Dynamic ->\n\
-    native.\n\
+@compiler.native\n\
+pub connect(): Dynamic.\n\
 ",
     )
     .expect("parse effectful provider");

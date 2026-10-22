@@ -4,6 +4,32 @@ use crate::commands::test::discovery::TestKind;
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+#[test]
+fn native_declarations_execute_inferred_regex_bindings_on_fresh_and_cached_images() {
+    let dir = crate::support::test_fs::TestDirectory::new("native_declarations", "regex_execution");
+    let source = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../std/regex/RegexTest.terl");
+    let state = CliState {
+        out_dir: dir.path().join("out"),
+        cache_dir: Some(dir.path().join("cache")),
+        native_policy: NativePolicy::NativeBoundaryOptional,
+        ..CliState::default()
+    };
+    let command = || CliCommand {
+        verb: Some("test".into()),
+        args: vec![
+            source.to_string_lossy().into_owned(),
+            "--target".into(),
+            "terlan-vm".into(),
+            "--name".into(),
+            "matching_line_numbers_preserves_one_based_source_order".into(),
+            "--name".into(),
+            "compile_reports_invalid_pattern".into(),
+        ],
+    };
+    assert_eq!(run(command(), state.clone()), ExitCode::SUCCESS);
+    assert_eq!(run(command(), state), ExitCode::SUCCESS);
+}
+
 /// Returns whether a Terlan source contains public executable functions.
 ///
 /// Inputs:

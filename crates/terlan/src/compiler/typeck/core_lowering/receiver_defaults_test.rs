@@ -7,7 +7,7 @@ fn adapters_keep_checked_signatures_but_do_not_claim_native_exports() {
 module receiver_default_adapters.
 pub opaque type Handle.
 @compiler.native {example.adjust}
-pub (mut handle: Handle) adjust(amount: Int, step: Int = 2, enabled: Bool = true): Unit -> native.
+pub (mut handle: Handle) adjust(amount: Int, step: Int = 2, enabled: Bool = true): Unit.
 pub (handle: Handle) identity(): Handle -> handle.
 pub plain(value: Int = 1): Int -> value.
 "#,

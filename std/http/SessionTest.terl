@@ -34,12 +34,10 @@ pub sample_with_response(response: Response, session: Session): Response ->
     with_response(response, session).
 
 @compiler.native {std.test.fixture.http_request}
-request_fixture(cookie_header: String): Request ->
-    native.
+request_fixture(cookie_header: String): Request.
 
 @compiler.native {std.test.fixture.http_response_header}
-response_header(response: Response, name: String): String ->
-    native.
+response_header(response: Response, name: String): String.
 
 session_cookie(session: Session): String ->
     response_header(with_response(Response.text("ok"), session), "Set-Cookie").

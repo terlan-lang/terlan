@@ -215,9 +215,9 @@ fn typed_native_overloads_receive_distinct_internal_call_identities() {
     let mut modules = vec![core(
         "module app.Overload.\n\n\
          @compiler.native {fixture.int}\n\
-         choose(_value: Int): Int -> native.\n\n\
+         choose(_value: Int): Int.\n\n\
          @compiler.native {fixture.list}\n\
-         choose(_value: List[Int]): Int -> native.\n\n\
+         choose(_value: List[Int]): Int.\n\n\
          pub scalar(): Int -> choose(1).\n\n\
          pub collection(): Int -> choose([1, 2]).\n",
     )];
@@ -281,7 +281,7 @@ fn duplicate_core_signature_is_left_for_application_admission() {
     let mut module = core(
         "module app.DuplicateOverload.\n\n\
          @compiler.native {fixture.int}\n\
-         choose(_value: Int): Int -> native.\n",
+         choose(_value: Int): Int.\n",
     );
     module.functions.push(module.functions[0].clone());
 

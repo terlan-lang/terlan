@@ -44,9 +44,8 @@ pub struct PathError includes Error {
  * Transformation: delegates path parsing to the selected target path
  * capability without touching the filesystem.
  */
-@compiler.native {std.io.path.from_string}
-pub from_string(text: String): Result[Path, PathError] ->
-    native.
+@compiler.native
+pub from_string(text: String): Result[Path, PathError].
 
 /**
  * Renders a path as text.
@@ -56,9 +55,8 @@ pub from_string(text: String): Result[Path, PathError] ->
  * Transformation: delegates path rendering to the selected target path
  * capability without touching the filesystem.
  */
-@compiler.native {std.io.path.to_string}
-pub (path: Path) to_string(): String ->
-    native.
+@compiler.native
+pub (path: Path) to_string(): String.
 
 /**
  * Joins a child path segment to a base path.
@@ -68,9 +66,8 @@ pub (path: Path) to_string(): String ->
  * `Err(PathError)`.
  * Transformation: performs lexical target path joining without filesystem IO.
  */
-@compiler.native {std.io.path.join}
-pub (path: Path) join(child: String): Result[Path, PathError] ->
-    native.
+@compiler.native
+pub (path: Path) join(child: String): Result[Path, PathError].
 
 /**
  * Returns the final path component when present.
@@ -80,9 +77,8 @@ pub (path: Path) join(child: String): Result[Path, PathError] ->
  * Transformation: reads lexical path components without touching the
  * filesystem.
  */
-@compiler.native {std.io.path.file_name}
-pub (path: Path) file_name(): Option[String] ->
-    native.
+@compiler.native
+pub (path: Path) file_name(): Option[String].
 
 /**
  * Returns the file extension when present.
@@ -93,9 +89,8 @@ pub (path: Path) file_name(): Option[String] ->
  * Transformation: reads lexical path components without touching the
  * filesystem.
  */
-@compiler.native {std.io.path.extension}
-pub (path: Path) extension(): Option[String] ->
-    native.
+@compiler.native
+pub (path: Path) extension(): Option[String].
 
 /**
  * Returns the parent path when present.
@@ -106,9 +101,8 @@ pub (path: Path) extension(): Option[String] ->
  * Transformation: reads lexical path components without touching the
  * filesystem.
  */
-@compiler.native {std.io.path.parent}
-pub (path: Path) parent(): Option[Path] ->
-    native.
+@compiler.native
+pub (path: Path) parent(): Option[Path].
 
 /**
  * Returns whether a path is absolute.
@@ -118,28 +112,24 @@ pub (path: Path) parent(): Option[Path] ->
  * semantics, otherwise `false`.
  * Transformation: classifies the lexical path without touching the filesystem.
  */
-@compiler.native {std.io.path.is_absolute}
-pub (path: Path) is_absolute(): Bool ->
-    native.
+@compiler.native
+pub (path: Path) is_absolute(): Bool.
 
 /**
  * Removes lexical `.` segments and resolves lexical `..` segments without
  * accessing the filesystem.
  */
-@compiler.native {std.io.path.normalize}
-pub (path: Path) normalize(): Path ->
-    native.
+@compiler.native
+pub (path: Path) normalize(): Path.
 
 /**
  * Returns whether this normalized path begins with every component of `base`.
  */
-@compiler.native {std.io.path.starts_with}
-pub (path: Path) starts_with(base: Path): Bool ->
-    native.
+@compiler.native
+pub (path: Path) starts_with(base: Path): Bool.
 
 /**
  * Removes a normalized component prefix when present.
  */
-@compiler.native {std.io.path.strip_prefix}
-pub (path: Path) strip_prefix(base: Path): Option[Path] ->
-    native.
+@compiler.native
+pub (path: Path) strip_prefix(base: Path): Option[Path].

@@ -346,7 +346,7 @@ pub impl SendAcrossNode[T] for T {
  * VM-owned distributed transport session.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.profile}
+@compiler.native
 pub profile(
     app_id: String,
     vm_id: String,
@@ -354,8 +354,7 @@ pub profile(
     cluster_id: String,
     runtime_version: String,
     capability: String,
-): Profile ->
-    native.
+): Profile.
 
 /**
  * Returns the explicit node identity stored in a profile.
@@ -367,16 +366,14 @@ pub profile(
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.profile_node_id}
-pub (profile: Profile) node_id(): String ->
-    native.
+pub (profile: Profile) node_id(): String.
 
 /**
  * Returns the positive restart epoch carried by one profile.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.profile_epoch}
-pub (profile: Profile) epoch(): Int ->
-    native.
+pub (profile: Profile) epoch(): Int.
 
 /**
  * Advances a profile to its next node incarnation.
@@ -388,8 +385,7 @@ pub (profile: Profile) epoch(): Int ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.profile_next_epoch}
-pub (profile: Profile) next_epoch(): Profile ->
-    native.
+pub (profile: Profile) next_epoch(): Profile.
 
 /**
  * Creates a membership view rooted at a local profile.
@@ -400,9 +396,8 @@ pub (profile: Profile) next_epoch(): Profile ->
  * layer before source code can join peers.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.membership}
-pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership ->
-    native.
+@compiler.native
+pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership.
 
 /**
  * Adds a compatible peer to the membership view.
@@ -413,8 +408,7 @@ pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_join}
-pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membership ->
-    native.
+pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membership.
 
 /**
  * Replaces one known peer with a strictly newer profile incarnation.
@@ -426,8 +420,7 @@ pub (membership: Membership) join(peer: Profile, tick: Int, role: String): Membe
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_restart}
-pub (membership: Membership) restart(peer: Profile, tick: Int): Membership ->
-    native.
+pub (membership: Membership) restart(peer: Profile, tick: Int): Membership.
 
 /**
  * Records a heartbeat for one known peer.
@@ -439,8 +432,7 @@ pub (membership: Membership) restart(peer: Profile, tick: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_heartbeat}
-pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership ->
-    native.
+pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership.
 
 /**
  * Simulates loss of connectivity to one active peer.
@@ -452,8 +444,7 @@ pub (membership: Membership) heartbeat(node_id: String, tick: Int): Membership -
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_partition}
-pub (membership: Membership) partition(node_id: String, tick: Int): Membership ->
-    native.
+pub (membership: Membership) partition(node_id: String, tick: Int): Membership.
 
 /**
  * Heals one unreachable peer.
@@ -465,8 +456,7 @@ pub (membership: Membership) partition(node_id: String, tick: Int): Membership -
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_heal}
-pub (membership: Membership) heal(node_id: String, tick: Int): Membership ->
-    native.
+pub (membership: Membership) heal(node_id: String, tick: Int): Membership.
 
 /**
  * Marks one known peer as intentionally departed.
@@ -478,8 +468,7 @@ pub (membership: Membership) heal(node_id: String, tick: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_leave}
-pub (membership: Membership) leave(node_id: String, tick: Int): Membership ->
-    native.
+pub (membership: Membership) leave(node_id: String, tick: Int): Membership.
 
 /**
  * Fences one known peer identity.
@@ -491,8 +480,7 @@ pub (membership: Membership) leave(node_id: String, tick: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_fence}
-pub (membership: Membership) fence(node_id: String, tick: Int): Membership ->
-    native.
+pub (membership: Membership) fence(node_id: String, tick: Int): Membership.
 
 /**
  * Applies heartbeat timeout policy to the membership view.
@@ -504,8 +492,7 @@ pub (membership: Membership) fence(node_id: String, tick: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_expire}
-pub (membership: Membership) expire(current_tick: Int): Membership ->
-    native.
+pub (membership: Membership) expire(current_tick: Int): Membership.
 
 /**
  * Prunes stale departed or unreachable peer snapshots after a retention window.
@@ -518,8 +505,7 @@ pub (membership: Membership) expire(current_tick: Int): Membership ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_prune}
-pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Membership ->
-    native.
+pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Membership.
 
 /**
  * Reads the current state for one node.
@@ -531,8 +517,7 @@ pub (membership: Membership) prune(current_tick: Int, retention_ticks: Int): Mem
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_state}
-pub (membership: Membership) state(node_id: String): NodeState ->
-    native.
+pub (membership: Membership) state(node_id: String): NodeState.
 
 /**
  * Returns all known nodes in deterministic node-id order.
@@ -544,8 +529,7 @@ pub (membership: Membership) state(node_id: String): NodeState ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_view}
-pub (membership: Membership) view(): List[Node] ->
-    native.
+pub (membership: Membership) view(): List[Node].
 
 /**
  * Returns aggregate membership health.
@@ -556,8 +540,7 @@ pub (membership: Membership) view(): List[Node] ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_health}
-pub (membership: Membership) health(): ClusterHealth ->
-    native.
+pub (membership: Membership) health(): ClusterHealth.
 
 /**
  * Returns a deterministic active leadership hint.
@@ -569,8 +552,7 @@ pub (membership: Membership) health(): ClusterHealth ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.membership_leader_hint}
-pub (membership: Membership) leader_hint(): Option[String] ->
-    native.
+pub (membership: Membership) leader_hint(): Option[String].
 
 /**
  * Opens a bounded transport session.
@@ -581,9 +563,8 @@ pub (membership: Membership) leader_hint(): Option[String] ->
  * through the VM distributed transport layer.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.open}
-pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session ->
-    native.
+@compiler.native
+pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session.
 
 /**
  * Sends one at-most-once message frame.
@@ -594,9 +575,8 @@ pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session ->
  * identity, validate target capability, and produce a bounded frame.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.send}
-pub (session: Session) send[Payload](capability: String, payload: Payload)[SendAcrossNode[Payload]]: SendResult ->
-    native.
+@compiler.native
+pub (session: Session) send[Payload](capability: String, payload: Payload)[SendAcrossNode[Payload]]: SendResult.
 
 /**
  * Sends one message with an explicit closed delivery policy.
@@ -608,13 +588,12 @@ pub (session: Session) send[Payload](capability: String, payload: Payload)[SendA
  * session snapshot until `acknowledge` consumes it.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.send_with}
+@compiler.native
 pub (session: Session) send_with[Payload](
     capability: String,
     payload: Payload,
     delivery: Delivery,
-)[SendAcrossNode[Payload]]: SendResult ->
-    native.
+)[SendAcrossNode[Payload]]: SendResult.
 
 /**
  * Accepts one inbound frame on a session.
@@ -625,41 +604,36 @@ pub (session: Session) send_with[Payload](
  * transport session.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.accept}
-pub (session: Session) accept(frame: Frame): AcceptResult ->
-    native.
+@compiler.native
+pub (session: Session) accept(frame: Frame): AcceptResult.
 
 /**
  * Returns the stable message id assigned to one frame.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.frame_message_id}
-pub (frame: Frame) message_id(): Int ->
-    native.
+pub (frame: Frame) message_id(): Int.
 
 /**
  * Returns the closed delivery policy encoded in one frame.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.frame_delivery}
-pub (frame: Frame) delivery(): Delivery ->
-    native.
+pub (frame: Frame) delivery(): Delivery.
 
 /**
  * Returns whether one outbound frame still requires acknowledgement.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.needs_ack}
-pub (session: Session) needs_ack(frame: Frame): Bool ->
-    native.
+@compiler.native
+pub (session: Session) needs_ack(frame: Frame): Bool.
 
 /**
  * Returns the number of outstanding acknowledgements retained by the session.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.pending_ack_count}
-pub (session: Session) pending_ack_count(): Int ->
-    native.
+@compiler.native
+pub (session: Session) pending_ack_count(): Int.
 
 /**
  * Records one outbound frame acknowledgement.
@@ -670,9 +644,8 @@ pub (session: Session) pending_ack_count(): Int ->
  * duplicate or unrelated acknowledgements fail with a stable VM diagnostic.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.acknowledge}
-pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult ->
-    native.
+@compiler.native
+pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult.
 
 /**
  * Returns the current transport session lifecycle state.
@@ -683,8 +656,7 @@ pub (session: Session) acknowledge(frame: Frame): AcknowledgeResult ->
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.cluster.session_state}
-pub (session: Session) state(): SessionState ->
-    native.
+pub (session: Session) state(): SessionState.
 
 /**
  * Disconnects one transport session with an inspectable typed reason.
@@ -695,9 +667,8 @@ pub (session: Session) state(): SessionState ->
  * message operations until a valid reconnect.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.disconnect}
-pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): DisconnectResult ->
-    native.
+@compiler.native
+pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): DisconnectResult.
 
 /**
  * Reconnects one transport session to its original compatible remote profile.
@@ -708,6 +679,5 @@ pub (session: Session) disconnect(reason: DisconnectReason, tick: Int): Disconne
  * continuity state across the disconnected interval.
  */
 @target.vm {process_mailbox: true}
-@compiler.native {std.vm.cluster.reconnect}
-pub (session: Session) reconnect(remote: Profile, tick: Int): ReconnectResult ->
-    native.
+@compiler.native
+pub (session: Session) reconnect(remote: Profile, tick: Int): ReconnectResult.

@@ -53,17 +53,19 @@ pub check(): Bool ->
 
 #[test]
 fn cookie_defaults_and_deletion_policy_execute_actual_source() {
-    let provider = include_str!("../../../../../std/http/Cookies.terl")
-        .replace("@compiler.native {std.http.cookies.encode}\n", "")
-        .replace("    native.", r#"    if {
+    let (before, encoder) = include_str!("../../../../../std/http/Cookies.terl")
+        .split_once("@compiler.native\nencode(")
+        .unwrap();
+    let encoder = encoder.replacen("): String.", r#"): String -> if {
         domain != None or same_site != None -> "unexpected options";
         max_age == Some(0) and value == "" and not http_only and not secure -> name + ":" + path + ":" + (case expires { Some(text) -> text; None -> "missing" });
         max_age == None and expires == None -> name + ":" + value + ":" + path
             + (if { http_only -> ":private"; true -> ":public" })
             + (if { secure -> ":tls"; true -> ":plain" });
         true -> "unexpected policy"
-    }."#);
-    assert!(!provider.contains("@compiler.native"));
+    }."#, 1);
+    let provider = format!("{before}encode({encoder}");
+    assert!(!provider.contains("@compiler.native\nencode("));
     for module in ["std.http.Cookies", "app.SourceCookies"] {
         for expiry in [
             "Thu, 01 Jan 1970 00:00:00 GMT",

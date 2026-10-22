@@ -7,10 +7,12 @@ serialized `.typi` interface artifact consumed by downstream compile phases.
 ## Responsibilities
 
 - Parse command-local interface arguments.
-- Read exactly one `.terli` source file.
+- Read one or more `.terli` or `.terl` source files.
 - Parse interface source through the formal syntax-output path.
-- Write a deterministic `<module>.typi` file into the configured output
-  directory.
+- Validate handwritten declarations, their dependencies, and implementations
+  with sibling contracts through the shared formal pipeline.
+- Write deterministic `<module>.typi` and `<module>.typi.deps` files into the
+  configured output directory.
 
 ## Public Surface
 
@@ -26,10 +28,18 @@ interface-specific read, parse, conversion, and write flow.
 
 The main flow is:
 
-1. Validate that exactly one source path was supplied.
-2. Read the source file through the shared CLI file helper.
-3. Parse `.terli` text with `parse_interface_module_as_syntax_output`.
-4. Convert syntax output into HIR interface text and write `<module>.typi`.
+1. Collect and parse the source paths, rejecting duplicate module identities.
+2. Load sibling contracts and dependencies adjacent to every source directory.
+3. Expand inherited fields across the complete batch graph before resolving
+   clients, regardless of input order or whether parents use `.terl` or `.terli`.
+4. If handwritten contracts are present, validate all batch inputs before
+   publishing.
+5. Write summaries and dependency fingerprints from the admitted public graph.
+
+Batches containing only uncontracted `.terl` files retain syntax-based extraction
+for standard-library bootstrapping. Contracted implementations export only their
+declared surface.
+Validation failures leave previously published summaries and manifests intact.
 
 Important invariants:
 
@@ -53,14 +63,13 @@ after returning an exit code.
 
 ## Edge Cases
 
-- Missing or extra arguments produce exit code `2`.
-- Read, parse, serialization, output-directory, and write failures produce exit
-  code `1`.
+- Missing arguments produce exit code `2`.
+- Read, parse, declaration validation, conformance, output-directory, and write
+  failures produce exit code `1`.
 - Parse diagnostics respect the caller's selected diagnostic format.
 
 ## Testing Notes
 
-- Existing `main.rs` tests still cover interface success and error paths while
-  the broader CLI test module is being split.
-- Add focused module tests when new interface-local flags or output modes are
-  introduced.
+- Module tests cover contract enforcement, invalid dependencies, cross-directory
+  batch boundaries, and validation before publication. The broader CLI suite
+  covers ordinary extraction and output errors.

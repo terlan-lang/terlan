@@ -50,6 +50,14 @@ pub(super) fn collect_effectful_local_calls(
                 return None;
             };
             let identity = (name.clone(), params.len());
+            if crate::compiler::native_bindings::declaration_operation(
+                &module.module_name,
+                declaration,
+            )
+            .is_some()
+            {
+                return Some(identity);
+            }
             let function_values =
                 function_value_param_names(params, function_signatures.get(&identity), aliases);
             clauses

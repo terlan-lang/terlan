@@ -1,8 +1,8 @@
 module=terlan_libpq.Driver
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=13452665618317188359
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14768363903080182507
 interface_hash=1551983371651953519
 interface_doc_hash=5968448093458090859
 deps=0

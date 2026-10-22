@@ -208,7 +208,7 @@ pub struct CoreFunction {
     pub public: bool,
     /// Source-declared generic parameters retained for exact AOT monomorphization.
     pub generic_params: Vec<String>,
-    /// Explicit package/native operation selected by `@compiler.native`.
+    /// Inferred or explicit native operation selected by `@compiler.native`.
     pub native_operation: Option<String>,
     pub params: Vec<CoreParam>,
     pub return_type: String,

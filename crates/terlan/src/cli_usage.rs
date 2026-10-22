@@ -83,7 +83,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "bind" => println!(
             "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
         ),
-        "check" => println!("terlc check <file.terl|file.terli|dir> [--emit-phase-manifest <path>]"),
+        "check" => println!("terlc check <file.terl|file.terli|dir> [--interfaces-only] [--emit-phase-manifest <path>]"),
         "build" => println!(
             "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]\nterlc build --print-toolchain-identity"
         ),

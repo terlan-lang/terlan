@@ -1,8 +1,9 @@
 module=std.vm.DistributedStorage
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=13849846724487118891
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=9126521743080372786
 interface_hash=3335895602881865417
 interface_doc_hash=15916263546766709599
-deps=0
+deps=1
+std.vm.DistributedState=15823871584348237345

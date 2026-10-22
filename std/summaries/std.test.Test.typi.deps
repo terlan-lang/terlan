@@ -1,10 +1,11 @@
 module=std.test.Test
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
 source_hash=11483960403206289999
 interface_hash=5098545701669275628
 interface_doc_hash=9461999067473816645
-deps=2
+deps=3
 std.collections.Iterator=10749130463381709939
+std.collections.List=3908094428331843945
 std.core.Option=11539230284316612175

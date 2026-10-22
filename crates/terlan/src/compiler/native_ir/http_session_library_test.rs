@@ -7,12 +7,12 @@ fn source_session_lifetime_controls_allocation_and_is_retained_for_rotation() {
         for seconds in [7, 86400] {
             let provider = include_str!("../../../../../std/http/Session.terl")
                 .replace("let ttl_seconds = 86400;", &format!("let ttl_seconds = {seconds};"))
-                .replace("@compiler.native {std.http.session.lookup}\nlookup(identity: String): Option[String] ->\n    native.", "lookup(identity: String): Option[String] -> None.")
-                .replace("@compiler.native {std.http.session.create}\ncreate(excluded_identity: String, ttl_seconds: Int): String ->\n    native.", &format!("create(excluded_identity: String, ttl_seconds: Int): String -> if {{ ttl_seconds == {seconds} -> \"allocated\"; true -> \"wrong allocation lifetime\" }}."))
-                .replace("@compiler.native {std.http.session.rotate}\nrenew(identity: String, ttl_seconds: Int): String ->\n    native.", &format!("renew(identity: String, ttl_seconds: Int): String -> if {{ identity == \"allocated\" and ttl_seconds == {seconds} -> \"rotated\"; true -> \"wrong renewal lifetime\" }}."));
+                .replace("@compiler.native\nlookup(identity: String): Option[String].", "lookup(identity: String): Option[String] -> None.")
+                .replace("@compiler.native\ncreate(excluded_identity: String, ttl_seconds: Int): String.", &format!("create(excluded_identity: String, ttl_seconds: Int): String -> if {{ ttl_seconds == {seconds} -> \"allocated\"; true -> \"wrong allocation lifetime\" }}."))
+                .replace("@compiler.native {std.http.session.rotate}\nrenew(identity: String, ttl_seconds: Int): String.", &format!("renew(identity: String, ttl_seconds: Int): String -> if {{ identity == \"allocated\" and ttl_seconds == {seconds} -> \"rotated\"; true -> \"wrong renewal lifetime\" }}."));
             let provider = format!("{provider}\npub check_lifetime(): Bool -> let session = current(Request.new()); let renewed = session.rotate(); renewed.#identity == \"rotated\" and renewed.#pending_identity == \"rotated\" and renewed.#ttl_seconds == {seconds}.")
                 .replace("std.http.Session", owner);
-            assert!(!provider.contains("@compiler.native {std.http.session.create}"));
+            assert!(!provider.contains("@compiler.native\ncreate("));
             assert!(!provider.contains("@compiler.native {std.http.session.rotate}"));
             let caller = format!("module lifetime_source_authority. import {owner}. pub check(): Bool -> {owner}.check_lifetime().");
             super::super::source_constructor_test::check_sources(&[
@@ -76,18 +76,18 @@ pub (request: Request) cookie(name: String): Option[String] ->
     if { name == "terlan_session" -> request.value; true -> None }.
 "#;
     let provider = include_str!("../../../../../std/http/Session.terl").replace(
-        "@compiler.native {std.http.session.lookup}\nlookup(identity: String): Option[String] ->\n    native.",
+        "@compiler.native\nlookup(identity: String): Option[String].",
         "lookup(identity: String): Option[String] -> if { identity == \"\" or identity == \"missing\" -> None; true -> Some(identity) }.",
     ).replace(
-        "@compiler.native {std.http.session.create}\ncreate(excluded_identity: String, ttl_seconds: Int): String ->\n    native.",
+        "@compiler.native\ncreate(excluded_identity: String, ttl_seconds: Int): String.",
         "create(excluded_identity: String, ttl_seconds: Int): String -> \"issued\".",
     ) + r#"
 pub inspect(value: Option[String]): String ->
     let session = current(Request.new(value));
     session.#identity + ":" + session.#pending_identity.
 "#;
-    assert!(!provider.contains("@compiler.native {std.http.session.lookup}"));
-    assert!(!provider.contains("@compiler.native {std.http.session.create}"));
+    assert!(!provider.contains("@compiler.native\nlookup("));
+    assert!(!provider.contains("@compiler.native\ncreate("));
     let caller = r#"
 module session_cookie_source_policy.
 import std.http.Session.
@@ -173,7 +173,7 @@ fn session_native_declarations_suspend_through_generic_capability_frames() {
             for prefix in ["std.http.session", "app.storage"] {
                 let core = checked_provider(&format!(
                     "module {owner}. import std.core.Option. @compiler.native {{{prefix}.{name}}}
-                     pub invoke({args}): {result} -> native."
+                     pub invoke({args}): {result}."
                 ));
                 let modules = NativeModule::lower_application(&[&core]).unwrap();
                 let function = modules

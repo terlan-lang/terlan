@@ -9,9 +9,8 @@ module std.time.Clock.
  * The value is suitable for evidence timestamps, not elapsed-time measurement;
  * wall-clock adjustments may move it forwards or backwards.
  */
-@compiler.native {std.time.clock.unix_time_ns}
-pub unix_time_ns(): Int ->
-    native.
+@compiler.native
+pub unix_time_ns(): Int.
 
 /**
  * Returns nanoseconds from a process-local monotonic origin.
@@ -20,6 +19,5 @@ pub unix_time_ns(): Int ->
  * meaningful. The clock never moves backwards and is suitable for benchmark
  * and timeout accounting.
  */
-@compiler.native {std.time.clock.monotonic_time_ns}
-pub monotonic_time_ns(): Int ->
-    native.
+@compiler.native
+pub monotonic_time_ns(): Int.

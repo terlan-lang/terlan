@@ -68,40 +68,35 @@ pub labeled_file_pattern(id: String, pattern: String): LabeledFilePattern ->
  * every digest byte as two hexadecimal characters.
  */
 @pure
-@compiler.native {std.crypto.hash.sha256}
-pub sha256(text: String): String ->
-    native.
+@compiler.native
+pub sha256(text: String): String.
 
 /**
  * Returns the lowercase SHA-256 digest of immutable binary data.
  */
-@compiler.native {std.crypto.hash.sha256_bytes}
-pub sha256_bytes(bytes: std.vm.Bytes.Bytes): String ->
-    native.
+@compiler.native
+pub sha256_bytes(bytes: std.vm.Bytes.Bytes): String.
 
 /**
  * Hashes ordered UTF-8 fields with unsigned 64-bit length framing.
  */
-@compiler.native {std.crypto.hash.sha256_framed}
-pub sha256_framed(fields: List[String]): String ->
-    native.
+@compiler.native
+pub sha256_framed(fields: List[String]): String.
 
 /**
  * Hashes an unframed UTF-8 domain, one NUL separator, and ordered
  * length-framed fields.
  */
-@compiler.native {std.crypto.hash.sha256_domain_framed}
-pub sha256_domain_framed(domain: String, fields: List[String]): String ->
-    native.
+@compiler.native
+pub sha256_domain_framed(domain: String, fields: List[String]): String.
 
 /**
  * Hashes text fields joined by one NUL octet without materializing that control
  * character in Terlan source. This preserves established release-candidate
  * identities while keeping the byte framing inside the typed hash adapter.
  */
-@compiler.native {std.crypto.hash.sha256_nul_separated}
-pub sha256_nul_separated(fields: List[String]): String ->
-    native.
+@compiler.native
+pub sha256_nul_separated(fields: List[String]): String.
 
 /**
  * Streams one regular file through SHA-256 without materializing it in an actor heap.

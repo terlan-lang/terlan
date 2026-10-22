@@ -10,15 +10,23 @@ entry-point parsing and routing.
 - Load external interfaces from sibling files and optional cache directories.
 - Resolve syntax output against interfaces.
 - Run template-aware type validation.
+- Validate implementation-free interfaces without lowering executable CoreIR.
+- Enforce sibling handwritten interfaces against implementations before emission.
 - Return checked artifacts or phase diagnostics for command modules.
 - Detect whether changed interfaces affect a syntax-output module.
 
 ## Public Surface
 
 - `CheckedSyntaxModuleArtifacts`: syntax output, interface map, and resolved HIR.
+- `CheckedInterfaceArtifacts`: validated declarations and dependencies without executable code.
 - `CompileSyntaxModuleThroughPhasesResult`: artifacts plus phase diagnostics.
-- `load_external_interfaces`: loads file-set and cached interfaces.
+- `load_external_interfaces_for_module`: loads adjacent, cached, and imported
+  embedded interfaces for an individual source module.
+- `SourceInterfaceGraph`: collects source directories, dependency inventories,
+  and the explicit source modules their caller validates; expands inherited
+  fields across implementations and declarations before checking clients.
 - `terlan_sources_in_dir`: lists implementation sources for directory commands.
+- `terlan_check_sources_in_dir`: lists implementation and interface sources for design checks.
 - `syntax_module_imports_changed_interface`: checks dependency invalidation reachability.
 - `parse_source_as_syntax_output`: dispatches `.terl` and `.terli` parsing.
 - `compile_syntax_module_through_phases_with_diagnostics_for_profile`: full phase
@@ -37,6 +45,14 @@ Important invariants:
 - Every formal compiler command should enter through this module or a narrower
   helper derived from it.
 - The pipeline consumes `SyntaxModuleOutput`, not the AST adapter.
+- Handwritten `.terli` contracts override generated summaries. Interface checks
+  do not produce implementation artifacts or CoreIR proof metadata.
+- Reachable source interface dependencies are validated before checking clients
+  or reusing checked implementations. Public summaries preserve declared types
+  while local CoreIR retains private representations for backend compilation.
+- Project and batch compilation share a complete visible graph, including
+  adjacent dependencies from every source directory. Only explicit source
+  identities bypass dependency validation here; the command validates them.
 - Backend outputs must depend on resolved formal artifacts, not parser-specific
   implementation details.
 - Parser, resolver, and type diagnostics are preserved separately for phase

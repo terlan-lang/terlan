@@ -1,11 +1,13 @@
 module=std.db.Postgres
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=2688359585278898495
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=4568739446557371265
 interface_hash=1247302903167165388
 interface_doc_hash=3935482022699206710
-deps=3
+deps=5
 std.collections.List=3908094428331843945
+std.core.Error=1244151485527378485
+std.core.Option=11539230284316612175
 std.core.Result=11040488711914238385
 std.data.Json=1494104784307422044

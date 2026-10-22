@@ -3,6 +3,69 @@ use super::*;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
 #[test]
+fn interface_first_local_include_chains_preserve_ancestor_fields_and_metadata() {
+    let declarations = [
+        "pub struct Base { code: Int = 7, #secret: String }.",
+        "pub struct Middle includes Base { middle: Bool }.",
+        "pub struct Leaf includes Middle { leaf: String }.",
+    ];
+    for order in [[0, 1, 2], [2, 1, 0], [1, 2, 0]] {
+        let source = format!(
+            "module inheritance. {}",
+            order.map(|index| declarations[index]).join(" ")
+        );
+        let module = parse_module_as_syntax_output(&source).unwrap();
+        let base = module
+            .declarations
+            .iter()
+            .find_map(|declaration| match &declaration.payload {
+                SyntaxDeclarationPayload::Struct { name, fields, .. } if name == "Base" => {
+                    Some(fields.clone())
+                }
+                _ => None,
+            })
+            .unwrap();
+        let resolved = crate::terlan_hir::resolve_syntax_module_output(&module).module;
+        let (expanded, diagnostics) = expand_syntax_includes(module, &resolved);
+        assert!(diagnostics.is_empty(), "{source}: {diagnostics:?}");
+        let leaf = expanded
+            .declarations
+            .iter()
+            .find_map(|declaration| match &declaration.payload {
+                SyntaxDeclarationPayload::Struct { name, fields, .. } if name == "Leaf" => {
+                    Some(fields)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(
+            leaf.iter()
+                .map(|field| field.name.as_str())
+                .collect::<Vec<_>>(),
+            ["code", "secret", "middle", "leaf"]
+        );
+        assert_eq!(&leaf[..base.len()], &base);
+    }
+}
+
+#[test]
+fn interface_first_local_include_cycles_and_transitive_conflicts_are_atomic() {
+    for (declarations, message) in [
+        ("pub struct A includes B { a: Int }. pub struct B includes A { b: Int }.", "struct include cycle: A -> B -> A"),
+        ("pub struct A includes B { a: Int }. pub struct B includes C { b: Int }. pub struct C includes A { c: Int }.", "struct include cycle: A -> B -> C -> A"),
+        ("pub struct Leaf includes Middle { code: String }. pub struct Middle includes Base { middle: Bool }. pub struct Base { code: Int }.", "field `code` conflicts"),
+        ("pub struct Leaf includes Left, Right { leaf: Int }. pub struct Left includes Base { left: Int }. pub struct Right includes Base { right: Int }. pub struct Base { code: Int }.", "field `code` conflicts"),
+    ] {
+        let source = format!("module inheritance. pub struct Root {{ id: Int }}. pub struct Valid includes Root {{ value: Int }}. {declarations}");
+        let module = parse_module_as_syntax_output(&source).unwrap();
+        let resolved = crate::terlan_hir::resolve_syntax_module_output(&module).module;
+        let (expanded, diagnostics) = expand_syntax_includes(module.clone(), &resolved);
+        assert!(diagnostics.iter().any(|diagnostic| diagnostic.message.contains(message)), "{source}: {diagnostics:?}");
+        assert_eq!(expanded, module, "invalid inclusion must not partially expand other declarations");
+    }
+}
+
+#[test]
 fn expands_syntax_includes_no_ops_without_struct_includes() {
     let module = parse_module_as_syntax_output(
         "\

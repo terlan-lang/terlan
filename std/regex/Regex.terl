@@ -45,9 +45,8 @@ pub struct RegexError includes Error {
  * Transformation: delegates pattern compilation to the selected target regex
  * engine and maps parser failures into `RegexError`.
  */
-@compiler.native {std.regex.regex.compile}
-pub compile(pattern: String): Result[Regex, RegexError] ->
-    native.
+@compiler.native
+pub compile(pattern: String): Result[Regex, RegexError].
 
 /**
  * Returns whether a regex matches text.
@@ -56,9 +55,8 @@ pub compile(pattern: String): Result[Regex, RegexError] ->
  * Output: `true` when the regex matches anywhere in the text.
  * Transformation: delegates matching to the selected target regex engine.
  */
-@compiler.native {std.regex.regex.is_match}
-pub is_match(regex: Regex, text: String): Bool ->
-    native.
+@compiler.native
+pub is_match(regex: Regex, text: String): Bool.
 
 /**
  * Returns the one-based numbers of every matching text line.
@@ -68,9 +66,8 @@ pub is_match(regex: Regex, text: String): Bool ->
  * Transformation: performs line iteration inside the selected regex adapter,
  * avoiding one runtime transition and one actor-heap allocation per line.
  */
-@compiler.native {std.regex.regex.matching_line_numbers}
-pub matching_line_numbers(regex: Regex, text: String): List[Int] ->
-    native.
+@compiler.native
+pub matching_line_numbers(regex: Regex, text: String): List[Int].
 
 /**
  * Returns the first regex match when present.
@@ -79,9 +76,8 @@ pub matching_line_numbers(regex: Regex, text: String): List[Int] ->
  * Output: `Some(match)` for the first match, otherwise `None`.
  * Transformation: returns matched text without exposing backend span values.
  */
-@compiler.native {std.regex.regex.find}
-pub find(regex: Regex, text: String): Option[String] ->
-    native.
+@compiler.native
+pub find(regex: Regex, text: String): Option[String].
 
 /**
  * Returns all non-overlapping regex matches.
@@ -90,9 +86,8 @@ pub find(regex: Regex, text: String): Option[String] ->
  * Output: a list of matched text values in source order.
  * Transformation: materializes backend match iteration into a portable list.
  */
-@compiler.native {std.regex.regex.find_all}
-pub find_all(regex: Regex, text: String): List[String] ->
-    native.
+@compiler.native
+pub find_all(regex: Regex, text: String): List[String].
 
 /**
  * Returns one positional capture group when present.
@@ -104,9 +99,8 @@ pub find_all(regex: Regex, text: String): List[String] ->
  * Transformation: validates capture presence without exposing backend capture
  * storage.
  */
-@compiler.native {std.regex.regex.capture}
-pub capture(regex: Regex, text: String, index: Int): Option[String] ->
-    native.
+@compiler.native
+pub capture(regex: Regex, text: String, index: Int): Option[String].
 
 /**
  * Returns one named capture group when present.
@@ -117,9 +111,8 @@ pub capture(regex: Regex, text: String, index: Int): Option[String] ->
  * Transformation: resolves named capture storage through the selected target
  * regex engine.
  */
-@compiler.native {std.regex.regex.named_capture}
-pub named_capture(regex: Regex, text: String, name: String): Option[String] ->
-    native.
+@compiler.native
+pub named_capture(regex: Regex, text: String, name: String): Option[String].
 
 /**
  * Replaces every regex match with replacement text.
@@ -129,9 +122,8 @@ pub named_capture(regex: Regex, text: String, name: String): Option[String] ->
  * Transformation: delegates replacement expansion to the selected target regex
  * engine.
  */
-@compiler.native {std.regex.regex.replace}
-pub replace(regex: Regex, text: String, replacement: String): String ->
-    native.
+@compiler.native
+pub replace(regex: Regex, text: String, replacement: String): String.
 
 /**
  * Splits text around regex matches.
@@ -140,9 +132,8 @@ pub replace(regex: Regex, text: String, replacement: String): String ->
  * Output: list of split text segments.
  * Transformation: materializes backend split iteration into a portable list.
  */
-@compiler.native {std.regex.regex.split}
-pub split(regex: Regex, text: String): List[String] ->
-    native.
+@compiler.native
+pub split(regex: Regex, text: String): List[String].
 
 /**
  * Escapes literal text so it can be used as a regex pattern.
@@ -151,6 +142,5 @@ pub split(regex: Regex, text: String): List[String] ->
  * Output: regex pattern text that matches the input literally.
  * Transformation: delegates escaping to the selected target regex engine.
  */
-@compiler.native {std.regex.regex.escape}
-pub escape(text: String): String ->
-    native.
+@compiler.native
+pub escape(text: String): String.

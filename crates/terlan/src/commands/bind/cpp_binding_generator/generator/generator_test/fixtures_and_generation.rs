@@ -400,25 +400,25 @@ pub(super) fn structured_cpp_metadata_generates_real_cxx_package() {
     assert!(source.contains("doubled: Int"));
     assert!(source.contains("pub native_snapshot(value: Int, doubled: Int): NativeSnapshot ->"));
     assert!(source.contains("NativeSnapshot {value: value, doubled: doubled}."));
-    assert!(source.contains("pub sum_snapshot(snapshot: NativeSnapshot): Int -> native."));
-    assert!(source.contains("pub sum_integers(values: List[Int]): Int -> native."));
-    assert!(source.contains("pub sum_floats(values: List[Float]): Float -> native."));
-    assert!(source.contains("pub label(boundary: NativeBoundary): String -> native."));
-    assert!(source.contains("pub bytes(boundary: NativeBoundary): std.vm.Bytes.Bytes -> native."));
-    assert!(source.contains("pub samples(boundary: NativeBoundary): List[Int] -> native."));
+    assert!(source.contains("pub sum_snapshot(snapshot: NativeSnapshot): Int."));
+    assert!(source.contains("pub sum_integers(values: List[Int]): Int."));
+    assert!(source.contains("pub sum_floats(values: List[Float]): Float."));
+    assert!(source.contains("pub label(boundary: NativeBoundary): String."));
+    assert!(source.contains("pub bytes(boundary: NativeBoundary): std.vm.Bytes.Bytes."));
+    assert!(source.contains("pub samples(boundary: NativeBoundary): List[Int]."));
     assert!(source.contains("pub type Raw = Atom[\"raw\"]."));
     assert!(source.contains("pub type Doubled = Atom[\"doubled\"]."));
     assert!(source.contains("pub type Offset = Atom[\"offset\"]."));
     assert!(source
         .contains("pub type BoundaryMode = Atom[\"raw\"] | Atom[\"doubled\"] | Atom[\"offset\"]."));
-    assert!(source.contains("pub mode(boundary: NativeBoundary): BoundaryMode -> native."));
+    assert!(source.contains("pub mode(boundary: NativeBoundary): BoundaryMode."));
     assert!(!source.contains("41"));
     assert!(!source.contains("Hidden"));
     assert!(!source.contains("123"));
     assert!(source.contains(
-        "pub tripled_or_error(boundary: NativeBoundary): Result[Int, std.core.Error.Error] -> native."
+        "pub tripled_or_error(boundary: NativeBoundary): Result[Int, std.core.Error.Error]."
     ));
-    assert!(source.contains("@compiler.native {cpp_fixture.native_boundary.new}"));
+    assert!(source.contains("@compiler.native"));
     assert!(!source.contains("std.native"));
     assert!(!source.contains("torch"));
     let generated_test =
@@ -436,7 +436,7 @@ pub(super) fn structured_cpp_metadata_generates_real_cxx_package() {
     let gauge_source = fs::read_to_string(out_dir.join("src/cpp_fixture/NativeGauge.terl"))
         .expect("second Terlan module");
     assert!(gauge_source.contains("pub opaque type NativeGauge."));
-    assert!(gauge_source.contains("@compiler.native {cpp_fixture.native_gauge.new}"));
+    assert!(gauge_source.contains("@compiler.native"));
     let gauge_test = fs::read_to_string(out_dir.join("tests/cpp_fixture/NativeGaugeTest.terl"))
         .expect("second generated Terlan test");
     assert!(gauge_test.contains("let boundary = new(40);"));
@@ -510,9 +510,9 @@ pub(super) fn generated_functions_preserve_validated_public_defaults() {
 
     let source = fs::read_to_string(out_dir.join("src/cpp_fixture/NativeBoundary.terl"))
         .expect("generated NativeBoundary module");
-    assert!(source.contains(
-        "pub shifted(boundary: NativeBoundary, delta: Int = 1): NativeBoundary -> native."
-    ));
+    assert!(
+        source.contains("pub shifted(boundary: NativeBoundary, delta: Int = 1): NativeBoundary.")
+    );
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
@@ -597,9 +597,7 @@ pub(super) fn generated_terlan_composition_keeps_native_leaves_private() {
     let metadata =
         fs::read_to_string(out.join("native/terlan-native.toml")).expect("native metadata");
 
-    assert!(module.contains(
-        "@compiler.native {cpp_fixture.native_boundary.shifted_private}\nshifted_private("
-    ));
+    assert!(module.contains("@compiler.native\nshifted_private("));
     assert!(!module.contains("pub shifted_private("));
     assert!(module.contains(
         "pub shifted_twice(boundary: NativeBoundary, delta: Int): NativeBoundary ->\n    shifted_private(boundary, delta + delta)."
@@ -672,7 +670,7 @@ pub(super) fn generated_cpp_function_family_expands_exact_metadata_symbols() {
         .expect("read generated family module");
     let normalized = fs::read_to_string(out_dir.join("bindings/native-binding-manifest.json"))
         .expect("read normalized expanded manifest");
-    assert!(module.contains("@compiler.native {cpp_fixture.native_boundary.shifted}"));
+    assert!(module.contains("@compiler.native"));
     assert!(module.contains("shifted(boundary: NativeBoundary, delta: Int): NativeBoundary"));
     assert!(!module.contains("pub shifted("));
     assert!(normalized.contains("\"cpp_symbol\": \"method.native_boundary.shifted\""));

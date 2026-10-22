@@ -119,7 +119,7 @@ MethodDecl ::= [ "pub" ] Receiver MethodFunction .
 Receiver ::= "(" [ "mut" ] LowerIdent ":" ReceiverType ")" .
 ReceiverType ::= TypeName [ TypeArgs ] .
 MethodFunction
-  ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
+  ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr [ "->" Expr ] .
 
 ModuleDecl ::= "module" ModulePath .
 
@@ -222,7 +222,7 @@ StructuralParameterPattern
    | StringLiteral
    .
 
-TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr "->" Expr .
+TypedFunction ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr [ "->" Expr ] .
 ClauseFunction ::= LowerIdent [ TypeParams ] "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr { ";" LowerIdent "(" [ PatternList ] ")" [ "where" Expr ] "->" Expr } .
 PatternList ::= Pattern { "," Pattern } [ "," ] .
 TraitMethodDecl ::= LowerIdent [ TypeParams ] "(" [ ParamList ] ")" [ ConstraintList ] ":" TypeExpr [ "->" Expr ] .

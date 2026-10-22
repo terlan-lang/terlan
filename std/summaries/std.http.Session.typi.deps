@@ -1,10 +1,14 @@
 module=std.http.Session
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=14673162959503608040
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14660600682139715496
 interface_hash=8163173071533965162
 interface_doc_hash=2327008507391696306
-deps=2
+deps=6
 std.core.Option=11539230284316612175
+std.core.String=12682104952716337512
+std.core.Unit=13611133214341763160
 std.http.Cookies=8540141410136192506
+std.http.Request=11525889509918050682
+std.http.Response=12489341912185732165

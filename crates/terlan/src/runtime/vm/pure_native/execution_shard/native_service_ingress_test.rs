@@ -23,7 +23,7 @@ impl Fixture {
 import std.vm.{Process, Message}.
 import type std.vm.Process.{Process}.
 @compiler.native {fixture.context.bump}
-invoke(value: Int): Int -> native.
+invoke(value: Int): Int.
 pub handle(value: Int): Int -> invoke(value) + 1.
 pub spawn_51(): Unit ->
     let message = Process.receive[Process[Int]]();

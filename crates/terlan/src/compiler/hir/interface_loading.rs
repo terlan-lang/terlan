@@ -69,12 +69,28 @@ pub fn load_interfaces_from_dir(dir: &Path, acc: &mut HashMap<String, ModuleInte
         Err(_) => return,
     };
 
-    for entry in entries.flatten() {
-        let path = entry.path();
+    let mut paths = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
+    // Load generated summaries first; handwritten interfaces have authority
+    // even when they intentionally expose fewer declarations.
+    paths.sort_by_key(|path| {
+        (
+            path.extension()
+                .is_some_and(|extension| extension == "terli"),
+            path.clone(),
+        )
+    });
+    for path in paths {
         let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
         if extension == "terli" || extension == "typi" {
             if let Some((module_name, interface)) = parse_interface_file(&path) {
-                insert_interface_if_not_poorer(acc, module_name, interface);
+                if extension == "terli" {
+                    acc.insert(module_name, interface);
+                } else {
+                    insert_interface_if_not_poorer(acc, module_name, interface);
+                }
             }
         }
     }

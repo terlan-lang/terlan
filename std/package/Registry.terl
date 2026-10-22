@@ -66,9 +66,8 @@ pub error_offset(error: RegistryProtocolError): Int ->
  * dependency identities, archive limits, artifact provenance, source
  * identity, compiler compatibility, and documentation-object consistency.
  */
-@compiler.native {std.package.registry.parse_publish_request}
-pub parse_publish_request(text: String): Result[PublishRequestProjection, RegistryProtocolError] ->
-    native.
+@compiler.native
+pub parse_publish_request(text: String): Result[PublishRequestProjection, RegistryProtocolError].
 
 pub (value: PublishRequestProjection) publisher_key_id(): String ->
     value.publisher_key_id.

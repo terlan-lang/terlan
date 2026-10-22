@@ -17,180 +17,154 @@ pub opaque type QueryResult.
  * Starts a nonblocking libpq connection.
  */
 @compiler.native {postgres.libpq.connection.start}
-pub start(url: String): Connection ->
-    native.
+pub start(url: String): Connection.
 
 /**
  * Closes and frees a libpq connection.
  */
 @compiler.native {postgres.libpq.connection.dispose}
-pub dispose_connection(connection: Connection): Unit ->
-    native.
+pub dispose_connection(connection: Connection): Unit.
 
 /**
  * Returns the socket watched by the VM reactor.
  */
 @compiler.native {postgres.libpq.connection.socket}
-pub socket(connection: Connection): Int ->
-    native.
+pub socket(connection: Connection): Int.
 
 /**
  * Advances nonblocking connection setup once.
  */
 @compiler.native {postgres.libpq.connection.poll_connect}
-pub poll_connect(connection: Connection): Int ->
-    native.
+pub poll_connect(connection: Connection): Int.
 
 /**
  * Copies the current driver error into adapter scratch storage.
  */
 @compiler.native {postgres.libpq.connection.error_length}
-pub error_length(connection: Connection): Int ->
-    native.
+pub error_length(connection: Connection): Int.
 
 /**
  * Copies current driver error bytes into Rust-owned storage.
  */
 @compiler.native {postgres.libpq.connection.error_bytes}
-pub error_bytes(connection: Connection): List[Int] ->
-    native.
+pub error_bytes(connection: Connection): List[Int].
 
 /**
  * Clears pending query parameters.
  */
 @compiler.native {postgres.libpq.connection.clear_parameters}
-pub clear_parameters(connection: Connection): Unit ->
-    native.
+pub clear_parameters(connection: Connection): Unit.
 
 /**
  * Appends a null query parameter.
  */
 @compiler.native {postgres.libpq.connection.push_null}
-pub push_null(connection: Connection): Unit ->
-    native.
+pub push_null(connection: Connection): Unit.
 
 /**
  * Appends a text-format query parameter.
  */
 @compiler.native {postgres.libpq.connection.push_text}
-pub push_text(connection: Connection, value: String): Unit ->
-    native.
+pub push_text(connection: Connection, value: String): Unit.
 
 /**
  * Submits a parameterized query without blocking.
  */
 @compiler.native {postgres.libpq.connection.send_query}
-pub send_query(connection: Connection, sql: String): Unit ->
-    native.
+pub send_query(connection: Connection, sql: String): Unit.
 
 /**
  * Submits a trusted multi-statement SQL batch without parameters.
  */
 @compiler.native {postgres.libpq.connection.send_batch}
-pub send_batch(connection: Connection, sql: String): Unit ->
-    native.
+pub send_batch(connection: Connection, sql: String): Unit.
 
 /**
  * Consumes currently readable query bytes.
  */
 @compiler.native {postgres.libpq.connection.consume_input}
-pub consume_input(connection: Connection): Unit ->
-    native.
+pub consume_input(connection: Connection): Unit.
 
 /**
  * Reports whether the current query needs more input.
  */
 @compiler.native {postgres.libpq.connection.is_busy}
-pub is_busy(connection: Connection): Bool ->
-    native.
+pub is_busy(connection: Connection): Bool.
 
 /**
  * Takes the next completed query result.
  */
 @compiler.native {postgres.libpq.connection.next_result}
-pub next_result(connection: Connection): QueryResult ->
-    native.
+pub next_result(connection: Connection): QueryResult.
 
 /**
  * Cancels work by closing the connection immediately.
  */
 @compiler.native {postgres.libpq.connection.abort}
-pub abort(connection: Connection): Unit ->
-    native.
+pub abort(connection: Connection): Unit.
 
 /**
  * Clears and frees a query result.
  */
 @compiler.native {postgres.libpq.result.dispose}
-pub dispose_result(result: QueryResult): Unit ->
-    native.
+pub dispose_result(result: QueryResult): Unit.
 
 /**
  * Returns the libpq result status.
  */
 @compiler.native {postgres.libpq.result.status}
-pub status(result: QueryResult): Int ->
-    native.
+pub status(result: QueryResult): Int.
 
 /**
  * Returns tuple count.
  */
 @compiler.native {postgres.libpq.result.row_count}
-pub row_count(result: QueryResult): Int ->
-    native.
+pub row_count(result: QueryResult): Int.
 
 /**
  * Returns field count.
  */
 @compiler.native {postgres.libpq.result.column_count}
-pub column_count(result: QueryResult): Int ->
-    native.
+pub column_count(result: QueryResult): Int.
 
 /**
  * Selects and copies one field name into adapter scratch storage.
  */
 @compiler.native {postgres.libpq.result.select_column_name}
-pub select_column_name(result: QueryResult, column: Int): Unit ->
-    native.
+pub select_column_name(result: QueryResult, column: Int): Unit.
 
 /**
  * Returns the stable PostgreSQL field type OID.
  */
 @compiler.native {postgres.libpq.result.column_oid}
-pub column_oid(result: QueryResult, column: Int): Int ->
-    native.
+pub column_oid(result: QueryResult, column: Int): Int.
 
 /**
  * Selects and copies one result value into adapter scratch storage.
  */
 @compiler.native {postgres.libpq.result.select_value}
-pub select_value(result: QueryResult, row: Int, column: Int): Unit ->
-    native.
+pub select_value(result: QueryResult, row: Int, column: Int): Unit.
 
 /**
  * Returns selected value byte length.
  */
 @compiler.native {postgres.libpq.result.value_length}
-pub value_length(result: QueryResult): Int ->
-    native.
+pub value_length(result: QueryResult): Int.
 
 /**
  * Copies selected value bytes into Rust-owned storage.
  */
 @compiler.native {postgres.libpq.result.value_bytes}
-pub value_bytes(result: QueryResult): List[Int] ->
-    native.
+pub value_bytes(result: QueryResult): List[Int].
 
 /**
  * Reports selected SQL null state.
  */
 @compiler.native {postgres.libpq.result.value_is_null}
-pub value_is_null(result: QueryResult): Bool ->
-    native.
+pub value_is_null(result: QueryResult): Bool.
 
 /**
  * Returns command affected-row count.
  */
 @compiler.native {postgres.libpq.result.affected_rows}
-pub affected_rows(result: QueryResult): Int ->
-    native.
+pub affected_rows(result: QueryResult): Int.

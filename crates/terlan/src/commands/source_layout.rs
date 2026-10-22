@@ -39,13 +39,18 @@ pub(crate) fn expected_module_name_for_source_path(
     let last = segments
         .last_mut()
         .ok_or_else(|| format!("source path `{}` has no module file name", file.display()))?;
-    if !last.ends_with(".terl") {
+    let extension = if last.ends_with(".terli") {
+        ".terli"
+    } else {
+        ".terl"
+    };
+    if !last.ends_with(extension) {
         return Err(format!(
             "source path `{}` is not a Terlan implementation source",
             file.display()
         ));
     }
-    last.truncate(last.len() - ".terl".len());
+    last.truncate(last.len() - extension.len());
     if segments.iter().any(|segment| segment.is_empty()) {
         return Err(format!(
             "source path `{}` contains an empty module segment",

@@ -7,7 +7,12 @@ use crate::commands::artifacts::{
     collect_syntax_dependency_hashes, fingerprint, DependencyManifest,
 };
 use crate::terlan_hir::syntax_module_output_to_interface;
+use crate::terlan_syntax::SyntaxSourceKind;
 use crate::validation::phase_manifest::current_syntax_contract_identity;
+use crate::validation::target_profile::{
+    infer_target_profile_from_typed_evidence, TargetInferenceInput, TargetProfile,
+    TargetProfileCheckOptions,
+};
 
 use crate::{support::write_if_changed_or_forced, CliState};
 
@@ -25,14 +30,14 @@ mod tests;
 /// Output:
 /// - `ExitCode::SUCCESS` when interface output is written successfully.
 /// - `ExitCode::from(2)` when command-local arguments are malformed.
-/// - `ExitCode::from(1)` on read, parse, serialization, directory, or write
-///   failures.
+/// - `ExitCode::from(1)` on read, parse, contract validation, directory, or
+///   write failures.
 ///
 /// Transformation:
-/// - Reads one `.terl` or `.terli` source, parses it through the formal
-///   syntax-output path, converts that output to Terlan interface text, and
-///   writes `<module>.typi` plus `<module>.typi.deps` into the configured
-///   output directory.
+/// - Collects one or more formal sources, validates `.terli` declarations and
+///   contracted implementations, and writes `<module>.typi` plus
+///   `<module>.typi.deps`. Batches of uncontracted implementations retain
+///   syntax-based extraction for standard-library bootstrapping.
 pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
     if args.is_empty() {
         eprintln!("missing path argument");
@@ -42,6 +47,7 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
 
     let mut inputs = Vec::with_capacity(args.len());
     let mut module_names = HashSet::new();
+    let mut contracts = HashMap::new();
     for path in args {
         let source = match crate::support::read_file(path) {
             Ok(source) => source,
@@ -77,6 +83,34 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
             return ExitCode::from(1);
         }
         let interface = syntax_module_output_to_interface(&syntax_output);
+        if syntax_output.source_kind == SyntaxSourceKind::Interface {
+            contracts.insert(syntax_output.module_name.clone(), syntax_output.clone());
+        } else if Path::new(path)
+            .extension()
+            .is_some_and(|extension| extension == "terl")
+        {
+            match crate::formal_pipeline::interface_contract::read_declared_interface(Path::new(
+                path,
+            )) {
+                Ok(Some(contract)) => {
+                    if contract.module_name != syntax_output.module_name {
+                        eprintln!(
+                            "interface_contract: {} declares module `{}`, expected `{}`",
+                            Path::new(path).with_extension("terli").display(),
+                            contract.module_name,
+                            syntax_output.module_name
+                        );
+                        return ExitCode::from(1);
+                    }
+                    contracts.insert(syntax_output.module_name.clone(), contract);
+                }
+                Ok(None) => {}
+                Err(message) => {
+                    eprintln!("{message}");
+                    return ExitCode::from(1);
+                }
+            }
+        }
         inputs.push((path, source, syntax_output, interface));
     }
     if let Err(err) = fs::create_dir_all(&state.out_dir) {
@@ -91,22 +125,20 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let mut interfaces = crate::formal_pipeline::load_external_interfaces(
-        args.first().expect("non-empty interface input"),
-        Some(state.out_dir.as_path()),
+    let cache_dir = state.cache_dir.as_deref().unwrap_or(&state.out_dir);
+    let source_graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
+        inputs.iter().map(|(path, _, syntax, _)| {
+            (
+                Path::new(path.as_str()),
+                contracts.get(&syntax.module_name).unwrap_or(syntax),
+            )
+        }),
+        Some(cache_dir),
     );
-    interfaces.extend(
-        inputs
-            .iter()
-            .map(|(_, _, syntax, interface)| (syntax.module_name.clone(), interface.clone())),
-    );
-    // Batch inputs can arrive before their parents. Resolve inherited fields
-    // to a fixed point before writing any interface or dependency fingerprint.
-    for _ in 0..inputs.len() {
-        let mut changed = false;
+    if contracts.is_empty() {
         for (_, _, syntax, interface) in &mut inputs {
-            let expanded = match expanded_interface(syntax, &interfaces) {
-                Ok(expanded) => expanded,
+            *interface = match expanded_interface(syntax, &source_graph.interfaces) {
+                Ok(interface) => interface,
                 Err(diagnostics) => {
                     for diagnostic in diagnostics {
                         eprintln!("{}", diagnostic.message);
@@ -114,13 +146,59 @@ pub(crate) fn run(args: &[String], state: &CliState) -> ExitCode {
                     return ExitCode::from(1);
                 }
             };
-            changed |= interface.struct_fields != expanded.struct_fields;
-            *interface = expanded;
-            interfaces.insert(syntax.module_name.clone(), interface.clone());
         }
-        if !changed {
+    }
+    // A checked declaration may depend on any source in the batch. Validate
+    // the complete graph before publishing. Batches with no handwritten
+    // contracts retain extraction for standard-library bootstrapping.
+    for (path, source, syntax, interface) in &mut inputs {
+        if contracts.is_empty() {
             break;
         }
+        let target = if syntax.source_kind != SyntaxSourceKind::Interface
+            && state.target_profile == TargetProfile::Vm
+        {
+            match infer_target_profile_from_typed_evidence(
+                &TargetInferenceInput::from_syntax_modules([&*syntax]),
+            ) {
+                Ok(inference) => inference.profile,
+                Err(conflict) => {
+                    eprintln!(
+                        "terlc interface target inference error: {}",
+                        conflict.message
+                    );
+                    return ExitCode::from(1);
+                }
+            }
+        } else {
+            state.target_profile
+        };
+        let result = crate::formal_pipeline::compile_syntax_module_with_interfaces(
+            path,
+            source,
+            state.diagnostic_format,
+            crate::formal_pipeline::InterfaceInputs {
+                cache_dir: Some(cache_dir),
+                source_graph: Some(&source_graph),
+            },
+            state.native_policy,
+            target,
+            TargetProfileCheckOptions::default(),
+        );
+        if result.exit_code != ExitCode::SUCCESS {
+            return result.exit_code;
+        }
+        if let Some(checked) = result.checked_interface {
+            *syntax = checked.syntax_output;
+            *interface = checked.interface;
+        } else if let Some(checked) = result.artifacts {
+            *syntax = checked.syntax_output;
+            *interface = checked.core.interface;
+        }
+    }
+    let mut interfaces = source_graph.interfaces;
+    for (_, _, syntax, interface) in &inputs {
+        interfaces.insert(syntax.module_name.clone(), interface.clone());
     }
     for (path, source, syntax_output, interface) in inputs {
         if let Err(code) = write_interface_input(

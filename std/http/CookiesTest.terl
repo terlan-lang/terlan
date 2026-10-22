@@ -45,8 +45,7 @@ pub sample_full_set_cookie_header(): String ->
     ).
 
 @compiler.native {std.test.fixture.http_request}
-request_fixture(cookie_header: String): Request ->
-    native.
+request_fixture(cookie_header: String): Request.
 
 pub sample_jar(): Jar ->
     request_fixture("session=abc123").cookies().

@@ -44,9 +44,8 @@ pub constructor Vector[T] {
  * Output: an empty `Vector[T]`.
  * Transformation: requires a target-native vector allocation capability.
  */
-@compiler.native {std.native.collections.vector.new}
-pub new[T](): Vector[T] ->
-    native.
+@compiler.native
+pub new[T](): Vector[T].
 
 /**
  * Creates a native vector from a portable list.
@@ -56,9 +55,8 @@ pub new[T](): Vector[T] ->
  * Transformation: copies or transfers values into the target-native indexed
  * storage representation.
  */
-@compiler.native {std.native.collections.vector.from_list}
-pub from_list[T](values: List[T]): Vector[T] ->
-    native.
+@compiler.native
+pub from_list[T](values: List[T]): Vector[T].
 
 /**
  * Returns the number of values in a vector.
@@ -68,8 +66,8 @@ pub from_list[T](values: List[T]): Vector[T] ->
  * Transformation: observes the native indexed-storage length without changing
  * the vector contents.
  */
-@compiler.native {std.native.collections.vector.length}
-pub (vector: Vector[T]) length(): Int -> 0.
+@compiler.native
+pub (vector: Vector[T]) length(): Int.
 
 /**
  * Returns the number of values in a vector.
@@ -80,7 +78,7 @@ pub (vector: Vector[T]) length(): Int -> 0.
  * receiver name used by algorithm-oriented code.
  */
 @compiler.native {std.native.collections.vector.length}
-pub (vector: Vector[T]) len(): Int -> 0.
+pub (vector: Vector[T]) len(): Int.
 
 /**
  * Returns the value at an index.
@@ -90,9 +88,8 @@ pub (vector: Vector[T]) len(): Int -> 0.
  * Transformation: provides the receiver-method body for
  * `IndexGet[Vector[T], Int, T]` and backs bracket read syntax.
  */
-@compiler.native {std.native.collections.vector.get_at}
-pub (vector: Vector[T]) get_at(index: Int): T ->
-    native.
+@compiler.native
+pub (vector: Vector[T]) get_at(index: Int): T.
 
 /**
  * Safely returns the value at a zero-based index.
@@ -116,8 +113,7 @@ pub (vector: Vector[T]) get(index: Int): Option[T] ->
  * value atomically across NativeBoundary.
  */
 @compiler.native {std.native.collections.vector.get}
-pub get_optional_values[T](vector: Vector[T], index: Int): List[T] ->
-    native.
+pub get_optional_values[T](vector: Vector[T], index: Int): List[T].
 
 /**
  * Replaces the value at an index.
@@ -127,9 +123,8 @@ pub get_optional_values[T](vector: Vector[T], index: Int): List[T] ->
  * Transformation: updates the vector binding through the mutable receiver ABI
  * and backs bracket assignment syntax.
  */
-@compiler.native {std.native.collections.vector.set_at}
-pub (mut vector: Vector[T]) set_at(index: Int, value: T): Unit ->
-    native.
+@compiler.native
+pub (mut vector: Vector[T]) set_at(index: Int, value: T): Unit.
 
 /**
  * Swaps two values by index.
@@ -138,9 +133,8 @@ pub (mut vector: Vector[T]) set_at(index: Int, value: T): Unit ->
  * Output: `Unit`.
  * Transformation: updates the vector binding through the mutable receiver ABI.
  */
-@compiler.native {std.native.collections.vector.swap}
-pub (mut vector: Vector[T]) swap(left: Int, right: Int): Unit ->
-    native.
+@compiler.native
+pub (mut vector: Vector[T]) swap(left: Int, right: Int): Unit.
 
 /**
  * Appends a value to the end of a vector.
@@ -149,9 +143,8 @@ pub (mut vector: Vector[T]) swap(left: Int, right: Int): Unit ->
  * Output: `Unit`.
  * Transformation: updates the vector binding through the mutable receiver ABI.
  */
-@compiler.native {std.native.collections.vector.push}
-pub (mut vector: Vector[T]) push(value: T): Unit ->
-    native.
+@compiler.native
+pub (mut vector: Vector[T]) push(value: T): Unit.
 
 /**
  * Converts a native vector into a portable list.
@@ -161,9 +154,8 @@ pub (mut vector: Vector[T]) push(value: T): Unit ->
  * Transformation: copies or transfers target-native indexed storage into the
  * portable collection representation.
  */
-@compiler.native {std.native.collections.vector.to_list}
-pub (vector: Vector[T]) to_list(): List[T] ->
-    native.
+@compiler.native
+pub (vector: Vector[T]) to_list(): List[T].
 
 /**
  * Connects native vector reads to bracket syntax.

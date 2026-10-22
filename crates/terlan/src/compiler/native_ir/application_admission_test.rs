@@ -445,9 +445,9 @@ fn public_native_wrapper_closes_over_private_recursive_helper() {
     let module = core(
         "module app.PrivateClosure.\n\n\
          @compiler.native {fixture.consume}\n\
-         consume(_values: List[Int]): Int -> native.\n\n\
+         consume(_values: List[Int]): Int.\n\n\
          @compiler.native {fixture.inspect}\n\
-         inspect(_value: Int): Int -> native.\n\n\
+         inspect(_value: Int): Int.\n\n\
          collect(values: List[Int]): List[Int] ->\n\
              case values {\n\
                  [] -> [];\n\
@@ -514,7 +514,7 @@ fn identity_forwarder_exposes_recursive_suspension_tail_call() {
     let module = core(
         "module app.IdentityTail.\n\n\
          @compiler.native {fixture.inspect}\n\
-         inspect(_value: Int): Int -> native.\n\n\
+         inspect(_value: Int): Int.\n\n\
          retain(value: Int): Int -> value.\n\n\
          walk(value: Int): Int ->\n\
              if {\n\
@@ -538,7 +538,7 @@ fn suspending_boolean_binding_does_not_inherit_enclosing_unit_type() {
     let module = core(
         "module app.NativeBoolean.\n\n\
          @compiler.native {fixture.scalar}\n\
-         scalar(): Float -> native.\n\n\
+         scalar(): Float.\n\n\
          sink(_valid: Bool): Unit -> Unit.\n\n\
          pub main(): Unit ->\n\
              let valid = scalar() == 0.0 and scalar() == 0.0;\n\
@@ -636,9 +636,9 @@ fn suspending_argument_case_retains_option_boolean_payload_type() {
          pub type Some[T] = {Atom[\"some\"], value: T}.\n\
          pub type Option[T] = None | Some[T].\n\n\
          @compiler.native {fixture.argument_count}\n\
-         argument_count(): Int -> native.\n\n\
+         argument_count(): Int.\n\n\
          @compiler.native {fixture.argument_get}\n\
-         argument_get(_index: Int): Option[String] -> native.\n\n\
+         argument_get(_index: Int): Option[String].\n\n\
          pub main(): Bool ->\n\
              let selected = case {argument_count(), argument_get(0)} {\n\
                  {0, _argument} -> Some(false);\n\
@@ -670,9 +670,9 @@ fn suspending_argument_case_retains_option_string_payload_type() {
          pub type Some[T] = {Atom[\"some\"], value: T}.\n\
          pub type Option[T] = None | Some[T].\n\n\
          @compiler.native {fixture.argument_count}\n\
-         argument_count(): Int -> native.\n\n\
+         argument_count(): Int.\n\n\
          @compiler.native {fixture.argument_get}\n\
-         argument_get(_index: Int): Option[String] -> native.\n\n\
+         argument_get(_index: Int): Option[String].\n\n\
          pub main(): String ->\n\
              let selected = case {argument_count(), argument_get(0)} {\n\
                  {1, Some(path)} -> Some(path);\n\
@@ -727,9 +727,9 @@ fn suspending_left_operand_short_circuits_a_later_suspending_call() {
     let module = core(
         "module app.SuspendingAnd.\n\n\
          @compiler.native {fixture.left}\n\
-         left(): Bool -> native.\n\n\
+         left(): Bool.\n\n\
          @compiler.native {fixture.right}\n\
-         right(): Bool -> native.\n\n\
+         right(): Bool.\n\n\
          wrapped_left(): Bool -> left().\n\n\
          pub validate(require_right: Bool): Bool ->\n\
              wrapped_left() and if {\n\
@@ -779,7 +779,7 @@ fn short_circuit_bypass_in_suspending_condition_enters_managed_join() {
         "module app.ManagedConditionJoin.\n\n\
          pub struct State { value: Int }.\n\n\
          @compiler.native {fixture.check}\n\
-         check(): Bool -> native.\n\n\
+         check(): Bool.\n\n\
          pub evaluate(state: State, enabled: Bool): State ->\n\
              if {\n\
                  enabled and check() and enabled -> state;\n\

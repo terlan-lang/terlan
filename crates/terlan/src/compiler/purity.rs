@@ -80,6 +80,9 @@ fn compiler_intrinsic_is_inferably_pure(
     module: &SyntaxModuleOutput,
     declaration: &SyntaxDeclarationOutput,
 ) -> bool {
+    if declaration_has_annotation(declaration, &["compiler", "native"]) {
+        return false;
+    }
     if !declaration_has_annotation(declaration, &["compiler", "intrinsic"]) {
         return true;
     }

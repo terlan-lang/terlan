@@ -1,8 +1,8 @@
 module=std.encoding.Md5
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=3605320118712935767
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14737899088958815631
 interface_hash=14719907707610011837
 interface_doc_hash=10773882696112512940
 deps=0

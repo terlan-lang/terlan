@@ -1,8 +1,8 @@
 module=std.vm.DistributedState
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=15102153738724014571
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14819735115347476301
 interface_hash=15823871584348237345
 interface_doc_hash=14467071888859627485
 deps=0

@@ -1,9 +1,11 @@
 module=std.range.Range
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
 source_hash=11279218998599185417
 interface_hash=12032696121432351151
 interface_doc_hash=3221375913119633018
-deps=1
+deps=3
+std.collections.Iterator=10749130463381709939
+std.collections.List=3908094428331843945
 std.core.Result=11040488711914238385

@@ -153,8 +153,7 @@ normalize_data(data: String): String ->
     }.
 
 @compiler.native {std.http.sse.encode_event}
-encode(id: Option[String], event: Option[String], retry_ms: Option[Int], data: String): String ->
-    native.
+encode(id: Option[String], event: Option[String], retry_ms: Option[Int], data: String): String.
 
 /**
  * Creates an SSE endpoint plan.

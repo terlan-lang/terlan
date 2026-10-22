@@ -46,8 +46,8 @@ const REQUIRED_SESSION_ANCHORS: &[(&str, &[&str])] = &[
         "std/http/Session.terl",
         &[
             "set_header_with_options(",
-            "@compiler.native {std.http.session.rotate}",
-            "@compiler.native {std.http.session.expire}",
+            "@compiler.native {std.http.session.rotate}\nrenew(",
+            "@compiler.native {std.http.session.expire}\ninvalidate(",
         ],
     ),
     (

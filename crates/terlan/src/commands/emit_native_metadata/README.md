@@ -23,7 +23,9 @@ The command itself owns CLI behavior and exit-code handling. Native metadata
 extraction and NativeBoundary stub generation live in the `artifacts` submodule
 because the regular `emit` command also calls them when native declarations are
 present. Compiler-owned Rust-backed std operations use
-`@compiler.native {operation}` annotations on ordinary declarations. Generated
+`@compiler.native` annotations on bodyless typed declarations. Operation keys
+are inferred from the module path in lower snake case and the callable name;
+`@compiler.native {operation}` supplies an override for aliases. Generated
 Rust stubs must preserve the NativeBoundary actor-bridge shape: opaque handles,
 typed replies, request ids, explicit disposal, stale-handle errors, and credit
 reporting. Generated neutral artifact names use `*.native_boundary.json` and
@@ -58,7 +60,8 @@ Important invariants:
 - Generated Rust stubs are validated by the shared native artifact emitter.
 - Generated Rust stubs remain `unsafe`-free and expose only actor-bridge
   placeholders until a real adapter is supplied.
-- Compiler-owned Rust-backed std metadata uses `@compiler.native {operation}`.
+- Compiler-owned Rust-backed std metadata uses `@compiler.native`, with an
+  explicit operation key only for aliases.
 - General target/runtime NativeBoundary metadata uses ordinary typed
   `@native { ... }` contract-block annotations on ordinary declarations.
 - Source-level `#[native(...)]`, `#[nif(...)]`, and `native core module` blocks

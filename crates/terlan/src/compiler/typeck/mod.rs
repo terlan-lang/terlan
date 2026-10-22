@@ -66,6 +66,7 @@ use signature_loading::*;
 
 mod trait_conformance;
 use trait_conformance::*;
+mod struct_includes;
 
 mod html_typecheck;
 use html_typecheck::*;
@@ -452,6 +453,9 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
         resolved,
         database_schema,
     ));
+    diagnostics.extend(interface_contract::check_interface_annotations(
+        module, resolved,
+    ));
     timings.mark("prepared-module");
     diagnostics
 }
@@ -599,6 +603,8 @@ fn type_check_prepared_syntax_module_output(
 }
 
 mod core_const_termination;
+mod interface_contract;
+pub(crate) use interface_contract::check_module_interface_contract;
 pub(crate) mod core_expr_lowering;
 mod core_expr_proof;
 pub(crate) mod core_interface;
@@ -649,60 +655,7 @@ fn expand_syntax_struct_includes(
     module: &mut SyntaxModuleOutput,
     resolved: &ResolvedModule,
 ) -> Vec<Diagnostic> {
-    let mut diagnostics = check_syntax_struct_includes(module, resolved);
-    if !diagnostics.is_empty() {
-        return diagnostics;
-    }
-
-    let local_parent_fields = collect_local_syntax_struct_fields(module);
-    let imported_parent_fields = collect_imported_syntax_struct_fields(resolved);
-    let mut all_parent_fields = imported_parent_fields;
-    all_parent_fields.extend(local_parent_fields);
-    for declaration in &mut module.declarations {
-        let SyntaxDeclarationPayload::Struct {
-            name,
-            includes,
-            fields,
-            ..
-        } = &mut declaration.payload
-        else {
-            continue;
-        };
-
-        let mut inherited_fields = Vec::new();
-        let mut field_names = fields
-            .iter()
-            .map(|field| field.name.clone())
-            .collect::<HashSet<_>>();
-
-        for parent_name in includes {
-            let Some(parent_fields) = all_parent_fields.get(parent_name) else {
-                continue;
-            };
-
-            for parent_field in parent_fields {
-                if !field_names.insert(parent_field.name.clone()) {
-                    diagnostics.push(Diagnostic {
-                        span: declaration.span.into(),
-                        message: format!(
-                            "included struct `{}` field `{}` conflicts with declaration of struct `{}`",
-                            parent_name, parent_field.name, name
-                        ),
-                        severity: DiagSeverity::Error,
-                    });
-                    continue;
-                }
-                inherited_fields.push(parent_field.clone());
-            }
-        }
-
-        if diagnostics.is_empty() && !inherited_fields.is_empty() {
-            inherited_fields.extend(fields.clone());
-            *fields = inherited_fields;
-        }
-    }
-
-    diagnostics
+    struct_includes::expand_syntax_struct_includes(module, resolved)
 }
 
 /// Runs the syntax-output include-expansion validation phase.

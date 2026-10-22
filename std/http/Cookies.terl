@@ -258,7 +258,7 @@ optional_text(value: String): Option[String] ->
  * Source selects omission and normalizes policy text before this boundary.
  * Native code validates every supplied attribute before emitting wire text.
  */
-@compiler.native {std.http.cookies.encode}
+@compiler.native
 encode(
     name: String,
     value: String,
@@ -269,8 +269,7 @@ encode(
     http_only: Bool,
     secure: Bool,
     same_site: Option[String],
-): String ->
-    native.
+): String.
 
 /**
  * Builds a `Set-Cookie` header value from typed options.

@@ -197,7 +197,7 @@ fn build_command_rejects_polars_native_dependency_on_unsupported_target() {
     .expect("write app source");
     fs::write(
         polars_src.join("DataFrame.terl"),
-        "module polars.DataFrame.\n\npub opaque type DataFrame.\n\n@compiler.native {polars.dataframe.height}\npub (_df: DataFrame) height(): Int ->\n    native.\n",
+        "module polars.DataFrame.\n\npub opaque type DataFrame.\n\n@compiler.native {polars.dataframe.height}\npub (_df: DataFrame) height(): Int.\n",
     )
     .expect("write Polars source");
 

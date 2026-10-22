@@ -1,5 +1,4 @@
 use super::*;
-use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 
 mod constructor_functions;
 #[path = "core_lowering/default_arguments.rs"]
@@ -8,6 +7,8 @@ mod default_arguments;
 mod implementation_dependencies;
 mod imported_atoms;
 mod imported_nominals;
+#[path = "core_lowering/native_declarations.rs"]
+mod native_declarations;
 mod opaque_values;
 #[path = "core_lowering/receiver_defaults.rs"]
 mod receiver_defaults;
@@ -229,6 +230,7 @@ pub fn lower_syntax_module_output_to_core(
             function.clauses = clauses.clone();
         }
         function.native_operation = native_operations.get(&signature).cloned();
+        native_declarations::materialize(function);
     }
     rewrite_structural_impl_calls(&mut core.functions, &structural_impl_dispatch);
     rewrite_concrete_trait_calls(&mut core.functions, resolved);
@@ -669,7 +671,7 @@ fn collect_core_pattern_bindings(
     }
 }
 
-/// Collects explicit compiler-native operation identities by callable ABI.
+/// Collects inferred or explicit native operation identities by callable ABI.
 fn core_syntax_native_operations(
     module: &SyntaxModuleOutput,
 ) -> HashMap<CoreCallableSignature, String> {
@@ -677,17 +679,10 @@ fn core_syntax_native_operations(
         .declarations
         .iter()
         .filter_map(|declaration| {
-            let operation = declaration.annotations.iter().find_map(|annotation| {
-                (annotation.path == ["compiler", "native"])
-                    .then(|| annotation.values.first())
-                    .flatten()
-                    .and_then(|value| match value {
-                        SyntaxAnnotationValueOutput::Name { segments } if !segments.is_empty() => {
-                            Some(segments.join("."))
-                        }
-                        _ => None,
-                    })
-            })?;
+            let operation = crate::compiler::native_bindings::declaration_operation(
+                &module.module_name,
+                declaration,
+            )?;
             match &declaration.payload {
                 SyntaxDeclarationPayload::Function { name, params, .. } => Some((
                     core_callable_signature_from_syntax_params(name, params),

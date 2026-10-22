@@ -1,5 +1,4 @@
 use std::collections::{BTreeSet, HashMap};
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -20,6 +19,15 @@ use crate::validation::target_profile::{
 };
 use crate::validation::template_contract::type_check_syntax_module_output_with_template_inputs;
 
+#[path = "formal_pipeline/source_discovery.rs"]
+mod source_discovery;
+pub(crate) use source_discovery::terlan_check_sources_in_dir;
+#[path = "formal_pipeline/interface_contract.rs"]
+pub(crate) mod interface_contract;
+#[path = "formal_pipeline/interface_dependencies.rs"]
+pub(crate) mod interface_dependencies;
+#[path = "formal_pipeline/interface_graph.rs"]
+pub(crate) mod interface_graph;
 #[path = "formal_pipeline/interface_loading.rs"]
 mod interface_loading;
 #[path = "formal_pipeline/phase_timings.rs"]
@@ -27,9 +35,12 @@ mod phase_timings;
 #[path = "formal_pipeline/templates.rs"]
 mod templates;
 use crate::DiagnosticFormat;
+#[cfg(test)]
+pub(crate) use interface_loading::load_external_interfaces;
+pub(crate) use interface_loading::source_dependency_modules;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use interface_loading::{
-    load_embedded_std_interfaces, load_external_interfaces, load_external_interfaces_for_module,
+    load_embedded_std_interfaces, load_external_interfaces_for_module,
 };
 
 /// Checked artifacts produced by the formal compile pipeline.
@@ -63,6 +74,7 @@ pub(crate) struct CheckedSyntaxModuleArtifacts {
 ///   manifests without rerunning compilation.
 pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
     pub(crate) artifacts: Option<CheckedSyntaxModuleArtifacts>,
+    pub(crate) checked_interface: Option<CheckedInterfaceArtifacts>,
     pub(crate) parse_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) macro_expansion_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) include_expansion_diagnostics: Vec<PhaseManifestDiagnostic>,
@@ -70,6 +82,13 @@ pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
     pub(crate) typecheck_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) core_diagnostics: Vec<PhaseManifestDiagnostic>,
     pub(crate) exit_code: ExitCode,
+}
+
+/// Checked declarations without executable CoreIR or implementation evidence.
+pub(crate) struct CheckedInterfaceArtifacts {
+    pub(crate) syntax_output: SyntaxModuleOutput,
+    pub(crate) interfaces: HashMap<String, ModuleInterface>,
+    pub(crate) interface: ModuleInterface,
 }
 
 mod embedded_interfaces;
@@ -92,69 +111,10 @@ use embedded_interfaces::EMBEDDED_STD_INTERFACES;
 ///   the parent source root.
 pub(crate) fn terlan_sources_in_dir(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
-    collect_terlan_sources_recursive(dir, &mut files)?;
+    source_discovery::collect_terlan_sources_recursive(dir, &mut files, false)
+        .map_err(|error| error.to_string())?;
     files.sort();
     Ok(files)
-}
-
-/// Recursively collects Terlan implementation sources.
-///
-/// Inputs:
-/// - `dir`: directory currently being scanned.
-/// - `files`: mutable collection of discovered `.terl` source paths.
-///
-/// Output:
-/// - `Ok(())` when the directory and all nested directories are scanned.
-/// - `Err(message)` when a directory entry or metadata read fails.
-///
-/// Transformation:
-/// - Reads one directory level, sorts child paths for stable traversal, appends
-///   `.terl` files, and recurses into child directories that are not nested
-///   project roots, without following symlinked directories.
-fn collect_terlan_sources_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
-    let entries = fs::read_dir(dir)
-        .map_err(|err| format!("failed to read dir {}: {}", dir.display(), err))?;
-    let mut children = Vec::new();
-    for entry in entries {
-        let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
-        let file_type = entry.file_type().map_err(|err| {
-            format!(
-                "failed to read file type for {}: {err}",
-                entry.path().display()
-            )
-        })?;
-        children.push((entry.path(), file_type));
-    }
-    children.sort_by(|left, right| left.0.cmp(&right.0));
-
-    for (path, file_type) in children {
-        if file_type.is_dir() {
-            if is_nested_terlan_project_root(&path) {
-                continue;
-            }
-            collect_terlan_sources_recursive(&path, files)?;
-        } else if file_type.is_file()
-            && path.extension().and_then(|ext| ext.to_str()) == Some("terl")
-        {
-            files.push(path);
-        }
-    }
-    Ok(())
-}
-
-/// Returns whether a directory is a nested Terlan project boundary.
-///
-/// Inputs:
-/// - `dir`: directory discovered while recursively scanning a source root.
-///
-/// Output:
-/// - `true` when the directory owns a `terlan.toml` manifest.
-///
-/// Transformation:
-/// - Checks for the canonical project manifest filename without reading or
-///   parsing it, allowing source discovery to avoid crossing project roots.
-fn is_nested_terlan_project_root(dir: &Path) -> bool {
-    dir.join("terlan.toml").is_file()
 }
 
 /// Returns whether a formal syntax-output module references changed interfaces.
@@ -363,9 +323,47 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     target_profile: TargetProfile,
     target_profile_options: TargetProfileCheckOptions,
 ) -> CompileSyntaxModuleThroughPhasesResult {
+    compile_syntax_module_with_interfaces(
+        path,
+        source,
+        diagnostic_format,
+        InterfaceInputs {
+            cache_dir,
+            source_graph: None,
+        },
+        native_policy,
+        target_profile,
+        target_profile_options,
+    )
+}
+
+/// Interface providers used while checking one source module.
+pub(crate) struct InterfaceInputs<'a> {
+    pub(crate) cache_dir: Option<&'a Path>,
+    pub(crate) source_graph: Option<&'a interface_graph::SourceInterfaceGraph>,
+}
+
+/// Checks a source against an explicitly collected project interface graph.
+/// Supplied interfaces override caches and inferred implementation summaries.
+/// The caller owns validation of the graph's explicit source modules; reachable
+/// external declarations remain subject to validation here.
+pub(crate) fn compile_syntax_module_with_interfaces(
+    path: &str,
+    source: &str,
+    diagnostic_format: DiagnosticFormat,
+    interfaces: InterfaceInputs<'_>,
+    native_policy: NativePolicy,
+    target_profile: TargetProfile,
+    target_profile_options: TargetProfileCheckOptions,
+) -> CompileSyntaxModuleThroughPhasesResult {
+    let InterfaceInputs {
+        cache_dir,
+        source_graph: supplied_interfaces,
+    } = interfaces;
     let mut timings = phase_timings::FormalPipelineTimings::new(path);
     let mut result = CompileSyntaxModuleThroughPhasesResult {
         artifacts: None,
+        checked_interface: None,
         parse_diagnostics: Vec::new(),
         macro_expansion_diagnostics: Vec::new(),
         include_expansion_diagnostics: Vec::new(),
@@ -431,8 +429,17 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     };
     timings.mark("parse");
 
-    let interfaces =
-        interface_loading::load_external_interfaces_for_module(path, cache_dir, &syntax_output);
+    let mut interfaces = supplied_interfaces.map_or_else(
+        || interface_loading::load_external_interfaces_for_module(path, cache_dir, &syntax_output),
+        |graph| graph.interfaces.clone(),
+    );
+    let dependency_diagnostics = interface_dependencies::check_interface_dependencies(
+        Path::new(path),
+        &syntax_output,
+        cache_dir,
+        &mut interfaces,
+        supplied_interfaces,
+    );
     timings.mark("interfaces");
     let (mut syntax_output, macro_expansion_diagnostics) =
         expand_syntax_macros_with_interfaces(syntax_output, &interfaces);
@@ -553,7 +560,15 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     timings.mark("typecheck");
     let checked_template_inputs = template_typecheck.template_inputs;
     let mut typecheck_diagnostics = template_typecheck.diagnostics;
+    typecheck_diagnostics.extend(dependency_diagnostics);
     typecheck_diagnostics.extend(check_config_declarations_syntax_output(&syntax_output));
+    let (interface_diagnostics, declared_interface) =
+        interface_contract::check_declared_interface_and_surface(
+            Path::new(path),
+            &syntax_output,
+            &interfaces,
+        );
+    typecheck_diagnostics.extend(interface_diagnostics);
     let mut has_type_errors = false;
     for diag in typecheck_diagnostics {
         let is_warning = matches!(diag.severity, crate::terlan_typeck::DiagSeverity::Warning);
@@ -588,9 +603,18 @@ pub(crate) fn compile_syntax_module_through_phases_with_diagnostics_for_profile_
     }
     if has_type_errors || !result.resolve_diagnostics.is_empty() {
         result.exit_code = ExitCode::from(1);
+    } else if syntax_output.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface {
+        result.checked_interface = Some(CheckedInterfaceArtifacts {
+            interface: crate::terlan_hir::syntax_module_output_to_interface(&syntax_output),
+            syntax_output,
+            interfaces,
+        });
     } else {
         let mut core =
             crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax_output, &resolved);
+        if let Some(interface) = declared_interface {
+            interface_contract::restrict_module_exports(&mut core, &interface);
+        }
         timings.mark("core-lowering");
         core.source.source_path = Some(path.to_string());
         match templates::core_template_render_plans(checked_template_inputs, &core) {
@@ -777,6 +801,12 @@ fn compile_result_to_artifacts(
 ) -> Result<CheckedSyntaxModuleArtifacts, ExitCode> {
     if result.exit_code != ExitCode::SUCCESS {
         return Err(result.exit_code);
+    }
+    if result.checked_interface.is_some() {
+        eprintln!(
+            "error[interface_not_executable]: an interface declares an API; compile its .terl implementation to produce executable artifacts"
+        );
+        return Err(ExitCode::from(1));
     }
     result.artifacts.ok_or_else(|| ExitCode::from(1))
 }

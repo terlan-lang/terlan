@@ -65,6 +65,13 @@ pub(super) fn check_syntax_module_functions(
         if is_compiler_intrinsic_declaration(declaration) {
             continue;
         }
+        let native_operation = crate::compiler::native_bindings::declaration_operation(
+            &module.module_name,
+            declaration,
+        );
+        if let Some(operation) = &native_operation {
+            check_native_declaration(module, declaration, operation, &mut diagnostics);
+        }
 
         check_non_callable_alias_implications(declaration, alias_names, expr_ctx, &mut diagnostics);
 
@@ -136,6 +143,12 @@ pub(super) fn check_syntax_module_functions(
                     expr_ctx,
                     &mut diagnostics,
                 );
+                if (module.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface
+                    || native_operation.is_some())
+                    && clauses.is_empty()
+                {
+                    continue;
+                }
                 check_syntax_callable_clauses(
                     CallableDeclaration {
                         label: &format!("function {}", name),
@@ -166,6 +179,9 @@ pub(super) fn check_syntax_module_functions(
                 methods,
                 ..
             } => {
+                if module.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface {
+                    continue;
+                }
                 check_trait_impl_methods(
                     trait_ref,
                     generic_params,
@@ -237,6 +253,12 @@ pub(super) fn check_syntax_module_functions(
                     expr_ctx,
                     &mut diagnostics,
                 );
+                if (module.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface
+                    || native_operation.is_some())
+                    && clauses.is_empty()
+                {
+                    continue;
+                }
                 check_syntax_callable_clauses(
                     CallableDeclaration {
                         label: &format!("receiver method {}", name),
@@ -627,6 +649,52 @@ fn is_compile_time_default_expr(expr: &SyntaxExprOutput) -> bool {
 ///   without coupling type checking to backend intrinsic registry parsing.
 fn is_compiler_intrinsic_declaration(declaration: &SyntaxDeclarationOutput) -> bool {
     declaration_has_marker_annotation(declaration, &["compiler", "intrinsic"])
+}
+
+/// Checks installed native operations without requiring external package
+/// providers to be present while their bindings are being generated.
+fn check_native_declaration(
+    module: &SyntaxModuleOutput,
+    declaration: &SyntaxDeclarationOutput,
+    operation: &str,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if module.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface {
+        return;
+    }
+    let Some((_, arity)) = crate::terlan_purity::syntax_declaration_callable_identity(declaration)
+    else {
+        return;
+    };
+    let expected = crate::std_native_packages::value_binding(operation)
+        .map(|binding| binding.arity)
+        .or_else(|| crate::std_native_packages::postgres::operation_arity(operation))
+        .or_else(|| crate::runtime::native_boundary::dispatch::operation_arity(operation));
+    // VM services and external packages have their own provider catalogs. Only
+    // diagnose unknown keys in namespaces inventoried by the Rust std manifest.
+    let installed_namespace = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../std/RUST_BACKED_MANIFEST.tsv"
+    ))
+    .lines()
+    .filter(|line| !line.starts_with('#'))
+    .filter_map(|line| line.split('\t').nth(3))
+    .any(|known| {
+        known.rsplit_once('.').map(|(namespace, _)| namespace)
+            == operation.rsplit_once('.').map(|(namespace, _)| namespace)
+    });
+    let message = match expected {
+        Some(expected) if arity != expected => Some(format!("native operation `{operation}` expects {expected} parameters, found {arity}")),
+        None if installed_namespace && declaration.annotations.iter().any(|annotation| annotation.path == ["compiler", "native"] && annotation.values.is_empty()) => Some(format!("unknown native operation `{operation}`; use an explicit @compiler.native key when the binding name differs")),
+        _ => None,
+    };
+    if let Some(message) = message {
+        diagnostics.push(Diagnostic {
+            span: declaration.span.into(),
+            message,
+            severity: DiagSeverity::Error,
+        });
+    }
 }
 
 /// Returns whether a declaration carries one exact marker annotation path.

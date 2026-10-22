@@ -29,6 +29,142 @@ pub(super) fn compile_fixture_module(
     compile_vm_module(&path.to_string_lossy(), state)
 }
 
+/// A sibling interface remains authoritative after implementation cache reuse.
+#[test]
+fn interface_first_checked_cache_rejects_changed_contract_without_source_changes() {
+    let fixture = CheckedCacheFixture::new("interface_contract_invalidation");
+    let contract = fixture.dependency.with_extension("terli");
+    fs::write(&contract, "module app.Dependency. pub value(): Int.").unwrap();
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    assert!(fixture.compile_dependency().checked_cache_reused);
+    fs::write(&contract, "module app.Dependency. pub value(): String.").unwrap();
+    assert!(compile_fixture_module(&fixture.dependency, &fixture.state).is_err());
+    fixture.remove();
+}
+
+#[test]
+fn interface_first_backend_exports_hide_helpers_on_fresh_and_cached_compilation() {
+    let fixture = CheckedCacheFixture::new("interface_backend_visibility");
+    fixture.write_dependency(
+        "module app.Dependency. pub value(): Int -> helper(). pub helper(): Int -> 7.",
+    );
+    let contract = fixture.dependency.with_extension("terli");
+    fs::write(&contract, "module app.Dependency. pub value(): Int.").unwrap();
+    fixture.prepare_interfaces();
+    for reused in [false, true] {
+        let compiled = fixture.compile_dependency();
+        assert_eq!(compiled.checked_cache_reused, reused);
+        let core = compiled.compiled.core;
+        assert!(core
+            .functions
+            .iter()
+            .any(|function| function.name == "helper" && !function.public));
+        assert!(!core.exports.iter().any(|export| export.name == "helper"));
+        assert!(!core
+            .interface
+            .to_terlan_interface_text()
+            .contains("pub helper"));
+    }
+    fs::write(
+        &contract,
+        "module app.Dependency. pub value(): Int. pub helper(): Int.",
+    )
+    .unwrap();
+    let compiled = fixture.compile_dependency();
+    assert!(compiled
+        .compiled
+        .core
+        .functions
+        .iter()
+        .any(|function| function.name == "helper" && function.public));
+    fixture.remove();
+}
+
+#[test]
+fn interface_first_backend_summaries_hide_extra_constructors_constants_and_traits() {
+    let fixture = CheckedCacheFixture::new("interface_complete_surface");
+    fixture.write_dependency("module app.Dependency. pub const HIDDEN: Int = 7. pub struct Extra { value: Int }. pub constructor Extra { (value: Int): Extra -> Extra { value: value } }. pub trait Hidden[T] { identity(value: T): T. }. pub value(): Int -> HIDDEN.");
+    fs::write(
+        fixture.dependency.with_extension("terli"),
+        "module app.Dependency. pub value(): Int.",
+    )
+    .unwrap();
+    fixture.prepare_interfaces();
+    for reused in [false, true] {
+        let compiled = fixture.compile_dependency();
+        assert_eq!(compiled.checked_cache_reused, reused);
+        assert!(compiled
+            .compiled
+            .core
+            .constructors
+            .iter()
+            .all(|constructor| !constructor.public));
+        assert!(!compiled
+            .compiled
+            .core
+            .exports
+            .iter()
+            .any(|export| export.name == "Extra"));
+        let summary = compiled.compiled.core.interface.to_terlan_interface_text();
+        assert!(
+            !summary.contains("pub constructor")
+                && !summary.contains("pub const")
+                && !summary.contains("pub trait"),
+            "{summary}"
+        );
+    }
+    fixture.remove();
+}
+
+#[test]
+fn interface_first_checked_consumers_revalidate_dependency_contracts() {
+    let fixture = CheckedCacheFixture::new("interface_dependency_validation");
+    let contract = fixture.dependency.with_extension("terli");
+    fs::write(&contract, "module app.Dependency. pub value(): Int.").unwrap();
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_main().checked_cache_reused);
+    assert!(fixture.compile_main().checked_cache_reused);
+    // The callable signature is unchanged. An invalid additional declaration
+    // must still invalidate the consumer's previously checked dependency graph.
+    fs::write(
+        &contract,
+        "module app.Dependency. pub value(): Int. pub invalid(): Missing.",
+    )
+    .unwrap();
+    assert!(compile_fixture_module(&fixture.main, &fixture.state).is_err());
+    fixture.remove();
+}
+
+#[test]
+fn interface_first_checked_consumers_track_qualified_type_representation_changes() {
+    let fixture = CheckedCacheFixture::new("qualified_type_representation_invalidation");
+    fixture.write_dependency("module app.Dependency. pub type Value = Int. pub value(): Int -> 1.");
+    fs::write(
+        &fixture.main,
+        "module app.Main. pub main(): app.Dependency.Value -> 1.",
+    )
+    .unwrap();
+    let contract = fixture.dependency.with_extension("terli");
+    fs::write(
+        &contract,
+        "module app.Dependency. pub type Value = Int. pub value(): Int.",
+    )
+    .unwrap();
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_main().checked_cache_reused);
+    assert!(fixture.compile_main().checked_cache_reused);
+    // Both declarations are valid. The changed transparent representation
+    // invalidates the consumer's previously admitted return expression.
+    fs::write(
+        &contract,
+        "module app.Dependency. pub type Value = String. pub value(): Int.",
+    )
+    .unwrap();
+    assert!(compile_fixture_module(&fixture.main, &fixture.state).is_err());
+    fixture.remove();
+}
+
 /// Proves no-op and body-only builds reuse complete checked implementations.
 #[test]
 fn checked_cache_reuses_unchanged_dependency_implementations() {

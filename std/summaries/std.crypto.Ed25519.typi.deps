@@ -1,8 +1,8 @@
 module=std.crypto.Ed25519
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=5146165572911273974
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=8149144982687561601
 interface_hash=5060683970235066726
 interface_doc_hash=9036964582084017737
 deps=0

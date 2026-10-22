@@ -3,7 +3,6 @@ use std::fs;
 use std::path::Path;
 
 use crate::terlan_hir::module_path_to_native_boundary_module;
-use crate::terlan_syntax::syntax_output::SyntaxAnnotationValueOutput;
 use crate::terlan_syntax::{
     parse_module_as_syntax_output, SyntaxDeclarationPayload, SyntaxModuleOutput,
 };
@@ -168,7 +167,7 @@ pub(crate) fn validate_native_boundary_rust_stub(stub: &str) -> Result<(), Strin
 /// - `Err(String)` when a required metadata field is absent.
 ///
 /// Transformation:
-/// - Derives NativeBoundary metadata from `@compiler.native {operation}` annotated
+/// - Derives NativeBoundary metadata from `@compiler.native` annotated
 ///   declarations. Pure policy is normalized to native-boundary optional whenever
 ///   compiler-native declarations are present.
 pub(crate) fn extract_native_metadata(
@@ -207,17 +206,10 @@ fn extract_compiler_native_functions(module: &SyntaxModuleOutput) -> Vec<NativeF
         .declarations
         .iter()
         .filter_map(|declaration| {
-            let operation = declaration.annotations.iter().find_map(|annotation| {
-                if annotation.path != ["compiler", "native"] {
-                    return None;
-                }
-                match annotation.values.first()? {
-                    SyntaxAnnotationValueOutput::Name { segments } if !segments.is_empty() => {
-                        Some(segments.join("."))
-                    }
-                    _ => None,
-                }
-            })?;
+            let operation = crate::compiler::native_bindings::declaration_operation(
+                &module.module_name,
+                declaration,
+            )?;
             let (name, arity) = match &declaration.payload {
                 SyntaxDeclarationPayload::Function { name, params, .. } => (name, params.len()),
                 SyntaxDeclarationPayload::Method { name, params, .. } => (name, params.len() + 1),

@@ -58,6 +58,14 @@ The directory slice recursively scans package-rooted source layouts for `.terl`
 files, validates that source-root-relative paths match declared module names,
 then emits VM artifacts by default.
 
+A sibling `.terli` is an independently checked public contract. The interface
+prepass validates handwritten contracts before publishing their dependency
+summaries, and implementations must satisfy their signatures before code
+emission or checked-cache reuse. Clients see the declared API even when an
+implementation contains additional public helpers. Use `terlc check src
+--interfaces-only` to validate contracts and clients while paired implementations
+are absent or unfinished; interface files themselves are not executable inputs.
+
 A direct source-file build inside a manifest-backed project discovers the
 nearest owning `terlan.toml`, prepares interfaces for its resolved source and
 dependency roots, validates the selected file against the owning package

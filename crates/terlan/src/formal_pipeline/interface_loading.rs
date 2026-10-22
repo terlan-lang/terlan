@@ -15,8 +15,8 @@ use crate::terlan_syntax::{
 
 use super::EMBEDDED_STD_INTERFACES;
 
-/// Loads the full visible interface inventory for audits and compatibility
-/// callers that do not yet have parsed module evidence.
+/// Loads the complete inventory for release-interface regression fixtures.
+#[cfg(test)]
 pub(crate) fn load_external_interfaces(
     path: &str,
     cache_dir: Option<&Path>,
@@ -33,26 +33,7 @@ pub(crate) fn load_external_interfaces_for_module(
     module: &SyntaxModuleOutput,
 ) -> HashMap<String, ModuleInterface> {
     let mut interfaces = load_adjacent_and_cached_interfaces(path, cache_dir);
-    let mut required = syntax_module_import_identities(module)
-        .into_iter()
-        .collect::<BTreeSet<_>>();
-    for declaration in &module.declarations {
-        let SyntaxDeclarationPayload::Import {
-            import_kind: SyntaxImportKind::Module,
-            module_name,
-            items,
-            ..
-        } = &declaration.payload
-        else {
-            continue;
-        };
-        required.extend(
-            items
-                .iter()
-                .map(|item| format!("{module_name}.{}", item.name)),
-        );
-    }
-    collect_remote_modules(module, &mut required);
+    let mut required = source_dependency_modules(module);
     required.extend(
         EMBEDDED_STD_INTERFACES
             .iter()
@@ -83,6 +64,187 @@ pub(crate) fn load_external_interfaces_for_module(
         }
     }
     interfaces
+}
+
+/// Source-declared dependency identities, including default imports and remote calls.
+pub(crate) fn source_dependency_modules(module: &SyntaxModuleOutput) -> BTreeSet<String> {
+    let mut required = syntax_module_import_identities(module)
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        required.extend(
+            items
+                .iter()
+                .map(|item| format!("{module_name}.{}", item.name)),
+        );
+    }
+    collect_remote_modules(module, &mut required);
+    collect_annotation_modules(module, &mut required);
+    required
+}
+
+/// Qualified annotation references are dependencies even without an import.
+fn collect_annotation_modules(module: &SyntaxModuleOutput, modules: &mut BTreeSet<String>) {
+    for declaration in &module.declarations {
+        let mut texts = Vec::new();
+        match &declaration.payload {
+            SyntaxDeclarationPayload::Constant { annotation, .. } => {
+                texts.push(annotation.text.as_str())
+            }
+            SyntaxDeclarationPayload::ConstFunction { return_type, .. } => {
+                texts.push(return_type.text.as_str())
+            }
+            SyntaxDeclarationPayload::Type {
+                params,
+                variants,
+                representation,
+                implements,
+                ..
+            } => {
+                texts.extend(params.iter().map(String::as_str));
+                texts.extend(
+                    variants
+                        .iter()
+                        .chain(representation)
+                        .chain(implements)
+                        .map(|ty| ty.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::Struct {
+                generic_params,
+                includes,
+                implements,
+                fields,
+                ..
+            } => {
+                texts.extend(generic_params.iter().chain(includes).map(String::as_str));
+                texts.extend(implements.iter().map(|ty| ty.text.as_str()));
+                texts.extend(fields.iter().map(|field| field.annotation.text.as_str()));
+            }
+            SyntaxDeclarationPayload::Constructor {
+                params, clauses, ..
+            } => {
+                texts.extend(params.iter().map(String::as_str));
+                for clause in clauses {
+                    texts.push(clause.return_type.text.as_str());
+                    texts.extend(
+                        clause
+                            .params
+                            .iter()
+                            .map(|param| param.annotation.text.as_str()),
+                    );
+                }
+            }
+            SyntaxDeclarationPayload::Function {
+                generic_params,
+                generic_bounds,
+                return_type,
+                ..
+            }
+            | SyntaxDeclarationPayload::Method {
+                generic_params,
+                generic_bounds,
+                return_type,
+                ..
+            } => {
+                texts.extend(
+                    generic_params
+                        .iter()
+                        .chain(generic_bounds)
+                        .map(String::as_str),
+                );
+                texts.push(return_type.text.as_str());
+                if let SyntaxDeclarationPayload::Method { receiver, .. } = &declaration.payload {
+                    texts.push(receiver.annotation.text.as_str());
+                }
+            }
+            SyntaxDeclarationPayload::Trait {
+                params,
+                super_traits,
+                methods,
+                constants,
+                ..
+            } => {
+                texts.extend(params.iter().chain(super_traits).map(String::as_str));
+                for method in methods {
+                    texts.extend(method.generic_params.iter().map(String::as_str));
+                    texts.push(method.return_type.text.as_str());
+                }
+                texts.extend(
+                    constants
+                        .iter()
+                        .map(|constant| constant.annotation.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::TraitImpl {
+                generic_params,
+                trait_ref,
+                for_type,
+                methods,
+                constants,
+                ..
+            } => {
+                texts.extend(generic_params.iter().map(String::as_str));
+                texts.extend([trait_ref.text.as_str(), for_type.text.as_str()]);
+                texts.extend(
+                    methods
+                        .iter()
+                        .map(|method| method.return_type.text.as_str()),
+                );
+                texts.extend(
+                    constants
+                        .iter()
+                        .filter_map(|constant| constant.annotation.as_ref())
+                        .map(|annotation| annotation.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::Template { props, .. } => {
+                texts.extend(props.iter().map(|prop| prop.annotation.text.as_str()))
+            }
+            _ => {}
+        }
+        for text in texts {
+            collect_type_modules(text, modules);
+        }
+    }
+}
+
+fn collect_type_modules(text: &str, modules: &mut BTreeSet<String>) {
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut token = String::new();
+    for ch in text.chars().chain(std::iter::once(' ')) {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+            continue;
+        }
+        if ch.is_ascii_alphanumeric() || ch == '_' || ch == '.' {
+            token.push(ch);
+        } else {
+            if let Some((module, name)) = token.rsplit_once('.') {
+                if name.starts_with(|ch: char| ch.is_ascii_uppercase()) {
+                    modules.insert(module.to_string());
+                }
+            }
+            token.clear();
+            quoted = ch == '"';
+        }
+    }
 }
 
 /// Adds fully qualified remote modules referenced without an import alias.
@@ -157,6 +319,9 @@ fn collect_remote_modules(module: &SyntaxModuleOutput, modules: &mut BTreeSet<St
 }
 
 fn collect_param_modules(params: &[SyntaxParamOutput], modules: &mut BTreeSet<String>) {
+    for param in params {
+        collect_type_modules(&param.annotation.text, modules);
+    }
     params
         .iter()
         .filter_map(|param| param.default.as_ref())
@@ -173,11 +338,7 @@ fn collect_clause_modules(clauses: &[SyntaxFunctionClauseOutput], modules: &mut 
 }
 
 fn collect_expr_modules(expr: &SyntaxExprOutput, modules: &mut BTreeSet<String>) {
-    if let Some(module) = expr
-        .remote
-        .as_ref()
-        .filter(|module| module.starts_with("std."))
-    {
+    if let Some(module) = expr.remote.as_ref() {
         modules.insert(module.clone());
     }
     expr.children
@@ -215,10 +376,16 @@ fn load_adjacent_and_cached_interfaces(
 ) -> HashMap<String, ModuleInterface> {
     let mut interfaces = HashMap::new();
     let current = Path::new(path);
-    load_interfaces_from_dir(current.parent().unwrap_or(Path::new(".")), &mut interfaces);
     if let Some(cache_dir) = cache_dir {
         load_interfaces_from_dir(cache_dir, &mut interfaces);
     }
+    load_interfaces_from_dir(
+        current
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or(Path::new(".")),
+        &mut interfaces,
+    );
     interfaces
 }
 

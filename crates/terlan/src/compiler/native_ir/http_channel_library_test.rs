@@ -43,7 +43,7 @@ fn renamed_sse_response_uses_provider_body_defaults_and_stream_policy() {
     let provider = include_str!("../../../../../std/http/Sse.terl")
         .replace("std.http.Sse", "app.Sse")
         .replace("@compiler.native {std.http.sse.encode_event}\n", "")
-        .replace("    native.", "    \"package framing\".")
+        .replace("): String.", "): String -> \"package framing\".")
         .replace("status: Int = 200", "status: Int = 219")
         .replace("16384", "17");
     check_sources(&[

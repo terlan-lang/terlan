@@ -10,7 +10,16 @@ fn args(items: &[&str]) -> Vec<String> {
 fn parse_check_args_accepts_source_path_only() {
     let parsed = parse_check_args(&args(&["src/app/Main.terl"])).expect("check args");
 
-    assert_eq!(parsed, ("src/app/Main.terl".to_string(), None));
+    assert_eq!(parsed, ("src/app/Main.terl".to_string(), None, false));
+}
+
+#[test]
+fn parse_check_args_accepts_interfaces_only_and_rejects_duplicates() {
+    assert_eq!(
+        parse_check_args(&args(&["--interfaces-only", "src"])).unwrap(),
+        ("src".to_string(), None, true)
+    );
+    assert!(parse_check_args(&args(&["src", "--interfaces-only", "--interfaces-only"])).is_err());
 }
 
 #[test]
@@ -26,7 +35,8 @@ fn parse_check_args_accepts_phase_manifest_path() {
         parsed,
         (
             "src/app/Main.terl".to_string(),
-            Some(PathBuf::from("_build/phase/Main.json"))
+            Some(PathBuf::from("_build/phase/Main.json")),
+            false
         )
     );
 }

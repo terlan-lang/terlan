@@ -1,5 +1,12 @@
 use super::*;
 
+pub(super) struct TraitImplSignatureContext<'a> {
+    pub(super) trait_map: &'a HashMap<String, ParsedTraitSignature>,
+    pub(super) alias_names: &'a HashSet<String>,
+    pub(super) aliases: &'a HashMap<String, TypeAlias>,
+    pub(super) require_implementation: bool,
+}
+
 /// Validates one parsed explicit trait implementation against its trait.
 ///
 /// Inputs:
@@ -17,12 +24,16 @@ use super::*;
 pub(super) fn check_parsed_trait_impl_signature(
     impl_decl: &ParsedTraitImpl,
     impl_span: Span,
-    trait_map: &HashMap<String, ParsedTraitSignature>,
+    context: TraitImplSignatureContext<'_>,
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
-    alias_names: &HashSet<String>,
-    aliases: &HashMap<String, TypeAlias>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let TraitImplSignatureContext {
+        trait_map,
+        alias_names,
+        aliases,
+        require_implementation,
+    } = context;
     let Some(trait_signature) = trait_map.get(&impl_decl.target.name) else {
         diagnostics.push(Diagnostic {
             span: impl_span,
@@ -181,6 +192,9 @@ pub(super) fn check_parsed_trait_impl_signature(
         }
     }
 
+    if !require_implementation {
+        return;
+    }
     for (expected_method, expected_signature) in &inherited_methods {
         if !impl_decl
             .methods

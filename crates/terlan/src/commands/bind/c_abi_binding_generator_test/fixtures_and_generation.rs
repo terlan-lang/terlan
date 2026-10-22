@@ -236,8 +236,8 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan module");
     assert!(source.contains("pub opaque type NativeBoundary."));
-    assert!(source.contains("@compiler.native {c_abi_fixture.native_boundary.new}"));
-    assert!(!source.contains("-> native.\n\n/**"));
+    assert!(source.contains("@compiler.native"));
+    assert!(!source.contains("-> native."));
     assert!(!source.contains("std.native"));
     let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
         .expect("generated consumer");

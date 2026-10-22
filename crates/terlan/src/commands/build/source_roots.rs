@@ -46,11 +46,27 @@ pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
             cache_dir.display()
         )
     })?;
-    let files = crate::formal_pipeline::terlan_sources_in_dir(root)?;
+    let files = crate::formal_pipeline::terlan_check_sources_in_dir(root)
+        .map_err(|error| error.to_string())?;
+    let mut declarations = Vec::new();
     for file in files {
         let path_text = file.to_string_lossy().to_string();
         let source = crate::support::read_file(&path_text)?;
-        if state.incremental && cached_interface_is_current(root, &file, &source, cache_dir) {
+        if file
+            .extension()
+            .is_some_and(|extension| extension == "terl")
+            && file.with_extension("terli").is_file()
+        {
+            // Publish the sibling contract independently, keeping extra
+            // implementation declarations out of generated dependency APIs.
+            continue;
+        }
+        if file
+            .extension()
+            .is_some_and(|extension| extension == "terl")
+            && state.incremental
+            && cached_interface_is_current(root, &file, &source, cache_dir)
+        {
             continue;
         }
         let syntax_output = crate::formal_pipeline::parse_source_as_syntax_output(
@@ -71,12 +87,56 @@ pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
         }
         validate_module_layout(root, &file, &syntax_output.module_name)?;
         let interface = syntax_module_output_to_interface(&syntax_output);
+        if syntax_output.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface {
+            declarations.push((file, source, syntax_output.clone()));
+            continue;
+        }
         let target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
         write_build_file(
             &target,
             interface.to_terlan_interface_text().as_bytes(),
             state.incremental,
         )?;
+    }
+    if !declarations.is_empty() {
+        let source_graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
+            declarations
+                .iter()
+                .map(|(path, _, syntax)| (path.as_path(), syntax)),
+            Some(cache_dir),
+        );
+        let mut validated = Vec::new();
+        for (path, source, syntax) in declarations {
+            let result = crate::formal_pipeline::compile_syntax_module_with_interfaces(
+                &path.to_string_lossy(),
+                &source,
+                state.diagnostic_format,
+                crate::formal_pipeline::InterfaceInputs {
+                    cache_dir: Some(cache_dir),
+                    source_graph: Some(&source_graph),
+                },
+                state.native_policy,
+                state.target_profile,
+                crate::validation::target_profile::TargetProfileCheckOptions::default(),
+            );
+            let Some(checked) = result.checked_interface else {
+                return Err(format!(
+                    "interface validation failed for {}",
+                    path.display()
+                ));
+            };
+            validated.push((
+                syntax.module_name,
+                checked.interface.to_terlan_interface_text(),
+            ));
+        }
+        for (module, interface) in validated {
+            write_build_file(
+                &cache_dir.join(format!("{module}.typi")),
+                interface.as_bytes(),
+                state.incremental,
+            )?;
+        }
     }
     Ok(())
 }

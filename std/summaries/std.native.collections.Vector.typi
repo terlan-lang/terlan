@@ -60,7 +60,6 @@ pub get_optional_values[T](vector: Vector[T], index: Int): List[T].
 /// Transformation: aliases the native vector length operation with the shorter
 /// receiver name used by algorithm-oriented code.
 
-@pure
 pub (vector: Vector[T]) len(): Int.
 
 /// Returns the number of values in a vector.
@@ -70,7 +69,6 @@ pub (vector: Vector[T]) len(): Int.
 /// Transformation: observes the native indexed-storage length without changing
 /// the vector contents.
 
-@pure
 pub (vector: Vector[T]) length(): Int.
 
 /// Creates an empty native vector.

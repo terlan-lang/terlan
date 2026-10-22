@@ -1,5 +1,6 @@
 module std.vm.FaultTest.
 
+import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.test.Test.{assert_equal}.
 import std.vm.{Fault, Scheduler}.

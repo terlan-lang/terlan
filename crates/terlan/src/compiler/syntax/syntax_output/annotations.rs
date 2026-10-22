@@ -405,8 +405,8 @@ fn validate_marker_annotation(
 ///   qualified-name value.
 ///
 /// Transformation:
-/// - Keeps release source marker-based while preserving a narrow explicit-key
-///   escape hatch for scratch/compiler tests.
+/// - Accepts markers by default and preserves explicit operation identities
+///   for aliases and external provider bindings.
 fn validate_compiler_key_annotation(
     annotation: &SyntaxAnnotationOutput,
     declaration: &SyntaxDeclarationOutput,

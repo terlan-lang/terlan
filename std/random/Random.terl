@@ -45,9 +45,8 @@ pub struct RandomError includes Error {
  * Transformation: delegates seed expansion to the selected maintained Rust RNG
  * crate and keeps the returned generator state explicit.
  */
-@compiler.native {std.random.random.seed}
-pub seed(seed: Int): Result[Generator, RandomError] ->
-    native.
+@compiler.native
+pub seed(seed: Int): Result[Generator, RandomError].
 
 /**
  * Creates a generator seeded from OS randomness.
@@ -57,9 +56,8 @@ pub seed(seed: Int): Result[Generator, RandomError] ->
  * Transformation: delegates entropy acquisition to maintained Rust RNG
  * support and returns ordinary VM-owned generator state.
  */
-@compiler.native {std.random.random.entropy}
-pub entropy(): Generator ->
-    native.
+@compiler.native
+pub entropy(): Generator.
 
 /**
  * Draws one random integer.
@@ -69,9 +67,8 @@ pub entropy(): Generator ->
  * Transformation: advances the explicit generator state and returns the new
  * state with the drawn integer.
  */
-@compiler.native {std.random.random.int}
-pub int(generator: Generator): {Generator, Int} ->
-    native.
+@compiler.native
+pub int(generator: Generator): {Generator, Int}.
 
 /**
  * Draws one bounded random integer.
@@ -82,9 +79,8 @@ pub int(generator: Generator): {Generator, Int} ->
  * Transformation: delegates bounded sampling to maintained Rust RNG range
  * support.
  */
-@compiler.native {std.random.random.bounded_int}
-pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, Int}, RandomError] ->
-    native.
+@compiler.native
+pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, Int}, RandomError].
 
 /**
  * Draws one random float.
@@ -94,9 +90,8 @@ pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, In
  * Transformation: advances explicit generator state and returns a finite
  * float.
  */
-@compiler.native {std.random.random.float}
-pub float(generator: Generator): {Generator, Float} ->
-    native.
+@compiler.native
+pub float(generator: Generator): {Generator, Float}.
 
 /**
  * Draws one random boolean.
@@ -105,9 +100,8 @@ pub float(generator: Generator): {Generator, Float} ->
  * Output: `{next_generator, value}`.
  * Transformation: advances explicit generator state and returns a boolean.
  */
-@compiler.native {std.random.random.bool}
-pub bool(generator: Generator): {Generator, Bool} ->
-    native.
+@compiler.native
+pub bool(generator: Generator): {Generator, Bool}.
 
 /**
  * Chooses one value from a non-empty list.
@@ -118,9 +112,8 @@ pub bool(generator: Generator): {Generator, Bool} ->
  * Transformation: selects a list index with maintained Rust RNG range support
  * and returns the selected VM value unchanged.
  */
-@compiler.native {std.random.random.choice}
-pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, RandomError] ->
-    native.
+@compiler.native
+pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, RandomError].
 
 /**
  * Shuffles a list.
@@ -131,9 +124,8 @@ pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, Ran
  * Transformation: delegates index permutation to maintained Rust RNG shuffle
  * support and reorders VM values by the generated indices.
  */
-@compiler.native {std.random.random.shuffle}
-pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]} ->
-    native.
+@compiler.native
+pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]}.
 
 /**
  * Samples values without replacement.
@@ -144,10 +136,9 @@ pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]} ->
  * Transformation: shuffles indices through maintained Rust RNG support and
  * returns the requested prefix without mutating the source list.
  */
-@compiler.native {std.random.random.sample}
+@compiler.native
 pub sample[T](
     generator: Generator,
     values: List[T],
     count: Int,
-): Result[{Generator, List[T]}, RandomError] ->
-    native.
+): Result[{Generator, List[T]}, RandomError].

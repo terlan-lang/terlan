@@ -1,8 +1,8 @@
 module=std.time.Clock
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=11964177411826634018
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=12007569271969552469
 interface_hash=4703164299965207838
 interface_doc_hash=10268388931119338246
 deps=0

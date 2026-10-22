@@ -1,9 +1,11 @@
 module=std.random.Random
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:cb1356acfa2df4e7
-source_hash=5891874571507751151
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=13858422352974222582
 interface_hash=14409715948787447053
 interface_doc_hash=11251716362706807027
-deps=1
+deps=3
 std.collections.List=3908094428331843945
+std.core.Error=1244151485527378485
+std.core.Result=11040488711914238385

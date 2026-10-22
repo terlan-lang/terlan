@@ -135,21 +135,21 @@ fn compiled_session_capabilities_reject_incompatible_context_results() {
         r#"module app.SessionBoundary.
 import std.core.Option.
 @compiler.native {std.http.session.lookup}
-pub lookup(identity: String): Option[String] -> native.
+pub lookup(identity: String): Option[String].
 @compiler.native {std.http.session.create}
-pub create(identity: String, ttl_seconds: Int): String -> native.
+pub create(identity: String, ttl_seconds: Int): String.
 @compiler.native {std.http.session.get}
-pub get(identity: String, key: String): Option[String] -> native.
+pub get(identity: String, key: String): Option[String].
 @compiler.native {std.http.session.set}
-pub set(identity: String, key: String, value: String): Unit -> native.
+pub set(identity: String, key: String, value: String): Unit.
 @compiler.native {std.http.session.delete}
-pub delete(identity: String, key: String): Unit -> native.
+pub delete(identity: String, key: String): Unit.
 @compiler.native {std.http.session.rotate}
-pub rotate(identity: String, ttl_seconds: Int): String -> native.
+pub rotate(identity: String, ttl_seconds: Int): String.
 @compiler.native {std.http.session.expire}
-pub expire(identity: String): Unit -> native.
+pub expire(identity: String): Unit.
 @compiler.native {std.http.session.is_live}
-pub is_live(identity: String): Bool -> native.
+pub is_live(identity: String): Bool.
 pub healthy(): Int -> 42.
 "#,
     );
