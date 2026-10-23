@@ -70,6 +70,13 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   git -C "$snapshot" clean -ffdqx
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$cache/build}"
   case "$CARGO_TARGET_DIR" in /*) ;; *) export CARGO_TARGET_DIR="$root/$CARGO_TARGET_DIR" ;; esac
+  # Unrelated global Git checkouts must not enter the staged resolver inventory.
+  if [[ -z "${CARGO_HOME:-}" ]]; then
+    test ! -L "$cache/cargo-home"
+    export CARGO_HOME="$cache/cargo-home"
+  else
+    case "$CARGO_HOME" in /*) ;; *) export CARGO_HOME="$root/$CARGO_HOME" ;; esac
+  fi
   unset TERLAN_UPDATE_PHASE_GOLDEN
   cd "$snapshot"
   bash scripts/git_hooks/check.sh "$changes"

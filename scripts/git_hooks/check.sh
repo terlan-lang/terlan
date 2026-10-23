@@ -47,6 +47,10 @@ plan="${changes%.txt}.plan"
 while IFS= read -r lane; do
   echo "pre-commit: $lane"
   case "$lane" in
+    proofs)
+      cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+      bash scripts/git_hooks/proofs.sh
+      ;;
     bootstrap)
       if [[ $(uname -s) == Linux ]]; then
         cargo test --locked -p terlan-build-cache --test support_bootstrap_make

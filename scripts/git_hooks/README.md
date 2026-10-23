@@ -13,6 +13,11 @@ renamed paths, and the alternate index used by `git commit --only` are supported
 Changes to the real index or HEAD during validation reject the commit. Checks
 that alter tracked snapshot files also fail; fixes must be reviewed and staged.
 
+The Cargo resolver cache defaults to `target/git-hooks/cargo-home`, keeping
+unrelated packages in the global Cargo cache out of staged validation. An
+explicit `CARGO_HOME` is honored; relative paths resolve from the working
+repository root. The default cache persists between commits.
+
 Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
 and service runtime, and tests the hook policy and snapshot isolation. The paired
 service runtime is required by executable service-package tests. This requires Git, Bash, the
@@ -22,6 +27,7 @@ reuse it. The Terlan planner selects additional checks:
 
 | Staged changes | Local checks |
 | --- | --- |
+| Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check EBNF/LALRPOP/Lean fingerprints and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
 | Rust source, compiler/grammar inputs, Cargo/toolchain/config, Make recipes | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
 | The above inputs, checked Rust quality reports, or their validators | Enforce Rust size and test-layout rules; regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |
 | Rust/compiler/grammar inputs, stdlib sources and summaries, or summary generators | Check native and JavaScript/DOM summaries against temporary regenerated output; requires Node/npm |
@@ -38,7 +44,7 @@ reuse it. The Terlan planner selects additional checks:
 
 The larger Rust fallback can take as long as the local workspace suite. The
 focused suites do not prove all dependency impacts, all editor packages, every
-Terlan consumer, cross-platform behavior, sanitizers, Lean proofs, or release
+Terlan consumer, cross-platform behavior, sanitizers, or release
 readiness. CI and the release gates remain authoritative. Hooks can be bypassed
 by Git options, so they are local feedback rather than a publication attestation.
 

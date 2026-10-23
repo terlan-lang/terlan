@@ -1,14 +1,72 @@
 module git_hooks.PlanTest.
 
 import git_hooks.Plan.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.
+
+manifest_paths_are_checked(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] -> Plan.proofs([path]) and manifest_paths_are_checked(rest)
+    }.
+
+artifact_rows_are_checked(rows: List[String]): Bool ->
+    case rows {
+        [] -> true;
+        ["" | rest] -> artifact_rows_are_checked(rest);
+        [row | rest] ->
+            case String.split(row, "\t") {
+                ["path" | _] -> artifact_rows_are_checked(rest);
+                [_path, _status, _scope, manifests, _exit, _stderr, _digest, _metadata, _remediation] ->
+                    manifest_paths_are_checked(String.split(manifests, ";"))
+                        and artifact_rows_are_checked(rest);
+                _ -> false
+            }
+    }.
+
+@test
+pub every_inventory_manifest_triggers_proof_validation(): Bool ->
+    case File.read_text("proofs/lean/ci/lean-proof-artifacts.tsv") {
+        Ok(source) -> source != "" and artifact_rows_are_checked(String.split(source, "\n"));
+        _ -> false
+    }.
 
 @test
 pub grammar_requires_phase_goldens(): Bool ->
-    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"]) == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+
+@test
+pub proof_metadata_changes_replay_proofs(): Bool ->
+    Plan.lanes(["proofs/lean/artifacts/shape-implication.json"]) == ["shell", "proofs"].
+
+@test
+pub proof_sources_and_dependency_files_replay_proofs(): Bool ->
+    Plan.proofs(["proofs/lean/parser_shape/ParserShape.lean"])
+        and Plan.proofs(["proofs/lean/lake-manifest.json"])
+        and Plan.proofs(["proofs/lean/lean-toolchain"])
+        and Plan.proofs(["proofs/lean/ci/lean-proof-artifacts.tsv"]).
+
+@test
+pub proof_manifest_changes_are_checked_without_grammar_edits(): Bool ->
+    Plan.proofs(["std/data/Json.terl"])
+        and Plan.proofs(["std/summaries/std.data.Json.native_boundary.json"])
+        and Plan.proofs(["docs/compiler/TERLAN_CORE_TYPING_SPEC.md"])
+        and Plan.proofs(["docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"])
+        and Plan.proofs(["crates/terlan/src/runtime/native_boundary/dispatch/value.rs"])
+        and Plan.proofs(["crates/terlan/src/backends/wasm/README.md"]).
+
+@test
+pub proof_runner_changes_execute_proof_checks(): Bool ->
+    Plan.lanes(["scripts/git_hooks/proofs.sh"]) == ["shell", "proofs", "release-contract"].
+
+@test
+pub unrelated_documents_do_not_require_lean(): Bool ->
+    not Plan.proofs(["README.md", "docs/user/installation.md"]).
 
 @test
 pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
-    Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
@@ -28,11 +86,11 @@ pub fixture_only_changes_are_tested(): Bool ->
 
 @test
 pub renamed_old_paths_still_trigger_checks(): Bool ->
-    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"]) == ["shell", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
 
 @test
 pub terlan_changes_are_checked(): Bool ->
-    Plan.lanes(["std/http/Request.terl"]) == ["shell", "summaries", "terlan"].
+    Plan.lanes(["std/http/Request.terl"]) == ["shell", "proofs", "summaries", "terlan"].
 
 @test
 pub ordinary_docs_avoid_test_suites(): Bool ->
@@ -52,7 +110,7 @@ pub other_negative_fixtures_use_workspace_tests(): Bool ->
 
 @test
 pub interface_changes_are_checked(): Bool ->
-    Plan.lanes(["std/example/Api.terli"]) == ["shell", "summaries", "terlan"].
+    Plan.lanes(["std/example/Api.terli"]) == ["shell", "proofs", "summaries", "terlan"].
 
 @test
 pub rust_build_scripts_require_clippy(): Bool ->
@@ -80,7 +138,7 @@ pub workspace_tests_already_cover_bootstrap(): Bool ->
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->
-    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace", "editor"].
+    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "workspace", "editor"].
 
 @test
 pub inventory_updates_require_source_report_validation(): Bool ->
@@ -100,11 +158,11 @@ pub report_runner_changes_execute_report_checks(): Bool ->
 
 @test
 pub summary_metadata_changes_check_both_generators(): Bool ->
-    Plan.lanes(["std/summaries/std.core.Int.typi.deps"]) == ["shell", "summaries"].
+    Plan.lanes(["std/summaries/std.core.Int.typi.deps"]) == ["shell", "proofs", "summaries"].
 
 @test
 pub javascript_manifests_check_generated_summaries(): Bool ->
-    Plan.lanes(["std/js/manifests/std_js_dom_inputs.json"]) == ["shell", "summaries"].
+    Plan.lanes(["std/js/manifests/std_js_dom_inputs.json"]) == ["shell", "proofs", "summaries"].
 
 @test
 pub summary_generator_changes_run_drift_checks(): Bool ->

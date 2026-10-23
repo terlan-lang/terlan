@@ -120,6 +120,18 @@ pub summaries(paths: List[String]): Bool ->
         or affected(paths, "scripts/self_validation/JsBindingsDriftTest.terl", "")
         or affected(paths, "scripts/git_hooks/stdlib_summaries.sh", "").
 
+pub proofs(paths: List[String]): Bool ->
+    syntax(paths)
+        or affected(paths, "proofs/lean/", "")
+        or affected(paths, "docs/compiler/", "")
+        or affected(paths, "docs/runtime/", "")
+        or affected(paths, "std/", "")
+        or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
+        or affected(paths, "crates/terlan/src/backends/wasm/README.md", "")
+        or affected(paths, "scripts/self_validation/LeanProof", "")
+        or affected(paths, "scripts/self_validation/LalrpopGrammarContractTest.terl", "")
+        or affected(paths, "scripts/git_hooks/proofs.sh", "").
+
 pub lanes(paths: List[String]): List[String] ->
     let rust =
         if {
@@ -169,7 +181,12 @@ pub lanes(paths: List[String]): List[String] ->
             release_contract(paths) -> ["release-contract" | tooling];
             true -> tooling
         };
-    append(["shell" | bootstrapped], contracted).
+    let proved =
+        if {
+            proofs(paths) -> ["proofs" | bootstrapped];
+            true -> bootstrapped
+        };
+    append(["shell" | proved], contracted).
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {

@@ -25,6 +25,9 @@ cat > scripts/git_hooks/check.sh <<'CHECK'
 set -eu
 test "$(cat tracked.txt)" = good
 test -z "${GIT_INDEX_FILE:-}"
+if test -n "${EXPECTED_HOOK_CARGO_HOME:-}"; then
+  test "$CARGO_HOME" = "$EXPECTED_HOOK_CARGO_HOME"
+fi
 CHECK
 printf 'initial\n' > tracked.txt
 printf 'original\n' > marker.txt
@@ -40,6 +43,20 @@ bash "$driver" check > "$temporary/pass.log" 2>&1
 test "$(cat tracked.txt)" = unstaged
 test "$(cat keep.txt)" = untracked
 test "$(git show :tracked.txt)" = good
+
+# Default Cargo inputs are isolated; explicit relative overrides remain supported.
+env -u CARGO_HOME EXPECTED_HOOK_CARGO_HOME="$PWD/target/git-hooks/cargo-home" \
+  bash "$driver" check > "$temporary/cargo-default.log" 2>&1
+CARGO_HOME=custom-cache EXPECTED_HOOK_CARGO_HOME="$PWD/custom-cache" \
+  bash "$driver" check > "$temporary/cargo-explicit.log" 2>&1
+
+# The default cache cannot redirect validation into an unrelated global cache.
+mkdir "$temporary/unrelated-cargo"
+ln -s "$temporary/unrelated-cargo" target/git-hooks/cargo-home
+if env -u CARGO_HOME bash "$driver" check > "$temporary/cargo-link.log" 2>&1; then
+  echo 'Hook accepted a redirected default Cargo cache' >&2; exit 1
+fi
+rm target/git-hooks/cargo-home
 
 # A good working copy cannot hide a broken staged candidate.
 printf 'bad\n' > tracked.txt
@@ -97,4 +114,4 @@ if bash "$driver" install > "$temporary/install.log" 2>&1; then
   echo 'Hook installer replaced custom hooks' >&2; exit 1
 fi
 test "$(git config --get core.hooksPath)" = /dev/null
-echo 'Git hook snapshot regression tests passed (8 scenarios).'
+echo 'Git hook snapshot regression tests passed (11 scenarios).'
